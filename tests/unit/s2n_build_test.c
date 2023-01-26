@@ -13,12 +13,12 @@
 * permissions and limitations under the License.
 */
 #define _GNU_SOURCE
+#include <ctype.h>
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 
 #include "s2n_test.h"
 
@@ -30,7 +30,8 @@ struct libcrypto_info {
     bool is_fips;
 };
 
-void init_libcrypto_info(struct libcrypto_info *li) {
+void init_libcrypto_info(struct libcrypto_info *li)
+{
     if (li != NULL) {
         li->name = NULL;
         li->major_version = -1;
@@ -40,7 +41,8 @@ void init_libcrypto_info(struct libcrypto_info *li) {
     }
 }
 
-void print_libcrypto_info(struct libcrypto_info *li) {
+void print_libcrypto_info(struct libcrypto_info *li)
+{
     if (li == NULL) {
         printf("(null)");
         return;
@@ -54,19 +56,23 @@ void print_libcrypto_info(struct libcrypto_info *li) {
     printf("}\n");
 }
 
-int number_from_version(char *version) {
-    if (version == NULL) return -1;
-    if (version[0] == '0') return 0;
+int number_from_version(char *version)
+{
+    if (version == NULL)
+        return -1;
+    if (version[0] == '0')
+        return 0;
     int i = atoi(version);
+    /* atoi returns 0 on error */
     if (i == 0) {
-        // atoi error
         return -1;
     } else {
         return i;
     }
 }
 
-int convert_version_number_to_string(struct libcrypto_info *li, char *version_string_out) {
+int convert_version_number_to_string(struct libcrypto_info *li, char *version_string_out)
+{
     /* Format major minor and patch version in a normalized version string (e.x. "1.1.1", "3.0", "3", "") */
     /* If there is no major version, return -1 and leave version_string_out untouched. */
     if (li->major_version != -1) {
@@ -85,15 +91,17 @@ int convert_version_number_to_string(struct libcrypto_info *li, char *version_st
     return 0;
 }
 
-int extract_libcrypto_info_from_s2n_libcrypto(char *s2n_libcrypto_copy, struct libcrypto_info *li) {
-    if (li == NULL) return -1;
-    if (strlen(s2n_libcrypto_copy) == 0) return -1;
+int extract_libcrypto_info_from_s2n_libcrypto(char *s2n_libcrypto_copy, struct libcrypto_info *li)
+{
+    if (li == NULL)
+        return -1;
+    if (strlen(s2n_libcrypto_copy) == 0)
+        return -1;
     li->name = strtok(s2n_libcrypto_copy, "-");
     char *rest = strtok(NULL, "");
     printf("rest = %s\n", rest);
 
     if (rest != NULL && isdigit(rest[0])) {
-        // This is a version number
         char *saved = NULL;
         li->major_version = number_from_version(strtok(rest, ".-"));
         if (li->major_version != -1) {
@@ -117,13 +125,15 @@ int extract_libcrypto_info_from_s2n_libcrypto(char *s2n_libcrypto_copy, struct l
     return 0;
 }
 
-int extract_libcrypto_info_from_s2n_build_preset(char *s2n_build_preset_copy, struct libcrypto_info *li) {
-    if (li == NULL) return -1;
-    if (strlen(s2n_build_preset_copy) == 0) return -1;
+int extract_libcrypto_info_from_s2n_build_preset(char *s2n_build_preset_copy, struct libcrypto_info *li)
+{
+    if (li == NULL)
+        return -1;
+    if (strlen(s2n_build_preset_copy) == 0)
+        return -1;
     li->name = strtok(s2n_build_preset_copy, "-_");
     char *rest = strtok(NULL, "");
     if (rest != NULL && isdigit(rest[0])) {
-        // This is a version number
         li->major_version = number_from_version(strtok(rest, ".-"));
         if (li->major_version != -1) {
             li->minor_version = number_from_version(strtok(NULL, ".-"));
@@ -139,7 +149,6 @@ int extract_libcrypto_info_from_s2n_build_preset(char *s2n_build_preset_copy, st
     }
     return 0;
 }
-
 
 int main()
 {
