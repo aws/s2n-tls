@@ -81,8 +81,8 @@ int convert_version_number_to_string(struct libcrypto_info *li, char *version_st
     }
     if (li->patch_version != -1) {
         sprintf(version_string_out, ".%d", li->patch_version);
-        version_string_out = &version_string_out[2];
     }
+    return 0;
 }
 
 int extract_libcrypto_info_from_s2n_libcrypto(char *s2n_libcrypto_copy, struct libcrypto_info *li) {
@@ -167,7 +167,7 @@ int main()
     init_libcrypto_info(&s2n_build_preset_info);
     char s2n_build_preset_copy[100] = { 0 };
     strcpy(s2n_build_preset_copy, s2n_build_preset);
-    int s2n_build_preset_parsed = extract_libcrypto_info_from_s2n_build_preset(s2n_build_preset_copy, &s2n_build_preset);
+    int s2n_build_preset_parsed = extract_libcrypto_info_from_s2n_build_preset(s2n_build_preset_copy, &s2n_build_preset_info);
 
     struct libcrypto_info s2n_libcrypto_info = { 0 };
     init_libcrypto_info(&s2n_libcrypto_info);
