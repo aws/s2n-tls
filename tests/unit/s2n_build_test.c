@@ -18,133 +18,224 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include "s2n_test.h"
 
-/* s2n_test.h redefines OPEN_SSL_VERSION_NUMBER for LIBRESSL */
-#if defined(LIBRESSL_VERSION_NUMBER)
-const long unsigned openssl_version_number = 0x020000000L;
-#else
-const long unsigned openssl_version_number = OPENSSL_VERSION_NUMBER;
-#endif
+struct libcrypto_info {
+    char *name;
+    int major_version;
+    int minor_version;
+    int patch_version;
+    bool is_fips;
+};
 
-int main(int argc, char **argv)
+void init_libcrypto_info(struct libcrypto_info *li) {
+    if (li != NULL) {
+        li->name = NULL;
+        li->major_version = -1;
+        li->minor_version = -1;
+        li->patch_version = -1;
+        li->is_fips = false;
+    }
+}
+
+void print_libcrypto_info(struct libcrypto_info *li) {
+    if (li == NULL) {
+        printf("(null)");
+        return;
+    }
+    printf("struct libcrypto_info {\n");
+    printf("	name = %s\n", li->name);
+    printf("	major_version = %d\n", li->major_version);
+    printf("	minor_version = %d\n", li->minor_version);
+    printf("	patch_version = %d\n", li->patch_version);
+    printf("	is_fips = %d\n", li->is_fips);
+    printf("}\n");
+}
+
+int number_from_version(char *version) {
+    if (version == NULL) return -1;
+    if (version[0] == '0') return 0;
+    int i = atoi(version);
+    if (i == 0) {
+        // atoi error
+        return -1;
+    } else {
+        return i;
+    }
+}
+
+int convert_version_number_to_string(struct libcrypto_info *li, char *version_string_out) {
+    /* Format major minor and patch version in a normalized version string (e.x. "1.1.1", "3.0", "3", "") */
+    /* If there is no major version, return -1 and leave version_string_out untouched. */
+    if (li->major_version != -1) {
+        sprintf(version_string_out, "%d", li->major_version);
+        version_string_out = &version_string_out[1];
+    } else {
+        return -1;
+    }
+    if (li->minor_version != -1) {
+        sprintf(version_string_out, ".%d", li->minor_version);
+        version_string_out = &version_string_out[2];
+    }
+    if (li->patch_version != -1) {
+        sprintf(version_string_out, ".%d", li->patch_version);
+        version_string_out = &version_string_out[2];
+    }
+}
+
+int extract_libcrypto_info_from_s2n_libcrypto(char *s2n_libcrypto_copy, struct libcrypto_info *li) {
+    if (li == NULL) return -1;
+    if (strlen(s2n_libcrypto_copy) == 0) return -1;
+    li->name = strtok(s2n_libcrypto_copy, "-");
+    char *rest = strtok(NULL, "");
+    printf("rest = %s\n", rest);
+
+    if (rest != NULL && isdigit(rest[0])) {
+        // This is a version number
+        char *saved = NULL;
+        li->major_version = number_from_version(strtok(rest, ".-"));
+        if (li->major_version != -1) {
+            saved = strtok(NULL, ".-");
+            li->minor_version = number_from_version(saved);
+        }
+        if (li->minor_version != -1) {
+            saved = strtok(NULL, ".-");
+            li->patch_version = number_from_version(saved);
+        }
+        if (li->patch_version != -1) {
+            rest = strtok(NULL, "");
+        } else {
+            rest = saved;
+        }
+    }
+
+    if (rest != NULL) {
+        li->is_fips = (strstr(rest, "fips") != NULL);
+    }
+    return 0;
+}
+
+int extract_libcrypto_info_from_s2n_build_preset(char *s2n_build_preset_copy, struct libcrypto_info *li) {
+    if (li == NULL) return -1;
+    if (strlen(s2n_build_preset_copy) == 0) return -1;
+    li->name = strtok(s2n_build_preset_copy, "-_");
+    char *rest = strtok(NULL, "");
+    if (rest != NULL && isdigit(rest[0])) {
+        // This is a version number
+        li->major_version = number_from_version(strtok(rest, ".-"));
+        if (li->major_version != -1) {
+            li->minor_version = number_from_version(strtok(NULL, ".-"));
+        }
+        if (li->minor_version != -1) {
+            li->patch_version = number_from_version(strtok(NULL, "-_"));
+        }
+        rest = strtok(NULL, "");
+    }
+
+    if (rest != NULL) {
+        li->is_fips = (strstr(rest, "fips") != NULL);
+    }
+    return 0;
+}
+
+
+int main()
 {
-    (void) argc, (void) argv;
+    /* There are three different specifications of libcrypto which must be in sync.
+     *  1 The #include headers (-I) (checked with macros, e.g. OPENSSL_VERSION_TEXT and OPENSSL_IS_AWSLC)
+     *  2 The (dynamically) linked library (-L) (checked by calling function e.g. SSLeay_version)
+     *  3 The intent of the CI (declared by environment variables S2N_BUILD_PRESET and S2N_LIBCYPTO)
+     * BEGIN_TEST calls s2n_init which checks that (1) and (2) match.
+     */
     BEGIN_TEST();
+    /* The rest of the test checks that (3) matches (1) or (2). */
 
-    /*
-    * In the case that libcrypto is dynamically linked there is a chance that the
-    * build version and the linked version don't match. OPENSSL_VERSION_TEXT is
-    * a macro defined in openssl/crypto.h and should be returned from OpenSSL_version.
-    * In the event that we are dynamically linked to the wrong libcrypto the function,
-    * call will return a different version text than the one we used at a source level.
-    *
-    * If libcrypto is static linked, this is sure to be true.
-    */
-    if (SSLeay() != openssl_version_number) {
-        printf("\nOPENSSL_VERSION_NUMBER == %ld\n", (long int) openssl_version_number);
-        printf("SSLeay() == %ld\n", (long int) SSLeay());
-    }
-    EXPECT_EQUAL(SSLeay(), openssl_version_number);
-
-    /*
-    * The build configurations in CI are defined by S2N_BUILD_PRESET.
-    *
-    */
+    /* If both S2N_BUILD_PRESET and S2N_LIBCRYPTO are not defined, we aren't in a CI, end the test. */
     const char *s2n_build_preset = getenv("S2N_BUILD_PRESET");
-    if (s2n_build_preset == NULL) {
-        printf("S2N_BUILD_PRESET is not set.");
-        /* Apparently we aren't in CI. */
-        END_TEST();
-    }
-    printf("S2N_BUILD_PRESET set to %s.", s2n_build_preset);
-
-    /* CMake generated Makefiles can select a default LIBCRYPTO,
-    * lets make sure that didn't happen. */
     const char *s2n_libcrypto = getenv("S2N_LIBCRYPTO");
-    EXPECT_NOT_NULL(s2n_build_preset);
-
-#define CONTAINS(x) strcasestr(s2n_build_preset, x) != NULL
-#define CHK_LC(x)   EXPECT_EQUAL(strcmp(s2n_libcrypto, x), 0)
-    /* Verify that s2n_libcrypto matches s2n_build_preset.  */
-    if (CONTAINS("awslc") && CONTAINS("fips")) {
-        CHK_LC("awslc-fips");
-    } else if (CONTAINS("awslc")) {
-        CHK_LC("awslc");
-    } else if (CONTAINS("libressl")) {
-        CHK_LC("libressl");
-    } else if (CONTAINS("boringssl")) {
-        CHK_LC("boringssl");
-    } else if (CONTAINS("openssl") && CONTAINS("fips")) {
-        if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
-            CHK_LC("openssl-1.0.2-fips");
-        } else if (CONTAINS("1.1.1") || CONTAINS("1-1-1")) {
-            CHK_LC("openssl-1.1.1-fips");
-        } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
-            CHK_LC("openssl-3.0-fips");
-        } else {
-            printf("\nS2N_BUILD_PRESET == %s\n", s2n_build_preset);
-            printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
-            FAIL_MSG("Test didn't handle this openssl fips version.\n");
-        }
-    } else if (CONTAINS("openssl")) {
-        if (CONTAINS("1-0-2") || CONTAINS("1.0.2")) {
-            CHK_LC("openssl-1.0.2");
-        } else if (CONTAINS("1.1.1") || CONTAINS("1-1-1")) {
-            CHK_LC("openssl-1.1.1");
-        } else if (CONTAINS("3-0") || CONTAINS("3.0")) {
-            CHK_LC("openssl-3.0");
-        } else {
-            printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
-            printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
-            FAIL_MSG("\nTest didn't handle this openssl version.\n");
-        }
-    } else {
-        printf("\nS2N_BUILD_PRESET == %s\n", s2n_build_preset);
-        printf("S2N_LIBCRYPTO    == %s\n", s2n_libcrypto);
-        FAIL_MSG("Test didn't handle this combination of variables\n");
+    if (s2n_build_preset == NULL && s2n_libcrypto == NULL) {
+        /* No intent declared. */
+        FAIL_MSG("TODO: remove - DEBUGGING CI neither declared\n");
+        END_TEST();
+        return 0;
     }
 
-    /* Now that we can rely on the value of S2N_LIBCRYPTO lets check that it matches the version
-    * that libcrypto reports. */
-#define LC_IS(x) (strcmp(s2n_libcrypto, x) == 0)
-    const char *openssl_version = SSLeay_version(SSLEAY_VERSION);
+    /* Parse the info out of environment variables.  */
+    struct libcrypto_info s2n_build_preset_info = { 0 };
+    init_libcrypto_info(&s2n_build_preset_info);
+    char s2n_build_preset_copy[100] = { 0 };
+    strcpy(s2n_build_preset_copy, s2n_build_preset);
+    int s2n_build_preset_parsed = extract_libcrypto_info_from_s2n_build_preset(s2n_build_preset_copy, &s2n_build_preset);
 
-    if (LC_IS("awslc-fips") || LC_IS("awslc")) {
+    struct libcrypto_info s2n_libcrypto_info = { 0 };
+    init_libcrypto_info(&s2n_libcrypto_info);
+    char s2n_libcrypto_copy[100] = { 0 };
+    strcpy(s2n_libcrypto_copy, s2n_libcrypto);
+    int s2n_libcrypto_parsed = extract_libcrypto_info_from_s2n_libcrypto(s2n_libcrypto_copy, &s2n_libcrypto_info);
+
+    printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
+    print_libcrypto_info(&s2n_build_preset_info);
+    printf("S2N_LIBCRYPTO == %s\n", s2n_libcrypto);
+    print_libcrypto_info(&s2n_libcrypto_info);
+
+    if (s2n_libcrypto_parsed == -1 && s2n_build_preset_parsed == -1) {
+        /* Neither intent parsed.  */
+        FAIL_MSG("TODO: remove - DEBUGGING CI both failed to parse\n");
+        END_TEST();
+        return 0;
+    }
+
+    /* If S2N_BUILD_PRESET and S2N_LIBCRYPTO don't match the intent of the CI is inconsistent.  */
+    if (s2n_libcrypto_parsed != -1 && s2n_build_preset_parsed != -1) {
+        /* Check that intents, if both declared, match.  */
+        EXPECT_STRING_EQUAL(s2n_libcrypto_info.name, s2n_build_preset_info.name);
+        EXPECT_EQUAL(s2n_libcrypto_info.major_version, s2n_build_preset_info.major_version);
+        EXPECT_EQUAL(s2n_libcrypto_info.minor_version, s2n_build_preset_info.minor_version);
+        EXPECT_EQUAL(s2n_libcrypto_info.patch_version, s2n_build_preset_info.patch_version);
+        EXPECT_EQUAL(s2n_libcrypto_info.is_fips, s2n_build_preset_info.is_fips);
+    }
+
+    /* The intent of the CI is defined and consistent.  */
+    struct libcrypto_info *s2n_libcrypto_intent = NULL;
+    if (s2n_libcrypto_parsed != -1) {
+        s2n_libcrypto_intent = &s2n_libcrypto_info;
+    } else if (s2n_build_preset_parsed != -1) {
+        s2n_libcrypto_intent = &s2n_build_preset_info;
+    } else {
+        FAIL_MSG("Sanity check -- this should be unreachable");
+    }
+
+    /* Check libcrypto name matches the intent of the CI.  */
+    {
+        if (strcmp(s2n_libcrypto_intent->name, "awslc") == 0) {
+            /* aws lc version strings have a storied history:
+             *     Originally a fork from BoringSSL, OPENSSL_VERSION_TEXT was defined to be "OpenSSL 1.1.1 (compatible; BoringSSL)".
+             *     AWC-LC commit 8f184f5d69604cc4645bafec47c2d6d9929cb50f on 4/11/22 modified it to be  "OpenSSL 1.1.1 (compatible; AWL-LC)"
+             * Unfortunately in both cases we can't do a straight forward comparison against "awslc".
+             * We can however rely on the macro OPENSSL_IS_AWSLC.  */
 #ifndef OPENSSL_IS_AWSLC
-        FAIL_MSG("\nOpenSSL at build time wasn't AWS_LC, but S2N_LIBCRYPTO says it should be.\n");
+            FAIL_MSG("CI intended AWS-LC, but LIBCRYPTO isn't AWS-LC. ");
 #endif
-/* AWS-LC forked from BoringSSL but lagged in changing the OpenSSL version. We
- * make an exception for fips-2021-10-20, which reports itself as BoringSSL.
- *
- * Note: We don't make a similar exception for other older (or newer) versions
- *       of AWC-LC. As of fips-2022-11-02, AWS-LC reports itself as AWS-LC.
- * */
-#if AWSLC_API_VERSION == 16
-        EXPECT_EQUAL(0, strcmp(openssl_version, "BoringSSL"));
-#else
-        EXPECT_EQUAL(0, strcmp(openssl_version, "AWS-LC"));
-#endif
-    } else {
-        char s2n_libcrypto_copy[31] = { 0 };
-        strncpy(s2n_libcrypto_copy, s2n_libcrypto, 30);
-        char *token = strtok(s2n_libcrypto_copy, "-");
+        } else {
+            /* Any other library should have the name of the library (modulo case) in its version string.  */
+            printf("SSLeay_version(SSLEAY_VERSION) == %s\n", SSLeay_version(SSLEAY_VERSION));
+            printf("s2n_libcrypto_intent->name     == %s\n", s2n_libcrypto_intent->name);
+            EXPECT_NOT_NULL(strcasestr(SSLeay_version(SSLEAY_VERSION), s2n_libcrypto_intent->name));
+        }
+    };
 
-        /* The name of the library should be included (BoringSSL, LibreSSL, OpenSSL, ect) */
-        if (NULL == strcasestr(openssl_version, token)) {
-            printf("OPENSSL_VERSION_TEXT == %s\n", OPENSSL_VERSION_TEXT);
-            printf("SSLeay_version(SSLEAY_VERSION) == %s\n", openssl_version);
-            printf("token == %s\n", token);
-            printf("s2n_libcrypto == %s\n", s2n_libcrypto);
+    /* Check libcrypto version matches the intent of the CI.  */
+    {
+        char intent_version[20] = { 0 };
+        if (convert_version_number_to_string(s2n_libcrypto_intent, intent_version) != -1) {
+            printf("SSLeay_version(SSLEAY_VERSION) == %s\n", SSLeay_version(SSLEAY_VERSION));
+            printf("intent_version                 == %s\n", intent_version);
+            EXPECT_NOT_NULL(strstr(SSLeay_version(SSLEAY_VERSION), intent_version));
         }
-        EXPECT_NOT_NULL(strcasestr(openssl_version, token));
-        /* The version number, if present should also be there. */
-        strtok(NULL, "-");
-        if (token != NULL) {
-            EXPECT_NOT_NULL(strcasestr(openssl_version, token));
-        }
-    }
+    };
+
     END_TEST();
     return 0;
 }
