@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     /* Valid blob is valid */
     uint8_t array[12];
     struct s2n_blob b3 = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&b3, array,sizeof(array)));
+    EXPECT_SUCCESS(s2n_blob_init(&b3, array, sizeof(array)));
     EXPECT_OK(s2n_blob_validate(&b3));
 
     /* Null blob is not growable */
