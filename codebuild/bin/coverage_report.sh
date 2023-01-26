@@ -17,9 +17,18 @@ set -e
 # merge profiling data
 llvm-profdata merge -sparse tests/unit/ut_*.profraw -o merged.profdata
 
+# generate file-level summary
+llvm-cov report build/lib/libs2n.so \
+    -instr-profile=merged.profdata \
+    > coverage_summary.txt
+
+# convert llvm information to lcov format for genhtml
 llvm-cov export build/lib/libs2n.so \
     -instr-profile=merged.profdata \
     -format=lcov \
     > unit_test_coverage.info
 
-genhtml unit_test_coverage.info -o coverage_report
+# generate html report with annotated source files
+genhtml unit_test_coverage.info \
+    --branch-coverage \
+    -o coverage_report

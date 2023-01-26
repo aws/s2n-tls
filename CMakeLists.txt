@@ -373,7 +373,7 @@ if (COVERAGE)
     # on LLVM compilers. GCC would fail with "unrecognized compile options"
     # on -fprofile-instr-generate -fcoverage-mapping flags.
     if (NOT ${CMAKE_C_COMPILER_ID} MATCHES Clang)
-        message(FATAL_ERROR "This project requires clang for coverage support".)
+        message(FATAL_ERROR "This project requires clang for coverage support")
     endif()
     target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
     target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)

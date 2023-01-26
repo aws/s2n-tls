@@ -14,11 +14,12 @@
 #
 
 set -e
+echo "The codebuild source version is ${CODEBUILD_SOURCE_VERSION}"
 
-# upload to codecov.io
-curl -Os https://uploader.codecov.io/latest/linux/codecov
+CLOUDFRONT_DISTRIBUTION="https://dx1inn44oyl7n.cloudfront.net"
 
-chmod +x codecov
-./codecov -t ${CODECOV_TOKEN} -f unit_test_coverage.info
+aws s3 sync coverage_report      s3://s2n-tls-public-coverage-artifacts/${CODEBUILD_SOURCE_VERSION}/report
+aws s3 cp   coverage_summary.txt s3://s2n-tls-public-coverage-artifacts/${CODEBUILD_SOURCE_VERSION}/summary.txt
 
-aws s3 sync coverage_report s3://s2n-tls-public-coverage-artifacts/latest
+echo "report : is at ${CLOUDFRONT_DISTRIBUTION}/${CODEBUILD_SOURCE_VERSION}/report/index.html"
+echo "summary: is at ${CLOUDFRONT_DISTRIBUTION}/${CODEBUILD_SOURCE_VERSION}/summary.txt"
