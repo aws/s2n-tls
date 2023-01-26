@@ -1601,12 +1601,17 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+bool s2n_handshake_is_complete(struct s2n_connection *conn)
+{
+    return conn && ACTIVE_STATE(conn).writer == 'B';
+}
+
 int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
 
-    while (ACTIVE_STATE(conn).writer != 'B' && ACTIVE_MESSAGE(conn) != conn->handshake.end_of_messages) {
+    while (!s2n_handshake_is_complete(conn) && ACTIVE_MESSAGE(conn) != conn->handshake.end_of_messages) {
         errno = 0;
         s2n_errno = S2N_ERR_OK;
 
