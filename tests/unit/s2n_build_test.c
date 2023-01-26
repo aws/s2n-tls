@@ -165,7 +165,6 @@ int main()
     const char *s2n_libcrypto = getenv("S2N_LIBCRYPTO");
     if (s2n_build_preset == NULL && s2n_libcrypto == NULL) {
         /* No intent declared. */
-        FAIL_MSG("TODO: remove - DEBUGGING CI neither declared\n");
         END_TEST();
         return 0;
     }
