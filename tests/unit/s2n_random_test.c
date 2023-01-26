@@ -174,7 +174,7 @@ static S2N_RESULT s2n_tests_get_range(void)
     /* The type of the `bound` parameter in s2n_public_random() is signed */
     int64_t chosen_upper_bound = 0;
     struct s2n_blob upper_bound_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&upper_bound_blob, (void *) &chosen_upper_bound, sizeof(chosen_upper_bound))) ;
+    EXPECT_SUCCESS(s2n_blob_init(&upper_bound_blob, (void *) &chosen_upper_bound, sizeof(chosen_upper_bound)));
 
     /* 0 is not a legal upper bound */
     chosen_upper_bound = 0;
