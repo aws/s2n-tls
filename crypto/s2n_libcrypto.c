@@ -43,9 +43,9 @@
  * distinguish AWS-LC fips and non-fips at pre-processing time since AWS-LC
  * doesn't distribute fips-specific header files.
  */
-#define EXPECTED_AWSLC_NAME_PREFIX_FIPS_OR_OLD    "BoringSSL"
-#define EXPECTED_AWSLC_NAME_PREFIX_NON_FIPS       "AWS-LC"
-#define EXPECTED_BORINGSSL_NAME_PREFIX            "BoringSSL"
+#define EXPECTED_AWSLC_NAME_PREFIX_FIPS_OR_OLD "BoringSSL"
+#define EXPECTED_AWSLC_NAME_PREFIX_NON_FIPS    "AWS-LC"
+#define EXPECTED_BORINGSSL_NAME_PREFIX         "BoringSSL"
 
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFPPS major minor fix patch status.
