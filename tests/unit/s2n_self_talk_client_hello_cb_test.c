@@ -469,8 +469,8 @@ int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode,
     /* Ensure that callback was invoked */
     EXPECT_EQUAL(ch_ctx->invoked, 1);
 
-    /* shutdown to flush alert, expext failure as client doesn't send close notify */
-    EXPECT_FAILURE(s2n_shutdown(conn, &blocked));
+    /* shutdown to flush alert */
+    EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     EXPECT_SUCCESS(test_case_clean(NULL, pid, config, &io_pair, ch_ctx));

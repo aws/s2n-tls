@@ -755,11 +755,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(client_hello->raw_message.data);
         EXPECT_EQUAL(client_hello->raw_message.size, 0);
 
-        /* Not a real tls client but make sure we block on its close_notify */
-        int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
-        EXPECT_EQUAL(shutdown_rc, -1);
-        EXPECT_EQUAL(errno, EAGAIN);
-        EXPECT_EQUAL(server_conn->close_notify_queued, 1);
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
 
         /* Wipe connection */
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
@@ -1075,11 +1071,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(client_hello->raw_message.data);
         EXPECT_EQUAL(client_hello->raw_message.size, 0);
 
-        /* Not a real tls client but make sure we block on its close_notify */
-        int shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
-        EXPECT_EQUAL(shutdown_rc, -1);
-        EXPECT_EQUAL(errno, EAGAIN);
-        EXPECT_EQUAL(server_conn->close_notify_queued, 1);
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
 
         /* Wipe connection */
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
@@ -1125,11 +1117,7 @@ int main(int argc, char **argv)
         collected_client_hello = client_hello->raw_message.data;
         EXPECT_BYTEARRAY_EQUAL(collected_client_hello, expected_client_hello, sent_client_hello_len);
 
-        /* Not a real tls client but make sure we block on its close_notify */
-        shutdown_rc = s2n_shutdown(server_conn, &server_blocked);
-        EXPECT_EQUAL(shutdown_rc, -1);
-        EXPECT_EQUAL(errno, EAGAIN);
-        EXPECT_EQUAL(server_conn->close_notify_queued, 1);
+        EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 

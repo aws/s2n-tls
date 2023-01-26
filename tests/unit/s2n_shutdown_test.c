@@ -21,6 +21,15 @@
 
 #define ALERT_LEN (sizeof(uint16_t))
 
+static S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn)
+{
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+    while (!s2n_handshake_is_complete(conn)) {
+        conn->handshake.message_number++;
+    }
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -30,66 +39,92 @@ int main(int argc, char **argv)
         0 /* AlertDescription = close_notify */
     };
 
-    /* Test s2n_shutdown */
+    /* Test: Do not wait for response close_notify if handshake not complete */
     {
-        /* Await close_notify if close_notify_received is not set */
-        {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
 
-            struct s2n_stuffer input;
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            struct s2n_stuffer output;
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
 
-            /* Verify state prior to alert */
-            EXPECT_FALSE(conn->close_notify_received);
+        /* Verify state prior to alert */
+        EXPECT_FALSE(s2n_handshake_is_complete(conn));
+        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(conn->close_notify_queued);
+        EXPECT_FALSE(conn->closed);
 
-            s2n_blocked_status blocked;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO_BLOCKED);
-            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
 
-            /* Verify state after shutdown attempt */
-            EXPECT_FALSE(conn->close_notify_received);
+        /* Verify state after shutdown attempt */
+        EXPECT_FALSE(s2n_handshake_is_complete(conn));
+        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_TRUE(conn->close_notify_queued);
+        EXPECT_TRUE(conn->closed);
+    };
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&input));
-            EXPECT_SUCCESS(s2n_stuffer_free(&output));
-        };
+    /* Test: Await close_notify if no close_notify received yet */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_skip_handshake(conn));
 
-        /* Do not await close_notify if close_notify_received is set */
-        {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
 
-            struct s2n_stuffer input;
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            struct s2n_stuffer output;
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+        /* Verify state prior to alert */
+        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(conn->closed);
 
-            /* Verify state prior to alert */
-            EXPECT_FALSE(conn->close_notify_received);
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
-            /* Write and process the alert */
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, close_notify_alert, sizeof(close_notify_alert)));
-            EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
+        /* Verify state after shutdown attempt */
+        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_TRUE(conn->closed);
+    };
 
-            /* Verify state after alert */
-            EXPECT_TRUE(conn->close_notify_received);
+    /* Test: Do not await close_notify if close_notify already received */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_skip_handshake(conn));
 
-            s2n_blocked_status blocked;
-            EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
 
-            /* Verify state after shutdown attempt */
-            EXPECT_TRUE(conn->close_notify_received);
+        /* Verify state prior to alert */
+        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(conn->closed);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_stuffer_free(&input));
-            EXPECT_SUCCESS(s2n_stuffer_free(&output));
-        };
+        /* Write and process the alert */
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, close_notify_alert, sizeof(close_notify_alert)));
+        EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
+
+        /* Verify state after alert */
+        EXPECT_TRUE(conn->close_notify_received);
+        EXPECT_TRUE(conn->closed);
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        /* Verify state after shutdown attempt */
+        EXPECT_TRUE(conn->close_notify_received);
+        EXPECT_TRUE(conn->closed);
     };
 
     END_TEST();
