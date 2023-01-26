@@ -288,6 +288,7 @@ S2N_RESULT s2n_ktls_tx_keys(struct s2n_connection *conn, int fd, uint8_t implici
     return S2N_RESULT_OK;
 }
 
+/* only enable server send and client receive kTLS */
 S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, int fd)
 {
     RESULT_ENSURE_REF(conn);
@@ -455,6 +456,7 @@ S2N_RESULT s2n_connection_ktls_rekey(struct s2n_connection *conn)
 
     /* RESULT_GUARD(s2n_ktls_set_keys(conn, conn->sendfd)); */
     RESULT_GUARD(s2n_ktls_tx_keys(conn, conn->sendfd, 0, 0, conn->server_key));
+    RESULT_GUARD(s2n_ktls_rx_keys(conn, conn->sendfd, 0, 0, conn->server_key));
 
     return S2N_RESULT_OK;
 }
