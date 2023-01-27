@@ -70,7 +70,7 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
 
 /* Whether the client should include the length prefix in the PQ TLS 1.3 KEM KeyShares that it sends. Earlier drafts of
  * the PQ TLS 1.3 standard required length prefixing, and later drafts removed this length prefix. To not break
- * backwards compatibility, we check what revision of the draft standard is configured to determin whether to send it. */
+ * backwards compatibility, we check what revision of the draft standard is configured to determine whether to send it. */
 bool s2n_kem_client_prefers_length_prefix(const struct s2n_kem_preferences *kem_pref)
 {
     return (kem_pref->pq_hybrid_draft_revision == 0);
