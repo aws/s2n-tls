@@ -152,7 +152,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
-        struct s2n_stuffer extension_data;
+        struct s2n_stuffer extension_data = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension_data, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_str(&extension_data, "bad extension"));
 

@@ -197,7 +197,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         conn->actual_protocol_version = S2N_TLS12;
 
-        struct s2n_stuffer input;
+        struct s2n_stuffer input = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
         conn->actual_protocol_version = S2N_TLS12;
 
-        struct s2n_stuffer input;
+        struct s2n_stuffer input = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             conn->actual_protocol_version = S2N_TLS12;
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             conn->actual_protocol_version = S2N_TLS12;
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -362,7 +362,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS12;
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS12;
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 

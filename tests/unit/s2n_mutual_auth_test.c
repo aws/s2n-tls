@@ -86,8 +86,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -145,8 +145,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -199,8 +199,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -259,8 +259,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
