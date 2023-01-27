@@ -47,7 +47,7 @@ const char expected_dhe_key_hex[] = "0100cb5fa155609f350a0f07e340ef7dc854e38d97c
                                     "ddbaa47646a497793e0a8e129e00e4fcd4b11b68897afb0987a48f51e3a3079e3d0573d340597c2c7b8ec839ea608a341c8d3ae8fb8a30c2d80e7083f64adf790"
                                     "18a19c";
 
-struct s2n_stuffer test_entropy;
+struct s2n_stuffer test_entropy = { 0 };
 int s2n_entropy_generator(void *data, uint32_t size)
 {
     struct s2n_blob blob = { .data = data, .size = size };
