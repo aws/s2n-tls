@@ -41,6 +41,19 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     /* Flush any pending records, then send the queued close_notify. */
     POSIX_GUARD(s2n_flush(conn, blocked));
 
+    /*
+     * The purpose of the peer responding to our close_notify
+     * with its own close_notify is to prevent application data truncation.
+     * However, application data is not a concern during the handshake.
+     *
+     * Additionally, decrypting alerts sent during the handshake can be error prone
+     * due to different encryption keys and may lead to unnecessary error reporting
+     * and unnecessary blinding.
+     */
+    if (!s2n_handshake_is_complete(conn)) {
+        return S2N_SUCCESS;
+    }
+
     /* Wait for the peer's close_notify. */
     uint8_t record_type = 0;
     int isSSLv2 = false;
