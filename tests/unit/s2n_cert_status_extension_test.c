@@ -186,12 +186,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_OCSP_CA_CERT, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
-            EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, S2N_STATUS_REQUEST_OCSP));
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -208,6 +208,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
 
             uint32_t client_received_ocsp_response_len = 0;
             const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,
@@ -261,6 +264,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
+            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
+
             uint32_t client_received_ocsp_response_len = 0;
             const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,
                     &client_received_ocsp_response_len);
@@ -313,6 +319,9 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
+            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
+
             uint32_t client_received_ocsp_response_len = 0;
             const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,
                     &client_received_ocsp_response_len);
@@ -326,6 +335,55 @@ int main(int argc, char **argv)
             /* The server sent an OCSP response, and the client received an OCSP response */
             EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 1);
             EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 1);
+        }
+
+        /* Server sets an OCSP response but client does not request OCSP stapling */
+        {
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_OCSP_CA_CERT, NULL));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_NONE));
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "s2n Test Cert"));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
+
+            uint32_t client_received_ocsp_response_len = 0;
+            const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,
+                    &client_received_ocsp_response_len);
+
+            uint32_t server_received_ocsp_response_len = 0;
+            const uint8_t *server_received_ocsp_response = s2n_connection_get_ocsp_response(server_conn,
+                    &server_received_ocsp_response_len);
+
+            /* Both the server and client did not request OCSP responses, so neither should have received them. */
+            EXPECT_NULL(client_received_ocsp_response);
+            EXPECT_NULL(server_received_ocsp_response);
+
+            /* The server did not send an OCSP response, and the client did not receive an OCSP response */
+            EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(server_conn), 0);
+            EXPECT_EQUAL(s2n_connection_is_ocsp_stapled(client_conn), 0);
         }
     }
 
