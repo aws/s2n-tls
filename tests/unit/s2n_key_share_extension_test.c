@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_ecdhe_parameters_send write with valid ecc params */
     {
-        struct s2n_stuffer out;
+        struct s2n_stuffer out = { 0 };
 
         struct s2n_ecc_evp_params ecc_evp_params;
         ecc_evp_params.negotiated_curve = test_curve;
@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_ecdhe_parameters_send failure with bad ecc params */
     {
-        struct s2n_stuffer out;
+        struct s2n_stuffer out = { 0 };
 
         struct s2n_ecc_evp_params ecc_evp_params;
         const struct s2n_ecc_named_curve bad_curve = {

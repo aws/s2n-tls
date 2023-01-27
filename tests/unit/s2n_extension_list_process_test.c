@@ -66,7 +66,7 @@ int main()
     /* Test s2n_extension_process */
     {
         uint8_t extension_data[] = "data";
-        struct s2n_blob extension_blob;
+        struct s2n_blob extension_blob = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
 
         const s2n_extension_type test_extension_type = {

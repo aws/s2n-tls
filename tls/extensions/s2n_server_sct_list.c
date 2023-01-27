@@ -54,7 +54,7 @@ int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *ex
 {
     POSIX_ENSURE_REF(conn);
 
-    struct s2n_blob sct_list;
+    struct s2n_blob sct_list = { 0 };
     size_t data_available = s2n_stuffer_data_available(extension);
     POSIX_GUARD(s2n_blob_init(&sct_list,
             s2n_stuffer_raw_read(extension, data_available),
