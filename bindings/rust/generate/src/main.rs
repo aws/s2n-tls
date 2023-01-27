@@ -110,7 +110,7 @@ fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
 
     let pattern = format!("{}/**/*.c", input.display());
 
-    writeln!(o, "{}", COPYRIGHT)?;
+    writeln!(o, "{COPYRIGHT}")?;
     writeln!(o, "[")?;
     for file in glob::glob(&pattern).unwrap() {
         let file = file.unwrap();
@@ -197,7 +197,7 @@ impl FunctionCallbacks {
         let mut tests = std::fs::File::create(out)?;
         let mut o = io::BufWriter::new(&mut tests);
 
-        writeln!(o, "{}", COPYRIGHT)?;
+        writeln!(o, "{COPYRIGHT}")?;
         let iter = functions.iter();
         for (feature, function) in iter {
             // don't generate tests for types
@@ -214,11 +214,11 @@ impl FunctionCallbacks {
 
             // if the function is behind a feature, gate it with `cfg`
             if let Some(feature) = feature {
-                writeln!(o, "#[cfg(feature = {:?})]", feature)?;
+                writeln!(o, "#[cfg(feature = {feature:?})]")?;
             };
 
-            writeln!(o, "fn {} () {{", function)?;
-            writeln!(o, "    let ptr = crate::{} as *const ();", function)?;
+            writeln!(o, "fn {function} () {{")?;
+            writeln!(o, "    let ptr = crate::{function} as *const ();")?;
             writeln!(o, "    assert!(!ptr.is_null());")?;
             writeln!(o, "}}")?;
             writeln!(o)?;

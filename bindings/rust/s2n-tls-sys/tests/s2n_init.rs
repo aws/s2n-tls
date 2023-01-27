@@ -17,7 +17,7 @@ fn s2n_init_test() {
         if error != 0 {
             let msg = s2n_strerror_name(error);
             let msg = std::ffi::CStr::from_ptr(msg);
-            panic!("s2n did not initialize correctly: {:?}", msg);
+            panic!("s2n did not initialize correctly: {msg:?}");
         }
     }
 }
