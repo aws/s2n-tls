@@ -108,7 +108,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
 
         server_conn->actual_protocol_version = S2N_TLS12;
@@ -164,7 +164,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
 
         server_conn->actual_protocol_version = S2N_TLS12;
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 5));

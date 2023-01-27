@@ -428,7 +428,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
-        struct s2n_stuffer input;
+        struct s2n_stuffer input = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -470,7 +470,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS13;
         EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
-        struct s2n_stuffer input;
+        struct s2n_stuffer input = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -514,7 +514,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -541,7 +541,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -567,7 +567,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -603,7 +603,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 
@@ -632,7 +632,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             POSIX_GUARD(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_OPTIONAL));
 
-            struct s2n_stuffer input;
+            struct s2n_stuffer input = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, NULL, conn));
 

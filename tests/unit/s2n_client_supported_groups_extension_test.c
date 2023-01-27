@@ -49,7 +49,7 @@ int main()
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -429,7 +429,7 @@ int main()
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -454,7 +454,7 @@ int main()
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -480,7 +480,7 @@ int main()
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -511,7 +511,7 @@ int main()
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        struct s2n_stuffer supported_groups_extension;
+        struct s2n_stuffer supported_groups_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&supported_groups_extension, 2 + ec_curves_count * 2));
         POSIX_GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, ec_curves_count * 2));
         for (int i = 0; i < ec_curves_count; i++) {

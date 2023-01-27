@@ -22,7 +22,7 @@
 int main(int argc, char **argv)
 {
     uint8_t entropy[2048] = { 0 };
-    struct s2n_stuffer stuffer;
+    struct s2n_stuffer stuffer = { 0 };
     uint8_t u8;
     uint16_t u16;
     uint32_t u32;
@@ -139,24 +139,24 @@ int main(int argc, char **argv)
 
 #ifndef NDEBUG
     /* Invalid blob should fail init */
-    struct s2n_stuffer s1;
+    struct s2n_stuffer s1 = { 0 };
     struct s2n_blob b1 = { .data = 0, .size = 101 };
     EXPECT_FAILURE(s2n_stuffer_init(&s1, &b1));
 #endif
 
     /* Valid empty blob should succeed init */
-    struct s2n_stuffer s2;
+    struct s2n_stuffer s2 = { 0 };
     struct s2n_blob b2 = { .data = 0, .size = 0 };
     EXPECT_SUCCESS(s2n_stuffer_init(&s2, &b2));
 
     /* Valid blob should succeed init */
-    struct s2n_stuffer s3;
+    struct s2n_stuffer s3 = { 0 };
     uint8_t a3[12];
     struct s2n_blob b3 = { .data = a3, .size = sizeof(a3) };
     EXPECT_SUCCESS(s2n_stuffer_init(&s3, &b3));
 
     /* Null blob should fail init */
-    struct s2n_stuffer s4;
+    struct s2n_stuffer s4 = { 0 };
     EXPECT_FAILURE(s2n_stuffer_init(&s4, NULL));
 
     /* Null stuffer should fail init */

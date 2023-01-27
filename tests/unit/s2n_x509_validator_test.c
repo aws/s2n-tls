@@ -834,7 +834,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -874,7 +874,7 @@ int main(int argc, char **argv)
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_NO_NEXT_UPDATE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -929,7 +929,7 @@ int main(int argc, char **argv)
         s2n_pkey_free(&public_key_out);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -972,7 +972,7 @@ int main(int argc, char **argv)
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
 
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1018,7 +1018,7 @@ int main(int argc, char **argv)
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_invalid_before_ocsp_timestamp, NULL);
 
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1062,7 +1062,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1110,7 +1110,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1156,7 +1156,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1203,7 +1203,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_WRONG_SIGNER_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1248,7 +1248,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        struct s2n_stuffer ocsp_data_stuffer;
+        struct s2n_stuffer ocsp_data_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_REVOKED_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1414,7 +1414,7 @@ int main(int argc, char **argv)
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct s2n_stuffer chain_stuffer;
+        struct s2n_stuffer chain_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_ONE_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
         uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
         EXPECT_TRUE(chain_len > 0);
@@ -1438,7 +1438,7 @@ int main(int argc, char **argv)
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(connection);
 
-        struct s2n_stuffer chain_stuffer;
+        struct s2n_stuffer chain_stuffer = { 0 };
         EXPECT_SUCCESS(read_file(&chain_stuffer, S2N_FOUR_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
         uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
         EXPECT_TRUE(chain_len > 0);

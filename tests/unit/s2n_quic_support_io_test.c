@@ -80,7 +80,7 @@ static S2N_RESULT s2n_write_test_message(struct s2n_blob *out, message_type_t me
 {
     RESULT_GUARD_POSIX(s2n_alloc(out, TEST_DATA_SIZE + TLS_HANDSHAKE_HEADER_LENGTH));
 
-    struct s2n_stuffer stuffer;
+    struct s2n_stuffer stuffer = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init(&stuffer, out));
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&stuffer, message_type));
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -177,7 +177,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -196,7 +196,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -217,7 +217,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -394,7 +394,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             /* Sabotage the output stuffer to block writing */
-            struct s2n_stuffer bad_stuffer;
+            struct s2n_stuffer bad_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input_stuffer, &bad_stuffer, conn));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);

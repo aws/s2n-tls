@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(size_result, -1);
         uint16_t expected_length = size_result - S2N_EXTENSION_TYPE_FIELD_LENGTH - S2N_EXTENSION_LENGTH_FIELD_LENGTH;
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, expected_length);
 
         EXPECT_SUCCESS(s2n_client_supported_versions_extension.send(client_conn, &extension));
@@ -158,7 +158,7 @@ int main(int argc, char **argv)
         uint8_t supported_version_list[] = { S2N_TLS11, S2N_TLS12, S2N_TLS13, unsupported_client_version };
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1);
 
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
         uint8_t supported_version_list[] = { S2N_TLS11, S2N_TLS12, S2N_TLS13, unsupported_client_version };
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1);
 
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
         uint16_t invalid_version_list[] = { 0x0020, 0x0021, 0x0403, 0x0305, 0x7a7a, 0x0201 };
         uint8_t invalid_version_list_length = s2n_array_len(invalid_version_list);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
         uint16_t grease_version_list[] = { 0x0304, GREASED_SUPPORTED_VERSION_EXTENSION_VALUES };
         uint8_t grease_version_list_length = s2n_array_len(grease_version_list);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
@@ -261,7 +261,7 @@ int main(int argc, char **argv)
         uint16_t invalid_version_list[] = { 0x0020, 0x0200, 0x0201, 0x0304, 0x0021, 0x0305, 0x0403, 0x7a7a };
         uint8_t invalid_version_list_length = s2n_array_len(invalid_version_list);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
         uint8_t supported_version_list[] = { S2N_SSLv3 };
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1);
 
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, 1);
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0));
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, 1);
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 13));
@@ -345,7 +345,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, 5);
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 2));
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, 4);
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 3));
