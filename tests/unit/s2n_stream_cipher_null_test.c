@@ -26,16 +26,20 @@ int main(int argc, char **argv)
     /* Test that in and out being the same size succeeds */
     {
         uint8_t array[9] = { 0 };
-        struct s2n_blob in = { .data = array, .size = 9 };
-        struct s2n_blob out = { .data = array, .size = 9 };
+        struct s2n_blob in = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&in, array, 9));
+        struct s2n_blob out = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&out, array, 9));
         EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
     };
 
     /* Test that in size > out size fails */
     {
         uint8_t array[9] = { 0 };
-        struct s2n_blob in = { .data = array, .size = 9 };
-        struct s2n_blob out = { .data = array, .size = 8 };
+        struct s2n_blob in = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&in, array, 9));
+        struct s2n_blob out = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&out, array, 8));
         EXPECT_FAILURE(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
     };
 
@@ -43,8 +47,10 @@ int main(int argc, char **argv)
     {
         uint8_t in_array[9] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
         uint8_t out_array[9] = { 0 };
-        struct s2n_blob in = { .data = in_array, .size = 9 };
-        struct s2n_blob out = { .data = out_array, .size = 9 };
+        struct s2n_blob in = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&in, in_array, 9));
+        struct s2n_blob out = { 0};
+        EXPECT_SUCCESS(s2n_blob_init(&out, out_array, 9));
         EXPECT_BYTEARRAY_NOT_EQUAL(in_array, out_array, out.size);
         EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));
         EXPECT_BYTEARRAY_EQUAL(in_array, out_array, out.size);

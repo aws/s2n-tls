@@ -35,7 +35,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, 100));
 
     /* Try to write 101 bytes */
-    struct s2n_blob in = { .data = entropy, .size = 101 };
+    struct s2n_blob in = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&in, entropy, 101));
     EXPECT_FAILURE(s2n_stuffer_write(&stuffer, &in));
 
     /* Try to write 101 1-byte ints bytes */
@@ -146,13 +147,15 @@ int main(int argc, char **argv)
 
     /* Valid empty blob should succeed init */
     struct s2n_stuffer s2 = { 0 };
-    struct s2n_blob b2 = { .data = 0, .size = 0 };
+    struct s2n_blob b2 = { 0};
+    EXPECT_SUCCESS(s2n_blob_init(&b2, 0, 0));
     EXPECT_SUCCESS(s2n_stuffer_init(&s2, &b2));
 
     /* Valid blob should succeed init */
     struct s2n_stuffer s3 = { 0 };
     uint8_t a3[12];
-    struct s2n_blob b3 = { .data = a3, .size = sizeof(a3) };
+    struct s2n_blob b3 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&b3, a3, sizeof(a3)));
     EXPECT_SUCCESS(s2n_stuffer_init(&s3, &b3));
 
     /* Null blob should fail init */
@@ -160,13 +163,15 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_stuffer_init(&s4, NULL));
 
     /* Null stuffer should fail init */
-    struct s2n_blob b5 = { .data = 0, .size = 0 };
+    struct s2n_blob b5 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&b5, 0, 0));
     EXPECT_FAILURE(s2n_stuffer_init(NULL, &b5));
 
     /* Check s2n_stuffer_validate() function */
     EXPECT_ERROR(s2n_stuffer_validate(NULL));
     uint8_t valid_blob_array[12];
-    struct s2n_blob blob_valid = { .data = valid_blob_array, .size = sizeof(valid_blob_array) };
+    struct s2n_blob blob_valid = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob_valid, valid_blob_array, sizeof(valid_blob_array)));
 
     struct s2n_stuffer stuffer_valid = { 0 };
     EXPECT_SUCCESS(s2n_stuffer_init(&stuffer_valid, &blob_valid));
