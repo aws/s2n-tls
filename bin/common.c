@@ -516,10 +516,9 @@ int wait_for_shutdown(struct s2n_connection *conn, int fd)
                 }
                 /* Otherwise, IO errors are fatal and should be investigated */
                 fprintf(stderr, "Unexpected IO error during shutdown: %s\n", strerror(errno_val));
-                exit(1);
+                return S2N_FAILURE;
             default:
-                fprintf(stderr, "Unexpected error during shutdown: %s\n", s2n_strerror(s2n_errno, NULL));
-                exit(1);
+                return S2N_FAILURE;
         }
     }
     return S2N_SUCCESS;
