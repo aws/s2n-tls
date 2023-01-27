@@ -49,7 +49,7 @@ int main(int argc, char **argv)
         uint8_t out_array[9] = { 0 };
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, in_array, 9));
-        struct s2n_blob out = { 0};
+        struct s2n_blob out = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&out, out_array, 9));
         EXPECT_BYTEARRAY_NOT_EQUAL(in_array, out_array, out.size);
         EXPECT_SUCCESS(s2n_stream_cipher_null_endecrypt(NULL, &in, &out));

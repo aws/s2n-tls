@@ -147,7 +147,7 @@ int main(int argc, char **argv)
 
     /* Valid empty blob should succeed init */
     struct s2n_stuffer s2 = { 0 };
-    struct s2n_blob b2 = { 0};
+    struct s2n_blob b2 = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&b2, 0, 0));
     EXPECT_SUCCESS(s2n_stuffer_init(&s2, &b2));
 
