@@ -46,7 +46,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_protocol_name, test_protocol_name_size);
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         EXPECT_SUCCESS(s2n_server_alpn_extension.send(conn, &stuffer));
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             EXPECT_SUCCESS(s2n_server_alpn_extension.send(server_conn, &stuffer));
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
             struct s2n_connection *client_conn;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             EXPECT_SUCCESS(s2n_server_alpn_extension.send(server_conn, &stuffer));
