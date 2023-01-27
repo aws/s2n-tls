@@ -41,21 +41,6 @@ void init_libcrypto_info(struct libcrypto_info *li)
     }
 }
 
-void print_libcrypto_info(struct libcrypto_info *li)
-{
-    if (li == NULL) {
-        printf("(null)");
-        return;
-    }
-    printf("struct libcrypto_info {\n");
-    printf("	name = %s\n", li->name);
-    printf("	major_version = %d\n", li->major_version);
-    printf("	minor_version = %d\n", li->minor_version);
-    printf("	patch_version = %d\n", li->patch_version);
-    printf("	is_fips = %d\n", li->is_fips);
-    printf("}\n");
-}
-
 int number_from_version(char *version)
 {
     if (version == NULL)
@@ -99,7 +84,6 @@ int extract_libcrypto_info_from_s2n_libcrypto(char *s2n_libcrypto_copy, struct l
         return -1;
     li->name = strtok(s2n_libcrypto_copy, "-");
     char *rest = strtok(NULL, "");
-    printf("rest = %s\n", rest);
 
     if (rest != NULL && isdigit(rest[0])) {
         char *saved = NULL;
@@ -187,10 +171,6 @@ int main()
         strcpy(s2n_libcrypto_copy, s2n_libcrypto);
         s2n_libcrypto_parsed = extract_libcrypto_info_from_s2n_libcrypto(s2n_libcrypto_copy, &s2n_libcrypto_info);
     }
-    printf("S2N_BUILD_PRESET == %s\n", s2n_build_preset);
-    print_libcrypto_info(&s2n_build_preset_info);
-    printf("S2N_LIBCRYPTO == %s\n", s2n_libcrypto);
-    print_libcrypto_info(&s2n_libcrypto_info);
 
     if (s2n_libcrypto_parsed == -1 && s2n_build_preset_parsed == -1) {
         /* Neither intent parsed.  */
@@ -222,17 +202,15 @@ int main()
     {
         if (strcmp(s2n_libcrypto_intent->name, "awslc") == 0) {
             /* aws lc version strings have a storied history:
-             *     Originally a fork from BoringSSL, OPENSSL_VERSION_TEXT was defined to be "OpenSSL 1.1.1 (compatible; BoringSSL)".
+             *     Originally a fork from BoringSSL, AWSLC's OPENSSL_VERSION_TEXT was defined to be "OpenSSL 1.1.1 (compatible; BoringSSL)".
              *     AWC-LC commit 8f184f5d69604cc4645bafec47c2d6d9929cb50f on 4/11/22 modified it to be  "OpenSSL 1.1.1 (compatible; AWL-LC)"
-             * Unfortunately in both cases we can't do a straight forward comparison against "awslc".
+             * Unfortunately in both cases we can't do a straight forward comparison against "S2N_LIBCRYPTO=awslc".
              * We can however rely on the macro OPENSSL_IS_AWSLC.  */
 #ifndef OPENSSL_IS_AWSLC
             FAIL_MSG("CI intended AWS-LC, but LIBCRYPTO isn't AWS-LC. ");
 #endif
         } else {
             /* Any other library should have the name of the library (modulo case) in its version string.  */
-            printf("SSLeay_version(SSLEAY_VERSION) == %s\n", SSLeay_version(SSLEAY_VERSION));
-            printf("s2n_libcrypto_intent->name     == %s\n", s2n_libcrypto_intent->name);
             EXPECT_NOT_NULL(strcasestr(SSLeay_version(SSLEAY_VERSION), s2n_libcrypto_intent->name));
         }
     };
@@ -241,8 +219,6 @@ int main()
     {
         char intent_version[20] = { 0 };
         if (convert_version_number_to_string(s2n_libcrypto_intent, intent_version) != -1) {
-            printf("SSLeay_version(SSLEAY_VERSION) == %s\n", SSLeay_version(SSLEAY_VERSION));
-            printf("intent_version                 == %s\n", intent_version);
             EXPECT_NOT_NULL(strstr(SSLeay_version(SSLEAY_VERSION), intent_version));
         }
     };
