@@ -89,7 +89,7 @@ jobs:
       - uses: actions-rs/toolchain@v1.0.7
         id: toolchain
         with:
-          toolchain: stable
+          toolchain: ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
           profile: minimal
           override: true
           components: clippy
