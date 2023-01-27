@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
     /* Test for record padding handling */
     {
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         /* no padding */
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
     {
         EXPECT_EQUAL(S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH, 16385);
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
 
     /* Test maximum record length size (maximum data) */
     {
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         /* fill up stuffer to before the limit */
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
         const size_t extra_length_tolerated = 16;
         /* Test slightly overlarge record for compatibility (empty data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge record for compatibility (maximum data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             /* fill up stuffer to before the limit */
@@ -218,7 +218,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge record for compatibility (with too much data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             /* Finally, do this with an overall length which should pass, but too much data before the padding */
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge + 1 record for compatibility (empty data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));

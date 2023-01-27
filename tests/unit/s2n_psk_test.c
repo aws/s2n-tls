@@ -482,7 +482,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-            struct s2n_blob hash_value;
+            struct s2n_blob hash_value = { 0 };
             uint8_t hash_value_data[SHA256_DIGEST_LENGTH];
             EXPECT_SUCCESS(s2n_blob_init(&hash_value, hash_value_data, sizeof(hash_value_data)));
 
@@ -498,7 +498,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_set_secret(&test_psk, resumption_secret.data, resumption_secret.size));
 
-            struct s2n_blob binder_value;
+            struct s2n_blob binder_value = { 0 };
             uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
             EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_psk_init(&test_psk, S2N_PSK_TYPE_RESUMPTION));
             EXPECT_SUCCESS(s2n_psk_set_secret(&test_psk, resumption_secret.data, resumption_secret.size));
 
-            struct s2n_blob binder_value;
+            struct s2n_blob binder_value = { 0 };
             uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
             EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
@@ -537,7 +537,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob *incorrect_binder_value = &resumption_secret;
 
-            struct s2n_blob binder_value;
+            struct s2n_blob binder_value = { 0 };
             uint8_t binder_value_data[SHA256_DIGEST_LENGTH];
             EXPECT_SUCCESS(s2n_blob_init(&binder_value, binder_value_data, sizeof(binder_value_data)));
 
