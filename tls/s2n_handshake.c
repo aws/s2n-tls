@@ -224,7 +224,7 @@ static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
         struct s2n_cert_chain_and_key *matches[S2N_CERT_TYPE_COUNT],
         uint8_t *match_exists)
 {
-    struct s2n_blob map_value;
+    struct s2n_blob map_value = { 0 };
     bool key_found = false;
     POSIX_GUARD_RESULT(s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value, &key_found));
     if (key_found) {
@@ -260,7 +260,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&normalized_name, (uint8_t *) normalized_hostname, hostname_blob.size));
 
     POSIX_GUARD(s2n_blob_char_to_lower(&normalized_name));
-    struct s2n_stuffer normalized_hostname_stuffer;
+    struct s2n_stuffer normalized_hostname_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&normalized_hostname_stuffer, &normalized_name));
     POSIX_GUARD(s2n_stuffer_skip_write(&normalized_hostname_stuffer, normalized_name.size));
 
@@ -275,7 +275,7 @@ int s2n_conn_find_name_matching_certs(struct s2n_connection *conn)
         char wildcard_hostname[S2N_MAX_SERVER_NAME + 1] = { 0 };
         struct s2n_blob wildcard_blob = { 0 };
         POSIX_GUARD(s2n_blob_init(&wildcard_blob, (uint8_t *) wildcard_hostname, sizeof(wildcard_hostname)));
-        struct s2n_stuffer wildcard_stuffer;
+        struct s2n_stuffer wildcard_stuffer = { 0 };
         POSIX_GUARD(s2n_stuffer_init(&wildcard_stuffer, &wildcard_blob));
         POSIX_GUARD(s2n_create_wildcard_hostname(&normalized_hostname_stuffer, &wildcard_stuffer));
         const uint32_t wildcard_len = s2n_stuffer_data_available(&wildcard_stuffer);

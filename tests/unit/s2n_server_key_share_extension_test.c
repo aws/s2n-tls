@@ -247,7 +247,7 @@ int main(int argc, char **argv)
             };
 
             for (int i = 0; i < 3; i++) {
-                struct s2n_stuffer extension_stuffer;
+                struct s2n_stuffer extension_stuffer = { 0 };
                 struct s2n_connection *client_conn;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -275,7 +275,7 @@ int main(int argc, char **argv)
             /* Test that s2n_server_key_share_extension.recv is a no-op
              * if tls1.3 not enabled */
             {
-                struct s2n_stuffer extension_stuffer;
+                struct s2n_stuffer extension_stuffer = { 0 };
                 struct s2n_connection *client_conn;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
 
         /* Test error handling parsing broken/trancated p256 key share */
         {
-            struct s2n_stuffer extension_stuffer;
+            struct s2n_stuffer extension_stuffer = { 0 };
             struct s2n_connection *client_conn;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -328,7 +328,7 @@ int main(int argc, char **argv)
 
         /* Test failure for receiving p256 key share for client configured p384 key share */
         {
-            struct s2n_stuffer extension_stuffer;
+            struct s2n_stuffer extension_stuffer = { 0 };
             struct s2n_connection *client_conn;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -357,7 +357,7 @@ int main(int argc, char **argv)
     /* Test Shared Key Generation */
     {
         struct s2n_connection *client_conn, *server_conn;
-        struct s2n_stuffer key_share_extension;
+        struct s2n_stuffer key_share_extension = { 0 };
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));

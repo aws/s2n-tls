@@ -39,7 +39,7 @@
  * [ReturnedBitsLen = 512]
  */
 
-struct s2n_stuffer nist_aes128_reference_entropy;
+struct s2n_stuffer nist_aes128_reference_entropy = { 0 };
 const char nist_aes128_reference_entropy_hex[] =
         "528ccd2d6c143800a34ad33e7f153cfaceaa2411abbaf4bfcfe9796898d0ece6"
         "478fd1eaa7ed293294d370979b0f0f1948d5a3161b12eeebf2cf6bd1bf059adf"
@@ -150,7 +150,7 @@ const char nist_aes128_reference_returned_bits_hex[] =
  * [ReturnedBitsLen = 512]
  */
 
-struct s2n_stuffer nist_aes256_reference_entropy;
+struct s2n_stuffer nist_aes256_reference_entropy = { 0 };
 const char nist_aes256_reference_entropy_hex_part1[] =
         "c8f0c7b9bdf7e7d524c998aedeabb3b7dd4fa8f95c51b582010a5e09d0b4b1ad510302422df738fbef002a051543b4cc"
         "c1a7b160c8e33a01fbd49743dc1161539390d9ba6b876fe63b58e8fd605b98617322578b17aca9db71e858b154f97910"

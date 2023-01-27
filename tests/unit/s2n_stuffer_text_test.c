@@ -115,7 +115,7 @@ int main(int argc, char **argv)
     /* Check line reading */
     {
         struct s2n_blob line_blob = { 0 };
-        struct s2n_stuffer lstuffer;
+        struct s2n_stuffer lstuffer = { 0 };
         char lf_line[] = "a LF terminated line\n";
         char crlf_line[] = "a CRLF terminated line\r\n";
         char lf_line_trailing_cr[] = "a LF terminated line with trailing CR\n\r\r\r\r\r\r";

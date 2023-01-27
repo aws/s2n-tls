@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 
         /* Fill the kem_group_params with secrets */
         EXPECT_SUCCESS(alloc_test_kem_params(&kem_group_params.kem_params));
-        struct s2n_stuffer wire;
+        struct s2n_stuffer wire = { 0 };
         POSIX_GUARD(s2n_stuffer_growable_alloc(&wire, 1024));
         kem_group_params.ecc_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
         POSIX_GUARD(s2n_ecdhe_parameters_send(&kem_group_params.ecc_params, &wire));

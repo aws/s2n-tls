@@ -31,7 +31,7 @@ int main(int argc, char **argv)
     uint8_t hello[] = "Hello world!\n";
     uint8_t string1[] = "String 1\n";
     uint8_t string2[] = "and String 2\n";
-    struct s2n_stuffer output;
+    struct s2n_stuffer output = { 0 };
     struct s2n_hash_state hash, copy;
     struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, output_pad, sizeof(output_pad)));

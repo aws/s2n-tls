@@ -22,7 +22,7 @@ int main(int argc, char **argv)
 {
     uint8_t pad[100];
     struct s2n_blob b = { .data = pad, .size = sizeof(pad) };
-    struct s2n_stuffer stuffer;
+    struct s2n_stuffer stuffer = { 0 };
     uint8_t u8;
     uint16_t u16;
     uint32_t u32;

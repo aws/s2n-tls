@@ -25,8 +25,8 @@ int main(int argc, char **argv)
     char keystr[sizeof("ffff")];
     char valstr[sizeof("16384")];
     struct s2n_map *empty, *map;
-    struct s2n_blob key;
-    struct s2n_blob val;
+    struct s2n_blob key = { 0 };
+    struct s2n_blob val = { 0 };
     bool key_found;
 
     BEGIN_TEST();

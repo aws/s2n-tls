@@ -190,8 +190,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));
