@@ -31,21 +31,13 @@ all_sigs = [
 
 def expected_signature(protocol, signature):
     if protocol < Protocols.TLS12:
+        # ECDSA by default hashes with SHA-1.
+        #
+        # This is inferred from extended version of TLS1.1 rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
         if signature.sig_type == 'ECDSA':
             signature = Signatures.ECDSA_SHA1
         else:
             signature = Signatures.RSA_MD5_SHA1
-    return signature
-
-
-def expected_signature_alg_tls12(signature):
-    # ECDSA by default hashes with SHA-1.
-    #
-    # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
-    if signature == Signatures.RSA_SHA224:
-        signature = Signatures.RSA_SHA1
-    else:
-        signature = Signatures.ECDSA_SHA1
     return signature
 
 
@@ -240,19 +232,20 @@ def test_s2n_server_tls12_signature_algorithm_fallback(managed_process, cipher, 
 
     expected_version = get_expected_s2n_version(protocol, provider)
 
+    # Due to signature algorithm mismatch created, if the negotiated key exchange algorithm is :
+    #  1. (RSA,DHE_RSA, DH_RSA, RSA_PSK, ECDH_RSA,ECDHE_RSA), server is expected to behave as if client had
+    #  sent value { sha1, rsa}.
+    #  2. (ECDH_ECDSA,  ECDHE_ECDSA), server is expected to behave as if client had sent value {sha1,ecdsa}.
+    # This is the default tls1.2 fallback behavior and is the fallback behavior for missing signature_algorithms
+    # extension.
+    #
+    # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
+    expected_signature_algorithm_tls12 = (Signatures.ECDSA_SHA1, Signatures.RSA_SHA1)[signature == Signatures.RSA_SHA224]
+
     for results in server.get_results():
         results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(
             expected_version)) in results.stdout
-
-        # Due to signature algorithm mismatch created, if the negotiated key exchange algorithm is :
-        #  1. (RSA,DHE_RSA, DH_RSA, RSA_PSK, ECDH_RSA,ECDHE_RSA), server is expected to behave as if client had
-        #  sent value { sha1, rsa}.
-        #  2. (ECDH_ECDSA,  ECDHE_ECDSA), server is expected to behave as if client had sent value {sha1,ecdsa}.
-        # This is the default tls1.2 fallback behavior and is the fallback behavior for missing signature_algorithms
-        # extension.
-        #
-        # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
         assert signature_marker(Provider.ServerMode,
-                                expected_signature_alg_tls12(signature)) in results.stdout
+                                expected_signature_algorithm_tls12) in results.stdout
         assert random_bytes in results.stdout
