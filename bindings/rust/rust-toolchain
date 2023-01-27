@@ -1,1 +1,2 @@
+# If you update this, also update the msrv in .clippy.toml
 1.57.0

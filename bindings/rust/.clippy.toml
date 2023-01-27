@@ -1,0 +1,2 @@
+# Should match rust-toolchain
+msrv = "1.57.0"
