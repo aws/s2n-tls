@@ -8,7 +8,7 @@ pub fn s2nc(c: &mut Criterion) {
     let mut group = c.benchmark_group("s2nc");
     let s2nc_env: &str = &env::var("S2NC_ARGS").unwrap();
     let s2nc_test_name: &str = &env::var("S2NC_TEST_NAME").unwrap();
-    let test_name = format!("s2nc_{s2nc_test_name}");
+    let test_name = format!("s2nc_{}", s2nc_test_name);
     let s2nc_split = s2nc_env.split(' ').collect::<Vec<&str>>();
     group.bench_function(test_name, move |b| {
         b.iter(|| {

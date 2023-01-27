@@ -44,7 +44,8 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
     pub fn poll(&mut self) -> Poll<Result<()>> {
         assert!(
             self.max_iterations > 0,
-            "handshake has iterated too many times: {self:#?}",
+            "handshake has iterated too many times: {:#?}",
+            self,
         );
         let client_res = self.client.0.poll(&mut self.client.1);
         let server_res = self.server.0.poll(&mut self.server.1);

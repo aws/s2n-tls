@@ -42,12 +42,12 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &str) -> Result<(), B
         .local_addr()
         .map(|x| x.to_string())
         .unwrap_or_else(|_| "UNKNOWN".to_owned());
-    println!("Listening on {addr}");
+    println!("Listening on {}", addr);
 
     loop {
         // Wait for a client to connect.
         let (stream, peer_addr) = listener.accept().await?;
-        println!("Connection from {peer_addr:?}");
+        println!("Connection from {:?}", peer_addr);
 
         // Spawn a new task to handle the connection.
         // We probably want to spawn the task BEFORE calling TcpAcceptor::accept,
@@ -55,13 +55,13 @@ async fn run_server(cert_pem: &[u8], key_pem: &[u8], addr: &str) -> Result<(), B
         let server = server.clone();
         tokio::spawn(async move {
             let mut tls = server.accept(stream).await?;
-            println!("{tls:#?}");
+            println!("{:#?}", tls);
 
             // Copy data from the client to stdout
             let mut stdout = tokio::io::stdout();
             tokio::io::copy(&mut tls, &mut stdout).await?;
             tls.shutdown().await?;
-            println!("Connection from {peer_addr:?} closed");
+            println!("Connection from {:?} closed", peer_addr);
 
             Ok::<(), Box<dyn Error + Send + Sync>>(())
         });

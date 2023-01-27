@@ -30,7 +30,7 @@ async fn run_client(trust_pem: &[u8], addr: &str) -> Result<(), Box<dyn Error>> 
     // Connect to the server.
     let stream = TcpStream::connect(addr).await?;
     let tls = client.connect("localhost", stream).await?;
-    println!("{tls:#?}");
+    println!("{:#?}", tls);
 
     // Split the stream.
     // This allows us to call read and write from different tasks.
