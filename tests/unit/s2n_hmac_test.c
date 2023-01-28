@@ -37,7 +37,8 @@ int main(int argc, char **argv)
     uint8_t string2[] = "and String 2";
     struct s2n_hmac_state hmac, copy, cmac;
 
-    struct s2n_blob out = { .data = output_pad, .size = sizeof(output_pad) };
+    struct s2n_blob out = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&out, output_pad, sizeof(output_pad)));
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
