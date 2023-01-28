@@ -35,9 +35,11 @@ int main(int argc, char **argv)
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
-    struct s2n_blob key_iv = { .data = rc4_key, .size = sizeof(rc4_key) };
+    struct s2n_blob key_iv = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&key_iv, rc4_key, sizeof(rc4_key)));
     uint8_t random_data[S2N_DEFAULT_FRAGMENT_LENGTH + 1];
-    struct s2n_blob r = { .data = random_data, .size = sizeof(random_data) };
+    struct s2n_blob r = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
@@ -65,7 +67,8 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS11;
 
         for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
-            struct s2n_blob in = { .data = random_data, .size = i };
+            struct s2n_blob in = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
