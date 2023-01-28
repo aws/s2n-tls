@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
     /* Test for record padding handling */
     {
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         /* no padding */
@@ -95,7 +95,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
         EXPECT_EQUAL(record_type, 0x16);
 
-        /* padding without record type should fail */
+        /** test: padding without record type should fail
+         * 
+         *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+         *= type=test
+         *# If a receiving implementation does not
+         *# find a non-zero octet in the cleartext, it MUST terminate the
+         *# connection with an "unexpected_message" alert.
+         **/
         S2N_BLOB_FROM_HEX(no_type, "00");
         EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
         EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &no_type));
@@ -122,7 +129,7 @@ int main(int argc, char **argv)
     {
         EXPECT_EQUAL(S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH, 16385);
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));
@@ -143,7 +150,7 @@ int main(int argc, char **argv)
 
     /* Test maximum record length size (maximum data) */
     {
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         /* fill up stuffer to before the limit */
@@ -169,7 +176,7 @@ int main(int argc, char **argv)
         const size_t extra_length_tolerated = 16;
         /* Test slightly overlarge record for compatibility (empty data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));
@@ -188,7 +195,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge record for compatibility (maximum data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             /* fill up stuffer to before the limit */
@@ -211,7 +218,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge record for compatibility (with too much data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             /* Finally, do this with an overall length which should pass, but too much data before the padding */
@@ -232,7 +239,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge + 1 record for compatibility (empty data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));

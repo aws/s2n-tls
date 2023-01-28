@@ -23,7 +23,3 @@
 
 extern const s2n_extension_type s2n_client_ec_point_format_extension;
 extern const s2n_extension_type s2n_server_ec_point_format_extension;
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-int s2n_server_ecc_point_format_extension_size(struct s2n_connection *conn);
-int s2n_recv_client_ec_point_formats(struct s2n_connection *conn, struct s2n_stuffer *extension);

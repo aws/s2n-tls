@@ -62,11 +62,13 @@ int main(int argc, char **argv)
     uint8_t mac_key[] = "sample mac key";
 
     uint8_t random_data[S2N_LARGE_RECORD_LENGTH + 1];
-    struct s2n_blob r = { .data = random_data, .size = sizeof(random_data) };
+    struct s2n_blob r = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
     EXPECT_OK(s2n_get_public_random_data(&r));
 
     uint8_t aes128_key[] = "123456789012345";
-    struct s2n_blob aes128 = { .data = aes128_key, .size = sizeof(aes128_key) };
+    struct s2n_blob aes128 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&aes128, aes128_key, sizeof(aes128_key)));
 
     /* Test record sizes with s2n_record_write */
     {

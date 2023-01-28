@@ -49,8 +49,8 @@ int main(int argc, char **argv)
         struct s2n_blob hostname_blob = { .data = (uint8_t *) (uintptr_t) hostname, .size = strlen(hostname) };
         uint8_t output[S2N_MAX_SERVER_NAME] = { 0 };
         struct s2n_blob output_blob = { .data = (uint8_t *) (uintptr_t) output, .size = sizeof(output) };
-        struct s2n_stuffer hostname_stuffer;
-        struct s2n_stuffer output_stuffer;
+        struct s2n_stuffer hostname_stuffer = { 0 };
+        struct s2n_stuffer output_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&hostname_stuffer, &hostname_blob));
         EXPECT_SUCCESS(s2n_stuffer_skip_write(&hostname_stuffer, hostname_blob.size));
         EXPECT_SUCCESS(s2n_stuffer_init(&output_stuffer, &output_blob));

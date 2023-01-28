@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_send_empty_cert_chain */
     {
-        struct s2n_stuffer out;
+        struct s2n_stuffer out = { 0 };
         /* Magic number 3 is the length of the certificate_length field */
         EXPECT_SUCCESS(s2n_stuffer_alloc(&out, 3));
 

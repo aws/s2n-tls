@@ -118,7 +118,7 @@ int main(int argc, char **argv)
 
         config->security_policy = &test_security_policy;
 
-        struct s2n_stuffer result;
+        struct s2n_stuffer result = { 0 };
         s2n_stuffer_growable_alloc(&result, STUFFER_SIZE);
 
         uint16_t size, iana_value;
@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 
         config->security_policy = &test_security_policy;
 
-        struct s2n_stuffer choice;
+        struct s2n_stuffer choice = { 0 };
         s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
 
         struct s2n_signature_scheme result;
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
 
         config->security_policy = &test_security_policy;
 
-        struct s2n_stuffer choice;
+        struct s2n_stuffer choice = { 0 };
         s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
 
         struct s2n_signature_scheme result;
@@ -631,7 +631,7 @@ int main(int argc, char **argv)
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
-        struct s2n_stuffer result;
+        struct s2n_stuffer result = { 0 };
         s2n_stuffer_growable_alloc(&result, STUFFER_SIZE);
 
         struct s2n_sig_scheme_list signatures;
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
         /* Do not offer PSS signatures schemes if unsupported:
          * s2n_send_supported_sig_scheme_list + PSS */
         {
-            struct s2n_stuffer result;
+            struct s2n_stuffer result = { 0 };
             s2n_stuffer_growable_alloc(&result, STUFFER_SIZE);
 
             EXPECT_SUCCESS(s2n_send_supported_sig_scheme_list(conn, &result));
@@ -724,7 +724,7 @@ int main(int argc, char **argv)
         /* Do not accept a PSS signature scheme if unsupported:
          * s2n_get_and_validate_negotiated_signature_scheme + PSS */
         {
-            struct s2n_stuffer choice;
+            struct s2n_stuffer choice = { 0 };
             s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
             s2n_stuffer_write_uint16(&choice, s2n_rsa_pss_rsae_sha256.iana_value);
 

@@ -824,7 +824,7 @@ static const char *tls13_handshake_type_names[] = {
     "EARLY_CLIENT_CCS|",
 };
 
-#define IS_TLS13_HANDSHAKE(conn) ((conn)->actual_protocol_version == S2N_TLS13)
+#define IS_TLS13_HANDSHAKE(conn) ((conn)->handshake.state_machine == S2N_STATE_MACHINE_TLS13)
 
 #define ACTIVE_STATE_MACHINE(conn) (IS_TLS13_HANDSHAKE(conn) ? tls13_state_machine : state_machine)
 #define ACTIVE_HANDSHAKES(conn)    (IS_TLS13_HANDSHAKE(conn) ? tls13_handshakes : handshakes)
@@ -900,7 +900,8 @@ static int s2n_advance_message(struct s2n_connection *conn)
 int s2n_generate_new_client_session_id(struct s2n_connection *conn)
 {
     if (conn->mode == S2N_SERVER) {
-        struct s2n_blob session_id = { .data = conn->session_id, .size = S2N_TLS_SESSION_ID_MAX_LEN };
+        struct s2n_blob session_id = { 0 };
+        POSIX_GUARD(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
 
         /* Generate a new session id */
         POSIX_GUARD_RESULT(s2n_get_public_random_data(&session_id));
@@ -1016,6 +1017,8 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
+    POSIX_GUARD_RESULT(s2n_conn_choose_state_machine(conn, conn->actual_protocol_version));
+
     if (IS_TLS13_HANDSHAKE(conn)) {
         POSIX_GUARD_RESULT(s2n_conn_set_tls13_handshake_type(conn));
         return S2N_SUCCESS;
@@ -1108,6 +1111,26 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t protocol_version)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* This should never be called before we know what version we're on */
+    RESULT_ENSURE_NE(protocol_version, S2N_UNKNOWN_PROTOCOL_VERSION);
+
+    if (protocol_version == S2N_TLS13) {
+        /* State machine should not change once set */
+        RESULT_ENSURE_NE(conn->handshake.state_machine, S2N_STATE_MACHINE_TLS12);
+        conn->handshake.state_machine = S2N_STATE_MACHINE_TLS13;
+    } else {
+        /* State machine should not change once set */
+        RESULT_ENSURE_NE(conn->handshake.state_machine, S2N_STATE_MACHINE_TLS13);
+        conn->handshake.state_machine = S2N_STATE_MACHINE_TLS12;
+    }
+
+    return S2N_RESULT_OK;
+}
+
 const char *s2n_connection_get_last_message_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
@@ -1166,6 +1189,40 @@ const char *s2n_connection_get_handshake_type_name(struct s2n_connection *conn)
     return handshake_type_str[handshake_type];
 }
 
+S2N_RESULT s2n_handshake_message_send(struct s2n_connection *conn, uint8_t content_type, s2n_blocked_status *blocked)
+{
+    RESULT_ENSURE_REF(conn);
+    struct s2n_stuffer *in = &conn->handshake.io;
+
+    uint32_t size = s2n_stuffer_data_available(in);
+    if (size == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    if (s2n_connection_is_quic_enabled(conn)) {
+        RESULT_GUARD(s2n_quic_write_handshake_message(conn));
+        RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
+        return S2N_RESULT_OK;
+    }
+
+    struct iovec iov = { 0 };
+    iov.iov_len = size;
+    iov.iov_base = s2n_stuffer_raw_read(in, size);
+    RESULT_ENSURE_REF(iov.iov_base);
+    RESULT_GUARD_POSIX(s2n_stuffer_rewind_read(in, size));
+
+    uint32_t total_bytes_written = 0;
+    while (total_bytes_written < size) {
+        int bytes_written = s2n_record_writev(conn, content_type, &iov, 1,
+                total_bytes_written, size - total_bytes_written);
+        RESULT_GUARD_POSIX(bytes_written);
+        total_bytes_written += bytes_written;
+        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(in, bytes_written));
+        RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
+    }
+    return S2N_RESULT_OK;
+}
+
 /* Writing is relatively straight forward, simply write each message out as a record,
  * we may fragment a message across multiple records, but we never coalesce multiple
  * messages into single records.
@@ -1190,29 +1247,9 @@ static int s2n_handshake_write_io(struct s2n_connection *conn)
         }
     }
 
-    /* Write the handshake data to records in fragment sized chunks */
-    struct s2n_blob out = { 0 };
-    while (s2n_stuffer_data_available(&conn->handshake.io) > 0) {
-        uint16_t max_payload_size = 0;
-        POSIX_GUARD_RESULT(s2n_record_max_write_payload_size(conn, &max_payload_size));
-        out.size = MIN(s2n_stuffer_data_available(&conn->handshake.io), max_payload_size);
-
-        out.data = s2n_stuffer_raw_read(&conn->handshake.io, out.size);
-        POSIX_ENSURE_REF(out.data);
-
-        if (s2n_connection_is_quic_enabled(conn)) {
-            POSIX_GUARD_RESULT(s2n_quic_write_handshake_message(conn, &out));
-        } else {
-            POSIX_GUARD_RESULT(s2n_record_write(conn, record_type, &out));
-        }
-
-        /* MD5 and SHA sum the handshake data too */
-        if (record_type == TLS_HANDSHAKE) {
-            POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &out));
-        }
-
-        /* Actually send the record. We could block here. Assume the caller will call flush before coming back. */
-        POSIX_GUARD(s2n_flush(conn, &blocked));
+    POSIX_GUARD_RESULT(s2n_handshake_message_send(conn, record_type, &blocked));
+    if (record_type == TLS_HANDSHAKE) {
+        POSIX_GUARD_RESULT(s2n_handshake_transcript_update(conn));
     }
 
     /* We're done sending the last record, reset everything */
@@ -1273,31 +1310,13 @@ static int s2n_read_full_handshake_message(struct s2n_connection *conn, uint8_t 
     return 1;
 }
 
-static int s2n_handshake_conn_update_hashes(struct s2n_connection *conn)
-{
-    uint8_t message_type;
-    uint32_t handshake_message_length;
-
-    POSIX_GUARD(s2n_stuffer_reread(&conn->handshake.io));
-    POSIX_GUARD_RESULT(s2n_handshake_parse_header(&conn->handshake.io, &message_type, &handshake_message_length));
-
-    struct s2n_blob handshake_record = { 0 };
-    handshake_record.data = conn->handshake.io.blob.data;
-    handshake_record.size = TLS_HANDSHAKE_HEADER_LENGTH + handshake_message_length;
-    POSIX_ENSURE_REF(handshake_record.data);
-
-    /* MD5 and SHA sum the handshake data too */
-    POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &handshake_record));
-
-    return S2N_SUCCESS;
-}
-
 static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
 {
     S2N_ERROR_IF(ACTIVE_MESSAGE(conn) != CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
 
     /* Add the message to our handshake hashes */
-    struct s2n_blob hashed = { .data = conn->header_in.blob.data + 2, .size = 3 };
+    struct s2n_blob hashed = { 0 };
+    POSIX_GUARD(s2n_blob_init(&hashed, conn->header_in.blob.data + 2, 3));
     POSIX_GUARD(s2n_conn_update_handshake_hashes(conn, &hashed));
 
     hashed.data = conn->in.blob.data;
@@ -1350,7 +1369,7 @@ static S2N_RESULT s2n_finish_read(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
-    RESULT_GUARD_POSIX(s2n_handshake_conn_update_hashes(conn));
+    RESULT_GUARD(s2n_handshake_transcript_update(conn));
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->handshake.io));
     RESULT_GUARD(s2n_tls13_secrets_update(conn));
     RESULT_GUARD(s2n_tls13_key_schedule_update(conn));
@@ -1582,12 +1601,17 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
+bool s2n_handshake_is_complete(struct s2n_connection *conn)
+{
+    return conn && ACTIVE_STATE(conn).writer == 'B';
+}
+
 int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
 
-    while (ACTIVE_STATE(conn).writer != 'B' && ACTIVE_MESSAGE(conn) != conn->handshake.end_of_messages) {
+    while (!s2n_handshake_is_complete(conn) && ACTIVE_MESSAGE(conn) != conn->handshake.end_of_messages) {
         errno = 0;
         s2n_errno = S2N_ERR_OK;
 

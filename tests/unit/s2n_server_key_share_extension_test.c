@@ -101,6 +101,7 @@ int main(int argc, char **argv)
 
         /* A HelloRetryRequest only requires a Selected Group, not a key share */
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
         EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(conn));
         conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
         EXPECT_EQUAL(6, s2n_extensions_server_key_share_send_size(conn));
@@ -146,6 +147,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
         conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
         conn->handshake.message_number = HELLO_RETRY_MSG_NO;
 
@@ -245,7 +247,7 @@ int main(int argc, char **argv)
             };
 
             for (int i = 0; i < 3; i++) {
-                struct s2n_stuffer extension_stuffer;
+                struct s2n_stuffer extension_stuffer = { 0 };
                 struct s2n_connection *client_conn;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -273,7 +275,7 @@ int main(int argc, char **argv)
             /* Test that s2n_server_key_share_extension.recv is a no-op
              * if tls1.3 not enabled */
             {
-                struct s2n_stuffer extension_stuffer;
+                struct s2n_stuffer extension_stuffer = { 0 };
                 struct s2n_connection *client_conn;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -309,7 +311,7 @@ int main(int argc, char **argv)
 
         /* Test error handling parsing broken/trancated p256 key share */
         {
-            struct s2n_stuffer extension_stuffer;
+            struct s2n_stuffer extension_stuffer = { 0 };
             struct s2n_connection *client_conn;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -326,7 +328,7 @@ int main(int argc, char **argv)
 
         /* Test failure for receiving p256 key share for client configured p384 key share */
         {
-            struct s2n_stuffer extension_stuffer;
+            struct s2n_stuffer extension_stuffer = { 0 };
             struct s2n_connection *client_conn;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -355,7 +357,7 @@ int main(int argc, char **argv)
     /* Test Shared Key Generation */
     {
         struct s2n_connection *client_conn, *server_conn;
-        struct s2n_stuffer key_share_extension;
+        struct s2n_stuffer key_share_extension = { 0 };
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -471,6 +473,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer *key_share_extension = &server_conn->handshake.io;
 
             EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(server_conn, S2N_TLS13));
+            EXPECT_OK(s2n_conn_choose_state_machine(server_conn, S2N_TLS13));
             client_conn->security_policy_override = &security_policy_test_tls13_retry;
 
             server_conn->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
@@ -651,6 +654,7 @@ int main(int argc, char **argv)
                     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                     client_conn->security_policy_override = &test_security_policy;
                     client_conn->actual_protocol_version = S2N_TLS13;
+                    EXPECT_OK(s2n_conn_choose_state_machine(client_conn, S2N_TLS13));
                     client_conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
                     client_conn->handshake.message_number = HELLO_RETRY_MSG_NO;
                     client_conn->actual_protocol_version_established = 1;
@@ -892,6 +896,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->security_policy_override = &test_all_supported_kems_security_policy;
             conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
             conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
             conn->handshake.message_number = HELLO_RETRY_MSG_NO;
 
