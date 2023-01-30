@@ -372,7 +372,9 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 
 ## Config
 
-`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it are finished using it. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
+
+Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
 
 ### Overriding the Config
 
@@ -611,13 +613,13 @@ Additionally, in TLS1.3, multiple session tickets may be issued for the same con
 
 In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session's secret exposes the original session's encrypted data.
 
-In contrast, in TLS1.3 the secret stored inside the ticket is derived from the original session's master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session's secret will not expose the original session's encrypted data.
+In contrast, in TLS1.3 the secret stored inside the ticket is _derived_ from the original session's master secret. The derivation uses a cryptographic operation that can't be reversed by an attacker to retrieve the original master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session's secret will not expose the original session's encrypted data.
 
 ### Keying Material Lifetimes in TLS1.2 and TLS1.3
 
-In TLS1.2, the server only issues a new session ticket when doing a full handshake. Therefore the lifetime of the keying material inside the ticket is tied to the lifetime of the key used to encrypt the ticket. 
- 
-In TLS1.3, the encrypted ticket has an explicit lifetime stored in it, after which the keying material inside cannot be re-used. Servers can call `s2n_connection_set_server_keying_material_lifetime()` to configure this value.
+In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original "keying material"-- meaning the lifetime of any secret derived from the original full handshake-- is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()`.
+
+In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see Session Resumption Forward Secrecy (with link). These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original "keying material" to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate "keying material" lifetime, which servers can configure with `s2n_connection_set_server_keying_material_lifetime()`. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.
 
 ## Examining the Client Hello
 
@@ -627,13 +629,13 @@ Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello 
 
 `s2n_client_hello_get_cipher_suites()` will retrieve the list of cipher suites sent by the client.
 
-`s2n_client_hello_get_session_id()` will get the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with `s2n_connection_get_session_id()`.
+`s2n_client_hello_get_session_id()` will get the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with `s2n_connection_get_session_id()`after the handshake completes.
 
 Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensions sent in the Client Hello. Calling `s2n_client_hello_get_extension_by_id()` allows you to interrogate the `s2n_client_hello` struct for a specific extension.
 
 ### Client Hello Callback
 
-Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully as modifying the connection mid-handshake can be dangerous. In particular, switching from a `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. 
+Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully, as modifying the connection in response to untrusted input can be dangerous. In particular, switching from an `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. 
 
 `s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
 
@@ -641,9 +643,9 @@ Users can access the Client Hello during the handshake by setting the callback `
 
 The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING** or **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode.
 
-The default mode, "blocking mode", will not return from the `s2n_negotiate()` call until the Client Hello callback returns. In this mode the callback should contain quick work like logging or simple configuration changes.
+The default mode, "blocking mode", will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won't slow down the handshake or block the main thread, like logging or simple configuration changes.
  
-In contrast, "non-blocking mode" will return from the `s2n_negotiate()` call even if the Client Hello callback hasn't been marked as done yet. This will pause the handshake and allow the application to do work asynchronously. Only when the callback signals its work is complete by calling `s2n_client_hello_cb_done()` will the handshake continue. This mode should be used if the callback needs to make a network call or offload an expensive calculation to another thread. 
+In contrast, "non-blocking mode" will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls `s2n_client_hello_cb_done()` will the handshake be able to resume.
 
 ## Record sizes
 
