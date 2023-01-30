@@ -314,9 +314,7 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
 
     RESULT_ENSURE(curr_idx >= 0, S2N_ERR_CERT_UNTRUSTED);
 
-    const X509_NAME_ENTRY *entry = X509_NAME_get_entry(subject_name, curr_idx);
-    RESULT_ENSURE(entry, S2N_ERR_CERT_UNTRUSTED);
-    ASN1_STRING *common_name = X509_NAME_ENTRY_get_data(entry);
+    ASN1_STRING *common_name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, curr_idx));
     RESULT_ENSURE(common_name, S2N_ERR_CERT_UNTRUSTED);
 
     /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
