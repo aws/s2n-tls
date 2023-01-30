@@ -640,28 +640,28 @@ if (BUILD_TESTING)
         endforeach(benchmark)
 
     endif()
-endif()
 
-if (S2N_INTEG_TESTS)
-    find_package (Python3 COMPONENTS Interpreter Development)
-    file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
-    foreach(test_file_path ${integv2_test_files})
-        get_filename_component(test_filename ${test_file_path} NAME_WE)
-        string(REGEX REPLACE "^test_" "" test_name ${test_filename})
-        string(CONCAT test_target "integ_" ${test_name})
+    if (S2N_INTEG_TESTS)
+        find_package (Python3 COMPONENTS Interpreter Development)
+        file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
+        foreach(test_file_path ${integv2_test_files})
+            get_filename_component(test_filename ${test_file_path} NAME_WE)
+            string(REGEX REPLACE "^test_" "" test_name ${test_filename})
+            string(CONCAT test_target "integ_" ${test_name})
 
-        add_custom_target(${test_target}
-            COMMAND
-                ${CMAKE_COMMAND} -E env
-                DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
-                LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
-                PATH="${PROJECT_SOURCE_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
-                PYTHONNOUSERSITE=1
-                S2N_INTEG_TEST=1
-                TOX_TEST_NAME=${test_file_path}
-            ${Python3_EXECUTABLE} -m tox
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
-    endforeach()
+            add_custom_target(${test_target}
+                    COMMAND
+                    ${CMAKE_COMMAND} -E env
+                    DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
+                    LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
+                    PATH="${PROJECT_SOURCE_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
+                    PYTHONNOUSERSITE=1
+                    S2N_INTEG_TEST=1
+                    TOX_TEST_NAME=${test_file_path}
+                    ${Python3_EXECUTABLE} -m tox
+                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+        endforeach()
+    endif()
 endif()
 
 #install the s2n files
