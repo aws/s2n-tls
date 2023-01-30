@@ -259,7 +259,7 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
     }
 
     /* we don't understand this entry type so skip it */
-    return S2N_RESULT_ERROR;
+    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
 
 static S2N_RESULT s2n_verify_host_information_san(struct s2n_connection *conn, X509 *public_cert, bool *san_found)
@@ -271,25 +271,25 @@ static S2N_RESULT s2n_verify_host_information_san(struct s2n_connection *conn, X
     *san_found = false;
 
     DEFER_CLEANUP(STACK_OF(GENERAL_NAME) *names_list = NULL, GENERAL_NAMES_free_pointer);
-
     names_list = X509_get_ext_d2i(public_cert, NID_subject_alt_name, NULL, NULL);
+    RESULT_ENSURE(names_list, S2N_ERR_CERT_UNTRUSTED);
 
     int n = sk_GENERAL_NAME_num(names_list);
+    RESULT_ENSURE(n > 0, S2N_ERR_CERT_UNTRUSTED);
+
     for (int i = 0; i < n; i++) {
         GENERAL_NAME *current_name = sk_GENERAL_NAME_value(names_list, i);
 
-        /* if we get any valid entries then return */
-        if (s2n_result_is_ok(s2n_verify_host_information_san_entry(conn, current_name, san_found))) {
+        /* return success on the first entry that passes verification */
+        s2n_result result = s2n_verify_host_information_san_entry(conn, current_name, san_found);
+        if (s2n_result_is_ok(result)) {
             return S2N_RESULT_OK;
         }
     }
 
-    /* if an error was set, then don't override it */
-    if (s2n_errno) {
-        return S2N_RESULT_ERROR;
-    }
-
-    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+    /* if an error was set by one of the entries, then just propagate the error from the last SAN entry call */
+    RESULT_DEBUG_ENSURE(s2n_errno, S2N_ERR_SAFETY); /* make sure we actually set an error on the last call */
+    return S2N_RESULT_ERROR;
 }
 
 static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection *conn, X509 *public_cert, bool *cn_found)
@@ -301,14 +301,22 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     X509_NAME *subject_name = X509_get_subject_name(public_cert);
     RESULT_ENSURE(subject_name, S2N_ERR_CERT_UNTRUSTED);
 
-    int next_idx = 0, curr_idx = -1;
-    while ((next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx)) >= 0) {
-        curr_idx = next_idx;
+    int next_idx = 0;
+    int curr_idx = -1;
+    while (true) {
+        next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx);
+        if (next_idx >= 0) {
+            curr_idx = next_idx;
+        } else {
+            break;
+        }
     }
 
     RESULT_ENSURE(curr_idx >= 0, S2N_ERR_CERT_UNTRUSTED);
 
-    ASN1_STRING *common_name = X509_NAME_ENTRY_get_data(X509_NAME_get_entry(subject_name, curr_idx));
+    const X509_NAME_ENTRY *entry = X509_NAME_get_entry(subject_name, curr_idx);
+    RESULT_ENSURE(entry, S2N_ERR_CERT_UNTRUSTED);
+    ASN1_STRING *common_name = X509_NAME_ENTRY_get_data(entry);
     RESULT_ENSURE(common_name, S2N_ERR_CERT_UNTRUSTED);
 
     /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
@@ -323,8 +331,9 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     *cn_found = true;
 
     char peer_cn[255] = { 0 };
-    size_t len = (size_t) ASN1_STRING_length(common_name);
+    int len = ASN1_STRING_length(common_name);
 
+    RESULT_ENSURE_GT(len, 0);
     RESULT_ENSURE_LTE(len, s2n_array_len(peer_cn) - 1);
     RESULT_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
     RESULT_ENSURE(conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
@@ -342,22 +351,18 @@ static S2N_RESULT s2n_verify_host_information(struct s2n_connection *conn, X509 
 
     /* Check SubjectAltNames before CommonName as per RFC 6125 6.4.4 */
     s2n_result result = s2n_verify_host_information_san(conn, public_cert, &entry_found);
-
-    /* we found at least one SAN so return the result */
     if (entry_found) {
         return result;
     }
 
     /* if no SubjectAltNames of type DNS found, go to the common name. */
     result = s2n_verify_host_information_common_name(conn, public_cert, &entry_found);
-
-    /* we found a CN so return the result */
     if (entry_found) {
         return result;
     }
 
     /* make a null-terminated string in case the callback tries to use strlen */
-    const char *name = "\0";
+    const char *name = "";
     size_t name_len = 0;
 
     /* at this point, we don't have anything to identify the certificate with so pass an empty string to the callback */

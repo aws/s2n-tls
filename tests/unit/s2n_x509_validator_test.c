@@ -1367,14 +1367,14 @@ int main(int argc, char **argv)
 
     /* test validator in safe mode, with default host name validator. Connection server matches the IPv6 address on the certificate. */
     {
-        struct s2n_x509_trust_store trust_store;
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_IP_V6_LO_RSA_CERT, NULL));
 
-        struct s2n_x509_validator validator;
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
 
         /* the provided hostname should be an empty string */
@@ -1382,34 +1382,31 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
-        EXPECT_OK(
-                s2n_test_cert_chain_data_from_pem(connection, S2N_IP_V6_LO_RSA_CERT, &cert_chain_stuffer));
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(
+                                connection,
+                                S2N_IP_V6_LO_RSA_CERT,
+                                &cert_chain_stuffer));
         uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        struct s2n_pkey public_key_out;
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
         EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
     };
 
     /* Server matches the empty string when there are no usable identifiers in the cert. */
     {
-        struct s2n_x509_trust_store trust_store;
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_EQUAL(0, s2n_x509_trust_store_from_ca_file(&trust_store, S2N_WITHOUT_CN_RSA_CERT, NULL));
 
-        struct s2n_x509_validator validator;
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
 
         /* the provided hostname should be an empty string */
@@ -1417,22 +1414,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
-        EXPECT_OK(
-                s2n_test_cert_chain_data_from_pem(connection, S2N_WITHOUT_CN_RSA_CERT, &cert_chain_stuffer));
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(
+                                connection,
+                                S2N_WITHOUT_CN_RSA_CERT,
+                                &cert_chain_stuffer));
         uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        struct s2n_pkey public_key_out;
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
         EXPECT_EQUAL(S2N_PKEY_TYPE_RSA, pkey_type);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
     };
 
     /* test validator in safe mode, with default host name validator. No connection server name supplied. */

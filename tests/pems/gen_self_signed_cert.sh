@@ -38,6 +38,11 @@ GETOPT="getopt"
 # use gnu-getopt on macos
 if [[ "$OSTYPE" == "darwin"* ]]; then
     GETOPT="/usr/local/opt/gnu-getopt/bin/getopt"
+
+    if ! [ -x "$(command -v $GETOPT)" ]; then
+      echo 'Error: getopt is not installed. Install with `brew install gnu-getopt`' >&2
+      exit 1
+    fi
 fi
 
 # This only works with gnu getopt.
@@ -141,3 +146,4 @@ else
 fi
 
 rm $cert_conf_path
+
