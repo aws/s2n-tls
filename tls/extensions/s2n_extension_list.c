@@ -173,7 +173,7 @@ int s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list 
 
     POSIX_GUARD(s2n_blob_init(&parsed_extension_list->raw, extensions_data, total_extensions_size));
 
-    struct s2n_stuffer extensions_stuffer;
+    struct s2n_stuffer extensions_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&extensions_stuffer, &parsed_extension_list->raw));
     POSIX_GUARD(s2n_stuffer_skip_write(&extensions_stuffer, total_extensions_size));
 

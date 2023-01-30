@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
         uint16_t expected_length = 6;
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, expected_length);
 
         EXPECT_SUCCESS(s2n_server_supported_versions_extension.send(server_conn, &extension));
@@ -88,7 +88,7 @@ int main(int argc, char **argv)
 
         uint16_t supported_version_length = 6;
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, supported_version_length);
 
         EXPECT_SUCCESS(write_test_supported_version(&extension, unsupported_version_unknown));
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
         uint16_t supported_version_length = 6;
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, supported_version_length);
 
         EXPECT_SUCCESS(write_test_supported_version(&extension, unsupported_version_gt_tls13));
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, 1);
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0));
 
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        struct s2n_stuffer extension;
+        struct s2n_stuffer extension = { 0 };
         s2n_stuffer_alloc(&extension, 1);
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 13));

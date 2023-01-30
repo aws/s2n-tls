@@ -34,12 +34,14 @@ int main(int argc, char **argv)
 #endif
 
     /* Size of 0 is OK if data is null */
-    struct s2n_blob b2 = { .data = 0, .size = 0 };
+    struct s2n_blob b2 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&b2, 0, 0));
     EXPECT_OK(s2n_blob_validate(&b2));
 
     /* Valid blob is valid */
     uint8_t array[12];
-    struct s2n_blob b3 = { .data = array, .size = sizeof(array) };
+    struct s2n_blob b3 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&b3, array, sizeof(array)));
     EXPECT_OK(s2n_blob_validate(&b3));
 
     /* Null blob is not growable */
@@ -48,7 +50,7 @@ int main(int argc, char **argv)
     EXPECT_FAILURE(s2n_free(NULL));
 
     /* Static blob is not growable or freeable */
-    struct s2n_blob g1;
+    struct s2n_blob g1 = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&g1, array, 12));
     EXPECT_FALSE(s2n_blob_is_growable(&g1));
     EXPECT_FAILURE(s2n_realloc(&g1, 24));

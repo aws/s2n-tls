@@ -29,7 +29,7 @@ int main(int argc, char **argv)
     uint8_t digest_pad[256];
     uint8_t check_pad[256];
     uint8_t output_pad[256];
-    struct s2n_stuffer output;
+    struct s2n_stuffer output = { 0 };
     uint8_t sekrit[] = "sekrit";
     uint8_t longsekrit[] = "This is a really really really long key on purpose to make sure that it's longer than the block size";
     uint8_t hello[] = "Hello world!";
@@ -37,7 +37,8 @@ int main(int argc, char **argv)
     uint8_t string2[] = "and String 2";
     struct s2n_hmac_state hmac, copy, cmac;
 
-    struct s2n_blob out = { .data = output_pad, .size = sizeof(output_pad) };
+    struct s2n_blob out = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&out, output_pad, sizeof(output_pad)));
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());

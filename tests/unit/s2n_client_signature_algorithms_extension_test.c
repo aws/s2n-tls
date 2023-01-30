@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
 
-        struct s2n_stuffer io;
+        struct s2n_stuffer io = { 0 };
         s2n_stuffer_growable_alloc(&io, 0);
 
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.send(client_conn, &io));
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
-        struct s2n_stuffer signature_algorithms_extension;
+        struct s2n_stuffer signature_algorithms_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
         POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
         for (int i = 0; i < sig_hash_algs.len; i++) {
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_connection_set_config(conn, config));
         conn->actual_protocol_version = S2N_TLS12;
 
-        struct s2n_stuffer signature_algorithms_extension;
+        struct s2n_stuffer signature_algorithms_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
         for (int i = 0; i < sig_hash_algs.len; i++) {

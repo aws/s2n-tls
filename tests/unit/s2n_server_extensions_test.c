@@ -520,7 +520,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
         EXPECT_SUCCESS(s2n_server_extensions_send(conn, &stuffer));
