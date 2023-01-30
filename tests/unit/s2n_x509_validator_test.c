@@ -1383,9 +1383,9 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(s2n_test_cert_chain_data_from_pem(
-                                connection,
-                                S2N_IP_V6_LO_RSA_CERT,
-                                &cert_chain_stuffer));
+                connection,
+                S2N_IP_V6_LO_RSA_CERT,
+                &cert_chain_stuffer));
         uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
@@ -1415,9 +1415,9 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(s2n_test_cert_chain_data_from_pem(
-                                connection,
-                                S2N_WITHOUT_CN_RSA_CERT,
-                                &cert_chain_stuffer));
+                connection,
+                S2N_WITHOUT_CN_RSA_CERT,
+                &cert_chain_stuffer));
         uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
