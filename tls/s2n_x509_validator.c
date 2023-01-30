@@ -313,10 +313,11 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
 
     /* X520CommonName allows the following ANSI string types per RFC 5280 Appendix A.1 */
     RESULT_ENSURE(ASN1_STRING_type(common_name) == V_ASN1_TELETEXSTRING
-            || ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING
-            || ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING
-            || ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING
-            || ASN1_STRING_type(common_name) == V_ASN1_BMPSTRING, S2N_ERR_CERT_UNTRUSTED);
+                    || ASN1_STRING_type(common_name) == V_ASN1_PRINTABLESTRING
+                    || ASN1_STRING_type(common_name) == V_ASN1_UNIVERSALSTRING
+                    || ASN1_STRING_type(common_name) == V_ASN1_UTF8STRING
+                    || ASN1_STRING_type(common_name) == V_ASN1_BMPSTRING,
+            S2N_ERR_CERT_UNTRUSTED);
 
     /* at this point we have a valid CN value */
     *cn_found = true;
