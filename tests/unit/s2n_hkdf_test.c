@@ -402,10 +402,12 @@ int main(int argc, char **argv)
     struct s2n_hmac_state hmac;
 
     uint8_t prk_pad[MAX_PSEUDO_RAND_KEY_SIZE];
-    struct s2n_blob prk_result = { .data = prk_pad, .size = sizeof(prk_pad) };
+    struct s2n_blob prk_result = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&prk_result, prk_pad, sizeof(prk_pad)));
 
     uint8_t output_pad[MAX_OUTPUT_SIZE];
-    struct s2n_blob out_result = { .data = output_pad, .size = sizeof(output_pad) };
+    struct s2n_blob out_result = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&out_result, output_pad, sizeof(output_pad)));
 
     struct s2n_blob in_key_blob, salt_blob, info_blob, actual_prk_blob, actual_output_blob;
 
@@ -435,8 +437,10 @@ int main(int argc, char **argv)
      * then adding 1
      */
     uint8_t error_out_pad[5101];
-    struct s2n_blob error_out = { .data = error_out_pad, .size = sizeof(error_out_pad) };
-    struct s2n_blob zero_out = { .data = output_pad, .size = 0 };
+    struct s2n_blob error_out = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&error_out, error_out_pad, sizeof(error_out_pad)));
+    struct s2n_blob zero_out = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&zero_out, output_pad, 0));
 
     s2n_hmac_algorithm alg = S2N_HMAC_SHA1;
 

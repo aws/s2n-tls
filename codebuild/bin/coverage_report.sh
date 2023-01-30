@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,19 +11,24 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-#
-set -eu
-source codebuild/bin/s2n_setup_env.sh
 
-export CTEST_OUTPUT_ON_FAILURE=1
-BREWINSTLLPATH=$(brew --prefix openssl@1.1)
-OPENSSL_1_1_1_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@1.1/1.1.1?"}"
+set -e
 
-echo "Using OpenSSL at $OPENSSL_1_1_1_INSTALL_DIR"
-# Build with debug symbols and a specific OpenSSL version
-cmake . -Bbuild -GNinja \
--DCMAKE_BUILD_TYPE=Debug \
--DCMAKE_PREFIX_PATH=${OPENSSL_1_1_1_INSTALL_DIR} ..
+# merge profiling data
+llvm-profdata merge -sparse tests/unit/ut_*.profraw -o merged.profdata
 
-cmake --build ./build -j $(nproc)
-time CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
+# generate file-level summary
+llvm-cov report build/lib/libs2n.so \
+    -instr-profile=merged.profdata \
+    > coverage_summary.txt
+
+# convert llvm information to lcov format for genhtml
+llvm-cov export build/lib/libs2n.so \
+    -instr-profile=merged.profdata \
+    -format=lcov \
+    > unit_test_coverage.info
+
+# generate html report with annotated source files
+genhtml unit_test_coverage.info \
+    --branch-coverage \
+    -o coverage_report

@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,19 +11,19 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-#
-set -eu
+
+set -e
+
 source codebuild/bin/s2n_setup_env.sh
 
-export CTEST_OUTPUT_ON_FAILURE=1
-BREWINSTLLPATH=$(brew --prefix openssl@1.1)
-OPENSSL_1_1_1_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@1.1/1.1.1?"}"
+# LLVM complains about corrupt coverage information
+# for static targets, so compile to a shared lib
+# instead.
+cmake . -Bbuild \
+    -DCOVERAGE=ON \
+    -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+    -DBUILD_SHARED_LIBS=ON
 
-echo "Using OpenSSL at $OPENSSL_1_1_1_INSTALL_DIR"
-# Build with debug symbols and a specific OpenSSL version
-cmake . -Bbuild -GNinja \
--DCMAKE_BUILD_TYPE=Debug \
--DCMAKE_PREFIX_PATH=${OPENSSL_1_1_1_INSTALL_DIR} ..
+cmake --build ./build -- -j $(nproc)
 
-cmake --build ./build -j $(nproc)
-time CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
+echo "done with the build"

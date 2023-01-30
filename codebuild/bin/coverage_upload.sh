@@ -1,5 +1,4 @@
 #!/bin/bash
-#!/bin/bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -13,18 +12,14 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-set -eu
-source codebuild/bin/s2n_setup_env.sh
 
-export CTEST_OUTPUT_ON_FAILURE=1
-BREWINSTLLPATH=$(brew --prefix openssl@1.1)
-OPENSSL_1_1_1_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@1.1/1.1.1?"}"
+set -e
+echo "The codebuild source version is ${CODEBUILD_SOURCE_VERSION}"
 
-echo "Using OpenSSL at $OPENSSL_1_1_1_INSTALL_DIR"
-# Build with debug symbols and a specific OpenSSL version
-cmake . -Bbuild -GNinja \
--DCMAKE_BUILD_TYPE=Debug \
--DCMAKE_PREFIX_PATH=${OPENSSL_1_1_1_INSTALL_DIR} ..
+CLOUDFRONT_DISTRIBUTION="https://dx1inn44oyl7n.cloudfront.net"
 
-cmake --build ./build -j $(nproc)
-time CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
+aws s3 sync coverage_report      s3://s2n-tls-public-coverage-artifacts/${CODEBUILD_SOURCE_VERSION}/report
+aws s3 cp   coverage_summary.txt s3://s2n-tls-public-coverage-artifacts/${CODEBUILD_SOURCE_VERSION}/summary.txt
+
+echo "report : is at ${CLOUDFRONT_DISTRIBUTION}/${CODEBUILD_SOURCE_VERSION}/report/index.html"
+echo "summary: is at ${CLOUDFRONT_DISTRIBUTION}/${CODEBUILD_SOURCE_VERSION}/summary.txt"

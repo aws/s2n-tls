@@ -33,7 +33,8 @@ int main(int argc, char **argv)
     uint8_t string2[] = "and String 2\n";
     struct s2n_stuffer output = { 0 };
     struct s2n_hash_state hash, copy;
-    struct s2n_blob out = { .data = output_pad, .size = sizeof(output_pad) };
+    struct s2n_blob out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&out, output_pad, sizeof(output_pad)));
     uint64_t bytes_in_hash;
 
     BEGIN_TEST();
