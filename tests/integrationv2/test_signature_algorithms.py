@@ -240,7 +240,6 @@ def test_s2n_server_tls12_signature_algorithm_fallback(managed_process, cipher, 
     # extension.
     #
     # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
-    expected_sig_alg_tls12: None
     if signature == Signatures.RSA_SHA224:
         expected_sig_alg_tls12 = Signatures.RSA_SHA1
     else:
