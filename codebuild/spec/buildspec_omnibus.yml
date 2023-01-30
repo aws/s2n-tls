@@ -218,10 +218,18 @@ batch:
         variables:
           BUILD_S2N: true
           GCC_VERSION: 6
-          S2N_COVERAGE: true
           S2N_LIBCRYPTO: openssl-1.1.1
           TESTS: unit
-      identifier: s2nUnitOpenSSL111Gcc6Coverage
+      identifier: s2nUnitOpenSSL111Gcc6
+
+    - identifier: s2nUnitCoverage
+      buildspec: codebuild/spec/buildspec_unit_coverage.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
 
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
