@@ -155,8 +155,12 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_OCSP_RESPONSE_WRONG_SIGNER_DER   "../pems/ocsp/ocsp_response_wrong_signer.der"
 #define S2N_OCSP_RESPONSE_CERT               "../pems/ocsp/ocsp_cert.pem"
 
-#define S2N_ALLIGATOR_SAN_CERT "../pems/sni/alligator_cert.pem"
-#define S2N_ALLIGATOR_SAN_KEY  "../pems/sni/alligator_key.pem"
+#define S2N_ALLIGATOR_SAN_CERT  "../pems/sni/alligator_cert.pem"
+#define S2N_ALLIGATOR_SAN_KEY   "../pems/sni/alligator_key.pem"
+#define S2N_IP_V6_LO_RSA_CERT   "../pems/sni/ip_v6_lo_rsa_cert.pem"
+#define S2N_IP_V6_LO_RSA_KEY    "../pems/sni/ip_v6_lo_rsa_key.pem"
+#define S2N_WITHOUT_CN_RSA_CERT "../pems/sni/without_cn_rsa_cert.pem"
+#define S2N_WITHOUT_CN_RSA_KEY  "../pems/sni/without_cn_rsa_key.pem"
 
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 
