@@ -26,7 +26,8 @@ int main(int argc, char **argv)
     uint8_t hello_world_base64[] = "SGVsbG8gd29ybGQhAA==";
     struct s2n_stuffer stuffer = { 0 }, known_data = { 0 }, scratch = { 0 }, entropy = { 0 }, mirror = { 0 };
     uint8_t pad[50];
-    struct s2n_blob r = { .data = pad, .size = sizeof(pad) };
+    struct s2n_blob r = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&r, pad, sizeof(pad)));
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
