@@ -277,19 +277,21 @@ static S2N_RESULT s2n_verify_host_information_san(struct s2n_connection *conn, X
     int n = sk_GENERAL_NAME_num(names_list);
     RESULT_ENSURE(n > 0, S2N_ERR_CERT_UNTRUSTED);
 
+    s2n_result result = S2N_RESULT_OK;
     for (int i = 0; i < n; i++) {
         GENERAL_NAME *current_name = sk_GENERAL_NAME_value(names_list, i);
 
         /* return success on the first entry that passes verification */
-        s2n_result result = s2n_verify_host_information_san_entry(conn, current_name, san_found);
+        result = s2n_verify_host_information_san_entry(conn, current_name, san_found);
         if (s2n_result_is_ok(result)) {
             return S2N_RESULT_OK;
         }
     }
 
     /* if an error was set by one of the entries, then just propagate the error from the last SAN entry call */
-    RESULT_DEBUG_ENSURE(s2n_errno, S2N_ERR_SAFETY); /* make sure we actually set an error on the last call */
-    return S2N_RESULT_ERROR;
+    RESULT_GUARD(result);
+
+    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
 
 static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection *conn, X509 *public_cert, bool *cn_found)

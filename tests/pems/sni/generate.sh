@@ -19,3 +19,4 @@ cd $(dirname $0)
 
 ../gen_self_signed_cert.sh --cn '' --prefix 'without_cn'
 ../gen_self_signed_cert.sh --ip '::1' --prefix 'ip_v6_lo'
+

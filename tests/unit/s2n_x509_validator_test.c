@@ -1378,7 +1378,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(connection);
 
         /* the provided hostname should be an empty string */
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "::1\0" };
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "::1" };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
@@ -1410,7 +1410,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(connection);
 
         /* the provided hostname should be an empty string */
-        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "\0" };
+        struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = "" };
         EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_verify_alt, &verify_data));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
