@@ -451,24 +451,6 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 
-uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
-{
-    POSIX_ENSURE_REF(conn);
-
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-
-    uint32_t s2n_client_key_share_extension_size = S2N_SIZE_OF_EXTENSION_TYPE
-            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
-            + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
-
-    s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
-    s2n_client_key_share_extension_size += ecc_pref->ecc_curves[0]->share_size;
-
-    return s2n_client_key_share_extension_size;
-}
-
 int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_extension_recv(&s2n_client_key_share_extension, conn, extension);

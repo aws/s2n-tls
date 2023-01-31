@@ -13,12 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include <stdint.h>
 
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
+#define MACRO_CHECK \
+    do { \
+        _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic error \"-Wconversion\"") \
+        return -1; \
+        _Pragma("GCC diagnostic pop") \
+    } while (0)
 
-extern const s2n_extension_type s2n_client_key_share_extension;
+int main()
+{
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-qual"
+    #pragma GCC diagnostic pop
 
-/* Old-style extension functions -- remove after extensions refactor is complete */
-int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+    MACRO_CHECK;
+}

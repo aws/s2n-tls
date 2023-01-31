@@ -13,12 +13,35 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+/**
+ * This feature detects if the compiler properly pops diagnostics
+ */
 
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
+#include <stdint.h>
 
-extern const s2n_extension_type s2n_client_key_share_extension;
+#define MACRO_CHECK \
+    do { \
+        _Pragma("GCC diagnostic push") \
+        _Pragma("GCC diagnostic error \"-Wconversion\"") \
+        return -1; \
+        _Pragma("GCC diagnostic pop") \
+    } while (0)
 
-/* Old-style extension functions -- remove after extensions refactor is complete */
-int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int signed_fun()
+{
+    MACRO_CHECK;
+}
+
+/* this function is here to ensure the compiler properly pops the previous diagnostic */
+uint8_t unsigned_fun()
+{
+    return -1;
+}
+
+int main()
+{
+    signed_fun();
+    unsigned_fun();
+
+    MACRO_CHECK;
+}
