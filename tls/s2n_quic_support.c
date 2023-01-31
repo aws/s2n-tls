@@ -115,13 +115,14 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
 /* When using QUIC, S2N writes unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N output buffer to match the result of using s2n_record_write.
  */
-S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in)
+S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
     /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
     RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->out, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write(&conn->out, in));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(&conn->handshake.io, &conn->out,
+            s2n_stuffer_data_available(&conn->handshake.io)));
     return S2N_RESULT_OK;
 }

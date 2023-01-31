@@ -153,9 +153,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->server_protocol_version, S2N_TLS12);
 
         /* Now lets shutdown the connection and verify that alert is sent in record with protocol version TLS1.2 */
-        EXPECT_EQUAL(s2n_shutdown(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
-        EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
 
         /* Receive the next record from client and ensure that record protocol version is TLS1.2 */
         buf_occupied = 0;
@@ -289,9 +287,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->server_protocol_version, S2N_SSLv3);
 
         /* Now lets shutdown the connection and verify that alert is sent in record with protocol version SSLv3 */
-        EXPECT_EQUAL(s2n_shutdown(client_conn, &client_blocked), -1);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_IO_BLOCKED);
-        EXPECT_EQUAL(client_blocked, S2N_BLOCKED_ON_READ);
+        EXPECT_SUCCESS(s2n_shutdown(client_conn, &client_blocked));
 
         /* Receive the next record from client and ensure that record protocol version is SSLv3 */
         buf_occupied = 0;

@@ -339,7 +339,8 @@ testParameters = {
 testConnection : connection
 testConnection = {
             handshake = {handshake_type = 0x00000000,
-                message_number = 0x00000000},
+                         message_number = 0x00000000,
+                         state_machine = 0x00000000},
             mode = 0x00000000,
             corked_io = False,
             corked = zero,

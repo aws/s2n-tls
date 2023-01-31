@@ -21,8 +21,9 @@
 int main(int argc, char **argv)
 {
     uint8_t pad[100];
-    struct s2n_blob b = { .data = pad, .size = sizeof(pad) };
-    struct s2n_stuffer stuffer;
+    struct s2n_blob b = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&b, pad, sizeof(pad)));
+    struct s2n_stuffer stuffer = { 0 };
     uint8_t u8;
     uint16_t u16;
     uint32_t u32;
@@ -100,7 +101,8 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
     uint8_t hex[] = "f0F0Zz";
-    struct s2n_blob text = { .data = hex, .size = strlen((char *) hex) };
+    struct s2n_blob text = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&text, hex, strlen((char *) hex)));
     EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &text));
 
     EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));

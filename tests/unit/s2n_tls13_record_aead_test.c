@@ -163,7 +163,7 @@ int main(int argc, char **argv)
          * we copy the contents for verification.
          */
         s2n_stack_blob(decrypted, plaintext_record.size, 1000);
-        struct s2n_stuffer decrypted_stuffer;
+        struct s2n_stuffer decrypted_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&decrypted_stuffer, &decrypted));
 
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&decrypted_stuffer, conn->in.blob.data, plaintext_record.size));
@@ -295,7 +295,8 @@ int main(int argc, char **argv)
         S2N_BLOB_LABEL(expect_plaintext, "Hello world");
 
         static uint8_t hello_data[] = "Hello world";
-        struct s2n_blob plaintext = { .data = hello_data, .size = sizeof(hello_data) - 1 };
+        struct s2n_blob plaintext = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&plaintext, hello_data, sizeof(hello_data) - 1));
 
         /* Takes an input blob and writes to out stuffer then encrypt the payload */
         EXPECT_OK(s2n_record_write(conn, TLS_HANDSHAKE, &plaintext));

@@ -238,12 +238,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         echo(conn, fd, &stop_echo);
     }
 
-    /* The following call can block on receiving a close_notify if we initiate the shutdown or if the */
-    /* peer fails to send a close_notify. */
-    /* TODO: However, we should expect to receive a close_notify from the peer and shutdown gracefully. */
-    /* Please see tracking issue for more detail: https://github.com/aws/s2n-tls/issues/2692 */
-    s2n_blocked_status blocked;
-    s2n_shutdown(conn, &blocked);
+    GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
