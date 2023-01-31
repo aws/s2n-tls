@@ -224,7 +224,9 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
         *san_found = true;
 
         const char *name = (const char *) ASN1_STRING_data(current_name->d.ia5);
-        size_t name_len = (size_t) ASN1_STRING_length(current_name->d.ia5);
+        RESULT_ENSURE_REF(name);
+        int name_len = ASN1_STRING_length(current_name->d.ia5);
+        RESULT_ENSURE_GT(name_len, 0);
 
         RESULT_ENSURE(conn->verify_host_fn(name, name_len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
 
@@ -236,7 +238,9 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
 
         /* try to validate an IP address if it's in the subject alt name. */
         const unsigned char *ip_addr = current_name->d.iPAddress->data;
-        size_t ip_addr_len = (size_t) current_name->d.iPAddress->length;
+        RESULT_ENSURE_REF(ip_addr);
+        int ip_addr_len = current_name->d.iPAddress->length;
+        RESULT_ENSURE_GT(ip_addr_len, 0);
 
         RESULT_STACK_BLOB(address, INET6_ADDRSTRLEN + 1, INET6_ADDRSTRLEN + 1);
 
@@ -246,7 +250,7 @@ static S2N_RESULT s2n_verify_host_information_san_entry(struct s2n_connection *c
             RESULT_GUARD(s2n_inet_ntop(AF_INET6, ip_addr, &address));
         } else {
             /* we aren't able to parse this value so skip it */
-            return S2N_RESULT_ERROR;
+            RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }
 
         /* strlen should be safe here since we made sure we were null terminated AND that inet_ntop succeeded */
