@@ -308,15 +308,12 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     RESULT_ENSURE(subject_name, S2N_ERR_CERT_UNTRUSTED);
 
     int curr_idx = -1;
-    {
-        int next_idx;
-        while (true) {
-            next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx);
-            if (next_idx >= 0) {
-                curr_idx = next_idx;
-            } else {
-                break;
-            }
+    while (true) {
+        int next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx);
+        if (next_idx >= 0) {
+            curr_idx = next_idx;
+        } else {
+            break;
         }
     }
 
