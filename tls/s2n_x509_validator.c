@@ -307,14 +307,16 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     X509_NAME *subject_name = X509_get_subject_name(public_cert);
     RESULT_ENSURE(subject_name, S2N_ERR_CERT_UNTRUSTED);
 
-    int next_idx = 0;
     int curr_idx = -1;
-    while (true) {
-        next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx);
-        if (next_idx >= 0) {
-            curr_idx = next_idx;
-        } else {
-            break;
+    {
+        int next_idx;
+        while (true) {
+            next_idx = X509_NAME_get_index_by_NID(subject_name, NID_commonName, curr_idx);
+            if (next_idx >= 0) {
+                curr_idx = next_idx;
+            } else {
+                break;
+            }
         }
     }
 
