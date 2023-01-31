@@ -81,6 +81,7 @@ struct s2n_cipher {
         struct s2n_composite_cipher comp;
     } io;
     uint8_t key_material_size;
+    bool ktls_supported;
     uint8_t (*is_available)(void);
     int (*init)(struct s2n_session_key *key);
     int (*set_decryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
