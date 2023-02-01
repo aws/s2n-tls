@@ -286,6 +286,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_OSSL_PROVIDER, "Failed to load or unload an openssl provider") \
     ERR_ENTRY(S2N_ERR_CERT_OWNERSHIP, "The ownership of the certificate chain is incompatible with the operation") \
     ERR_ENTRY(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API") \
+    ERR_ENTRY(S2N_ERR_KTLS, "An internal error while enabling kTLS") \
     ERR_ENTRY(S2N_ERR_NO_RENEGOTIATION, "Only secure, server-initiated renegotiation is supported") \
     ERR_ENTRY(S2N_ERR_APP_DATA_BLOCKED, "Blocked on application data during handshake") \
     /* clang-format on */
