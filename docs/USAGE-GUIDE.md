@@ -372,7 +372,9 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 
 ## Config
 
-`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it are finished using it. Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
+
+Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
 
 ### Overriding the Config
 
@@ -607,66 +609,43 @@ In TLS1.3, session ticket messages are sent after the handshake as "post-handsha
 
 Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call `s2n_config_set_initial_ticket_count()` to set the number of tickets they want to send and `s2n_connection_add_new_tickets_to_send()` to increase the number of tickets to send during a connection.
 
-### s2n\_config\_set\_client\_hello\_cb
+### Session Resumption Forward Secrecy
 
-```c
-int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
-```
+In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session's secret exposes the original session's encrypted data.
 
-**s2n_config_set_client_hello_cb** allows the caller to set a callback function
-that will be called after ClientHello was parsed.
+In contrast, in TLS1.3 the secret stored inside the ticket is _derived_ from the original session's master secret. The derivation uses a cryptographic operation that can't be reversed by an attacker to retrieve the original master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session's secret will not expose the original session's encrypted data.
 
-```c
-typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
-```
+### Keying Material Lifetimes in TLS1.2 and TLS1.3
 
-The callback function takes a s2n-tls connection as input, which receives the
-ClientHello and the context previously provided in **s2n_config_set_client_hello_cb**.
-The callback can access any ClientHello information from the connection and use
-the **s2n_connection_set_config** call to change the config of the connection.
+In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original "keying material"-- meaning the lifetime of any secret derived from the original full handshake-- is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()`.
 
-```c
-int s2n_config_set_client_hello_cb_mode(struct s2n_config *config, s2n_client_hello_cb_mode cb_mode);
-```
-Sets the callback execution mode.
+In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see [Session Resumption Forward Secrecy](#session-resumption-forward-secrecy). These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original "keying material" to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate "keying material" lifetime, which servers can configure with `s2n_connection_set_server_keying_material_lifetime()`. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.
 
-The callback can be be invoked in two modes
-- **S2N_CLIENT_HELLO_CB_BLOCKING** (default):
+## Examining the Client Hello
 
-    In this mode s2n-tls expects the callback to complete its work
-    and return the appropriate response code before the handshake continues.
-    If any of the connection properties were changed based on the server_name
-    extension the callback must either return a value greater than 0 or invoke **s2n_connection_server_name_extension_used**,
-    otherwise the callback returns 0 to continue the handshake.
+s2n-tls stores the received Client Hello and makes it available to the application. Call `s2n_connection_get_client_hello()` to get a pointer to the `s2n_client_hello` struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). The stored Client Hello message will not be available after calling `s2n_connection_free_handshake()`.
 
-- **S2N_CLIENT_HELLO_CB_NONBLOCKING**:
+Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello message with the random bytes on it zeroed out. Note that SSLv2 Client Hello messages are structured differently than other versions and thus their raw messages should be parsed accordingly (see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).) Call `s2n_connection_get_client_hello_version()` to retrieve the Client Hello version.
 
-    In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback
-    returns a response code of 0 s2n-tls will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED**
-    error type and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**.
-    The handshake is paused and further calls to **s2n_negotiate** will continue to return the
-    same error until **s2n_client_hello_cb_done** is invoked for the **s2n_connection** to resume
-    the handshake. This allows s2n-tls clients to process client_hello without
-    blocking and then resume the handshake at a later time.
-    If any of the connection properties were changed on the basis of the server_name extension then
-    **s2n_connection_server_name_extension_used** must be invoked before marking the callback done.
+`s2n_client_hello_get_cipher_suites()` will retrieve the list of cipher suites sent by the client.
 
-The callback can return a negative value to make s2n-tls terminate the
-handshake early with a fatal handshake failure alert.
+`s2n_client_hello_get_session_id()` will get the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with `s2n_connection_get_session_id()`after the handshake completes.
 
-```c
-int s2n_client_hello_cb_done(struct s2n_connection *conn)
-```
-Marks the non-blocking callback as complete.
-Can be invoked from within the callback when operating in non-blocking mode
-to continue the handshake.
+Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensions sent in the Client Hello. Calling `s2n_client_hello_get_extension_by_id()` allows you to interrogate the `s2n_client_hello` struct for a specific extension.
 
-```c
-int s2n_client_server_name_used(struct s2n_connection *conn)
-```
-Indicates that connection properties were changed on the basis of server_name.
-Triggers a s2n-tls server to send the server_name extension. Must be called
-before s2n-tls finishes processing the ClientHello.
+### Client Hello Callback
+
+Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully, as modifying the connection in response to untrusted input can be dangerous. In particular, switching from an `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. 
+
+`s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
+
+#### Callback Modes
+
+The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING** or **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode.
+
+The default mode, "blocking mode", will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won't slow down the handshake or block the main thread, like logging or simple configuration changes.
+ 
+In contrast, "non-blocking mode" will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls `s2n_client_hello_cb_done()` will the handshake be able to resume.
 
 ## Record sizes
 
@@ -741,91 +720,6 @@ types of I/O).
 If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
-
-### s2n\_connection\_get\_client\_hello
-
-```c
-struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
-```
-For a given s2n_connection, **s2n_connection_get_client_hello** returns a handle
-to the s2n_client_hello structure holding the client hello message sent by the client during the handshake.
-NULL is returned if the connection has not yet received and parsed the client hello.
-Earliest point during the handshake when this structure is available for use is in the client_hello_callback (see **s2n_config_set_client_hello_cb**).
-
-### s2n\_client\_hello\_get\_raw\_message
-
-```c
-ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
-ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **out** Pointer to a buffer into which the raw client hello bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_raw_message_length** returns the size of the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_raw_message** copies **max_length** bytes of the ClientHello message into the **out** buffer and returns the number of copied bytes.
-The ClientHello instrumented using this function will have the Random bytes zero-ed out.
-
-For SSLv2 ClientHello messages, the raw message contains only the cipher_specs, session_id and members portions of the hello message
-(see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2)). To access other members, you may use the
-**s2n_connection_get_client_hello_version**, **s2n_connection_get_client_protocol_version**  and **s2n_connection_get_session_id_length** accesor functions.
-
-### s2n\_client\_hello\_get\_cipher\_suites
-
-```c
-ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
-ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_cipher_suites_length** returns the number of bytes the cipher_suites takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_cipher_suites** copies into the **out** buffer **max_length** bytes of the cipher_suites on the ClientHello and returns the number of copied bytes.
-
-### s2n\_client\_hello\_get\_extensions
-
-```c
-ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
-ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_extensions_length** returns the number of bytes the extensions take on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_extensions** copies into the **out** buffer **max_length** bytes of the extensions on the ClientHello and returns the number of copied bytes.
-
-### s2n\_client\_hello\_get\_extension
-
-```c
-ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
-ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **s2n_tls_extension_type** Enum [s2n_tls_extension_type](#s2n\_config\_set\_extension\_data) lists all supported extension types.
-- **out** Pointer to a buffer into which the extension bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of copied bytes.
-
-### s2n\_client\_hello\_get\_session\_id
-
-```c
-int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
-int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
-```
-
-These functions retrieve the session id as sent by the client in the ClientHello message. The session id on the **s2n_connection** may change later when the server sends the ServerHello; see **s2n_connection_get_session_id** for how to get the final session id used for future session resumption.
-
-**s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
-
-**s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
 
 ## Private Key Operation Related Calls
 
