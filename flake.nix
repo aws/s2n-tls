@@ -12,10 +12,8 @@
           name = "s2n-tls";
           inherit system;
 
-          buildInputs = [
-            pkgs.cmake
-            pkgs.openssl_3
-          ]; # s2n-config has find_dependency LibCrypto
+          nativeBuildInputs = [ pkgs.cmake ];
+          buildInputs = [ pkgs.openssl ];
 
           cmakeFlags = [
             "-DBUILD_SHARED_LIBS=ON"
@@ -23,29 +21,23 @@
             "-DS2N_NO_PQ=1" # TODO: set when system like aarch64/mips,etc
           ];
 
+          propagatedBuildInputs = [ pkgs.openssl ];
+
+          passthru.tests = {
+            inherit nix;
+          };
         };
         packages.default = packages.s2n-tls;
-        packages.s2n-tls-openssl3 = pkgs.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
+        packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
           doCheck = true;
         });
-        packages.s2n-tls-openssl11 = pkgs.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
+        packages.s2n-tls-openssl11 = packages.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
           doCheck = true;
           buildInputs = [ pkgs.openssl_1_1 ];
         });
-        # TODO: s2n_crl_test fails on libressl-3.6.1
-        packages.s2n-tls-libressl = pkgs.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
+        packages.s2n-tls-libressl = packages.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
           doCheck = true;
           buildInputs = [ pkgs.libressl ];
-        });
-        # TODO: boringssl shared lib not being installed by default
-        packages.s2n-tls-boringssl = pkgs.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
-          doCheck = true;
-          buildInputs = [ pkgs.boringssl ];
-        });
-        # TODO: not linking correctly, missing .so as well?
-        packages.s2n-tls-gnutls = pkgs.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
-          doCheck = true;
-          buildInputs = [ pkgs.gnutls ];
         });
       });
 }
