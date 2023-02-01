@@ -439,6 +439,7 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
 
     POSIX_ENSURE_REF(config);
     config->status_request_type = type;
+    config->status_request_type_set = type == S2N_STATUS_REQUEST_OCSP;
 
     return 0;
 }

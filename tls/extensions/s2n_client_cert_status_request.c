@@ -37,12 +37,12 @@ const s2n_extension_type s2n_client_cert_status_request_extension = {
 
 static bool s2n_client_cert_status_request_should_send(struct s2n_connection *conn)
 {
-    return conn->config->status_request_type != S2N_STATUS_REQUEST_NONE;
+    return conn->status_request_type != S2N_STATUS_REQUEST_NONE;
 }
 
 static int s2n_client_cert_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    POSIX_GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->config->status_request_type));
+    POSIX_GUARD(s2n_stuffer_write_uint8(out, (uint8_t) conn->status_request_type));
 
     /* responder_id_list
      *

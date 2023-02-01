@@ -352,6 +352,19 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         conn->multirecord_send = true;
     }
 
+    conn->status_request_type = config->status_request_type;
+
+    /* status_request_type defaults to S2N_STATUS_REQUEST_NONE, and is set by users via
+     * s2n_config_set_status_request_type. However, status_request_type can also be set
+     * via s2n_config_set_verification_ca_location. To ensure backwards compatibility,
+     * this behavior is kept for clients. For servers, however, this value is reset to
+     * S2N_STATUS_REQUEST_NONE if the user did not intentionally set this value in
+     * s2n_config_set_status_request_type.
+     */
+    if (!config->status_request_type_set && conn->mode == S2N_SERVER) {
+        conn->status_request_type = S2N_STATUS_REQUEST_NONE;
+    }
+
     conn->config = config;
     return S2N_SUCCESS;
 }

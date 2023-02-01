@@ -22,24 +22,32 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_config *config;
-    EXPECT_NOT_NULL(config = s2n_config_new());
-
-    /* Test should_send */
+    /* status request should not be sent by default */
     {
-        struct s2n_connection *conn;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-        /* status request should NOT be sent by default */
         EXPECT_FALSE(s2n_client_cert_status_request_extension.should_send(conn));
+    }
 
-        /* status request should be sent if ocsp requested */
+    /* status request should be sent if OCSP stapling is requested */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
         config->status_request_type = S2N_STATUS_REQUEST_OCSP;
-        EXPECT_TRUE(s2n_client_cert_status_request_extension.should_send(conn));
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    };
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+        EXPECT_TRUE(s2n_client_cert_status_request_extension.should_send(conn));
+    }
+
+    struct s2n_config *config;
+    EXPECT_NOT_NULL(config = s2n_config_new());
 
     /* Enable status requests */
     config->status_request_type = S2N_STATUS_REQUEST_OCSP;

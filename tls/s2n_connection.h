@@ -330,6 +330,9 @@ struct s2n_connection {
      */
     char application_protocol[256];
 
+    /* Indicates whether the connection will request OCSP stapling from the peer */
+    s2n_status_request_type status_request_type;
+
     /* OCSP stapling response data */
     s2n_status_request_type status_type;
     struct s2n_blob status_response;

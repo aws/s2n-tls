@@ -108,9 +108,14 @@ struct s2n_config {
     struct s2n_map *domain_name_to_cert_map;
     struct certs_by_type default_certs_by_type;
     struct s2n_blob application_protocols;
-    s2n_status_request_type status_request_type;
     s2n_clock_time_nanoseconds wall_clock;
     s2n_clock_time_nanoseconds monotonic_clock;
+
+    /* Indicates whether the connection will request OCSP stapling from the peer */
+    s2n_status_request_type status_request_type;
+
+    /* Indicates whether a user has set the status request type */
+    unsigned status_request_type_set : 1;
 
     const struct s2n_security_policy *security_policy;
 
