@@ -11,7 +11,6 @@
           src = self;
           name = "s2n-tls";
           inherit system;
-          # TODO: override the s2n-tls version
 
           buildInputs = [
             pkgs.cmake
@@ -25,7 +24,7 @@
           ];
 
         };
-        defaultPackage = packages.s2n-tls;
+        packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = pkgs.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
           doCheck = true;
         });
