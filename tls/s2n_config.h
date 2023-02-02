@@ -101,6 +101,9 @@ struct s2n_config {
      */
     unsigned recv_multi_record : 1;
 
+    /* Indicates whether a user has set the status request type */
+    unsigned status_request_type_set : 1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
@@ -113,9 +116,6 @@ struct s2n_config {
 
     /* Indicates whether the connection will request OCSP stapling from the peer */
     s2n_status_request_type status_request_type;
-
-    /* Indicates whether a user has set the status request type */
-    unsigned status_request_type_set : 1;
 
     const struct s2n_security_policy *security_policy;
 

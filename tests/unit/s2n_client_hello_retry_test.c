@@ -920,14 +920,6 @@ int main(int argc, char **argv)
                     s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
-            /* Setup all extensions */
-            uint8_t apn[] = "https";
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "PQ-TLS-1-1-2021-05-21"));
-            EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-            EXPECT_SUCCESS(s2n_config_set_ct_support_level(client_config, S2N_CT_SUPPORT_REQUEST));
-            EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_4096));
-            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
-
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -938,7 +930,6 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
-            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
             struct s2n_test_io_pair io_pair = { 0 };
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -954,6 +945,14 @@ int main(int argc, char **argv)
             };
             client_conn->security_policy_override = &security_policy_test_tls13_retry_with_pq;
 
+            /* Setup all extensions */
+            uint8_t apn[] = "https";
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "PQ-TLS-1-1-2021-05-21"));
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
+            EXPECT_SUCCESS(s2n_config_set_ct_support_level(client_config, S2N_CT_SUPPORT_REQUEST));
+            EXPECT_SUCCESS(s2n_config_send_max_fragment_length(client_config, S2N_TLS_MAX_FRAG_LEN_4096));
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
             EXPECT_SUCCESS(s2n_connection_append_protocol_preference(client_conn, apn, sizeof(apn)));
             EXPECT_SUCCESS(s2n_connection_set_early_data_expected(client_conn));

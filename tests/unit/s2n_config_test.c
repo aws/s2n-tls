@@ -609,7 +609,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_TRUE(conn->status_request_type == S2N_STATUS_REQUEST_NONE);
+            EXPECT_EQUAL(conn->status_request_type, S2N_STATUS_REQUEST_NONE);
         }
 
         /* status_request_type is set via s2n_config_set_status_request_type */
@@ -622,7 +622,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_TRUE(conn->status_request_type == S2N_STATUS_REQUEST_OCSP);
+            EXPECT_EQUAL(conn->status_request_type, S2N_STATUS_REQUEST_OCSP);
         }
 
         /* For backwards compatibility, status_request_type is set via s2n_config_set_verification_ca_location
@@ -652,9 +652,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             if (mode == S2N_CLIENT) {
-                EXPECT_TRUE(conn->status_request_type == S2N_STATUS_REQUEST_OCSP);
+                EXPECT_EQUAL(conn->status_request_type, S2N_STATUS_REQUEST_OCSP);
             } else {
-                EXPECT_TRUE(conn->status_request_type == S2N_STATUS_REQUEST_NONE);
+                EXPECT_EQUAL(conn->status_request_type, S2N_STATUS_REQUEST_NONE);
             }
         }
 
@@ -672,7 +672,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_TRUE(conn->status_request_type == S2N_STATUS_REQUEST_OCSP);
+            EXPECT_EQUAL(conn->status_request_type, S2N_STATUS_REQUEST_OCSP);
         }
     }
 
