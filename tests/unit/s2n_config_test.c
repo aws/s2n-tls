@@ -637,6 +637,9 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
                     break;
                 case 1:
+                    /* If a user intentionally disables OCSP stapling, s2n_config_set_verification_ca_location
+                     * should not re-enable it.
+                     */
                     EXPECT_SUCCESS(s2n_config_set_status_request_type(config, S2N_STATUS_REQUEST_NONE));
                     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
                     break;
