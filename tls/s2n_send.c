@@ -29,6 +29,16 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
+/*
+ * Determine whether there is currently sufficient space in the send buffer to construct
+ * another record, or if we need to flush now.
+ *
+ * We only buffer multiple records when sending application data, NOT when
+ * sending handshake messages or alerts. If the next record is a post-handshake message
+ * or an alert, then the send buffer will be flushed regardless of the result of this method.
+ * Therefore we don't need to consider the size of any potential KeyUpdate messages,
+ * NewSessionTicket messages, or Alerts.
+ */
 bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 {
     /* Always flush if not buffering multiple records. */
@@ -98,7 +108,7 @@ WRITE:
         struct s2n_blob alert = { 0 };
         alert.data = conn->reader_alert_out.blob.data;
         alert.size = 2;
-        POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
         POSIX_GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out));
         POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
 
@@ -111,7 +121,7 @@ WRITE:
         struct s2n_blob alert = { 0 };
         alert.data = conn->writer_alert_out.blob.data;
         alert.size = 2;
-        POSIX_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
         POSIX_GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out));
         POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
 

@@ -23,11 +23,11 @@ struct s2n_set {
     int (*comparator)(const void *, const void *);
 };
 
-extern S2N_RESULT s2n_set_validate(const struct s2n_set *set);
-extern struct s2n_set *s2n_set_new(uint32_t element_size, int (*comparator)(const void *, const void *));
-extern S2N_RESULT s2n_set_add(struct s2n_set *set, void *element);
-extern S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t idx, void **element);
-extern S2N_RESULT s2n_set_remove(struct s2n_set *set, uint32_t idx);
-extern S2N_RESULT s2n_set_free_p(struct s2n_set **pset);
-extern S2N_RESULT s2n_set_free(struct s2n_set *set);
-extern S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len);
+S2N_RESULT s2n_set_validate(const struct s2n_set *set);
+struct s2n_set *s2n_set_new(uint32_t element_size, int (*comparator)(const void *, const void *));
+S2N_RESULT s2n_set_add(struct s2n_set *set, void *element);
+S2N_RESULT s2n_set_get(struct s2n_set *set, uint32_t idx, void **element);
+S2N_RESULT s2n_set_remove(struct s2n_set *set, uint32_t idx);
+S2N_RESULT s2n_set_free_p(struct s2n_set **pset);
+S2N_RESULT s2n_set_free(struct s2n_set *set);
+S2N_RESULT s2n_set_len(struct s2n_set *set, uint32_t *len);

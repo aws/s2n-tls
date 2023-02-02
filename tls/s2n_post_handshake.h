@@ -14,6 +14,12 @@
  */
 
 #pragma once
+#include <stdint.h>
+
+#include "api/s2n.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_result.h"
 
 struct s2n_connection;
 
@@ -24,3 +30,4 @@ struct s2n_post_handshake {
 
 S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn);
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
+S2N_RESULT s2n_post_handshake_write_records(struct s2n_connection *conn, s2n_blocked_status *blocked);

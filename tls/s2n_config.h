@@ -15,19 +15,36 @@
 
 #pragma once
 
+#include <sys/param.h>
+
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
 #include "tls/s2n_crl.h"
+#include "tls/s2n_key_update.h"
 #include "tls/s2n_psk.h"
+#include "tls/s2n_record.h"
 #include "tls/s2n_renegotiate.h"
 #include "tls/s2n_resume.h"
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
 
 #define S2N_MAX_TICKET_KEYS       48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
+
+/*
+ * TLS1.3 does not allow alert messages to be fragmented, and some TLS
+ * implementations (for example, GnuTLS) reject fragmented TLS1.2 alerts.
+ * The send buffer must be able to hold an unfragmented alert message.
+ *
+ * We choose not to fragment KeyUpdate messages to keep our post-handshake
+ * fragmentation logic simple and consistent across message types.
+ * The send buffer must be able to hold an unfragmented KeyUpdate message.
+ */
+#define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE MAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
+#define S2N_MIN_SEND_BUFFER_SIZE          S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE)
 
 struct s2n_cipher_preferences;
 
@@ -180,13 +197,13 @@ struct s2n_config {
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 
 int s2n_config_defaults_init(void);
-extern struct s2n_config *s2n_fetch_default_config(void);
+struct s2n_config *s2n_fetch_default_config(void);
 int s2n_config_set_unsafe_for_testing(struct s2n_config *config);
 
 int s2n_config_init_session_ticket_keys(struct s2n_config *config);
 int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 void s2n_wipe_static_configs(void);
-extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
+struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 int s2n_config_get_num_default_certs(struct s2n_config *config);
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);

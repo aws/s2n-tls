@@ -95,9 +95,9 @@ run_unit_tests() {
             -D${CMAKE_PQ_OPTION} \
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on
-    cmake --build ./build
+    cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
-    make -C build test ARGS=-j$(nproc);
+    env CTEST_OUTPUT_ON_FAILURE=1 make -C build test ARGS=-j$(nproc);
 }
 
 # Run Multiple tests on one flag.

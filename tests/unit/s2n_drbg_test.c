@@ -39,7 +39,7 @@
  * [ReturnedBitsLen = 512]
  */
 
-struct s2n_stuffer nist_aes128_reference_entropy;
+struct s2n_stuffer nist_aes128_reference_entropy = { 0 };
 const char nist_aes128_reference_entropy_hex[] =
         "528ccd2d6c143800a34ad33e7f153cfaceaa2411abbaf4bfcfe9796898d0ece6"
         "478fd1eaa7ed293294d370979b0f0f1948d5a3161b12eeebf2cf6bd1bf059adf"
@@ -150,7 +150,7 @@ const char nist_aes128_reference_returned_bits_hex[] =
  * [ReturnedBitsLen = 512]
  */
 
-struct s2n_stuffer nist_aes256_reference_entropy;
+struct s2n_stuffer nist_aes256_reference_entropy = { 0 };
 const char nist_aes256_reference_entropy_hex_part1[] =
         "c8f0c7b9bdf7e7d524c998aedeabb3b7dd4fa8f95c51b582010a5e09d0b4b1ad510302422df738fbef002a051543b4cc"
         "c1a7b160c8e33a01fbd49743dc1161539390d9ba6b876fe63b58e8fd605b98617322578b17aca9db71e858b154f97910"
@@ -258,7 +258,8 @@ int nist_fake_entropy_init_cleanup(void)
 
 int nist_fake_128_entropy_data(void *data, uint32_t size)
 {
-    struct s2n_blob blob = { .data = data, .size = size };
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&blob, data, size));
 
     POSIX_GUARD(s2n_stuffer_read(&nist_aes128_reference_entropy, &blob));
 
@@ -267,7 +268,8 @@ int nist_fake_128_entropy_data(void *data, uint32_t size)
 
 int nist_fake_256_entropy_data(void *data, uint32_t size)
 {
-    struct s2n_blob blob = { .data = data, .size = size };
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&blob, data, size));
 
     POSIX_GUARD(s2n_stuffer_read(&nist_aes256_reference_entropy, &blob));
 
@@ -287,7 +289,8 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
     for (int i = 0; i < 14; i++) {
         uint8_t ps[S2N_DRBG_MAX_SEED_SIZE] = { 0 };
         struct s2n_drbg nist_drbg = { 0 };
-        struct s2n_blob personalization_string = { .data = ps, .size = personalization_size };
+        struct s2n_blob personalization_string = { 0 };
+        POSIX_GUARD(s2n_blob_init(&personalization_string, ps, personalization_size));
 
         /* Read the next personalization string */
         POSIX_GUARD(s2n_stuffer_read(&personalization, &personalization_string));
@@ -305,7 +308,8 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
 
         /* Generate 512 bits (FIRST CALL) */
         uint8_t out[64];
-        struct s2n_blob generated = { .data = out, .size = 64 };
+        struct s2n_blob generated = { 0 };
+        POSIX_GUARD(s2n_blob_init(&generated, out, 64));
         POSIX_GUARD_RESULT(s2n_drbg_generate(&nist_drbg, &generated));
 
         POSIX_GUARD(s2n_stuffer_read_bytes(&reference_values, nist_v, sizeof(nist_v)));
@@ -341,7 +345,8 @@ int main(int argc, char **argv)
     uint8_t data[256] = { 0 };
     struct s2n_drbg aes128_drbg = { 0 };
     struct s2n_drbg aes256_pr_drbg = { 0 };
-    struct s2n_blob blob = { .data = data, .size = 64 };
+    struct s2n_blob blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob, data, 64));
 
     EXPECT_OK(s2n_drbg_instantiate(&aes128_drbg, &blob, S2N_AES_128_CTR_NO_DF_PR));
     EXPECT_OK(s2n_drbg_instantiate(&aes256_pr_drbg, &blob, S2N_AES_256_CTR_NO_DF_PR));

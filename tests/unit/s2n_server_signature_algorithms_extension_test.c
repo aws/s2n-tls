@@ -37,7 +37,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        struct s2n_stuffer io;
+        struct s2n_stuffer io = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io, 0));
 
         EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.send(server_conn, &io));

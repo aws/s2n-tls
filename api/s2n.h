@@ -854,7 +854,7 @@ S2N_API extern int s2n_config_set_verify_after_sign(struct s2n_config *config, s
  *
  * Less memory can be allocated for the send buffer, but this will result in
  * smaller, more fragmented records and increased overhead. While the absolute
- * minimum size required is 1031 bytes, at least 2K bytes is recommended for
+ * minimum size required is 1034 bytes, at least 2K bytes is recommended for
  * reasonable record sizes.
  *
  * More memory can be allocated for the send buffer. This will result in s2n-tls
@@ -1249,7 +1249,7 @@ typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
  * - `S2N_CLIENT_HELLO_CB_BLOCKING` (default):
  *   - In this mode s2n-tls expects the callback to complete its work and return the appropriate response code before the handshake continues. If any of the connection properties were changed based on the server_name extension the callback must either return a value greater than 0 or invoke `s2n_connection_server_name_extension_used`, otherwise the callback returns 0 to continue the handshake.
  * - `S2N_CLIENT_HELLO_CB_NONBLOCKING`:
- *   - In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback returns a response code of 0 s2n-tls will return `S2N_FAILURE` with `S2N_ERR_T_BLOCKED` error type and `s2n_blocked_status` set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. The handshake is paused and further calls to `s2n_negotiate` will continue to return the same error until `s2n_client_hello_cb_done` is invoked for the `s2n_connection` to resume the handshake. This allows s2n-tls clients to process client_hello without blocking and then resume the handshake at a later time. If any of the connection properties were changed on the basis of the server_name extension then `s2n_connection_server_name_extension_used` must be invoked before marking the callback done.
+ *   - In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback returns a response code of 0, s2n-tls will return `S2N_FAILURE` with `S2N_ERR_T_BLOCKED` error type and `s2n_blocked_status` set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. The handshake is paused and further calls to `s2n_negotiate` will continue to return the same error until `s2n_client_hello_cb_done` is invoked for the `s2n_connection` to resume the handshake. If any of the connection properties were changed on the basis of the server_name extension then `s2n_connection_server_name_extension_used` must be invoked before marking the callback done.
  */
 typedef enum {
     S2N_CLIENT_HELLO_CB_BLOCKING,

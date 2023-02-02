@@ -82,6 +82,18 @@ typedef enum {
     S2N_ASYNC_COMPLETE,
 } s2n_async_state;
 
+/* Indicates which state machine is being used. The handshake
+ * starts off on the initial enum, which indicates we're using
+ * the TLS12 state machine. Once the handshake version is determined
+ * the enum is set to either the TLS12 or TLS13 state machine.
+ * This works because the initial entries in both the TLS12 and 
+ * TLS13 state machines are the same. */
+typedef enum {
+    S2N_STATE_MACHINE_INITIAL = 0,
+    S2N_STATE_MACHINE_TLS12,
+    S2N_STATE_MACHINE_TLS13,
+} s2n_state_machine;
+
 struct s2n_handshake_parameters {
     /* Public keys for server / client */
     struct s2n_pkey server_public_key;
@@ -184,6 +196,8 @@ struct s2n_handshake {
 
     /* Indicates that this is a renegotiation handshake */
     unsigned renegotiation : 1;
+
+    s2n_state_machine state_machine;
 };
 
 /* Only used in our test cases. */
@@ -202,14 +216,18 @@ S2N_RESULT s2n_negotiate_until_message(struct s2n_connection *conn, s2n_blocked_
 S2N_RESULT s2n_handshake_validate(const struct s2n_handshake *s2n_handshake);
 S2N_RESULT s2n_handshake_set_finished_len(struct s2n_connection *conn, uint8_t len);
 bool s2n_handshake_is_renegotiation(struct s2n_connection *conn);
+S2N_RESULT s2n_handshake_message_send(struct s2n_connection *conn, uint8_t content_type, s2n_blocked_status *blocked);
 
 /* s2n_handshake_io */
 int s2n_conn_set_handshake_type(struct s2n_connection *conn);
 int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn);
+S2N_RESULT s2n_conn_choose_state_machine(struct s2n_connection *conn, uint8_t protocol_version);
+bool s2n_handshake_is_complete(struct s2n_connection *conn);
 
 /* s2n_handshake_transcript */
+S2N_RESULT s2n_handshake_transcript_update(struct s2n_connection *conn);
 int s2n_conn_update_handshake_hashes(struct s2n_connection *conn, struct s2n_blob *data);
 
 /* s2n_quic_support */
 S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type);
-S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in);
+S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn);

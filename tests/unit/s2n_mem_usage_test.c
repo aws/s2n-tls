@@ -13,31 +13,38 @@
  * permissions and limitations under the License.
  */
 
-
 #ifdef __FreeBSD__
-/* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
- * Without the below line, <sys/user.h> cannot be imported (it requires __BSD_VISIBLE) */
-#undef _POSIX_C_SOURCE
-#include <sys/types.h>
-#include <sys/sysctl.h>
-#include <sys/user.h>
+    /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
+     * Without the below line, <sys/user.h> cannot be imported (it requires __BSD_VISIBLE) */
+    #undef _POSIX_C_SOURCE
+    /* clang-format off */
+    #include <sys/types.h>
+    #include <sys/sysctl.h>
+    /* clang-format on */
+    #include <sys/user.h>
+#elif defined(__OpenBSD__)
+    #undef _POSIX_C_SOURCE
+    #include <kvm.h>
+    /* clang-format off */
+    #include <sys/types.h>
+    #include <sys/sysctl.h>
+    /* clang-format on */
+    #include <unistd.h>
 #endif
-
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
 
 #include <errno.h>
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <sys/param.h>
-#include <sys/time.h>
 #include <sys/resource.h>
+#include <sys/time.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
 /* The number of connection pairs to allocate before measuring memory
  * usage. The greater the value, the more accurate the end result. */
@@ -45,19 +52,21 @@
 
 /* This is roughly the current memory usage per connection, in KB */
 #ifdef __FreeBSD__
-#define MEM_PER_CONNECTION 57
+    #define MEM_PER_CONNECTION 57
+#elif defined(__OpenBSD__)
+    #define MEM_PER_CONNECTION 71
 #else
-#define MEM_PER_CONNECTION 49
+    #define MEM_PER_CONNECTION 49
 #endif
 
 /* This is the maximum memory per connection including 4KB of slack */
 #define TEST_SLACK 4
 #define MAX_MEM_PER_CONNECTION \
-        ((MEM_PER_CONNECTION + TEST_SLACK) * 1024)
+    ((MEM_PER_CONNECTION + TEST_SLACK) * 1024)
 
 /* This is the total maximum memory allowed */
 #define MAX_MEM_ALLOWED(num_connections) \
-    (2 * (num_connections) * MAX_MEM_PER_CONNECTION)
+    (2 * (num_connections) *MAX_MEM_PER_CONNECTION)
 
 /* This is the correct value of MEM_PER_CONNECTION based on test results.
  * Basically, this calculation should reverse MAX_MEM_ALLOWED */
@@ -75,7 +84,7 @@ ssize_t get_vm_data_size()
         return -1;
     }
 
-    FILE *status_file = fopen( "/proc/self/statm", "r" );
+    FILE *status_file = fopen("/proc/self/statm", "r");
     if (fscanf(status_file, "%zd %zd %zd %zd %zd %zd %zd", &size, &resident, &share, &text, &lib, &data, &dt) < 7) {
         fclose(status_file);
         return -1;
@@ -84,15 +93,15 @@ ssize_t get_vm_data_size()
 
     return data * page_size;
 
-#elif defined (__FreeBSD__)
+#elif defined(__FreeBSD__)
     pid_t ppid = getpid();
     int pidinfo[4];
     pidinfo[0] = CTL_KERN;
     pidinfo[1] = KERN_PROC;
     pidinfo[2] = KERN_PROC_PID;
-    pidinfo[3] = (int)ppid;
+    pidinfo[3] = (int) ppid;
 
-    struct kinfo_proc procinfo = {0};
+    struct kinfo_proc procinfo = { 0 };
 
     size_t len = sizeof(procinfo);
 
@@ -103,6 +112,33 @@ ssize_t get_vm_data_size()
     segsz_t lsize = (procinfo.ki_size >> PAGE_SHIFT) - procinfo.ki_dsize - procinfo.ki_ssize - procinfo.ki_tsize - 1;
 
     return lsize << PAGE_SHIFT;
+
+#elif defined(__OpenBSD__)
+    struct kinfo_proc *procinfo;
+    kvm_t *kd;
+    pid_t ppid;
+    long page_size;
+    ssize_t size;
+    int nentries;
+
+    kd = kvm_open(NULL, NULL, NULL, KVM_NO_FILES, NULL);
+    ppid = getpid();
+    procinfo = kvm_getprocs(kd, KERN_PROC_PID, ppid, sizeof(*procinfo), &nentries);
+    if (procinfo == NULL || nentries == 0) {
+        return -1;
+    }
+
+    /* Taken from ps(1)'s calculation of vsize
+     * https://github.com/openbsd/src/blob/329e3480337617df4d195c9a400c3f186254b137/bin/ps/print.c#L603 */
+    size = procinfo->p_vm_dsize + procinfo->p_vm_ssize + procinfo->p_vm_tsize;
+
+    page_size = sysconf(_SC_PAGESIZE);
+    if (page_size < 0) {
+        return -1;
+    }
+    kvm_close(kd);
+
+    return (size * page_size);
 #else
     /* Not implemented for other platforms */
     return 0;
@@ -163,8 +199,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_initial, -1);
 
     /* Allocate all connections */
-    for (int i = 0; i < connectionsToUse; i++)
-    {
+    for (int i = 0; i < connectionsToUse; i++) {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
@@ -182,7 +217,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_after_allocation, -1);
 
     for (int i = 0; i < connectionsToUse; i++) {
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(clients[ i ], servers[ i ], &io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(clients[i], servers[i], &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[i], clients[i]));
     }
@@ -250,4 +285,3 @@ int main(int argc, char **argv)
 
     END_TEST();
 }
-

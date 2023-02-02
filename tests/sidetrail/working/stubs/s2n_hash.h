@@ -65,13 +65,13 @@ enum {
   FAILURE = -1
 };
 
-extern int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
-extern int s2n_hash_new(struct s2n_hash_state *state);
+int s2n_hash_digest_size(s2n_hash_algorithm alg, uint8_t *out);
+int s2n_hash_new(struct s2n_hash_state *state);
 S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state);
-extern int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
-extern int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size);
-extern int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size);
-extern int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from);
-extern int s2n_hash_reset(struct s2n_hash_state *state);
-extern int s2n_hash_free(struct s2n_hash_state *state);
-extern int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out);
+int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg);
+int s2n_hash_update(struct s2n_hash_state *state, const void *data, uint32_t size);
+int s2n_hash_digest(struct s2n_hash_state *state, void *out, uint32_t size);
+int s2n_hash_copy(struct s2n_hash_state *to, struct s2n_hash_state *from);
+int s2n_hash_reset(struct s2n_hash_state *state);
+int s2n_hash_free(struct s2n_hash_state *state);
+int s2n_hash_get_currently_in_hash_total(struct s2n_hash_state *state, uint64_t *out);

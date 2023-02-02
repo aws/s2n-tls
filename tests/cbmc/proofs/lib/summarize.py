@@ -1,8 +1,26 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
+import argparse
 import json
 import logging
+
+
+DESCRIPTION = """Print 2 tables in GitHub-flavored Markdown that summarize
+an execution of CBMC proofs."""
+
+
+def get_args():
+    """Parse arguments for summarize script."""
+    parser = argparse.ArgumentParser(description=DESCRIPTION)
+    for arg in [{
+            "flags": ["--run-file"],
+            "help": "path to the Litani run.json file",
+            "required": True,
+    }]:
+        flags = arg.pop("flags")
+        parser.add_argument(*flags, **arg)
+    return parser.parse_args()
 
 
 def _get_max_length_per_column_list(data):
@@ -56,6 +74,7 @@ def _get_status_and_proof_summaries(run_dict):
     run_dict
         A dictionary representing a Litani run.
 
+
     Returns
     -------
     A list of 2 lists.
@@ -83,10 +102,18 @@ def print_proof_results(out_file):
     Print 2 strings that summarize the proof results.
     When printing, each string will render as a GitHub flavored Markdown table.
     """
+    print("## Summary of CBMC proof results")
     try:
         with open(out_file, encoding='utf-8') as run_json:
             run_dict = json.load(run_json)
-            for summary in _get_status_and_proof_summaries(run_dict):
+            summaries = _get_status_and_proof_summaries(
+                run_dict)
+            for summary in summaries:
                 print(_get_rendered_table(summary))
     except Exception as ex: # pylint: disable=broad-except
         logging.critical("Could not print results. Exception: %s", str(ex))
+
+
+if __name__ == '__main__':
+    args = get_args()
+    print_proof_results(args.run_file)

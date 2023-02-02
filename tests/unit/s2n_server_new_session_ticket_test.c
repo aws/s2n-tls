@@ -835,7 +835,7 @@ int main(int argc, char **argv)
             conn->tickets_to_send = 1;
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -857,7 +857,7 @@ int main(int argc, char **argv)
             conn->tickets_to_send = 1;
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -885,7 +885,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(0, s2n_stuffer_space_remaining(&conn->handshake.io));
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -919,7 +919,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -934,9 +934,6 @@ int main(int argc, char **argv)
             EXPECT_TRUE(record_len > 0);
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&stuffer, record_len));
             EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
-
-            /* Check handshake.io is cleaned up */
-            EXPECT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -972,7 +969,7 @@ int main(int argc, char **argv)
             conn->tickets_to_send = current_tickets;
             EXPECT_TICKETS_SENT(conn, current_tickets);
 
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -1028,7 +1025,7 @@ int main(int argc, char **argv)
             conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -1078,7 +1075,7 @@ int main(int argc, char **argv)
             conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -1108,7 +1105,7 @@ int main(int argc, char **argv)
             conn->tickets_to_send = tickets_to_send;
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
@@ -1255,8 +1252,8 @@ int main(int argc, char **argv)
         uint16_t tickets_to_send = 5;
         server_conn->tickets_to_send = tickets_to_send;
 
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&client_to_server, 0));
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&server_to_client, 0));

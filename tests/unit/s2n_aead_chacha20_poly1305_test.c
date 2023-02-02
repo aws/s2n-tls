@@ -51,8 +51,10 @@ int main(int argc, char **argv)
     struct s2n_connection *conn;
     uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
     uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
-    struct s2n_blob chacha20_poly1305_key = { .data = chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data) };
-    struct s2n_blob r = { .data = random_data, .size = sizeof(random_data) };
+    struct s2n_blob chacha20_poly1305_key = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&chacha20_poly1305_key, chacha20_poly1305_key_data, sizeof(chacha20_poly1305_key_data)));
+    struct s2n_blob r = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -75,7 +77,8 @@ int main(int argc, char **argv)
 
     int max_fragment = S2N_SMALL_FRAGMENT_LENGTH;
     for (size_t i = 0; i <= max_fragment + 1; i++) {
-        struct s2n_blob in = { .data = random_data, .size = i };
+        struct s2n_blob in = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written;
 
         /* TLS packet on the wire using ChaCha20-Poly1305:
@@ -96,13 +99,14 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
+        s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
         if (i <= max_fragment) {
-            EXPECT_EQUAL(bytes_written, i);
+            EXPECT_OK(result);
+            bytes_written = i;
         } else {
-            /* application data size of intended fragment size + 1 should only send max fragment */
-            EXPECT_EQUAL(bytes_written, max_fragment);
+            EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+            bytes_written = max_fragment;
         }
 
         static const int overhead = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN /* Should be 0 */
@@ -149,7 +153,7 @@ int main(int argc, char **argv)
         conn->actual_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(destroy_server_keys(conn));
         EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-        EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+        EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
         /* Now lets corrupt some data and ensure the tests pass */
         /* Copy the encrypted out data to the in data */
@@ -190,7 +194,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
@@ -217,7 +221,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(destroy_server_keys(conn));
             EXPECT_SUCCESS(setup_server_keys(conn, &chacha20_poly1305_key));
-            EXPECT_SUCCESS(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
+            EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             /* Copy the encrypted out data to the in data */
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));

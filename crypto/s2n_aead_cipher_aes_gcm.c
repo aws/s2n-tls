@@ -210,7 +210,7 @@ static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 
 static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
-    /* The size of the |in| blob includes the size of the data and the size of the ChaCha20-Poly1305 tag */
+    /* The size of the |in| blob includes the size of the data and the size of the AES-GCM tag */
     POSIX_ENSURE_GTE(in->size, S2N_TLS_GCM_TAG_LEN);
     POSIX_ENSURE_GTE(out->size, in->size);
     POSIX_ENSURE_EQ(iv->size, S2N_TLS_GCM_IV_LEN);

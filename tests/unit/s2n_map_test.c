@@ -13,20 +13,20 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include "utils/s2n_map.h"
 
-#include "api/s2n.h"
 #include <string.h>
 
-#include "utils/s2n_map.h"
+#include "api/s2n.h"
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
     char keystr[sizeof("ffff")];
     char valstr[sizeof("16384")];
     struct s2n_map *empty, *map;
-    struct s2n_blob key;
-    struct s2n_blob val;
+    struct s2n_blob key = { 0 };
+    struct s2n_blob val = { 0 };
     bool key_found;
 
     BEGIN_TEST();
@@ -95,7 +95,7 @@ int main(int argc, char **argv)
     /* Try replacing some entries */
     for (int i = 0; i < 10; i++) {
         EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
-        EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i+1));
+        EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i + 1));
 
         key.data = (void *) keystr;
         key.size = strlen(keystr) + 1;
@@ -125,15 +125,13 @@ int main(int argc, char **argv)
 
     /* Check for equivalence */
     for (int i = 0; i < 8192; i++) {
-
         if (i >= 10) {
             EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
             EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
-        }
-        else {
+        } else {
             /* The first 10 entries were overwritten with i+1 */
             EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
-            EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i+1));
+            EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i + 1));
         }
 
         key.data = (void *) keystr;

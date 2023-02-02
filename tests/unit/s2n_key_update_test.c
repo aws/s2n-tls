@@ -219,7 +219,7 @@ int main(int argc, char **argv)
             POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
             POSIX_CHECKED_MEMCPY(client_conn->secrets.tls13.client_app_secret, application_secret.data, application_secret.size);
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
@@ -273,7 +273,7 @@ int main(int argc, char **argv)
             uint8_t expected_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
 
             /* Setup io */
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
@@ -457,6 +457,45 @@ int main(int argc, char **argv)
             EXPECT_TRUE(conn->key_update_pending);
 
             /* Over limit not possible: limit is maximum value */
+        };
+    };
+
+    /* Test: KeyUpdate fails if fragmentation required */
+    {
+        const size_t key_update_record_size = S2N_TLS_MAX_RECORD_LEN_FOR(S2N_KEY_UPDATE_MESSAGE_SIZE);
+
+        /* Test: send buffer cannot be set smaller than a KeyUpdate record */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(config, key_update_record_size - 1),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: send fails if send buffer is too small for a KeyUpdate record */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Sanity check: send buffer just large enough for KeyUpdate record */
+            config->send_buffer_size_override = key_update_record_size;
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->key_update_pending = true;
+            EXPECT_SUCCESS(s2n_key_update_send(conn, &blocked));
+
+            EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
+
+            /* Test: send buffer too small for KeyUpdate record */
+            config->send_buffer_size_override = key_update_record_size - 1;
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->key_update_pending = true;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
         };
     };
 

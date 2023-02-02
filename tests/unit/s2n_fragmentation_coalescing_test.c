@@ -163,7 +163,7 @@ uint8_t fatal_alert[] = { /* Fatal: unexpected message */
     0x02, 0x0a
 };
 
-extern message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
 
 void fragmented_message(int write_fd)
 {
