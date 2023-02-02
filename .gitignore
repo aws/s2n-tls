@@ -36,3 +36,6 @@ CMakeFiles/*
 .project
 ./codebuild/spec/buildspec_*_batch.yml
 build/
+result
+result-*
+
