@@ -29,10 +29,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(config->ktls_recv_requested);
     };
 
-    /* Request config kTLS mode
-     *
-     * Requesting modes is additive and Duplex means both Send and Recv are requested
-     */
+    /* Request config kTLS mode */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
@@ -42,7 +39,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(config->ktls_recv_requested);
 
         EXPECT_SUCCESS(s2n_config_set_ktls_mode(config, S2N_KTLS_MODE_RECV));
-        EXPECT_TRUE(config->ktls_send_requested);
+        EXPECT_FALSE(config->ktls_send_requested);
         EXPECT_TRUE(config->ktls_recv_requested);
 
         EXPECT_SUCCESS(s2n_config_set_ktls_mode(config, S2N_KTLS_MODE_DISABLED));
