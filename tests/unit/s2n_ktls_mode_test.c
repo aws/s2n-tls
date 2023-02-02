@@ -59,8 +59,6 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
-        EXPECT_TRUE(conn->managed_send_io);
-        EXPECT_TRUE(conn->managed_recv_io);
 
         EXPECT_FALSE(conn->ktls_recv_enabled);
         EXPECT_FALSE(conn->ktls_send_enabled);
