@@ -1,7 +1,7 @@
 {
   description = "A flake for s2n-tls";
 
-  inputs.nixpkgs.url = github:NixOS/nixpkgs/nixos-22.11;
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
 
   outputs = { self, nix, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -23,21 +23,20 @@
 
           propagatedBuildInputs = [ pkgs.openssl ];
 
-          passthru.tests = {
-            inherit nix;
-          };
         };
         packages.default = packages.s2n-tls;
-        packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
-          doCheck = true;
-        });
-        packages.s2n-tls-openssl11 = packages.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
-          doCheck = true;
-          buildInputs = [ pkgs.openssl_1_1 ];
-        });
-        packages.s2n-tls-libressl = packages.s2n-tls.overrideAttrs (finalAttrs: previousAttrs: {
-          doCheck = true;
-          buildInputs = [ pkgs.libressl ];
-        });
+        packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
+          (finalAttrs: previousAttrs: { doCheck = true; });
+        packages.s2n-tls-openssl11 = packages.s2n-tls.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            doCheck = true;
+            buildInputs = [ pkgs.openssl_1_1 ];
+          });
+        packages.s2n-tls-libressl = packages.s2n-tls.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            doCheck = true;
+            buildInputs = [ pkgs.libressl ];
+          });
+        formatter = pkgs.nixfmt;
       });
 }
