@@ -1,0 +1,32 @@
+---
+name: "Nix checks"
+on:
+  pull_request:
+jobs:
+  fmt:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: nixbuild/nix-quick-install-action@v21
+        with:
+          nix_conf: experimental-features = nix-command flakes
+      - name: nix flake check
+        run: nix flake check
+      - name: nix fmt
+        run: |
+          nix fmt flake.nix
+          git diff
+  unit_tests:
+    strategy:
+      matrix:
+        libcrypto: ["openssl3", "openssl11", "libressl"]
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - uses: nixbuild/nix-quick-install-action@v21
+        with:
+          nix_conf: experimental-features = nix-command flakes
+      - nix build -L .#s2n-tls-${{ matrix.libcrypto }}

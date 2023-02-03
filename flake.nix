@@ -5,15 +5,18 @@
 
   outputs = { self, nix, nixpkgs, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
-      let pkgs = nixpkgs.legacyPackages.${system};
+      let upstreampkgs = nixpkgs.legacyPackages.${system};
       in rec {
-        packages.s2n-tls = pkgs.stdenv.mkDerivation {
+        packages.s2n-tls = upstreampkgs.stdenv.mkDerivation {
           src = self;
           name = "s2n-tls";
           inherit system;
 
-          nativeBuildInputs = [ pkgs.cmake ];
-          buildInputs = [ pkgs.openssl ];
+          nativeBuildInputs = [ upstreampkgs.cmake ];
+
+          # Note: this version of openssl is 3 with nixos-22.11, 
+          # but can change with different nixpkgs versions.
+          buildInputs = [ upstreampkgs.openssl ];
 
           cmakeFlags = [
             "-DBUILD_SHARED_LIBS=ON"
@@ -21,22 +24,32 @@
             "-DS2N_NO_PQ=1" # TODO: set when system like aarch64/mips,etc
           ];
 
-          propagatedBuildInputs = [ pkgs.openssl ];
+          propagatedBuildInputs = [
+            upstreampkgs.openssl
+          ]; # s2n-tls needs to be able to find libcrypto
 
         };
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
-          (finalAttrs: previousAttrs: { doCheck = true; });
+          (finalAttrs: previousAttrs: {
+            doCheck = true;
+            buildInputs = [
+              upstreampkgs.openssl3
+            ]; # redundant, but specifying version for consistency.
+            propagatedBuildInputs = [ upstreampkgs.openssl3 ];
+          });
         packages.s2n-tls-openssl11 = packages.s2n-tls.overrideAttrs
           (finalAttrs: previousAttrs: {
             doCheck = true;
-            buildInputs = [ pkgs.openssl_1_1 ];
+            buildInputs = [ upstreampkgs.openssl_1_1 ];
+            propagatedBuildInputs = [ upstreampkgs.openssl_1_1 ];
           });
         packages.s2n-tls-libressl = packages.s2n-tls.overrideAttrs
           (finalAttrs: previousAttrs: {
             doCheck = true;
-            buildInputs = [ pkgs.libressl ];
+            buildInputs = [ upstreampkgs.libressl ];
+            propagatedBuildInputs = [ upstreampkgs.libressl ];
           });
-        formatter = pkgs.nixfmt;
+        formatter = upstreampkgs.nixfmt;
       });
 }
