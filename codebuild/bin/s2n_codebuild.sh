@@ -51,10 +51,6 @@ if [[ "$OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     kill %1
 fi
 
-if [[ "$OS_NAME" == "linux" && ( "$TESTS" == "integrationv2") ]]; then
-    make -j $JOBS
-fi
-
 CMAKE_PQ_OPTION="S2N_NO_PQ=False"
 if [[ -n "$S2N_NO_PQ" ]]; then
     CMAKE_PQ_OPTION="S2N_NO_PQ=True"
@@ -85,11 +81,18 @@ setup_apache_server() {
 run_integration_v2_tests() {
     setup_apache_server
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
-    cmake -DPython3_EXECUTABLE=$(which python3) .
+    cmake . -Bbuild \
+            -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+            -D${CMAKE_PQ_OPTION} \
+            -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
+            -DBUILD_SHARED_LIBS=on \
+            -DPython3_EXECUTABLE=$(which python3)
+    cmake --build ./build -- -j $(nproc)
+    test_linked_libcrypto ./build/bin/s2nc
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
-      echo "Running... cmake --build . --target integ_""$test"
-	    cmake --build . --target integ_"$test"
+      echo "Running... test_linked_libcrypto ./build/bin/s2nc""$test"
+	    ctest -R integ_"$test"
     done
 }
 
@@ -101,7 +104,7 @@ run_unit_tests() {
             -DBUILD_SHARED_LIBS=on
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
-    make -C build test ARGS=-j$(nproc);
+    ctest -L unit  --output-on-failure
 }
 
 # Run Multiple tests on one flag.

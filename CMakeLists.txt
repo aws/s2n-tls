@@ -588,6 +588,7 @@ if (BUILD_TESTING)
         endif()
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
 
         set_property(
         TEST
@@ -647,9 +648,9 @@ if (BUILD_TESTING)
         foreach(test_file_path ${integv2_test_files})
             get_filename_component(test_filename ${test_file_path} NAME_WE)
             string(REGEX REPLACE "^test_" "" test_name ${test_filename})
-            string(CONCAT test_target "integ_" ${test_name})
+            string(CONCAT test_target "integrationv2_" ${test_name})
 
-            add_custom_target(${test_target}
+            add_test(NAME ${test_target}
                     COMMAND
                     ${CMAKE_COMMAND} -E env
                     DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
@@ -660,6 +661,7 @@ if (BUILD_TESTING)
                     TOX_TEST_NAME=${test_file_path}
                     ${Python3_EXECUTABLE} -m tox
                     WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+            set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
         endforeach()
     endif()
 endif()
