@@ -104,9 +104,11 @@ build_myapp() {
 
     (set -x; cmake -H$WORK_DIR/myapp-src -B$MYAPP_BUILD_DIR -D$BUILD_SHARED_LIBS "-DCMAKE_PREFIX_PATH=$S2N_INSTALL_PATH;$LIBCRYPTO_ROOT")
     (set -x; cmake --build $MYAPP_BUILD_DIR)
-    (set -x; ldd $MYAPP_BUILD_DIR/myapp)
 
-    if ldd $MYAPP_BUILD_DIR/myapp | grep -q libs2n.so; then
+    LDD_OUTPUT=$(ldd $MYAPP_BUILD_DIR/myapp)
+    echo "$LDD_OUTPUT"
+
+    if echo "$LDD_OUTPUT" | grep -q libs2n.so; then
         local LIBS2N_ACTUAL=libs2n.so
     else
         local LIBS2N_ACTUAL=libs2n.a
