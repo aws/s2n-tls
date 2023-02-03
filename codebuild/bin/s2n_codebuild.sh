@@ -87,7 +87,7 @@ run_integration_v2_tests() {
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
             -DPython3_EXECUTABLE=$(which python3)
-    cmake --build ./build -- -j $(nproc)
+    # cmake --build ./build -- -j $(nproc) -- did install s2n head do this for me?
     test_linked_libcrypto ./build/bin/s2nc
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
