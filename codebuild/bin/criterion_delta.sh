@@ -11,7 +11,6 @@
 # on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
-
 set -eu
 source ./codebuild/bin/utils.sh
 # Disable PQ
@@ -28,10 +27,10 @@ export AWS_S3_REPORT_PATH="reports/${INTEGV2_TEST}/$(date +%Y%m%d_%H%M_${GIT_COM
 # scipting the baseline download steps here.
 download_artifacts(){
   mkdir -p ./tests/integrationv2/target/criterion || true
-  echo "Downloading ${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}"
+  echo "Downloading ${AWS_S3_BUCKET}${1}/${2}"
   pushd  ./tests/integrationv2/target/criterion/
-  aws s3 cp "${AWS_S3_BUCKET}${AWS_S3_BASE_PATH}" .
-  unzip -o "${AWS_ZIP_FILE}"
+  aws s3 cp "${AWS_S3_BUCKET}${1}/${2}" .
+  unzip -o "${2}"
   echo "S3 download complete"
   popd
 }
@@ -46,10 +45,10 @@ upload_report(){
 # Fetch creds and the latest release number.
 gh_login s2n_codebuild_PRs
 LATEST_RELEASE_VER=$(get_latest_release)
-export AWS_ZIPFILE="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
-export AWS_S3_BASE_PATH="release/${AWS_ZIPFILE}"
+AWS_ZIPFILE="integv2criterion_${INTEGV2_TEST}_${LATEST_RELEASE_VER}.zip"
+AWS_S3_BASE_PATH="release"
 criterion_install_deps
-download_artifacts
+download_artifacts ${AWS_S3_BASE_PATH} ${AWS_ZIPFILE}
 
 echo "Current dir: $(pwd)"
 S2N_USE_CRITERION=delta make -C tests/integrationv2 "$INTEGV2_TEST"
