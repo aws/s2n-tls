@@ -25,9 +25,9 @@ typedef enum {
     S2N_KTLS_MODE_DISABLED,
     /* Enable kTLS for the send socket. */
     S2N_KTLS_MODE_SEND,
-    /* Enable kTLS for the recv socket. */
+    /* Enable kTLS for the receive socket. */
     S2N_KTLS_MODE_RECV,
-    /* Enable kTLS for both rx and tx socket. */
+    /* Enable kTLS for both receive and send sockets. */
     S2N_KTLS_MODE_DUPLEX,
 } s2n_ktls_mode;
 
