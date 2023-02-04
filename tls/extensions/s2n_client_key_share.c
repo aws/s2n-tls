@@ -122,19 +122,7 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
 
-    POSIX_ENSURE_REF(ecc_params);
-    POSIX_ENSURE_REF(ecc_params->negotiated_curve);
-
-    if (kem_params->len_prefixed) {
-        POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
-    }
-
-    if (ecc_params->evp_pkey == NULL) {
-        POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
-    }
-
-    POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
-
+    POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
     POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));

@@ -305,8 +305,6 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
     POSIX_ENSURE_REF(shared_key);
     S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
 
-    const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     conn->kex_params.kem_params.len_prefixed = true; /* PQ TLS 1.2 is always length prefixed */
 
     POSIX_GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));

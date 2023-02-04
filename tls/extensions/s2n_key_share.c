@@ -19,13 +19,17 @@
 #include "utils/s2n_safety.h"
 
 /* Generate and write an ecc point.
+ * This is used to write the ecc portion of PQ hybrid keyshares, which does NOT include the curve id.
  */
-S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out)
+S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out, bool len_prefixed)
 {
     RESULT_ENSURE_REF(ecc_evp_params);
     RESULT_ENSURE_REF(ecc_evp_params->negotiated_curve);
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
+    if (len_prefixed) {
+        RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->share_size));
+    }
+
     if (ecc_evp_params->evp_pkey == NULL) {
         RESULT_GUARD_POSIX(s2n_ecc_evp_generate_ephemeral_key(ecc_evp_params));
     }
@@ -43,7 +47,7 @@ int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct 
     POSIX_ENSURE_REF(ecc_evp_params->negotiated_curve);
 
     POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_evp_params->negotiated_curve->iana_id));
-    POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_evp_params, out));
+    POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_evp_params, out, true));
 
     return S2N_SUCCESS;
 }

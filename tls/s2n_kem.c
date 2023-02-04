@@ -106,6 +106,11 @@ const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_CO
  * total length is 4 bytes longer than expected for the new format, and if so, fall back to the old format. */
 int s2n_is_hybrid_kem_length_prefixed(const s2n_mode mode, uint16_t actual_hybrid_share_size, const struct s2n_kem_group *kem_group, bool *is_length_prefixed)
 {
+    POSIX_ENSURE_REF(kem_group);
+    POSIX_ENSURE_REF(kem_group->curve);
+    POSIX_ENSURE_REF(kem_group->kem);
+    POSIX_ENSURE_REF(is_length_prefixed);
+
     uint16_t unprefixed_hybrid_share_size = 0;
 
     if (mode == S2N_CLIENT) {
@@ -119,9 +124,9 @@ int s2n_is_hybrid_kem_length_prefixed(const s2n_mode mode, uint16_t actual_hybri
      * compatibility, check if the hybrid key share is 4 bytes longer than expected, and if it is, then parse those
      * extra 4 bytes as lengths according to the previous draft standard. */
     if (actual_hybrid_share_size == (unprefixed_hybrid_share_size + (2 * S2N_SIZE_OF_KEY_SHARE_SIZE))) {
-        *is_length_prefixed = 1;
+        *is_length_prefixed = true;
     } else {
-        *is_length_prefixed = 0;
+        *is_length_prefixed = false;
     }
 
     POSIX_ENSURE((actual_hybrid_share_size == unprefixed_hybrid_share_size) || *is_length_prefixed, S2N_ERR_BAD_KEY_SHARE);
@@ -346,7 +351,7 @@ int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     if (kem_params->len_prefixed) {
         kem_public_key_size public_key_length;
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
-        S2N_ERROR_IF(public_key_length != kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE(public_key_length == kem->public_key_length, S2N_ERR_BAD_MESSAGE);
     }
 
     /* Alloc memory for the public key; the peer receiving it will need it
@@ -393,7 +398,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     if (kem_params->len_prefixed) {
         kem_ciphertext_key_size ciphertext_length;
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
-        S2N_ERROR_IF(ciphertext_length != kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE(ciphertext_length == kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
     }
 
     const struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_read(in, kem->ciphertext_length), .size = kem->ciphertext_length };

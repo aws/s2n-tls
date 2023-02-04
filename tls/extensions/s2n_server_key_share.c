@@ -201,7 +201,7 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     POSIX_ENSURE(client_kem_group_params->ecc_params.evp_pkey, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(client_kem_group_params->kem_group == server_kem_group_params->kem_group, S2N_ERR_BAD_KEY_SHARE);
 
-    uint16_t actual_hybrid_share_size;
+    uint16_t actual_hybrid_share_size = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &actual_hybrid_share_size));
     POSIX_ENSURE(s2n_stuffer_data_available(extension) == actual_hybrid_share_size, S2N_ERR_BAD_KEY_SHARE);
 
@@ -209,14 +209,15 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     POSIX_GUARD(s2n_is_hybrid_kem_length_prefixed(S2N_SERVER, actual_hybrid_share_size, server_kem_group_params->kem_group, &client_kem_params->len_prefixed));
 
     /* Parse ECC key share */
+    uint16_t expected_ecc_share_size = server_kem_group_params->kem_group->curve->share_size;
     if (client_kem_params->len_prefixed) {
-        uint16_t actual_ecc_share_size;
+        uint16_t actual_ecc_share_size = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &actual_ecc_share_size));
-        POSIX_ENSURE(actual_ecc_share_size == server_kem_group_params->kem_group->curve->share_size, S2N_ERR_BAD_KEY_SHARE);
+        POSIX_ENSURE(actual_ecc_share_size == expected_ecc_share_size, S2N_ERR_BAD_KEY_SHARE);
     }
 
     struct s2n_blob point_blob = { 0 };
-    POSIX_ENSURE(s2n_ecc_evp_read_params_point(extension, server_kem_group_params->kem_group->curve->share_size, &point_blob) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
+    POSIX_ENSURE(s2n_ecc_evp_read_params_point(extension, expected_ecc_share_size, &point_blob) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(s2n_ecc_evp_parse_params_point(&point_blob, &server_kem_group_params->ecc_params) == S2N_SUCCESS, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(server_kem_group_params->ecc_params.evp_pkey != NULL, S2N_ERR_BAD_KEY_SHARE);
 

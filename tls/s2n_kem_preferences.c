@@ -73,5 +73,5 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
  * backwards compatibility, we check what revision of the draft standard is configured to determine whether to send it. */
 bool s2n_kem_client_prefers_length_prefix(const struct s2n_kem_preferences *kem_pref)
 {
-    return (kem_pref->pq_hybrid_draft_revision == 0);
+    return kem_pref && (kem_pref->pq_hybrid_draft_revision == 0);
 }
