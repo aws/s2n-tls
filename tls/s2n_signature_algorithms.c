@@ -294,7 +294,7 @@ int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_sc
 
     sig_hash_algs->len = 0;
 
-    for (size_t i = 0; i < pairs_available; i++) {
+    for (size_t i = 0; i < (size_t)pairs_available; i++) {
         uint16_t sig_scheme = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &sig_scheme));
 

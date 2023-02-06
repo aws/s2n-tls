@@ -231,7 +231,7 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
 
         /* copy iv bytes from input data */
-        for (int i = 0; i < iv.size; i++) {
+        for (size_t i = 0; i < iv.size; i++) {
             implicit_iv[i] = iv.data[i];
         }
 
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
 
         /* copy iv bytes from input data */
-        for (int i = 0; i < iv.size; i++) {
+        for (size_t i = 0; i < iv.size; i++) {
             implicit_iv[i] = iv.data[i];
         }
 
@@ -337,7 +337,7 @@ int main(int argc, char **argv)
     /* Test that CCS in TLS 1.3 modes should be sent without encryption */
     {
         s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
-        for (int m = 0; m < s2n_array_len(modes); m++) {
+        for (size_t m = 0; m < s2n_array_len(modes); m++) {
             struct s2n_connection *conn;
             struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
@@ -358,7 +358,7 @@ int main(int argc, char **argv)
             S2N_BLOB_FROM_HEX(iv, "5d313eb2671276ee13000b30");
 
             /* copy iv bytes from input data */
-            for (int i = 0; i < iv.size; i++) {
+            for (size_t i = 0; i < iv.size; i++) {
                 conn->secure->server_implicit_iv[i] = iv.data[i];
                 conn->secure->client_implicit_iv[i] = iv.data[i];
             }

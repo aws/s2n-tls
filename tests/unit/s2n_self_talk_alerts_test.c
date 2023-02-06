@@ -72,7 +72,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, s2n_alert_behavior alert_behav
             result = 1;
         }
 
-        for (int i = 1; i < 0xffff; i += 100) {
+        for (size_t i = 1; i < 0xffff; i += 100) {
             memset(buffer, 33, sizeof(char) * i);
             s2n_send(conn, buffer, i, &blocked);
         }
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
         /* Ensure that callback was invoked */
         EXPECT_EQUAL(warning_alert.invoked, 2);
 
-        for (int i = 1; i < 0xffff; i += 100) {
+        for (size_t i = 1; i < 0xffff; i += 100) {
             char *ptr = buffer;
             int size = i;
 

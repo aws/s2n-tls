@@ -88,7 +88,7 @@ S2N_RESULT s2n_early_data_record_bytes(struct s2n_connection *conn, ssize_t data
     }
 
     /* Ensure the bytes read are within the bounds of what we can actually record. */
-    if (data_len > (UINT64_MAX - conn->early_data_bytes)) {
+    if ((size_t)data_len > (UINT64_MAX - conn->early_data_bytes)) {
         conn->early_data_bytes = UINT64_MAX;
         RESULT_BAIL(S2N_ERR_INTEGER_OVERFLOW);
     }
