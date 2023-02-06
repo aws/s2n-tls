@@ -158,7 +158,7 @@ char *load_file_to_cstring(const char *path)
         return NULL;
     }
 
-    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < (size_t )pem_file_size) {
+    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < (size_t)pem_file_size) {
         fprintf(stderr, "Failed reading file: '%s'\n", strerror(errno));
         free(pem_out);
         fclose(pem_file);

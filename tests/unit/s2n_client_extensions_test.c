@@ -119,7 +119,7 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
 
     /* Send the client hello */
     POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len), (int)record_header_len);
-    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len), (int) message_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len), (int)message_header_len);
     POSIX_ENSURE_EQ(write(io_pair->client, client_hello_message, client_hello_len), (int)client_hello_len);
     POSIX_ENSURE_EQ(write(io_pair->client, client_extensions, client_extensions_len), (int)client_extensions_len);
 
