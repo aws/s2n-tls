@@ -13,30 +13,37 @@
  * permissions and limitations under the License.
  */
 
-/*
- * On some platforms(NixOS) SOL_TCP definition is missing.
- * https://github.com/torvalds/linux/blob/d2d11f342b179f1894a901f143ec7c008caba43e/include/linux/socket.h#L344
- */
-#ifndef _GNU_SOURCE
-    #define _GNU_SOURCE
+#ifdef S2N_PLATFORM_SUPPORTS_KTLS
+    /*
+     * https://github.com/aws/s2n-tls/issues/3813
+     *
+     * _GNU_SOURCE is needed for resolving the constant SOL_TCP
+     * when building `tls/s2n_ktls.c`.
+     */
+    #ifndef _GNU_SOURCE
+        #define _GNU_SOURCE
+        #include <netinet/tcp.h>
+        #undef _GNU_SOURCE
+    #else
+        #include <netinet/tcp.h>
+    #endif
+
+    #include <linux/tls.h>
+    #include <sys/socket.h>
+
+    #include "error/s2n_errno.h"
+    #include "tls/s2n_connection.h"
+    #include "tls/s2n_ktls.h"
+    #include "utils/s2n_result.h"
+    #include "utils/s2n_socket.h"
+
+    #define S2N_TLS_ULP_NAME      "tls"
+    #define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
 #endif
 
-#include "tls/s2n_ktls.h"
-
-#include <linux/tls.h>
-#include <netinet/tcp.h>
-#include <sys/socket.h>
-
-#include "error/s2n_errno.h"
-#include "tls/s2n_connection.h"
-#include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_safety_macros.h"
-#include "utils/s2n_socket.h"
 
-#define S2N_TLS_ULP_NAME      "tls"
-#define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
-
+#ifdef S2N_PLATFORM_SUPPORTS_KTLS
 S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -161,3 +168,13 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
 
     return S2N_RESULT_OK;
 }
+
+#else
+
+S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
+{
+    /* kTLS feature is not supported on this platform */
+    return S2N_RESULT_OK;
+}
+
+#endif
