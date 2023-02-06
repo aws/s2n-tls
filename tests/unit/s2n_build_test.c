@@ -109,17 +109,15 @@ int main()
         }
     };
 
-    if (s2n_libcrypto == NULL) {
+    if (s2n_libcrypto == NULL || s2n_libcrypto[0] != '\0') {
         END_TEST();
         return 0;
     }
 
     struct libcrypto_info s2n_libcrypto_info = { 0 };
     char s2n_libcrypto_copy[100] = { 0 };
-    if (s2n_libcrypto != NULL && s2n_libcrypto[0] != '\0') {
-        strncpy(s2n_libcrypto_copy, s2n_libcrypto, 99);
-        EXPECT_NOT_EQUAL(extract_libcrypto_info_from_s2n_libcrypto(s2n_libcrypto_copy, &s2n_libcrypto_info), -1);
-    }
+    strncpy(s2n_libcrypto_copy, s2n_libcrypto, 99);
+    EXPECT_NOT_EQUAL(extract_libcrypto_info_from_s2n_libcrypto(s2n_libcrypto_copy, &s2n_libcrypto_info), -1);
 
     /* Check libcrypto name matches the intent of the CI.  */
     {
