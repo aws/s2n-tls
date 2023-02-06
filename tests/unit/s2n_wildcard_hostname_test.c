@@ -46,9 +46,11 @@ int main(int argc, char **argv)
     const int num_wildcardify_tests = s2n_array_len(wildcardify_test_cases);
     for (int i = 0; i < num_wildcardify_tests; i++) {
         const char *hostname = wildcardify_test_cases[i].hostname;
-        struct s2n_blob hostname_blob = { .data = (uint8_t *) (uintptr_t) hostname, .size = strlen(hostname) };
+        struct s2n_blob hostname_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&hostname_blob, (uint8_t *) (uintptr_t) hostname, strlen(hostname)));
         uint8_t output[S2N_MAX_SERVER_NAME] = { 0 };
-        struct s2n_blob output_blob = { .data = (uint8_t *) (uintptr_t) output, .size = sizeof(output) };
+        struct s2n_blob output_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&output_blob, (uint8_t *) (uintptr_t) output, sizeof(output)));
         struct s2n_stuffer hostname_stuffer = { 0 };
         struct s2n_stuffer output_stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_init(&hostname_stuffer, &hostname_blob));

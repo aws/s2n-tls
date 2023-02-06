@@ -43,7 +43,8 @@ int main(int argc, char **argv)
     struct s2n_stuffer server_random_in = { 0 };
     struct s2n_stuffer premaster_secret_in = { 0 };
     struct s2n_stuffer master_secret_hex_out = { 0 };
-    struct s2n_blob master_secret = { .data = master_secret_hex_pad, .size = sizeof(master_secret_hex_pad) };
+    struct s2n_blob master_secret = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&master_secret, master_secret_hex_pad, sizeof(master_secret_hex_pad)));
     struct s2n_blob pms = { 0 };
 
     struct s2n_connection *conn = NULL;

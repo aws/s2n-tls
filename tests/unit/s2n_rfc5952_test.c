@@ -36,8 +36,10 @@ int main(int argc, char **argv)
     uint8_t ipv4_buf[sizeof("255.255.255.255")];
     uint8_t ipv6_buf[sizeof("1111:2222:3333:4444:5555:6666:7777:8888")];
 
-    struct s2n_blob ipv4_blob = { .data = ipv4_buf, .size = sizeof(ipv4_buf) };
-    struct s2n_blob ipv6_blob = { .data = ipv6_buf, .size = sizeof(ipv6_buf) };
+    struct s2n_blob ipv4_blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&ipv4_blob, ipv4_buf, sizeof(ipv4_buf)));
+    struct s2n_blob ipv6_blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&ipv6_blob, ipv6_buf, sizeof(ipv6_buf)));
 
     EXPECT_SUCCESS(inet_pton(AF_INET, "111.222.111.111", ipv4));
     EXPECT_OK(s2n_inet_ntop(AF_INET, ipv4, &ipv4_blob));
