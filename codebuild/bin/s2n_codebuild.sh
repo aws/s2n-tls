@@ -91,7 +91,7 @@ run_integration_v2_tests() {
     test_linked_libcrypto ./build/bin/s2nc
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
-      echo "Running... cmake --build build/ --target test -- ARGS=\"--output-on-failure -R integ_"$test"\""
+      echo "Running... cmake --build build/ --target test -- ARGS=\"--output-on-failure -R integrationv2_"$test"\""
       cmake --build build/ --target test -- ARGS="--output-on-failure -R integ_"$test
     done
 }
