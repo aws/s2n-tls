@@ -27,4 +27,4 @@ cmake . -Bbuild -GNinja \
 -DCMAKE_PREFIX_PATH=${OPENSSL_1_1_1_INSTALL_DIR} ..
 
 cmake --build ./build -j $(nproc)
-time CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
+time CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
