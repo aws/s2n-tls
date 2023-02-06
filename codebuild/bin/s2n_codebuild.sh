@@ -91,8 +91,8 @@ run_integration_v2_tests() {
     test_linked_libcrypto ./build/bin/s2nc
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
-      echo "Running... test_linked_libcrypto ./build/bin/s2nc""$test"
-	    ctest -R integ_"$test"
+      echo "Running... cmake --build build/ --target test -- ARGS=\"--output-on-failure -R integ_"$test"\""
+      cmake --build build/ --target test -- ARGS="--output-on-failure -R integ_"$test
     done
 }
 
@@ -104,7 +104,7 @@ run_unit_tests() {
             -DBUILD_SHARED_LIBS=on
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
-    ctest -L unit  --output-on-failure
+    cmake --build build/ --target test -- ARGS="-L unit --output-on-failure"
 }
 
 # Run Multiple tests on one flag.
