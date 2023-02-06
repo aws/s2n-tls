@@ -390,6 +390,7 @@ const struct s2n_cipher s2n_aes128_gcm = {
     .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key,
     .set_decryption_key = s2n_aead_cipher_aes128_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
+    .ktls_supported = true,
 };
 
 const struct s2n_cipher s2n_aes256_gcm = {

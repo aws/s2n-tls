@@ -134,6 +134,10 @@ struct s2n_connection {
      * instead of the ALPN extension */
     unsigned npn_negotiated : 1;
 
+    /* Marks if kTLS has been enabled for this connection. */
+    unsigned ktls_send_enabled : 1;
+    unsigned ktls_recv_enabled : 1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
@@ -283,8 +287,8 @@ struct s2n_connection {
      */
     uint16_t max_outgoing_fragment_length;
 
-    /* The number of bytes to send before changing the record size. 
-     * If this value > 0 then dynamic TLS record size is enabled. Otherwise, the feature is disabled (default). 
+    /* The number of bytes to send before changing the record size.
+     * If this value > 0 then dynamic TLS record size is enabled. Otherwise, the feature is disabled (default).
      */
     uint32_t dynamic_record_resize_threshold;
 
