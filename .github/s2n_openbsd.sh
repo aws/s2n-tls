@@ -19,7 +19,7 @@ export CTEST_PARALLEL_LEVEL=$(sysctl -n hw.ncpuonline)
 cmake . -Brelease -GNinja -DCMAKE_BUILD_TYPE=Release
 cmake --build ./release -j $CTEST_PARALLEL_LEVEL
 cd ./release
-ctest -C release -L unit
+ctest -L unit
 cd ..
 cmake --build ./release --target clean #Saves on copy back rsync time
 
