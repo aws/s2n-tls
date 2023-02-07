@@ -101,12 +101,6 @@ struct s2n_config {
      */
     unsigned recv_multi_record : 1;
 
-    /* Depending on OS and configuration it is possible to use kTLS.
-     *
-     * This option indicates if connections should attempt to use kTLS. */
-    unsigned ktls_send_requested : 1;
-    unsigned ktls_recv_requested : 1;
-
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
