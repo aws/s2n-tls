@@ -46,8 +46,9 @@ struct s2n_client_hello {
 
     /*
      * SSLv2 ClientHellos have a different format.
-     * Due to how s2n-tls parses them, the raw_message
-     * will not contain the protocol version.
+     * Cipher suites are each three bytes instead of two.
+     * And due to how s2n-tls parses the record,
+     * the raw_message will not contain the protocol version.
      */
     unsigned int sslv2 : 1;
 };
