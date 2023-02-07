@@ -187,7 +187,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
         result = 5;
     }
 
-    if ((size_t)s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) != serialized_session_state_length) {
+    if ((size_t) s2n_connection_get_session(conn, serialized_session_state, serialized_session_state_length) != serialized_session_state_length) {
         result = 6;
     }
 

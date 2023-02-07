@@ -108,7 +108,7 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
      */
     RESULT_GUARD_POSIX(s2n_realloc(&new_protocols, 0));
 
-    for (size_t i = 0; i < (size_t)protocol_count; i++) {
+    for (size_t i = 0; i < (size_t) protocol_count; i++) {
         const uint8_t *protocol = (const uint8_t *) protocols[i];
         size_t length = strlen(protocols[i]);
 

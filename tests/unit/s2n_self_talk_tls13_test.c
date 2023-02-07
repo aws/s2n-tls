@@ -74,7 +74,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Active application bytes consumed is reset to 0 in before writing data. */
     /* Its value should equal to bytes written after writing */
     ssize_t bytes_written = s2n_send(conn, buffer, i, &blocked);
-    if ((uint64_t)bytes_written != conn->active_application_bytes_consumed) {
+    if ((uint64_t) bytes_written != conn->active_application_bytes_consumed) {
         exit(1);
     }
 

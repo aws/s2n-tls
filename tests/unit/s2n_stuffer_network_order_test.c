@@ -80,7 +80,7 @@ int main(int argc, char **argv)
             }
 
             uint16_t prime = 257;
-            for (uint32_t i = 0; i < (size_t)0xFFFFFF - prime; i += prime) {
+            for (uint32_t i = 0; i < (size_t) 0xFFFFFF - prime; i += prime) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);

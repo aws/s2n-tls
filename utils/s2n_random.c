@@ -562,7 +562,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 
         POSIX_ENSURE(success, S2N_ERR_RDRAND_FAILED);
 
-        int data_to_fill = MIN(sizeof(output), space_remaining);
+        size_t data_to_fill = MIN(sizeof(output), space_remaining);
 
         POSIX_GUARD(s2n_stuffer_write_bytes(&stuffer, output.u8, data_to_fill));
     }

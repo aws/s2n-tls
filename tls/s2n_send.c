@@ -168,7 +168,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
     if (offs > 0) {
         const struct iovec *_bufs = bufs;
         ssize_t _count = count;
-        while ((size_t)offs >= _bufs->iov_len && _count > 0) {
+        while ((size_t) offs >= _bufs->iov_len && _count > 0) {
             offs -= _bufs->iov_len;
             _bufs++;
             _count--;
