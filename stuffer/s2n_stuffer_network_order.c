@@ -167,7 +167,7 @@ static int length_matches_value_check(uint32_t value, uint8_t length)
     if (length < sizeof(uint32_t)) {
         /* Value should be less than the maximum for its length */
         const uint32_t size_max = 1 << (length * 8);
-        S2N_ERROR_IF(value >= size_max, S2N_ERR_SIZE_MISMATCH);
+        POSIX_ENSURE(value >= size_max, S2N_ERR_SIZE_MISMATCH);
     }
 
     return S2N_SUCCESS;
