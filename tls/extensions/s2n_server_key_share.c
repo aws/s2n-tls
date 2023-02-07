@@ -206,7 +206,7 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
     POSIX_ENSURE(s2n_stuffer_data_available(extension) == actual_hybrid_share_size, S2N_ERR_BAD_KEY_SHARE);
 
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
-    POSIX_GUARD(s2n_is_hybrid_kem_length_prefixed(S2N_SERVER, actual_hybrid_share_size, server_kem_group_params->kem_group, &client_kem_params->len_prefixed));
+    POSIX_GUARD(s2n_is_tls13_hybrid_kem_length_prefixed(S2N_SERVER, actual_hybrid_share_size, server_kem_group_params->kem_group, &client_kem_params->len_prefixed));
 
     /* Parse ECC key share */
     uint16_t expected_ecc_share_size = server_kem_group_params->kem_group->curve->share_size;

@@ -239,7 +239,7 @@ int main()
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
         .tls13_kem_groups = kyber_test_groups,
-        .pq_hybrid_draft_revision = 0
+        .tls13_pq_hybrid_draft_revision = 0
     };
 
     const struct s2n_security_policy kyber_test_policy_draft0 = {
@@ -255,7 +255,7 @@ int main()
         .kems = NULL,
         .tls13_kem_group_count = s2n_array_len(kyber_test_groups),
         .tls13_kem_groups = kyber_test_groups,
-        .pq_hybrid_draft_revision = 5
+        .tls13_pq_hybrid_draft_revision = 5
     };
 
     const struct s2n_security_policy kyber_test_policy_draft5 = {

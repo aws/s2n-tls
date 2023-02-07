@@ -47,7 +47,7 @@ int main()
             .kems = NULL,
             .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
             .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
-            .pq_hybrid_draft_revision = 0
+            .tls13_pq_hybrid_draft_revision = 0
         };
 
         const struct s2n_security_policy security_policy_all = {
@@ -118,7 +118,7 @@ int main()
                         .kems = NULL,
                         .tls13_kem_group_count = s2n_array_len(test_kem_groups),
                         .tls13_kem_groups = test_kem_groups,
-                        .pq_hybrid_draft_revision = 0
+                        .tls13_pq_hybrid_draft_revision = 0
                     };
 
                     const struct s2n_security_policy test_security_policy = {
@@ -461,7 +461,7 @@ int main()
                             .kems = NULL,
                             .tls13_kem_group_count = s2n_array_len(test_kem_groups),
                             .tls13_kem_groups = test_kem_groups,
-                            .pq_hybrid_draft_revision = 0
+                            .tls13_pq_hybrid_draft_revision = 0
                         };
 
                         const struct s2n_security_policy test_security_policy = {

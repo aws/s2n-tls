@@ -36,7 +36,7 @@ struct s2n_kem_preferences {
      *  - Draft 0:   PQ Hybrid KEM format: (Total Length, PQ Length, PQ Share, ECC Length, ECC Share)
      *  - Draft 1-5: PQ Hybrid KEM format: (Total Length, PQ Share, ECC Share)
      */
-    uint8_t pq_hybrid_draft_revision;
+    uint8_t tls13_pq_hybrid_draft_revision;
 };
 
 extern const struct s2n_kem *pq_kems_r3_2021_05[1];
@@ -50,4 +50,4 @@ extern const struct s2n_kem_preferences kem_preferences_null;
 bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,
         uint16_t query_iana_id);
 
-bool s2n_kem_client_prefers_length_prefix(const struct s2n_kem_preferences *kem_pref);
+bool s2n_tls13_client_prefers_hybrid_kem_length_prefix(const struct s2n_kem_preferences *kem_pref);
