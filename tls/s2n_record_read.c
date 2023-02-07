@@ -46,7 +46,16 @@ int s2n_sslv2_record_header_parse(
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, record_type));
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    /* The SSLv2 header is only 3 bytes (technically sometimes 2, but we only support 3 --
+     * see https://www.ietf.org/archive/id/draft-hickman-netscape-ssl-00.txt). So by reading
+     * 5 bytes for a standard header we have also read the first two bytes of the record contents.
+     *
+     * s2n-tls ONLY supports SSLv2 ClientHellos, so we assume that those two bytes are
+     * the first field of the SSLv2 ClientHello. The first field is the protocol version.
+     *
+     * Note: the protocol version read here will likely NOT be SSLv2. See s2n_sslv2_client_hello_recv.
+     */
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     *client_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
