@@ -35,7 +35,6 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
-option(S2N_INTEG_TESTS "Enables s2n integv2 test." ON)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -655,28 +654,24 @@ if (BUILD_TESTING)
 
     endif()
 
-    if (S2N_INTEG_TESTS)
-        find_package (Python3 COMPONENTS Interpreter Development)
-        file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
-        foreach(test_file_path ${integv2_test_files})
-            get_filename_component(test_filename ${test_file_path} NAME_WE)
-            string(REGEX REPLACE "^test_" "" test_name ${test_filename})
-            string(CONCAT test_target "integrationv2_" ${test_name})
-
-            add_test(NAME ${test_target}
-                    COMMAND
-                    ${CMAKE_COMMAND} -E env
-                    DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
-                    LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
-                    PATH="${PROJECT_SOURCE_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
-                    PYTHONNOUSERSITE=1
-                    S2N_INTEG_TEST=1
-                    TOX_TEST_NAME=${test_file_path}
-                    ${Python3_EXECUTABLE} -m tox
-                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
-            set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
-        endforeach()
-    endif()
+    find_package (Python3 COMPONENTS Interpreter Development)
+    file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
+    foreach(test_file_path ${integv2_test_files})
+      get_filename_component(test_filename ${test_file_path} NAME_WE)
+      string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
+      add_test(NAME ${test_target}
+        COMMAND
+        ${CMAKE_COMMAND} -E env
+        DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
+        LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
+        PATH="${PROJECT_SOURCE_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
+        PYTHONNOUSERSITE=1
+        S2N_INTEG_TEST=1
+        TOX_TEST_NAME=${test_file_path}
+        ${Python3_EXECUTABLE} -m tox
+        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+      set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
+    endforeach()
 endif()
 
 #install the s2n files
