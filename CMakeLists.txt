@@ -622,6 +622,7 @@ if (BUILD_TESTING)
     target_include_directories(s2nc PRIVATE api)
     target_compile_options(s2nc PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
 
+
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
 
@@ -632,6 +633,9 @@ if (BUILD_TESTING)
         target_compile_options(s2nc PRIVATE -flto)
         target_compile_options(s2nd PRIVATE -flto)
     endif()
+
+    install(TARGETS s2nd s2nc)
+
 
     if(BENCHMARK)
         find_package(benchmark REQUIRED)
@@ -651,26 +655,25 @@ if (BUILD_TESTING)
                     -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
                     -Wno-unused-but-set-variable)
         endforeach(benchmark)
-
     endif()
 
     find_package (Python3 COMPONENTS Interpreter Development)
     file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
     foreach(test_file_path ${integv2_test_files})
-      get_filename_component(test_filename ${test_file_path} NAME_WE)
-      string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
-      add_test(NAME ${test_target}
-        COMMAND
-        ${CMAKE_COMMAND} -E env
-        DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
-        LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
-        PATH="${PROJECT_SOURCE_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
-        PYTHONNOUSERSITE=1
-        S2N_INTEG_TEST=1
-        TOX_TEST_NAME=${test_file_path}
-        ${Python3_EXECUTABLE} -m tox
-        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
-      set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
+        get_filename_component(test_filename ${test_file_path} NAME_WE)
+        string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
+        add_test(NAME ${test_target}
+            COMMAND
+            ${CMAKE_COMMAND} -E env
+            DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
+            LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
+            PATH="${CMAKE_BINARY_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
+            PYTHONNOUSERSITE=1
+            S2N_INTEG_TEST=1
+            TOX_TEST_NAME=${test_file_path}
+            ${Python3_EXECUTABLE} -m tox
+            WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+        set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
     endforeach()
 endif()
 

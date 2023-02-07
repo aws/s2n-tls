@@ -88,6 +88,8 @@ run_integration_v2_tests() {
             -DBUILD_SHARED_LIBS=on \
             -DPython3_EXECUTABLE=$(which python3)
     cmake --build ./build -- -j $(nproc)
+    which s2nc
+    which s2nd
     test_linked_libcrypto ./build/bin/s2nc
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
