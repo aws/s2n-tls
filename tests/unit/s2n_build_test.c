@@ -68,7 +68,7 @@ int main()
         }
     };
 
-    if (s2n_libcrypto == NULL || s2n_libcrypto[0] != '\0') {
+    if (s2n_libcrypto == NULL || s2n_libcrypto[0] == '\0') {
         END_TEST();
         return 0;
     }
