@@ -22,7 +22,7 @@
 /* SSLv2 == 0x0200 == 512 */
 #define S2N_JA3_SSLV2_VAL 512
 
-// clang-format off
+/* clang-format off */
 #define S2N_TEST_CLIENT_HELLO_AFTER_VERSION \
     /* random */ \
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
@@ -31,7 +31,7 @@
     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
     /* session id */ \
     0x00
-// clang-format on
+/* clang-format on */
 
 #define S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS \
     /* legacy compression methods */        \

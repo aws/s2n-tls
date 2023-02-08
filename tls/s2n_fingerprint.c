@@ -31,14 +31,14 @@
 /* UINT16_MAX == 65535 */
 #define S2N_UINT16_STR_MAX_SIZE 5
 
-// clang-format off
+/* clang-format off */
 const bool s2n_grease_values[] = {
         [0x0A] = true, [0x1A] = true, [0x2A] = true, [0x3A] = true,
         [0x4A] = true, [0x5A] = true, [0x6A] = true, [0x7A] = true,
         [0x8A] = true, [0x9A] = true, [0xAA] = true, [0xBA] = true,
         [0xCA] = true, [0xDA] = true, [0xEA] = true, [0xFA] = true,
 };
-// clang-format on
+/* clang-format on */
 
 /* Both bytes of a GREASE IANA value will be identical, and will
  * match one of the values in s2n_grease_values.
