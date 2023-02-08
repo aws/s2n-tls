@@ -43,7 +43,8 @@ int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
     return S2N_SUCCESS;
 }
 
-int compile_time_is_awslc() {
+int compile_time_is_awslc()
+{
 #ifdef OPENSSL_IS_AWSLC
     return S2N_SUCCESS;
 #else
@@ -81,9 +82,9 @@ int main()
     /* Check libcrypto name matches the intent of the CI.  */
     {
         if (strstr(name, "awslc") != NULL) {
-	    /* Early versions of awslc's SSLeay_version return an inaccurate value left over
+            /* Early versions of awslc's SSLeay_version return an inaccurate value left over
 	     * after its fork from BoringSSL.  */
-	    EXPECT_SUCCESS(compile_time_is_awslc());
+            EXPECT_SUCCESS(compile_time_is_awslc());
         } else {
             /* Any other library should have the name of the library (modulo case) in its version string.  */
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
