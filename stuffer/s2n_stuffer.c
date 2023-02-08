@@ -76,6 +76,14 @@ int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in)
     return S2N_SUCCESS;
 }
 
+int s2n_stuffer_init_written(struct s2n_stuffer *stuffer, struct s2n_blob *in)
+{
+    POSIX_ENSURE_REF(in);
+    POSIX_GUARD(s2n_stuffer_init(stuffer, in));
+    POSIX_GUARD(s2n_stuffer_skip_write(stuffer, in->size));
+    return S2N_SUCCESS;
+}
+
 int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size)
 {
     POSIX_ENSURE_REF(stuffer);
