@@ -1072,30 +1072,3 @@ int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
 
     return S2N_SUCCESS;
 }
-
-/* Indicates if the connection should attempt to enable kTLS. */
-int s2n_config_set_ktls_mode(struct s2n_config *config, s2n_ktls_mode ktls_mode)
-{
-    POSIX_ENSURE_REF(config);
-
-    switch (ktls_mode) {
-        case S2N_KTLS_MODE_DUPLEX:
-            config->ktls_recv_requested = true;
-            config->ktls_send_requested = true;
-            break;
-        case S2N_KTLS_MODE_SEND:
-            config->ktls_recv_requested = false;
-            config->ktls_send_requested = true;
-            break;
-        case S2N_KTLS_MODE_RECV:
-            config->ktls_recv_requested = true;
-            config->ktls_send_requested = false;
-            break;
-        case S2N_KTLS_MODE_DISABLED:
-            config->ktls_recv_requested = false;
-            config->ktls_send_requested = false;
-            break;
-    }
-
-    return S2N_SUCCESS;
-}
