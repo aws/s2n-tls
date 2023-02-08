@@ -12,6 +12,13 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
+# TODO remove after changing codebuild's S2N_BUILD_PRESET
+case "${S2N_BUILD_PRESET-default}" in
+    "openssl-1-0-2")
+	: export S2N_BUILD_PRESET="openssl-1.0.2"
+	;;
+esac
+
 case "${S2N_BUILD_PRESET-default}" in
     "awslc_gcc4-8")
         : "${S2N_LIBCRYPTO:=awslc}"
