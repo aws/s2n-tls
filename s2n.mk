@@ -250,7 +250,7 @@ ifeq ($(TRY_COMPILE_CLONE), 0)
 endif
 
 # Determine if kTLS is available
-TRY_COMPILE_KTLS := $(call try_run,$(S2N_ROOT)/tests/features/ktls.c)
+TRY_COMPILE_KTLS := $(call try_compile,$(S2N_ROOT)/tests/features/ktls.c)
 ifeq ($(TRY_COMPILE_KTLS), 0)
 	DEFAULT_CFLAGS += -DS2N_PLATFORM_SUPPORTS_KTLS
 endif

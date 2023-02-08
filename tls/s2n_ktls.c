@@ -33,17 +33,16 @@
 
     #include "error/s2n_errno.h"
     #include "tls/s2n_connection.h"
-    #include "tls/s2n_ktls.h"
     #include "utils/s2n_result.h"
-    #include "utils/s2n_socket.h"
 
     #define S2N_TLS_ULP_NAME      "tls"
     #define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
 #endif
 
+#include "tls/s2n_ktls.h"
 #include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 
-#ifdef S2N_PLATFORM_SUPPORTS_KTLS
 S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -74,27 +73,30 @@ S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
 S2N_RESULT s2n_ktls_validate_socket_mode(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE(ktls_mode == S2N_KTLS_MODE_RECV || ktls_mode == S2N_KTLS_MODE_SEND, S2N_ERR_T_INTERNAL);
+    RESULT_ENSURE(ktls_mode == S2N_KTLS_MODE_RECV || ktls_mode == S2N_KTLS_MODE_SEND, S2N_ERR_SAFETY);
 
     /* kTLS I/O functionality is managed by s2n-tls. kTLS cannot be enabled if the
      * application sets custom I/O (managed_send_io == false means application has
      * set custom I/O).
      *
-     * - Confirm application is has not using custom I/O
+     * - Safety checks
+     * - Confirm application is not using custom I/O
      * - Confirm kTLS isn't enabled already
      */
     switch (ktls_mode) {
         case S2N_KTLS_MODE_SEND:
+            RESULT_ENSURE_REF(conn->send_io_context);
             RESULT_ENSURE(!conn->managed_send_io, S2N_ERR_KTLS);
             RESULT_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS);
             break;
         case S2N_KTLS_MODE_RECV:
+            RESULT_ENSURE_REF(conn->recv_io_context);
             RESULT_ENSURE(!conn->managed_recv_io, S2N_ERR_KTLS);
             RESULT_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS);
             break;
         case S2N_KTLS_MODE_DISABLED:
         case S2N_KTLS_MODE_DUPLEX:
-            RESULT_BAIL(S2N_ERR_T_INTERNAL);
+            RESULT_BAIL(S2N_ERR_SAFETY);
             break;
     }
 
@@ -104,6 +106,7 @@ S2N_RESULT s2n_ktls_validate_socket_mode(struct s2n_connection *conn, s2n_ktls_m
 S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd)
 {
     RESULT_GUARD(s2n_ktls_validate_socket_mode(conn, ktls_mode));
+    RESULT_ENSURE_REF(fd);
 
     if (ktls_mode == S2N_KTLS_MODE_RECV) {
         /* retrieve the receive fd */
@@ -118,12 +121,14 @@ S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_kt
     return S2N_RESULT_OK;
 }
 
+#ifdef S2N_PLATFORM_SUPPORTS_KTLS
+
 S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_GUARD(s2n_ktls_validate_socket_mode(conn, ktls_mode));
 
     /* register the tls ULP */
-    int fd;
+    int fd = 0;
     RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
     RESULT_GUARD_POSIX(setsockopt(fd, SOL_TCP, TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE));
 
@@ -145,29 +150,50 @@ S2N_RESULT s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_m
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
+/*
+ * Since kTLS is an optimization, it is possible to continue operation
+ * by using userspace TLS if kTLS is not supported. Upon successfully
+ * enabling kTLS, we set connection->ktls_send_enabled (and recv) to true.
+ *
+ * For this reason we categorize kTLS errors into recoverable and
+ * un-recoverable and handle them appropriately:
+ *
+ * - Errors related to the socket configuration are considered recoverable
+ *   since kTLS related `setsockopt` operations are non-destructive.
+ *
+ * - Errors related to connection configuration are considered
+ *   un-recoverable since we attempt to modify s2n_connection state.
+ */
+int s2n_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     if (s2n_result_is_error(s2n_ktls_validate(conn))) {
-        return S2N_RESULT_OK;
+        return S2N_SUCCESS;
     }
 
-    if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV))) {
-        RESULT_ENSURE_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV), S2N_ERR_KTLS);
+    if (ktls_mode == S2N_KTLS_MODE_RECV || ktls_mode == S2N_KTLS_MODE_DUPLEX) {
+        if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV))) {
+            POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+        }
     }
 
-    if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND))) {
-        RESULT_ENSURE_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS);
+    if (ktls_mode == S2N_KTLS_MODE_SEND || ktls_mode == S2N_KTLS_MODE_DUPLEX) {
+        if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND))) {
+            POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
+        }
     }
 
-    return S2N_RESULT_OK;
+    return S2N_SUCCESS;
 }
 
 #else
 
-S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
+/*
+ * kTLS feature is not supported on this platform. We return success
+ * and continue to operate in userspace TLS mode.
+ */
+int s2n_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
-    /* kTLS feature is not supported on this platform */
-    return S2N_RESULT_OK;
+    return S2N_SUCCESS;
 }
 
 #endif
