@@ -283,11 +283,11 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
      */
     DEFER_CLEANUP(struct s2n_hash_state md5_hash = { 0 }, s2n_hash_free);
     POSIX_GUARD(s2n_hash_new(&md5_hash));
-    POSIX_GUARD(s2n_hash_init(&md5_hash, S2N_HASH_MD5));
     if (s2n_is_in_fips_mode()) {
         /* This hash is unrelated to TLS and does not affect FIPS */
         POSIX_GUARD(s2n_hash_allow_md5_for_fips(&md5_hash));
     }
+    POSIX_GUARD(s2n_hash_init(&md5_hash, S2N_HASH_MD5));
 
     POSIX_GUARD_RESULT(s2n_fingerprint_ja3(ch, &string_stuffer, hash_size, &md5_hash));
     POSIX_GUARD_RESULT(s2n_fingerprint_hash_flush(&md5_hash, &string_stuffer));

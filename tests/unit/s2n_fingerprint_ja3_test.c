@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_sslv2_client_hello.h"
 #include "testlib/s2n_testlib.h"
@@ -113,14 +114,18 @@ int main(int argc, char **argv)
 
     uint8_t empty_md5_hash[MD5_DIGEST_LENGTH] = { 0 };
     DEFER_CLEANUP(struct s2n_hash_state md5_hash = { 0 }, s2n_hash_free);
-    POSIX_GUARD(s2n_hash_new(&md5_hash));
-    POSIX_GUARD(s2n_hash_init(&md5_hash, S2N_HASH_MD5));
-    POSIX_GUARD(s2n_hash_digest(&md5_hash, empty_md5_hash, MD5_DIGEST_LENGTH));
+    EXPECT_SUCCESS(s2n_hash_new(&md5_hash));
+    if (s2n_is_in_fips_mode()) {
+        EXPECT_SUCCESS(s2n_hash_allow_md5_for_fips(&md5_hash));
+    }
+    EXPECT_SUCCESS(s2n_hash_init(&md5_hash, S2N_HASH_MD5));
+    EXPECT_SUCCESS(s2n_hash_digest(&md5_hash, empty_md5_hash, MD5_DIGEST_LENGTH));
 
     /* Test: safety / input validation */
     {
-        struct s2n_connection server = { 0 };
-        struct s2n_client_hello *client_hello = &server.client_hello;
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        struct s2n_client_hello *client_hello = &server->client_hello;
         uint32_t output_size = 0, str_size = 0;
 
         /* Valid client hello required */
