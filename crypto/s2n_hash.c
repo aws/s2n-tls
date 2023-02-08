@@ -396,7 +396,6 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
     }
 
     POSIX_ENSURE((size_t) EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
-
     POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
     return S2N_SUCCESS;
 }
