@@ -388,14 +388,15 @@ static int s2n_evp_hash_digest(struct s2n_hash_state *state, void *out, uint32_t
         unsigned int md5_secondary_digest_size = digest_size - sha1_primary_digest_size;
 
         POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= sha1_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
-        POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) <= (int) md5_secondary_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+        POSIX_ENSURE((size_t) EVP_MD_CTX_size(state->digest.high_level.evp_md5_secondary.ctx) <= md5_secondary_digest_size, S2N_ERR_HASH_DIGEST_FAILED);
 
         POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, ((uint8_t *) out) + MD5_DIGEST_LENGTH, &sha1_primary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp_md5_secondary.ctx, out, &md5_secondary_digest_size), S2N_ERR_HASH_DIGEST_FAILED);
         return S2N_SUCCESS;
     }
 
-    POSIX_ENSURE(EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= (int) digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+    POSIX_ENSURE((size_t) EVP_MD_CTX_size(state->digest.high_level.evp.ctx) <= digest_size, S2N_ERR_HASH_DIGEST_FAILED);
+
     POSIX_GUARD_OSSL(EVP_DigestFinal_ex(state->digest.high_level.evp.ctx, out, &digest_size), S2N_ERR_HASH_DIGEST_FAILED);
     return S2N_SUCCESS;
 }
