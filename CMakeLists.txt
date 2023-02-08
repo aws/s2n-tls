@@ -667,7 +667,7 @@ if (BUILD_TESTING)
             ${CMAKE_COMMAND} -E env
             DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
             LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
-            PATH="${CMAKE_BINARY_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
+            PATH="${PROJECT_SOURCE_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
             PYTHONNOUSERSITE=1
             S2N_INTEG_TEST=1
             TOX_TEST_NAME=${test_file_path}

@@ -87,9 +87,10 @@ run_integration_v2_tests() {
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
             -DPython3_EXECUTABLE=$(which python3)
-    cmake --build ./build -- -j $(nproc)
+    cmake --build ./build --clean-first -- -j $(nproc)
+    cp -f ./build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc
+    cp -f ./build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd
     which s2nc
-    which s2nd
     test_linked_libcrypto ./build/bin/s2nc
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
