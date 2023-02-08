@@ -68,9 +68,6 @@ S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
     /* only AES_GCM_128 is supported at the moment */
     RESULT_ENSURE_EQ(key_size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-    /* confirm that the application requested ktls */
-    RESULT_ENSURE_EQ(conn->config->ktls_recv_requested || conn->config->ktls_send_requested, S2N_ERR_OK);
-
     return S2N_RESULT_OK;
 }
 
@@ -154,16 +151,12 @@ S2N_RESULT s2n_ktls_enable(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    if (conn->config->ktls_recv_requested) {
-        if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV))) {
-            RESULT_ENSURE_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV), S2N_ERR_KTLS);
-        }
+    if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV))) {
+        RESULT_ENSURE_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV), S2N_ERR_KTLS);
     }
 
-    if (conn->config->ktls_send_requested) {
-        if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND))) {
-            RESULT_ENSURE_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS);
-        }
+    if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND))) {
+        RESULT_ENSURE_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS);
     }
 
     return S2N_RESULT_OK;
