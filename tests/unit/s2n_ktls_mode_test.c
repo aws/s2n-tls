@@ -21,36 +21,6 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* Default config kTLS mode */
-    {
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(config);
-        EXPECT_FALSE(config->ktls_send_requested);
-        EXPECT_FALSE(config->ktls_recv_requested);
-    };
-
-    /* Request config kTLS mode */
-    {
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(config);
-
-        EXPECT_SUCCESS(s2n_config_set_ktls_mode(config, S2N_KTLS_MODE_SEND));
-        EXPECT_TRUE(config->ktls_send_requested);
-        EXPECT_FALSE(config->ktls_recv_requested);
-
-        EXPECT_SUCCESS(s2n_config_set_ktls_mode(config, S2N_KTLS_MODE_RECV));
-        EXPECT_FALSE(config->ktls_send_requested);
-        EXPECT_TRUE(config->ktls_recv_requested);
-
-        EXPECT_SUCCESS(s2n_config_set_ktls_mode(config, S2N_KTLS_MODE_DISABLED));
-        EXPECT_FALSE(config->ktls_send_requested);
-        EXPECT_FALSE(config->ktls_recv_requested);
-
-        EXPECT_SUCCESS(s2n_config_set_ktls_mode(config, S2N_KTLS_MODE_DUPLEX));
-        EXPECT_TRUE(config->ktls_send_requested);
-        EXPECT_TRUE(config->ktls_recv_requested);
-    };
-
     /* Default connection kTLS mode */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
