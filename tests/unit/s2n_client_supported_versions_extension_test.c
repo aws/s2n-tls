@@ -447,7 +447,7 @@ int main(int argc, char **argv)
         /* The server does not use the protocol version in the Client Hello to set the actual protocol version. */
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
+        EXPECT_EQUAL(server_conn->client_hello.version, S2N_TLS10);
     }
 
     EXPECT_SUCCESS(s2n_config_free(config));

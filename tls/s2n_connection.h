@@ -194,7 +194,6 @@ struct s2n_connection {
     /* The version advertised by the client, by the
      * server, and the actual version we are currently
      * speaking. */
-    uint8_t client_hello_version;
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;

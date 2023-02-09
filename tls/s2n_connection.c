@@ -955,7 +955,7 @@ int s2n_connection_get_client_hello_version(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    return conn->client_hello_version;
+    return conn->client_hello.version;
 }
 
 int s2n_connection_client_cert_used(struct s2n_connection *conn)
