@@ -145,6 +145,10 @@ int main(int argc, char **argv)
         server_conn->ktls_send_enabled = true;
         EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_RECV));
         EXPECT_ERROR(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_SEND));
+
+        /* reset value so we cleanup properly */
+        server_conn->managed_send_io = true;
+        server_conn->managed_recv_io = true;
     }
 
     /* s2n_ktls_retrieve_file_descriptor */
@@ -160,6 +164,10 @@ int main(int argc, char **argv)
         int fd_ret = 0;
         EXPECT_OK(s2n_ktls_retrieve_file_descriptor(server_conn, S2N_KTLS_MODE_SEND, &fd_ret));
         EXPECT_EQUAL(fd, fd_ret);
+
+        /* reset value so we cleanup properly */
+        server_conn->managed_send_io = true;
+        server_conn->managed_recv_io = true;
     }
 
     END_TEST();
