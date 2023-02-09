@@ -20,8 +20,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "s2n_test.h"
 #include "crypto/s2n_openssl.h"
+#include "s2n_test.h"
 
 int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
 {
