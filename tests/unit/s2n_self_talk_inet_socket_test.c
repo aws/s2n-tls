@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     struct sockaddr_in saddr;
     memset(&saddr, 0, sizeof(saddr));
     saddr.sin_family = AF_INET;
-    saddr.sin_addr.s_addr = htonl(INADDR_ANY);
+    saddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
     saddr.sin_port = 0;
 
     /* listen on socket address */
