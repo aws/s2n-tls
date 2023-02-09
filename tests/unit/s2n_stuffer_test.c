@@ -209,5 +209,36 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(s2n_stuffer_data_available(&reserve_test_stuffer), 0);
     EXPECT_SUCCESS(s2n_stuffer_free(&reserve_test_stuffer));
 
+    /* Test: s2n_stuffer_init_written */
+    {
+        uint8_t data[] = "hello world";
+        uint8_t input[sizeof(data)] = { 0 };
+        uint8_t output[sizeof(data)] = { 0 };
+
+        struct s2n_blob blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&blob, input, sizeof(input)));
+
+        /* Repeat control to show behavior is consistent */
+        for (size_t i = 0; i < 3; i++) {
+            struct s2n_stuffer unwritten_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&unwritten_stuffer, &blob));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&unwritten_stuffer), 0);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_read_bytes(&unwritten_stuffer, output, sizeof(output)),
+                    S2N_ERR_STUFFER_OUT_OF_DATA);
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&unwritten_stuffer, data, sizeof(data)));
+        }
+
+        /* Repeat test to show behavior is consistent */
+        for (size_t i = 0; i < 3; i++) {
+            struct s2n_stuffer written_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init_written(&written_stuffer, &blob));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&written_stuffer), sizeof(data));
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&written_stuffer, output, sizeof(output)));
+            EXPECT_BYTEARRAY_EQUAL(data, output, sizeof(output));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_stuffer_write_bytes(&written_stuffer, data, sizeof(data)),
+                    S2N_ERR_STUFFER_IS_FULL);
+        }
+    };
+
     END_TEST();
 }
