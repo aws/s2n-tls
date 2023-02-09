@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.36-dbf9d5f9</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.36-bcb7af1b</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -2789,6 +2789,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Copies into the <code>out</code> buffer <code>max_length</code> bytes of the cipher_suites on the ClientHello.</p>
+<p >Note: SSLv2 ClientHello cipher suites follow a different structure than modern ClientHello messages. See <a href="https://tools.ietf.org/html/rfc5246#appendix-E.2">RFC5246</a>. To determine whether a ClientHello is an SSLv2 ClientHello, you will need to use <a class="el" href="s2n_8h.html#ad2a608603c7dbe9203a7c8f8b63ee1b8">s2n_connection_get_client_hello_version()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">ch</td><td>The Client Hello handle </td></tr>
@@ -3017,7 +3018,8 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Copies <code>max_length</code> bytes of the ClientHello message into the <code>out</code> buffer. The ClientHello instrumented using this function will have the Random bytes zero-ed out. For SSLv2 ClientHello messages, the raw message contains only the cipher_specs, session_id and members portions of the hello message (see <a href="https://tools.ietf.org/html/rfc5246#appendix-E.2">RFC5246</a>). To access other members, you may use <a class="el" href="s2n_8h.html#ad2a608603c7dbe9203a7c8f8b63ee1b8">s2n_connection_get_client_hello_version()</a>, <a class="el" href="s2n_8h.html#aafa9d12438841f2a47907b244eccd7cc">s2n_connection_get_client_protocol_version()</a> and <a class="el" href="s2n_8h.html#acc34cfe4ca708912cf9309cc98000c08">s2n_connection_get_session_id_length()</a> accessors functions.</p>
+<p >Copies <code>max_length</code> bytes of the ClientHello message into the <code>out</code> buffer. The ClientHello instrumented using this function will have the Random bytes zero-ed out.</p>
+<p >Note: SSLv2 ClientHello messages follow a different structure than more modern ClientHello messages. See <a href="https://tools.ietf.org/html/rfc5246#appendix-E.2">RFC5246</a>. In addition, due to how s2n-tls parses SSLv2 ClientHellos, the raw message is missing the first three bytes (the msg_type and version) and instead begins with the cipher_specs. To determine whether a ClientHello is an SSLv2 ClientHello, you will need to use <a class="el" href="s2n_8h.html#ad2a608603c7dbe9203a7c8f8b63ee1b8">s2n_connection_get_client_hello_version()</a>. To get the protocol version advertised in the SSLv2 ClientHello (which may be higher than SSLv2), you will need to use <a class="el" href="s2n_8h.html#aafa9d12438841f2a47907b244eccd7cc">s2n_connection_get_client_protocol_version()</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">ch</td><td>The Client Hello handle </td></tr>
@@ -9072,7 +9074,7 @@ Safety</h1>
 <div class="line">    bytes_read += r;</div>
 <div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
 <div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1759</div></div>
+<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1768</div></div>
 </div><!-- fragment --></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
