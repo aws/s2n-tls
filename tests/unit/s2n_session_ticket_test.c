@@ -82,7 +82,7 @@ int main(int argc, char **argv)
     struct s2n_ticket_key *ticket_key;
     uint32_t ticket_keys_len = 0;
 
-    int serialized_session_state_length = 0;
+    size_t serialized_session_state_length = 0;
     uint8_t s2n_state_with_session_id = S2N_STATE_WITH_SESSION_ID;
     uint8_t serialized_session_state[S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TLS12_TICKET_SIZE_IN_BYTES + S2N_TLS12_STATE_SIZE_IN_BYTES] = { 0 };
 
