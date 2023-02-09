@@ -662,15 +662,16 @@ if (BUILD_TESTING)
         add_test(NAME ${test_target}
             COMMAND
             ${CMAKE_COMMAND} -E env
-            DYLD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":$ENV{DYLD_LIBRARY_PATH}
-            LD_LIBRARY_PATH="${PROJECT_SOURCE_DIR}/libcrypto-root/lib":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib":$ENV{LD_LIBRARY_PATH}
-            PATH="${PROJECT_SOURCE_DIR}/bin":"${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin":"${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin":$ENV{PATH}
+            DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
+            LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib:$ENV{LD_LIBRARY_PATH}
+            PATH=${PROJECT_SOURCE_DIR}/bin:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin:$ENV{PATH}
             PYTHONNOUSERSITE=1
             S2N_INTEG_TEST=1
             TOX_TEST_NAME=${test_file_path}
             ${Python3_EXECUTABLE} -m tox
             WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
         set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
+        set_property(TEST ${test_target} PROPERTY TIMEOUT 7200)
     endforeach()
 endif()
 
