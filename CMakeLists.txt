@@ -634,9 +634,6 @@ if (BUILD_TESTING)
         target_compile_options(s2nd PRIVATE -flto)
     endif()
 
-    install(TARGETS s2nd s2nc)
-
-
     if(BENCHMARK)
         find_package(benchmark REQUIRED)
         file(GLOB BENCHMARK_SRC "tests/benchmark/*.cc")
