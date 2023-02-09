@@ -21,6 +21,7 @@
 #include <string.h>
 
 #include "s2n_test.h"
+#include "tls/s2n_openssl.h"
 
 int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
 {
@@ -41,15 +42,6 @@ int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
     }
 
     return S2N_SUCCESS;
-}
-
-int compile_time_is_awslc()
-{
-#ifdef OPENSSL_IS_AWSLC
-    return S2N_SUCCESS;
-#else
-    return S2N_FAILURE;
-#endif
 }
 
 int main()
@@ -84,7 +76,7 @@ int main()
         if (strstr(name, "awslc") != NULL) {
             /* Early versions of awslc's SSLeay_version return an inaccurate value left over
 	     * after its fork from BoringSSL.  */
-            EXPECT_SUCCESS(compile_time_is_awslc());
+            EXPECT_TRUE(s2n_libcrypto_is_awslc());
         } else {
             /* Any other library should have the name of the library (modulo case) in its version string.  */
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
