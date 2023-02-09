@@ -31,27 +31,18 @@
 /* UINT16_MAX == 65535 */
 #define S2N_UINT16_STR_MAX_SIZE 5
 
-/* clang-format off */
-const bool s2n_grease_values[] = {
-        [0x0A] = true, [0x1A] = true, [0x2A] = true, [0x3A] = true,
-        [0x4A] = true, [0x5A] = true, [0x6A] = true, [0x7A] = true,
-        [0x8A] = true, [0x9A] = true, [0xAA] = true, [0xBA] = true,
-        [0xCA] = true, [0xDA] = true, [0xEA] = true, [0xFA] = true,
-};
-/* clang-format on */
-
-/* Both bytes of a GREASE IANA value will be identical, and will
- * match one of the values in s2n_grease_values.
- *
- * See https://datatracker.ietf.org/doc/html/rfc8701
+/* See https://datatracker.ietf.org/doc/html/rfc8701
+ * for an explanation of GREASE and lists of the GREASE values.
  */
 static S2N_RESULT s2n_assert_grease_value(uint16_t val)
 {
     uint8_t byte1 = val >> 8;
     uint8_t byte2 = val & 0x00FF;
+    /* Both bytes of the GREASE values are identical */
     RESULT_ENSURE_EQ(byte1, byte2);
-    RESULT_ENSURE_LT(byte1, s2n_array_len(s2n_grease_values));
-    RESULT_ENSURE_EQ(s2n_grease_values[byte1], true);
+    /* The GREASE value bytes all follow the format 0x[0-F]A.
+     * So 0x0A, 0x1A, 0x2A etc, up to 0xFA. */
+    RESULT_ENSURE_EQ((byte1 | 0xF0), 0xFA);
     return S2N_RESULT_OK;
 }
 
@@ -63,6 +54,11 @@ static bool s2n_is_grease_value(uint16_t val)
 static S2N_RESULT s2n_fingerprint_hash_flush(struct s2n_hash_state *hash, struct s2n_stuffer *in)
 {
     if (hash == NULL) {
+        /* If the buffer is full and needs to be flushed, but no hash was provided,
+         * then we have insufficient memory to complete the fingerprint.
+         *
+         * The application will need to provide a larger buffer.
+         */
         RESULT_BAIL(S2N_ERR_INSUFFICIENT_MEM_SIZE);
     }
 
@@ -87,16 +83,20 @@ static S2N_RESULT s2n_fingerprint_write_char(struct s2n_stuffer *stuffer,
 static S2N_RESULT s2n_fingerprint_write_entry(struct s2n_stuffer *stuffer,
         bool *is_list, uint16_t value, struct s2n_hash_state *hash)
 {
+    /* If we have already written at least one value for this field,
+     * then we are writing a list and need to prepend a list divider before
+     * writing the next value.
+     */
     RESULT_ENSURE_REF(is_list);
     if (*is_list) {
         RESULT_GUARD(s2n_fingerprint_write_char(stuffer, S2N_JA3_LIST_DIV, hash));
     }
     *is_list = true;
 
-    /* snprintf always appends an '\0' to the output,
+    /* snprintf always appends a '\0' to the output,
      * but that extra '\0' is not included in the return value */
     uint8_t entry[S2N_UINT16_STR_MAX_SIZE + 1] = { 0 };
-    int written = snprintf((char *) entry, sizeof(entry), "%i", value);
+    int written = snprintf((char *) entry, sizeof(entry), "%u", value);
     RESULT_ENSURE_GT(written, 0);
     RESULT_ENSURE_LTE(written, S2N_UINT16_STR_MAX_SIZE);
 
@@ -228,7 +228,7 @@ static S2N_RESULT s2n_fingerprint_write_point_formats(struct s2n_client_hello *c
 /* JA3 involves concatenating a set of fields from the ClientHello:
  *      SSLVersion,Cipher,SSLExtension,EllipticCurve,EllipticCurvePointFormat
  * For example:
- *      769,47-53-5-10-49161-49162-49171-49172-50-56-19-4,0-10-11,23-24-25,0
+ *      "769,47-53-5-10-49161-49162-49171-49172-50-56-19-4,0-10-11,23-24-25,0"
  * See https://github.com/salesforce/ja3
  */
 static S2N_RESULT s2n_fingerprint_ja3(struct s2n_client_hello *ch,
