@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.36-099582aa</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.36-573a781f</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -186,7 +186,7 @@ s2n-tls safety mechanisms</h2>
 <p ><a class="anchor" id="autotoc_md34"></a> </p><h5>Compartmentalized random number generation</h5>
 <p >The security of TLS and its associated encryption algorithms depends upon secure random number generation. s2n-tls provides every thread with two separate random number generators. One for "public" randomly generated data that may appear in the clear, and one for "private" data that should remain secret. This approach lessens the risk of potential predictability weaknesses in random number generation algorithms from leaking information across contexts.</p>
 <p ><a class="anchor" id="autotoc_md35"></a> </p><h5>Modularized encryption</h5>
-<p >s2n-tls has been structured so that different encryption libraries may be used. Today s2n-tls supports OpenSSL (versions 1.0.2, 1.1.1 and 3.0.x), LibreSSL, BoringSSL, and the Apple Common Crypto framework to perform the underlying cryptographic operations.</p>
+<p >s2n-tls has been structured so that different encryption libraries may be used. Today s2n-tls supports OpenSSL (versions 1.0.2, 1.1.1 and 3.0.x), LibreSSL, BoringSSL, AWS-LC, and the Apple Common Crypto framework to perform the underlying cryptographic operations.</p>
 <p ><a class="anchor" id="autotoc_md36"></a> </p><h5>Timing blinding</h5>
 <p >s2n-tls includes structured support for blinding time-based side-channels that may leak sensitive data. For example, if s2n-tls fails to parse a TLS record or handshake message, s2n-tls will add a randomized delay of between 10 and 30 seconds, granular to nanoseconds, before responding. This raises the complexity of real-world timing side-channel attacks by a factor of at least tens of trillions.</p>
 <p ><a class="anchor" id="autotoc_md37"></a> </p><h5>Table based state-machines</h5>
