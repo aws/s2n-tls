@@ -15,28 +15,56 @@
 
 #include "s2n_test.h"
 
+static void *s2n_init_fail_cb(void *_unused_arg)
+{
+    (void) _unused_arg;
+
+    EXPECT_FAILURE_WITH_ERRNO(s2n_init(), S2N_ERR_INITIALIZED);
+    return NULL;
+}
+
 int main(int argc, char **argv)
 {
-    /* disable deferred cleanup */
+    BEGIN_TEST_NO_INIT();
+
+    /* Disabling the atexit handler makes it easier for us to test s2n_init and s2n_cleanup
+     * behavior. Otherwise we'd have to create and exit a bunch of processes to test their
+     * interaction. */
     s2n_disable_atexit();
 
-    /* this includes a call to s2n_init */
-    BEGIN_TEST();
-
-    /* test call idempotency: see https://github.com/aws/s2n-tls/issues/3446 */
+    /* Calling s2n_init twice in a row will cause an error */
+    EXPECT_SUCCESS(s2n_init());
     EXPECT_FAILURE_WITH_ERRNO(s2n_init(), S2N_ERR_INITIALIZED);
-
-    /* cleanup can only be called once when atexit is disabled, since mem_cleanup is not idempotent */
     EXPECT_SUCCESS(s2n_cleanup());
+
+    /* Second call to s2n_cleanup will fail, since the full cleanup is not idempotent.
+     * This behavior only exists when atexit is disabled. */
     EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup(), S2N_ERR_NOT_INITIALIZED);
 
-    /* clean up and init multiple times */
-    EXPECT_SUCCESS(s2n_init());
+    /* Clean up and init multiple times */
     for (size_t i = 0; i < 10; i++) {
-        EXPECT_SUCCESS(s2n_cleanup());
         EXPECT_SUCCESS(s2n_init());
+        EXPECT_SUCCESS(s2n_cleanup());
     }
 
-    /* this includes a call to s2n_cleanup */
-    END_TEST();
+    /* Calling s2n_init again after creating a process will cause an error */
+    EXPECT_SUCCESS(s2n_init());
+    int pid = fork();
+    if (pid == 0) {
+        /* Child process */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_init(), S2N_ERR_INITIALIZED);
+        EXPECT_SUCCESS(s2n_cleanup());
+        return 0;
+    }
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    /* Calling s2n_init again after creating a thread will cause an error */
+    EXPECT_SUCCESS(s2n_init());
+    pthread_t init_thread = { 0 };
+    EXPECT_EQUAL(pthread_create(&init_thread, NULL, s2n_init_fail_cb, NULL), 0);
+    EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    END_TEST_NO_INIT();
+
 }
