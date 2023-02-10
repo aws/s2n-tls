@@ -1371,7 +1371,7 @@ int main(int argc, char **argv)
         /* Mock having some data in the client hello */
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&server_conn->handshake.io, 100));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_SAFETY);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_BAD_MESSAGE);
     };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

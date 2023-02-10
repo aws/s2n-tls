@@ -308,23 +308,26 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
+    /* client_hello.version is set when parsing the record header for
+     * SSLv2 ClientHellos, not when parsing the ClientHello itself.
+     * Therefore, client_hello.version is meaningful ONLY for SSLv2
+     * before we parse the ClientHello.
+     */
+    bool isSSLv2 = (conn->client_hello.version == S2N_SSLv2);
+
     /* If a retry, move the old version of the client hello
      * somewhere safe so we can compare it to the new client hello later.
      */
     DEFER_CLEANUP(struct s2n_client_hello previous_hello_retry = conn->client_hello,
             s2n_client_hello_free);
     if (s2n_is_hello_retry_handshake(conn)) {
+        POSIX_ENSURE(!isSSLv2, S2N_ERR_BAD_MESSAGE);
         POSIX_CHECKED_MEMSET(&conn->client_hello, 0, sizeof(struct s2n_client_hello));
     }
 
     POSIX_GUARD(s2n_collect_client_hello(conn, &conn->handshake.io));
 
-    /* The ClientHello version must be TLS12 after a HelloRetryRequest */
-    if (s2n_is_hello_retry_handshake(conn)) {
-        POSIX_ENSURE_EQ(conn->client_hello.version, S2N_TLS12);
-    }
-
-    if (conn->client_hello.version == S2N_SSLv2) {
+    if (isSSLv2) {
         POSIX_GUARD(s2n_sslv2_client_hello_recv(conn));
         return S2N_SUCCESS;
     }
@@ -350,6 +353,9 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      */
     conn->client_protocol_version = MIN((client_protocol_version[0] * 10) + client_protocol_version[1], S2N_TLS12);
     conn->client_hello.version = conn->client_protocol_version;
+    if (s2n_is_hello_retry_handshake(conn)) {
+        POSIX_ENSURE_EQ(conn->client_hello.version, S2N_TLS12);
+    }
 
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &conn->session_id_len));
     S2N_ERROR_IF(conn->session_id_len > S2N_TLS_SESSION_ID_MAX_LEN || conn->session_id_len > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
