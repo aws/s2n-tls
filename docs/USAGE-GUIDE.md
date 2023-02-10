@@ -625,13 +625,28 @@ In TLS1.3, connections that resume using a session ticket CAN issue new session 
 
 s2n-tls stores the received Client Hello and makes it available to the application. Call `s2n_connection_get_client_hello()` to get a pointer to the `s2n_client_hello` struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). The stored Client Hello message will not be available after calling `s2n_connection_free_handshake()`.
 
-Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello message with the random bytes on it zeroed out. Note that SSLv2 Client Hello messages are structured differently than other versions and thus their raw messages should be parsed accordingly (see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).) Call `s2n_connection_get_client_hello_version()` to retrieve the Client Hello version.
+Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello message with the random bytes on it zeroed out.
 
-`s2n_client_hello_get_cipher_suites()` will retrieve the list of cipher suites sent by the client.
+Call `s2n_client_hello_get_cipher_suites()` to retrieve the list of cipher suites sent by the client.
 
-`s2n_client_hello_get_session_id()` will get the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with `s2n_connection_get_session_id()`after the handshake completes.
+Call `s2n_client_hello_get_session_id()` to retrieve the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with `s2n_connection_get_session_id()`after the handshake completes.
 
 Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensions sent in the Client Hello. Calling `s2n_client_hello_get_extension_by_id()` allows you to interrogate the `s2n_client_hello` struct for a specific extension.
+
+### SSLv2
+s2n-tls will not negotiate SSLv2, but will accept SSLv2 ClientHellos advertising a
+higher protocol version like SSLv3 or TLS1.0. This was a backwards compatibility
+strategy used by some old clients when connecting to a server that might only support SSLv2.
+
+You can determine whether an SSLv2 ClientHello was received by checking the value
+of `s2n_connection_get_client_hello_version()`. If an SSLv2 ClientHello was
+received, then `s2n_connection_get_client_protocol_version()` will still report
+the real protocol version requested by the client.
+
+SSLv2 ClientHellos are formatted differently than ClientHellos in later versions.
+`s2n_client_hello_get_raw_message()` and `s2n_client_hello_get_cipher_suites()`
+will produce differently formatted data. See the documentation for those methods
+for details about proper SSLv2 ClientHello parsing.
 
 ### Client Hello Callback
 

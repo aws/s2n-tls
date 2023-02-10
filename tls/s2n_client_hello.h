@@ -43,6 +43,14 @@ struct s2n_client_hello {
      * issues a hello retry.
      */
     unsigned int parsed : 1;
+
+    /*
+     * SSLv2 ClientHellos have a different format.
+     * Cipher suites are each three bytes instead of two.
+     * And due to how s2n-tls parses the record,
+     * the raw_message will not contain the protocol version.
+     */
+    unsigned int sslv2 : 1;
 };
 
 int s2n_client_hello_free(struct s2n_client_hello *client_hello);
