@@ -13,7 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
@@ -22,22 +21,12 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+/* There are issues with MacOS and FreeBSD  so we define the constant ourselves.
+ * https://stackoverflow.com/a/34042435 */
 #define S2N_TEST_INADDR_LOOPBACK 0x7f000001 /* 127.0.0.1 */
 
-#define WRITE_sync()                                             \
-    EXPECT_SUCCESS(sleep(1)); /* allow time for data to flush */ \
-    EXPECT_SUCCESS(write(write_pipe, &sync, 1));                 \
-    EXPECT_SUCCESS(sleep(1)); /* allow reader time time process current operation */
-
-#define READ_sync() \
-    EXPECT_SUCCESS(read(read_pipe, &sync, 1));
-
-#define SEND_CHAR(conn, c) \
-    send_buffer[0] = c;    \
-    EXPECT_SUCCESS(s2n_send(conn, send_buffer, 1, &blocked));
-
-const char a = 'a';
-const char b = 'b';
+const char CHAR_A = 'a';
+const char CHAR_B = 'b';
 
 static S2N_RESULT start_client(int fd, int read_pipe)
 {
@@ -47,37 +36,33 @@ static S2N_RESULT start_client(int fd, int read_pipe)
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    RESULT_GUARD_POSIX(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* Setup config */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_SUCCESS(s2n_connection_set_fd(client_conn, fd));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+    RESULT_GUARD_POSIX(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+    RESULT_GUARD_POSIX(s2n_connection_set_fd(client_conn, fd));
+    RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default"));
+    RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
+    RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    RESULT_GUARD_POSIX(s2n_connection_set_config(client_conn, config));
 
     /* Do handshake */
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    EXPECT_SUCCESS(s2n_negotiate(client_conn, &blocked));
-    EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+    RESULT_GUARD_POSIX(s2n_negotiate(client_conn, &blocked));
+    RESULT_ENSURE_EQ(client_conn->actual_protocol_version, S2N_TLS12);
 
-    /* Set connection to non-blocking mode */
-    int flags = fcntl(fd, F_GETFL, 0);
-    EXPECT_SUCCESS(fcntl(fd, F_SETFL, flags | O_NONBLOCK));
-
-    char sync;
-    char recv_buffer[10];
+    char sync = 0;
+    char recv_buffer[1] = { 0 };
 
     {
-        READ_sync();
-        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
-        EXPECT_TRUE(memcmp(&a, &recv_buffer[0], 1) == 0);
+        RESULT_GUARD_POSIX(read(read_pipe, &sync, 1));
+        RESULT_GUARD_POSIX(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+        RESULT_ENSURE_EQ(memcmp(&CHAR_A, &recv_buffer[0], 1), 0);
 
-        READ_sync();
-        EXPECT_SUCCESS(s2n_recv(client_conn, recv_buffer, 1, &blocked));
-        EXPECT_TRUE(memcmp(&b, &recv_buffer[0], 1) == 0);
+        RESULT_GUARD_POSIX(read(read_pipe, &sync, 1));
+        RESULT_GUARD_POSIX(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+        RESULT_ENSURE_EQ(memcmp(&CHAR_B, &recv_buffer[0], 1), 0);
     }
 
     return S2N_RESULT_OK;
@@ -104,18 +89,20 @@ static S2N_RESULT start_server(int fd, int write_pipe)
     EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
     /* Do handshake */
-    s2n_blocked_status blocked = 0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
     EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
 
     char sync = 0;
-    char send_buffer[10];
+    char send_buffer[1] = { 0 };
     {
-        SEND_CHAR(server_conn, a);
-        WRITE_sync();
+        send_buffer[0] = CHAR_A;
+        EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
+        EXPECT_SUCCESS(write(write_pipe, &sync, 1));
 
-        SEND_CHAR(server_conn, b);
-        WRITE_sync();
+        send_buffer[0] = CHAR_B;
+        EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
+        EXPECT_SUCCESS(write(write_pipe, &sync, 1));
     }
 
     return S2N_RESULT_OK;
@@ -130,8 +117,7 @@ int main(int argc, char **argv)
     /* configure real socket */
     int listener = socket(AF_INET, SOCK_STREAM, 0);
     EXPECT_SUCCESS(listener);
-    struct sockaddr_in saddr;
-    memset(&saddr, 0, sizeof(saddr));
+    struct sockaddr_in saddr = { 0 };
     saddr.sin_family = AF_INET;
     saddr.sin_addr.s_addr = htonl(S2N_TEST_INADDR_LOOPBACK);
     saddr.sin_port = 0;
@@ -142,12 +128,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(getsockname(listener, (struct sockaddr *) &saddr, &addrlen));
 
     /* used for synchronizing read and writes between client and server */
-    int sync_pipe[2];
+    int sync_pipe[2] = { 0 };
     EXPECT_SUCCESS(pipe(sync_pipe));
 
     pid_t child = fork();
     EXPECT_FALSE(child < 0);
-    int status, fd;
+    int status = 0, fd = 0;
     if (child) {
         /* server */
         EXPECT_SUCCESS(listen(listener, 1));
