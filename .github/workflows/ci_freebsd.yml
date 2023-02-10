@@ -2,8 +2,10 @@ name: FreeBSD
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [lrstewart]
+  merge_group:
+    types: [checks-requested]
+    branches: [lrstewart]
 
 jobs:
   testfreebsd:
