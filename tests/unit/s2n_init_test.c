@@ -28,7 +28,7 @@ int main(int argc, char **argv)
     BEGIN_TEST_NO_INIT();
 
     /* Disabling the atexit handler makes it easier for us to test s2n_init and s2n_cleanup
-     * behavior. Otherwise we'd have to create and exit a bunch of processes to test their
+     * behavior. Otherwise we'd have to create and exit a bunch of processes to test this
      * interaction. */
     s2n_disable_atexit();
 
@@ -66,5 +66,4 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_cleanup());
 
     END_TEST_NO_INIT();
-
 }

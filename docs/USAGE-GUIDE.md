@@ -335,7 +335,7 @@ Call `s2n_print_stacktrace()` to print your stacktrace.
 
 ## Initialization and Teardown
 
-The s2n-tls library must be initialized with `s2n_init()` before calling most library functions. `s2n_init()` MUST NOT be called more than once, even when an application uses multiple threads or processes. To clean up, `s2n_cleanup()` must be called from every thread or process created after `s2n_init()` was called.
+The s2n-tls library must be initialized with `s2n_init()` before calling most library functions. `s2n_init()` MUST NOT be called more than once, even when an application uses multiple threads or processes. s2n automatically cleans up any thread-local memory it allocates and all other memory at process-exit. However we suggest calling `s2n_cleanup()` from every thread or process created after `s2n_init()` was called if you are using threads in a non-standard way.
 
 Initialization can be modified by calling `s2n_crypto_disable_init()` or `s2n_disable_atexit()` before `s2n_init()`.
 

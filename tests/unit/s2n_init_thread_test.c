@@ -29,12 +29,17 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST_NO_INIT();
 
-    /* Initialize s2n on a child thread and cleanup s2n on the original thread */
+    /* Tests our thread-local memory cleanup. 
+     *
+     * Initializing s2n on a child thread without calling s2n_cleanup on that 
+     * thread will not result in a memory leak. This is because we register 
+     * thread-local memory to be cleaned up at thread-exit
+     * and then our atexit handler cleans up the rest at proccess-exit. */
     {
         pthread_t init_thread = { 0 };
         EXPECT_EQUAL(pthread_create(&init_thread, NULL, s2n_initialize_thread_cb, NULL), 0);
         EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
-
-        EXPECT_SUCCESS(s2n_cleanup());
     }
+
+    END_TEST_NO_INIT();
 }
