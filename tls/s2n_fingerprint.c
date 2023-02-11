@@ -112,11 +112,12 @@ static S2N_RESULT s2n_fingerprint_write_version(struct s2n_client_hello *ch,
         struct s2n_stuffer *output, struct s2n_hash_state *hash)
 {
     RESULT_ENSURE_REF(ch);
+
+    uint8_t high = (ch->version / 10);
+    uint8_t low = (ch->version % 10);
+    uint16_t version = (high << 8) | low;
+
     bool is_list = false;
-    uint16_t version = 0;
-    struct s2n_stuffer message = { 0 };
-    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&message, &ch->raw_message));
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&message, &version));
     RESULT_GUARD(s2n_fingerprint_write_entry(output, &is_list, version, hash));
     return S2N_RESULT_OK;
 }
@@ -235,7 +236,7 @@ static S2N_RESULT s2n_fingerprint_ja3(struct s2n_client_hello *ch,
         struct s2n_stuffer *output, uint32_t *output_size, struct s2n_hash_state *hash)
 {
     RESULT_ENSURE_REF(ch);
-    RESULT_ENSURE(!ch->sslv2, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    RESULT_ENSURE(ch->version > S2N_SSLv2, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
     RESULT_GUARD(s2n_fingerprint_write_version(ch, output, hash));
     RESULT_GUARD(s2n_fingerprint_write_char(output, S2N_JA3_FIELD_DIV, hash));
