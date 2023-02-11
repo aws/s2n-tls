@@ -727,7 +727,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
+int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
         s2n_parsed_extensions_list *parsed_extension_list, s2n_parsed_extension **parsed_extension)
 {
     POSIX_ENSURE_REF(parsed_extension_list);
