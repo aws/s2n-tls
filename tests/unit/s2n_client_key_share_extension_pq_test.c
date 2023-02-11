@@ -35,19 +35,20 @@
 #define MEM_FOR_EXTENSION  4096
 
 static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params);
-static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group);
+static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group, bool len_prefixed);
 
 int main()
 {
     BEGIN_TEST();
     /* PQ hybrid tests for s2n_client_key_share_extension */
-    {
+    for (int len_prefixed = 0; len_prefixed < 2; len_prefixed++) {
+        int draft_revision = (len_prefixed) ? 0 : 5;
         const struct s2n_kem_preferences kem_prefs_all = {
             .kem_count = 0,
             .kems = NULL,
             .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
             .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
-            .tls13_pq_hybrid_draft_revision = 0
+            .tls13_pq_hybrid_draft_revision = draft_revision
         };
 
         const struct s2n_security_policy security_policy_all = {
@@ -118,7 +119,7 @@ int main()
                         .kems = NULL,
                         .tls13_kem_group_count = s2n_array_len(test_kem_groups),
                         .tls13_kem_groups = test_kem_groups,
-                        .tls13_pq_hybrid_draft_revision = 0
+                        .tls13_pq_hybrid_draft_revision = draft_revision
                     };
 
                     const struct s2n_security_policy test_security_policy = {
@@ -176,24 +177,34 @@ int main()
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_hybrid_iana_id));
                         EXPECT_EQUAL(sent_hybrid_iana_id, kem_pref->tls13_kem_groups[0]->iana_id);
 
-                        uint16_t expected_hybrid_share_size =
-                                S2N_SIZE_OF_KEY_SHARE_SIZE
-                                + test_kem_group->curve->share_size
-                                + S2N_SIZE_OF_KEY_SHARE_SIZE
-                                + test_kem_group->kem->public_key_length;
+                        uint16_t expected_hybrid_share_size;
+
+                        if (len_prefixed) {
+                            expected_hybrid_share_size = S2N_SIZE_OF_KEY_SHARE_SIZE
+                                    + test_kem_group->curve->share_size
+                                    + S2N_SIZE_OF_KEY_SHARE_SIZE
+                                    + test_kem_group->kem->public_key_length;
+                        } else {
+                            expected_hybrid_share_size = test_kem_group->curve->share_size + test_kem_group->kem->public_key_length;
+                        }
+
                         uint16_t sent_hybrid_share_size;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_hybrid_share_size));
                         EXPECT_EQUAL(sent_hybrid_share_size, expected_hybrid_share_size);
 
-                        uint16_t hybrid_ecc_share_size;
-                        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_ecc_share_size));
-                        EXPECT_EQUAL(hybrid_ecc_share_size, test_kem_group->curve->share_size);
-                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, hybrid_ecc_share_size));
+                        if (len_prefixed) {
+                            uint16_t hybrid_ecc_share_size;
+                            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_ecc_share_size));
+                            EXPECT_EQUAL(hybrid_ecc_share_size, test_kem_group->curve->share_size);
+                        }
+                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, test_kem_group->curve->share_size));
 
-                        uint16_t hybrid_pq_share_size;
-                        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_pq_share_size));
-                        EXPECT_EQUAL(hybrid_pq_share_size, test_kem_group->kem->public_key_length);
-                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, hybrid_pq_share_size));
+                        if (len_prefixed) {
+                            uint16_t hybrid_pq_share_size;
+                            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_pq_share_size));
+                            EXPECT_EQUAL(hybrid_pq_share_size, test_kem_group->kem->public_key_length);
+                        }
+                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, test_kem_group->kem->public_key_length));
 
                         /* Assert that the ECC key share is correct: IANA ID || size || share */
                         uint16_t ecc_iana_value, ecc_share_size;
@@ -267,24 +278,34 @@ int main()
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_hybrid_iana_id));
                         EXPECT_EQUAL(sent_hybrid_iana_id, kem_pref->tls13_kem_groups[chosen_index]->iana_id);
 
-                        uint16_t expected_hybrid_share_size =
-                                S2N_SIZE_OF_KEY_SHARE_SIZE
-                                + negotiated_kem_group->curve->share_size
-                                + S2N_SIZE_OF_KEY_SHARE_SIZE
-                                + negotiated_kem_group->kem->public_key_length;
+                        uint16_t expected_hybrid_share_size;
+
+                        if (len_prefixed) {
+                            expected_hybrid_share_size = S2N_SIZE_OF_KEY_SHARE_SIZE
+                                    + negotiated_kem_group->curve->share_size
+                                    + S2N_SIZE_OF_KEY_SHARE_SIZE
+                                    + negotiated_kem_group->kem->public_key_length;
+                        } else {
+                            expected_hybrid_share_size = negotiated_kem_group->curve->share_size + negotiated_kem_group->kem->public_key_length;
+                        }
+
                         uint16_t sent_hybrid_share_size;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_hybrid_share_size));
                         EXPECT_EQUAL(sent_hybrid_share_size, expected_hybrid_share_size);
 
-                        uint16_t hybrid_ecc_share_size;
-                        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_ecc_share_size));
-                        EXPECT_EQUAL(hybrid_ecc_share_size, negotiated_kem_group->curve->share_size);
-                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, hybrid_ecc_share_size));
+                        if (len_prefixed) {
+                            uint16_t hybrid_ecc_share_size;
+                            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_ecc_share_size));
+                            EXPECT_EQUAL(hybrid_ecc_share_size, negotiated_kem_group->curve->share_size);
+                        }
+                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, negotiated_kem_group->curve->share_size));
 
-                        uint16_t hybrid_pq_share_size;
-                        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_pq_share_size));
-                        EXPECT_EQUAL(hybrid_pq_share_size, negotiated_kem_group->kem->public_key_length);
-                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, hybrid_pq_share_size));
+                        if (len_prefixed) {
+                            uint16_t hybrid_pq_share_size;
+                            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_pq_share_size));
+                            EXPECT_EQUAL(hybrid_pq_share_size, negotiated_kem_group->kem->public_key_length);
+                        }
+                        EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, negotiated_kem_group->kem->public_key_length));
 
                         /* If all the sizes/bytes were correctly written, there should be nothing left over */
                         EXPECT_EQUAL(s2n_stuffer_data_available(&key_share_extension), 0);
@@ -350,25 +371,31 @@ int main()
                         EXPECT_TRUE(first_total_hybrid_share_size < s2n_stuffer_data_available(&first_extension));
                         EXPECT_EQUAL(second_total_hybrid_share_size, s2n_stuffer_data_available(&second_extension));
 
-                        /* Read the ecc share size.
-                         * The ecc share should be identical for both, so the size should be the same. */
-                        uint16_t first_ecc_share_size = 0, second_ecc_share_size = 0;
-                        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&first_extension, &first_ecc_share_size));
-                        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_ecc_share_size));
-                        EXPECT_EQUAL(first_ecc_share_size, second_ecc_share_size);
+                        if (len_prefixed) {
+                            /* Read the ecc share size.
+                             * The ecc share should be identical for both, so the size should be the same. */
+                            uint16_t first_ecc_share_size = 0, second_ecc_share_size = 0;
+                            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&first_extension, &first_ecc_share_size));
+                            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_ecc_share_size));
+                            EXPECT_EQUAL(first_ecc_share_size, second_ecc_share_size);
+                        }
 
                         /* Read the ecc share.
                          * The ecc share should be identical for both. */
+                        struct s2n_kem_group_params *kem_group_params = &conn->kex_params.client_kem_group_params;
+                        int ecc_share_size = kem_group_params->ecc_params.negotiated_curve->share_size;
                         uint8_t *first_ecc_share_data = NULL, *second_ecc_share_data = NULL;
-                        EXPECT_NOT_NULL(first_ecc_share_data = s2n_stuffer_raw_read(&first_extension, first_ecc_share_size));
-                        EXPECT_NOT_NULL(second_ecc_share_data = s2n_stuffer_raw_read(&second_extension, second_ecc_share_size));
-                        EXPECT_BYTEARRAY_EQUAL(first_ecc_share_data, second_ecc_share_data, first_ecc_share_size);
+                        EXPECT_NOT_NULL(first_ecc_share_data = s2n_stuffer_raw_read(&first_extension, ecc_share_size));
+                        EXPECT_NOT_NULL(second_ecc_share_data = s2n_stuffer_raw_read(&second_extension, ecc_share_size));
+                        EXPECT_BYTEARRAY_EQUAL(first_ecc_share_data, second_ecc_share_data, ecc_share_size);
 
-                        /* The pq share should take up the rest of the key share.
-                         * For now the pq share is different between extensions, so we can't assert anything else. */
-                        uint16_t second_pq_share_size = 0;
-                        EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_pq_share_size));
-                        EXPECT_EQUAL(second_pq_share_size, s2n_stuffer_data_available(&second_extension));
+                        if (len_prefixed) {
+                            /* The pq share should take up the rest of the key share.
+                             * For now the pq share is different between extensions, so we can't assert anything else. */
+                            uint16_t second_pq_share_size = 0;
+                            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&second_extension, &second_pq_share_size));
+                            EXPECT_EQUAL(second_pq_share_size, s2n_stuffer_data_available(&second_extension));
+                        }
 
                         EXPECT_SUCCESS(s2n_stuffer_free(&first_extension));
                         EXPECT_SUCCESS(s2n_stuffer_free(&second_extension));
@@ -461,7 +488,7 @@ int main()
                             .kems = NULL,
                             .tls13_kem_group_count = s2n_array_len(test_kem_groups),
                             .tls13_kem_groups = test_kem_groups,
-                            .tls13_pq_hybrid_draft_revision = 0
+                            .tls13_pq_hybrid_draft_revision = draft_revision
                         };
 
                         const struct s2n_security_policy test_security_policy = {
@@ -491,7 +518,7 @@ int main()
                          * so we make a copy from the wire to ensure that server saved it correctly. */
                         DEFER_CLEANUP(struct s2n_blob pq_key_share_copy = { 0 }, s2n_free);
                         EXPECT_SUCCESS(s2n_copy_pq_share(&key_share_extension, &pq_key_share_copy,
-                                client_conn->kex_params.client_kem_group_params.kem_group));
+                                client_conn->kex_params.client_kem_group_params.kem_group, len_prefixed));
 
                         EXPECT_SUCCESS(s2n_client_key_share_extension.recv(server_conn, &key_share_extension));
 
@@ -553,8 +580,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
-                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = len_prefixed } }
                     };
 
                     struct s2n_stuffer key_share_extension = { 0 };
@@ -605,7 +632,7 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params = { .kem_group = kem_pref->tls13_kem_groups[0],
-                        .kem_params = { .len_prefixed = true } };
+                        .kem_params = { .len_prefixed = len_prefixed } };
 
                     struct s2n_stuffer key_share_extension = { 0 };
                     EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, 8192));
@@ -652,8 +679,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
-                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = len_prefixed } }
                     };
 
                     struct s2n_stuffer key_share_extension = { 0 };
@@ -703,8 +730,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
-                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = len_prefixed } }
                     };
 
                     /* Write share list length */
@@ -712,9 +739,14 @@ int main()
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &keyshare_list_size));
                     /* Write first share. Mess up point by erasing most of it */
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &client_pq_params[0]));
-                    size_t share_size = kem_pref->tls13_kem_groups[0]->client_share_size;
-                    EXPECT_SUCCESS(s2n_stuffer_wipe_n(&key_share_extension, share_size));
-                    EXPECT_SUCCESS(s2n_stuffer_skip_write(&key_share_extension, share_size));
+                    size_t hybrid_share_size = kem_pref->tls13_kem_groups[0]->client_share_size;
+
+                    if (!len_prefixed) {
+                        hybrid_share_size -= (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
+                    }
+
+                    EXPECT_SUCCESS(s2n_stuffer_wipe_n(&key_share_extension, hybrid_share_size));
+                    EXPECT_SUCCESS(s2n_stuffer_skip_write(&key_share_extension, hybrid_share_size));
                     /* Write second, valid share */
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &client_pq_params[1]));
                     /* Finish share list length */
@@ -755,8 +787,8 @@ int main()
                     EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
-                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = true } },
-                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = true } }
+                        { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
+                        { .kem_group = kem_pref->tls13_kem_groups[1], .kem_params = { .len_prefixed = len_prefixed } }
                     };
 
                     /* Write share list length */
@@ -766,9 +798,14 @@ int main()
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &client_pq_params[0]));
                     /* Write second share. Mess up point by erasing most of it */
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &client_pq_params[1]));
-                    size_t share_size = kem_pref->tls13_kem_groups[1]->client_share_size;
-                    EXPECT_SUCCESS(s2n_stuffer_wipe_n(&key_share_extension, share_size / 2));
-                    EXPECT_SUCCESS(s2n_stuffer_skip_write(&key_share_extension, share_size / 2));
+                    size_t hybrid_share_size = kem_pref->tls13_kem_groups[1]->client_share_size;
+
+                    if (!len_prefixed) {
+                        hybrid_share_size -= (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
+                    }
+
+                    EXPECT_SUCCESS(s2n_stuffer_wipe_n(&key_share_extension, hybrid_share_size / 2));
+                    EXPECT_SUCCESS(s2n_stuffer_skip_write(&key_share_extension, hybrid_share_size / 2));
                     /* Finish share list length */
                     EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&keyshare_list_size));
 
@@ -799,17 +836,23 @@ int main()
 /* Copies the PQ portion of the keyshare. Assumes that the read cursor of *from is
  * pointing to the beginning of the hybrid share. After copying, rewinds *from so
  * that read cursor is at the original position. */
-static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group)
+static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group, bool len_prefixed)
 {
     POSIX_ENSURE_REF(from);
     POSIX_ENSURE_REF(to);
     POSIX_ENSURE_REF(kem_group);
 
+    int keyshare_extension_offset = 10;
+
+    if (!len_prefixed) {
+        keyshare_extension_offset -= (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
+    }
+
     POSIX_GUARD(s2n_alloc(to, kem_group->kem->public_key_length));
     /* Skip all the two-byte IDs/sizes and the ECC portion of the share */
-    POSIX_GUARD(s2n_stuffer_skip_read(from, 10 + kem_group->curve->share_size));
+    POSIX_GUARD(s2n_stuffer_skip_read(from, keyshare_extension_offset + kem_group->curve->share_size));
     POSIX_GUARD(s2n_stuffer_read(from, to));
-    POSIX_GUARD(s2n_stuffer_rewind_read(from, 10 + kem_group->curve->share_size + kem_group->kem->public_key_length));
+    POSIX_GUARD(s2n_stuffer_rewind_read(from, keyshare_extension_offset + kem_group->curve->share_size + kem_group->kem->public_key_length));
 
     return S2N_SUCCESS;
 }
@@ -832,11 +875,14 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
 
     struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
     ecc_params->negotiated_curve = kem_group->curve;
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
+    struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
+
+    if (kem_params->len_prefixed) {
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, ecc_params->negotiated_curve->share_size));
+    }
     POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(ecc_params));
     POSIX_GUARD(s2n_ecc_evp_write_params_point(ecc_params, out));
 
-    struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
     POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
 

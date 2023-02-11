@@ -38,7 +38,7 @@ git clone --branch OQS-OpenSSL_1_1_1-stable https://github.com/open-quantum-safe
 git clone https://github.com/open-quantum-safe/liboqs.git
 cd liboqs
 
-# Use commit that supports Kyber Round 3 Draft 5
+# Use commit that supports Kyber round 3; hybrid draft spec version 5
 git checkout cf6d8a059e446d24e2af06949d83605ae0f4f414
 
 mkdir build && cd build
@@ -50,7 +50,7 @@ ninja install
 # Complete the OpenSSL Build
 cd "$BUILD_DIR"/openssl
 
-# Pin to OQS-OpenSSL commit that is compatible with Kyber Round 3 Draft 5 LibOQS implementation
+# Pin to OQS-OpenSSL commit that is compatible with Kyber round 3; hybrid draft spec version 5 LibOQS implementation
 git checkout 613d1bea7afa23dc11f340e75990cb47d77711e9
 
 if [ "$PLATFORM" == "linux" ]; then

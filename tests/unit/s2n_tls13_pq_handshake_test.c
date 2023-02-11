@@ -28,7 +28,7 @@
 
 int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
-        const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected)
+        const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected, bool len_prefix_expected)
 {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
     POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
@@ -80,6 +80,11 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
+        /* Client should always determine whether the Hybrid KEM used len_prefixed format, and server should match client's behavior. */
+        POSIX_ENSURE_EQ(len_prefix_expected, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
+        POSIX_ENSURE_EQ(len_prefix_expected, s2n_tls13_client_must_use_hybrid_kem_length_prefix(client_sec_policy->kem_preferences));
+        POSIX_ENSURE_EQ(server_conn->kex_params.client_kem_group_params.kem_params.len_prefixed, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
+
         POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
@@ -288,6 +293,7 @@ int main()
         const struct s2n_kem_group *expected_kem_group;
         const struct s2n_ecc_named_curve *expected_curve;
         bool hrr_expected;
+        bool len_prefix_expected;
     };
 
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
@@ -301,6 +307,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_22,
@@ -308,6 +315,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_23,
@@ -315,6 +323,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
@@ -322,6 +331,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_26,
@@ -329,6 +339,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
@@ -336,6 +347,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = false,
         },
 
         /* Check that we're backwards and forwards compatible with different Hybrid PQ draft revisions*/
@@ -345,6 +357,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
         {
                 .client_policy = &kyber_test_policy_draft5,
@@ -352,6 +365,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = false,
         },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
@@ -359,6 +373,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
         {
                 .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
@@ -366,6 +381,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = false,
         },
 
         /* Server supports all KEM groups; client sends a PQ key share and an EC key
@@ -376,6 +392,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
 
         /* Server supports only one KEM group and it is the client's first choice;
@@ -387,6 +404,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
 
         /* Server supports only one KEM group and it is the client's first choice;
@@ -398,6 +416,7 @@ int main()
                 .expected_kem_group = expected_kyber_r3_group,
                 .expected_curve = NULL,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
 
         /* Server does not support PQ; client sends a PQ key share and an EC key share;
@@ -408,6 +427,7 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
 
         /* Server does not support PQ; client sends a PQ key share, but no EC shares;
@@ -418,6 +438,7 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = true,
+                .len_prefix_expected = true,
         },
 
         /* Server supports PQ, but client does not. Client sent an EC share,
@@ -428,6 +449,7 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = false,
+                .len_prefix_expected = true,
         },
 
         /* Server supports PQ, but client does not. Client did not send any EC shares,
@@ -438,6 +460,7 @@ int main()
                 .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = true,
+                .len_prefix_expected = true,
         },
     };
 
@@ -448,6 +471,7 @@ int main()
         const struct s2n_kem_group *kem_group = vector->expected_kem_group;
         const struct s2n_ecc_named_curve *curve = vector->expected_curve;
         bool hrr_expected = vector->hrr_expected;
+        bool len_prefix_expected = vector->len_prefix_expected;
 
         if (!s2n_pq_is_enabled()) {
             /* If PQ is disabled, we always expected to negotiate ECC. */
@@ -455,7 +479,7 @@ int main()
             curve = expected_curve;
         }
 
-        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected));
+        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));
     }
 
     END_TEST();

@@ -152,6 +152,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
      * during a retry, or the most preferred share according to local preferences.
      */
     struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
+
     if (s2n_is_hello_retry_handshake(conn)) {
         const struct s2n_kem_group *server_group = conn->kex_params.server_kem_group_params.kem_group;
 
@@ -175,9 +176,9 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
         client_params->kem_group = server_group;
     } else {
         client_params->kem_group = kem_pref->tls13_kem_groups[0];
+        client_params->kem_params.len_prefixed = s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_pref);
     }
 
-    client_params->kem_params.len_prefixed = s2n_tls13_client_prefers_hybrid_kem_length_prefix(kem_pref);
     POSIX_GUARD(s2n_generate_pq_hybrid_key_share(out, client_params));
 
     return S2N_SUCCESS;
@@ -340,7 +341,7 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
 
     bool is_hybrid_share_length_prefixed = 0;
     uint16_t actual_hybrid_share_size = key_share->blob.size;
-    POSIX_GUARD(s2n_is_tls13_hybrid_kem_length_prefixed(S2N_CLIENT, actual_hybrid_share_size, kem_group, &is_hybrid_share_length_prefixed));
+    POSIX_GUARD(s2n_is_tls13_hybrid_kem_length_prefixed(actual_hybrid_share_size, kem_group, &is_hybrid_share_length_prefixed));
 
     if (is_hybrid_share_length_prefixed) {
         /* Ignore KEM groups with unexpected ECC share sizes */

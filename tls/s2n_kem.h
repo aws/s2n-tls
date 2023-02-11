@@ -50,7 +50,7 @@ struct s2n_kem_params {
     struct s2n_blob private_key;
     struct s2n_blob shared_secret;
     /* Store whether the client included the length prefix of the PQ and ECC Shares in their ClientHello, so that the
-     * server can match the client's behavior. */
+     * server can match the client's behavior. For the client side, store whether it should send the length prefix. */
     bool len_prefixed;
 };
 
@@ -92,7 +92,7 @@ extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
 /* x25519 KEM Groups */
 extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
 
-int s2n_is_tls13_hybrid_kem_length_prefixed(const s2n_mode mode, uint16_t actual_hybrid_share_size,
+int s2n_is_tls13_hybrid_kem_length_prefixed(uint16_t actual_hybrid_share_size,
         const struct s2n_kem_group *kem_group, bool *is_length_prefixed);
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);

@@ -524,6 +524,7 @@ int main(int argc, char **argv)
             .kems = NULL,
             .tls13_kem_group_count = s2n_array_len(test_kem_groups),
             .tls13_kem_groups = test_kem_groups,
+            .tls13_pq_hybrid_draft_revision = 0
         };
 
         const struct s2n_security_policy test_security_policy = {
@@ -539,6 +540,7 @@ int main(int argc, char **argv)
             .kems = NULL,
             .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
             .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
+            .tls13_pq_hybrid_draft_revision = 0
         };
 
         const struct s2n_security_policy test_all_supported_kems_security_policy = {
@@ -558,6 +560,7 @@ int main(int argc, char **argv)
             .kems = NULL,
             .tls13_kem_group_count = s2n_array_len(kem_groups_kyber),
             .tls13_kem_groups = kem_groups_kyber,
+            .tls13_pq_hybrid_draft_revision = 0
         };
 
         const struct s2n_security_policy security_policy_kyber = {
@@ -621,6 +624,7 @@ int main(int argc, char **argv)
                         client_conn->kex_params.client_kem_group_params.kem_group = kem_group;
                         client_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
                         client_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
+                        client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed = true;
                         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_kem_group_params.ecc_params));
 
                         /* Call the function and assert correctness */
@@ -727,6 +731,7 @@ int main(int argc, char **argv)
                         client_conn->kex_params.client_kem_group_params.kem_group = kem_group;
                         client_conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve = kem_group->curve;
                         client_conn->kex_params.client_kem_group_params.kem_params.kem = kem_group->kem;
+                        client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed = true;
                         EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_kem_group_params.ecc_params));
                         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &key_share_payload),
                                 S2N_ERR_BAD_KEY_SHARE);

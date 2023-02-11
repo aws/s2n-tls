@@ -101,37 +101,33 @@ const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_CO
  * functions may return any non-zero value to indicate failure. */
 #define GUARD_PQ_AS_RESULT(x) RESULT_ENSURE((x) == 0, S2N_ERR_PQ_CRYPTO)
 
-/* Checks if the Hybrid KEM is using the old Hybrid KEM format (PQ Length, PQ Share, ECC Length, ECC Share) or the new
- * format (PQ Share, ECC Share). The new format will always be 4 bytes shorter than the old format, so we check if the
- * total length is 4 bytes longer than expected for the new format, and if so, fall back to the old format. This new
- * format is only used by newer revisions of the Hybrid PQ TLS 1.3 specification, all versions of the Hybrid PQ TLS 1.2
- * specification use the old Hybrid KEM format. */
-int s2n_is_tls13_hybrid_kem_length_prefixed(const s2n_mode mode, uint16_t actual_hybrid_share_size, const struct s2n_kem_group *kem_group, bool *is_length_prefixed)
+/* Checks if the Hybrid KEM is using the old Hybrid KEM format (ECC Length, ECC Share, PQ Length, PQ Share) or the new
+ * format (ECC Share, PQ Share). The new format will always be 4 bytes shorter than the old format, so we check if the
+ * total length is 4 bytes longer than expected for the new format, and if so, fall back to the old format.
+ *
+ * The old format is used by draft 0 of the Hybrid PQ TLS 1.3 specification, and all revisions of the Hybrid PQ TLS 1.2
+ * draft specification. Only draft revisions 1-5 of the Hybrid PQ TLS 1.3 specification use the new format.
+ */
+int s2n_is_tls13_hybrid_kem_length_prefixed(uint16_t actual_hybrid_share_size, const struct s2n_kem_group *kem_group, bool *is_length_prefixed)
 {
     POSIX_ENSURE_REF(kem_group);
     POSIX_ENSURE_REF(kem_group->curve);
     POSIX_ENSURE_REF(kem_group->kem);
     POSIX_ENSURE_REF(is_length_prefixed);
 
-    uint16_t unprefixed_hybrid_share_size = 0;
+    uint16_t unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
+    uint16_t prefixed_hybrid_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_hybrid_share_size;
 
-    if (mode == S2N_CLIENT) {
-        unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
-    } else {
-        unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->ciphertext_length;
-    }
+    POSIX_ENSURE((actual_hybrid_share_size == unprefixed_hybrid_share_size)
+                    || (actual_hybrid_share_size == prefixed_hybrid_share_size),
+            S2N_ERR_BAD_KEY_SHARE);
 
-    /* Initial draft versions of Hybrid PQ TLS 1.3 spec required that each individual key share be prefixed by it's
-     * length. Later revisions dropped those extra lengths and shortened the total key share by 4 bytes. For backwards
-     * compatibility, check if the hybrid key share is 4 bytes longer than expected, and if it is, then parse those
-     * extra 4 bytes as lengths according to the previous draft standard. */
-    if (actual_hybrid_share_size == (unprefixed_hybrid_share_size + (2 * S2N_SIZE_OF_KEY_SHARE_SIZE))) {
+    if (actual_hybrid_share_size == prefixed_hybrid_share_size) {
         *is_length_prefixed = true;
     } else {
         *is_length_prefixed = false;
     }
 
-    POSIX_ENSURE((actual_hybrid_share_size == unprefixed_hybrid_share_size) || *is_length_prefixed, S2N_ERR_BAD_KEY_SHARE);
     return S2N_SUCCESS;
 }
 
