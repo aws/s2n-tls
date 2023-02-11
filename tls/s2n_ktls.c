@@ -29,28 +29,30 @@
     #endif
 
     #include <linux/tls.h>
-    #include <sys/socket.h>
-
-    #include "error/s2n_errno.h"
-    #include "tls/s2n_connection.h"
-    #include "utils/s2n_result.h"
-
-    #define S2N_TLS_ULP_NAME      "tls"
-    #define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
 #endif
+
+#define S2N_TLS_ULP_NAME      "tls"
+#define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
+
+#include <sys/socket.h>
 
 #include "tls/s2n_ktls.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
+/* These variables are used to disable ktls mechanisms during testing.
+ */
+static bool ignore_ktls_ulp_for_testing = false;
+
 S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->config);
     RESULT_ENSURE_REF(conn->secure);
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg->cipher);
+    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
+    RESULT_ENSURE_REF(cipher);
 
     /* TODO support TLS 1.3
      *
@@ -58,14 +60,10 @@ S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
      * KeyLimits are met. However, this is currently only possible by applying a
      * kernel patch to support this functionality.
      */
-    RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS12);
+    RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
     /* Check if the cipher supports kTLS */
-    RESULT_ENSURE_EQ(conn->secure->cipher_suite->record_alg->cipher->ktls_supported, true);
-    /* TODO key length is a weak check. Is there a better mechanism? */
-    uint8_t key_size = conn->secure->cipher_suite->record_alg->cipher->key_material_size;
-    /* only AES_GCM_128 is supported at the moment */
-    RESULT_ENSURE_EQ(key_size, S2N_TLS_AES_128_GCM_KEY_LEN);
+    RESULT_ENSURE(cipher->ktls_supported, S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
     return S2N_RESULT_OK;
 }
@@ -85,16 +83,13 @@ S2N_RESULT s2n_ktls_validate_socket_mode(struct s2n_connection *conn, s2n_ktls_m
      */
     switch (ktls_mode) {
         case S2N_KTLS_MODE_SEND:
-            RESULT_ENSURE_REF(conn->send_io_context);
-            RESULT_ENSURE(!conn->managed_send_io, S2N_ERR_KTLS);
-            RESULT_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS);
+            RESULT_ENSURE(conn->managed_send_io, S2N_ERR_KTLS_SEND_MANAGED_IO);
+            RESULT_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_SEND_ENABLED);
             break;
         case S2N_KTLS_MODE_RECV:
-            RESULT_ENSURE_REF(conn->recv_io_context);
-            RESULT_ENSURE(!conn->managed_recv_io, S2N_ERR_KTLS);
-            RESULT_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS);
+            RESULT_ENSURE(conn->managed_recv_io, S2N_ERR_KTLS_RECV_MANAGED_IO);
+            RESULT_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS_RECV_ENABLED);
             break;
-        case S2N_KTLS_MODE_DISABLED:
         case S2N_KTLS_MODE_DUPLEX:
             RESULT_BAIL(S2N_ERR_SAFETY);
             break;
@@ -105,14 +100,16 @@ S2N_RESULT s2n_ktls_validate_socket_mode(struct s2n_connection *conn, s2n_ktls_m
 
 S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd)
 {
-    RESULT_GUARD(s2n_ktls_validate_socket_mode(conn, ktls_mode));
+    RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(fd);
 
     if (ktls_mode == S2N_KTLS_MODE_RECV) {
+        RESULT_ENSURE_REF(conn->recv_io_context);
         /* retrieve the receive fd */
         const struct s2n_socket_read_io_context *peer_socket_ctx = conn->recv_io_context;
         *fd = peer_socket_ctx->fd;
     } else if (ktls_mode == S2N_KTLS_MODE_SEND) {
+        RESULT_ENSURE_REF(conn->send_io_context);
         /* retrieve the send fd */
         const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
         *fd = peer_socket_ctx->fd;
@@ -121,25 +118,36 @@ S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_kt
     return S2N_RESULT_OK;
 }
 
-#ifdef S2N_PLATFORM_SUPPORTS_KTLS
-
 S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
+    RESULT_ENSURE_REF(conn);
     RESULT_GUARD(s2n_ktls_validate_socket_mode(conn, ktls_mode));
 
-    /* register the tls ULP */
+#ifdef S2N_PLATFORM_SUPPORTS_KTLS
+    /* Enable 'tls' ULP for the socket. https://lwn.net/Articles/730207 */
     int fd = 0;
     RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
-    RESULT_GUARD_POSIX(setsockopt(fd, SOL_TCP, TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE));
+
+    if (ignore_ktls_ulp_for_testing == false) {
+        int ret = setsockopt(fd, SOL_TCP, TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
+        if (ret < 0) {
+            RESULT_BAIL(S2N_ERR_KTLS_ULP);
+        };
+    }
 
     /* TODO configure keys */
 
     return S2N_RESULT_OK;
+#else
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+#endif
 }
 
 /*
  * kTLS has been enabled on the socket. Errors are likely to be fatal and
  * unrecoverable.
+ *
+ * TODO initiate connection close on error
  */
 S2N_RESULT s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
@@ -166,34 +174,28 @@ S2N_RESULT s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_m
  */
 int s2n_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
-    if (s2n_result_is_error(s2n_ktls_validate(conn))) {
-        return S2N_SUCCESS;
-    }
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD_RESULT(s2n_ktls_validate(conn));
 
     if (ktls_mode == S2N_KTLS_MODE_RECV || ktls_mode == S2N_KTLS_MODE_DUPLEX) {
-        if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV))) {
-            POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
-        }
+        POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV));
+        POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
     }
 
     if (ktls_mode == S2N_KTLS_MODE_SEND || ktls_mode == S2N_KTLS_MODE_DUPLEX) {
-        if (s2n_result_is_ok(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND))) {
-            POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
-        }
+        POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND));
+        POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
     }
 
     return S2N_SUCCESS;
 }
 
-#else
-
-/*
- * kTLS feature is not supported on this platform. We return success
- * and continue to operate in userspace TLS mode.
- */
-int s2n_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+/* Use for testing only */
+S2N_RESULT s2n_ignore_ktls_ulp_for_testing(void)
 {
-    return S2N_SUCCESS;
-}
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
-#endif
+    ignore_ktls_ulp_for_testing = true;
+
+    return S2N_RESULT_OK;
+}

@@ -286,7 +286,13 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_OSSL_PROVIDER, "Failed to load or unload an openssl provider") \
     ERR_ENTRY(S2N_ERR_CERT_OWNERSHIP, "The ownership of the certificate chain is incompatible with the operation") \
     ERR_ENTRY(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API") \
-    ERR_ENTRY(S2N_ERR_KTLS, "An internal error has occurred while enabling kTLS") \
+    ERR_ENTRY(S2N_ERR_KTLS_SEND_ENABLED, "kTLS send mode is already enabled") \
+    ERR_ENTRY(S2N_ERR_KTLS_RECV_ENABLED, "kTLS receive mode is already enabled") \
+    ERR_ENTRY(S2N_ERR_KTLS_SEND_MANAGED_IO, "kTLS send mode cannot be enabled while custom I/O is configured for the connection")  \
+    ERR_ENTRY(S2N_ERR_KTLS_RECV_MANAGED_IO, "kTLS receive cannot be enabled while custom I/O is configured for the connection")  \
+    ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM, "kTLS is unsupported on this platform") \
+    ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_CONN, "kTLS is unsupported for this connection") \
+    ERR_ENTRY(S2N_ERR_KTLS_ULP, "An error occurred when attempting to configure the socket for kTLS")  \
     ERR_ENTRY(S2N_ERR_NO_RENEGOTIATION, "Only secure, server-initiated renegotiation is supported") \
     ERR_ENTRY(S2N_ERR_APP_DATA_BLOCKED, "Blocked on application data during handshake") \
     /* clang-format on */

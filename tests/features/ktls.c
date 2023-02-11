@@ -28,11 +28,7 @@
 #endif
 
 #include <linux/tls.h>
-#include <netinet/in.h>
-#include <netinet/tcp.h>
-#include <string.h>
 #include <sys/socket.h>
-#include <unistd.h>
 
 #define S2N_TLS_ULP_NAME      "tls"
 #define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
@@ -40,19 +36,9 @@
 int main()
 {
     /* Prepare dummy crypto info for socket */
-    uint8_t implicit_iv[16] = { 0 };
-    uint8_t sequence_number[8] = { 0 };
-    uint8_t key[16] = { 0 };
     struct tls12_crypto_info_aes_gcm_128 crypto_info;
-    crypto_info.info.version = TLS_1_2_VERSION;
-    crypto_info.info.cipher_type = TLS_CIPHER_AES_GCM_128;
-    memcpy(crypto_info.iv, implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE);
-    memcpy(crypto_info.rec_seq, sequence_number,
-            TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-    memcpy(crypto_info.key, key, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-    memcpy(crypto_info.salt, implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
 
-    /* Attempt to enable kTLS */
+    /* API calls to enable kTLS for socket */
     int sock = socket(AF_INET, SOCK_STREAM, 0);
     setsockopt(sock, SOL_TCP, TCP_ULP, "tls", sizeof("tls"));
     setsockopt(sock, SOL_TLS, TLS_TX, &crypto_info, sizeof(crypto_info));

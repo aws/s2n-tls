@@ -15,14 +15,12 @@
 
 #pragma once
 
-#include "tls/s2n_config.h"
+#include "tls/s2n_connection.h"
 
 /* A set of kTLS configurations representing the combination of sending
  * and receiving.
  */
 typedef enum {
-    /* Disable kTLS. */
-    S2N_KTLS_MODE_DISABLED,
     /* Enable kTLS for the send socket. */
     S2N_KTLS_MODE_SEND,
     /* Enable kTLS for the receive socket. */
@@ -31,4 +29,4 @@ typedef enum {
     S2N_KTLS_MODE_DUPLEX,
 } s2n_ktls_mode;
 
-int s2n_config_set_ktls_mode(struct s2n_config *config, s2n_ktls_mode ktls_mode);
+int s2n_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
