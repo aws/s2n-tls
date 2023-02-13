@@ -44,7 +44,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const int num_wildcardify_tests = s2n_array_len(wildcardify_test_cases);
-    for (int i = 0; i < num_wildcardify_tests; i++) {
+    for (size_t i = 0; i < num_wildcardify_tests; i++) {
         const char *hostname = wildcardify_test_cases[i].hostname;
         struct s2n_blob hostname_blob = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&hostname_blob, (uint8_t *) (uintptr_t) hostname, strlen(hostname)));

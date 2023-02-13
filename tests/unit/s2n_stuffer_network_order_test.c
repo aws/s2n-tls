@@ -73,14 +73,14 @@ int main(int argc, char **argv)
             uint32_t actual_value;
             uint32_t test_values[] = { 0x000001, 0x0000FF, 0xABCDEF, 0xFFFFFF };
 
-            for (int i = 0; i < s2n_array_len(test_values); i++) {
+            for (size_t i = 0; i < s2n_array_len(test_values); i++) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, test_values[i], byte_length));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(test_values[i], actual_value);
             }
 
             uint16_t prime = 257;
-            for (uint32_t i = 0; i < 0xFFFFFF - prime; i += prime) {
+            for (uint32_t i = 0; i < (size_t) 0xFFFFFF - prime; i += prime) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
             uint32_t actual_value;
             uint32_t test_values[] = { 0x00000001, 0x000000FF, 0xABCDEF12, UINT32_MAX };
 
-            for (int i = 0; i < s2n_array_len(test_values); i++) {
+            for (size_t i = 0; i < s2n_array_len(test_values); i++) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, test_values[i], byte_length));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &actual_value));
                 EXPECT_EQUAL(test_values[i], actual_value);
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 
         /* Happy cases */
         uint16_t test_sizes[] = { 0, 1, 5, 0x88, 0xF0, 0xFF };
-        for (int i = 0; i < s2n_array_len(test_sizes); i++) {
+        for (size_t i = 0; i < s2n_array_len(test_sizes); i++) {
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &reservation));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, test_sizes[i]));
