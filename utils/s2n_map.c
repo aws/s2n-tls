@@ -63,7 +63,7 @@ static S2N_RESULT s2n_map_embiggen(struct s2n_map *map, uint32_t capacity)
     tmp.table = (void *) mem.data;
     tmp.immutable = 0;
 
-    for (uint32_t i = 0; i < map->capacity; i++) {
+    for (size_t i = 0; i < map->capacity; i++) {
         if (map->table[i].key.size) {
             RESULT_GUARD(s2n_map_add(&tmp, &map->table[i].key, &map->table[i].value));
             RESULT_GUARD_POSIX(s2n_free(&map->table[i].key));
@@ -231,7 +231,7 @@ S2N_RESULT s2n_map_free(struct s2n_map *map)
     /* Free the keys and values */
     /* cppcheck has a false positive warning for checking the pointer here */
     /* cppcheck-suppress nullPointerRedundantCheck */
-    for (uint32_t i = 0; i < map->capacity; i++) {
+    for (size_t i = 0; i < map->capacity; i++) {
         if (map->table[i].key.size) {
             RESULT_GUARD_POSIX(s2n_free(&map->table[i].key));
             RESULT_GUARD_POSIX(s2n_free(&map->table[i].value));
