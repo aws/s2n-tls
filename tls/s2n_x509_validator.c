@@ -334,7 +334,7 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     *cn_found = true;
 
     char peer_cn[255] = { 0 };
-    int len = ASN1_STRING_length(common_name);
+    uint32_t len = ASN1_STRING_length(common_name);
 
     RESULT_ENSURE_GT(len, 0);
     RESULT_ENSURE_LTE(len, s2n_array_len(peer_cn) - 1);
