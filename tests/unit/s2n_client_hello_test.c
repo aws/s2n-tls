@@ -687,22 +687,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        server_conn->actual_protocol_version = S2N_TLS12;
+        server_conn->server_protocol_version = S2N_TLS12;
+        server_conn->client_protocol_version = S2N_TLS12;
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        /* Security policy must support SSLv2 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
-
-        /* The security policy does not need to support SSLv2.
-         *
-         * s2n-tls does NOT support SSLv2. However, it does accept ClientHellos in the SSLv2
-         * format but advertising higher protocol versions. Clients use this strategy to
-         * communicate with servers in a backwards-compatible way.
-         *
-         * Our test SSLv2 ClientHello advertises TLS1.2.
-         * So the security policy only needs to support TLS1.2.
-         */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
 
         /* Send the client hello message */
         EXPECT_EQUAL(write(io_pair.client, sslv2_client_hello_header, sslv2_client_hello_header_len), sslv2_client_hello_header_len);
@@ -720,9 +714,6 @@ int main(int argc, char **argv)
 
         uint8_t *collected_client_hello = client_hello->raw_message.data;
         uint16_t collected_client_hello_len = client_hello->raw_message.size;
-
-        /* Verify correctly identified as SSLv2 */
-        EXPECT_TRUE(client_hello->sslv2);
 
         /* Verify collected client hello message length */
         EXPECT_EQUAL(collected_client_hello_len, sslv2_client_hello_len);
@@ -830,7 +821,7 @@ int main(int argc, char **argv)
         };
         int server_name_extension_len = sizeof(server_name_extension);
 
-        int client_extensions_len = sizeof(client_extensions);
+        size_t client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_prefix[] = {
             /* Protocol version TLS 1.2 */
             0x03,
@@ -920,9 +911,6 @@ int main(int argc, char **argv)
 
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server_conn);
 
-        /* Verify correctly identified as NOT sslv2 */
-        EXPECT_FALSE(client_hello->sslv2);
-
         /* Verify s2n_connection_get_client_hello returns the handle to the s2n_client_hello on the connection */
         EXPECT_EQUAL(client_hello, &server_conn->client_hello);
 
@@ -1004,7 +992,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(client_hello->extensions.raw.data, client_extensions, client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions_length correct */
-        EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
+        EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), (ssize_t) client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions correct */
         uint8_t *extensions_out;
@@ -1012,7 +1000,7 @@ int main(int argc, char **argv)
         /* Verify s2n_client_hello_get_extensions retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->extensions.raw.size < S2N_LARGE_RECORD_LENGTH);
         EXPECT_NOT_NULL(extensions_out = malloc(S2N_LARGE_RECORD_LENGTH));
-        EXPECT_EQUAL(client_extensions_len, s2n_client_hello_get_extensions(client_hello, extensions_out, S2N_LARGE_RECORD_LENGTH));
+        EXPECT_EQUAL((ssize_t) client_extensions_len, s2n_client_hello_get_extensions(client_hello, extensions_out, S2N_LARGE_RECORD_LENGTH));
         EXPECT_BYTEARRAY_EQUAL(extensions_out, client_extensions, client_extensions_len);
         free(extensions_out);
         extensions_out = NULL;

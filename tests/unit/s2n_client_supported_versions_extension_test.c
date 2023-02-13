@@ -40,7 +40,7 @@ int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *suppor
 {
     POSIX_GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
-    for (int i = 0; i < length; i++) {
+    for (size_t i = 0; i < length; i++) {
         POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_versions[i] / 10));
         POSIX_GUARD(s2n_stuffer_write_uint8(list, supported_versions[i] % 10));
     }
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
-        for (int i = 0; i < invalid_version_list_length; i++) {
+        for (size_t i = 0; i < invalid_version_list_length; i++) {
             POSIX_GUARD(s2n_stuffer_write_uint16(&extension, invalid_version_list[i]));
         }
 
@@ -239,7 +239,7 @@ int main(int argc, char **argv)
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
-        for (int i = 0; i < grease_version_list_length; i++) {
+        for (size_t i = 0; i < grease_version_list_length; i++) {
             POSIX_GUARD(s2n_stuffer_write_uint16(&extension, grease_version_list[i]));
         }
 
@@ -266,7 +266,7 @@ int main(int argc, char **argv)
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
-        for (int i = 0; i < invalid_version_list_length; i++) {
+        for (size_t i = 0; i < invalid_version_list_length; i++) {
             POSIX_GUARD(s2n_stuffer_write_uint16(&extension, invalid_version_list[i]));
         }
 
