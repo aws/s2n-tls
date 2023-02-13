@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <pthread.h>
+
 #include "s2n_test.h"
 
 static void *s2n_init_fail_cb(void *_unused_arg)
