@@ -33,7 +33,7 @@ static uint8_t s2n_cbc_cipher_aes256_available()
 
 static int s2n_cbc_cipher_aes_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
 {
-    POSIX_ENSURE_GTE( out->size, in->size);
+    POSIX_ENSURE_GTE(out->size, in->size);
 
     POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, NULL, iv->data), S2N_ERR_KEY_INIT);
 

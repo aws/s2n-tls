@@ -50,7 +50,7 @@ static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n
 
 static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
-    POSIX_ENSURE_GTE( out->size, in->size);
+    POSIX_ENSURE_GTE(out->size, in->size);
 
     /* len is set by EVP_DecryptUpdate and checked post operation */
     int len = 0;
