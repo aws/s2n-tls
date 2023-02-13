@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     conn->initial->cipher_suite = &s2n_null_cipher_suite;
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
+    for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written;
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
     conn->initial->cipher_suite = &s2n_null_cipher_suite;
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
+    for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written;
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
     conn->actual_protocol_version = S2N_TLS10;
     conn->initial->cipher_suite = &mock_block_cipher_suite;
 
-    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
+    for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written;
@@ -254,10 +254,11 @@ int main(int argc, char **argv)
 
         /* The last byte of out should indicate how much padding there was */
         uint8_t p = conn->out.blob.data[conn->out.write_cursor - 1];
-        EXPECT_EQUAL(5 + bytes_written + 20 + p + 1, s2n_stuffer_data_available(&conn->out));
+        const uint32_t remaining = 5 + bytes_written + 20 + p + 1;
+        EXPECT_EQUAL(remaining, s2n_stuffer_data_available(&conn->out));
 
         /* Check that the last 'p' bytes are all set to 'p' */
-        for (int j = 0; j <= p; j++) {
+        for (uint8_t j = 0; j <= p; j++) {
             EXPECT_EQUAL(conn->out.blob.data[5 + bytes_written + 20 + j], p);
         }
 
@@ -326,7 +327,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(5 + bytes_written + 20 + 16 + p + 1, s2n_stuffer_data_available(&conn->out));
 
         /* Check that the last 'p' bytes are all set to 'p' */
-        for (int j = 0; j <= p; j++) {
+        for (uint8_t j = 0; j <= p; j++) {
             EXPECT_EQUAL(conn->out.blob.data[5 + bytes_written + 16 + 20 + j], p);
         }
 
