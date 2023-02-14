@@ -171,7 +171,7 @@ static int s2n_composite_cipher_aes_sha_encrypt(struct s2n_session_key *key, str
     int len = 0;
     POSIX_GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
 
-    S2N_ERROR_IF(len != (int) in->size, S2N_ERR_ENCRYPT);
+    POSIX_ENSURE((int64_t)len == (int64_t) in->size, S2N_ERR_ENCRYPT);
 
     return 0;
 }
