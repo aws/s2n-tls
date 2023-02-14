@@ -35,7 +35,7 @@ static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_b
     /* len is set by EVP_EncryptUpdate and checked post operation */
     int len = 0;
     POSIX_GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
-    POSIX_ENSURE((int64_t)len == (int64_t) in->size, S2N_ERR_ENCRYPT);
+    POSIX_ENSURE((int64_t) len == (int64_t) in->size, S2N_ERR_ENCRYPT);
 
     return 0;
 }
