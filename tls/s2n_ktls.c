@@ -40,8 +40,7 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
-/* These variables are used to disable ktls mechanisms during testing.
- */
+/* These variables are used to disable ktls mechanisms during testing. */
 static bool ignore_ktls_ulp_for_testing = false;
 
 S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
@@ -128,11 +127,10 @@ S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode 
     int fd = 0;
     RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
 
+    /* Calls to setsockopt require a real socket, which is not used in unit tests. */
     if (ignore_ktls_ulp_for_testing == false) {
         int ret = setsockopt(fd, SOL_TCP, TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
-        if (ret < 0) {
-            RESULT_BAIL(S2N_ERR_KTLS_ULP);
-        };
+        RESULT_ENSURE(ret > S2N_FAILURE, S2N_ERR_KTLS_ULP);
     }
 
     /* TODO configure keys */
@@ -190,7 +188,11 @@ int s2n_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
     return S2N_SUCCESS;
 }
 
-/* Use for testing only */
+/* Use for testing only.
+ *
+ * This function disables the setsockopt call to enable ULP. Calls to setsockopt
+ * require a real socket, which is not used in unit tests.
+ */
 S2N_RESULT s2n_ignore_ktls_ulp_for_testing(void)
 {
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
