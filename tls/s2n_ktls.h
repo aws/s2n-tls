@@ -30,3 +30,4 @@ typedef enum {
 } s2n_ktls_mode;
 
 int s2n_connection_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
+bool platform_supports_ktls();

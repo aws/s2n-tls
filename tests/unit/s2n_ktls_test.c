@@ -25,7 +25,6 @@
 #include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
-S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
 S2N_RESULT s2n_disable_ktls_socket_config_for_testing(void);
 
 S2N_RESULT s2n_test_configure_ktls_connection(struct s2n_connection *conn, int *fd)
@@ -49,19 +48,18 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-#ifndef S2N_PLATFORM_SUPPORTS_KTLS
-    /* s2n_connection_ktls_enable */
-    {
-        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        int fd = 0;
-        EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
+    if (!platform_supports_ktls()) {
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            int fd = 0;
+            EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-    };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+        };
 
-    END_TEST();
-#endif
+        END_TEST();
+    }
 
     EXPECT_OK(s2n_disable_ktls_socket_config_for_testing());
 
@@ -83,7 +81,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(cipher.ktls_supported);
     };
 
-    /* s2n_ktls_validate TLS 1.2 */
+    /* s2n_connection_ktls_enable */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -93,7 +91,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_DISABLED_FOR_TEST);
     };
 
-    /* s2n_ktls_validate TLS 1.3 */
+    /* TLS 1.3 */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -101,7 +99,6 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
 
         server_conn->actual_protocol_version = S2N_TLS13;
-
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_UNSUPPORTED_CONN);
     };
 
@@ -155,26 +152,6 @@ int main(int argc, char **argv)
         int fd_ret = 0;
         EXPECT_OK(s2n_ktls_retrieve_file_descriptor(server_conn, S2N_KTLS_MODE_SEND, &fd_ret));
         EXPECT_EQUAL(fd_orig, fd_ret);
-    };
-
-    /* s2n_ktls_configure_socket */
-    {
-        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        int fd = 0;
-        EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
-
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_configure_socket(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_DISABLED_FOR_TEST);
-    };
-
-    /* s2n_connection_ktls_enable */
-    {
-        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        int fd = 0;
-        EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
-
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_DISABLED_FOR_TEST);
     };
 
     END_TEST();

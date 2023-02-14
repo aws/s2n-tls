@@ -43,6 +43,15 @@
 /* These variables are used to disable ktls mechanisms during testing. */
 static bool disable_ktls_socket_config_for_testing = false;
 
+bool platform_supports_ktls()
+{
+#ifdef S2N_PLATFORM_SUPPORTS_KTLS
+    return true;
+#else
+    return false;
+#endif
+}
+
 static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
@@ -90,14 +99,11 @@ S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_kt
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE(ktls_mode == S2N_KTLS_MODE_RECV || ktls_mode == S2N_KTLS_MODE_SEND, S2N_ERR_SAFETY);
 
-#ifndef S2N_PLATFORM_SUPPORTS_KTLS
-    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-#else
     /* If already enabled then return success */
     if (ktls_mode == S2N_KTLS_MODE_SEND && conn->ktls_send_enabled) {
         return S2N_RESULT_OK;
@@ -112,6 +118,7 @@ S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode 
     /* Calls to setsockopt require a real socket, which is not used in unit tests. */
     RESULT_ENSURE(!disable_ktls_socket_config_for_testing, S2N_ERR_KTLS_DISABLED_FOR_TEST);
 
+#ifdef S2N_PLATFORM_SUPPORTS_KTLS
     /* Enable 'tls' ULP for the socket. https://lwn.net/Articles/730207 */
     int ret = setsockopt(fd, SOL_TCP, TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
     RESULT_ENSURE(ret == 0, S2N_ERR_KTLS_ULP);
@@ -138,6 +145,10 @@ S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode 
  */
 int s2n_connection_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
+    if (!platform_supports_ktls()) {
+        POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+    }
+
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD_RESULT(s2n_ktls_validate(conn));
 
