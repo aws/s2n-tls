@@ -440,6 +440,11 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     POSIX_ENSURE_REF(config);
     config->ocsp_status_requested_by_user = (type == S2N_STATUS_REQUEST_OCSP);
 
+    /* Reset the ocsp_status_requested_by_s2n flag if OCSP status requests were disabled. */
+    if (type == S2N_STATUS_REQUEST_NONE) {
+        config->ocsp_status_requested_by_s2n = false;
+    }
+
     return 0;
 }
 
