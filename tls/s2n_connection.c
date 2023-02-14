@@ -353,11 +353,10 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     }
 
     /* Users can enable OCSP status requests via s2n_config_set_status_request_type.
-     * However, s2n_config_set_verification_ca_location can also enable OCSP status
-     * requests. To ensure backwards compatibility, this function is allowed to enable
-     * OCSP status requests for clients. For servers, however, OCSP status requests
-     * are only sent if the user intentionally opted in via
-     * s2n_config_set_status_request_type.
+     * To ensure backwards compatibility, s2n_config_set_verification_ca_location can
+     * also enable OCSP status requests if called on a client. This behavior can be
+     * avoided if s2n_config_set_verification_ca_location is called on a server, since
+     * s2n-tls did not initially support sending an OCSP status request from a server.
      */
     conn->request_ocsp_status = config->ocsp_status_requested_by_user;
     if (config->ocsp_status_requested_by_s2n && conn->mode == S2N_CLIENT) {

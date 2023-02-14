@@ -438,7 +438,7 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     S2N_ERROR_IF(type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported(), S2N_ERR_OCSP_NOT_SUPPORTED);
 
     POSIX_ENSURE_REF(config);
-    config->ocsp_status_requested_by_user = type == S2N_STATUS_REQUEST_OCSP;
+    config->ocsp_status_requested_by_user = (type == S2N_STATUS_REQUEST_OCSP);
 
     return 0;
 }
