@@ -790,6 +790,7 @@ html.dark-mode iframe#MSearchResults {
 
 #nav-tree {
     background: transparent;
+    margin-right: 1px;
 }
 
 #nav-tree .label {
@@ -1601,6 +1602,10 @@ table.doxtable tbody {
     margin: var(--spacing-medium) 0;
     box-shadow: 0 0 0 1px var(--separator-color);
     border-radius: var(--border-radius-small);
+}
+
+table.markdownTable, table.doxtable, table.fieldtable {
+    padding: 1px;
 }
 
 table.doxtable caption {
