@@ -51,10 +51,12 @@ if [ -z "${LOCAL_TESTING:-}" ]; then
   if [ "$zip_count" -eq 0 ]; then
     echo "File ${AWS_S3_URL}${AWS_S3_PATH} not found"
     criterion_install_deps
+    ORIGINAL_COMMIT=$(git rev-parse HEAD)
     git fetch --tags
     git checkout "$LATEST_RELEASE_VER"
     S2N_USE_CRITERION=baseline make -C tests/integrationv2 "$INTEGV2_TEST"
     upload_artifacts
+    git reset --hard  ${ORIGINAL_COMMIT}
   else
     echo "Found existing artifact for ${LATEST_RELEASE_VER}, not rebuilding."
     exit 0
