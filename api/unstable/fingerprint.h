@@ -18,7 +18,7 @@
 #include <s2n.h>
 
 /**
- * @file crl.h
+ * @file fingerprint.h
  *
  * The following APIs enable applications to calculate fingerprints to
  * identify ClientHellos.
@@ -48,9 +48,9 @@ typedef enum {
  * @param hash The location that the requested hash will be written to.
  * @param hash_size The actual size of the data written to `hash`.
  * @param str_size The actual size of the full string associated with this hash.
- * This size can be used to ensure that sufficient memory is allocated for the
+ * This size can be used to ensure that sufficient memory is provided for the
  * output of `s2n_client_hello_get_fingerprint_string`.
- * @returns 0 on success, -1 on failure.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
 int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch,
         s2n_fingerprint_type type, uint32_t max_hash_size,
@@ -66,10 +66,10 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch,
  * @param ch The ClientHello to fingerprint.
  * @param type The algorithm to use for the fingerprint. Currently only JA3 is supported.
  * @param max_size The maximum size of data that may be written to `output`.
- * If too small for the requested hash, an S2N_ERR_T_USAGE error will occur.
+ * If too small for the requested string, an S2N_ERR_T_USAGE error will occur.
  * @param output The location that the requested string will be written to.
  * @param output_size The actual size of the data written to `output`.
- * @returns 0 on success, -1 on failure.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
 int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch,
         s2n_fingerprint_type type, uint32_t max_size,
