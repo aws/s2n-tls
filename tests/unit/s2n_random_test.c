@@ -329,7 +329,7 @@ static void s2n_fork_test_generate_randomness(int write_fd, S2N_RESULT (*s2n_get
 
     /* Close the pipe and exit */
     close(write_fd);
-    _exit(EXIT_SUCCESS);
+    exit(EXIT_SUCCESS);
 }
 
 static S2N_RESULT s2n_fork_test_verify_result(int *pipes, int proc_id, S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob))
