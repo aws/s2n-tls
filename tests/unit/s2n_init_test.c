@@ -25,6 +25,16 @@ static void *s2n_init_fail_cb(void *_unused_arg)
     return NULL;
 }
 
+static void *s2n_init_success_cb(void *_unused_arg)
+{
+    (void) _unused_arg;
+
+    EXPECT_SUCCESS(s2n_init());
+    return NULL;
+}
+
+int s2n_enable_atexit(void);
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST_NO_INIT();
@@ -32,7 +42,7 @@ int main(int argc, char **argv)
     /* Disabling the atexit handler makes it easier for us to test s2n_init and s2n_cleanup
      * behavior. Otherwise we'd have to create and exit a bunch of processes to test this
      * interaction. */
-    s2n_disable_atexit();
+    EXPECT_SUCCESS(s2n_disable_atexit());
 
     /* Calling s2n_init twice in a row will cause an error */
     EXPECT_SUCCESS(s2n_init());
@@ -66,6 +76,17 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(pthread_create(&init_thread, NULL, s2n_init_fail_cb, NULL), 0);
     EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
     EXPECT_SUCCESS(s2n_cleanup());
+
+    /* The following test requires atexit to be enabled. */
+    EXPECT_SUCCESS(s2n_enable_atexit());
+
+    /* Initializing s2n on a child thread without calling s2n_cleanup on that
+     * thread will not result in a memory leak. This is because we register
+     * thread-local memory to be cleaned up at thread-exit
+     * and then our atexit handler cleans up the rest at proccess-exit. */
+    pthread_t init_success_thread = { 0 };
+    EXPECT_EQUAL(pthread_create(&init_success_thread, NULL, s2n_init_success_cb, NULL), 0);
+    EXPECT_EQUAL(pthread_join(init_success_thread, NULL), 0);
 
     END_TEST_NO_INIT();
 }
