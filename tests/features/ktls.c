@@ -28,10 +28,6 @@
 #endif
 
 #include <linux/tls.h>
-#include <sys/socket.h>
-
-#define S2N_TLS_ULP_NAME      "tls"
-#define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
 
 int main()
 {

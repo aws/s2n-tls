@@ -24,13 +24,9 @@
 #include "tls/s2n_handshake_type.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_TEST_INADDR_LOOPBACK 0x7f000001 /* 127.0.0.1 */
-
-S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn);
-S2N_RESULT s2n_ktls_validate_socket_mode(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
 S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
 S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
-S2N_RESULT s2n_ignore_ktls_ulp_for_testing(void);
+S2N_RESULT s2n_disable_ktls_socket_config_for_testing(void);
 
 S2N_RESULT s2n_test_configure_ktls_connection(struct s2n_connection *conn, int *fd)
 {
@@ -53,21 +49,21 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    EXPECT_OK(s2n_ignore_ktls_ulp_for_testing());
-
-    /* kTLS feature probe */
+#ifndef S2N_PLATFORM_SUPPORTS_KTLS
+    /* s2n_connection_ktls_enable */
     {
-#if defined(__linux__)
-    #include "linux/version.h"
-    #if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 13, 0))
-        #ifndef S2N_PLATFORM_SUPPORTS_KTLS
-        /* https://github.com/torvalds/linux/commit/3c4d7559159bfe1e3b94df3a657b2cda3a34e218
-        * kTLS support was first added in linux 4.13.0. */
-        FAIL_MSG("kTLS feature probe is not working");
-        #endif
-    #endif
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        int fd = 0;
+        EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+    };
+
+    END_TEST();
 #endif
-    }
+
+    EXPECT_OK(s2n_disable_ktls_socket_config_for_testing());
 
     /* ktls_supported ciphers */
     {
@@ -85,7 +81,7 @@ int main(int argc, char **argv)
 
         cipher = s2n_chacha20_poly1305;
         EXPECT_FALSE(cipher.ktls_supported);
-    }
+    };
 
     /* s2n_ktls_validate TLS 1.2 */
     {
@@ -94,8 +90,8 @@ int main(int argc, char **argv)
         int fd = 0;
         EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
 
-        EXPECT_OK(s2n_ktls_validate(server_conn));
-    }
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+    };
 
     /* s2n_ktls_validate TLS 1.3 */
     {
@@ -106,10 +102,10 @@ int main(int argc, char **argv)
 
         server_conn->actual_protocol_version = S2N_TLS13;
 
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_validate(server_conn), S2N_ERR_KTLS_UNSUPPORTED_CONN);
-    }
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    };
 
-    /* s2n_ktls_validate_socket_mode send */
+    /* managed_send_io */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -117,22 +113,19 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
 
         /* base case */
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_RECV));
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_SEND));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_DISABLED_FOR_TEST);
 
         /* send managed io */
         server_conn->managed_send_io = false;
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_SEND_MANAGED_IO);
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_RECV));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_SEND_MANAGED_IO);
         server_conn->managed_send_io = true;
 
         /* ktls enabled send */
         server_conn->ktls_send_enabled = true;
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_SEND_ENABLED);
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_RECV));
-    }
+        EXPECT_SUCCESS(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND));
+    };
 
-    /* s2n_ktls_validate_socket_mode recv */
+    /* managed_recv_io */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -140,20 +133,17 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
 
         /* base case */
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_RECV));
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_SEND));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_RECV), S2N_ERR_KTLS_DISABLED_FOR_TEST);
 
         /* recv managed io */
         server_conn->managed_recv_io = false;
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_RECV), S2N_ERR_KTLS_RECV_MANAGED_IO);
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_SEND));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_RECV), S2N_ERR_KTLS_RECV_MANAGED_IO);
         server_conn->managed_recv_io = true;
 
         /* ktls enabled recv */
         server_conn->ktls_recv_enabled = true;
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_RECV), S2N_ERR_KTLS_RECV_ENABLED);
-        EXPECT_OK(s2n_ktls_validate_socket_mode(server_conn, S2N_KTLS_MODE_SEND));
-    }
+        EXPECT_SUCCESS(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_RECV));
+    };
 
     /* s2n_ktls_retrieve_file_descriptor */
     {
@@ -165,7 +155,7 @@ int main(int argc, char **argv)
         int fd_ret = 0;
         EXPECT_OK(s2n_ktls_retrieve_file_descriptor(server_conn, S2N_KTLS_MODE_SEND, &fd_ret));
         EXPECT_EQUAL(fd_orig, fd_ret);
-    }
+    };
 
     /* s2n_ktls_configure_socket */
     {
@@ -174,26 +164,18 @@ int main(int argc, char **argv)
         int fd = 0;
         EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
 
-#ifdef S2N_PLATFORM_SUPPORTS_KTLS
-        EXPECT_OK(s2n_ktls_configure_socket(server_conn, S2N_KTLS_MODE_SEND));
-#else
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_configure_socket(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-#endif
-    }
+        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_configure_socket(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+    };
 
-    /* s2n_ktls_enable */
+    /* s2n_connection_ktls_enable */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         int fd = 0;
         EXPECT_OK(s2n_test_configure_ktls_connection(server_conn, &fd));
 
-#ifdef S2N_PLATFORM_SUPPORTS_KTLS
-        EXPECT_SUCCESS(s2n_ktls_enable(server_conn, S2N_KTLS_MODE_SEND));
-#else
-        EXPECT_ERROR_WITH_ERRNO(s2n_ktls_configure_socket(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-#endif
-    }
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable(server_conn, S2N_KTLS_MODE_SEND), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+    };
 
     END_TEST();
 }

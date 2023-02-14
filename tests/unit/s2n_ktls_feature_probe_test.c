@@ -13,20 +13,29 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
-#include "tls/s2n_connection.h"
+#if defined(__linux__)
+    #include "linux/version.h"
+#endif
 
-/* A set of kTLS configurations representing the combination of sending
- * and receiving.
- */
-typedef enum {
-    /* Enable kTLS for the send socket. */
-    S2N_KTLS_MODE_SEND,
-    /* Enable kTLS for the receive socket. */
-    S2N_KTLS_MODE_RECV,
-    /* Enable kTLS for both receive and send sockets. */
-    S2N_KTLS_MODE_DUPLEX,
-} s2n_ktls_mode;
+int main(int argc, char **argv)
+{
+    BEGIN_TEST();
 
-int s2n_connection_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
+    /* kTLS feature probe */
+    {
+#if defined(__linux__)
+    /* kTLS support was first added to AL2 starting in 5.10.130. */
+    #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 130))
+        #ifndef S2N_PLATFORM_SUPPORTS_KTLS
+        FAIL_MSG("kTLS feature probe is not working");
+        #endif
+        EXPECT_TRUE(true);
+    #endif
+#endif
+    };
+
+    END_TEST();
+}
