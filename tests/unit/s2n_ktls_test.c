@@ -57,14 +57,11 @@ int main(int argc, char **argv)
 
     /* kTLS feature probe */
     {
-#if defined(__linux__)
-    #include "linux/version.h"
-    #if (LINUX_VERSION_CODE > KERNEL_VERSION(4, 13, 0))
-        #ifndef S2N_PLATFORM_SUPPORTS_KTLS
+#ifdef __FreeBSD__
+    #ifndef S2N_PLATFORM_SUPPORTS_KTLS
         /* https://github.com/torvalds/linux/commit/3c4d7559159bfe1e3b94df3a657b2cda3a34e218
         * kTLS support was first added in linux 4.13.0. */
         FAIL_MSG("kTLS feature probe is not working");
-        #endif
     #endif
 #endif
     }
