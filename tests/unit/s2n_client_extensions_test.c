@@ -118,10 +118,10 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     server_conn->kex_params.kem_params.kem = NULL;
 
     /* Send the client hello */
-    POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len), (int) record_header_len);
-    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len), (int) message_header_len);
-    POSIX_ENSURE_EQ(write(io_pair->client, client_hello_message, client_hello_len), (int) client_hello_len);
-    POSIX_ENSURE_EQ(write(io_pair->client, client_extensions, client_extensions_len), (int) client_extensions_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len), (int64_t) record_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len), (int64_t) message_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_hello_message, client_hello_len), (int64_t) client_hello_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_extensions, client_extensions_len), (int64_t) client_extensions_len);
 
     POSIX_GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
     if (s2n_negotiate(server_conn, &server_blocked) == 0) {
