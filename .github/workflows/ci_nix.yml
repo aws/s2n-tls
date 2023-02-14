@@ -1,0 +1,18 @@
+name: "Nix checks"
+on:
+  pull_request:
+jobs:
+  minimal:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: nixbuild/nix-quick-install-action@v21
+        with:
+          nix_conf: experimental-features = nix-command flakes
+      - name: nix flake check
+        run: nix flake check
+      - name: nix fmt
+        run: |
+          nix fmt $(find . -maxdepth 2 -name \*nix -type f)
+          git diff --quiet
+
