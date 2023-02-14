@@ -352,6 +352,18 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         conn->multirecord_send = true;
     }
 
+    /* Users can enable OCSP status requests via s2n_config_set_status_request_type.
+     * However, s2n_config_set_verification_ca_location can also enable OCSP status
+     * requests. To ensure backwards compatibility, this function is allowed to enable
+     * OCSP status requests for clients. For servers, however, OCSP status requests
+     * are only sent if the user intentionally opted in via
+     * s2n_config_set_status_request_type.
+     */
+    conn->request_ocsp_status = config->ocsp_status_requested_by_user;
+    if (config->ocsp_status_requested_by_s2n && conn->mode == S2N_CLIENT) {
+        conn->request_ocsp_status = true;
+    }
+
     conn->config = config;
     return S2N_SUCCESS;
 }
