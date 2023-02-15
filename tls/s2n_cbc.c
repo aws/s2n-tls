@@ -85,7 +85,7 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     /* Check the maximum amount that could theoretically be padding */
     uint32_t check = MIN(255, (payload_and_padding_size - 1));
 
-    /*Check to ensure check >= padding_length*/
+    /* Check to ensure check >= padding_length */
     POSIX_ENSURE_GTE(check, padding_length);
 
     uint32_t cutoff = check - padding_length;
