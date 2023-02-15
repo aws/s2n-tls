@@ -15,3 +15,9 @@ redundantAssignment:tests/unit/s2n_timer_test.c
 // cppcheck Message: (style:knownConditionTrueFalse) Condition 's2n_libcrypto_awslc_api_version()<17' is always true
 // Reason: s2n_libcrypto_awslc_api_version() are implemented using macro's and for certain libcrypto's the preprocessor will produce a trivial function returning e.g. 1 always.
 knownConditionTrueFalse:crypto/s2n_libcrypto.c
+
+// cppcheck Message: (style:moduloofone) Modulo of one is always equal to zero.
+// Reason: This test generates N^2 combinations of KEM preference orderings, with N=S2N_SUPPORTED_KEM_GROUPS_COUNT.
+//         When compiled with Openssl 1.0.2, the only supported KEM is secp256r1_kyber-512-r3. A preference ordering of only that 1 KEM is still valid, and should still be tested.
+//         The tests that do need a minimum of 2 KEM's in order to test fallback logic already have logic to detect S2N_SUPPORTED_KEM_GROUPS_COUNT==1 and will skip themselves.
+moduloofone:tests/unit/s2n_client_key_share_extension_pq_test.c

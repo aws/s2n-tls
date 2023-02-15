@@ -33,6 +33,7 @@
 #include "utils/s2n_safety.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
+#include "pq-crypto/s2n_pq.h"
 
 static struct s2n_kem_params kyber_r3_draft0_params = {.kem = &s2n_kyber_512_r3, .len_prefixed = true };
 static struct s2n_kem_params kyber_r3_draft5_params = {.kem = &s2n_kyber_512_r3, .len_prefixed = false };
@@ -62,17 +63,33 @@ static int setup_connection(struct s2n_connection *server_conn, struct s2n_kem_p
     return S2N_SUCCESS;
 }
 
+int s2n_fuzz_init_kem_param(struct s2n_kem_params *param) {
+    POSIX_ENSURE_REF(param->kem);
+    struct s2n_blob *public_key_1 = &param->public_key;
+    POSIX_GUARD(s2n_alloc(public_key_1, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES));
+
+    /* Do not GUARD this call to s2n_kem_generate_keypair(), as it will fail when attempting to generate the KEM
+     * key pair if !s2n_pq_is_enabled(). However, even if it does fail, it will have allocated zeroed memory for the
+     * public and private keys needed for setup_connection() to complete. */
+    s2n_result result = s2n_kem_generate_keypair(param);
+
+    if (s2n_pq_is_enabled()) {
+        POSIX_ENSURE_EQ(result.__error_signal, S2N_SUCCESS);
+    } else {
+        POSIX_ENSURE_NE(result.__error_signal, S2N_SUCCESS);
+    }
+
+    POSIX_ENSURE_REF(param->public_key.data);
+    POSIX_ENSURE_REF(param->private_key.data);
+    POSIX_GUARD(s2n_free(public_key_1));
+
+    return S2N_SUCCESS;
+}
+
 int s2n_fuzz_init(int *argc, char **argv[])
 {
-    struct s2n_blob *public_key = &kyber_r3_draft0_params.public_key;
-    POSIX_GUARD(s2n_alloc(public_key, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES));
-    POSIX_GUARD_RESULT(s2n_kem_generate_keypair(&kyber_r3_draft0_params));
-    POSIX_GUARD(s2n_free(public_key));
-
-    public_key = &kyber_r3_draft5_params.public_key;
-    POSIX_GUARD(s2n_alloc(public_key, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES));
-    POSIX_GUARD_RESULT(s2n_kem_generate_keypair(&kyber_r3_draft5_params));
-    POSIX_GUARD(s2n_free(public_key));
+    POSIX_GUARD(s2n_fuzz_init_kem_param(&kyber_r3_draft0_params));
+    POSIX_GUARD(s2n_fuzz_init_kem_param(&kyber_r3_draft5_params));
 
     return S2N_SUCCESS;
 }
@@ -91,7 +108,12 @@ int s2n_fuzz_test_with_params(const uint8_t *buf, size_t len, struct s2n_kem_par
      * must still be cleaned up. Don't return s2n_client_key_recv's result because the the test still passes as long as
      * s2n_client_key_recv does not leak/contaminate any memory, the fuzz input is most likely not valid and will fail
      * to be recv'd successfully. */
-    s2n_client_key_recv(server_conn);
+    int result = s2n_client_key_recv(server_conn);
+
+    /* If PQ is disabled, then s2n_client_key_recv should always fail since the KEM calls will always fail. */
+    if (!s2n_pq_is_enabled()) {
+        POSIX_ENSURE_EQ(result, S2N_FAILURE);
+    }
 
     POSIX_GUARD(s2n_connection_free(server_conn));
 
