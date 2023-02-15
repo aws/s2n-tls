@@ -143,7 +143,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     /* Safety: RSA_private_decrypt does not mutate the key */
     int r = RSA_private_decrypt(in->size, (unsigned char *) in->data, intermediate,
             s2n_unsafe_rsa_get_non_const(priv_key), RSA_NO_PADDING);
-    POSIX_ENSURE((int64_t) r == expected_size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE((int64_t) r == (int64_t) expected_size, S2N_ERR_SIZE_MISMATCH);
 
     s2n_constant_time_pkcs1_unpad_or_dont(out->data, intermediate, r, out->size);
 
