@@ -25,5 +25,4 @@ jobs:
         with:
           name: all_test_output
           path: |
-            release/Testing/Temporary
-            build/Testing/Temporary
+            output

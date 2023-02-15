@@ -16,12 +16,16 @@ set -eu
 export CTEST_OUTPUT_ON_FAILURE=1
 export CTEST_PARALLEL_LEVEL=$(sysctl -n hw.ncpuonline)
 
+mkdir -p output
+
 cmake . -Brelease -GNinja -DCMAKE_BUILD_TYPE=Release
 cmake --build ./release -j $CTEST_PARALLEL_LEVEL
 ninja -C release test
-cmake --build ./release --target clean #Saves on copy back rsync time
+mv release/Testing/Temporary output/release
+rm -rf release # reduce the number of files to copy back
 
 cmake . -Bbuild -GNinja -DCMAKE_BUILD_TYPE=Debug
 cmake --build ./build -j $CTEST_PARALLEL_LEVEL
 ninja -C build test
-cmake --build ./build --target clean #Saves on copy back rsync time
+mv build/Testing/Temporary output/debug
+rm -rf build # reduce the number of files to copy back
