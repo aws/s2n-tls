@@ -121,7 +121,7 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
     /* Safety: RSA_public_encrypt does not mutate the key */
     int r = RSA_public_encrypt(in->size, (unsigned char *) in->data, (unsigned char *) out->data,
             s2n_unsafe_rsa_get_non_const(pub_key), RSA_PKCS1_PADDING);
-    POSIX_ENSURE((int64_t) r == out->size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE((int64_t) r == (int64_t) out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
 }
