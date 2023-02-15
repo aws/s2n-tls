@@ -37,7 +37,7 @@ int s2n_fd_set_non_blocking(int fd)
 static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     struct s2n_stuffer *in_buf;
-    uint32_t n_read, n_avail;
+    int n_read, n_avail;
 
     if (buf == NULL) {
         return 0;

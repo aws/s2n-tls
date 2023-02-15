@@ -1004,7 +1004,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(client_hello->extensions.raw.data, client_extensions, client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions_length correct */
-        EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), (ssize_t) client_extensions_len);
+        EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions correct */
         uint8_t *extensions_out;
@@ -1012,7 +1012,7 @@ int main(int argc, char **argv)
         /* Verify s2n_client_hello_get_extensions retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->extensions.raw.size < S2N_LARGE_RECORD_LENGTH);
         EXPECT_NOT_NULL(extensions_out = malloc(S2N_LARGE_RECORD_LENGTH));
-        EXPECT_EQUAL((ssize_t) client_extensions_len, s2n_client_hello_get_extensions(client_hello, extensions_out, S2N_LARGE_RECORD_LENGTH));
+        EXPECT_EQUAL(client_extensions_len, s2n_client_hello_get_extensions(client_hello, extensions_out, S2N_LARGE_RECORD_LENGTH));
         EXPECT_BYTEARRAY_EQUAL(extensions_out, client_extensions, client_extensions_len);
         free(extensions_out);
         extensions_out = NULL;
