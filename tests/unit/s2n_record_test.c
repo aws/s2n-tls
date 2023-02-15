@@ -258,7 +258,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(remaining, s2n_stuffer_data_available(&conn->out));
 
         /* Check that the last 'p' bytes are all set to 'p' */
-        for (uint8_t j = 0; j <= p; j++) {
+        for (size_t j = 0; j <= (size_t) p; j++) {
             EXPECT_EQUAL(conn->out.blob.data[5 + bytes_written + 20 + j], p);
         }
 
@@ -327,7 +327,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(5 + bytes_written + 20 + 16 + p + 1, s2n_stuffer_data_available(&conn->out));
 
         /* Check that the last 'p' bytes are all set to 'p' */
-        for (uint8_t j = 0; j <= p; j++) {
+        for (size_t j = 0; j <= (size_t) p; j++) {
             EXPECT_EQUAL(conn->out.blob.data[5 + bytes_written + 16 + 20 + j], p);
         }
 
