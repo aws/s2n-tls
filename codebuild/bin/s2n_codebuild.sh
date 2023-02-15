@@ -86,6 +86,7 @@ run_integration_v2_tests() {
             -D${CMAKE_PQ_OPTION} \
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
+            -DS2N_INTEG_TESTS=on \
             -DPython3_EXECUTABLE=$(which python3)
     cmake --build ./build --clean-first -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
