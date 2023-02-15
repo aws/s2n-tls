@@ -2,9 +2,10 @@
 name: Linters
 on:
   pull_request:
-    branches:
-      - master
-      - main
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 jobs:
   cppcheck:
     # ubuntu-latest introduced a newer gcc version that cannot compile cppcheck 2.3
