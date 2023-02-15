@@ -13,8 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_fingerprint.h"
-
+#include "api/unstable/fingerprint.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "stuffer/s2n_stuffer.h"
