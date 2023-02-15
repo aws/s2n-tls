@@ -22,8 +22,8 @@ else
 fi
 
 errors=0
-function onerror {
-  ((errors=errors+1))
+onerror() {
+  errors=$(($errors+1))
 }
 
 mkdir -p output
