@@ -24,6 +24,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "api/unstable/fingerprint.h"
 #include "api/unstable/renegotiate.h"
 #include "common.h"
 #include "crypto/s2n_pkey.h"
@@ -234,6 +235,20 @@ int print_connection_info(struct s2n_connection *conn)
     }
     GUARD_EXIT_NULL(status_str);
     printf("Early Data status: %s\n", status_str);
+
+    struct s2n_client_hello *ch = s2n_connection_get_client_hello(conn);
+    if (ch && client_hello_version > S2N_SSLv2) {
+        uint8_t ja3[16] = { 0 };
+        uint32_t ja3_size = 0, str_size = 0;
+        GUARD_EXIT(s2n_client_hello_get_fingerprint_hash(ch, S2N_FINGERPRINT_JA3,
+                           sizeof(ja3), ja3, &ja3_size, &str_size),
+                "Error calculating JA3");
+        printf("JA3: ");
+        for (size_t i = 0; i < ja3_size; i++) {
+            printf("%02x", ja3[i]);
+        }
+        printf("\n");
+    }
 
     return 0;
 }
