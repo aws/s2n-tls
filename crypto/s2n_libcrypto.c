@@ -35,7 +35,7 @@
  * the new API. When dropping OpenSSL 1.0.2 support, we can move to the new API.
  */
 
-/* The result of SSLeay_version(SSLEAY_VERSION) for OpenSSL and AWS-LC depend on the
+/* The result of SSLeay_version(SSLEAY_VERSION) for OpenSSL and AWS-LC depends on the
  * version. AWS-LC and BoringSSL have consistent prefixes that can be statically asserted.
  *
  * https://github.com/awslabs/aws-lc/commit/8f184f5d69604cc4645bafec47c2d6d9929cb50f
@@ -43,9 +43,9 @@
  * distinguish AWS-LC fips and non-fips at pre-processing time since AWS-LC
  * doesn't distribute fips-specific header files.
  */
-#define EXPECTED_AWSLC_NAME_PREFIX_FIPS_OR_OLD "BoringSSL"
-#define EXPECTED_AWSLC_NAME_PREFIX_NON_FIPS    "AWS-LC"
-#define EXPECTED_BORINGSSL_NAME_PREFIX         "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_PREFIX_FIPS_OR_OLD "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_PREFIX_NON_FIPS    "AWS-LC"
+#define EXPECTED_BORINGSSL_VERSION_PREFIX         "BoringSSL"
 
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFPPS major minor fix patch status.
@@ -64,7 +64,7 @@ static const char *s2n_libcrypto_get_version_name(void)
     return SSLeay_version(SSLEAY_VERSION);
 }
 
-static S2N_RESULT s2n_libcrypto_validate_name_prefix(const char *expected_name_prefix)
+static S2N_RESULT s2n_libcrypto_validate_expected_version_prefix(const char *expected_name_prefix)
 {
     RESULT_ENSURE_REF(expected_name_prefix);
     RESULT_ENSURE_REF(s2n_libcrypto_get_version_name());
@@ -193,13 +193,13 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
          * can be removed.
          */
         if (s2n_libcrypto_is_fips() || s2n_libcrypto_awslc_api_version() < 17) {
-            expected_awslc_name_prefix = EXPECTED_AWSLC_NAME_PREFIX_FIPS_OR_OLD;
+            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_FIPS_OR_OLD;
         } else {
-            expected_awslc_name_prefix = EXPECTED_AWSLC_NAME_PREFIX_NON_FIPS;
+            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_NON_FIPS;
         }
-        RESULT_GUARD(s2n_libcrypto_validate_name_prefix(expected_awslc_name_prefix));
+        RESULT_GUARD(s2n_libcrypto_validate_expected_version_prefix(expected_awslc_name_prefix));
     } else if (s2n_libcrypto_is_boringssl()) {
-        RESULT_GUARD(s2n_libcrypto_validate_name_prefix(EXPECTED_BORINGSSL_NAME_PREFIX));
+        RESULT_GUARD(s2n_libcrypto_validate_expected_version_prefix(EXPECTED_BORINGSSL_VERSION_PREFIX));
     }
 
     RESULT_GUARD(s2n_libcrypto_validate_expected_version_number());
