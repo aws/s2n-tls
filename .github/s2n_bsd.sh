@@ -22,7 +22,7 @@ else
 fi
 
 errors=0
-function onerror() {
+function onerror {
   ((errors=errors+1))
 }
 
