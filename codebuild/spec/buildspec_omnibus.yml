@@ -218,10 +218,18 @@ batch:
         variables:
           BUILD_S2N: true
           GCC_VERSION: 6
-          S2N_COVERAGE: true
           S2N_LIBCRYPTO: openssl-1.1.1
           TESTS: unit
-      identifier: s2nUnitOpenSSL111Gcc6Coverage
+      identifier: s2nUnitOpenSSL111Gcc6
+
+    - identifier: s2nUnitCoverage
+      buildspec: codebuild/spec/buildspec_unit_coverage.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
 
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
@@ -239,7 +247,7 @@ batch:
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
@@ -263,24 +271,12 @@ batch:
           FUZZ_TIMEOUT_SEC: 60
           FUZZ_COVERAGE: true
 
-    - identifier: s2nFuzzerOpenSSL102
-      buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
-      env:
-        privileged-mode: true
-        compute-type: BUILD_GENERAL1_LARGE
-        image: aws/codebuild/standard:5.0
-        variables:
-          S2N_LIBCRYPTO: openssl-1.0.2
-          LATEST_CLANG: true
-          TESTS: fuzz
-          FUZZ_TIMEOUT_SEC: 60
-
     - identifier: s2nFuzzerOpenSSL102FIPS
       buildspec: codebuild/spec/buildspec_ubuntu_fuzz_artifacts.yml
       env:
         privileged-mode: true
         compute-type: BUILD_GENERAL1_LARGE
-        image: aws/codebuild/standard:5.0
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2-fips
           LATEST_CLANG: true

@@ -1249,7 +1249,7 @@ typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
  * - `S2N_CLIENT_HELLO_CB_BLOCKING` (default):
  *   - In this mode s2n-tls expects the callback to complete its work and return the appropriate response code before the handshake continues. If any of the connection properties were changed based on the server_name extension the callback must either return a value greater than 0 or invoke `s2n_connection_server_name_extension_used`, otherwise the callback returns 0 to continue the handshake.
  * - `S2N_CLIENT_HELLO_CB_NONBLOCKING`:
- *   - In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback returns a response code of 0 s2n-tls will return `S2N_FAILURE` with `S2N_ERR_T_BLOCKED` error type and `s2n_blocked_status` set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. The handshake is paused and further calls to `s2n_negotiate` will continue to return the same error until `s2n_client_hello_cb_done` is invoked for the `s2n_connection` to resume the handshake. This allows s2n-tls clients to process client_hello without blocking and then resume the handshake at a later time. If any of the connection properties were changed on the basis of the server_name extension then `s2n_connection_server_name_extension_used` must be invoked before marking the callback done.
+ *   - In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback returns a response code of 0, s2n-tls will return `S2N_FAILURE` with `S2N_ERR_T_BLOCKED` error type and `s2n_blocked_status` set to `S2N_BLOCKED_ON_APPLICATION_INPUT`. The handshake is paused and further calls to `s2n_negotiate` will continue to return the same error until `s2n_client_hello_cb_done` is invoked for the `s2n_connection` to resume the handshake. If any of the connection properties were changed on the basis of the server_name extension then `s2n_connection_server_name_extension_used` must be invoked before marking the callback done.
  */
 typedef enum {
     S2N_CLIENT_HELLO_CB_BLOCKING,
@@ -1325,12 +1325,16 @@ S2N_API extern ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client
 /**
  * Copies `max_length` bytes of the ClientHello message into the `out` buffer.
  * The ClientHello instrumented using this function will have the Random bytes
- * zero-ed out. For SSLv2 ClientHello messages, the raw message contains only
- * the cipher_specs, session_id and members portions of the hello message
- * (see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2)). To access other
- * members, you may use s2n_connection_get_client_hello_version(),
- * s2n_connection_get_client_protocol_version() and s2n_connection_get_session_id_length()
- * accessors functions.
+ * zero-ed out.
+ *
+ * Note: SSLv2 ClientHello messages follow a different structure than more modern
+ * ClientHello messages. See [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).
+ * In addition, due to how s2n-tls parses SSLv2 ClientHellos, the raw message is
+ * missing the first three bytes (the msg_type and version) and instead begins with
+ * the cipher_specs. To determine whether a ClientHello is an SSLv2 ClientHello,
+ * you will need to use s2n_connection_get_client_hello_version(). To get the
+ * protocol version advertised in the SSLv2 ClientHello (which may be higher
+ * than SSLv2), you will need to use s2n_connection_get_client_protocol_version().
  *
  * @param ch The Client Hello handle
  * @param out The destination buffer for the raw Client Hello
@@ -1350,6 +1354,11 @@ S2N_API extern ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_clie
 
 /**
  * Copies into the `out` buffer `max_length` bytes of the cipher_suites on the ClientHello.
+ *
+ * Note: SSLv2 ClientHello cipher suites follow a different structure than modern
+ * ClientHello messages. See [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2).
+ * To determine whether a ClientHello is an SSLv2 ClientHello,
+ * you will need to use s2n_connection_get_client_hello_version().
  *
  * @param ch The Client Hello handle
  * @param out The destination buffer for the raw Client Hello cipher suites

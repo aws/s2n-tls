@@ -22,6 +22,7 @@
 #include "error/s2n_errno.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_internal.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "utils/s2n_blob.h"

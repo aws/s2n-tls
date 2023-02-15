@@ -652,10 +652,24 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-/* See http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html 2.5 */
+/*
+ * s2n-tls does NOT support SSLv2. However, it does support SSLv2 ClientHellos.
+ * Clients may send SSLv2 ClientHellos advertising higher protocol versions for
+ * backwards compatibility reasons. See https://tools.ietf.org/rfc/rfc2246 Appendix E.
+ *
+ * In this case, conn->client_hello_version will be SSLv2, but conn->client_protocol_version
+ * will likely be higher.
+ *
+ * See http://www-archive.mozilla.org/projects/security/pki/nss/ssl/draft02.html Section 2.5
+ * for a description of the expected SSLv2 format.
+ * Alternatively, the TLS1.0 RFC includes a more modern description of the format:
+ * https://tools.ietf.org/rfc/rfc2246 Appendix E.1
+ */
 int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
 {
     struct s2n_client_hello *client_hello = &conn->client_hello;
+    client_hello->sslv2 = true;
+
     struct s2n_stuffer in_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));
     POSIX_GUARD(s2n_stuffer_skip_write(&in_stuffer, client_hello->raw_message.size));
@@ -713,7 +727,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     return 0;
 }
 
-static int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
+int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
         s2n_parsed_extensions_list *parsed_extension_list, s2n_parsed_extension **parsed_extension)
 {
     POSIX_ENSURE_REF(parsed_extension_list);

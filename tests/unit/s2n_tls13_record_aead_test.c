@@ -295,7 +295,8 @@ int main(int argc, char **argv)
         S2N_BLOB_LABEL(expect_plaintext, "Hello world");
 
         static uint8_t hello_data[] = "Hello world";
-        struct s2n_blob plaintext = { .data = hello_data, .size = sizeof(hello_data) - 1 };
+        struct s2n_blob plaintext = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&plaintext, hello_data, sizeof(hello_data) - 1));
 
         /* Takes an input blob and writes to out stuffer then encrypt the payload */
         EXPECT_OK(s2n_record_write(conn, TLS_HANDSHAKE, &plaintext));

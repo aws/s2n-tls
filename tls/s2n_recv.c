@@ -251,22 +251,3 @@ uint32_t s2n_peek(struct s2n_connection *conn)
 
     return s2n_stuffer_data_available(&conn->in);
 }
-
-int s2n_recv_close_notify(struct s2n_connection *conn, s2n_blocked_status *blocked)
-{
-    uint8_t record_type;
-    int isSSLv2;
-    *blocked = S2N_BLOCKED_ON_READ;
-
-    POSIX_GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
-
-    S2N_ERROR_IF(isSSLv2, S2N_ERR_BAD_MESSAGE);
-
-    S2N_ERROR_IF(record_type != TLS_ALERT, S2N_ERR_SHUTDOWN_RECORD_TYPE);
-
-    /* Only succeeds for an incoming close_notify alert */
-    POSIX_GUARD(s2n_process_alert_fragment(conn));
-
-    *blocked = S2N_NOT_BLOCKED;
-    return 0;
-}
