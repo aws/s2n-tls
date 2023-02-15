@@ -31,9 +31,9 @@ jobs:
             pkg_info
           run: |
             sysctl -n kern.version
-            .github/s2n_openbsd.sh
+            .github/s2n_bsd.sh
       - name: upload test results
-        if: always()
+        if: ${{ failure() }}
         uses: actions/upload-artifact@master
         with:
           name: all_test_output
