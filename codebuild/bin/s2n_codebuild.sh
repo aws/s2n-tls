@@ -109,7 +109,7 @@ run_unit_tests() {
             -DBUILD_SHARED_LIBS=on
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
-    cmake --build build/ --target test -- ARGS="-L unit --output-on-failure"
+    cmake --build build/ --target test -- ARGS="-L unit --output-on-failure -j $(nproc)"
 }
 
 # Run Multiple tests on one flag.
