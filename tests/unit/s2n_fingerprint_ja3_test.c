@@ -13,11 +13,11 @@
  * permissions and limitations under the License.
  */
 
+#include "api/unstable/fingerprint.h"
 #include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_sslv2_client_hello.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_fingerprint.h"
 #include "tls/s2n_tls.h"
 
 /* SSLv2 == 0x0200 == 512 */
