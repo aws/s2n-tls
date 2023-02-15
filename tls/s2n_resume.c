@@ -477,7 +477,7 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
         return 0;
     }
 
-    S2N_ERROR_IF(size > max_length, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
+    POSIX_ENSURE(size < max_length, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
 
     struct s2n_blob serialized_data = { 0 };
     POSIX_GUARD(s2n_blob_init(&serialized_data, session, len));
