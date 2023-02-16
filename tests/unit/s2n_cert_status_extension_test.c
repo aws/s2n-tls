@@ -209,8 +209,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
-            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
             uint32_t client_received_ocsp_response_len = 0;
             const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,
@@ -264,8 +264,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
-            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
             uint32_t client_received_ocsp_response_len = 0;
             const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,
@@ -319,8 +319,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
-            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
             uint32_t client_received_ocsp_response_len = 0;
             const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,
@@ -366,8 +366,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
-            EXPECT_TRUE(server_conn->actual_protocol_version == S2N_TLS13);
-            EXPECT_TRUE(client_conn->actual_protocol_version == S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
             uint32_t client_received_ocsp_response_len = 0;
             const uint8_t *client_received_ocsp_response = s2n_connection_get_ocsp_response(client_conn,

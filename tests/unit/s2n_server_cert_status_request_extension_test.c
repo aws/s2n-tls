@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_server_cert_status_request_extension.send(conn, &stuffer));
 
-        EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) == 0);
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
     }
 
     END_TEST();
