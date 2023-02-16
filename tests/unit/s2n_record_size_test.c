@@ -100,11 +100,16 @@ int main(int argc, char **argv)
         const int medium_payload = S2N_DEFAULT_FRAGMENT_LENGTH;
         struct s2n_blob fragment = r;
 
-        /* Check writing nothing. */
+        /* Check writing nothing.
+         *= https://tools.ietf.org/rfc/rfc8446#5.1
+         *= type=test
+         *# Zero-length
+         *# fragments of Application Data MAY be sent, as they are potentially
+         *# useful as a traffic analysis countermeasure.
+         */
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &e));
-        EXPECT_EQUAL(bytes_written, 0);
-        
+        EXPECT_OK(s2n_record_write(conn, TLS_APPLICATION_DATA, &e));
+
         /* Check the default: medium records */
         fragment.size = medium_payload;
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
@@ -137,9 +142,7 @@ int main(int argc, char **argv)
         struct s2n_blob simple_alert = {.data = simple_alert_data, .size = sizeof(simple_alert_data)};
         EXPECT_OK(s2n_connection_set_max_fragment_length(conn, 1));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
-        EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_ALERT, &simple_alert));
-        EXPECT_EQUAL(bytes_written, sizeof(simple_alert_data));
-
+        EXPECT_OK(s2n_record_write(conn, TLS_ALERT, &simple_alert));
 
         /* Clean up */
         conn->secure->cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */

@@ -580,7 +580,6 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     return data_bytes_to_take;
 }
 
-<<<<<<< HEAD
 /* s2n_record_write can handle zero length fragments, but that functionality isn't
  * in the public API
  *= https://tools.ietf.org/rfc/rfc8446#5.1
@@ -589,10 +588,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
  *# fragments of Application Data MAY be sent, as they are potentially
  *# useful as a traffic analysis countermeasure.
  */
-int s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
-=======
 S2N_RESULT s2n_record_write(struct s2n_connection *conn, uint8_t content_type, struct s2n_blob *in)
->>>>>>> main
 {
     struct iovec iov;
     iov.iov_base = in->data;

@@ -1498,30 +1498,15 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         }
 
         return S2N_SUCCESS;
-    } else if (record_type == TLS_ALERT) {
-        POSIX_GUARD(s2n_process_alert_fragment(conn));
-        
-        /* We're done with the record, wipe it */
-        POSIX_GUARD_RESULT(s2n_wipe_record(conn));
-        return S2N_SUCCESS;
     } else if (record_type != TLS_HANDSHAKE) {
+        if (record_type == TLS_ALERT) {
+            POSIX_GUARD(s2n_process_alert_fragment(conn));
+        }
+
+        /* Ignore record types that we don't support */
+
         /* We're done with the record, wipe it */
         POSIX_GUARD_RESULT(s2n_wipe_record(conn));
-        
-        if (IS_TLS13_HANDSHAKE(conn)) {
-            /*
-             *= https://tools.ietf.org/rfc/rfc8446#5.1
-             *= type=implication
-             *# Any future content types MUST specify appropriate
-             *# rules.
-             *
-             *= https://tools.ietf.org/rfc/rfc8446#5
-             *# If a TLS
-             *# implementation receives an unexpected record type, it MUST terminate
-             *# the connection with an "unexpected_message" alert.
-             */
-            POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
-        }
         return S2N_SUCCESS;
     }
 
@@ -1543,6 +1528,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             /* Don't wipe conn->handshake.io which contains a fragment of a handshake
              * message. Don't progress the state machine. We should end up here or in an
              * error case on the next call from s2n_handshake_io.
+            /* Break out of this inner loop, but since we're not changing the state, the
+             * outer loop in s2n_handshake_io() will read another record.
              */
             POSIX_GUARD_RESULT(s2n_wipe_record(conn));
             return S2N_SUCCESS;
