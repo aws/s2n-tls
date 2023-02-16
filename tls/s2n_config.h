@@ -101,6 +101,12 @@ struct s2n_config {
      */
     unsigned recv_multi_record : 1;
 
+    /* Indicates whether the user has enabled OCSP status requests */
+    unsigned ocsp_status_requested_by_user : 1;
+
+    /* Indicates whether s2n has enabled OCSP status requests, for backwards compatibility */
+    unsigned ocsp_status_requested_by_s2n : 1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
@@ -108,7 +114,6 @@ struct s2n_config {
     struct s2n_map *domain_name_to_cert_map;
     struct certs_by_type default_certs_by_type;
     struct s2n_blob application_protocols;
-    s2n_status_request_type status_request_type;
     s2n_clock_time_nanoseconds wall_clock;
     s2n_clock_time_nanoseconds monotonic_clock;
 
