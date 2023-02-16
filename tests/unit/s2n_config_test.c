@@ -48,6 +48,8 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
+
     const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
@@ -590,6 +592,115 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->crl_lookup_cb, NULL);
         EXPECT_EQUAL(config->crl_lookup_ctx, NULL);
     };
+
+    /* Test s2n_config_set_status_request_type */
+    for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+        s2n_mode mode = modes[mode_i];
+
+        if (!s2n_x509_ocsp_stapling_supported()) {
+            break;
+        }
+
+        /* request_ocsp_status should be false by default */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_FALSE(config->ocsp_status_requested_by_user);
+            EXPECT_FALSE(config->ocsp_status_requested_by_s2n);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_FALSE(conn->request_ocsp_status);
+        }
+
+        /* request_ocsp_status should be true if set via s2n_config_set_status_request_type */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(config, S2N_STATUS_REQUEST_OCSP));
+            EXPECT_TRUE(config->ocsp_status_requested_by_user);
+            EXPECT_FALSE(config->ocsp_status_requested_by_s2n);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_TRUE(conn->request_ocsp_status);
+        }
+
+        /* ocsp_status_requested_by_s2n can be set in s2n_config_set_verification_ca_location. For
+         * backwards compatibility, this should tell clients to request OCSP stapling. However, this
+         * API should not tell servers to request OCSP stapling.
+         */
+        for (int api_configuration_i = 0; api_configuration_i < 3; api_configuration_i++) {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            switch (api_configuration_i) {
+                case 0:
+                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+                    break;
+                case 1:
+                    /* If a user intentionally disables OCSP stapling, s2n_config_set_verification_ca_location
+                     * should not re-enable it for servers.
+                     */
+                    EXPECT_SUCCESS(s2n_config_set_status_request_type(config, S2N_STATUS_REQUEST_NONE));
+                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+                    break;
+                default:
+                    EXPECT_SUCCESS(s2n_config_set_status_request_type(config, S2N_STATUS_REQUEST_OCSP));
+                    EXPECT_SUCCESS(s2n_config_set_status_request_type(config, S2N_STATUS_REQUEST_NONE));
+                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+                    break;
+            }
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            if (mode == S2N_CLIENT) {
+                EXPECT_TRUE(conn->request_ocsp_status);
+            } else {
+                EXPECT_FALSE(conn->request_ocsp_status);
+            }
+        }
+
+        /* Calling s2n_config_set_status_request_type with S2N_STATUS_REQUEST_OCSP should enable OCSP
+         * status requests, regardless of s2n_config_set_verification_ca_location.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(config, S2N_STATUS_REQUEST_OCSP));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_TRUE(conn->request_ocsp_status);
+        }
+
+        /* Calling s2n_config_set_status_request_type with S2N_STATUS_REQUEST_NONE should disable OCSP
+         * status requests, regardless of s2n_config_set_verification_ca_location.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_set_status_request_type(config, S2N_STATUS_REQUEST_NONE));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(mode), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_FALSE(conn->request_ocsp_status);
+        }
+    }
 
     END_TEST();
 }

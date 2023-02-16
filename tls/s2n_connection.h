@@ -138,6 +138,9 @@ struct s2n_connection {
     unsigned ktls_send_enabled : 1;
     unsigned ktls_recv_enabled : 1;
 
+    /* Indicates whether the connection should request OCSP stapling from the peer */
+    unsigned request_ocsp_status : 1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 

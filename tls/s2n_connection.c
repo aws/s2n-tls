@@ -352,6 +352,19 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         conn->multirecord_send = true;
     }
 
+    /* Historically, calling s2n_config_set_verification_ca_location enabled OCSP stapling
+     * regardless of the value set by an application calling s2n_config_set_status_request_type.
+     * We maintain this behavior for backwards compatibility.
+     *
+     * However, the s2n_config_set_verification_ca_location behavior predates client authentication
+     * support for OCSP stapling, so could only affect whether clients requested OCSP stapling. We
+     * therefore only have to maintain the legacy behavior for clients, not servers.
+     */
+    conn->request_ocsp_status = config->ocsp_status_requested_by_user;
+    if (config->ocsp_status_requested_by_s2n && conn->mode == S2N_CLIENT) {
+        conn->request_ocsp_status = true;
+    }
+
     conn->config = config;
     return S2N_SUCCESS;
 }
