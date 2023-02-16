@@ -1361,7 +1361,6 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 
     int cert_count = sk_X509_num(cert_chain_validated);
 
-    /* Check to ensure cert_count is non-negative before casting */
     POSIX_ENSURE_GTE(cert_count, 0);
 
     for (size_t cert_idx = 0; cert_idx < (size_t) cert_count; cert_idx++) {
