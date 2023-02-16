@@ -776,8 +776,9 @@ static int s2n_parse_x509_extension(struct s2n_cert *cert, const uint8_t *oid,
      * X509_get_ext_count returns the number of extensions in the x509 certificate. 
      * Ref: https://www.openssl.org/docs/man1.1.0/man3/X509_get_ext_count.html.
      */
-    size_t ext_count = X509_get_ext_count(x509_cert);
-    POSIX_ENSURE_GT(ext_count, 0);
+    int ext_count_value = X509_get_ext_count(x509_cert);
+    POSIX_ENSURE_GT(ext_count_value, 0);
+    size_t ext_count = (size_t) ext_count_value;
 
     /* OBJ_txt2obj() converts the input text string into an ASN1_OBJECT structure.
      * If no_name is 0 then long names and short names will be interpreted as well as numerical forms.
