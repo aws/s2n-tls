@@ -84,7 +84,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
     } while (shutdown_rc != 0 && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time));
 
-    for (int i = 0; i < size; i++) {
+    for (size_t i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
             return 1;
         }

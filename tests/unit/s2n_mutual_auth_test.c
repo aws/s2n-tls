@@ -80,7 +80,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
-    for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
+    for (size_t cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         verify_data.callback_invoked = 0;
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
-    for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
+    for (size_t cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_NONE));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
-    for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
+    for (size_t cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
@@ -254,7 +254,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_NONE));
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
-    for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
+    for (size_t cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;

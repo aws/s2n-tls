@@ -199,7 +199,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_EQUAL(vm_data_initial, -1);
 
     /* Allocate all connections */
-    for (int i = 0; i < connectionsToUse; i++) {
+    for (size_t i = 0; i < connectionsToUse; i++) {
         struct s2n_connection *client_conn;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
     ssize_t vm_data_after_allocation = get_vm_data_size();
     EXPECT_NOT_EQUAL(vm_data_after_allocation, -1);
 
-    for (int i = 0; i < connectionsToUse; i++) {
+    for (size_t i = 0; i < connectionsToUse; i++) {
         EXPECT_SUCCESS(s2n_connections_set_io_pair(clients[i], servers[i], &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(servers[i], clients[i]));

@@ -39,7 +39,7 @@ int main(int argc, char **argv)
 
         /* Can retrieve a list for every id */
         {
-            for (int i = 0; i < S2N_EXTENSION_LIST_IDS_COUNT; i++) {
+            for (size_t i = 0; i < S2N_EXTENSION_LIST_IDS_COUNT; i++) {
                 list = NULL;
                 EXPECT_SUCCESS(s2n_extension_type_list_get(i, &list));
                 EXPECT_NOT_NULL(list);
