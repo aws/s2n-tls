@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_alloc(&entropy, 50));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&mirror, 50));
 
-    for (int i = entropy.blob.size; i > 0; i--) {
+    for (size_t i = entropy.blob.size; i > 0; i--) {
         EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&entropy));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&mirror));

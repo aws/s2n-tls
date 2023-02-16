@@ -482,7 +482,7 @@ int main(int argc, char **argv)
 
         conn->handshake.handshake_type = test_handshake_type;
 
-        for (int i = 0; i < sizeof(expected) / sizeof(char *); i++) {
+        for (size_t i = 0; i < sizeof(expected) / sizeof(char *); i++) {
             conn->handshake.message_number = i;
             EXPECT_STRING_EQUAL(expected[i], s2n_connection_get_last_message_name(conn));
         }
