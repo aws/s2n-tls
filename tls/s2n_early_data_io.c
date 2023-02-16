@@ -86,6 +86,8 @@ S2N_RESULT s2n_early_data_record_bytes(struct s2n_connection *conn, ssize_t data
     if (data_len < 0 || !s2n_is_early_data_io(conn)) {
         return S2N_RESULT_OK;
     }
+    /* Check to ensure data_len is non-negative */
+    RESULT_ENSURE_GTE(data_len, 0);
 
     /* Ensure the bytes read are within the bounds of what we can actually record. */
     if ((size_t) data_len > (UINT64_MAX - conn->early_data_bytes)) {

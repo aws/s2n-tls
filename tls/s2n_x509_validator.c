@@ -334,9 +334,9 @@ static S2N_RESULT s2n_verify_host_information_common_name(struct s2n_connection 
     *cn_found = true;
 
     char peer_cn[255] = { 0 };
-    uint32_t len = ASN1_STRING_length(common_name);
-
-    RESULT_ENSURE_GT(len, 0);
+    int cn_len = ASN1_STRING_length(common_name);
+    RESULT_ENSURE_GT(cn_len, 0);
+    uint32_t len = (uint32_t) cn_len;
     RESULT_ENSURE_LTE(len, s2n_array_len(peer_cn) - 1);
     RESULT_CHECKED_MEMCPY(peer_cn, ASN1_STRING_data(common_name), len);
     RESULT_ENSURE(conn->verify_host_fn(peer_cn, len, conn->data_for_verify_host), S2N_ERR_CERT_UNTRUSTED);
