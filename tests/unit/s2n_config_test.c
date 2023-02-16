@@ -13,18 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
+#include "tls/s2n_config.h"
+
 #include <stdlib.h>
+
+#include "api/s2n.h"
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "crypto/s2n_fips.h"
-
-#include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
-
 #include "unstable/npn.h"
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
@@ -34,6 +34,11 @@ static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, vo
 }
 
 static int s2n_test_reneg_req_cb(struct s2n_connection *conn, void *context, s2n_renegotiate_response *response)
+{
+    return S2N_SUCCESS;
+}
+
+static int s2n_test_crl_lookup_cb(struct s2n_crl_lookup *lookup, void *context)
 {
     return S2N_SUCCESS;
 }
@@ -74,7 +79,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Connections created with default configs */
     {
@@ -106,7 +111,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        }
+        };
 
         /* For fips */
         if (s2n_is_in_fips_mode()) {
@@ -122,7 +127,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
-    }
+    };
 
     /* Test for s2n_config_new() and tls 1.3 behavior */
     {
@@ -146,7 +151,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
-    }
+    };
 
     /* Test setting the callback to select PSK identity */
     {
@@ -156,7 +161,8 @@ int main(int argc, char **argv)
 
         /* Safety check */
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_psk_selection_callback(
-                NULL, s2n_test_select_psk_identity_callback, &context), S2N_ERR_NULL);
+                                          NULL, s2n_test_select_psk_identity_callback, &context),
+                S2N_ERR_NULL);
         EXPECT_NULL(config->psk_selection_cb);
         EXPECT_NULL(config->psk_selection_ctx);
 
@@ -169,7 +175,7 @@ int main(int argc, char **argv)
         EXPECT_NULL(config->psk_selection_ctx);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /*Test s2n_connection_set_config */
     {
@@ -191,7 +197,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test that PSK type is set correctly */
         {
@@ -209,7 +215,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_RESUMPTION);
                 EXPECT_FALSE(conn->psk_mode_overridden);
-            }
+            };
 
             /* Does not override connection value if conn->override_psk_mode set */
             {
@@ -220,7 +226,7 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
                 EXPECT_TRUE(conn->psk_mode_overridden);
                 conn->psk_mode_overridden = false;
-            }
+            };
 
             /* Does not override connection value if PSKs already set */
             {
@@ -231,12 +237,12 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 EXPECT_EQUAL(conn->psk_params.type, S2N_PSK_TYPE_EXTERNAL);
                 EXPECT_FALSE(conn->psk_mode_overridden);
-            }
+            };
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
+        };
+    };
 
     /* s2n_config_set_session_tickets_onoff */
     {
@@ -261,7 +267,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->initial_tickets_to_send, 10);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* s2n_config_set_context */
     /* s2n_config_get_context */
@@ -280,11 +286,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_get_ctx(config, &returned_context));
         EXPECT_NOT_NULL(returned_context);
 
-        EXPECT_EQUAL(*((uint8_t *)returned_context), context);
-        EXPECT_NOT_EQUAL(*((uint8_t *)returned_context), other);
+        EXPECT_EQUAL(*((uint8_t *) returned_context), context);
+        EXPECT_NOT_EQUAL(*((uint8_t *) returned_context), other);
 
         EXPECT_SUCCESS(s2n_config_free(config));
-    }
+    };
 
     /* Test s2n_config_set_extension_data */
     {
@@ -299,7 +305,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_extension_data(config, S2N_EXTENSION_OCSP_STAPLING,
                     extension_data, sizeof(extension_data)));
             EXPECT_EQUAL(s2n_config_get_single_default_cert(config)->ocsp_status.size, sizeof(extension_data));
-        }
+        };
 
         /* Test s2n_config_set_extension_data can't be called for unowned cert chains */
         {
@@ -313,11 +319,12 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(s2n_config_get_single_default_cert(config));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_extension_data(config, S2N_EXTENSION_OCSP_STAPLING,
-                    extension_data, sizeof(extension_data)), S2N_ERR_CERT_OWNERSHIP);
+                                              extension_data, sizeof(extension_data)),
+                    S2N_ERR_CERT_OWNERSHIP);
             EXPECT_EQUAL(s2n_config_get_single_default_cert(config)->ocsp_status.size, 0);
             EXPECT_EQUAL(chain->ocsp_status.size, 0);
-        }
-    }
+        };
+    };
 
     /* Test s2n_config_free_cert_chain_and_key */
     {
@@ -341,7 +348,7 @@ int main(int argc, char **argv)
             /* Still no-op if called again */
             EXPECT_SUCCESS(s2n_config_free_cert_chain_and_key(config));
             EXPECT_NOT_NULL(s2n_config_get_single_default_cert(config));
-        }
+        };
 
         /* Chain owned by application and freed too early:
          * This is arguably incorrect behavior, but did not cause errors in the past.
@@ -369,7 +376,7 @@ int main(int argc, char **argv)
             /* No-op if called again */
             EXPECT_SUCCESS(s2n_config_free_cert_chain_and_key(config));
             EXPECT_NOT_NULL(s2n_config_get_single_default_cert(config));
-        }
+        };
 
         /* Chain owned by library */
         {
@@ -386,7 +393,7 @@ int main(int argc, char **argv)
             /* No-op if called again */
             EXPECT_SUCCESS(s2n_config_free_cert_chain_and_key(config));
             EXPECT_NULL(s2n_config_get_single_default_cert(config));
-        }
+        };
 
         /* Switch from library-owned certs to application-owned certs */
         {
@@ -407,8 +414,8 @@ int main(int argc, char **argv)
             /* Now add an application-owned chain */
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain));
             EXPECT_SUCCESS(s2n_config_free_cert_chain_and_key(config));
-        }
-    }
+        };
+    };
 
     /* Test s2n_config_set_cert_chain_and_key_defaults */
     {
@@ -431,7 +438,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(config, &chain_2, 1));
             EXPECT_EQUAL(s2n_config_get_single_default_cert(config), chain_2);
             EXPECT_EQUAL(config->cert_ownership, S2N_APP_OWNED);
-        }
+        };
 
         /* Fails if chains owned by library */
         {
@@ -446,24 +453,23 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(config->cert_ownership, S2N_LIB_OWNED);
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cert_chain_and_key_defaults(
-                    config, &chain, 1), S2N_ERR_CERT_OWNERSHIP);
-        }
-    }
+                                              config, &chain, 1),
+                    S2N_ERR_CERT_OWNERSHIP);
+        };
+    };
 
     /* Test s2n_config_set_send_buffer_size */
     {
-        const uint32_t min_size = S2N_TLS_MAX_RECORD_LEN_FOR(1);
-
         /* Safety */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
 
             EXPECT_EQUAL(config->send_buffer_size_override, 0);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(NULL, min_size), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(NULL, S2N_MIN_SEND_BUFFER_SIZE), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(config, 0), S2N_ERR_INVALID_ARGUMENT);
             EXPECT_EQUAL(config->send_buffer_size_override, 0);
-        }
+        };
 
         /* Default applied to connection */
         {
@@ -476,22 +482,22 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(config->send_buffer_size_override, 0);
             EXPECT_FALSE(conn->multirecord_send);
-        }
+        };
 
         /* Custom applied to connection */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, min_size));
+            EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, S2N_MIN_SEND_BUFFER_SIZE));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_EQUAL(config->send_buffer_size_override, min_size);
+            EXPECT_EQUAL(config->send_buffer_size_override, S2N_MIN_SEND_BUFFER_SIZE);
             EXPECT_TRUE(conn->multirecord_send);
-        }
-    }
+        };
+    };
 
     /* Test s2n_config_set_verify_after_sign */
     {
@@ -515,7 +521,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(config->verify_after_sign);
         EXPECT_SUCCESS(s2n_config_set_verify_after_sign(config, S2N_VERIFY_AFTER_SIGN_DISABLED));
         EXPECT_FALSE(config->verify_after_sign);
-    }
+    };
 
     /* Test s2n_config_set_renegotiate_request_cb */
     {
@@ -541,9 +547,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, NULL, NULL));
         EXPECT_EQUAL(config->renegotiate_request_cb, NULL);
         EXPECT_EQUAL(config->renegotiate_request_ctx, NULL);
-    }
+    };
 
-     /* Test s2n_config_set_npn */
+    /* Test s2n_config_set_npn */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
@@ -557,7 +563,33 @@ int main(int argc, char **argv)
         EXPECT_TRUE(config->npn_supported);
         EXPECT_SUCCESS(s2n_config_set_npn(config, false));
         EXPECT_FALSE(config->npn_supported);
-    }
+    };
+
+    /* Test s2n_config_set_crl_lookup_cb */
+    {
+        uint8_t context = 0;
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        /* Unset by default */
+        EXPECT_EQUAL(config->crl_lookup_cb, NULL);
+        EXPECT_EQUAL(config->crl_lookup_ctx, NULL);
+
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_crl_lookup_cb(NULL, s2n_test_crl_lookup_cb, &context), S2N_ERR_NULL);
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, NULL, &context));
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, s2n_test_crl_lookup_cb, NULL));
+
+        /* Set */
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, s2n_test_crl_lookup_cb, &context));
+        EXPECT_EQUAL(config->crl_lookup_cb, s2n_test_crl_lookup_cb);
+        EXPECT_EQUAL(config->crl_lookup_ctx, &context);
+
+        /* Unset */
+        EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, NULL, NULL));
+        EXPECT_EQUAL(config->crl_lookup_cb, NULL);
+        EXPECT_EQUAL(config->crl_lookup_ctx, NULL);
+    };
 
     END_TEST();
 }

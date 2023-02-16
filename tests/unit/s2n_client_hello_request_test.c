@@ -15,13 +15,12 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/s2n_tls.h"
 
 static const uint8_t hello_request_msg[] = {
     /* message header */
-    TLS_HELLO_REQUEST,    /* msg_type = hello_request */
-    0, 0, 0,              /* length = 0 */
+    TLS_HELLO_REQUEST, /* msg_type = hello_request */
+    0, 0, 0,           /* length = 0 */
     /* empty message body */
 };
 
@@ -56,7 +55,7 @@ static S2N_RESULT s2n_send_client_hello_request(struct s2n_connection *server_co
 
     /* Send */
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    RESULT_GUARD_POSIX(s2n_record_write(server_conn, TLS_HANDSHAKE, &message_blob));
+    RESULT_GUARD(s2n_record_write(server_conn, TLS_HANDSHAKE, &message_blob));
     RESULT_GUARD_POSIX(s2n_flush(server_conn, &blocked));
 
     /* Cleanup */
@@ -137,7 +136,7 @@ int main(int argc, char **argv)
 
         /* Successfully complete the handshake */
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-    }
+    };
 
     /* Test: Hello requests received during the handshake are an error for TLS1.3 */
     if (s2n_is_tls13_fully_supported()) {
@@ -227,7 +226,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(client_conn->closing);
             EXPECT_FALSE(client_conn->closed);
         }
-    }
+    };
 
     /* Test: Hello requests received after the handshake do NOT trigger a no_renegotiation alert
      * if renegotiation callbacks not set.
@@ -318,7 +317,7 @@ int main(int argc, char **argv)
         /* Callback triggered */
         EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
         EXPECT_EQUAL(ctx.call_count, 1);
-    }
+    };
 
     /* Test: Hello requests received after the handshake do not trigger a no_renegotiation alert
      * if the application accepts the renegotiation request
@@ -494,7 +493,7 @@ int main(int argc, char **argv)
          * so we need to set it to S2N_ERR_CANCELED for them.
          */
         EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(server_conn, client_conn), S2N_ERR_CANCELLED);
-    }
+    };
 
     /* Test: SSLv3 sends a fatal handshake_failure alert instead of no_renegotiate
      *

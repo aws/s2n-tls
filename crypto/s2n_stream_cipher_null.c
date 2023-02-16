@@ -13,12 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include "error/s2n_errno.h"
-
 #include "crypto/s2n_cipher.h"
-
-#include "utils/s2n_safety.h"
+#include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 static uint8_t s2n_stream_cipher_null_available()
 {
@@ -50,12 +48,12 @@ static int s2n_stream_cipher_null_init(struct s2n_session_key *key)
     return 0;
 }
 
-struct s2n_cipher s2n_null_cipher = {
+const struct s2n_cipher s2n_null_cipher = {
     .type = S2N_STREAM,
     .key_material_size = 0,
     .io.stream = {
-                  .decrypt = s2n_stream_cipher_null_endecrypt,
-                  .encrypt = s2n_stream_cipher_null_endecrypt},
+            .decrypt = s2n_stream_cipher_null_endecrypt,
+            .encrypt = s2n_stream_cipher_null_endecrypt },
     .is_available = s2n_stream_cipher_null_available,
     .init = s2n_stream_cipher_null_init,
     .set_encryption_key = s2n_stream_cipher_null_get_key,

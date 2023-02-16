@@ -15,13 +15,11 @@
 
 #pragma once
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
-#include "stuffer/s2n_stuffer.h"
 
 extern const s2n_extension_type s2n_server_renegotiation_info_extension;
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
 int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);
-int s2n_send_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn);

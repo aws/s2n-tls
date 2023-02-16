@@ -1,8 +1,11 @@
+import os
 import pytest
 import threading
 
-from common import ProviderOptions, Ciphers, Curves, Protocols, Certificates, Signatures
+from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
+from global_flags import S2N_USE_CRITERION
+from stat import S_IMODE
 
 
 TLS_13_LIBCRYPTOS = {
@@ -47,9 +50,9 @@ class Provider(object):
 
         self.options = options
         if self.options.mode == Provider.ServerMode:
-            self.cmd_line = self.setup_server()
+            self.cmd_line = self.setup_server()  # lgtm [py/init-calls-subclass]
         elif self.options.mode == Provider.ClientMode:
-            self.cmd_line = self.setup_client()
+            self.cmd_line = self.setup_client()  # lgtm [py/init-calls-subclass]
 
     def setup_client(self):
         """
@@ -141,7 +144,7 @@ class S2N(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.send_with_newline = True
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -308,14 +311,99 @@ class S2N(Provider):
         return cmd_line
 
 
-class OpenSSL(Provider):
+class CriterionS2N(S2N):
+    """
+    Wrap the S2N provider in criterion-rust
+    The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary 
+    and moves the s2nc/d command line arguments into an environment variable.  The binary created by 
+    `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds 
+    and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables 
+    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning 
+    s2nc/d as subprocesses. 
+    """
+    criterion_off = 'off'
+    criterion_delta = 'delta'
+    criterion_baseline = 'baseline'
+    # Figure out what mode to run in: baseline or delta
+    criterion_mode = get_flag(S2N_USE_CRITERION)
 
+    def _find_s2n_benchmark(self, pattern):
+        # Use executable bit to find the correct file.
+        result = find_files(pattern, root_dir=self.cargo_root, modes=['0o775', '0o755'])
+        if len(result) != 1:
+            raise FileNotFoundError(
+                f"Exactly one s2n criterion benchmark not found. Found {result}.")
+        else:
+            return result[0]
+
+    def _find_cargo(self):
+        return os.path.abspath("../../bindings/rust")
+
+    def _cargo_bench(self):
+        """
+        Find the handlers
+        """
+        self.s2nc_bench = self._find_s2n_benchmark("s2nc-")
+        self.s2nd_bench = self._find_s2n_benchmark("s2nd-")
+
+    def __init__(self, options: ProviderOptions):
+        super().__init__(options)
+        # Set cargo root
+        self.cargo_root = self._find_cargo()
+
+        # Find the criterion binaries
+        self._cargo_bench()
+
+        # strip off the s2nc/d at the front because criterion
+        if 's2nc' in self.cmd_line[0] or 's2nd' in self.cmd_line[0]:
+            self.cmd_line = self.cmd_line[1:]
+
+        # strip off the s2nc -e argument, criterion handler isn't sending any STDIN characters,
+        # and makes it look like s2nc is hanging.
+        # WARNING: this is a blocker for any test that requires STDIN.
+        if '-e' in self.cmd_line:
+            self.cmd_line.remove('-e')
+            print(f"***** cmd_line is now {self.cmd_line}")
+
+        # Copy the command arguments to an environment variable for the harness to read.
+        if self.options.mode == Provider.ServerMode:
+            self.options.env_overrides.update(
+                {'S2ND_ARGS': ' '.join(self.cmd_line),
+                 'S2ND_TEST_NAME': f"{self.options.cipher}_{self.options.host}"})
+            self.capture_server_args()
+        elif self.options.mode == Provider.ClientMode:
+            self.options.env_overrides.update(
+                {'S2NC_ARGS': ' '.join(self.cmd_line),
+                 'S2NC_TEST_NAME': f"{self.options.cipher}_{self.options.host}"})
+            if self.criterion_mode == CriterionS2N.criterion_baseline:
+                self.capture_client_args_baseline()
+            if self.criterion_mode == CriterionS2N.criterion_delta:
+                self.capture_client_args_delta()
+
+    def capture_server_args(self):
+        self.cmd_line = [self.s2nd_bench, "--bench",
+                         "s2nd", "--save-baseline", "main"]
+
+    # Saves baseline data with the tag "main"
+    # see https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
+    def capture_client_args_baseline(self):
+        self.cmd_line = [self.s2nc_bench, "--bench",
+                         "s2nc", "--save-baseline", "main"]
+
+    # "By default, Criterion.rs will compare the measurements against the previous run"
+    # This run is stored with the tag "new"
+    # https://bheisler.github.io/criterion.rs/book/user_guide/command_line_options.html
+    def capture_client_args_delta(self):
+        self.cmd_line = [self.s2nc_bench, "--bench", "s2nc", "--plotting-backend", "plotters", "--baseline", "main"]
+
+
+class OpenSSL(Provider):
     _version = get_flag(S2N_PROVIDER_VERSION)
 
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
-        self.expect_stderr = True
+        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
 
     @classmethod
     def get_send_marker(cls):
@@ -395,7 +483,10 @@ class OpenSSL(Provider):
             ['-connect', '{}:{}'.format(self.options.host, self.options.port)])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
+        if self.options.verbose:
+            cmd_line.append('-debug')
+
+        cmd_line.extend(['-tlsextdebug', '-state'])
 
         if self.options.key is not None:
             cmd_line.extend(['-key', self.options.key])
@@ -465,7 +556,10 @@ class OpenSSL(Provider):
             cmd_line.extend(['-naccept', '1'])
 
         # Additional debugging that will be captured incase of failure
-        cmd_line.extend(['-debug', '-tlsextdebug', '-state'])
+        if self.options.verbose:
+            cmd_line.append('-debug')
+
+        cmd_line.extend(['-tlsextdebug', '-state'])
 
         if self.options.cert is not None:
             cmd_line.extend(['-cert', self.options.cert])
@@ -509,7 +603,7 @@ class OpenSSL(Provider):
 
 class JavaSSL(Provider):
     """
-    NOTE: Only a Java SSL client has been set up. The server has not been 
+    NOTE: Only a Java SSL client has been set up. The server has not been
     implemented yet.
     """
 
@@ -617,8 +711,8 @@ class GnuTLS(Provider):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
 
-        self.expect_stderr = True
-        self.send_with_newline = True
+        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
+        self.send_with_newline = True  # lgtm [py/overwritten-inherited-attribute]
 
     @staticmethod
     def cipher_to_priority_str(cipher):
@@ -688,27 +782,27 @@ class GnuTLS(Provider):
     def create_priority_str(self):
         priority_str = "NONE"
 
-        if self.options.protocol:
-            priority_str += ":+" + \
-                self.protocol_to_priority_str(self.options.protocol)
+        protocol_to_priority_str = self.protocol_to_priority_str(self.options.protocol)
+        if protocol_to_priority_str:
+            priority_str += ":+" + protocol_to_priority_str
         else:
             priority_str += ":+VERS-ALL"
 
-        if self.options.cipher:
-            priority_str += ":+" + \
-                self.cipher_to_priority_str(self.options.cipher)
+        cipher_to_priority_str = self.cipher_to_priority_str(self.options.cipher)
+        if cipher_to_priority_str:
+            priority_str += ":+" + cipher_to_priority_str
         else:
             priority_str += ":+KX-ALL:+CIPHER-ALL:+MAC-ALL"
 
-        if self.options.curve:
-            priority_str += ":+" + \
-                self.curve_to_priority_str(self.options.curve)
+        curve_to_priority_str = self.curve_to_priority_str(self.options.curve)
+        if curve_to_priority_str:
+            priority_str += ":+" + curve_to_priority_str
         else:
             priority_str += ":+GROUP-ALL"
 
-        if self.options.signature_algorithm:
-            priority_str += ":+" + \
-                self.sigalg_to_priority_str(self.options.signature_algorithm)
+        sigalg_to_priority_str = self.sigalg_to_priority_str(self.options.signature_algorithm)
+        if sigalg_to_priority_str:
+            priority_str += ":+" + sigalg_to_priority_str
         else:
             priority_str += ":+SIGN-ALL"
 
@@ -730,9 +824,11 @@ class GnuTLS(Provider):
             "gnutls-cli",
             "--port", str(self.options.port),
             self.options.host,
-            "--debug", "9999",
-            "--verbose"
+            "--debug", "9999"
         ]
+
+        if self.options.verbose:
+            cmd_line.append("--verbose")
 
         if self.options.cert and self.options.key:
             cmd_line.extend(["--x509certfile", self.options.cert])
@@ -799,3 +895,29 @@ class GnuTLS(Provider):
     @classmethod
     def supports_signature(cls, signature):
         return GnuTLS.sigalg_to_priority_str(signature) is not None
+
+
+def find_files(file_glob, root_dir=".", modes=[]):
+    """
+    find util in python form.
+    file_glob: a snippet of the filename, e.g. ".py"
+    root_dir: starting point for search
+    mode is an octal representation of owner/group/other, e.g.: '0o644'
+    """
+    result = []
+    for root, dirs, files in os.walk(root_dir):
+        for file in files:
+            if file_glob in file:
+                full_name = os.path.abspath(os.path.join(root, file))
+                if len(modes) != 0:
+                    try:
+                        stat = oct(S_IMODE(os.stat(full_name).st_mode))
+                        if stat in modes:
+                            result.append(full_name)
+                    except FileNotFoundError:
+                        # symlinks
+                        pass
+                else:
+                    result.append(full_name)
+
+    return result

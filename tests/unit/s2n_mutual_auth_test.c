@@ -13,18 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "api/s2n.h"
-
 #include <stdlib.h>
 
-#include "testlib/s2n_testlib.h"
-
+#include "api/s2n.h"
 #include "crypto/s2n_fips.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_cipher_suites.h"
 #include "utils/s2n_safety.h"
 
 struct host_verify_data {
@@ -32,7 +30,8 @@ struct host_verify_data {
     uint8_t allow;
 };
 
-static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void *data) {
+static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void *data)
+{
     struct host_verify_data *verify_data = (struct host_verify_data *) data;
     verify_data->callback_invoked = 1;
     return verify_data->allow;
@@ -76,10 +75,9 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(default_security_policy = config->security_policy);
     EXPECT_NOT_NULL(default_cipher_preferences = default_security_policy->cipher_preferences);
 
-    struct host_verify_data verify_data = {.allow = 1, .callback_invoked = 0};
+    struct host_verify_data verify_data = { .allow = 1, .callback_invoked = 0 };
     EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config, verify_host_fn, &verify_data));
     EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-
 
     /* Verify that a handshake succeeds for every cipher in the default list. */
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
@@ -88,8 +86,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -105,7 +103,7 @@ int main(int argc, char **argv)
 
         EXPECT_MEMCPY_SUCCESS(&server_security_policy, default_security_policy, sizeof(server_security_policy));
         server_security_policy.cipher_preferences = &server_cipher_preferences;
-        
+
         config->security_policy = &server_security_policy;
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -147,8 +145,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -189,7 +187,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
     }
 
-
     /*
      * Test Mutual Auth using connection override of **s2n_config_set_client_auth_type**
      */
@@ -202,8 +199,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -216,10 +213,10 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        
+
         EXPECT_MEMCPY_SUCCESS(&server_security_policy, default_security_policy, sizeof(server_security_policy));
         server_security_policy.cipher_preferences = &server_cipher_preferences;
-        
+
         config->security_policy = &server_security_policy;
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -262,8 +259,8 @@ int main(int argc, char **argv)
         struct s2n_security_policy server_security_policy;
         struct s2n_connection *client_conn;
         struct s2n_connection *server_conn;
-        struct s2n_stuffer client_to_server;
-        struct s2n_stuffer server_to_client;
+        struct s2n_stuffer client_to_server = { 0 };
+        struct s2n_stuffer server_to_client = { 0 };
 
         /* Craft a cipher preference with a cipher_idx cipher */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));

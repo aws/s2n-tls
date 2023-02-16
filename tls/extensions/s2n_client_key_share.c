@@ -14,15 +14,15 @@
  */
 
 #include "tls/extensions/s2n_client_key_share.h"
-#include "tls/extensions/s2n_key_share.h"
-#include "tls/s2n_security_policies.h"
-#include "tls/s2n_kem_preferences.h"
 
 #include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_safety.h"
-#include "tls/s2n_tls13.h"
 #include "pq-crypto/s2n_pq.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_key_share.h"
+#include "tls/s2n_kem_preferences.h"
+#include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls13.h"
+#include "utils/s2n_safety.h"
 
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.8
@@ -120,7 +120,7 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
      * || PQ key share (variable bytes) */
     POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_group->iana_id));
 
-    struct s2n_stuffer_reservation total_share_size = {0};
+    struct s2n_stuffer_reservation total_share_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &total_share_size));
 
     struct s2n_ecc_evp_params *ecc_params = &kem_group_params->ecc_params;
@@ -199,7 +199,7 @@ static int s2n_client_key_share_send(struct s2n_connection *conn, struct s2n_stu
         POSIX_ENSURE(server_curve != client_curve || server_group != client_group, S2N_ERR_BAD_KEY_SHARE);
     }
 
-    struct s2n_stuffer_reservation shares_size = {0};
+    struct s2n_stuffer_reservation shares_size = { 0 };
     POSIX_GUARD(s2n_stuffer_reserve_uint16(out, &shares_size));
     POSIX_GUARD(s2n_generate_default_pq_hybrid_key_share(conn, out));
     POSIX_GUARD(s2n_generate_default_ecc_key_share(conn, out));
@@ -401,13 +401,13 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     struct s2n_stuffer key_share = { 0 };
 
     uint16_t keyshare_count = 0;
-    while(s2n_stuffer_data_available(extension) > 0) {
+    while (s2n_stuffer_data_available(extension) > 0) {
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &named_group));
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &share_size));
         POSIX_ENSURE(s2n_stuffer_data_available(extension) >= share_size, S2N_ERR_BAD_MESSAGE);
 
         POSIX_GUARD(s2n_blob_init(&key_share_blob,
-            s2n_stuffer_raw_read(extension, share_size), share_size));
+                s2n_stuffer_raw_read(extension, share_size), share_size));
         POSIX_GUARD(s2n_stuffer_init(&key_share, &key_share_blob));
         POSIX_GUARD(s2n_stuffer_skip_write(&key_share, share_size));
         keyshare_count++;
@@ -457,11 +457,6 @@ uint32_t s2n_extensions_client_key_share_size(struct s2n_connection *conn)
     s2n_client_key_share_extension_size += ecc_pref->ecc_curves[0]->share_size;
 
     return s2n_client_key_share_extension_size;
-}
-
-int s2n_extensions_client_key_share_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_key_share_extension, conn, out);
 }
 
 int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)

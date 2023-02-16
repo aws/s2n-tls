@@ -15,9 +15,8 @@
 
 #pragma once
 
-#include <stdint.h>
-
 #include <openssl/x509.h>
+#include <stdint.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_pkey.h"

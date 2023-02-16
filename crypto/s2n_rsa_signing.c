@@ -13,43 +13,41 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_rsa_signing.h"
+
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 
-#include "error/s2n_errno.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include "crypto/s2n_hash.h"
-#include "crypto/s2n_rsa_pss.h"
-#include "crypto/s2n_rsa_signing.h"
 #include "crypto/s2n_pkey.h"
-
+#include "crypto/s2n_rsa_pss.h"
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
 static int s2n_hash_alg_to_NID[] = {
     [S2N_HASH_MD5_SHA1] = NID_md5_sha1,
-    [S2N_HASH_SHA1]     = NID_sha1,
-    [S2N_HASH_SHA224]   = NID_sha224,
-    [S2N_HASH_SHA256]   = NID_sha256,
-    [S2N_HASH_SHA384]   = NID_sha384,
-    [S2N_HASH_SHA512]   = NID_sha512
+    [S2N_HASH_SHA1] = NID_sha1,
+    [S2N_HASH_SHA224] = NID_sha224,
+    [S2N_HASH_SHA256] = NID_sha256,
+    [S2N_HASH_SHA384] = NID_sha384,
+    [S2N_HASH_SHA512] = NID_sha512
 };
 
 int s2n_hash_NID_type(s2n_hash_algorithm alg, int *out)
 {
-    switch(alg) {
-    case S2N_HASH_MD5_SHA1:
-    case S2N_HASH_SHA1:
-    case S2N_HASH_SHA224:
-    case S2N_HASH_SHA256:
-    case S2N_HASH_SHA384:
-    case S2N_HASH_SHA512:
-        *out = s2n_hash_alg_to_NID[alg];
-        break;
-    default:
-        POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
+    switch (alg) {
+        case S2N_HASH_MD5_SHA1:
+        case S2N_HASH_SHA1:
+        case S2N_HASH_SHA224:
+        case S2N_HASH_SHA256:
+        case S2N_HASH_SHA384:
+        case S2N_HASH_SHA512:
+            *out = s2n_hash_alg_to_NID[alg];
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_HASH_INVALID_ALGORITHM);
     }
     return 0;
 }
@@ -70,7 +68,8 @@ int s2n_rsa_pkcs1v15_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm
 
     /* Safety: RSA_sign does not mutate the key */
     POSIX_GUARD_OSSL(RSA_sign(NID_type, digest->data, digest->size, signature->data, &signature_size,
-                s2n_unsafe_rsa_get_non_const(rsa_key)), S2N_ERR_SIGN);
+                             s2n_unsafe_rsa_get_non_const(rsa_key)),
+            S2N_ERR_SIGN);
     POSIX_ENSURE(signature_size <= signature->size, S2N_ERR_SIZE_MISMATCH);
     signature->size = signature_size;
 
@@ -110,7 +109,8 @@ int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
 
     /* Safety: RSA_verify does not mutate the key */
     POSIX_GUARD_OSSL(RSA_verify(digest_NID_type, digest_out, digest_length, signature->data, signature->size,
-                s2n_unsafe_rsa_get_non_const(rsa_key)), S2N_ERR_VERIFY_SIGNATURE);
+                             s2n_unsafe_rsa_get_non_const(rsa_key)),
+            S2N_ERR_VERIFY_SIGNATURE);
 
     return 0;
 }
@@ -123,10 +123,10 @@ int s2n_is_rsa_pss_signing_supported()
 
 #if RSA_PSS_SIGNING_SUPPORTED
 
-static int s2n_evp_pkey_ctx_set_rsa_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD* digest_alg)
+static int s2n_evp_pkey_ctx_set_rsa_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD *digest_alg)
 {
     POSIX_GUARD_OSSL(S2N_EVP_PKEY_CTX_set_signature_md(ctx, digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, (EVP_MD*) (uintptr_t) digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_mgf1_md(ctx, (EVP_MD *) (uintptr_t) digest_alg), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     return 0;
 }
 
@@ -142,11 +142,11 @@ int s2n_rsa_pss_sign_digest(const struct s2n_pkey *priv, s2n_hash_algorithm hash
     POSIX_ENSURE_REF(digest_in);
     POSIX_ENSURE_REF(signature_out);
 
-    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_md(hash_alg);
+    const EVP_MD *digest_alg = s2n_hash_alg_to_evp_md(hash_alg);
     POSIX_ENSURE_REF(digest_alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_sign.html */
-    DEFER_CLEANUP(EVP_PKEY_CTX *ctx  = EVP_PKEY_CTX_new(priv->pkey, NULL), s2n_evp_pkey_ctx_free);
+    DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(priv->pkey, NULL), s2n_evp_pkey_ctx_free);
     POSIX_ENSURE_REF(ctx);
 
     size_t signature_len = signature_out->size;
@@ -190,7 +190,7 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     uint8_t digest_data[S2N_MAX_DIGEST_LEN];
     POSIX_GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     POSIX_GUARD(s2n_hash_digest(digest, digest_data, digest_length));
-    const EVP_MD* digest_alg = s2n_hash_alg_to_evp_md(digest->alg);
+    const EVP_MD *digest_alg = s2n_hash_alg_to_evp_md(digest->alg);
     POSIX_ENSURE_REF(digest_alg);
 
     /* For more info see: https://www.openssl.org/docs/manmaster/man3/EVP_PKEY_verify.html */
@@ -203,7 +203,8 @@ int s2n_rsa_pss_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest
     POSIX_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(ctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_VERIFY_SIGNATURE);
 
     POSIX_GUARD_OSSL(EVP_PKEY_verify(ctx, signature_in->data, signature_in->size,
-            digest_data, digest_length), S2N_ERR_VERIFY_SIGNATURE);
+                             digest_data, digest_length),
+            S2N_ERR_VERIFY_SIGNATURE);
     return S2N_SUCCESS;
 }
 

@@ -15,21 +15,19 @@
 
 #pragma once
 
-#include "tls/s2n_config.h"
-#include "tls/s2n_signature_scheme.h"
-#include "tls/s2n_crypto_constants.h"
-#include "tls/s2n_kem.h"
-#include "tls/s2n_tls13_secrets.h"
-
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
-#include "crypto/s2n_hmac.h"
+#include "crypto/s2n_dhe.h"
+#include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_signature.h"
 #include "crypto/s2n_tls13_keys.h"
-#include "crypto/s2n_dhe.h"
-#include "crypto/s2n_ecc_evp.h"
+#include "tls/s2n_crypto_constants.h"
+#include "tls/s2n_kem.h"
+#include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_tls13_secrets.h"
 
 struct s2n_kex_parameters {
     struct s2n_dh_params server_dh_params;

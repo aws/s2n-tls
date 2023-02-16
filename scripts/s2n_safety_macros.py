@@ -27,6 +27,8 @@ header = copyright + """
  * should be in there.
  */
 
+/* clang-format off */
+
 #include "error/s2n_errno.h"
 #include "utils/s2n_ensure.h"
 #include "utils/s2n_result.h"
@@ -43,7 +45,7 @@ header = copyright + """
 
 POSIX = dict(
     name = "POSIX",
-    is_ok = "(result) >= S2N_SUCCESS",
+    is_ok = "(result) > S2N_FAILURE",
     ok = "S2N_SUCCESS",
     error = "S2N_FAILURE",
     ret = "int",
@@ -737,13 +739,14 @@ def cleanup(contents):
 
 def write(f, contents):
     contents = cleanup(contents)
-    header_file = open(f, "w")
-    header_file.write(contents)
-    header_file.close()
+    with open(f, "w") as header_file:
+        header_file.write(contents)
 
 write("utils/s2n_safety_macros.h", header)
 
 test = copyright + '''
+/* clang-format off */
+
 #include "s2n_test.h"
 
 #include "utils/s2n_safety.h"

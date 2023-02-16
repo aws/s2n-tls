@@ -15,9 +15,10 @@
 
 #pragma once
 
-#include "api/s2n.h"
-#include <stdio.h>
 #include <stdbool.h>
+#include <stdio.h>
+
+#include "api/s2n.h"
 #include "utils/s2n_ensure.h"
 
 /*
@@ -28,16 +29,15 @@
 #define S2N_ERR_NUM_VALUE_BITS 26
 
 /* Start value for each error type. */
-#define S2N_ERR_T_OK_START (S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_IO_START (S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_CLOSED_START (S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_BLOCKED_START (S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_ALERT_START (S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_PROTO_START (S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_OK_START       (S2N_ERR_T_OK << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_IO_START       (S2N_ERR_T_IO << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_CLOSED_START   (S2N_ERR_T_CLOSED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_BLOCKED_START  (S2N_ERR_T_BLOCKED << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_ALERT_START    (S2N_ERR_T_ALERT << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_PROTO_START    (S2N_ERR_T_PROTO << S2N_ERR_NUM_VALUE_BITS)
 #define S2N_ERR_T_INTERNAL_START (S2N_ERR_T_INTERNAL << S2N_ERR_NUM_VALUE_BITS)
-#define S2N_ERR_T_USAGE_START (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
+#define S2N_ERR_T_USAGE_START    (S2N_ERR_T_USAGE << S2N_ERR_NUM_VALUE_BITS)
 
-/* clang-format off */
 /* Order of values in this enum is important. New error values should be placed at the end of their respective category.
  * For example, a new TLS protocol related error belongs in the S2N_ERR_T_PROTO category. It should be placed
  * immediately before S2N_ERR_T_INTERNAL_START(the first value of he next category).
@@ -310,36 +310,55 @@ typedef enum {
 #define S2N_DEBUG_STR_LEN 128
 extern __thread const char *s2n_debug_str;
 
-#define TO_STRING(s) #s
-#define STRING_(s) TO_STRING(s)
+#define TO_STRING(s)   #s
+#define STRING_(s)     TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
 
-#define _S2N_DEBUG_LINE     "Error encountered in " __FILE__ ":" STRING__LINE__
-#define _S2N_ERROR( x )     do { s2n_debug_str = _S2N_DEBUG_LINE; s2n_errno = ( x ); s2n_calculate_stacktrace(); } while (0)
-#define S2N_ERROR_PRESERVE_ERRNO() do { return -1; } while (0)
-#define S2N_ERROR_IS_BLOCKING( x )    ( s2n_error_get_type(x) == S2N_ERR_T_BLOCKED )
+#define _S2N_DEBUG_LINE "Error encountered in " __FILE__ ":" STRING__LINE__
+#define _S2N_ERROR(x)                    \
+    do {                                 \
+        s2n_debug_str = _S2N_DEBUG_LINE; \
+        s2n_errno = (x);                 \
+        s2n_calculate_stacktrace();      \
+    } while (0)
+#define S2N_ERROR_PRESERVE_ERRNO() \
+    do {                           \
+        return -1;                 \
+    } while (0)
+#define S2N_ERROR_IS_BLOCKING(x) (s2n_error_get_type(x) == S2N_ERR_T_BLOCKED)
 
 /* DEPRECATED: use POSIX_BAIL instead */
-#define S2N_ERROR( x )      do { _S2N_ERROR( ( x ) ); return -1; } while (0)
+#define S2N_ERROR(x)     \
+    do {                 \
+        _S2N_ERROR((x)); \
+        return -1;       \
+    } while (0)
 
 /* DEPRECATED: use PTR_BAIL instead */
-#define S2N_ERROR_PTR( x )  do { _S2N_ERROR( ( x ) ); return NULL; } while (0)
+#define S2N_ERROR_PTR(x) \
+    do {                 \
+        _S2N_ERROR((x)); \
+        return NULL;     \
+    } while (0)
 
 /* DEPRECATED: use POSIX_ENSURE instead */
-#define S2N_ERROR_IF( cond , x ) do { if ( cond ) { S2N_ERROR( x ); }} while (0)
+#define S2N_ERROR_IF(cond, x) \
+    do {                      \
+        if (cond) {           \
+            S2N_ERROR(x);     \
+        }                     \
+    } while (0)
 
 /** Calculate and print stacktraces */
 struct s2n_stacktrace {
-  char **trace;
-  int trace_size;
+    char **trace;
+    int trace_size;
 };
 
-extern bool s2n_stack_traces_enabled();
-extern int s2n_stack_traces_enabled_set(bool newval);
+bool s2n_stack_traces_enabled();
+int s2n_stack_traces_enabled_set(bool newval);
 
-extern int s2n_calculate_stacktrace(void);
-extern int s2n_print_stacktrace(FILE *fptr);
-extern int s2n_free_stacktrace(void);
-extern int s2n_get_stacktrace(struct s2n_stacktrace *trace);
-
-/* clang-format on */
+int s2n_calculate_stacktrace(void);
+int s2n_print_stacktrace(FILE *fptr);
+int s2n_free_stacktrace(void);
+int s2n_get_stacktrace(struct s2n_stacktrace *trace);

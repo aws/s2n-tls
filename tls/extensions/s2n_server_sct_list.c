@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_sct_list.h"
+
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_server_sct_list.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 static bool s2n_server_sct_list_should_send(struct s2n_connection *conn);
 static int s2n_server_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out);
@@ -54,7 +54,7 @@ int s2n_server_sct_list_recv(struct s2n_connection *conn, struct s2n_stuffer *ex
 {
     POSIX_ENSURE_REF(conn);
 
-    struct s2n_blob sct_list;
+    struct s2n_blob sct_list = { 0 };
     size_t data_available = s2n_stuffer_data_available(extension);
     POSIX_GUARD(s2n_blob_init(&sct_list,
             s2n_stuffer_raw_read(extension, data_available),

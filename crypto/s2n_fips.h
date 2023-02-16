@@ -19,6 +19,6 @@
 
 #pragma once
 
-extern int s2n_fips_init(void);
-extern int s2n_is_in_fips_mode(void);
+int s2n_fips_init(void);
+int s2n_is_in_fips_mode(void);
 bool s2n_libcrypto_is_fips(void);

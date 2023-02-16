@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_sct_list.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_sct_list_should_send(struct s2n_connection *conn);
@@ -44,16 +44,4 @@ static int s2n_client_sct_list_recv(struct s2n_connection *conn, struct s2n_stuf
     conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
     /* Skip reading the extension, per RFC6962 (3.1.1) it SHOULD be empty anyway  */
     return S2N_SUCCESS;
-}
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_sct_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_sct_list_extension, conn, out);
-}
-
-int s2n_recv_client_sct_list(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_sct_list_extension, conn, extension);
 }

@@ -13,17 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "api/s2n.h"
-
-#include <stdlib.h>
 #include <fcntl.h>
+#include <stdlib.h>
 
-#include "testlib/s2n_testlib.h"
-
+#include "api/s2n.h"
 #include "crypto/s2n_fips.h"
-#include "tls/s2n_security_policies.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_security_policies.h"
 
 int main(int argc, char **argv)
 {
@@ -62,7 +60,6 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(default_security_policy = server_config->security_policy);
     EXPECT_NOT_NULL(default_cipher_preferences = default_security_policy->cipher_preferences);
 
-
     /*
      * Test optional client auth using **s2n_config_set_client_auth_type** with a valid client cert provided.
      */
@@ -94,7 +91,7 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        
+
         EXPECT_MEMCPY_SUCCESS(&security_policy, default_security_policy, sizeof(security_policy));
         security_policy.cipher_preferences = &server_cipher_preferences;
 
@@ -191,7 +188,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
-
     /*
      * Test optional client auth using **s2n_config_set_client_auth_type** with no client cert provided.
      */
@@ -252,9 +248,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
-    
-    EXPECT_SUCCESS(s2n_config_free(client_config));
 
+    EXPECT_SUCCESS(s2n_config_free(client_config));
 
     /*
      * Test optional client auth using **s2n_connection_set_client_auth_type** with a valid client cert provided.
@@ -326,7 +321,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
-
     /*
      * Test optional client auth using **s2n_connection_set_client_auth_type** with no client cert provided.
      */
@@ -396,7 +390,6 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
-
     /*
      * Test optional client auth using **s2n_config_set_client_auth_type** with an incorrect client
      * cert provided fails negotiation, allowing the user to fatally kill the handshake if they want.
@@ -435,7 +428,7 @@ int main(int argc, char **argv)
         }
 
         server_cipher_preferences.suites = &cur_cipher;
-        
+
         EXPECT_MEMCPY_SUCCESS(&security_policy, default_security_policy, sizeof(security_policy));
         security_policy.cipher_preferences = &server_cipher_preferences;
 
@@ -466,7 +459,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
-    
+
     EXPECT_SUCCESS(s2n_config_free(client_config));
 
     EXPECT_SUCCESS(s2n_config_free(server_config));

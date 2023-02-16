@@ -14,10 +14,8 @@
  */
 
 #include "api/s2n.h"
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "utils/s2n_result.h"
 
 /* Get access to s2n_handshake_read_io */
@@ -58,6 +56,7 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(NULL, &io_buffer, conn));
+            EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
 
             /* Consistently blocks */
             async_blocked = true;
@@ -79,7 +78,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_buffer), S2N_TLS_RECORD_HEADER_LENGTH + TLS_HANDSHAKE_HEADER_LENGTH);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Use the output of writing to test reading */
         EXPECT_SUCCESS(s2n_stuffer_reread(&io_buffer));
@@ -111,8 +110,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(blocking_handler_count, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

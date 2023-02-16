@@ -18,11 +18,9 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_tls13_key_schedule.h"
 #include "tls/s2n_tls13_secrets.h"
-
-#include "tls/s2n_cipher_suites.h"
 
 const s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
 
@@ -44,17 +42,17 @@ static int s2n_test_set_recv_key(struct s2n_session_key *key, struct s2n_blob *i
     return S2N_SUCCESS;
 }
 
-#define EXPECT_IVS_EQUAL(conn, iv, iv_mode) \
-    if ((iv_mode) == S2N_CLIENT) { \
+#define EXPECT_IVS_EQUAL(conn, iv, iv_mode)                                               \
+    if ((iv_mode) == S2N_CLIENT) {                                                        \
         EXPECT_BYTEARRAY_EQUAL((conn)->secure->client_implicit_iv, (iv).data, (iv).size); \
-    } else { \
+    } else {                                                                              \
         EXPECT_BYTEARRAY_EQUAL((conn)->secure->server_implicit_iv, (iv).data, (iv).size); \
     }
 
-#define EXPECT_KEYS_EQUAL(conn, key, key_mode) \
-    if ((conn)->mode == (key_mode)) { \
+#define EXPECT_KEYS_EQUAL(conn, key, key_mode)                         \
+    if ((conn)->mode == (key_mode)) {                                  \
         EXPECT_BYTEARRAY_EQUAL(test_send_key, (key).data, (key).size); \
-    } else { \
+    } else {                                                           \
         EXPECT_BYTEARRAY_EQUAL(test_recv_key, (key).data, (key).size); \
     }
 
@@ -101,9 +99,9 @@ int main(int argc, char **argv)
     {
         const uint32_t one_rtt_handshake_type = NEGOTIATED | FULL_HANDSHAKE;
         const int one_rtt_message_nums[] = {
-                [SERVER_HELLO] = 1,
-                [SERVER_FINISHED] = 5,
-                [CLIENT_FINISHED] = 6,
+            [SERVER_HELLO] = 1,
+            [SERVER_FINISHED] = 5,
+            [CLIENT_FINISHED] = 6,
         };
 
         /* Derive server handshake traffic keys */
@@ -150,7 +148,7 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_SERVER);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_SERVER);
             }
-        }
+        };
 
         /* Derive client handshake traffic keys */
         {
@@ -186,6 +184,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_handshake_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
@@ -196,7 +195,7 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
-        }
+        };
 
         /* Derive server application traffic keys */
         {
@@ -229,8 +228,8 @@ int main(int argc, char **argv)
             S2N_BLOB_FROM_HEX(iv, "cf 78 2b 88 dd 83 54 9a ad f1 e9 84");
 
             const message_type_t trigger_messages[] = {
-                    [S2N_CLIENT] = CLIENT_FINISHED,
-                    [S2N_SERVER] = SERVER_FINISHED,
+                [S2N_CLIENT] = CLIENT_FINISHED,
+                [S2N_SERVER] = SERVER_FINISHED,
             };
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
@@ -238,6 +237,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.server_app_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_SERVER);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_SERVER);
             }
-        }
+        };
 
         /* Derive client application traffic keys */
         {
@@ -284,6 +284,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_app_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
@@ -294,15 +295,15 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
-        }
-    }
+        };
+    };
 
     /* Resumed 0-RTT Handshake */
     {
         const uint32_t resumed_handshake_type = NEGOTIATED | WITH_EARLY_DATA;
         const int resumed_message_nums[] = {
-                [CLIENT_HELLO] = 0,
-                [SERVER_FINISHED] = 3,
+            [CLIENT_HELLO] = 0,
+            [SERVER_FINISHED] = 3,
         };
 
         /* Derive early application traffic keys */
@@ -336,8 +337,8 @@ int main(int argc, char **argv)
             S2N_BLOB_FROM_HEX(iv, "6d 47 5f 09 93 c8 e5 64 61 0d b2 b9");
 
             const message_type_t trigger_messages[] = {
-                    [S2N_CLIENT] = CLIENT_HELLO,
-                    [S2N_SERVER] = SERVER_FINISHED,
+                [S2N_CLIENT] = CLIENT_HELLO,
+                [S2N_SERVER] = SERVER_FINISHED,
             };
 
             for (size_t i = 0; i < s2n_array_len(modes); i++) {
@@ -345,6 +346,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
                 EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_early_secret, secret));
 
@@ -356,8 +358,8 @@ int main(int argc, char **argv)
                 EXPECT_IVS_EQUAL(conn, iv, S2N_CLIENT);
                 EXPECT_KEYS_EQUAL(conn, key, S2N_CLIENT);
             }
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

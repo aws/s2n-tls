@@ -12,37 +12,39 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+#include <pthread.h>
+
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_locking.h"
-
 #include "error/s2n_errno.h"
-
-#include "tls/s2n_cipher_suites.h"
-#include "tls/extensions/s2n_extension_type.h"
-#include "tls/s2n_security_policies.h"
+#include "openssl/opensslv.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/extensions/s2n_client_key_share.h"
+#include "tls/extensions/s2n_extension_type.h"
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13_secrets.h"
-
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
-
-#include "openssl/opensslv.h"
-
-#include "pq-crypto/s2n_pq.h"
-
-#include <pthread.h>
 
 static void s2n_cleanup_atexit(void);
 
 static pthread_t main_thread = 0;
 static bool initialized = false;
 static bool atexit_cleanup = true;
-int s2n_disable_atexit(void) {
+int s2n_disable_atexit(void)
+{
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
     atexit_cleanup = false;
+    return S2N_SUCCESS;
+}
+
+int s2n_enable_atexit(void)
+{
+    atexit_cleanup = true;
     return S2N_SUCCESS;
 }
 
@@ -95,13 +97,12 @@ static bool s2n_cleanup_atexit_impl(void)
     /* the configs need to be wiped before resetting the memory callbacks */
     s2n_wipe_static_configs();
 
-    bool cleaned_up =
-        s2n_result_is_ok(s2n_cipher_suites_cleanup()) &&
-        s2n_result_is_ok(s2n_rand_cleanup_thread()) &&
-        s2n_result_is_ok(s2n_rand_cleanup()) &&
-        s2n_result_is_ok(s2n_libcrypto_cleanup()) &&
-        s2n_result_is_ok(s2n_locking_cleanup()) &&
-        (s2n_mem_cleanup() == S2N_SUCCESS);
+    bool cleaned_up = s2n_result_is_ok(s2n_cipher_suites_cleanup())
+            && s2n_result_is_ok(s2n_rand_cleanup_thread())
+            && s2n_result_is_ok(s2n_rand_cleanup())
+            && s2n_result_is_ok(s2n_libcrypto_cleanup())
+            && s2n_result_is_ok(s2n_locking_cleanup())
+            && (s2n_mem_cleanup() == S2N_SUCCESS);
 
     initialized = !cleaned_up;
     return cleaned_up;
@@ -126,5 +127,5 @@ int s2n_cleanup(void)
 
 static void s2n_cleanup_atexit(void)
 {
-    (void)s2n_cleanup_atexit_impl();
+    (void) s2n_cleanup_atexit_impl();
 }

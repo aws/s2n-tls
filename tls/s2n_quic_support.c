@@ -16,9 +16,8 @@
 #include "tls/s2n_quic_support.h"
 
 #include "tls/s2n_connection.h"
-#include "tls/s2n_tls13.h"
 #include "tls/s2n_tls.h"
-
+#include "tls/s2n_tls13.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
@@ -52,8 +51,7 @@ int s2n_connection_enable_quic(struct s2n_connection *conn)
 
 bool s2n_connection_is_quic_enabled(struct s2n_connection *conn)
 {
-    return (conn && conn->quic_enabled) ||
-           (conn && conn->config && conn->config->quic_enabled);
+    return (conn && conn->quic_enabled) || (conn && conn->config && conn->config->quic_enabled);
 }
 
 int s2n_connection_set_quic_transport_parameters(struct s2n_connection *conn,
@@ -105,7 +103,7 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
     RESULT_GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
 
     uint32_t message_len;
-    RESULT_GUARD_POSIX(s2n_handshake_parse_header(conn, message_type, &message_len));
+    RESULT_GUARD(s2n_handshake_parse_header(&conn->handshake.io, message_type, &message_len));
     RESULT_GUARD_POSIX(s2n_stuffer_reread(&conn->handshake.io));
 
     RESULT_ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
@@ -117,13 +115,14 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
 /* When using QUIC, S2N writes unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N output buffer to match the result of using s2n_record_write.
  */
-S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn, struct s2n_blob *in)
+S2N_RESULT s2n_quic_write_handshake_message(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
     /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
     RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->out, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_write(&conn->out, in));
+    RESULT_GUARD_POSIX(s2n_stuffer_copy(&conn->handshake.io, &conn->out,
+            s2n_stuffer_data_available(&conn->handshake.io)));
     return S2N_RESULT_OK;
 }

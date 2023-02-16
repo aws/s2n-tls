@@ -13,16 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_session_ticket.h"
 
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/extensions/s2n_client_psk.h"
+#include "tls/s2n_resume.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_resume.h"
-
 #include "utils/s2n_safety.h"
 
 static bool s2n_client_session_ticket_should_send(struct s2n_connection *conn);
@@ -69,16 +68,4 @@ static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2
     }
 
     return S2N_SUCCESS;
-}
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_session_ticket_extension, conn, out);
-}
-
-int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_session_ticket_extension, conn, extension);
 }

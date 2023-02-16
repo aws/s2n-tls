@@ -15,19 +15,36 @@
 
 #pragma once
 
+#include <sys/param.h>
+
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
+#include "tls/s2n_crl.h"
+#include "tls/s2n_key_update.h"
 #include "tls/s2n_psk.h"
+#include "tls/s2n_record.h"
 #include "tls/s2n_renegotiate.h"
 #include "tls/s2n_resume.h"
+#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_set.h"
-#include "tls/s2n_crl.h"
 
-#define S2N_MAX_TICKET_KEYS 48
+#define S2N_MAX_TICKET_KEYS       48
 #define S2N_MAX_TICKET_KEY_HASHES 500 /* 10KB */
+
+/*
+ * TLS1.3 does not allow alert messages to be fragmented, and some TLS
+ * implementations (for example, GnuTLS) reject fragmented TLS1.2 alerts.
+ * The send buffer must be able to hold an unfragmented alert message.
+ *
+ * We choose not to fragment KeyUpdate messages to keep our post-handshake
+ * fragmentation logic simple and consistent across message types.
+ * The send buffer must be able to hold an unfragmented KeyUpdate message.
+ */
+#define S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE MAX(S2N_KEY_UPDATE_MESSAGE_SIZE, S2N_ALERT_LENGTH)
+#define S2N_MIN_SEND_BUFFER_SIZE          S2N_TLS_MAX_RECORD_LEN_FOR(S2N_MIN_SEND_BUFFER_FRAGMENT_SIZE)
 
 struct s2n_cipher_preferences;
 
@@ -38,44 +55,51 @@ typedef enum {
 } s2n_cert_ownership;
 
 struct s2n_config {
-    unsigned use_tickets:1;
+    unsigned use_tickets : 1;
 
     /* Whether a connection can be used by a QUIC implementation.
      * See s2n_quic_support.h */
-    unsigned quic_enabled:1;
+    unsigned quic_enabled : 1;
 
-    unsigned default_certs_are_explicit:1;
-    unsigned use_session_cache:1;
+    unsigned default_certs_are_explicit : 1;
+    unsigned use_session_cache : 1;
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
-    unsigned accept_mfl:1;
-    unsigned check_ocsp:1;
-    unsigned disable_x509_validation:1;
-    unsigned max_verify_cert_chain_depth_set:1;
+    unsigned accept_mfl : 1;
+    unsigned check_ocsp : 1;
+    unsigned disable_x509_validation : 1;
+    unsigned max_verify_cert_chain_depth_set : 1;
     /* Whether to add dss cert type during a server certificate request.
      * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md */
-    unsigned cert_req_dss_legacy_compat_enabled:1;
+    unsigned cert_req_dss_legacy_compat_enabled : 1;
     /* Whether any RSA certificates have been configured server-side to send to clients. This is needed so that the
      * server knows whether or not to self-downgrade to TLS 1.2 if the server is compiled with Openssl 1.0.2 and does
      * not support RSA PSS signing (which is required for TLS 1.3). */
-    unsigned is_rsa_cert_configured:1;
+    unsigned is_rsa_cert_configured : 1;
     /* It's possible to use a certificate without loading the private key,
      * but async signing must be enabled. Use this flag to enforce that restriction.
      */
-    unsigned no_signing_key:1;
+    unsigned no_signing_key : 1;
     /*
      * This option exists to allow for polling the client_hello callback.
      *
      * Note: This defaults to false to ensure backwards compatibility.
      */
-    unsigned client_hello_cb_enable_poll:1;
+    unsigned client_hello_cb_enable_poll : 1;
     /*
      * Whether to verify signatures locally before sending them over the wire.
      * See s2n_config_set_verify_after_sign.
      */
-    unsigned verify_after_sign:1;
+    unsigned verify_after_sign : 1;
 
     /* Indicates support for the npn extension */
-    unsigned npn_supported:1;
+    unsigned npn_supported : 1;
+
+    /* Indicates s2n_recv should read as much as it can into the output buffer
+     *
+     * Note: This defaults to false to ensure backwards compatability with
+     * applications which relied on s2n_recv returning a single record.
+     */
+    unsigned recv_multi_record : 1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
@@ -173,13 +197,13 @@ struct s2n_config {
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 
 int s2n_config_defaults_init(void);
-extern struct s2n_config *s2n_fetch_default_config(void);
+struct s2n_config *s2n_fetch_default_config(void);
 int s2n_config_set_unsafe_for_testing(struct s2n_config *config);
 
 int s2n_config_init_session_ticket_keys(struct s2n_config *config);
 int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 void s2n_wipe_static_configs(void);
-extern struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
+struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 int s2n_config_get_num_default_certs(struct s2n_config *config);
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);

@@ -13,24 +13,19 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
+#include <openssl/evp.h>
+#include <string.h>
 
 #include "api/s2n.h"
-#include <string.h>
-#include <openssl/evp.h>
-
-#include "testlib/s2n_testlib.h"
-
-#include "tls/s2n_record.h"
-#include "tls/s2n_cipher_suites.h"
-
-#include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_random.h"
-
 #include "crypto/s2n_cipher.h"
-#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_hmac.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_record.h"
+#include "utils/s2n_random.h"
 
 /* Explicit IV starts after the TLS record header. */
 #define EXPLICIT_IV_OFFSET S2N_TLS_RECORD_HEADER_LENGTH
@@ -50,7 +45,6 @@ static int ensure_explicit_iv_is_unique(uint8_t existing_explicit_ivs[S2N_DEFAUL
     return S2N_SUCCESS;
 }
 
-
 int main(int argc, char **argv)
 {
     struct s2n_connection *conn;
@@ -59,9 +53,12 @@ int main(int argc, char **argv)
     uint8_t mac_key_sha256[32] = "server key sha256server key sha";
     uint8_t aes128_key[] = "123456789012345";
     uint8_t aes256_key[] = "1234567890123456789012345678901";
-    struct s2n_blob aes128 = {.data = aes128_key,.size = sizeof(aes128_key) };
-    struct s2n_blob aes256 = {.data = aes256_key,.size = sizeof(aes256_key) };
-    struct s2n_blob r = {.data = random_data, .size = sizeof(random_data)};
+    struct s2n_blob aes128 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&aes128, aes128_key, sizeof(aes128_key)));
+    struct s2n_blob aes256 = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&aes256, aes256_key, sizeof(aes256_key)));
+    struct s2n_blob r = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&r, random_data, sizeof(random_data)));
     /* Stores explicit IVs used in each test case to validate uniqueness. */
     uint8_t existing_explicit_ivs[S2N_DEFAULT_FRAGMENT_LENGTH + 2][S2N_TLS_MAX_IV_LEN];
 
@@ -69,10 +66,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Skip test if we can't use the ciphers */
-    if (!s2n_aes128_sha.is_available()    ||
-        !s2n_aes256_sha.is_available()    ||
-        !s2n_aes128_sha256.is_available() ||
-        !s2n_aes256_sha256.is_available()) {
+    if (!s2n_aes128_sha.is_available()
+            || !s2n_aes256_sha.is_available()
+            || !s2n_aes128_sha256.is_available()
+            || !s2n_aes256_sha256.is_available()) {
         END_TEST();
     }
 
@@ -92,9 +89,10 @@ int main(int argc, char **argv)
     /* It's important to verify all TLS versions for the composite implementation.
      * There are a few gotchas with respect to explicit IV length and payload length
      */
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i <= max_aligned_fragment + 1; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -106,7 +104,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -115,11 +112,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA_DIGEST_LENGTH + explicit_iv_len;
@@ -166,9 +165,10 @@ int main(int argc, char **argv)
 
     /* test the composite AES256_SHA1 cipher  */
     conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_sha_composite;
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i <= max_aligned_fragment + 1; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -180,7 +180,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -189,11 +188,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA_DIGEST_LENGTH + explicit_iv_len;
@@ -238,12 +239,12 @@ int main(int argc, char **argv)
         }
     }
 
-
     /* test the composite AES128_SHA256 cipher  */
     conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_sha256_composite;
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i < max_aligned_fragment + 1; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -255,7 +256,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -264,11 +264,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA256_DIGEST_LENGTH + explicit_iv_len;
@@ -315,9 +317,10 @@ int main(int argc, char **argv)
 
     /* test the composite AES256_SHA256 cipher  */
     conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes256_sha256_composite;
-    for (int j = 0; j < 3; j++ ) {
+    for (int j = 0; j < 3; j++) {
         for (int i = 0; i <= max_aligned_fragment + 1; i++) {
-            struct s2n_blob in = {.data = random_data,.size = i };
+            struct s2n_blob in = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
             int bytes_written;
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
@@ -329,7 +332,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
             conn->actual_protocol_version = proto_versions[j];
-            EXPECT_SUCCESS(bytes_written = s2n_record_write(conn, TLS_APPLICATION_DATA, &in));
 
             int explicit_iv_len;
             if (conn->actual_protocol_version > S2N_TLS10) {
@@ -338,11 +340,13 @@ int main(int argc, char **argv)
                 explicit_iv_len = 0;
             }
 
+            s2n_result result = s2n_record_write(conn, TLS_APPLICATION_DATA, &in);
             if (i <= max_aligned_fragment) {
-                EXPECT_EQUAL(bytes_written, i);
+                EXPECT_OK(result);
+                bytes_written = i;
             } else {
-                /* application data size of intended fragment size + 1 should only send max fragment */
-                EXPECT_EQUAL(bytes_written, max_aligned_fragment);
+                EXPECT_ERROR_WITH_ERRNO(result, S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
+                bytes_written = max_aligned_fragment;
             }
 
             uint16_t predicted_length = bytes_written + 1 + SHA256_DIGEST_LENGTH + explicit_iv_len;

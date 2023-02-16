@@ -13,23 +13,23 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_server_supported_versions.h"
+
+#include <stdint.h>
+#include <sys/param.h>
+
 #include "tls/extensions/s2n_supported_versions.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
-
 #include "utils/s2n_safety.h"
 
 /**
  * Specified in https://tools.ietf.org/html/rfc8446#section-4.2.1
  *
- * "A server which negotiates TLS 1.3 MUST respond by sending a 
- * "supported_versions" extension containing the selected version value 
+ * "A server which negotiates TLS 1.3 MUST respond by sending a
+ * "supported_versions" extension containing the selected version value
  * (0x0304)."
  *
  * Structure:
@@ -79,7 +79,7 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
      **/
     if (s2n_is_hello_retry_handshake(conn) && !s2n_is_hello_retry_message(conn)) {
         POSIX_ENSURE(conn->server_protocol_version == server_version,
-                     S2N_ERR_BAD_MESSAGE);
+                S2N_ERR_BAD_MESSAGE);
     }
 
     POSIX_ENSURE_GTE(server_version, S2N_TLS13);
@@ -87,7 +87,7 @@ static int s2n_extensions_server_supported_versions_process(struct s2n_connectio
     POSIX_ENSURE_GTE(server_version, minimum_supported_version);
 
     conn->server_protocol_version = server_version;
-    
+
     return S2N_SUCCESS;
 }
 
@@ -111,9 +111,4 @@ int s2n_extensions_server_supported_versions_size(struct s2n_connection *conn)
 int s2n_extensions_server_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_extension_recv(&s2n_server_supported_versions_extension, conn, extension);
-}
-
-int s2n_extensions_server_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_supported_versions_extension, conn, out);
 }

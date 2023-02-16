@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_renegotiation_info.h"
-#include "tls/s2n_tls.h"
 
+#include <stdint.h>
+#include <sys/param.h>
+
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 static int s2n_client_renegotiation_send(struct s2n_connection *conn, struct s2n_stuffer *out);
@@ -188,11 +188,4 @@ static int s2n_client_renegotiation_if_missing(struct s2n_connection *conn)
         conn->secure_renegotiation = false;
         return S2N_SUCCESS;
     }
-}
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_renegotiation_info_extension, conn, extension);
 }

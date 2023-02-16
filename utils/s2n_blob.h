@@ -17,7 +17,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdbool.h>
+
 #include "utils/s2n_result.h"
 
 struct s2n_blob {
@@ -35,31 +35,30 @@ struct s2n_blob {
     uint32_t allocated;
 
     /* Can this blob be resized */
-    unsigned growable :1;
+    unsigned growable : 1;
 };
 
+bool s2n_blob_is_growable(const struct s2n_blob *b);
+S2N_RESULT s2n_blob_validate(const struct s2n_blob *b);
+int s2n_blob_init(struct s2n_blob *b, uint8_t *data, uint32_t size);
+int s2n_blob_zero(struct s2n_blob *b);
+int s2n_blob_char_to_lower(struct s2n_blob *b);
+int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob);
+int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size);
 
-extern bool s2n_blob_is_growable(const struct s2n_blob* b);
-extern S2N_RESULT s2n_blob_validate(const struct s2n_blob* b);
-extern int s2n_blob_init(struct s2n_blob *b, uint8_t * data, uint32_t size);
-extern int s2n_blob_zero(struct s2n_blob *b);
-extern int s2n_blob_char_to_lower(struct s2n_blob *b);
-extern int s2n_hex_string_to_bytes(const uint8_t *str, struct s2n_blob *blob);
-extern int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint32_t offset, uint32_t size);
+#define s2n_stack_blob(name, requested_size, maximum)   \
+    size_t name##_requested_size = (requested_size);    \
+    uint8_t name##_buf[(maximum)] = { 0 };              \
+    POSIX_ENSURE_LTE(name##_requested_size, (maximum)); \
+    struct s2n_blob name = { 0 };                       \
+    POSIX_GUARD(s2n_blob_init(&name, name##_buf, name##_requested_size))
 
-#define s2n_stack_blob(name, requested_size, maximum)       \
-    size_t name ## _requested_size = (requested_size);      \
-    uint8_t name ## _buf[(maximum)] = {0};                  \
-    POSIX_ENSURE_LTE(name ## _requested_size, (maximum));   \
-    struct s2n_blob name = {0};                             \
-    POSIX_GUARD(s2n_blob_init(&name, name ## _buf, name ## _requested_size))
-
-#define RESULT_STACK_BLOB(name, requested_size, maximum)    \
-    size_t name ## _requested_size = (requested_size);          \
-    uint8_t name ## _buf[(maximum)] = {0};                      \
-    RESULT_ENSURE_LTE(name ## _requested_size, (maximum));      \
-    struct s2n_blob name = {0};                                 \
-    RESULT_GUARD_POSIX(s2n_blob_init(&name, name ## _buf, name ## _requested_size))
+#define RESULT_STACK_BLOB(name, requested_size, maximum) \
+    size_t name##_requested_size = (requested_size);     \
+    uint8_t name##_buf[(maximum)] = { 0 };               \
+    RESULT_ENSURE_LTE(name##_requested_size, (maximum)); \
+    struct s2n_blob name = { 0 };                        \
+    RESULT_GUARD_POSIX(s2n_blob_init(&name, name##_buf, name##_requested_size))
 
 #define S2N_BLOB_LABEL(name, str)       \
     static uint8_t name##_data[] = str; \
@@ -69,6 +68,6 @@ extern int s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob *slice, uint
  * It is allocated on a stack so there no need to free after use.
  * hex should be a const char[]. This function checks against using char*,
  * because sizeof needs to refer to the buffer length rather than a pointer size */
-#define S2N_BLOB_FROM_HEX( name, hex )                                  \
+#define S2N_BLOB_FROM_HEX(name, hex)                                    \
     s2n_stack_blob(name, (sizeof(hex) - 1) / 2, (sizeof(hex) - 1) / 2); \
-    POSIX_GUARD(s2n_hex_string_to_bytes((const uint8_t*)hex, &name));
+    POSIX_GUARD(s2n_hex_string_to_bytes((const uint8_t *) hex, &name));

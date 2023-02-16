@@ -35,14 +35,14 @@ struct s2n_evp_hmac_state {
 };
 
 /* Define API's that change based on the OpenSSL Major Version. */
-#if S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER)
-#define S2N_EVP_MD_CTX_NEW() (EVP_MD_CTX_new())
-#define S2N_EVP_MD_CTX_RESET(md_ctx) (EVP_MD_CTX_reset(md_ctx))
-#define S2N_EVP_MD_CTX_FREE(md_ctx) (EVP_MD_CTX_free(md_ctx))
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
+    #define S2N_EVP_MD_CTX_NEW()         (EVP_MD_CTX_new())
+    #define S2N_EVP_MD_CTX_RESET(md_ctx) (EVP_MD_CTX_reset(md_ctx))
+    #define S2N_EVP_MD_CTX_FREE(md_ctx)  (EVP_MD_CTX_free(md_ctx))
 #else
-#define S2N_EVP_MD_CTX_NEW() (EVP_MD_CTX_create())
-#define S2N_EVP_MD_CTX_RESET(md_ctx) (EVP_MD_CTX_cleanup(md_ctx))
-#define S2N_EVP_MD_CTX_FREE(md_ctx) (EVP_MD_CTX_destroy(md_ctx))
+    #define S2N_EVP_MD_CTX_NEW()         (EVP_MD_CTX_create())
+    #define S2N_EVP_MD_CTX_RESET(md_ctx) (EVP_MD_CTX_cleanup(md_ctx))
+    #define S2N_EVP_MD_CTX_FREE(md_ctx)  (EVP_MD_CTX_destroy(md_ctx))
 #endif
 
 /* On some versions of OpenSSL, "EVP_PKEY_CTX_set_signature_md()" is just a macro that casts digest_alg to "void*",
@@ -50,7 +50,7 @@ struct s2n_evp_hmac_state {
  * issue by turning off this compiler check for this one function with a cast through.
  */
 #define S2N_EVP_PKEY_CTX_set_signature_md(ctx, md) \
-    EVP_PKEY_CTX_set_signature_md(ctx, (EVP_MD*) (uintptr_t) md)
+    EVP_PKEY_CTX_set_signature_md(ctx, (EVP_MD *) (uintptr_t) md)
 
-extern int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest);
-extern S2N_RESULT s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest, bool *out);
+int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest);
+S2N_RESULT s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest, bool *out);

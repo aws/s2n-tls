@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_auth_selection.h"
+
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_ecdsa.h"
 #include "crypto/s2n_signature.h"
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kex.h"
-#include "tls/s2n_auth_selection.h"
-
 #include "utils/s2n_safety.h"
 
 /* This module should contain any logic related to choosing a valid combination of
@@ -42,7 +41,7 @@
 
 int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authentication_method *auth_method)
 {
-    switch(cert_type) {
+    switch (cert_type) {
         case S2N_PKEY_TYPE_RSA:
         case S2N_PKEY_TYPE_RSA_PSS:
             *auth_method = S2N_AUTHENTICATION_RSA;
@@ -59,7 +58,7 @@ int s2n_get_auth_method_for_cert_type(s2n_pkey_type cert_type, s2n_authenticatio
 
 static int s2n_get_cert_type_for_sig_alg(s2n_signature_algorithm sig_alg, s2n_pkey_type *cert_type)
 {
-    switch(sig_alg) {
+    switch (sig_alg) {
         case S2N_SIGNATURE_RSA_PSS_RSAE:
         case S2N_SIGNATURE_RSA:
             *cert_type = S2N_PKEY_TYPE_RSA;

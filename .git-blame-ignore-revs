@@ -1,3 +1,41 @@
 # .git-blame-ignore-revs
 # autopep8 python PR3268
 b9dbef317197b2f450b3e963fb4744cc4dc5e087
+# add clang-format of stuffer/ (PR #3618)
+918f0791002616f81bf0a5347de83bb0815101ac
+# clang-format `tls/extensions` and enforce in ci (PR #3633)
+ee3df080077242b6b765d02b21da59e4194ee485
+# clang-format `bin/` and enforce in ci (PR #3635)
+49e8ab14672a4c1b479abc442bf1e54f815a6a47
+# clang-format `error/` and enforce in ci (PR #3638)
+f47255051a6d440bd400ed35f3397085a049c000
+# clang-format `api/` and enforce in ci (PR #3637)
+15158a2c37aa04ce69c77fca67f8175ac0b3a799
+# Autopep8 updated CI and code (#3736)
+43d6f1bed249f77004d33c3b757fb9d8ab50fb5c
+# Clang-format `tests/unit/s2n_[l-r].*\.c` and enforce in CI (#3677)
+035ec1c6c8a80f2a88f8421da9862c3848fff12a
+# Clang-format `tests/unit/s2n_s.*\.c` and enforce in CI (#3678)
+6d8741cd0b6e3aa95c227d03633bdd04d44bbcc7
+# Clang format `tls/s2n_[a-h].*\.[ch]` and enforce in CI (#3681)
+f2faa0e25b1d68cd36173ae44df58be3218b6ca1
+# Clang-format `crypto/` and enforce in CI (#3680)
+f5351ef6629d1f6de144ab478bf4294ec277b321
+# Clang-format `tls/s2n_[s-z].*\.[ch]` and enforce in CI (#3683)
+0fe8ac5311c6a421c9e6257ae1cb5ac8cbc6845c
+# Clang-format `tests/unit/s2n_[t-z].*\.c` and enforce in CI (#3679)
+0bb61469995db593e735915d770dc32e8985404a
+# Clang format `tests/unit/s2n_[bc].*\.c` and enforce in CI (#3675)
+06e9e8c13d3c19a172b69eb57c278f68055ac8d4
+# Clang-format `tests/unit/s2n_[d-k].*\.c` and enforce in CI (#3676)
+2f9c7a48fd8faf44d5a6f375d6d3fbf9aada8e03
+# Clang-format `tls/s2n_[i-r].*\.[ch]` and enforce in CI (#3682)
+0e0d6079454361251e18d80af1af345881423b7a
+# Clang-format of `tests/unit/s2n_[3a].*\.c` + transision to exclude regex (#3664)
+4dd87578a946a081fcf21dbb5912cb506ae83460
+# Update to clang-format causes reformat of api folder (#3663)
+71e0343b6e082ebf47d8f8f272bee5486140b374
+# clang-format `tests/testslib` and add to ci (#3650)
+e8cdc1ae63ff1de6f14cf91e3c317fbf57c198ec
+# clang-format `utils/` and enforce in ci (#3651)
+be8ad6c027b50e9dc86d8f8eb729ce88f2d4206d

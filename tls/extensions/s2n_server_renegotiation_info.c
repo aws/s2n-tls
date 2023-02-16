@@ -13,16 +13,14 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/extensions/s2n_server_renegotiation_info.h"
+
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-
-#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_server_renegotiation_info.h"
+#include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_safety.h"
 
 /**
  * s2n-tls servers do NOT support renegotiation.
@@ -257,19 +255,4 @@ static int s2n_renegotiation_info_if_missing(struct s2n_connection *conn)
 int s2n_recv_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
     return s2n_extension_recv(&s2n_server_renegotiation_info_extension, conn, extension);
-}
-
-int s2n_send_server_renegotiation_info_ext(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_server_renegotiation_info_extension, conn, out);
-}
-
-int s2n_server_renegotiation_info_ext_size(struct s2n_connection *conn)
-{
-    if (s2n_renegotiation_info_should_send(conn)) {
-        /* 2 for ext type, 2 for extension length, 1 for value of 0 */
-        return 5;
-    }
-
-    return 0;
 }

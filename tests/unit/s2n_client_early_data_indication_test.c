@@ -15,11 +15,10 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-#include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/extensions/s2n_client_psk.h"
-#include "tls/s2n_tls13.h"
+#include "tls/extensions/s2n_early_data_indication.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 static S2N_RESULT s2n_set_early_data_app_protocol(struct s2n_connection *conn, struct s2n_blob *app_protocol)
 {
@@ -27,7 +26,7 @@ static S2N_RESULT s2n_set_early_data_app_protocol(struct s2n_connection *conn, s
     RESULT_ENSURE_REF(app_protocol);
 
     struct s2n_psk *psk = NULL;
-    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void**) &psk));
+    RESULT_GUARD(s2n_array_get(&conn->psk_params.psk_list, 0, (void **) &psk));
     RESULT_GUARD_POSIX(s2n_psk_set_application_protocol(psk, app_protocol->data, app_protocol->size));
     return S2N_RESULT_OK;
 }
@@ -58,7 +57,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Don't send if early data not supported */
         {
@@ -73,7 +72,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /** Don't send if no PSK extension is sent.
          *
@@ -122,7 +121,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Don't send if no early data allowed by first PSK */
         {
@@ -141,7 +140,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Don't send if protocol version too low */
         {
@@ -161,7 +160,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Don't send if cipher suite not allowed by cipher preferences */
         {
@@ -178,7 +177,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Don't send if application layer protocol not allowed by preferences */
         {
@@ -221,8 +220,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_client_early_data_indication_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_client_early_data_indiction_send */
     {
@@ -258,8 +257,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     /* Test s2n_client_early_data_indiction_recv */
     {
@@ -285,7 +284,7 @@ int main(int argc, char **argv)
                 S2N_ERR_UNSUPPORTED_EXTENSION);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* Test state transitions */
     {
@@ -314,7 +313,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When early data not enabled on server */
         {
@@ -341,7 +340,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When early data requested */
         {
@@ -369,7 +368,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* When early data not requested */
         {
@@ -397,8 +396,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     /* Test state transitions with a HelloRetryRequest.
      *
@@ -460,7 +459,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
+        };
 
         /* Hello Retry Request because of missing key share: still rejects early data */
         {
@@ -505,8 +504,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

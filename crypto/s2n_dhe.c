@@ -40,7 +40,7 @@ static const BIGNUM *s2n_get_Ys_dh_param(struct s2n_dh_params *dh_params)
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     DH_get0_key(dh_params->dh, &Ys, NULL);
 #else
-    Ys                     = dh_params->dh->pub_key;
+    Ys = dh_params->dh->pub_key;
 #endif
 
     return Ys;
@@ -52,7 +52,7 @@ static const BIGNUM *s2n_get_p_dh_param(struct s2n_dh_params *dh_params)
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     DH_get0_pqg(dh_params->dh, &p, NULL, NULL);
 #else
-    p                      = dh_params->dh->p;
+    p = dh_params->dh->p;
 #endif
 
     return p;
@@ -64,7 +64,7 @@ static const BIGNUM *s2n_get_g_dh_param(struct s2n_dh_params *dh_params)
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     DH_get0_pqg(dh_params->dh, NULL, NULL, &g);
 #else
-    g                      = dh_params->dh->g;
+    g = dh_params->dh->g;
 #endif
 
     return g;
@@ -100,14 +100,14 @@ static int s2n_check_pub_key_dh_params(struct s2n_dh_params *dh_params)
 }
 
 static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *p, struct s2n_blob *g,
-                                    struct s2n_blob *Ys)
+        struct s2n_blob *Ys)
 {
     POSIX_ENSURE(p->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_ENSURE(g->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_ENSURE(Ys->size <= INT_MAX, S2N_ERR_INTEGER_OVERFLOW);
-    BIGNUM *bn_p  = BN_bin2bn(( const unsigned char * )p->data, p->size, NULL);
-    BIGNUM *bn_g  = BN_bin2bn(( const unsigned char * )g->data, g->size, NULL);
-    BIGNUM *bn_Ys = BN_bin2bn(( const unsigned char * )Ys->data, Ys->size, NULL);
+    BIGNUM *bn_p = BN_bin2bn((const unsigned char *) p->data, p->size, NULL);
+    BIGNUM *bn_g = BN_bin2bn((const unsigned char *) g->data, g->size, NULL);
+    BIGNUM *bn_Ys = BN_bin2bn((const unsigned char *) Ys->data, Ys->size, NULL);
 
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
     /* Per https://www.openssl.org/docs/man1.1.0/crypto/DH_get0_pqg.html:
@@ -118,8 +118,8 @@ static int s2n_set_p_g_Ys_dh_params(struct s2n_dh_params *dh_params, struct s2n_
     /* Same as DH_set0_pqg */
     POSIX_GUARD_OSSL(DH_set0_key(dh_params->dh, bn_Ys, NULL), S2N_ERR_DH_PARAMS_CREATE);
 #else
-    dh_params->dh->p       = bn_p;
-    dh_params->dh->g       = bn_g;
+    dh_params->dh->p = bn_p;
+    dh_params->dh->g = bn_g;
     dh_params->dh->pub_key = bn_Ys;
 #endif
 
@@ -140,7 +140,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
     POSIX_PRECONDITION(s2n_blob_validate(pkcs3));
 
     uint8_t *original_ptr = pkcs3->data;
-    dh_params->dh         = d2i_DHparams(NULL, ( const unsigned char ** )( void * )&pkcs3->data, pkcs3->size);
+    dh_params->dh = d2i_DHparams(NULL, (const unsigned char **) (void *) &pkcs3->data, pkcs3->size);
     POSIX_GUARD(s2n_check_p_g_dh_params(dh_params));
     if (pkcs3->data && (pkcs3->data - original_ptr != pkcs3->size)) {
         DH_free(dh_params->dh);
@@ -161,7 +161,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
 }
 
 int s2n_dh_p_g_Ys_to_dh_params(struct s2n_dh_params *server_dh_params, struct s2n_blob *p, struct s2n_blob *g,
-                               struct s2n_blob *Ys)
+        struct s2n_blob *Ys)
 {
     POSIX_ENSURE_REF(server_dh_params);
     POSIX_PRECONDITION(s2n_blob_validate(p));
@@ -183,12 +183,12 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
     POSIX_PRECONDITION(s2n_stuffer_validate(out));
     POSIX_PRECONDITION(s2n_blob_validate(output));
 
-    const BIGNUM *bn_p  = s2n_get_p_dh_param(server_dh_params);
-    const BIGNUM *bn_g  = s2n_get_g_dh_param(server_dh_params);
+    const BIGNUM *bn_p = s2n_get_p_dh_param(server_dh_params);
+    const BIGNUM *bn_g = s2n_get_g_dh_param(server_dh_params);
     const BIGNUM *bn_Ys = s2n_get_Ys_dh_param(server_dh_params);
 
-    uint16_t p_size  = BN_num_bytes(bn_p);
-    uint16_t g_size  = BN_num_bytes(bn_g);
+    uint16_t p_size = BN_num_bytes(bn_p);
+    uint16_t g_size = BN_num_bytes(bn_g);
     uint16_t Ys_size = BN_num_bytes(bn_Ys);
     uint8_t *p = NULL;
     uint8_t *g = NULL;
@@ -218,12 +218,12 @@ int s2n_dh_params_to_p_g_Ys(struct s2n_dh_params *server_dh_params, struct s2n_s
 }
 
 int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc_out,
-                                           struct s2n_blob *shared_key)
+        struct s2n_blob *shared_key)
 {
     struct s2n_dh_params client_params = { 0 };
-    uint8_t *            client_pub_key = NULL;
-    uint16_t             client_pub_key_size = 0;
-    int                  shared_key_size = 0;
+    uint8_t *client_pub_key = NULL;
+    uint16_t client_pub_key_size = 0;
+    int shared_key_size = 0;
 
     POSIX_GUARD(s2n_dh_params_check(server_dh_params));
     POSIX_GUARD(s2n_dh_params_copy(server_dh_params, &client_params));
@@ -232,7 +232,7 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
 
     const BIGNUM *client_pub_key_bn = s2n_get_Ys_dh_param(&client_params);
     POSIX_ENSURE_REF(client_pub_key_bn);
-    client_pub_key_size             = BN_num_bytes(client_pub_key_bn);
+    client_pub_key_size = BN_num_bytes(client_pub_key_bn);
     POSIX_GUARD(s2n_stuffer_write_uint16(Yc_out, client_pub_key_size));
     client_pub_key = s2n_stuffer_raw_write(Yc_out, client_pub_key_size);
     if (client_pub_key == NULL) {
@@ -249,7 +249,7 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
 
     /* server_dh_params already validated */
     const BIGNUM *server_pub_key_bn = s2n_get_Ys_dh_param(server_dh_params);
-    shared_key_size                 = DH_compute_key(shared_key->data, server_pub_key_bn, client_params.dh);
+    shared_key_size = DH_compute_key(shared_key->data, server_pub_key_bn, client_params.dh);
     if (shared_key_size < 0) {
         POSIX_GUARD(s2n_free(shared_key));
         POSIX_GUARD(s2n_dh_params_free(&client_params));
@@ -264,12 +264,12 @@ int s2n_dh_compute_shared_secret_as_client(struct s2n_dh_params *server_dh_param
 }
 
 int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_params, struct s2n_stuffer *Yc_in,
-                                           struct s2n_blob *shared_key)
+        struct s2n_blob *shared_key)
 {
-    uint16_t        Yc_length = 0;
+    uint16_t Yc_length = 0;
     struct s2n_blob Yc = { 0 };
-    int             shared_key_size = 0;
-    BIGNUM *        pub_key = NULL;
+    int shared_key_size = 0;
+    BIGNUM *pub_key = NULL;
 
     POSIX_GUARD(s2n_check_all_dh_params(server_dh_params));
 
@@ -278,7 +278,7 @@ int s2n_dh_compute_shared_secret_as_server(struct s2n_dh_params *server_dh_param
     Yc.data = s2n_stuffer_raw_read(Yc_in, Yc.size);
     POSIX_ENSURE_REF(Yc.data);
 
-    pub_key = BN_bin2bn(( const unsigned char * )Yc.data, Yc.size, NULL);
+    pub_key = BN_bin2bn((const unsigned char *) Yc.data, Yc.size, NULL);
     POSIX_ENSURE_REF(pub_key);
     int server_dh_params_size = DH_size(server_dh_params->dh);
     POSIX_ENSURE(server_dh_params_size <= INT32_MAX, S2N_ERR_INTEGER_OVERFLOW);

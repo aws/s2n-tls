@@ -1,10 +1,14 @@
-from common import Protocols, Curves, Ciphers
-from providers import S2N, OpenSSL
-from global_flags import get_flag, S2N_FIPS_MODE, S2N_PROVIDER_VERSION
+from common import Protocols
+from providers import S2N
+from global_flags import get_flag, S2N_FIPS_MODE
 
 
 def to_bytes(val):
     return bytes(str(val).encode('utf-8'))
+
+
+def to_string(val: bytes):
+    return val.decode(encoding="ascii", errors="backslashreplace")
 
 
 def get_expected_s2n_version(protocol, provider):

@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_record.h"
-
 #include <stdint.h>
 #include <stdlib.h>
 
 #include "api/s2n.h"
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_record.h"
 
 int main(int argc, char **argv)
 {
@@ -30,13 +29,13 @@ int main(int argc, char **argv)
 
     uint8_t record_type;
 
-   /* In tls13 the true record type is inserted in the last byte of the encrypted payload. This
+    /* In tls13 the true record type is inserted in the last byte of the encrypted payload. This
     * test creates a fake unencrypted payload and checks that the helper function
     * s2n_tls13_parse_record_type() correctly parses the type.
     */
     {
         uint16_t plaintext = 0xdaf3;
-        struct s2n_stuffer plaintext_stuffer = {0};
+        struct s2n_stuffer plaintext_stuffer = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&plaintext_stuffer, sizeof(plaintext)));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&plaintext_stuffer, plaintext));
@@ -50,16 +49,16 @@ int main(int argc, char **argv)
 
     /* Test for failure when stuffer is completely empty */
     {
-        struct s2n_stuffer empty_stuffer = {0};
+        struct s2n_stuffer empty_stuffer = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&empty_stuffer, 0));
         EXPECT_FAILURE(s2n_tls13_parse_record_type(&empty_stuffer, &record_type));
-    }
+    };
 
     /* Test for case where there is a record type in the stuffer but no content */
     {
         uint16_t plaintext = 0xf3;
-        struct s2n_stuffer plaintext_stuffer = {0};
+        struct s2n_stuffer plaintext_stuffer = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&plaintext_stuffer, sizeof(plaintext)));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&plaintext_stuffer, plaintext));
@@ -69,11 +68,11 @@ int main(int argc, char **argv)
 
         /* Clean up */
         EXPECT_SUCCESS(s2n_stuffer_free(&plaintext_stuffer));
-    }
+    };
 
     /* Test for record padding handling */
     {
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         /* no padding */
@@ -96,7 +95,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_tls13_parse_record_type(&stuffer, &record_type));
         EXPECT_EQUAL(record_type, 0x16);
 
-        /* padding without record type should fail */
+        /** test: padding without record type should fail
+         * 
+         *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+         *= type=test
+         *# If a receiving implementation does not
+         *# find a non-zero octet in the cleartext, it MUST terminate the
+         *# connection with an "unexpected_message" alert.
+         **/
         S2N_BLOB_FROM_HEX(no_type, "00");
         EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
         EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &no_type));
@@ -113,7 +119,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_tls13_parse_record_type(&stuffer, &record_type));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* Defining these here as variables as they aren't used in prior tests. */
     const uint8_t padding_value = 0x00;
@@ -123,7 +129,7 @@ int main(int argc, char **argv)
     {
         EXPECT_EQUAL(S2N_MAXIMUM_INNER_PLAINTEXT_LENGTH, 16385);
 
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));
@@ -144,7 +150,7 @@ int main(int argc, char **argv)
 
     /* Test maximum record length size (maximum data) */
     {
-        struct s2n_stuffer stuffer;
+        struct s2n_stuffer stuffer = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
         /* fill up stuffer to before the limit */
@@ -170,7 +176,7 @@ int main(int argc, char **argv)
         const size_t extra_length_tolerated = 16;
         /* Test slightly overlarge record for compatibility (empty data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));
@@ -189,7 +195,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge record for compatibility (maximum data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             /* fill up stuffer to before the limit */
@@ -212,7 +218,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge record for compatibility (with too much data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             /* Finally, do this with an overall length which should pass, but too much data before the padding */
@@ -233,7 +239,7 @@ int main(int argc, char **argv)
 
         /* Test slightly overlarge + 1 record for compatibility (empty data) */
         {
-            struct s2n_stuffer stuffer;
+            struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 1024));
 
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, not_padding_value));
@@ -248,4 +254,3 @@ int main(int argc, char **argv)
     }
     END_TEST();
 }
-

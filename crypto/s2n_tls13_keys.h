@@ -17,13 +17,12 @@
 
 #include <stdint.h>
 
-#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_hkdf.h"
+#include "crypto/s2n_hmac.h"
 #include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_psk.h"
+#include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 

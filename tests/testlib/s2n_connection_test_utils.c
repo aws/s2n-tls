@@ -13,23 +13,24 @@
  * permissions and limitations under the License.
  */
 
-#include <stdio.h>
 #include <fcntl.h>
-#include <unistd.h>
-#include <sys/types.h>
+#include <stdio.h>
 #include <sys/socket.h>
+#include <sys/types.h>
+#include <unistd.h>
 
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
-#include "testlib/s2n_testlib.h"
 
-
-int s2n_fd_set_blocking(int fd) {
+int s2n_fd_set_blocking(int fd)
+{
     return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) & ~O_NONBLOCK);
 }
 
-int s2n_fd_set_non_blocking(int fd) {
+int s2n_fd_set_non_blocking(int fd)
+{
     return fcntl(fd, F_SETFL, fcntl(fd, F_GETFL) | O_NONBLOCK);
 }
 
@@ -37,7 +38,6 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     struct s2n_stuffer *in_buf;
     int n_read, n_avail;
-
 
     if (buf == NULL) {
         return 0;
@@ -109,6 +109,31 @@ int s2n_connection_set_send_io_stuffer(struct s2n_stuffer *output, struct s2n_co
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_io_stuffer_pair_init(struct s2n_test_io_stuffer_pair *io_pair)
+{
+    RESULT_ENSURE_REF(io_pair);
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->client_in, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->server_in, 0));
+    return S2N_RESULT_OK;
+}
+
+S2N_CLEANUP_RESULT s2n_io_stuffer_pair_free(struct s2n_test_io_stuffer_pair *io_pair)
+{
+    RESULT_ENSURE_REF(io_pair);
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io_pair->client_in));
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io_pair->server_in));
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_connections_set_io_stuffer_pair(struct s2n_connection *client, struct s2n_connection *server,
+        struct s2n_test_io_stuffer_pair *io_pair)
+{
+    RESULT_ENSURE_REF(io_pair);
+    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&io_pair->client_in, &io_pair->server_in, client));
+    RESULT_GUARD_POSIX(s2n_connection_set_io_stuffers(&io_pair->server_in, &io_pair->client_in, server));
+    return S2N_RESULT_OK;
+}
+
 int s2n_io_pair_init(struct s2n_test_io_pair *io_pair)
 {
     signal(SIGPIPE, SIG_IGN);
@@ -145,7 +170,7 @@ int s2n_connection_set_io_pair(struct s2n_connection *conn, struct s2n_test_io_p
 }
 
 int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connection *server,
-                                struct s2n_test_io_pair *io_pair)
+        struct s2n_test_io_pair *io_pair)
 {
     POSIX_GUARD(s2n_connection_set_io_pair(client, io_pair));
     POSIX_GUARD(s2n_connection_set_io_pair(server, io_pair));
@@ -163,7 +188,7 @@ int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_clos
 {
     if (mode_to_close == S2N_CLIENT) {
         POSIX_GUARD(close(io_pair->client));
-    } else if(mode_to_close == S2N_SERVER) {
+    } else if (mode_to_close == S2N_SERVER) {
         POSIX_GUARD(close(io_pair->server));
     }
     return 0;
@@ -173,7 +198,7 @@ int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_c
 {
     if (mode_to_close == S2N_CLIENT) {
         POSIX_GUARD(shutdown(io_pair->client, how));
-    } else if(mode_to_close == S2N_SERVER) {
+    } else if (mode_to_close == S2N_SERVER) {
         POSIX_GUARD(shutdown(io_pair->server, how));
     }
     return 0;
@@ -195,7 +220,7 @@ void s2n_print_connection(struct s2n_connection *conn, const char *marker)
         }
     }
     printf("\n");
- 
+
     printf("IN Stuffer (write: %d, read: %d, size: %d)\n", conn->in.write_cursor, conn->in.read_cursor, conn->in.blob.size);
     for (i = 0; i < conn->in.write_cursor; i++) {
         printf("%02x", conn->in.blob.data[i]);
@@ -246,7 +271,7 @@ static int mock_time(void *data, uint64_t *nanoseconds)
 {
     POSIX_ENSURE_REF(data);
     POSIX_ENSURE_REF(nanoseconds);
-    *nanoseconds = *((uint64_t*) data);
+    *nanoseconds = *((uint64_t *) data);
     return S2N_SUCCESS;
 }
 
@@ -293,7 +318,7 @@ S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     RESULT_ENSURE_REF(ecc_pref);
 
-    for(size_t i = 0; i < ecc_pref->count; i++) {
+    for (size_t i = 0; i < ecc_pref->count; i++) {
         conn->kex_params.mutually_supported_curves[i] = ecc_pref->ecc_curves[i];
     }
 
@@ -301,7 +326,7 @@ S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_pref));
     RESULT_ENSURE_REF(kem_pref);
 
-    for(size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         conn->kex_params.mutually_supported_kem_groups[i] = kem_pref->tls13_kem_groups[i];
     }
 

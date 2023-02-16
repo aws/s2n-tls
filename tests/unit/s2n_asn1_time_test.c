@@ -13,11 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include "utils/s2n_asn1_time.h"
 
 #include <stdlib.h>
 #include <time.h>
+
+#include "s2n_test.h"
 
 int main(int argc, char **argv)
 {
@@ -139,7 +140,7 @@ int main(int argc, char **argv)
         timestamp = 0;
         EXPECT_OK(s2n_asn1_time_to_nano_since_epoch_ticks(non_dst_str, strlen(non_dst_str), &timestamp));
         EXPECT_EQUAL(non_dst_stamp, timestamp);
-        if(tz) {
+        if (tz) {
             setenv("TZ", tz, 1);
         }
         tzset();

@@ -13,19 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
-#include <stdint.h>
-
 #include "tls/extensions/s2n_client_supported_groups.h"
-#include "tls/extensions/s2n_ec_point_format.h"
 
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_security_policies.h"
+#include <stdint.h>
+#include <sys/param.h>
 
-#include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq.h"
+#include "tls/extensions/s2n_ec_point_format.h"
+#include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
+#include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_safety.h"
 
 static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out);
 static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
@@ -82,7 +81,8 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
 /* Populates the appropriate index of either the mutually_supported_curves or
  * mutually_supported_kem_groups array based on the received IANA ID. Will
  * ignore unrecognized IANA IDs (and return success). */
-static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn, uint16_t iana_id) {
+static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn, uint16_t iana_id)
+{
     POSIX_ENSURE_REF(conn);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -117,7 +117,8 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
     return S2N_SUCCESS;
 }
 
-static int s2n_choose_supported_group(struct s2n_connection *conn) {
+static int s2n_choose_supported_group(struct s2n_connection *conn)
+{
     POSIX_ENSURE_REF(conn);
 
     const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -159,7 +160,8 @@ static int s2n_choose_supported_group(struct s2n_connection *conn) {
     return S2N_SUCCESS;
 }
 
-static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension) {
+static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(extension);
 
@@ -182,18 +184,6 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
 }
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_supported_groups_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    POSIX_GUARD(s2n_extension_send(&s2n_client_supported_groups_extension, conn, out));
-
-    /* The original send method also sent ec point formats. To avoid breaking
-     * anything, I'm going to let it continue writing point formats.
-     */
-    POSIX_GUARD(s2n_extension_send(&s2n_client_ec_point_format_extension, conn, out));
-
-    return S2N_SUCCESS;
-}
 
 int s2n_recv_client_supported_groups(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {

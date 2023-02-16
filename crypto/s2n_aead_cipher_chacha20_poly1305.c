@@ -17,11 +17,9 @@
 
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_openssl.h"
-
 #include "tls/s2n_crypto.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 /* We support two different backing implementations of ChaCha20-Poly1305: one
  * implementation for OpenSSL (>= 1.1.0, see
@@ -31,9 +29,9 @@
  * Note, the order in the if/elif below matters because both BoringSSL and
  * AWS-LC define OPENSSL_VERSION_NUMBER. */
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-#define S2N_CHACHA20_POLY1305_AVAILABLE_BSSL_AWSLC
-#elif (S2N_OPENSSL_VERSION_AT_LEAST(1,1,0) && !defined(LIBRESSL_VERSION_NUMBER))
-#define S2N_CHACHA20_POLY1305_AVAILABLE_OSSL
+    #define S2N_CHACHA20_POLY1305_AVAILABLE_BSSL_AWSLC
+#elif (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER))
+    #define S2N_CHACHA20_POLY1305_AVAILABLE_OSSL
 #endif
 
 static uint8_t s2n_aead_chacha20_poly1305_available(void)
@@ -262,15 +260,15 @@ static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
 
 #endif
 
-struct s2n_cipher s2n_chacha20_poly1305 = {
+const struct s2n_cipher s2n_chacha20_poly1305 = {
     .key_material_size = S2N_TLS_CHACHA20_POLY1305_KEY_LEN,
     .type = S2N_AEAD,
     .io.aead = {
-                .record_iv_size = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN,
-                .fixed_iv_size = S2N_TLS_CHACHA20_POLY1305_FIXED_IV_LEN,
-                .tag_size = S2N_TLS_CHACHA20_POLY1305_TAG_LEN,
-                .decrypt = s2n_aead_chacha20_poly1305_decrypt,
-                .encrypt = s2n_aead_chacha20_poly1305_encrypt},
+            .record_iv_size = S2N_TLS_CHACHA20_POLY1305_EXPLICIT_IV_LEN,
+            .fixed_iv_size = S2N_TLS_CHACHA20_POLY1305_FIXED_IV_LEN,
+            .tag_size = S2N_TLS_CHACHA20_POLY1305_TAG_LEN,
+            .decrypt = s2n_aead_chacha20_poly1305_decrypt,
+            .encrypt = s2n_aead_chacha20_poly1305_encrypt },
     .is_available = s2n_aead_chacha20_poly1305_available,
     .init = s2n_aead_chacha20_poly1305_init,
     .set_encryption_key = s2n_aead_chacha20_poly1305_set_encryption_key,

@@ -335,7 +335,7 @@ Call `s2n_print_stacktrace()` to print your stacktrace.
 
 ## Initialization and Teardown
 
-The s2n-tls library must be initialized with `s2n_init()` before calling most library functions. `s2n_init()` MUST NOT be called more than once, even when an application uses multiple threads or processes. To clean up, `s2n_cleanup()` must be called from every thread or process created after `s2n_init()` was called.
+The s2n-tls library must be initialized with `s2n_init()` before calling most library functions. `s2n_init()` MUST NOT be called more than once, even when an application uses multiple threads or processes. s2n attempts to clean up its thread-local memory at thread-exit and all other memory at process-exit. However, this may not work if you are using a thread library other than pthreads. In that case you should call `s2n_cleanup()` from every thread or process created after `s2n_init()`.
 
 Initialization can be modified by calling `s2n_crypto_disable_init()` or `s2n_disable_atexit()` before `s2n_init()`.
 
@@ -370,38 +370,52 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 * `s2n_connection_get_server_protocol_version()`: The highest TLS protocol version the server supports.
 * `s2n_connection_get_client_protocol_version()`: The highest TLS protocol version the client advertised.
 
+## Config
+
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
+
+Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
+
+### Overriding the Config
+
+Some `s2n_config` settings can be overridden on a specific connection if desired. For example, `s2n_config_append_protocol_preference()` appends a list of ALPN protocols to a `s2n_config`. Calling the `s2n_connection_append_protocol_preference()` API will override the list of ALPN protocols for an individual connection. Not all config APIs have a corresponding connection API so if there is one missing contact us with an explanation on why it is required for your use-case.
+
 ## Security Policies
 
 s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.
 
 `s2n_config_set_cipher_preferences()` sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.
 
-The following chart maps the security policy version to protocol version and ciphersuites supported:
+### Chart: Security Policy Version To Protocol Version And Ciphersuites 
 
-|    version     | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
-|----------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
-|   "default"    |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20190214"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-|   "20170718"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
-|   "20170405"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20170328"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |   X   |
-|   "20170210"   |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20160824"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |
-|   "20160804"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20160411"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20150306"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20150214"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |       |
-|   "20150202"   |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |     |  X  |       |
-|   "20141001"   |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
-|   "20140601"   |   X   |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |
-|   "20190120"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20190121"   |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |
-|   "20190122"   |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |
-| "default_tls13"|       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |
-|   "20190801"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20190802"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |
-|   "20200207"   |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |
-|   "rfc9151"    |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |
+The following chart maps the security policy version to protocol version and ciphersuites supported.
+
+|           version                            | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE | ChaCha20-Boosted |
+|----------------------------------------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|------------------|
+|          "default"                           |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20190214"                          |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |                  |
+|          "20170718"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |                  |
+|          "20170405"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20170328"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |   X   |                  |
+|          "20170210"                          |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20160824"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |                  |
+|          "20160804"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20160411"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20150306"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20150214"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |  X  |       |                  |
+|          "20150202"                          |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |     |  X  |       |                  |
+|          "20141001"                          |       |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |                  |
+|          "20140601"                          |   X   |   X    |    X   |    X   |         |    X    |                   |       |         |  X   |  X  |  X  |       |                  |
+|          "20190120"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20190121"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
+|          "20190122"                          |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |                  |
+|        "default_tls13"                       |       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |                  |
+|          "20190801"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20190802"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "20200207"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |                  |
+|          "rfc9151"                           |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |                  |
+|  "CloudFront-TLS-1-2-2021"                   |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |                  |
+|  "CloudFront-TLS-1-2-2021-ChaCha20-Boosted"  |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |        X         |
 
 The "default" and "default_tls13" version is special in that it will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 
@@ -413,15 +427,18 @@ The "rfc9151" security policy is derived from [Commercial National Security Algo
 
 s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:
 
-*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The
-underlying encrypt/decrypt functions are not available in older versions.
+*NOTE*: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The underlying encrypt/decrypt functions are not available in older versions.
 
 1. Always prefer the highest protocol version supported
 2. Always use forward secrecy where possible. Prefer ECDHE over DHE.
 3. Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.
 4. Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.
 
-The following chart maps the security policy version to the signature scheme supported:
+#### ChaCha20 Boosting
+
+s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly mobile or IOT devices-- do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers "ChaCha20 boosted" security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20.
+
+### Chart: Security Policy Version To Supported Signature Schemes
 
 |    version     |   RSA PKCS1  |   ECDSA  |  SHA-1 Legacy |  RSA PSS |
 |----------------|--------------|----------|---------------|----------|
@@ -451,7 +468,7 @@ The following chart maps the security policy version to the signature scheme sup
 Note that the default_tls13 security policy will never support legacy SHA-1 algorithms in TLS1.3, but will support
 legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotiated.
 
-The following chart maps the security policy version to the supported curves/groups:
+### Chart: Security policy version to supported curves/groups
 
 |    version     |   secp256r1  |  secp384r1 | x25519 |
 |----------------|--------------|------------|--------|
@@ -512,7 +529,15 @@ Applications may want to know which certificate was used by a server for authent
 
 Additionally s2n-tls has functions for parsing certificate extensions on a certificate. Use `s2n_cert_get_x509_extension_value_length()` and `s2n_cert_get_x509_extension_value()` to obtain a specific DER encoded certificate extension from a certificate. `s2n_cert_get_utf8_string_from_extension_data_length()` and `s2n_cert_get_utf8_string_from_extension_data()` can be used to obtain a specific UTF8 string representation of a certificate extension instead. These functions will work for both RFC-defined certificate extensions and custom certificate extensions.
 
-### OCSP Stapling
+### Certificate Revocation
+
+Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate's owner can no longer be trusted.
+
+s2n-tls supports two methods of certificate revocation: OCSP stapling and CRLs. A fundamental difference between the two is that with OCSP stapling, the peer offering the certificate validates the revocation status of its own certificate. This peer can choose not to send a certificate status response, and applications will have to decide whether or not to fail certificate validation in this case. With CRLs, the application checks the revocation status of the certificate itself, without relying on the peer. However, CRLs must be retrieved and stored by the application, which requires more network and memory utilization than OCSP stapling.
+
+Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you're sure your peer supports OCSP stapling. CRLs should be used if this assumption can't be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you're able to obtain CRLs in advance for all certificates you expect to encounter.
+
+#### OCSP Stapling
 
 Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.
 
@@ -521,6 +546,22 @@ OCSP stapling can be applied to both client and server certificates when using T
 To use OCSP stapling, both server and client must call `s2n_config_set_status_request_type()` with S2N_STATUS_REQUEST_OCSP. The server (or client, if using client authentication) will also need to call `s2n_cert_chain_and_key_set_ocsp_data()` to set the raw bytes of the OCSP stapling data.
 
 The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. `s2n_config_set_check_stapled_ocsp_response()` can be called with "0" to turn this off. Call `s2n_connection_get_ocsp_response()` to retrieve the received OCSP stapling information for manual verification.
+
+#### CRL Validation
+
+> Note: the CRL validation feature in s2n-tls is currently considered unstable, meaning the CRL APIs are subject to change in a future release. To access the CRL APIs, include `api/unstable/crl.h`.
+
+Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates that have been revoked by the CA. CAs publish updated versions of these lists periodically. A validator wishing to verify a certificate obtains a CRL from the CA, validates the CRL, and checks to ensure the certificate is not contained in the list, and therefore has not been revoked by the CA.
+
+The s2n CRL lookup callback must be implemented and set via `s2n_config_set_crl_lookup_cb()` to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain. 
+
+The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback, outside of s2n-tls. It is not possible in s2n-tls to obtain CRLs in real-time. Applications should load these CRLs into memory, by creating `s2n_crl`s via `s2n_crl_new()`, and adding the obtained CRL data via `s2n_crl_load_pem()`. The `s2n_crl` should be freed via `s2n_crl_free()` when no longer needed.
+
+The application must implement a way to look up the correct CRL for a given certificate. This can be done by comparing the hash of the received certificate's issuer with the hash of the CRL's issuer. The certificate's issuer hash is retrieved via `s2n_crl_lookup_get_cert_issuer_hash()`, and the CRL's issuer hash is retrieved via `s2n_crl_get_issuer_hash()`. Once a CRL is found with a matching issuer hash, call `s2n_crl_lookup_set()` to provide s2n-tls with this CRL.
+
+Call `s2n_crl_lookup_ignore()` to ignore a received certificate if its CRL can't be found. This will cause the certificate validation logic to fail with a `S2N_ERR_CRL_LOOKUP_FAILED` error if the certificate is needed in the chain of trust. The certificate validation logic will not fail if the ignored certificate ends up not being included in the chain of trust.
+
+By default, the CRL validation logic will not fail on CRLs that are not yet active, or are expired. Timestamp validation can optionally be performed in the CRL lookup callback by calling `s2n_crl_validate_active()` and `s2n_crl_validate_not_expired()`.
 
 ### Certificate Transparency
 
@@ -568,66 +609,58 @@ In TLS1.3, session ticket messages are sent after the handshake as "post-handsha
 
 Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call `s2n_config_set_initial_ticket_count()` to set the number of tickets they want to send and `s2n_connection_add_new_tickets_to_send()` to increase the number of tickets to send during a connection.
 
-### s2n\_config\_set\_client\_hello\_cb
+### Session Resumption Forward Secrecy
 
-```c
-int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
-```
+In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session's secret exposes the original session's encrypted data.
 
-**s2n_config_set_client_hello_cb** allows the caller to set a callback function
-that will be called after ClientHello was parsed.
+In contrast, in TLS1.3 the secret stored inside the ticket is _derived_ from the original session's master secret. The derivation uses a cryptographic operation that can't be reversed by an attacker to retrieve the original master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session's secret will not expose the original session's encrypted data.
 
-```c
-typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
-```
+### Keying Material Lifetimes in TLS1.2 and TLS1.3
 
-The callback function takes a s2n-tls connection as input, which receives the
-ClientHello and the context previously provided in **s2n_config_set_client_hello_cb**.
-The callback can access any ClientHello information from the connection and use
-the **s2n_connection_set_config** call to change the config of the connection.
+In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original "keying material"-- meaning the lifetime of any secret derived from the original full handshake-- is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with `s2n_config_set_ticket_encrypt_decrypt_key_lifetime()`.
 
-```c
-int s2n_config_set_client_hello_cb_mode(struct s2n_config *config, s2n_client_hello_cb_mode cb_mode);
-```
-Sets the callback execution mode.
+In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see [Session Resumption Forward Secrecy](#session-resumption-forward-secrecy). These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original "keying material" to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate "keying material" lifetime, which servers can configure with `s2n_connection_set_server_keying_material_lifetime()`. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.
 
-The callback can be be invoked in two modes
-- **S2N_CLIENT_HELLO_CB_BLOCKING** (default):
+## Examining the Client Hello
 
-    In this mode s2n-tls expects the callback to complete its work
-    and return the appropriate response code before the handshake continues.
-    If any of the connection properties were changed based on the server_name
-    extension the callback must either return a value greater than 0 or invoke **s2n_connection_server_name_extension_used**,
-    otherwise the callback returns 0 to continue the handshake.
+s2n-tls stores the received Client Hello and makes it available to the application. Call `s2n_connection_get_client_hello()` to get a pointer to the `s2n_client_hello` struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). The stored Client Hello message will not be available after calling `s2n_connection_free_handshake()`.
 
-- **S2N_CLIENT_HELLO_CB_NONBLOCKING**:
+Call `s2n_client_hello_get_raw_message()` to retrieve the complete Client Hello message with the random bytes on it zeroed out.
 
-    In non-blocking mode, s2n-tls expects the callback to not complete its work. If the callback
-    returns a response code of 0 s2n-tls will return **S2N_FAILURE** with **S2N_ERR_T_BLOCKED**
-    error type and **s2n_blocked_status** set to **S2N_BLOCKED_ON_APPLICATION_INPUT**.
-    The handshake is paused and further calls to **s2n_negotiate** will continue to return the
-    same error until **s2n_client_hello_cb_done** is invoked for the **s2n_connection** to resume
-    the handshake. This allows s2n-tls clients to process client_hello without
-    blocking and then resume the handshake at a later time.
-    If any of the connection properties were changed on the basis of the server_name extension then
-    **s2n_connection_server_name_extension_used** must be invoked before marking the callback done.
+Call `s2n_client_hello_get_cipher_suites()` to retrieve the list of cipher suites sent by the client.
 
-The callback can return a negative value to make s2n-tls terminate the
-handshake early with a fatal handshake failure alert.
+Call `s2n_client_hello_get_session_id()` to retrieve the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with `s2n_connection_get_session_id()`after the handshake completes.
 
-```c
-int s2n_client_hello_cb_done(struct s2n_connection *conn)
-```
-Marks the non-blocking callback as complete.
-Can be invoked from within the callback when operating in non-blocking mode
-to continue the handshake.
+Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensions sent in the Client Hello. Calling `s2n_client_hello_get_extension_by_id()` allows you to interrogate the `s2n_client_hello` struct for a specific extension.
 
-```c
-int s2n_client_server_name_used(struct s2n_connection *conn)
-```
-Indicates that connection properties were changed on the basis of server_name.
-Triggers a s2n-tls server to send the server_name extension. Must be called
-before s2n-tls finishes processing the ClientHello.
+### SSLv2
+s2n-tls will not negotiate SSLv2, but will accept SSLv2 ClientHellos advertising a
+higher protocol version like SSLv3 or TLS1.0. This was a backwards compatibility
+strategy used by some old clients when connecting to a server that might only support SSLv2.
+
+You can determine whether an SSLv2 ClientHello was received by checking the value
+of `s2n_connection_get_client_hello_version()`. If an SSLv2 ClientHello was
+received, then `s2n_connection_get_client_protocol_version()` will still report
+the real protocol version requested by the client.
+
+SSLv2 ClientHellos are formatted differently than ClientHellos in later versions.
+`s2n_client_hello_get_raw_message()` and `s2n_client_hello_get_cipher_suites()`
+will produce differently formatted data. See the documentation for those methods
+for details about proper SSLv2 ClientHello parsing.
+
+### Client Hello Callback
+
+Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully, as modifying the connection in response to untrusted input can be dangerous. In particular, switching from an `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. 
+
+`s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
+
+#### Callback Modes
+
+The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING** or **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode.
+
+The default mode, "blocking mode", will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won't slow down the handshake or block the main thread, like logging or simple configuration changes.
+ 
+In contrast, "non-blocking mode" will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls `s2n_client_hello_cb_done()` will the handshake be able to resume.
 
 ## Record sizes
 
@@ -682,16 +715,6 @@ would normally produce, the lower value will be used.
 
 ## Connection-oriented functions
 
-### s2n\_connection\_set\_config
-
-```c
-int s2n_connection_set_config(struct s2n_connection *conn,
-                              struct s2n_config *config);
-```
-
-**s2n_connection_set_config** Associates a configuration object with a
-connection.
-
 ### s2n\_connection\_set\_fd
 
 ```c
@@ -712,91 +735,6 @@ types of I/O).
 If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
 a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
 the process to terminate unless it is handled or ignored by the application.
-
-### s2n\_connection\_get\_client\_hello
-
-```c
-struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
-```
-For a given s2n_connection, **s2n_connection_get_client_hello** returns a handle
-to the s2n_client_hello structure holding the client hello message sent by the client during the handshake.
-NULL is returned if the connection has not yet received and parsed the client hello.
-Earliest point during the handshake when this structure is available for use is in the client_hello_callback (see **s2n_config_set_client_hello_cb**).
-
-### s2n\_client\_hello\_get\_raw\_message
-
-```c
-ssize_t s2n_client_hello_get_raw_message_length(struct s2n_client_hello *ch);
-ssize_t s2n_client_hello_get_raw_message(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **out** Pointer to a buffer into which the raw client hello bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_raw_message_length** returns the size of the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_raw_message** copies **max_length** bytes of the ClientHello message into the **out** buffer and returns the number of copied bytes.
-The ClientHello instrumented using this function will have the Random bytes zero-ed out.
-
-For SSLv2 ClientHello messages, the raw message contains only the cipher_specs, session_id and members portions of the hello message
-(see [RFC5246](https://tools.ietf.org/html/rfc5246#appendix-E.2)). To access other members, you may use the
-**s2n_connection_get_client_hello_version**, **s2n_connection_get_client_protocol_version**  and **s2n_connection_get_session_id_length** accesor functions.
-
-### s2n\_client\_hello\_get\_cipher\_suites
-
-```c
-ssize_t s2n_client_hello_get_cipher_suites_length(struct s2n_client_hello *ch);
-ssize_t s2n_client_hello_get_cipher_suites(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_cipher_suites_length** returns the number of bytes the cipher_suites takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_cipher_suites** copies into the **out** buffer **max_length** bytes of the cipher_suites on the ClientHello and returns the number of copied bytes.
-
-### s2n\_client\_hello\_get\_extensions
-
-```c
-ssize_t s2n_client_hello_get_extensions_length(struct s2n_client_hello *ch);
-ssize_t s2n_client_hello_get_extensions(struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **out** Pointer to a buffer into which the cipher_suites bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_extensions_length** returns the number of bytes the extensions take on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_extensions** copies into the **out** buffer **max_length** bytes of the extensions on the ClientHello and returns the number of copied bytes.
-
-### s2n\_client\_hello\_get\_extension
-
-```c
-ssize_t s2n_client_hello_get_extension_length(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type);
-ssize_t s2n_client_hello_get_extension_by_id(struct s2n_client_hello *ch, s2n_tls_extension_type extension_type, uint8_t *out, uint32_t max_length);
-```
-
-- **ch** The s2n_client_hello on the s2n_connection. The handle can be obtained using **s2n_connection_get_client_hello**.
-- **s2n_tls_extension_type** Enum [s2n_tls_extension_type](#s2n\_config\_set\_extension\_data) lists all supported extension types.
-- **out** Pointer to a buffer into which the extension bytes should be copied.
-- **max_length** Max number of bytes to copy into the **out** buffer.
-
-**s2n_client_hello_get_extension_length** returns the number of bytes the given extension type takes on the ClientHello message received by the server; it can be used to allocate the **out** buffer.
-**s2n_client_hello_get_extension_by_id** copies into the **out** buffer **max_length** bytes of a given extension type on the ClientHello and returns the number of copied bytes.
-
-### s2n\_client\_hello\_get\_session\_id
-
-```c
-int s2n_client_hello_get_session_id_length(struct s2n_client_hello *ch, uint32_t *out_length);
-int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
-```
-
-These functions retrieve the session id as sent by the client in the ClientHello message. The session id on the **s2n_connection** may change later when the server sends the ServerHello; see **s2n_connection_get_session_id** for how to get the final session id used for future session resumption.
-
-**s2n_client_hello_get_session_id_length** stores the ClientHello session id length in bytes in **out_length**. The **ch** is a pointer to **s2n_client_hello** of the **s2n_connection** which can be obtained using **s2n_connection_get_client_hello**. The **out_length** can be used to allocate the **out** buffer for the **s2n_client_hello_get_session_id** call.
-
-**s2n_client_hello_get_session_id** copies up to **max_length** bytes of the ClientHello session_id into the **out** buffer and stores the number of copied bytes in **out_length**.
 
 ## Private Key Operation Related Calls
 
@@ -1088,6 +1026,10 @@ ssize_t s2n_recv(struct s2n_connection *conn,
 **s2n_recv** decrypts and reads **size* to **buf** data from the associated
 connection. **s2n_recv** will return the number of bytes read and also return
 "0" on connection shutdown by the peer.
+
+**NOTE:** By default, **s2n_recv** will return after reading a single TLS record. To change this
+behavior such that it will read up to **size**, the config for the connection can be updated
+by calling **s2n_config_set_recv_multi_record**.
 
 **NOTE:** Unlike OpenSSL, repeated calls to **s2n_recv** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
 

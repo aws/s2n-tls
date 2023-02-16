@@ -19,7 +19,7 @@ S2N_RESULT s2n_connection_set_test_transcript_hash(struct s2n_connection *conn,
         message_type_t message_type, const struct s2n_blob *digest)
 {
     conn->handshake.handshake_type = conn->handshake.handshake_type & NEGOTIATED;
-    while(s2n_conn_get_current_message_type(conn) != message_type) {
+    while (s2n_conn_get_current_message_type(conn) != message_type) {
         conn->handshake.message_number++;
     }
     RESULT_CHECKED_MEMCPY(conn->handshake.hashes->transcript_hash_digest,

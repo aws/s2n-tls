@@ -13,29 +13,26 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_record_read.h"
+
 #include <sys/param.h>
 
-#include "crypto/s2n_sequence.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
-
+#include "crypto/s2n_sequence.h"
 #include "error/s2n_errno.h"
-
 #include "stuffer/s2n_stuffer.h"
-
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
-#include "tls/s2n_record_read.h"
-
-#include "utils/s2n_safety.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 int s2n_sslv2_record_header_parse(
-    struct s2n_connection *conn,
-    uint8_t * record_type,
-    uint8_t * client_protocol_version,
-    uint16_t * fragment_length)
+        struct s2n_connection *conn,
+        uint8_t *record_type,
+        uint8_t *client_protocol_version,
+        uint16_t *fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -43,13 +40,39 @@ int s2n_sslv2_record_header_parse(
 
     POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
-    /* Adjust to account for the 3 bytes of payload data we consumed in the header */
+    /* The SSLv2 header is only a 2 byte record length (technically 3 bytes if
+     * padding is included, but s2n-tls assumes no padding).
+     * See https://www.ietf.org/archive/id/draft-hickman-netscape-ssl-00.txt.
+     *
+     * So by reading 5 bytes for a standard header we have also read the first
+     * 3 bytes of the record payload. s2n-tls only supports SSLv2 ClientHellos,
+     * so we assume that those 3 bytes are the first two fields of the
+     * SSLv2 ClientHello.
+     */
+
+    /* Because we already read 3 bytes of the record payload while trying to
+     * read a standard header, we need to adjust the length so that we only
+     * try to read the remainder of the record payload.
+     */
     POSIX_ENSURE_GTE(*fragment_length, 3);
     *fragment_length -= 3;
 
+    /*
+     * The first field of an SSLv2 ClientHello is the msg_type.
+     *
+     * This is always '1', matching the ClientHello msg_type used by later
+     * handshake messages.
+     */
     POSIX_GUARD(s2n_stuffer_read_uint8(in, record_type));
 
-    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
+    /*
+     * The second field of an SSLv2 ClientHello is the version.
+     *
+     * The protocol version read here will likely not be SSLv2, since we only
+     * accept SSLv2 ClientHellos offering higher protocol versions.
+     * See s2n_sslv2_client_hello_recv.
+     */
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     *client_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
@@ -58,9 +81,9 @@ int s2n_sslv2_record_header_parse(
 }
 
 int s2n_record_header_parse(
-    struct s2n_connection *conn,
-    uint8_t *content_type,
-    uint16_t *fragment_length)
+        struct s2n_connection *conn,
+        uint8_t *content_type,
+        uint16_t *fragment_length)
 {
     struct s2n_stuffer *in = &conn->header_in;
 
@@ -80,6 +103,7 @@ int s2n_record_header_parse(
      * match the negotiated version.
      */
 
+
     /* The protocol_version and values derived from it don't make it out of this function.
      *= https://tools.ietf.org/rfc/rfc8446#5.1
      *# legacy_record_version:  MUST be set to 0x0303 for all records
@@ -89,9 +113,9 @@ int s2n_record_header_parse(
      *# This
      *# field is deprecated and MUST be ignored for all purposes.
      */
-    S2N_ERROR_IF(conn->actual_protocol_version_established &&
-        MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
-        != version, S2N_ERR_BAD_MESSAGE);
+    S2N_ERROR_IF(conn->actual_protocol_version_established && MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
+                            != version,
+            S2N_ERR_BAD_MESSAGE);
     POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
     /* Some servers send fragments that are above the maximum length.  (e.g.
@@ -166,21 +190,21 @@ int s2n_record_parse(struct s2n_connection *conn)
     }
 
     switch (cipher_suite->record_alg->cipher->type) {
-    case S2N_AEAD:
-        POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    case S2N_CBC:
-        POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    case S2N_COMPOSITE:
-        POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    case S2N_STREAM:
-        POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
-        break;
-    default:
-        POSIX_BAIL(S2N_ERR_CIPHER_TYPE);
-        break;
+        case S2N_AEAD:
+            POSIX_GUARD(s2n_record_parse_aead(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        case S2N_CBC:
+            POSIX_GUARD(s2n_record_parse_cbc(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        case S2N_COMPOSITE:
+            POSIX_GUARD(s2n_record_parse_composite(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        case S2N_STREAM:
+            POSIX_GUARD(s2n_record_parse_stream(cipher_suite, conn, content_type, encrypted_length, implicit_iv, mac, sequence_number, session_key));
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_CIPHER_TYPE);
+            break;
     }
 
     return 0;

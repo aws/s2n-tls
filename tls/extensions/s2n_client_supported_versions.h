@@ -15,12 +15,11 @@
 
 #pragma once
 
-#include "tls/s2n_connection.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_connection.h"
 
 extern const s2n_extension_type s2n_client_supported_versions_extension;
 
 /* Old-style extension functions -- remove after extensions refactor is complete */
-extern int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
-extern int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn);
-extern int s2n_extensions_client_supported_versions_send(struct s2n_connection *conn, struct s2n_stuffer *out);
+int s2n_extensions_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_extensions_client_supported_versions_size(struct s2n_connection *conn);
