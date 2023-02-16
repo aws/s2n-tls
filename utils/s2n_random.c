@@ -62,6 +62,11 @@ struct s2n_rand_state {
     bool drbgs_initialized;
 };
 
+/* Key which will control per-thread freeing of drbg memory */
+static pthread_key_t s2n_per_thread_rand_state_key;
+/* Needed to ensure key is initialized only once */
+static pthread_once_t s2n_per_thread_rand_state_key_once = PTHREAD_ONCE_INIT;
+
 static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .cached_fork_generation_number = 0,
     .public_drbg = { 0 },
@@ -130,6 +135,18 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
+static void s2n_drbg_destructor(void *_unused_argument)
+{
+    (void) _unused_argument;
+
+    s2n_result_ignore(s2n_rand_cleanup_thread());
+}
+
+static void s2n_drbg_make_rand_state_key(void)
+{
+    (void) pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
+}
+
 static S2N_RESULT s2n_init_drbgs(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
@@ -139,8 +156,12 @@ static S2N_RESULT s2n_init_drbgs(void)
     struct s2n_blob private = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&private, s2n_private_drbg, sizeof(s2n_private_drbg)));
 
+    RESULT_ENSURE(pthread_once(&s2n_per_thread_rand_state_key_once, s2n_drbg_make_rand_state_key) == 0, S2N_ERR_DRBG);
+
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
+
+    RESULT_ENSURE(pthread_setspecific(s2n_per_thread_rand_state_key, &s2n_per_thread_rand_state) == 0, S2N_ERR_DRBG);
 
     s2n_per_thread_rand_state.drbgs_initialized = true;
 

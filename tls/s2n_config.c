@@ -85,7 +85,6 @@ static int s2n_config_setup_fips(struct s2n_config *config)
 
 static int s2n_config_init(struct s2n_config *config)
 {
-    config->status_request_type = S2N_STATUS_REQUEST_NONE;
     config->wall_clock = wall_clock;
     config->monotonic_clock = monotonic_clock;
     config->ct_type = S2N_CT_SUPPORT_NONE;
@@ -439,7 +438,12 @@ int s2n_config_set_status_request_type(struct s2n_config *config, s2n_status_req
     S2N_ERROR_IF(type == S2N_STATUS_REQUEST_OCSP && !s2n_x509_ocsp_stapling_supported(), S2N_ERR_OCSP_NOT_SUPPORTED);
 
     POSIX_ENSURE_REF(config);
-    config->status_request_type = type;
+    config->ocsp_status_requested_by_user = (type == S2N_STATUS_REQUEST_OCSP);
+
+    /* Reset the ocsp_status_requested_by_s2n flag if OCSP status requests were disabled. */
+    if (type == S2N_STATUS_REQUEST_NONE) {
+        config->ocsp_status_requested_by_s2n = false;
+    }
 
     return 0;
 }
@@ -469,7 +473,7 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     int err_code = s2n_x509_trust_store_from_ca_file(&config->trust_store, ca_pem_filename, ca_dir);
 
     if (!err_code) {
-        config->status_request_type = s2n_x509_ocsp_stapling_supported() ? S2N_STATUS_REQUEST_OCSP : S2N_STATUS_REQUEST_NONE;
+        config->ocsp_status_requested_by_s2n = s2n_x509_ocsp_stapling_supported() ? S2N_STATUS_REQUEST_OCSP : S2N_STATUS_REQUEST_NONE;
     }
 
     return err_code;
