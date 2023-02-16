@@ -82,7 +82,7 @@ int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(target);
-    const int len = strlen(target);
+    const uint32_t len = strlen(target);
     if (len == 0) {
         return S2N_SUCCESS;
     }
