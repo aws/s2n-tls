@@ -415,7 +415,7 @@ int main(int argc, char **argv)
         S2N_BLOB_FROM_HEX(iv, "0123456789abcdef01234567");
 
         /* copy iv bytes from input data */
-        for (int i = 0; i < iv.size; i++) {
+        for (size_t i = 0; i < iv.size; i++) {
             implicit_iv[i] = iv.data[i];
         }
 
