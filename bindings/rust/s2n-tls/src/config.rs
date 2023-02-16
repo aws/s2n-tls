@@ -424,9 +424,14 @@ impl Builder {
             connection_ptr: *mut s2n_connection,
             _context: *mut core::ffi::c_void,
         ) -> libc::c_int {
-            with_connection(connection_ptr, |conn| {
-                trigger_async_client_hello_callback(conn).into()
+            with_context(connection_ptr, |conn, context| {
+                let callback = context.client_hello_callback.as_ref();
+                let future = callback
+                    .map(|c| c.on_client_hello(conn))
+                    .unwrap_or(Ok(None));
+                AsyncCallback::trigger_client_hello_cb(future, conn)
             })
+            .into()
         }
 
         let handler = Box::new(handler);
