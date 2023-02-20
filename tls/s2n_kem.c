@@ -108,27 +108,23 @@ const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_CO
  * The old format is used by draft 0 of the Hybrid PQ TLS 1.3 specification, and all revisions of the Hybrid PQ TLS 1.2
  * draft specification. Only draft revisions 1-5 of the Hybrid PQ TLS 1.3 specification use the new format.
  */
-int s2n_is_tls13_hybrid_kem_length_prefixed(uint16_t actual_hybrid_share_size, const struct s2n_kem_group *kem_group, bool *is_length_prefixed)
+S2N_RESULT s2n_is_tls13_hybrid_kem_length_prefixed(uint16_t actual_hybrid_share_size, const struct s2n_kem_group *kem_group, bool *is_length_prefixed)
 {
-    POSIX_ENSURE_REF(kem_group);
-    POSIX_ENSURE_REF(kem_group->curve);
-    POSIX_ENSURE_REF(kem_group->kem);
-    POSIX_ENSURE_REF(is_length_prefixed);
+    RESULT_ENSURE_REF(kem_group);
+    RESULT_ENSURE_REF(kem_group->curve);
+    RESULT_ENSURE_REF(kem_group->kem);
+    RESULT_ENSURE_REF(is_length_prefixed);
 
     uint16_t unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
     uint16_t prefixed_hybrid_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_hybrid_share_size;
 
-    POSIX_ENSURE((actual_hybrid_share_size == unprefixed_hybrid_share_size)
+    RESULT_ENSURE((actual_hybrid_share_size == unprefixed_hybrid_share_size)
                     || (actual_hybrid_share_size == prefixed_hybrid_share_size),
             S2N_ERR_BAD_KEY_SHARE);
 
-    if (actual_hybrid_share_size == prefixed_hybrid_share_size) {
-        *is_length_prefixed = true;
-    } else {
-        *is_length_prefixed = false;
-    }
+    *is_length_prefixed = (actual_hybrid_share_size == prefixed_hybrid_share_size);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params)

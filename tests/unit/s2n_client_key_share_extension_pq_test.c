@@ -111,6 +111,7 @@ int main()
                      * correctly. */
                     const struct s2n_kem_group *test_kem_groups[S2N_SUPPORTED_KEM_GROUPS_COUNT];
                     for (size_t j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
+                        /* cppcheck-suppress moduloofone */
                         test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_SUPPORTED_KEM_GROUPS_COUNT];
                     }
 
@@ -177,7 +178,7 @@ int main()
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_hybrid_iana_id));
                         EXPECT_EQUAL(sent_hybrid_iana_id, kem_pref->tls13_kem_groups[0]->iana_id);
 
-                        uint16_t expected_hybrid_share_size;
+                        uint16_t expected_hybrid_share_size = 0;
 
                         if (len_prefixed) {
                             expected_hybrid_share_size = S2N_SIZE_OF_KEY_SHARE_SIZE
@@ -188,19 +189,19 @@ int main()
                             expected_hybrid_share_size = test_kem_group->curve->share_size + test_kem_group->kem->public_key_length;
                         }
 
-                        uint16_t sent_hybrid_share_size;
+                        uint16_t sent_hybrid_share_size = 0;
                         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &sent_hybrid_share_size));
                         EXPECT_EQUAL(sent_hybrid_share_size, expected_hybrid_share_size);
 
                         if (len_prefixed) {
-                            uint16_t hybrid_ecc_share_size;
+                            uint16_t hybrid_ecc_share_size = 0;
                             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_ecc_share_size));
                             EXPECT_EQUAL(hybrid_ecc_share_size, test_kem_group->curve->share_size);
                         }
                         EXPECT_SUCCESS(s2n_stuffer_skip_read(&key_share_extension, test_kem_group->curve->share_size));
 
                         if (len_prefixed) {
-                            uint16_t hybrid_pq_share_size;
+                            uint16_t hybrid_pq_share_size = 0;
                             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&key_share_extension, &hybrid_pq_share_size));
                             EXPECT_EQUAL(hybrid_pq_share_size, test_kem_group->kem->public_key_length);
                         }
@@ -480,6 +481,7 @@ int main()
                          * correctly. */
                         const struct s2n_kem_group *test_kem_groups[S2N_SUPPORTED_KEM_GROUPS_COUNT];
                         for (size_t j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
+                            /* cppcheck-suppress moduloofone */
                             test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_SUPPORTED_KEM_GROUPS_COUNT];
                         }
 
