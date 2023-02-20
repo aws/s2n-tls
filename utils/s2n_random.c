@@ -492,7 +492,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 #if defined(__x86_64__) || defined(__i386__)
     struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, data, size));
-    int space_remaining = 0;
+    size_t space_remaining = 0;
     struct s2n_stuffer stuffer = { 0 };
     union {
         uint64_t u64;
@@ -583,7 +583,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 
         POSIX_ENSURE(success, S2N_ERR_RDRAND_FAILED);
 
-        int data_to_fill = MIN(sizeof(output), space_remaining);
+        size_t data_to_fill = MIN(sizeof(output), space_remaining);
 
         POSIX_GUARD(s2n_stuffer_write_bytes(&stuffer, output.u8, data_to_fill));
     }

@@ -40,7 +40,7 @@ int main(int argc, char **argv)
             s2n_tls13_chacha20_poly1305_sha256
         };
 
-        int hash_sizes[] = {
+        uint32_t hash_sizes[] = {
             32, 48, 32
         };
 
@@ -51,7 +51,7 @@ int main(int argc, char **argv)
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->secure->cipher_suite = &cipher_suites[i];
 
-            int hash_size = hash_sizes[i];
+            uint32_t hash_size = hash_sizes[i];
 
             EXPECT_SUCCESS(s2n_tls13_server_finished_send(server_conn));
             EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), hash_size);
