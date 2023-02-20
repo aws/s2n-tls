@@ -830,7 +830,7 @@ int main(int argc, char **argv)
         };
         int server_name_extension_len = sizeof(server_name_extension);
 
-        int client_extensions_len = sizeof(client_extensions);
+        size_t client_extensions_len = sizeof(client_extensions);
         uint8_t client_hello_prefix[] = {
             /* Protocol version TLS 1.2 */
             0x03,
