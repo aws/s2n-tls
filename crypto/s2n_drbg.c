@@ -32,7 +32,7 @@ static bool ignore_prediction_resistance_for_testing = false;
     acceptable in DRBG */
 S2N_RESULT s2n_increment_drbg_counter(struct s2n_blob *counter)
 {
-    for (uint32_t i = counter->size; i > 0; i--) {
+    for (uint32_t i = (uint32_t) counter->size; i > 0; i--) {
         counter->data[i - 1] += 1;
         if (counter->data[i - 1]) {
             break;
@@ -63,10 +63,10 @@ static S2N_RESULT s2n_drbg_bits(struct s2n_drbg *drbg, struct s2n_blob *out)
 
     struct s2n_blob value = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&value, drbg->v, sizeof(drbg->v)));
-    int block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
+    uint32_t block_aligned_size = out->size - (out->size % S2N_DRBG_BLOCK_SIZE);
 
     /* Per NIST SP800-90A 10.2.1.2: */
-    for (int i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
+    for (size_t i = 0; i < block_aligned_size; i += S2N_DRBG_BLOCK_SIZE) {
         RESULT_GUARD(s2n_increment_drbg_counter(&value));
         RESULT_GUARD(s2n_drbg_block_encrypt(drbg->ctx, drbg->v, out->data + i));
         drbg->bytes_used += S2N_DRBG_BLOCK_SIZE;
@@ -94,7 +94,7 @@ static S2N_RESULT s2n_drbg_update(struct s2n_drbg *drbg, struct s2n_blob *provid
 
     RESULT_STACK_BLOB(temp_blob, s2n_drbg_seed_size(drgb), S2N_DRBG_MAX_SEED_SIZE);
 
-    RESULT_ENSURE_EQ(provided_data->size, s2n_drbg_seed_size(drbg));
+    RESULT_ENSURE_EQ(provided_data->size, (uint32_t) s2n_drbg_seed_size(drbg));
 
     RESULT_GUARD(s2n_drbg_bits(drbg, &temp_blob));
 

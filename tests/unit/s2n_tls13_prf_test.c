@@ -74,25 +74,25 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&expected_expanded_in, expected_expanded_hex_in));
 
     /* Parse the hex */
-    for (int i = 0; i < sizeof(client_handshake_message); i++) {
+    for (size_t i = 0; i < sizeof(client_handshake_message); i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&client_handshake_message_in, &c));
         client_handshake_message[i] = c;
     }
 
-    for (int i = 0; i < sizeof(server_handshake_message); i++) {
+    for (size_t i = 0; i < sizeof(server_handshake_message); i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&server_handshake_message_in, &c));
         server_handshake_message[i] = c;
     }
 
-    for (int i = 0; i < sizeof(expected_secret); i++) {
+    for (size_t i = 0; i < sizeof(expected_secret); i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&expected_secret_in, &c));
         expected_secret[i] = c;
     }
 
-    for (int i = 0; i < sizeof(expected_expanded); i++) {
+    for (size_t i = 0; i < sizeof(expected_expanded); i++) {
         uint8_t c;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&expected_expanded_in, &c));
         expected_expanded[i] = c;

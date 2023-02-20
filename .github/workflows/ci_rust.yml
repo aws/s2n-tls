@@ -3,8 +3,10 @@ name: Rust Bindings
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 env:
   # Pin the nightly toolchain to prevent breakage.
