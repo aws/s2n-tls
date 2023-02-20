@@ -23,7 +23,7 @@
           name = "s2n-tls";
           inherit system;
 
-          nativeBuildInputs = [ openssl_1_1_1 pkgs.cmake ];
+          nativeBuildInputs = [ pkgs.cmake ];
           buildInputs = [ pkgs.openssl ];
 
           configurePhase = ''

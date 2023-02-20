@@ -43,6 +43,5 @@ pkgs.python39.withPackages(ps: [
   ps.typing-extensions
   ps.setuptools-rust
   ps.cryptography
-#  ps.pyopenssl
   nassl
 ])

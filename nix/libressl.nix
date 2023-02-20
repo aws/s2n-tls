@@ -12,12 +12,7 @@ pkgs.stdenv.mkDerivation rec {
 
   buildInputs = [
     pkgs.gnumake
-#    pkgs.perl534
   ];
-
-#  patchPhase = ''
-#      substitute ./config ./config --replace /usr/bin/env ${pkgs.coreutils}/bin/env
-#  '';
 
   configurePhase = ''
       ./configure --prefix=$out

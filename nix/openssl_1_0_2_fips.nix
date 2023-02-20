@@ -5,6 +5,7 @@ pkgs.stdenv.mkDerivation rec {
   pname = "openssl";
   version = "1.0.2-fips";
 
+  # TODO: build OpenSSL 1.0.2-fips
   src = fetchTarball {
     url = "https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz";
     sha256 = "";
@@ -22,12 +23,11 @@ pkgs.stdenv.mkDerivation rec {
             sha256 = "";
           };
           configurePhase = ''
-          ''
-
+          '';
     })
   ];
 
-  # TODO FIPSDIR
+  # TODO Set FIPSDIR
   configurePhase = ''
     ./config -d fips --with-fipsdir=$FIPSDIR shared -g3 -fPIC no-libunbound no-gmp no-jpake no-krb5 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-store no-zlib no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia no-bf no-ripemd no-dsa no-ssl2 no-capieng -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS --prefix="$out"
   '';

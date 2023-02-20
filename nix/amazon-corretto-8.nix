@@ -21,6 +21,7 @@ pkgs.stdenv.mkDerivation rec {
   ];
 
   buildPhase = ''
+    echo "Corretto is already built"
   '';
 
   installPhase = ''
