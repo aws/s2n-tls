@@ -71,7 +71,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
 
-    /* `mode` is initialized here since its passed in as a parameter. */
+    /* `mode` is initialized here since it's passed in as a parameter. */
     conn->mode = mode;
 
     /* Allocate the fixed-size stuffers */

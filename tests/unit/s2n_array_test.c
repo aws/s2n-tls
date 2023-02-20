@@ -31,10 +31,10 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    int element_size = sizeof(struct array_element);
+    size_t element_size = sizeof(struct array_element);
 
     struct array_element elements[NUM_OF_ELEMENTS] = { 0 };
-    for (int i = 0; i < NUM_OF_ELEMENTS; i++) {
+    for (size_t i = 0; i < NUM_OF_ELEMENTS; i++) {
         elements[i].first = i;
         elements[i].second = 'a' + i;
     }

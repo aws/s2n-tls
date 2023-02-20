@@ -206,7 +206,7 @@ int s2n_io_pair_shutdown_one_end(struct s2n_test_io_pair *io_pair, int mode_to_c
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker)
 {
-    int i;
+    size_t i = 0;
 
     printf("marker: %s\n", marker);
     printf("HEADER IN Stuffer (write: %d, read: %d, size: %d)\n", conn->header_in.write_cursor, conn->header_in.read_cursor, conn->header_in.blob.size);
