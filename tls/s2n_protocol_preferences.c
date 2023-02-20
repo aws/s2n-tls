@@ -107,7 +107,6 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
      * s2n_realloc will just update the size field here
      */
     RESULT_GUARD_POSIX(s2n_realloc(&new_protocols, 0));
-
     RESULT_ENSURE_GTE(protocol_count, 0);
 
     for (size_t i = 0; i < (size_t) protocol_count; i++) {

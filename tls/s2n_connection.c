@@ -1058,9 +1058,8 @@ int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_
     const int session_id_len = s2n_connection_get_session_id_length(conn);
     POSIX_GUARD(session_id_len);
 
-    const size_t session_id_size = session_id_len;
 
-    POSIX_ENSURE(session_id_size <= max_length, S2N_ERR_SESSION_ID_TOO_LONG);
+    POSIX_ENSURE((size_t) session_id_len <= max_length, S2N_ERR_SESSION_ID_TOO_LONG);
 
     POSIX_CHECKED_MEMCPY(session_id, conn->session_id, session_id_len);
 
@@ -1360,7 +1359,6 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
     POSIX_ENSURE_REF(cert_chain_validated);
 
     int cert_count = sk_X509_num(cert_chain_validated);
-
     POSIX_ENSURE_GTE(cert_count, 0);
 
     for (size_t cert_idx = 0; cert_idx < (size_t) cert_count; cert_idx++) {
