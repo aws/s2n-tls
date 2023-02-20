@@ -73,6 +73,7 @@
                  cmake -S . -B./build \
                    -DBUILD_TESTING=ON \
                    -DS2N_INTEG_TESTS=ON \
+                   -DS2N_INSTALL_S2NC_S2ND=ON \
                    -DS2N_NIX_FAST_INTEG_TESTS=ON \
                    -DBUILD_SHARED_LIBS=ON \
                    -DCMAKE_BUILD_TYPE=RelWithDebInfo

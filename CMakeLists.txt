@@ -37,6 +37,7 @@ option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_NIX_FAST_INTEG_TESTS "Enable the integrationv2 tests for devShell, only has effect if S2N_INTEG_TESTS=ON" OFF)
+option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -704,9 +705,11 @@ elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
     set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
-install(
-  TARGETS s2nc s2nd RUNTIME DESTINATION bin
- )
+if (S2N_INSTALL_S2NC_S2ND)
+  install(
+    TARGETS s2nc s2nd RUNTIME DESTINATION bin
+    )
+endif()
 
 install(
         TARGETS ${PROJECT_NAME}
