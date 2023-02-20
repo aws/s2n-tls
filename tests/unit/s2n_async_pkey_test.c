@@ -383,7 +383,7 @@ int main(int argc, char **argv)
         &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     };
 
-    for (int i = 0; i < s2n_array_len(test_cipher_suites); i++) {
+    for (size_t i = 0; i < s2n_array_len(test_cipher_suites); i++) {
         struct s2n_cipher_preferences server_cipher_preferences = {
             .count = 1,
             .suites = &test_cipher_suites[i],

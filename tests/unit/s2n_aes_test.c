@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
+    for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written;
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
 
-    for (int i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
+    for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
         int bytes_written;

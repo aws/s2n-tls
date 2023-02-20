@@ -144,7 +144,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hash_new(&hash_one));
     EXPECT_SUCCESS(s2n_hash_new(&hash_two));
 
-    for (int i = 0; i < s2n_array_len(supported_hash_algorithms); i++) {
+    for (size_t i = 0; i < s2n_array_len(supported_hash_algorithms); i++) {
         int hash_alg = supported_hash_algorithms[i];
 
         if (!s2n_hash_is_available(hash_alg) || hash_alg == S2N_HASH_NONE) {
