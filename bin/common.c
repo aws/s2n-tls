@@ -142,7 +142,7 @@ char *load_file_to_cstring(const char *path)
         return NULL;
     }
 
-    const long int pem_file_size = ftell(pem_file);
+    const ssize_t pem_file_size = ftell(pem_file);
     if (pem_file_size < 0) {
         fprintf(stderr, "Failed calling ftell: '%s'\n", strerror(errno));
         fclose(pem_file);
@@ -158,7 +158,7 @@ char *load_file_to_cstring(const char *path)
         return NULL;
     }
 
-    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < pem_file_size) {
+    if (fread(pem_out, sizeof(char), pem_file_size, pem_file) < (size_t) pem_file_size) {
         fprintf(stderr, "Failed reading file: '%s'\n", strerror(errno));
         free(pem_out);
         fclose(pem_file);

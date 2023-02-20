@@ -90,7 +90,7 @@ int main(int argc, char **argv)
      * There are a few gotchas with respect to explicit IV length and payload length
      */
     for (int j = 0; j < 3; j++) {
-        for (int i = 0; i <= max_aligned_fragment + 1; i++) {
+        for (size_t i = 0; i <= max_aligned_fragment + 1; i++) {
             struct s2n_blob in = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
             int bytes_written;

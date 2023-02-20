@@ -157,7 +157,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_str(&extension_data, "bad extension"));
 
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        for (int i = 0; i < tls13_server_hello_extensions->count; i++) {
+        for (size_t i = 0; i < tls13_server_hello_extensions->count; i++) {
             const s2n_extension_type *tls13_extension_type = tls13_server_hello_extensions->extension_types[i];
             s2n_extension_type_id extension_id;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(tls13_extension_type->iana_value, &extension_id));
