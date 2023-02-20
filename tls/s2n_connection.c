@@ -1058,7 +1058,6 @@ int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_
     const int session_id_len = s2n_connection_get_session_id_length(conn);
     POSIX_GUARD(session_id_len);
 
-
     POSIX_ENSURE((size_t) session_id_len <= max_length, S2N_ERR_SESSION_ID_TOO_LONG);
 
     POSIX_CHECKED_MEMCPY(session_id, conn->session_id, session_id_len);
