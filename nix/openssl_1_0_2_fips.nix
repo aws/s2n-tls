@@ -1,13 +1,12 @@
-{
-  pkgs
-}:
+{ pkgs }:
 pkgs.stdenv.mkDerivation rec {
   pname = "openssl";
   version = "1.0.2-fips";
 
   # TODO: build OpenSSL 1.0.2-fips
   src = fetchTarball {
-    url = "https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz";
+    url =
+      "https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz";
     sha256 = "";
   };
 
@@ -16,14 +15,14 @@ pkgs.stdenv.mkDerivation rec {
     pkgs.perl534
     # TODO: review install_openssl_1_0_2_fips.sh -- OpensslFipsModule doesn't make sense to me.
     (pkgs.stdenv.mkDerivation rec {
-        pname = "OpensslFipsModule";
-        version = "2017-08-31_2.0.13";
-          src = fetchTarball {
-            url = "https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz";
-            sha256 = "";
-          };
-          configurePhase = ''
-          '';
+      pname = "OpensslFipsModule";
+      version = "2017-08-31_2.0.13";
+      src = fetchTarball {
+        url =
+          "https://s3-us-west-2.amazonaws.com/s2n-public-test-dependencies/2017-08-31_openssl-fips-2.0.13.tar.gz";
+        sha256 = "";
+      };
+      configurePhase = "";
     })
   ];
 

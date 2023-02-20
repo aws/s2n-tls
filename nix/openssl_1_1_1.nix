@@ -1,23 +1,18 @@
-{
-  pkgs
-}:
+{ pkgs }:
 pkgs.stdenv.mkDerivation rec {
   pname = "openssl";
   version = "1.1.1";
 
   src = pkgs.fetchzip {
-    url = "https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1t.zip";
+    url =
+      "https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1t.zip";
     sha256 = "sha256-gI2+Vm67j1+xLvzBb+DF0YFTOHW7myotRsXRzluzSLY=";
   };
 
-  buildInputs = [
-    pkgs.gnumake
-    pkgs.perl534
-    pkgs.coreutils
-  ];
+  buildInputs = [ pkgs.gnumake pkgs.perl534 pkgs.coreutils ];
 
   patchPhase = ''
-      substitute ./config ./config --replace /usr/bin/env ${pkgs.coreutils}/bin/env
+    substitute ./config ./config --replace /usr/bin/env ${pkgs.coreutils}/bin/env
   '';
 
   configurePhase = ''
