@@ -470,13 +470,14 @@ int s2n_connection_get_session(struct s2n_connection *conn, uint8_t *session, si
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(session);
 
-    int len = s2n_connection_get_session_length(conn);
+    const int len = s2n_connection_get_session_length(conn);
+    POSIX_GUARD(len);
 
     if (len == 0) {
         return 0;
     }
 
-    S2N_ERROR_IF(len > max_length, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
+    POSIX_ENSURE((size_t) len <= max_length, S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG);
 
     struct s2n_blob serialized_data = { 0 };
     POSIX_GUARD(s2n_blob_init(&serialized_data, session, len));
