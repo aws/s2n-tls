@@ -1,5 +1,6 @@
 echo nix/shell.sh: Entering a devShell
 export SRC_ROOT=$(pwd)
+export PATH=$SRC_ROOT/build/bin:$PATH
 
 banner()
 {
@@ -15,7 +16,7 @@ function configure {
           -DBUILD_TESTING=ON \
           -DS2N_INTEG_TESTS=ON \
           -DS2N_INSTALL_S2NC_S2ND=ON \
-          -DS2N_NIX_FAST_INTEG_TESTS=ON \
+          -DS2N_FAST_INTEG_TESTS=ON \
           -DBUILD_SHARED_LIBS=ON \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
 }
@@ -27,13 +28,11 @@ function build {
 }
 
 function unit {
-    cd build
     if [[ -z "$1" ]]; then
-        ctest -L unit -j $(nproc) --verbose
+        (cd $SRC_ROOT/build; ctest -L unit -j $(nproc) --verbose)
     else
-        ctest -L unit -R $1 -j $(nproc) --verbose
+        (cd $SRC_ROOT/build; ctest -L unit -R $1 -j $(nproc) --verbose)
     fi
-    cd ../
 }
 
 function integ {
@@ -60,47 +59,47 @@ function integ {
 
 function check-clang-format {
     banner "Dry run of clang-format"
-    cd $SRC_ROOT
-    include_regex=".*\.(c|h)$"
-    src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./bin -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./crypto -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./stuffer -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./utils -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    echo $src_files | xargs -n 1 -P $(nproc) clang-format --dry-run -style=file                 
+    (cd $SRC_ROOT;
+    include_regex=".*\.(c|h)$";
+    src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./bin -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./crypto -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./stuffer -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./utils -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    echo $src_files | xargs -n 1 -P $(nproc) clang-format --dry-run -style=file)
 }
 function do-clang-format {
     banner "In place clang-format"
-    cd $SRC_ROOT
-    include_regex=".*\.(c|h)$"
-    src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./bin -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./crypto -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./stuffer -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./utils -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    src_files+=" "
-    src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-    echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i
+    (cd $SRC_ROOT;
+    include_regex=".*\.(c|h)$";
+    src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./bin -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./crypto -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./stuffer -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./utils -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    src_files+=" ";
+    src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
+    echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i)
 }

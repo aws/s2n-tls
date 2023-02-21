@@ -59,9 +59,7 @@
           shellHook = ''
             echo Setting up enviornment from flake.nix...
             export S2N_LIBCRYPTO=openssl-1.1.1
-            export PATH=${
-              self.packages.${system}.s2n-tls
-            }/bin:${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
+            export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
             export PS1="[nix] $PS1"
             alias openssl-098=${openssl_0_9_8}/bin/openssl
             alias openssl-102=${openssl_1_0_2}/bin/openssl
@@ -92,7 +90,6 @@
 
             # Linters/Formatters
             pkgs.shellcheck
-            pkgs.cppcheck
             pkgs.nixfmt
             pkgs.python39Packages.pep8
 
