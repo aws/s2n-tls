@@ -89,7 +89,7 @@ ldd ./build/shared/lib/libs2n.so | grep -q libcrypto && fail "shared: libcrypto 
 # NOTE: interning+LTO+testing doesn't currently work
 build build/shared-lto -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off -DS2N_INTERN_LIBCRYPTO=on $LTO_FLAGS
 # s2n should not publicly depend on libcrypto
-ldd ./build/shared-lto/lib/libs2n.so | grep -q libcrypto && fail "shared-tlo: libcrypto was not interned"
+ldd ./build/shared-lto/lib/libs2n.so | grep -q libcrypto && fail "shared-lto: libcrypto was not interned"
 
 # ensure libcrypto interning works with shared libs and testing
 build build/shared-testing -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on -DS2N_INTERN_LIBCRYPTO=on
