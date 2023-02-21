@@ -39,6 +39,7 @@
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
 #include "tls/extensions/s2n_quic_transport_params.h"
 #include "tls/extensions/s2n_server_alpn.h"
+#include "tls/extensions/s2n_server_cert_status_request.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/extensions/s2n_server_max_fragment_length.h"
 #include "tls/extensions/s2n_server_psk.h"
@@ -129,6 +130,7 @@ static const s2n_extension_type *const encrypted_extensions[] = {
 
 static const s2n_extension_type *const cert_req_extensions[] = {
     &s2n_server_signature_algorithms_extension,
+    &s2n_server_cert_status_request_extension,
 };
 
 static const s2n_extension_type *const certificate_extensions[] = {
