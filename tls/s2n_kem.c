@@ -250,7 +250,7 @@ int s2n_kem_group_free(struct s2n_kem_group_params *kem_group_params)
 
 int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], const struct s2n_iana_to_kem **compatible_params)
 {
-    for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
+    for (size_t i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
         if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
             *compatible_params = candidate;
@@ -262,7 +262,7 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
 
 int s2n_get_kem_from_extension_id(kem_extension_size kem_id, const struct s2n_kem **kem)
 {
-    for (int i = 0; i < s2n_array_len(kem_mapping); i++) {
+    for (size_t i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *iana_to_kem = &kem_mapping[i];
 
         for (int j = 0; j < iana_to_kem->kem_count; j++) {

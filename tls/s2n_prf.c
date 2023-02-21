@@ -400,7 +400,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
         uint32_t bytes_to_xor = MIN(outputlen, digest_size);
 
-        for (uint32_t i = 0; i < bytes_to_xor; i++) {
+        for (size_t i = 0; i < bytes_to_xor; i++) {
             *output ^= ws->digest1[i];
             output++;
             outputlen--;
