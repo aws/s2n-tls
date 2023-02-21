@@ -61,7 +61,7 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t
     uint8_t xor = !((a_inc == 1) & (b_inc == 1));
 
     /* iterate over each byte in the slices */
-    for (uint32_t i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         /* Invariants must hold for each execution of the loop
          * and at loop exit, hence the <= */
         S2N_INVARIANT(i <= len);
@@ -99,7 +99,7 @@ int s2n_constant_time_copy_or_dont(uint8_t *dest, const uint8_t *src, uint32_t l
     /* dont = 0 : mask = 0xff */
     /* dont > 0 : mask = 0x00 */
 
-    for (uint32_t i = 0; i < len; i++) {
+    for (size_t i = 0; i < len; i++) {
         uint8_t old = dest[i];
         uint8_t diff = (old ^ src[i]) & mask;
         dest[i] = old ^ diff;
@@ -140,7 +140,7 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t *dst, const uint8_t *src, uint
     dont_copy |= src[1] ^ 0x02;
     dont_copy |= *(start_of_data - 1) ^ 0x00;
 
-    for (uint32_t i = 2; i < srclen - expectlen - 1; i++) {
+    for (size_t i = 2; i < srclen - expectlen - 1; i++) {
         /* Note! We avoid using logical NOT (!) here; while in practice
          * many compilers will use constant-time sequences for this operator,
          * at least on x86 (e.g. cmp -> setcc, or vectorized pcmpeq), this is

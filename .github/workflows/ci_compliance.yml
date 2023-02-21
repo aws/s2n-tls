@@ -3,8 +3,10 @@ name: Compliance
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 jobs:
   duvet:
