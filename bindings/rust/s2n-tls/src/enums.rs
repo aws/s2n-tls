@@ -123,3 +123,57 @@ impl From<AlertBehavior> for s2n_alert_behavior::Type {
         }
     }
 }
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+#[allow(non_camel_case_types)]
+pub enum SigAlg {
+    RSA_PKCS1,
+    RSA_PSS_RSAE,
+    RSA_PSS_PSS,
+    ECDSA,
+}
+
+impl TryFrom<s2n_tls_signature_algorithm::Type> for SigAlg {
+    type Error = Error;
+
+    fn try_from(input: s2n_tls_signature_algorithm::Type) -> Result<Self, Self::Error> {
+        let version = match input {
+            s2n_tls_signature_algorithm::RSA => Self::RSA_PKCS1,
+            s2n_tls_signature_algorithm::RSA_PSS_RSAE => Self::RSA_PSS_RSAE,
+            s2n_tls_signature_algorithm::RSA_PSS_PSS => Self::RSA_PSS_PSS,
+            s2n_tls_signature_algorithm::ECDSA => Self::ECDSA,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(version)
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+#[allow(non_camel_case_types)]
+pub enum HashAlg {
+    MD5,
+    SHA1,
+    SHA224,
+    SHA256,
+    SHA384,
+    SHA512,
+}
+
+impl TryFrom<s2n_tls_hash_algorithm::Type> for HashAlg {
+    type Error = Error;
+
+    fn try_from(input: s2n_tls_hash_algorithm::Type) -> Result<Self, Self::Error> {
+        let version = match input {
+            s2n_tls_hash_algorithm::MD5 => Self::MD5,
+            s2n_tls_hash_algorithm::SHA1 => Self::SHA1,
+            s2n_tls_hash_algorithm::SHA224 => Self::SHA224,
+            s2n_tls_hash_algorithm::SHA256 => Self::SHA256,
+            s2n_tls_hash_algorithm::SHA384 => Self::SHA384,
+            s2n_tls_hash_algorithm::SHA512 => Self::SHA512,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+        Ok(version)
+    }
+}
