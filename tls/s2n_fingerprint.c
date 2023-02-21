@@ -99,7 +99,7 @@ static S2N_RESULT s2n_fingerprint_write_entry(struct s2n_stuffer *stuffer,
     RESULT_ENSURE_GT(written, 0);
     RESULT_ENSURE_LTE(written, S2N_UINT16_STR_MAX_SIZE);
 
-    if (s2n_stuffer_space_remaining(stuffer) < written) {
+    if (s2n_stuffer_space_remaining(stuffer) < (uint64_t) written) {
         RESULT_GUARD(s2n_fingerprint_hash_flush(hash, stuffer));
     }
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(stuffer, entry, written));
