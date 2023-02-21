@@ -48,8 +48,6 @@ impl From<libc::c_int> for ErrorType {
 
 enum Context {
     InvalidInput,
-    #[allow(unused)]
-    MissingWaker,
     Code(s2n_status_code::Type, Errno),
     Application(Box<dyn std::error::Error + Send + Sync + 'static>),
 }
@@ -185,7 +183,6 @@ impl Error {
     pub fn name(&self) -> &'static str {
         match self.0 {
             Context::InvalidInput => "InvalidInput",
-            Context::MissingWaker => "MissingWaker",
             Context::Application(_) => "ApplicationError",
             Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
@@ -197,9 +194,6 @@ impl Error {
     pub fn message(&self) -> &'static str {
         match self.0 {
             Context::InvalidInput => "A parameter was incorrect",
-            Context::MissingWaker => {
-                "Tried to perform an asynchronous operation without a configured waker"
-            }
             Context::Application(_) => "An error occurred while executing application code",
             Context::Code(code, _) => unsafe {
                 // Safety: we assume the string has a valid encoding coming from s2n
@@ -210,7 +204,7 @@ impl Error {
 
     pub fn debug(&self) -> Option<&'static str> {
         match self.0 {
-            Context::InvalidInput | Context::MissingWaker | Context::Application(_) => None,
+            Context::InvalidInput | Context::Application(_) => None,
             Context::Code(code, _) => unsafe {
                 let debug_info = s2n_strerror_debug(code, core::ptr::null());
 
@@ -230,7 +224,7 @@ impl Error {
 
     pub fn kind(&self) -> ErrorType {
         match self.0 {
-            Context::InvalidInput | Context::MissingWaker => ErrorType::UsageError,
+            Context::InvalidInput => ErrorType::UsageError,
             Context::Application(_) => ErrorType::Application,
             Context::Code(code, _) => unsafe { ErrorType::from(s2n_error_get_type(code)) },
         }
@@ -238,7 +232,7 @@ impl Error {
 
     pub fn source(&self) -> ErrorSource {
         match self.0 {
-            Context::InvalidInput | Context::MissingWaker => ErrorSource::Bindings,
+            Context::InvalidInput => ErrorSource::Bindings,
             Context::Application(_) => ErrorSource::Application,
             Context::Code(_, _) => ErrorSource::Library,
         }
@@ -270,7 +264,7 @@ impl Error {
     /// This API is currently incomplete and should not be relied upon.
     pub fn alert(&self) -> Option<u8> {
         match self.0 {
-            Context::InvalidInput | Context::MissingWaker | Context::Application(_) => None,
+            Context::InvalidInput | Context::Application(_) => None,
             Context::Code(code, _) => {
                 let mut alert = 0;
                 let r = unsafe { s2n_error_get_alert(code, &mut alert) };
