@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.37-85ffeff8</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.37-4c67f458</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -1654,7 +1654,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Enum used to define the type, if any, of certificate status request an S2N_CLIENT should make during the handshake. The only supported status request type is OCSP, <code>S2N_STATUS_REQUEST_OCSP</code>. </p>
+<p >Enum used to define the type, if any, of certificate status request a connection should make during the handshake. The only supported status request type is OCSP, <code>S2N_STATUS_REQUEST_OCSP</code>. </p>
 
 </div>
 </div>
@@ -5019,7 +5019,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Sets up an S2N_CLIENT to request the server certificate status during an SSL handshake. If set to S2N_STATUS_REQUEST_NONE, no status request is made.</p>
+<p >Sets up a connection to request the certificate status of a peer during an SSL handshake. If set to S2N_STATUS_REQUEST_NONE, no status request is made.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -6830,7 +6830,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Check is the connection is OCSP stapled.</p>
+<p >Check if the connection is OCSP stapled.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object</td></tr>
