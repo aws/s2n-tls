@@ -17,7 +17,8 @@
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         gnutls-3-7 = import nix/gnutls.nix { pkgs = pkgs; };
-
+        writeScript = path:
+          pkgs.writeScript (baseNameOf path) (builtins.readFile path);
       in rec {
         packages.s2n-tls = pkgs.stdenv.mkDerivation {
           src = self;
@@ -56,125 +57,27 @@
           #  - do common development operations (e.g. lint, debug, and manage repos)
           inherit system;
           shellHook = ''
-                           echo Entering a integration test enviorment
-                           export S2N_LIBCRYPTO=openssl-1.1.1
-                           export PATH=${
-                             self.packages.${system}.s2n-tls
-                           }/bin:${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
-                           export SRC_ROOT=$(pwd)
-
-                           banner()
-                           {
-                             echo "+------------------------------------------+"
-                             printf "| %-40s |\n" "$1"
-                             echo "+------------------------------------------+"
-                           }
-
-
-                           function configure {
-                             banner "Configuring with cmake"
-                             cmake -S . -B./build \
-                               -DBUILD_TESTING=ON \
-                               -DS2N_INTEG_TESTS=ON \
-                               -DS2N_INSTALL_S2NC_S2ND=ON \
-                               -DS2N_NIX_FAST_INTEG_TESTS=ON \
-                               -DBUILD_SHARED_LIBS=ON \
-                               -DCMAKE_BUILD_TYPE=RelWithDebInfo
-                           }
-                           
-                           function build {
-                             banner "Running Build"
-                             javac tests/integrationv2/bin/SSLSocketClient.java
-                             cmake --build ./build -j $(nproc)
-                           }
-
-                           function unit {
-                             cd build
-                             if [[ -z "$1" ]]; then
-                              ctest -L unit -j $(nproc) --verbose
-                             else
-                              ctest -L unit -R $1 -j $(nproc) --verbose
-                             fi
-                             cd ../
-                           }
-                           
-                           function integ {
-                             if [ "$1" == "help" ]; then
-                                echo "The following tests are not supported:"
-                                echo " - cross_compatibility"
-                                echo "    This test depends on s2nc_head and s2nd_head. To run"
-                                echo "    the test build s2n-tls from the main branch on github."
-                                echo "    Change the names of s2n[cd] to s2n[cd]_head and add those"
-                                echo "    binaries to \$PATH."
-                                echo "- renegotiate_apache"
-                                echo "   This test requires apache to be running. See codebuild/bin/s2n_apache.sh"
-                                echo "    for more info."
-                                return
-                             fi
-                             if [[ -z "$1" ]]; then
-                              banner "Running all integ tests except cross_compatibility, renegotiate_apache."
-                              (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
-                             else
-                              banner "Warning: cross_compatibility & renegotiate_apache are not supported in nix for various reasons integ help for more info."
-                              (cd $SRC_ROOT/build; ctest -L integrationv2 -R "$1" --verbose)
-                             fi
-                           }
-                           
-                           function check-clang-format {
-                             banner "Dry run of clang-format"
-                             cd $SRC_ROOT
-                             include_regex=".*\.(c|h)$"
-                             src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./bin -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./crypto -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./stuffer -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./utils -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-            		             echo $src_files | xargs -n 1 -P $(nproc) clang-format --dry-run -style=file                 
-                           }
-                          function do-clang-format {
-                             banner "In place clang-format"
-                             cd $SRC_ROOT
-                             include_regex=".*\.(c|h)$"
-                             src_files=`find ./api -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./bin -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./crypto -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./stuffer -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./error -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./tls -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./utils -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./tests/unit -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-                             src_files+=" "
-                             src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`
-            		             echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i
-                           }
+            echo Setting up enviornment from flake.nix...
+            export S2N_LIBCRYPTO=openssl-1.1.1
+            export PATH=${
+              self.packages.${system}.s2n-tls
+            }/bin:${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
+            export PS1="[nix] $PS1"
+            alias openssl-098=${openssl_0_9_8}/bin/openssl
+            alias openssl-102=${openssl_1_0_2}/bin/openssl
+            alias openssl-30=${openssl_3_0}/bin/openssl
+            source ${writeScript ./nix/shell.sh}
           '';
-
           packages = [
             # Build Depends
             openssl_1_1_1
             pkgs.cmake
             # Other Libcryptos
-            # openssl_0_9_8 openssl_1_0_2 openssl_3_0
-            # libressl pkgs.boringssl
+            openssl_0_9_8
+            openssl_1_0_2
+            openssl_3_0
+            libressl
+            pkgs.boringssl
 
             # Integration Deps
             pythonEnv
@@ -194,15 +97,12 @@
             pkgs.python39Packages.pep8
 
             # Rust
-            # TODO: can we use the version in bindings/rust/rust-toolchain
-            # it goes against the spirit of nix to use rustup... but we might
-            # have to -- using a new rust is liable to get us in trouble.
-            pkgs.rustc
-            pkgs.cargo
+            pkgs.rustup
 
             # Quality of Life
             pkgs.findutils
             pkgs.git
+            pkgs.which
           ];
         };
         packages.default = packages.s2n-tls;
