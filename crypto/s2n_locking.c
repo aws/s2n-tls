@@ -70,7 +70,7 @@ S2N_RESULT s2n_locking_init(void)
     }
 
     int num_locks = CRYPTO_num_locks();
-    RESULT_ENSURE_GTE(num_locks, 0)
+    RESULT_ENSURE_GTE(num_locks, 0);
 
     RESULT_GUARD_POSIX(s2n_realloc(&mutexes_mem, num_locks * sizeof(pthread_mutex_t)));
 
