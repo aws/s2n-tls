@@ -52,7 +52,7 @@ static size_t mutexes_count = 0;
 static void s2n_locking_cb(int mode, int n, char *file, int line)
 {
     pthread_mutex_t *mutexes = S2N_MUTEXES(mutexes_mem);
-    if (!mutexes_mem.data || (size_t) n >= mutexes_count) {
+    if (!mutexes_mem.data || n < 0 || (size_t) n >= mutexes_count) {
         return;
     }
 
@@ -70,6 +70,7 @@ S2N_RESULT s2n_locking_init(void)
     }
 
     int num_locks = CRYPTO_num_locks();
+    RESULT_ENSURE_GTE(num_locks, 0)
 
     RESULT_GUARD_POSIX(s2n_realloc(&mutexes_mem, num_locks * sizeof(pthread_mutex_t)));
 
