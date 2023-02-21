@@ -52,7 +52,7 @@ static size_t mutexes_count = 0;
 static void s2n_locking_cb(int mode, int n, char *file, int line)
 {
     pthread_mutex_t *mutexes = S2N_MUTEXES(mutexes_mem);
-    if (!mutexes_mem.data || n >= mutexes_count) {
+    if (!mutexes_mem.data || (size_t) n >= mutexes_count) {
         return;
     }
 
@@ -75,7 +75,7 @@ S2N_RESULT s2n_locking_init(void)
 
     pthread_mutex_t *mutexes = S2N_MUTEXES(mutexes_mem);
     mutexes_count = 0;
-    for (size_t i = 0; i < num_locks; i++) {
+    for (size_t i = 0; i < (size_t) num_locks; i++) {
         RESULT_ENSURE_EQ(pthread_mutex_init(&(mutexes[i]), NULL), 0);
         mutexes_count++;
     }
