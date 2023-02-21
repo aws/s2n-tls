@@ -91,6 +91,7 @@ jobs:
           clang-format-version: '15'
           include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib).*\.(c|h)$'
   nixflake:
+    # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -98,7 +99,7 @@ jobs:
         with:
           nix_conf: experimental-features = nix-command flakes
       - name: nix flake check
-        run: nix flake check
+        run: NIXPKGS_ALLOW_BROKEN=1 NIXPKGS_ALLOW_UNSUPPORTED_SYSTEM=1 nix flake check --impure
   nixfmt:
     runs-on: ubuntu-latest
     steps:
