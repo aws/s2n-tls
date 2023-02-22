@@ -13,11 +13,9 @@
  * permissions and limitations under the License.
  */
 
-
 #include <errno.h>
 
 #include "api/s2n.h"
-
 #include "s2n_test.h"
 #include "tls/s2n_connection.h"
 
@@ -60,7 +58,7 @@ int main(int argc, char **argv)
         s2n_errno = 0;
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     /* s2n_negotiate should not overwrite a non-retriable s2n_error with a retriable s2n_error.
      * This previously happened if errno was set to a retriable error before s2n_negotiate
@@ -83,7 +81,7 @@ int main(int argc, char **argv)
         s2n_errno = 0;
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
+    };
 
     END_TEST();
 }

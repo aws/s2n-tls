@@ -18,38 +18,38 @@
 #include "tls/s2n_connection.h"
 
 int s2n_record_parse_aead(
-    const struct s2n_cipher_suite *cipher_suite,
-    struct s2n_connection *conn,
-    uint8_t content_type,
-    uint16_t encrypted_length,
-    uint8_t * implicit_iv,
-    struct s2n_hmac_state *mac,
-    uint8_t * sequence_number,
-    struct s2n_session_key *session_key);
+        const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn,
+        uint8_t content_type,
+        uint16_t encrypted_length,
+        uint8_t *implicit_iv,
+        struct s2n_hmac_state *mac,
+        uint8_t *sequence_number,
+        struct s2n_session_key *session_key);
 int s2n_record_parse_cbc(
-    const struct s2n_cipher_suite *cipher_suite,
-    struct s2n_connection *conn,
-    uint8_t content_type,
-    uint16_t encrypted_length,
-    uint8_t * implicit_iv,
-    struct s2n_hmac_state *mac,
-    uint8_t * sequence_number,
-    struct s2n_session_key *session_key);
+        const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn,
+        uint8_t content_type,
+        uint16_t encrypted_length,
+        uint8_t *implicit_iv,
+        struct s2n_hmac_state *mac,
+        uint8_t *sequence_number,
+        struct s2n_session_key *session_key);
 int s2n_record_parse_composite(
-    const struct s2n_cipher_suite *cipher_suite,
-    struct s2n_connection *conn,
-    uint8_t content_type,
-    uint16_t encrypted_length,
-    uint8_t * implicit_iv,
-    struct s2n_hmac_state *mac,
-    uint8_t * sequence_number,
-    struct s2n_session_key *session_key);
+        const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn,
+        uint8_t content_type,
+        uint16_t encrypted_length,
+        uint8_t *implicit_iv,
+        struct s2n_hmac_state *mac,
+        uint8_t *sequence_number,
+        struct s2n_session_key *session_key);
 int s2n_record_parse_stream(
-    const struct s2n_cipher_suite *cipher_suite,
-    struct s2n_connection *conn,
-    uint8_t content_type,
-    uint16_t encrypted_length,
-    uint8_t * implicit_iv,
-    struct s2n_hmac_state *mac,
-    uint8_t * sequence_number,
-    struct s2n_session_key *session_key);
+        const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn,
+        uint8_t content_type,
+        uint16_t encrypted_length,
+        uint8_t *implicit_iv,
+        struct s2n_hmac_state *mac,
+        uint8_t *sequence_number,
+        struct s2n_session_key *session_key);

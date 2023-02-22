@@ -1,7 +1,6 @@
 import os
 import re
 import subprocess
-import string
 import threading
 import itertools
 
@@ -307,6 +306,9 @@ class Ciphers(object):
     PQ_TLS_1_0_2020_12 = Cipher(
         "PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
 
+    SECURITY_POLICY_20210816 = Cipher(
+        "20210816", Protocols.TLS12, False, False, s2n=True, pq=False)
+
     @staticmethod
     def from_iana(iana_name):
         ciphers = [
@@ -384,6 +386,9 @@ class Signatures(object):
     RSA_SHA256 = Signature('RSA+SHA256', max_protocol=Protocols.TLS12)
     RSA_SHA384 = Signature('RSA+SHA384', max_protocol=Protocols.TLS12)
     RSA_SHA512 = Signature('RSA+SHA512', max_protocol=Protocols.TLS12)
+    RSA_MD5_SHA1 = Signature('RSA+MD5_SHA1', max_protocol=Protocols.TLS11)
+    ECDSA_SHA224 = Signature('ECDSA+SHA224', max_protocol=Protocols.TLS12)
+    ECDSA_SHA1 = Signature('ECDSA+SHA1', max_protocol=Protocols.TLS12)
 
     RSA_PSS_RSAE_SHA256 = Signature(
         'RSA-PSS+SHA256',

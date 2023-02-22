@@ -14,7 +14,6 @@
  */
 
 #include "api/s2n.h"
-
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
@@ -22,14 +21,14 @@
 #define SIZEOF_UINT24 3
 
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, uint64_t input, uint8_t length);
-int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation* reservation, const uint32_t u);
+int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation *reservation, const uint32_t u);
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_stuffer stuffer;
+    struct s2n_stuffer stuffer = { 0 };
 
     /* s2n_stuffer_write_network_order */
     {
@@ -54,7 +53,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         /* uint16_t */
         {
@@ -66,7 +65,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         /* uint24 */
         {
@@ -74,19 +73,19 @@ int main(int argc, char **argv)
             uint32_t actual_value;
             uint32_t test_values[] = { 0x000001, 0x0000FF, 0xABCDEF, 0xFFFFFF };
 
-            for (int i = 0; i < s2n_array_len(test_values); i++) {
+            for (size_t i = 0; i < s2n_array_len(test_values); i++) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, test_values[i], byte_length));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(test_values[i], actual_value);
             }
 
             uint16_t prime = 257;
-            for (uint32_t i = 0; i < 0xFFFFFF - prime; i += prime) {
+            for (uint32_t i = 0; i < (uint32_t) 0xFFFFFF - prime; i += prime) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         /* uint32_t */
         {
@@ -94,7 +93,7 @@ int main(int argc, char **argv)
             uint32_t actual_value;
             uint32_t test_values[] = { 0x00000001, 0x000000FF, 0xABCDEF12, UINT32_MAX };
 
-            for (int i = 0; i < s2n_array_len(test_values); i++) {
+            for (size_t i = 0; i < s2n_array_len(test_values); i++) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, test_values[i], byte_length));
                 EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &actual_value));
                 EXPECT_EQUAL(test_values[i], actual_value);
@@ -106,10 +105,10 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &actual_value));
                 EXPECT_EQUAL(i, actual_value);
             }
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_reserve_uint16 */
     {
@@ -153,10 +152,10 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, sizeof(uint16_t));
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, data_after);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_reserve_uint24 */
     {
@@ -200,10 +199,10 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_bytes, SIZEOF_UINT24);
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, data_after);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_write_reservation */
     {
@@ -266,10 +265,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(actual_value, expected_value);
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &actual_value));
             EXPECT_EQUAL(actual_value, data_after);
-        }
+        };
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     /* s2n_stuffer_write_vector_size */
     {
@@ -279,7 +278,7 @@ int main(int argc, char **argv)
 
         /* Happy cases */
         uint16_t test_sizes[] = { 0, 1, 5, 0x88, 0xF0, 0xFF };
-        for( int i = 0; i < s2n_array_len(test_sizes); i++) {
+        for (size_t i = 0; i < s2n_array_len(test_sizes); i++) {
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&stuffer, &reservation));
 
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, test_sizes[i]));
@@ -292,7 +291,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
-    }
+    };
 
     END_TEST();
 }

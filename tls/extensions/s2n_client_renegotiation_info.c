@@ -189,10 +189,3 @@ static int s2n_client_renegotiation_if_missing(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_recv_client_renegotiation_info(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_renegotiation_info_extension, conn, extension);
-}

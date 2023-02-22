@@ -15,17 +15,15 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
 #include "tls/extensions/s2n_cookie.h"
 #include "tls/extensions/s2n_extension_type_lists.h"
-#include "tls/extensions/s2n_server_supported_versions.h"
 #include "tls/extensions/s2n_server_key_share.h"
-
-#include "tls/s2n_tls.h"
-#include "tls/s2n_tls13.h"
+#include "tls/extensions/s2n_server_supported_versions.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13.h"
 
 int main(int argc, char **argv)
 {
@@ -49,7 +47,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Server does not support or configure TLS 1.3 */
         {
@@ -63,8 +61,8 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     EXPECT_TRUE(s2n_use_default_tls13_config());
@@ -87,7 +85,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Server supports and configures TLS 1.3 */
         {
@@ -101,8 +99,8 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-    }
+        };
+    };
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_FALSE(s2n_use_default_tls13_config());
@@ -115,19 +113,26 @@ int main(int argc, char **argv)
     {
         uint8_t value[2] = { 0x13, 0x01 };
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x02;
+        value[0] = 0x13;
+        value[1] = 0x02;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x03;
+        value[0] = 0x13;
+        value[1] = 0x03;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x04;
+        value[0] = 0x13;
+        value[1] = 0x04;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x05;
+        value[0] = 0x13;
+        value[1] = 0x05;
         EXPECT_TRUE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x06;
+        value[0] = 0x13;
+        value[1] = 0x06;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x13; value[1] = 0x00;
+        value[0] = 0x13;
+        value[1] = 0x00;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
-        value[0] = 0x12; value[1] = 0x01;
+        value[0] = 0x12;
+        value[1] = 0x01;
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(value));
 
         EXPECT_FALSE(s2n_is_valid_tls13_cipher(s2n_dhe_rsa_with_3des_ede_cbc_sha.iana_value));
@@ -147,12 +152,12 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
-        struct s2n_stuffer extension_data;
+        struct s2n_stuffer extension_data = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension_data, 0));
         EXPECT_SUCCESS(s2n_stuffer_write_str(&extension_data, "bad extension"));
 
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
-        for (int i=0; i < tls13_server_hello_extensions->count; i++) {
+        for (size_t i = 0; i < tls13_server_hello_extensions->count; i++) {
             const s2n_extension_type *tls13_extension_type = tls13_server_hello_extensions->extension_types[i];
             s2n_extension_type_id extension_id;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(tls13_extension_type->iana_value, &extension_id));
@@ -175,7 +180,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension_data));
-    }
+    };
 
     END_TEST();
     return 0;

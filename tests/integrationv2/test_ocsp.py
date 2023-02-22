@@ -1,10 +1,10 @@
 import pytest
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, PROTOCOLS
-from common import ProviderOptions, Protocols, data_bytes, Certificates
-from fixtures import managed_process
+from common import ProviderOptions, data_bytes, Certificates
+from fixtures import managed_process  # lgtm [py/unused-import]
 from constants import TEST_OCSP_DIRECTORY
-from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS
+from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name
 from global_flags import get_flag, S2N_PROVIDER_VERSION
 

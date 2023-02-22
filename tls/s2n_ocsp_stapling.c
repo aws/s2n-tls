@@ -16,19 +16,18 @@
 #include <strings.h>
 
 #include "error/s2n_errno.h"
-
+#include "tls/extensions/s2n_cert_status.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_x509_validator.h"
-#include "tls/extensions/s2n_server_certificate_status.h"
 #include "utils/s2n_safety.h"
 
 int s2n_server_status_send(struct s2n_connection *conn)
 {
     if (s2n_server_can_send_ocsp(conn)) {
-        POSIX_GUARD(s2n_server_certificate_status_send(conn, &conn->handshake.io));
+        POSIX_GUARD(s2n_cert_status_send(conn, &conn->handshake.io));
     }
 
     return 0;
@@ -36,5 +35,5 @@ int s2n_server_status_send(struct s2n_connection *conn)
 
 int s2n_server_status_recv(struct s2n_connection *conn)
 {
-    return s2n_server_certificate_status_recv(conn, &conn->handshake.io);
+    return s2n_cert_status_recv(conn, &conn->handshake.io);
 }

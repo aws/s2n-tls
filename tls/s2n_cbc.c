@@ -13,18 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include <sys/param.h>
 #include <stdint.h>
-
-#include "error/s2n_errno.h"
-
-#include "utils/s2n_safety.h"
-#include "utils/s2n_mem.h"
+#include <sys/param.h>
 
 #include "crypto/s2n_hmac.h"
-
+#include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_record.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 /* A TLS CBC record looks like ..
  *
@@ -86,10 +83,12 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
     }
 
     /* Check the maximum amount that could theoretically be padding */
-    int check = MIN(255, (payload_and_padding_size - 1));
+    uint32_t check = MIN(255, (payload_and_padding_size - 1));
 
-    int cutoff = check - padding_length;
-    for (uint32_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
+    POSIX_ENSURE_GTE(check, padding_length);
+
+    uint32_t cutoff = check - padding_length;
+    for (size_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
         uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
         mismatches |= (decrypted->data[j] ^ padding_length) & mask;
     }

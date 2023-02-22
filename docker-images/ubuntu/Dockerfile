@@ -10,7 +10,7 @@ ARG ZSH_THEME=cypher
 ENV GCC_VERSION=${GCC_VERSION} \
     BUILD_S2N=true \
     S2N_COVERAGE=false \
-    TESTS=integration \
+    TESTS=integrationv2 \
     LATEST_CLANG=true
 
 # The `s2n_setup_env` assumes bash, not sh
@@ -45,7 +45,7 @@ RUN set -eux; \
   # s2n setup\n\
   export BUILD_S2N=true\n\
   export GCC_VERSION='"$GCC_VERSION"$'\n\
-  export TESTS=integration\n\
+  export TESTS=integrationv2\n\
   export TEST_DEPS_DIR=/opt/s2n/test-deps\n\
   export PATH=$TEST_DEPS_DIR/clang/bin:$PATH\n\
   cd /home/s2n-dev/s2n && source /opt/s2n/codebuild/bin/s2n_setup_env.sh\n\
@@ -63,7 +63,7 @@ RUN set -eux; \
   export LD_LIBRARY_PATH=""; \
   . codebuild/bin/s2n_setup_env.sh; \
   export PATH=$TEST_DEPS_DIR/clang/bin:$PATH; \
-  TESTS=integration codebuild/bin/s2n_install_test_dependencies.sh; \
+  TESTS=integrationv2 codebuild/bin/s2n_install_test_dependencies.sh; \
   TESTS=benchmark codebuild/bin/s2n_install_test_dependencies.sh; \
   TESTS=fuzz codebuild/bin/s2n_install_test_dependencies.sh; \
   TESTS=unit BUILD_S2N=false S2N_LIBCRYPTO=openssl-1.0.2 codebuild/bin/install_default_dependencies.sh; \

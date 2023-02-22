@@ -13,18 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-
 #include <stdint.h>
 
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_server_signature_algorithms.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
-#include "tls/extensions/s2n_server_signature_algorithms.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
@@ -39,7 +37,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-        struct s2n_stuffer io;
+        struct s2n_stuffer io = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&io, 0));
 
         EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.send(server_conn, &io));
@@ -51,7 +49,7 @@ int main(int argc, char **argv)
         s2n_stuffer_free(&io);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
-    }
+    };
 
     s2n_disable_tls13_in_test();
 

@@ -19,11 +19,11 @@ set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 
-
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
+option(S2N_AWSLC_KYBER_UNSTABLE "Prefer the AWS-LC provided PQ implementation." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -34,6 +34,8 @@ version of libcrypto by interning the code and hiding symbols. This also enables
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
+option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
+option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -116,7 +118,7 @@ else()
     # supports it and set proper compiler flags to be added later to the
     # Kyber compilation units.
     if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
-    
+
         set(KYBER512R3_AVX2_BMI2_FLAGS "-mavx2 -mavx -mbmi2")
         try_compile(KYBER512R3_AVX2_BMI2_SUPPORTED
             ${CMAKE_BINARY_DIR}
@@ -219,6 +221,8 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
     set(OS_LIBS thr execinfo)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "NetBSD")
     set(OS_LIBS Threads::Threads)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
+    set(OS_LIBS Threads::Threads kvm)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     set(OS_LIBS Threads::Threads dl)
 else()
@@ -261,7 +265,7 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wa,--noexecstack
+        -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
 )
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
@@ -366,6 +370,18 @@ if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
 endif()
 
+if (COVERAGE)
+    # https://cmake.org/cmake/help/latest/variable/CMAKE_LANG_COMPILER_ID.html
+    # Coverage is done using LLVM source based coverage. This is only supported
+    # on LLVM compilers. GCC would fail with "unrecognized compile options"
+    # on -fprofile-instr-generate -fcoverage-mapping flags.
+    if (NOT ${CMAKE_C_COMPILER_ID} MATCHES Clang)
+        message(FATAL_ERROR "This project requires clang for coverage support")
+    endif()
+    target_compile_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(${PROJECT_NAME} PUBLIC -fprofile-instr-generate -fcoverage-mapping)
+endif()
+
 # For interning, we need to find the static libcrypto library. Cmake configs
 # can branch on the variable BUILD_SHARED_LIBS to e.g. avoid having to define
 # multiple targets. An example is AWS-LC:
@@ -425,6 +441,19 @@ try_compile(
 
 if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
+endif()
+
+# Determine if Kyber512 implementation from AWS-LC is available
+try_compile(
+        LIBCRYPTO_SUPPORTS_EVP_KYBER_512
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kyber_512.c"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+        COMPILE_DEFINITIONS "-Werror"
+)
+
+if(S2N_AWSLC_KYBER_UNSTABLE AND LIBCRYPTO_SUPPORTS_EVP_KYBER_512)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_KYBER512)
 endif()
 
 if (NOT DEFINED CMAKE_AR)
@@ -572,6 +601,7 @@ if (BUILD_TESTING)
         endif()
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
 
         set_property(
         TEST
@@ -592,6 +622,7 @@ if (BUILD_TESTING)
 
     target_include_directories(s2nc PRIVATE api)
     target_compile_options(s2nc PRIVATE -std=gnu99 -D_POSIX_C_SOURCE=200112L)
+
 
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
@@ -622,7 +653,28 @@ if (BUILD_TESTING)
                     -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
                     -Wno-unused-but-set-variable)
         endforeach(benchmark)
+    endif()
 
+    if (S2N_INTEG_TESTS)
+        find_package (Python3 COMPONENTS Interpreter Development)
+        file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
+        foreach(test_file_path ${integv2_test_files})
+            get_filename_component(test_filename ${test_file_path} NAME_WE)
+            string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
+            add_test(NAME ${test_target}
+                COMMAND
+                ${CMAKE_COMMAND} -E env
+                DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
+                LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib:$ENV{LD_LIBRARY_PATH}
+                PATH=${PROJECT_SOURCE_DIR}/bin:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin:$ENV{PATH}
+                PYTHONNOUSERSITE=1
+                S2N_INTEG_TEST=1
+                TOX_TEST_NAME=${test_file_path}
+                ${Python3_EXECUTABLE} -m tox
+                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+            set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
+            set_property(TEST ${test_target} PROPERTY TIMEOUT 7200)
+        endforeach()
     endif()
 endif()
 

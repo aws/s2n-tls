@@ -15,25 +15,24 @@
 
 #pragma once
 
-#include "tls/s2n_tls_parameters.h"
-#include "tls/s2n_connection.h"
-#include "tls/s2n_crypto.h"
+#include <stdint.h>
 
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_hmac.h"
-
-#include <stdint.h>
+#include "tls/s2n_connection.h"
+#include "tls/s2n_crypto.h"
+#include "tls/s2n_tls_parameters.h"
 
 /* Key exchange flags that can be OR'ed */
-#define S2N_KEY_EXCHANGE_DH       0x01  /* Diffie-Hellman key exchange, including ephemeral */
-#define S2N_KEY_EXCHANGE_EPH      0x02  /* Ephemeral key exchange */
-#define S2N_KEY_EXCHANGE_ECC      0x04  /* Elliptic curve cryptography */
+#define S2N_KEY_EXCHANGE_DH  0x01 /* Diffie-Hellman key exchange, including ephemeral */
+#define S2N_KEY_EXCHANGE_EPH 0x02 /* Ephemeral key exchange */
+#define S2N_KEY_EXCHANGE_ECC 0x04 /* Elliptic curve cryptography */
 
-#define S2N_MAX_POSSIBLE_RECORD_ALGS    2
+#define S2N_MAX_POSSIBLE_RECORD_ALGS 2
 
 /* Kept up-to-date by s2n_cipher_suite_test */
-#define S2N_CIPHER_SUITE_COUNT          37
+#define S2N_CIPHER_SUITE_COUNT 37
 
 /* Record algorithm flags that can be OR'ed */
 #define S2N_TLS12_AES_GCM_AEAD_NONCE     0x01
@@ -88,7 +87,7 @@ extern const struct s2n_record_algorithm s2n_tls13_record_alg_chacha20_poly1305;
 
 struct s2n_cipher_suite {
     /* Is there an implementation available? Set in s2n_cipher_suites_init() */
-    unsigned int available:1;
+    unsigned int available : 1;
 
     /* Cipher name in Openssl format */
     const char *name;
@@ -158,11 +157,12 @@ extern struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384;
 extern struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256;
 extern struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256;
 
-extern int s2n_cipher_suites_init(void);
+int s2n_cipher_suites_init(void);
 S2N_RESULT s2n_cipher_suites_cleanup(void);
 S2N_RESULT s2n_cipher_suite_from_iana(const uint8_t *iana, size_t iana_len, struct s2n_cipher_suite **cipher_suite);
-extern int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
-extern int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
-extern int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t * wire, uint16_t count);
+bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite);
+int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_CIPHER_SUITE_LEN]);
+int s2n_set_cipher_as_sslv2_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
+int s2n_set_cipher_as_tls_server(struct s2n_connection *conn, uint8_t *wire, uint16_t count);
 bool s2n_cipher_suite_requires_ecc_extension(struct s2n_cipher_suite *cipher);
 bool s2n_cipher_suite_requires_pq_extension(struct s2n_cipher_suite *cipher);

@@ -4,7 +4,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.5
+CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.8.8
 
 ################################################################
 # The CBMC Starter Kit depends on the files Makefile.common and
@@ -252,17 +252,15 @@ CBMC_FLAG_SIGNED_OVERFLOW_CHECK ?= --signed-overflow-check
 CBMC_FLAG_UNDEFINED_SHIFT_CHECK ?= --undefined-shift-check
 CBMC_FLAG_UNSIGNED_OVERFLOW_CHECK ?= --unsigned-overflow-check
 CBMC_FLAG_UNWINDING_ASSERTIONS ?= --unwinding-assertions
-CBMC_FLAG_UNWIND ?= --unwind 1
+CBMC_DEFAULT_UNWIND ?= --unwind 1
 CBMC_FLAG_FLUSH ?= --flush
 
 # CBMC flags used for property checking and coverage checking
 
-CBMCFLAGS += $(CBMC_FLAG_UNWIND) $(CBMC_UNWINDSET) $(CBMC_FLAG_FLUSH)
+CBMCFLAGS += $(CBMC_FLAG_FLUSH)
 
 # CBMC flags used for property checking
 
-CHECKFLAGS += $(CBMC_FLAG_MALLOC_MAY_FAIL)
-CHECKFLAGS += $(CBMC_FLAG_MALLOC_FAIL_NULL)
 CHECKFLAGS += $(CBMC_FLAG_BOUNDS_CHECK)
 CHECKFLAGS += $(CBMC_FLAG_CONVERSION_CHECK)
 CHECKFLAGS += $(CBMC_FLAG_DIV_BY_ZERO_CHECK)
@@ -274,12 +272,6 @@ CHECKFLAGS += $(CBMC_FLAG_POINTER_PRIMITIVE_CHECK)
 CHECKFLAGS += $(CBMC_FLAG_SIGNED_OVERFLOW_CHECK)
 CHECKFLAGS += $(CBMC_FLAG_UNDEFINED_SHIFT_CHECK)
 CHECKFLAGS += $(CBMC_FLAG_UNSIGNED_OVERFLOW_CHECK)
-CHECKFLAGS += $(CBMC_FLAG_UNWINDING_ASSERTIONS)
-
-# CBMC flags used for coverage checking
-
-COVERFLAGS += $(CBMC_FLAG_MALLOC_MAY_FAIL)
-COVERFLAGS += $(CBMC_FLAG_MALLOC_FAIL_NULL)
 
 # Additional CBMC flag to CBMC control verbosity.
 #
@@ -310,6 +302,9 @@ NONDET_STATIC ?=
 COMPILE_FLAGS ?= -Wall
 LINK_FLAGS ?= -Wall
 EXPORT_FILE_LOCAL_SYMBOLS ?= --export-file-local-symbols
+
+# During instrumentation, it adds models of C library functions
+ADD_LIBRARY_FLAG := --add-library
 
 # Preprocessor include paths -I...
 INCLUDES ?=
@@ -349,9 +344,9 @@ UNWINDSET ?=
 # contracts).  To satisfy this requirement, it may be necessary to
 # unwind some loops before the function contract and loop invariant
 # transformations are applied to the goto program.  This variable
-# EARLY_UNWINDSET is identical to UNWINDSET, and we assume that the
-# loops mentioned in EARLY_UNWINDSET and UNWINDSET are disjoint.
-EARLY_UNWINDSET ?=
+# CPROVER_LIBRARY_UNWINDSET is identical to UNWINDSET, and we assume that the
+# loops mentioned in CPROVER_LIBRARY_UNWINDSET and UNWINDSET are disjoint.
+CPROVER_LIBRARY_UNWINDSET ?=
 
 # CBMC function removal (Normally set set in the proof Makefile)
 #
@@ -396,12 +391,28 @@ PROOF_SOURCES ?=
 # report, making the proof run appear to "hang".
 CBMC_TIMEOUT ?= 21600
 
+# CBMC string abstraction
+#
+# Replace all uses of char * by a struct that carries that string,
+# and also the underlying allocation and the C string length.
+STRING_ABSTRACTION ?=
+ifdef STRING_ABSTRACTION
+  ifneq ($(strip $(STRING_ABSTRACTION)),)
+    CBMC_STRING_ABSTRACTION := --string-abstraction
+  endif
+endif
+
+# Optional configuration library flags
+OPT_CONFIG_LIBRARY ?=
+CBMC_OPT_CONFIG_LIBRARY := $(CBMC_FLAG_MALLOC_MAY_FAIL) $(CBMC_FLAG_MALLOC_FAIL_NULL) $(CBMC_STRING_ABSTRACTION)
+
 # Proof writers could add function contracts in their source code.
 # These contracts are ignored by default, but may be enabled in two distinct
 # contexts using the following two variables:
 # 1. To check whether one or more function contracts are sound with respect to
 #    the function implementation, CHECK_FUNCTION_CONTRACTS should be a list of
-#    function names.
+#    function names. Use CHECK_FUNCTION_CONTRACTS_REC to check contracts on
+#    recursive functions.
 # 2. To replace calls to certain functions with their correspondent function
 #    contracts, USE_FUNCTION_CONTRACTS should be a list of function names.
 #    One must check separately whether a function contract is sound before
@@ -409,17 +420,34 @@ CBMC_TIMEOUT ?= 21600
 CHECK_FUNCTION_CONTRACTS ?=
 CBMC_CHECK_FUNCTION_CONTRACTS := $(patsubst %,--enforce-contract %, $(CHECK_FUNCTION_CONTRACTS))
 
+CHECK_FUNCTION_CONTRACTS_REC ?=
+CBMC_CHECK_FUNCTION_CONTRACTS_REC := $(patsubst %,--enforce-contract-rec %, $(CHECK_FUNCTION_CONTRACTS_REC))
+
 USE_FUNCTION_CONTRACTS ?=
 CBMC_USE_FUNCTION_CONTRACTS := $(patsubst %,--replace-call-with-contract %, $(USE_FUNCTION_CONTRACTS))
+
+CODE_CONTRACTS := $(CHECK_FUNCTION_CONTRACTS)$(USE_FUNCTION_CONTRACTS)$(APPLY_LOOP_CONTRACTS)
+
+# Proof writers may also apply function contracts using the Dynamic Frame
+# Condition Checking (DFCC) mode. For more information on DFCC,
+# please see https://diffblue.github.io/cbmc/contracts-dev-spec-dfcc.html.
+USE_DYNAMIC_FRAMES ?=
+ifdef USE_DYNAMIC_FRAMES
+  ifneq ($(strip $(USE_DYNAMIC_FRAMES)),)
+    CBMC_USE_DYNAMIC_FRAMES := $(CBMC_OPT_CONFIG_LIBRARY) --dfcc $(HARNESS_ENTRY) $(CBMC_CHECK_FUNCTION_CONTRACTS_REC)
+  endif
+endif
 
 # Similarly, proof writers could also add loop contracts in their source code
 # to obtain unbounded correctness proofs. Unlike function contracts, loop
 # contracts are not reusable and thus are checked and used simultaneously.
 # These contracts are also ignored by default, but may be enabled by setting
-# the APPLY_LOOP_CONTRACTS variable to 1.
-APPLY_LOOP_CONTRACTS ?= 0
-ifeq ($(APPLY_LOOP_CONTRACTS),1)
-  CBMC_APPLY_LOOP_CONTRACTS ?= --apply-loop-contracts
+# the APPLY_LOOP_CONTRACTS variable.
+APPLY_LOOP_CONTRACTS ?=
+ifdef APPLY_LOOP_CONTRACTS
+  ifneq ($(strip $(APPLY_LOOP_CONTRACTS)),)
+    CBMC_APPLY_LOOP_CONTRACTS := --apply-loop-contracts
+  endif
 endif
 
 # Silence makefile output (eg, long litani commands) unless VERBOSE is set.
@@ -442,7 +470,6 @@ GOTO_CC ?= goto-cc
 GOTO_INSTRUMENT ?= goto-instrument
 CRANGLER ?= crangler
 VIEWER ?= cbmc-viewer
-MAKE_SOURCE ?= make-source
 VIEWER2 ?= cbmc-viewer
 CMAKE ?= cmake
 
@@ -472,19 +499,28 @@ DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC_MAX_OBJECT_SIZE="(SIZE_MAX>>(CBMC_OBJECT_BITS+1))"
 
 # CI currently assumes cbmc invocation has at most one --unwindset
+
+# UNWINDSET is designed for user code (i.e., proof and project code)
 ifdef UNWINDSET
-  ifneq ($(strip $(UNWINDSET)),"")
+  ifneq ($(strip $(UNWINDSET)),)
     CBMC_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(UNWINDSET)))
   endif
 endif
-ifdef EARLY_UNWINDSET
-  ifneq ($(strip $(EARLY_UNWINDSET)),"")
-    CBMC_EARLY_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(EARLY_UNWINDSET)))
+
+# CPROVER_LIBRARY_UNWINDSET is designed for CPROVER library functions
+ifdef CPROVER_LIBRARY_UNWINDSET
+  ifneq ($(strip $(CPROVER_LIBRARY_UNWINDSET)),)
+    CBMC_CPROVER_LIBRARY_UNWINDSET := --unwindset $(subst $(SPACE),$(COMMA),$(strip $(CPROVER_LIBRARY_UNWINDSET)))
   endif
 endif
 
 CBMC_REMOVE_FUNCTION_BODY := $(patsubst %,--remove-function-body %, $(REMOVE_FUNCTION_BODY))
-CBMC_RESTRICT_FUNCTION_POINTER := $(patsubst %,--restrict-function-pointer %, $(RESTRICT_FUNCTION_POINTER))
+
+ifdef RESTRICT_FUNCTION_POINTER
+  ifneq ($(strip $(RESTRICT_FUNCTION_POINTER)),)
+    CBMC_RESTRICT_FUNCTION_POINTER := $(patsubst %,--restrict-function-pointer %, $(RESTRICT_FUNCTION_POINTER))
+  endif
+endif
 
 ################################################################
 # Targets for rewriting source files with crangler
@@ -618,7 +654,7 @@ $(HARNESS_GOTO)1.goto: $(PROOF_GOTO)1.goto $(PROJECT_GOTO)2.goto
 $(HARNESS_GOTO)2.goto: $(HARNESS_GOTO)1.goto
 	$(LITANI) add-job \
 	  --command \
-	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_RESTRICT_FUNCTION_POINTER) $^ $@' \
+	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_RESTRICT_FUNCTION_POINTER) --remove-function-pointers $^ $@' \
 	  --inputs $^ \
 	  --outputs $@ \
 	  --stdout-file $(LOGDIR)/restrict_function_pointer-log.txt \
@@ -628,6 +664,16 @@ $(HARNESS_GOTO)2.goto: $(HARNESS_GOTO)1.goto
 
 # Fill static variable with unconstrained values
 $(HARNESS_GOTO)3.goto: $(HARNESS_GOTO)2.goto
+ifneq ($(strip $(CODE_CONTRACTS)),)
+	$(LITANI) add-job \
+	  --command 'cp $^ $@' \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --stdout-file $(LOGDIR)/nondet_static-log.txt \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --ci-stage build \
+	  --description "$(PROOF_UID): not setting static variables to nondet (will do during contract instrumentation)"
+else
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(NONDET_STATIC) $^ $@' \
@@ -637,21 +683,78 @@ $(HARNESS_GOTO)3.goto: $(HARNESS_GOTO)2.goto
 	  --pipeline-name "$(PROOF_UID)" \
 	  --ci-stage build \
 	  --description "$(PROOF_UID): setting static variables to nondet"
+endif
 
-# Omit unused functions (sharpens coverage calculations)
+# Link CPROVER library if DFCC mode is on
 $(HARNESS_GOTO)4.goto: $(HARNESS_GOTO)3.goto
+ifneq ($(strip $(USE_DYNAMIC_FRAMES)),)
 	$(LITANI) add-job \
 	  --command \
-	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) --drop-unused-functions $^ $@' \
+	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(ADD_LIBRARY_FLAG) $(CBMC_OPT_CONFIG_LIBRARY) $^ $@' \
 	  --inputs $^ \
 	  --outputs $@ \
-	  --stdout-file $(LOGDIR)/drop_unused_functions-log.txt \
+	  --stdout-file $(LOGDIR)/linking-library-models-log.txt \
 	  --pipeline-name "$(PROOF_UID)" \
 	  --ci-stage build \
-	  --description "$(PROOF_UID): dropping unused functions"
+	  --description "$(PROOF_UID): linking CPROVER library"
+else
+	$(LITANI) add-job \
+	  --command 'cp $^ $@' \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --stdout-file $(LOGDIR)/linking-library-models-log.txt \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --ci-stage build \
+	  --description "$(PROOF_UID): not linking CPROVER library"
+endif
+
+# Early unwind all loops on DFCC mode; otherwise, only unwind loops in proof and project code
+$(HARNESS_GOTO)5.goto: $(HARNESS_GOTO)4.goto
+ifneq ($(strip $(USE_DYNAMIC_FRAMES)),)
+	$(LITANI) add-job \
+	  --command \
+	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_UNWINDSET) $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_DEFAULT_UNWIND) $(CBMC_FLAG_UNWINDING_ASSERTIONS) $^ $@' \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --stdout-file $(LOGDIR)/unwind_loops-log.txt \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --ci-stage build \
+	  --description "$(PROOF_UID): unwinding all loops"
+else ifneq ($(strip $(CODE_CONTRACTS)),)
+	$(LITANI) add-job \
+	  --command \
+		'$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_UNWINDSET) $(CBMC_FLAG_UNWINDING_ASSERTIONS) $^ $@' \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --stdout-file $(LOGDIR)/unwind_loops-log.txt \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --ci-stage build \
+	  --description "$(PROOF_UID): unwinding loops in proof and project code"
+else
+	$(LITANI) add-job \
+	  --command 'cp $^ $@' \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --stdout-file $(LOGDIR)/linking-library-models-log.txt \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --ci-stage build \
+	  --description "$(PROOF_UID): not unwinding loops"
+endif
+
+# Replace function contracts, check function contracts, instrument for loop contracts
+$(HARNESS_GOTO)6.goto: $(HARNESS_GOTO)5.goto
+	$(LITANI) add-job \
+	  --command \
+	    '$(GOTO_INSTRUMENT) $(CBMC_USE_DYNAMIC_FRAMES) $(NONDET_STATIC) $(CBMC_VERBOSITY) $(CBMC_CHECK_FUNCTION_CONTRACTS) $(CBMC_USE_FUNCTION_CONTRACTS) $(CBMC_APPLY_LOOP_CONTRACTS) $^ $@' \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --stdout-file $(LOGDIR)/check_function_contracts-log.txt \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --ci-stage build \
+	  --description "$(PROOF_UID): checking function contracts"
 
 # Omit initialization of unused global variables (reduces problem size)
-$(HARNESS_GOTO)5.goto: $(HARNESS_GOTO)4.goto
+$(HARNESS_GOTO)7.goto: $(HARNESS_GOTO)6.goto
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) --slice-global-inits $^ $@' \
@@ -662,58 +765,20 @@ $(HARNESS_GOTO)5.goto: $(HARNESS_GOTO)4.goto
 	  --ci-stage build \
 	  --description "$(PROOF_UID): slicing global initializations"
 
-# Replace function calls with function contracts
-# This must be done before enforcing function contracts,
-# since contract enforcement inlines all function calls.
-$(HARNESS_GOTO)6.goto: $(HARNESS_GOTO)5.goto
-	$(LITANI) add-job \
-	  --command \
-	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_USE_FUNCTION_CONTRACTS) $^ $@' \
-	  --inputs $^ \
-	  --outputs $@ \
-	  --stdout-file $(LOGDIR)/use_function_contracts-log.txt \
-	  --pipeline-name "$(PROOF_UID)" \
-	  --ci-stage build \
-	  --description "$(PROOF_UID): replacing function calls with function contracts"
-
-# Unwind loops for loop and function contracts
-$(HARNESS_GOTO)7.goto: $(HARNESS_GOTO)6.goto
-	$(LITANI) add-job \
-	  --command \
-	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_EARLY_UNWINDSET) $(CBMC_FLAG_UNWINDING_ASSERTIONS) $^ $@' \
-	  --inputs $^ \
-	  --outputs $@ \
-	  --stdout-file $(LOGDIR)/unwind_loops-log.txt \
-	  --pipeline-name "$(PROOF_UID)" \
-	  --ci-stage build \
-	  --description "$(PROOF_UID): unwinding loops"
-
-# Apply loop contracts
+# Omit unused functions (sharpens coverage calculations)
 $(HARNESS_GOTO)8.goto: $(HARNESS_GOTO)7.goto
 	$(LITANI) add-job \
 	  --command \
-	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_APPLY_LOOP_CONTRACTS) $^ $@' \
+	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) --drop-unused-functions $^ $@' \
 	  --inputs $^ \
 	  --outputs $@ \
-	  --stdout-file $(LOGDIR)/apply_loop_contracts-log.txt \
+	  --stdout-file $(LOGDIR)/drop_unused_functions-log.txt \
 	  --pipeline-name "$(PROOF_UID)" \
 	  --ci-stage build \
-	  --description "$(PROOF_UID): applying loop contracts"
-
-# Check function contracts
-$(HARNESS_GOTO)9.goto: $(HARNESS_GOTO)8.goto
-	$(LITANI) add-job \
-	  --command \
-	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_CHECK_FUNCTION_CONTRACTS) $^ $@' \
-	  --inputs $^ \
-	  --outputs $@ \
-	  --stdout-file $(LOGDIR)/check_function_contracts-log.txt \
-	  --pipeline-name "$(PROOF_UID)" \
-	  --ci-stage build \
-	  --description "$(PROOF_UID): checking function contracts"
+	  --description "$(PROOF_UID): dropping unused functions"
 
 # Final name for proof harness
-$(HARNESS_GOTO).goto: $(HARNESS_GOTO)9.goto
+$(HARNESS_GOTO).goto: $(HARNESS_GOTO)8.goto
 	$(LITANI) add-job \
 	  --command 'cp $< $@' \
 	  --inputs $^ \
@@ -725,22 +790,13 @@ $(HARNESS_GOTO).goto: $(HARNESS_GOTO)9.goto
 ################################################################
 # Targets to run the analysis commands
 
-$(LOGDIR)/result.txt: $(HARNESS_GOTO).goto
-	$(LITANI) add-job \
-	  $(POOL) \
-	  --command \
-	    '$(CBMC) $(CBMC_VERBOSITY) $(CBMCFLAGS) $(CBMC_FLAG_UNWINDING_ASSERTIONS) $(CHECKFLAGS) --trace $<' \
-	  --inputs $^ \
-	  --outputs $@ \
-	  --ci-stage test \
-	  --stdout-file $@ \
-	  $(MEMORY_PROFILING) \
-	  --ignore-returns 10 \
-	  --timeout $(CBMC_TIMEOUT) \
-	  --pipeline-name "$(PROOF_UID)" \
-	  --tags "stats-group:safety checks" \
-	  --stderr-file $(LOGDIR)/result-err-log.txt \
-	  --description "$(PROOF_UID): checking safety properties"
+ifdef CBMCFLAGS
+  ifeq ($(strip $(CODE_CONTRACTS)),)
+    CBMCFLAGS += $(CBMC_UNWINDSET) $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_DEFAULT_UNWIND) $(CBMC_OPT_CONFIG_LIBRARY)
+  else ifeq ($(strip $(USE_DYNAMIC_FRAMES)),)
+    CBMCFLAGS += $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_DEFAULT_UNWIND) $(CBMC_OPT_CONFIG_LIBRARY)
+  endif
+endif
 
 $(LOGDIR)/result.xml: $(HARNESS_GOTO).goto
 	$(LITANI) add-job \
@@ -789,54 +845,19 @@ $(LOGDIR)/coverage.xml: $(HARNESS_GOTO).goto
 	  --stderr-file $(LOGDIR)/coverage-err-log.txt \
 	  --description "$(PROOF_UID): calculating coverage"
 
-define VIEWER_CMD
-  $(VIEWER) \
-    --result $(LOGDIR)/result.txt \
-    --block $(LOGDIR)/coverage.xml \
-    --property $(LOGDIR)/property.xml \
-    --srcdir $(SRCDIR) \
-    --goto $(HARNESS_GOTO).goto \
-    --htmldir $(PROOFDIR)/html
-endef
-export VIEWER_CMD
+COVERAGE ?= $(LOGDIR)/coverage.xml
+VIEWER_COVERAGE_FLAG ?= --coverage $(COVERAGE)
 
-$(PROOFDIR)/html: $(LOGDIR)/result.txt $(LOGDIR)/property.xml $(LOGDIR)/coverage.xml
+$(PROOFDIR)/report: $(LOGDIR)/result.xml $(LOGDIR)/property.xml $(COVERAGE)
 	$(LITANI) add-job \
-	  --command "$$VIEWER_CMD" \
-	  --inputs $^ \
-	  --outputs $(PROOFDIR)/html \
-	  --pipeline-name "$(PROOF_UID)" \
-	  --ci-stage report \
-	  --stdout-file $(LOGDIR)/viewer-log.txt \
-	  --description "$(PROOF_UID): generating report"
-
-
-# Caution: run make-source before running property and coverage checking
-# The current make-source script removes the goto binary
-$(LOGDIR)/source.json:
-	mkdir -p $(dir $@)
-	$(RM) -r $(GOTODIR)
-	$(MAKE_SOURCE) --srcdir $(SRCDIR) --wkdir $(PROOFDIR) > $@
-	$(RM) -r $(GOTODIR)
-
-define VIEWER2_CMD
-  $(VIEWER2) \
-    --result $(LOGDIR)/result.xml \
-    --coverage $(LOGDIR)/coverage.xml \
-    --property $(LOGDIR)/property.xml \
-    --srcdir $(SRCDIR) \
-    --goto $(HARNESS_GOTO).goto \
-    --reportdir $(PROOFDIR)/report \
-    --config $(PROOFDIR)/cbmc-viewer.json
-endef
-export VIEWER2_CMD
-
-# Omit logs/source.json from report generation until make-sources
-# works correctly with Makefiles that invoke the compiler with
-# mutliple source files at once.
-$(PROOFDIR)/report: $(LOGDIR)/result.xml $(LOGDIR)/property.xml $(LOGDIR)/coverage.xml
-	$(LITANI) add-job \
-	  --command "$$VIEWER2_CMD" \
+	  --command " $(VIEWER) \
+	    --result $(LOGDIR)/result.xml \
+	    $(VIEWER_COVERAGE_FLAG) \
+	    --property $(LOGDIR)/property.xml \
+	    --srcdir $(SRCDIR) \
+	    --goto $(HARNESS_GOTO).goto \
+	    --reportdir $(PROOFDIR)/report \
+	    --config $(PROOFDIR)/cbmc-viewer.json" \
 	  --inputs $^ \
 	  --outputs $(PROOFDIR)/report \
 	  --pipeline-name "$(PROOF_UID)" \
@@ -892,23 +913,19 @@ coverage:
 	@ echo Running 'litani build'
 	$(LITANI) run-build
 
-# Choose the invocation of cbmc-viewer depending on which version of
-# cbmc-viewer is installed.  The --version flag is not implemented in
-# version 1 --- it is an "unrecognized argument" --- but it is
-# implemented in version 2.
-_report1: $(PROOFDIR)/html
-_report2: $(PROOFDIR)/report
-_report:
-	(cbmc-viewer --version 2>&1 | grep "unrecognized argument" > /dev/null) && \
-		$(MAKE) -B _report1 || $(MAKE) -B _report2
-
-report report1 report2:
+_report: $(PROOFDIR)/report
+report:
 	@ echo Running 'litani init'
 	$(LITANI) init --project $(PROJECT_NAME)
 	@ echo Running 'litani add-job'
 	$(MAKE) -B _report
 	@ echo Running 'litani build'
 	$(LITANI) run-build
+
+_report_no_coverage:
+	$(MAKE) COVERAGE="" VIEWER_COVERAGE_FLAG="" _report
+report-no-coverage:
+	$(MAKE) COVERAGE="" VIEWER_COVERAGE_FLAG=" " report
 
 ################################################################
 # Targets to clean up after ourselves
@@ -919,7 +936,7 @@ clean:
 	-$(RM) $(REWRITTEN_SOURCES) $(foreach rs,$(REWRITTEN_SOURCES),$(rs).json)
 
 veryclean: clean
-	-$(RM) -r html report
+	-$(RM) -r report
 	-$(RM) -r $(LOGDIR) $(GOTODIR)
 
 .PHONY: \
@@ -927,52 +944,19 @@ veryclean: clean
   _goto \
   _property \
   _report \
-  _report2 \
-  _result \
+  _report_no_coverage \
   clean \
   coverage \
   goto \
   litani-path \
   property \
   report \
-  report2 \
+  report-no-coverage \
   result \
   setup_dependencies \
   testdeps \
   veryclean \
   #
-
-################################################################
-
-# Rule for generating cbmc-batch.yaml, used by the CI at
-# https://github.com/awslabs/aws-batch-cbmc/
-
-JOB_OS ?= ubuntu16
-JOB_MEMORY ?= 32000
-
-# Proofs that are expected to fail should set EXPECTED to
-# "FAILED" in their Makefile. Values other than SUCCESSFUL
-# or FAILED will cause a CI error.
-EXPECTED ?= SUCCESSFUL
-
-define yaml_encode_options
-	"$(shell echo $(1) | sed 's/ ,/ /g' | sed 's/ /;/g')"
-endef
-
-CI_FLAGS = $(CBMCFLAGS) $(CHECKFLAGS) $(COVERFLAGS)
-
-cbmc-batch.yaml:
-	@$(RM) $@
-	@echo 'build_memory: $(JOB_MEMORY)' > $@
-	@echo 'cbmcflags: $(strip $(call yaml_encode_options,$(CI_FLAGS)))' >> $@
-	@echo 'coverage_memory: $(JOB_MEMORY)' >> $@
-	@echo 'expected: $(EXPECTED)' >> $@
-	@echo 'goto: $(HARNESS_GOTO).goto' >> $@
-	@echo 'jobos: $(JOB_OS)' >> $@
-	@echo 'property_memory: $(JOB_MEMORY)' >> $@
-	@echo 'report_memory: $(JOB_MEMORY)' >> $@
-
-.PHONY: cbmc-batch.yaml
 
 ################################################################
 

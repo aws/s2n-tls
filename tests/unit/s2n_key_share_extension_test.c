@@ -13,16 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include <stdint.h>
 
-#include "tls/s2n_tls.h"
-#include "tls/extensions/s2n_key_share.h"
 #include "crypto/s2n_ecc_evp.h"
-
-#include "testlib/s2n_testlib.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_key_share.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 int main(int argc, char **argv)
@@ -33,7 +31,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_ecdhe_parameters_send write with valid ecc params */
     {
-        struct s2n_stuffer out;
+        struct s2n_stuffer out = { 0 };
 
         struct s2n_ecc_evp_params ecc_evp_params;
         ecc_evp_params.negotiated_curve = test_curve;
@@ -47,11 +45,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-    }
+    };
 
     /* Test s2n_ecdhe_parameters_send failure with bad ecc params */
     {
-        struct s2n_stuffer out;
+        struct s2n_stuffer out = { 0 };
 
         struct s2n_ecc_evp_params ecc_evp_params;
         const struct s2n_ecc_named_curve bad_curve = {
@@ -70,7 +68,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_ecc_evp_params_free(&ecc_evp_params));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
-    }
+    };
 
     END_TEST();
 }

@@ -77,15 +77,3 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
     POSIX_GUARD_RESULT(s2n_connection_set_max_fragment_length(conn, mfl_code_to_length[mfl_code]));
     return S2N_SUCCESS;
 }
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-
-int s2n_extensions_client_max_frag_len_send(struct s2n_connection *conn, struct s2n_stuffer *out)
-{
-    return s2n_extension_send(&s2n_client_max_frag_len_extension, conn, out);
-}
-
-int s2n_recv_client_max_frag_len(struct s2n_connection *conn, struct s2n_stuffer *extension)
-{
-    return s2n_extension_recv(&s2n_client_max_frag_len_extension, conn, extension);
-}

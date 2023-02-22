@@ -14,17 +14,15 @@
  */
 
 #include "stuffer/s2n_stuffer.h"
-
-#include "utils/s2n_safety.h"
-
 #include "testlib/s2n_testlib.h"
+#include "utils/s2n_safety.h"
 
 int s2n_public_ecc_keys_are_equal(struct s2n_ecc_evp_params *params_1, struct s2n_ecc_evp_params *params_2)
 {
     POSIX_ENSURE_REF(params_1);
     POSIX_ENSURE_REF(params_2);
 
-    struct s2n_stuffer point_stuffer;
+    struct s2n_stuffer point_stuffer = { 0 };
     int size = params_1->negotiated_curve->share_size;
 
     if (params_1->negotiated_curve != params_2->negotiated_curve) {

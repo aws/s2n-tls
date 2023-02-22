@@ -19,7 +19,3 @@
 #include "tls/s2n_connection.h"
 
 extern const s2n_extension_type s2n_client_session_ticket_extension;
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-extern int s2n_extensions_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out);
-extern int s2n_recv_client_session_ticket_ext(struct s2n_connection *conn, struct s2n_stuffer *extension);

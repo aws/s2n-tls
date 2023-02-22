@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
 #include "tls/s2n_cipher_suites.h"
+
+#include "s2n_test.h"
 
 int main()
 {
@@ -26,7 +26,7 @@ int main()
         /* Test: S2N_CIPHER_SUITE_COUNT matches the number of cipher suites in s2n_all_cipher_suites */
         {
             EXPECT_EQUAL(cipher_preferences_test_all.count, S2N_CIPHER_SUITE_COUNT);
-        }
+        };
 
         /* Test: all cipher suites in s2n_all_cipher_suites are in IANA order */
         {
@@ -40,7 +40,7 @@ int main()
                 EXPECT_TRUE(cipher_suite_order < 0);
             }
             EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
+        };
 
         /* Test: all possible cipher suites are in s2n_all_cipher_suites */
         {
@@ -57,9 +57,10 @@ int main()
 
                     const struct s2n_cipher_suite *match = NULL;
                     for (size_t all_index = 0; all_index < cipher_preferences_test_all.count; all_index++) {
-                        if (0 == memcmp(cipher_preferences->suites[cipher_index]->iana_value,
-                                        cipher_preferences_test_all.suites[all_index]->iana_value,
-                                        S2N_TLS_CIPHER_SUITE_LEN)) {
+                        if (memcmp(cipher_preferences->suites[cipher_index]->iana_value,
+                                    cipher_preferences_test_all.suites[all_index]->iana_value,
+                                    S2N_TLS_CIPHER_SUITE_LEN)
+                                == 0) {
                             EXPECT_NULL(match);
                             match = cipher_preferences_test_all.suites[all_index];
                         }
@@ -68,8 +69,8 @@ int main()
                     EXPECT_EQUAL(match, cipher_preferences->suites[cipher_index]);
                 }
             }
-        }
-    }
+        };
+    };
 
     /* Test s2n_cipher_suite_from_iana */
     {
@@ -81,7 +82,7 @@ int main()
             EXPECT_ERROR_WITH_ERRNO(s2n_cipher_suite_from_iana(iana, sizeof(iana), NULL), S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_cipher_suite_from_iana(iana, sizeof(iana) - 1, &cipher_suite), S2N_ERR_SAFETY);
             EXPECT_ERROR_WITH_ERRNO(s2n_cipher_suite_from_iana(iana, sizeof(iana) + 1, &cipher_suite), S2N_ERR_SAFETY);
-        }
+        };
 
         /* Known values */
         {
@@ -100,7 +101,7 @@ int main()
             EXPECT_OK(s2n_cipher_suite_from_iana(s2n_tls13_aes_256_gcm_sha384.iana_value,
                     sizeof(s2n_tls13_aes_256_gcm_sha384.iana_value), &cipher_suite));
             EXPECT_EQUAL(cipher_suite, &s2n_tls13_aes_256_gcm_sha384);
-        }
+        };
 
         /* Conversion is correct for all supported cipher suites */
         {
@@ -114,14 +115,14 @@ int main()
                         sizeof(expected_cipher_suite->iana_value), &actual_cipher_suite));
                 EXPECT_EQUAL(expected_cipher_suite, actual_cipher_suite);
             }
-        }
+        };
 
         /* Conversion is correct for all possible iana values */
         {
             size_t supported_i = 0;
             struct s2n_cipher_suite *actual_cipher_suite = NULL;
             uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
-            for(size_t i0 = 0; i0 <= UINT8_MAX; i0++) {
+            for (size_t i0 = 0; i0 <= UINT8_MAX; i0++) {
                 iana_value[0] = i0;
                 for (size_t i1 = 0; i1 <= UINT8_MAX; i1++) {
                     iana_value[1] = i1;
@@ -138,12 +139,11 @@ int main()
                         EXPECT_ERROR_WITH_ERRNO(r, S2N_ERR_CIPHER_NOT_SUPPORTED);
                         EXPECT_NULL(actual_cipher_suite);
                     }
-
                 }
             }
             EXPECT_EQUAL(supported_i, cipher_preferences_test_all.count);
-        }
-    }
+        };
+    };
 
     END_TEST();
 }

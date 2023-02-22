@@ -20,7 +20,7 @@
 typedef struct _opaque_pthread_once_t __darwin_pthread_once_t;
 typedef __darwin_pthread_once_t pthread_once_t;
     #define _DARWIN_C_SOURCE
-#elif defined(__FreeBSD__)
+#elif defined(__FreeBSD__) || defined(__OpenBSD__)
     /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
      * Without the below line, <sys/mman.h> cannot be imported (it requires __BSD_VISIBLE) */
     #undef _POSIX_C_SOURCE
@@ -51,6 +51,11 @@ typedef __darwin_pthread_once_t pthread_once_t;
     #endif
 #else /* defined(S2N_MADVISE_SUPPORTED) && defined(MADV_WIPEONFORK) */
     #define MADV_WIPEONFORK 18
+#endif
+
+/* Sometimes (for example, on FreeBSD) MAP_INHERIT_ZERO is called INHERIT_ZERO */
+#if !defined(MAP_INHERIT_ZERO) && defined(INHERIT_ZERO)
+    #define MAP_INHERIT_ZERO INHERIT_ZERO
 #endif
 
 /* These variables are used to disable all fork detection mechanisms or at the
@@ -107,7 +112,7 @@ static inline S2N_RESULT s2n_initialise_wipeonfork_best_effort(void *addr, long 
 static inline S2N_RESULT s2n_initialise_inherit_zero(void *addr, long page_size)
 {
 #if defined(S2N_MINHERIT_SUPPORTED) && defined(MAP_INHERIT_ZERO)
-    RESULT_ENSURE(minherit(addr, pagesize, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    RESULT_ENSURE(minherit(addr, page_size, MAP_INHERIT_ZERO) == 0, S2N_ERR_FORK_DETECTION_INIT);
 #endif
 
     return S2N_RESULT_OK;
@@ -148,10 +153,12 @@ static void s2n_pthread_atfork_on_fork(void)
 
 static S2N_RESULT s2n_inititalise_pthread_atfork(void)
 {
-    /* Register the fork handler pthread_atfork_on_fork that is excuted in the
+    /* Register the fork handler pthread_atfork_on_fork that is executed in the
      * child process after a fork.
      */
-    RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    if (s2n_is_pthread_atfork_supported() == true) {
+        RESULT_ENSURE(pthread_atfork(NULL, NULL, s2n_pthread_atfork_on_fork) == 0, S2N_ERR_FORK_DETECTION_INIT);
+    }
 
     return S2N_RESULT_OK;
 }
@@ -338,9 +345,25 @@ bool s2n_is_madv_wipeonfork_supported(void)
 bool s2n_is_map_inherit_zero_supported(void)
 {
 #if defined(S2N_MINHERIT_SUPPORTED) && defined(MAP_INHERIT_ZERO)
-    return true
+    return true;
 #else
     return false;
+#endif
+}
+
+bool s2n_is_pthread_atfork_supported(void)
+{
+    /*
+     * There is a bug in OpenBSD's libc which is triggered by
+     * multi-generational forking of multi-threaded processes which call
+     * pthread_atfork(3). Under these conditions, a grandchild process will
+     * deadlock when trying to fork a great-grandchild.
+     * https://marc.info/?l=openbsd-tech&m=167047636422884&w=2
+     */
+#if defined(__OpenBSD__)
+    return false;
+#else
+    return true;
 #endif
 }
 

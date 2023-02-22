@@ -13,18 +13,15 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include "testlib/s2n_testlib.h"
-
+#include <stdint.h>
 #include <sys/socket.h>
 #include <sys/wait.h>
-#include <unistd.h>
 #include <time.h>
-#include <stdint.h>
+#include <unistd.h>
 
 #include "api/s2n.h"
-
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 
@@ -59,7 +56,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
         exit(1);
     }
 
-#if defined(__FreeBSD__) || defined(__APPLE__)
+#if defined(__FreeBSD__) || defined(__APPLE__) || defined(__OpenBSD__)
     /* On FreeBSD shutdown from one end of the socket pair does not give EPIPE. Must use close. */
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 #else

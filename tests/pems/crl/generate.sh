@@ -241,7 +241,7 @@ openssl ca -config "${openssl_conf_path}" -gencrl \
 
 ca_dir="root/intermediate" \
 openssl ca -config "${openssl_conf_path}" -gencrl \
-    -crl_nextupdate 19220101000000Z \
+    -crl_nextupdate 500101000000Z \
     -out "${install_dir}/intermediate_invalid_next_update_crl.pem" \
     || exit
 

@@ -15,23 +15,20 @@
 
 #include <stdio.h>
 
-#include "error/s2n_errno.h"
-
-#include "stuffer/s2n_stuffer.h"
-
 #include "crypto/s2n_hmac.h"
-
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
-#include "utils/s2n_safety.h"
 #include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
-#define MAX_DIGEST_SIZE 64      /* Current highest is SHA512 */
+#define MAX_DIGEST_SIZE 64 /* Current highest is SHA512 */
 #define MAX_HKDF_ROUNDS 255
 
 /* Reference: RFC 5869 */
 
 int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
-                     const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
+        const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
 {
     uint8_t hmac_size;
     POSIX_GUARD(s2n_hmac_digest_size(alg, &hmac_size));
@@ -46,7 +43,7 @@ int s2n_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const 
 }
 
 static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *pseudo_rand_key,
-                           const struct s2n_blob *info, struct s2n_blob *output)
+        const struct s2n_blob *info, struct s2n_blob *output)
 {
     uint8_t prev[MAX_DIGEST_SIZE] = { 0 };
 
@@ -79,7 +76,7 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
         POSIX_CHECKED_MEMCPY(output->data + done_len, prev, cat_len);
 
         done_len += cat_len;
-    
+
         POSIX_GUARD(s2n_hmac_reset(hmac));
     }
 
@@ -87,12 +84,12 @@ static int s2n_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, 
 }
 
 int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *secret, const struct s2n_blob *label,
-                          const struct s2n_blob *context, struct s2n_blob *output)
+        const struct s2n_blob *context, struct s2n_blob *output)
 {
     /* Per RFC8446: 7.1, a HKDF label is a 2 byte length field, and two 1...255 byte arrays with a one byte length field each. */
     uint8_t hkdf_label_buf[2 + 256 + 256];
-    struct s2n_blob hkdf_label_blob = {0};
-    struct s2n_stuffer hkdf_label = {0};
+    struct s2n_blob hkdf_label_blob = { 0 };
+    struct s2n_stuffer hkdf_label = { 0 };
 
     /* RFC8446 specifies that labels must be 12 characters or less, to avoid
     ** incurring two hash rounds.
@@ -115,10 +112,11 @@ int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, c
 }
 
 int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
-             const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output)
+        const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output)
 {
     uint8_t prk_pad[MAX_DIGEST_SIZE];
-    struct s2n_blob pseudo_rand_key = {.data = prk_pad,.size = sizeof(prk_pad) };
+    struct s2n_blob pseudo_rand_key = { 0 };
+    POSIX_GUARD(s2n_blob_init(&pseudo_rand_key, prk_pad, sizeof(prk_pad)));
 
     POSIX_GUARD(s2n_hkdf_extract(hmac, alg, salt, key, &pseudo_rand_key));
     POSIX_GUARD(s2n_hkdf_expand(hmac, alg, &pseudo_rand_key, info, output));

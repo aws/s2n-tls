@@ -1,19 +1,21 @@
 ---
 name: Linters
-
 on:
   pull_request:
-    branches:
-      - master
-      - main
-
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 jobs:
   cppcheck:
-    runs-on: ubuntu-latest
+    # ubuntu-latest introduced a newer gcc version that cannot compile cppcheck 2.3
+    # TODO: upgrade to latest cppcheck and revert to ubuntu-latest
+    #       see https://github.com/aws/s2n-tls/issues/3656
+    runs-on: ubuntu-20.04
     env:
       CPPCHECK_INSTALL_DIR: test-deps/cppcheck
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -36,7 +38,7 @@ jobs:
   copyright:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -47,7 +49,7 @@ jobs:
   simple-mistakes:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -58,7 +60,7 @@ jobs:
   comments:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - name: Setup
         run: source ./codebuild/bin/s2n_setup_env.sh
@@ -73,11 +75,19 @@ jobs:
   pepeight:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - name: autopep8
-        uses: peter-evans/autopep8@v1
+      - name: checkout
+        uses: actions/checkout@v3
+      - name: pep8 exp
+        uses: harrisonkaiser/autopep8_action@python-latest
         with:
-          args: --recursive --in-place --exit-code ./tests/integrationv2
-      - name: Fail if autopep8 made changes
-        if: steps.autopep8.outputs.exit-code == 2
-        run: exit 1
+          dry: true
+          checkpath: ./tests/integrationv2/*.py
+  clang-format:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: clang-format check
+        uses: harrisonkaiser/clang-format-action@verbose
+        with:
+          clang-format-version: '15'
+          include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib).*\.(c|h)$'

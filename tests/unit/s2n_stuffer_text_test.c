@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
 #include <string.h>
 
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
@@ -38,9 +38,9 @@ int main(int argc, char **argv)
     /* Check whitespace reading */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *)pad, sizeof(pad)));
+        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
@@ -66,14 +66,14 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_skip_whitespace(&stuffer, NULL));
         EXPECT_FAILURE(s2n_stuffer_peek_char(&stuffer, &c));
         EXPECT_FAILURE(s2n_stuffer_read_char(&stuffer, &c));
-    }
+    };
 
     /* Check read_until, rewinding, and expecting */
     {
         /* Create a stuffer */
-        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *)tokenpad, sizeof(tokenpad)));
+        EXPECT_SUCCESS(s2n_blob_init(&token_blob, (uint8_t *) tokenpad, sizeof(tokenpad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
-        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *)pad, sizeof(pad)));
+        EXPECT_SUCCESS(s2n_blob_init(&pad_blob, (uint8_t *) pad, sizeof(pad)));
         EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &pad_blob));
         EXPECT_SUCCESS(s2n_stuffer_write_text(&stuffer, text, sizeof(text)));
 
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_reread(&stuffer));
         EXPECT_SUCCESS(s2n_stuffer_skip_read_until(&stuffer, non_target));
         EXPECT_EQUAL(stuffer.read_cursor, stuffer.write_cursor - strlen(non_target) + 1);
-    }
+    };
 
     /* Check token reading */
     {
@@ -110,12 +110,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_init(&token, &token_blob));
         EXPECT_SUCCESS(s2n_stuffer_read_token(&stuffer, &token, ','));
         EXPECT_EQUAL(memcmp("three", token.blob.data, 5), 0);
-    }
+    };
 
     /* Check line reading */
     {
         struct s2n_blob line_blob = { 0 };
-        struct s2n_stuffer lstuffer;
+        struct s2n_stuffer lstuffer = { 0 };
         char lf_line[] = "a LF terminated line\n";
         char crlf_line[] = "a CRLF terminated line\r\n";
         char lf_line_trailing_cr[] = "a LF terminated line with trailing CR\n\r\r\r\r\r\r";
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_read_line(&lstuffer, &token));
         EXPECT_EQUAL(sizeof(not_a_line), s2n_stuffer_data_available(&token));
         EXPECT_SUCCESS(memcmp("not a line", token.blob.data, s2n_stuffer_data_available(&token)));
-    }
+    };
 
     END_TEST();
     return 0;

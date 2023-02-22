@@ -62,6 +62,11 @@ struct s2n_rand_state {
     bool drbgs_initialized;
 };
 
+/* Key which will control per-thread freeing of drbg memory */
+static pthread_key_t s2n_per_thread_rand_state_key;
+/* Needed to ensure key is initialized only once */
+static pthread_once_t s2n_per_thread_rand_state_key_once = PTHREAD_ONCE_INIT;
+
 static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .cached_fork_generation_number = 0,
     .public_drbg = { 0 },
@@ -130,15 +135,33 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
+static void s2n_drbg_destructor(void *_unused_argument)
+{
+    (void) _unused_argument;
+
+    s2n_result_ignore(s2n_rand_cleanup_thread());
+}
+
+static void s2n_drbg_make_rand_state_key(void)
+{
+    (void) pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
+}
+
 static S2N_RESULT s2n_init_drbgs(void)
 {
     uint8_t s2n_public_drbg[] = "s2n public drbg";
     uint8_t s2n_private_drbg[] = "s2n private drbg";
-    struct s2n_blob public = { .data = s2n_public_drbg, .size = sizeof(s2n_public_drbg) };
-    struct s2n_blob private = { .data = s2n_private_drbg, .size = sizeof(s2n_private_drbg) };
+    struct s2n_blob public = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&public, s2n_public_drbg, sizeof(s2n_public_drbg)));
+    struct s2n_blob private = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&private, s2n_private_drbg, sizeof(s2n_private_drbg)));
+
+    RESULT_ENSURE(pthread_once(&s2n_per_thread_rand_state_key_once, s2n_drbg_make_rand_state_key) == 0, S2N_ERR_DRBG);
 
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
+
+    RESULT_ENSURE(pthread_setspecific(s2n_per_thread_rand_state_key, &s2n_per_thread_rand_state) == 0, S2N_ERR_DRBG);
 
     s2n_per_thread_rand_state.drbgs_initialized = true;
 
@@ -290,7 +313,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
     RESULT_ENSURE_GT(bound, 0);
 
     while (1) {
-        struct s2n_blob blob = { .data = (void *) &r, sizeof(r) };
+        struct s2n_blob blob = { 0 };
+        RESULT_GUARD_POSIX(s2n_blob_init(&blob, (void *) &r, sizeof(r)));
         RESULT_GUARD(s2n_get_public_random_data(&blob));
 
         /* Imagine an int was one byte and UINT_MAX was 256. If the
@@ -319,7 +343,8 @@ S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 
 int s2n_openssl_compat_rand(unsigned char *buf, int num)
 {
-    struct s2n_blob out = { .data = buf, .size = num };
+    struct s2n_blob out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&out, buf, num));
 
     if (s2n_result_is_error(s2n_get_private_random_data(&out))) {
         return 0;
@@ -465,8 +490,9 @@ S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 {
 #if defined(__x86_64__) || defined(__i386__)
-    struct s2n_blob out = { .data = data, .size = size };
-    int space_remaining = 0;
+    struct s2n_blob out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&out, data, size));
+    size_t space_remaining = 0;
     struct s2n_stuffer stuffer = { 0 };
     union {
         uint64_t u64;
@@ -557,7 +583,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 
         POSIX_ENSURE(success, S2N_ERR_RDRAND_FAILED);
 
-        int data_to_fill = MIN(sizeof(output), space_remaining);
+        size_t data_to_fill = MIN(sizeof(output), space_remaining);
 
         POSIX_GUARD(s2n_stuffer_write_bytes(&stuffer, output.u8, data_to_fill));
     }

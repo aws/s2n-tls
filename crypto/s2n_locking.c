@@ -13,10 +13,11 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_locking.h"
+
 #include <openssl/crypto.h>
 #include <pthread.h>
 
-#include "crypto/s2n_locking.h"
 #include "crypto/s2n_openssl.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
@@ -35,7 +36,7 @@
  * https://www.openssl.org/docs/man1.0.2/man3/threads.html
  */
 
-#define S2N_MUTEXES(mem) ((pthread_mutex_t *) (void*) (mem).data)
+#define S2N_MUTEXES(mem) ((pthread_mutex_t *) (void *) (mem).data)
 
 /* While the locking-related APIs "exist" in later versions of
  * Openssl, they tend to be placeholders or hardcoded values like:
@@ -51,7 +52,7 @@ static size_t mutexes_count = 0;
 static void s2n_locking_cb(int mode, int n, char *file, int line)
 {
     pthread_mutex_t *mutexes = S2N_MUTEXES(mutexes_mem);
-    if (!mutexes_mem.data || n >= mutexes_count) {
+    if (!mutexes_mem.data || n < 0 || (size_t) n >= mutexes_count) {
         return;
     }
 
@@ -69,12 +70,13 @@ S2N_RESULT s2n_locking_init(void)
     }
 
     int num_locks = CRYPTO_num_locks();
+    RESULT_ENSURE_GTE(num_locks, 0);
 
     RESULT_GUARD_POSIX(s2n_realloc(&mutexes_mem, num_locks * sizeof(pthread_mutex_t)));
 
     pthread_mutex_t *mutexes = S2N_MUTEXES(mutexes_mem);
     mutexes_count = 0;
-    for (size_t i = 0; i < num_locks; i++) {
+    for (size_t i = 0; i < (size_t) num_locks; i++) {
         RESULT_ENSURE_EQ(pthread_mutex_init(&(mutexes[i]), NULL), 0);
         mutexes_count++;
     }
@@ -91,7 +93,7 @@ S2N_RESULT s2n_locking_cleanup(void)
 
     pthread_mutex_t *mutexes = S2N_MUTEXES(mutexes_mem);
     if (mutexes) {
-        while(mutexes_count > 0) {
+        while (mutexes_count > 0) {
             RESULT_ENSURE_EQ(pthread_mutex_destroy(&(mutexes[mutexes_count - 1])), 0);
             mutexes_count--;
         }

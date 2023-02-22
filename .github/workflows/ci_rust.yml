@@ -3,14 +3,16 @@ name: Rust Bindings
 
 on:
   pull_request:
-    branches:
-      - main
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 env:
   # Pin the nightly toolchain to prevent breakage.
   # This should be occasionally updated.
   RUST_NIGHTLY_TOOLCHAIN: nightly-2022-08-03
-  MANIFEST_PATH: bindings/rust/Cargo.toml
+  ROOT_PATH: bindings/rust
 
 jobs:
   generate:
@@ -20,7 +22,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macOS-latest]
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
 
       - uses: actions-rs/toolchain@v1
         id: toolchain
@@ -31,10 +33,10 @@ jobs:
       - uses: camshaft/rust-cache@v1
 
       - name: Generate
-        run: ./bindings/rust/generate.sh
+        run: ${{env.ROOT_PATH}}/generate.sh
 
       - name: Tests
-        working-directory: bindings/rust
+        working-directory: ${{env.ROOT_PATH}}
         run: cargo test
 
       - name: Test external build
@@ -47,14 +49,14 @@ jobs:
           export S2N_TLS_INCLUDE_DIR=`pwd`/api
           export LD_LIBRARY_PATH=$S2N_TLS_LIB_DIR:$LD_LIBRARY_PATH
 
-          cd bindings/rust
+          cd ${{env.ROOT_PATH}}
           ./generate.sh
           ldd target/debug/integration | grep libs2n.so
 
   rustfmt:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -71,18 +73,18 @@ jobs:
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./bindings/rust/generate.sh
+        run: ./${{env.ROOT_PATH}}/generate.sh
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1.0.3
         with:
           command: fmt
-          args: --manifest-path ${{ env.MANIFEST_PATH}} --all -- --check
+          args: --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
 
   clippy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           submodules: true
 
@@ -96,14 +98,18 @@ jobs:
 
       - uses: camshaft/rust-cache@v1
 
+      # Enforce that clippy's msrv matches rust-toolchain
+      - name: Check MSRV
+        run: grep $(cat ${{env.ROOT_PATH}}/rust-toolchain) ${{env.ROOT_PATH}}/.clippy.toml
+
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./bindings/rust/generate.sh
+        run: ${{env.ROOT_PATH}}/generate.sh
 
       # TODO translate json reports to in-action warnings
       - name: Run cargo clippy
         uses: actions-rs/cargo@v1.0.3
         with:
           command: clippy
-          args: --manifest-path ${{ env.MANIFEST_PATH}} --all-targets -- -D warnings
+          args: --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings

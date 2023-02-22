@@ -15,13 +15,11 @@
 
 #include <openssl/evp.h>
 
-#include "error/s2n_errno.h"
-
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_openssl.h"
-
-#include "utils/s2n_safety.h"
+#include "error/s2n_errno.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_safety.h"
 
 static uint8_t s2n_cbc_cipher_3des_available()
 {
@@ -37,7 +35,7 @@ static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_b
     /* len is set by EVP_EncryptUpdate and checked post operation */
     int len = 0;
     POSIX_GUARD_OSSL(EVP_EncryptUpdate(key->evp_cipher_ctx, out->data, &len, in->data, in->size), S2N_ERR_ENCRYPT);
-    S2N_ERROR_IF(len != in->size, S2N_ERR_ENCRYPT);
+    POSIX_ENSURE((int64_t) len == (int64_t) in->size, S2N_ERR_ENCRYPT);
 
     return 0;
 }
@@ -94,10 +92,10 @@ const struct s2n_cipher s2n_3des = {
     .key_material_size = 24,
     .type = S2N_CBC,
     .io.cbc = {
-               .block_size = 8,
-               .record_iv_size = 8,
-               .decrypt = s2n_cbc_cipher_3des_decrypt,
-               .encrypt = s2n_cbc_cipher_3des_encrypt},
+            .block_size = 8,
+            .record_iv_size = 8,
+            .decrypt = s2n_cbc_cipher_3des_decrypt,
+            .encrypt = s2n_cbc_cipher_3des_encrypt },
     .is_available = s2n_cbc_cipher_3des_available,
     .init = s2n_cbc_cipher_3des_init,
     .set_decryption_key = s2n_cbc_cipher_3des_set_decryption_key,

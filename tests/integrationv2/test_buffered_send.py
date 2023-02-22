@@ -1,8 +1,8 @@
 import pytest
 
-from configuration import available_ports, PROTOCOLS, ALL_TEST_CIPHERS, MINIMAL_TEST_CERTS, Certificates
+from configuration import available_ports, PROTOCOLS, ALL_TEST_CIPHERS, MINIMAL_TEST_CERTS
 from common import ProviderOptions, data_bytes
-from fixtures import managed_process # lgtm [py/unused-import]
+from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, to_bytes, to_string
 
@@ -11,11 +11,11 @@ SEND_DATA_SIZE = 2 ** 14
 # CLOSE_MARKER must a substring of SEND_DATA exactly once, and must be its suffix
 CLOSE_MARKER = "unique-suffix-close-marker"
 
-SEND_DATA = data_bytes(SEND_DATA_SIZE-len(CLOSE_MARKER)) + to_bytes(CLOSE_MARKER)
+SEND_DATA = data_bytes(SEND_DATA_SIZE - len(CLOSE_MARKER)) + to_bytes(CLOSE_MARKER)
 SEND_DATA_STRING = to_string(SEND_DATA)
 
 K_BYTES = 1024
-SEND_BUFFER_SIZE_MIN = 1031
+SEND_BUFFER_SIZE_MIN = 1034
 SEND_BUFFER_SIZE_MIN_RECOMMENDED = 2 * K_BYTES
 SEND_BUFFER_SIZE_MULTI_RECORD = 17 * K_BYTES
 SEND_BUFFER_SIZE_PREFER_THROUGHPUT = 35 * K_BYTES
@@ -40,24 +40,21 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
     port = next(available_ports)
 
     s2n_options = ProviderOptions(mode=Provider.ServerMode,
-        port=port,
-        data_to_send="test",
-        extra_flags=['--buffered-send', SEND_BUFFER_SIZE_MIN-1])
+                                  port=port,
+                                  data_to_send="test",
+                                  extra_flags=['--buffered-send', SEND_BUFFER_SIZE_MIN])
 
     s2nd = managed_process(S2N, s2n_options)
 
     s2n_options.mode = Provider.ClientMode
-
+    s2n_options.extra_flags = ['--buffered-send', SEND_BUFFER_SIZE_MIN - 1]
     s2nc = managed_process(S2N, s2n_options)
 
-    error_string = "Error setting send buffer size"
-
-    for results in s2nd.get_results():
-        assert error_string in str(results.stderr)
+    for results in s2nc.get_results():
+        assert "Error setting send buffer size" in str(results.stderr)
         assert results.exit_code != 0
 
-    for results in s2nc.get_results():
-        assert error_string in str(results.stderr)
+    for results in s2nd.get_results():
         assert results.exit_code != 0
 
 
@@ -68,7 +65,8 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("buffer_size", SEND_BUFFER_SIZES, ids=get_parameter_name)
 @pytest.mark.parametrize("fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name)
-def test_s2n_server_buffered_send(managed_process, cipher, provider, protocol, certificate, buffer_size, fragment_preference):
+def test_s2n_server_buffered_send(managed_process, cipher, provider, protocol, certificate, buffer_size,
+                                  fragment_preference):
     # Communication Timeline
     # Client [S2N|OpenSSL|GnuTLS]  | Server [S2N]
     # Handshake                    | Handshake
@@ -87,7 +85,7 @@ def test_s2n_server_buffered_send(managed_process, cipher, provider, protocol, c
 
     extra_flags = ['--buffered-send', buffer_size]
     if fragment_preference is not None:
-            extra_flags.append(fragment_preference)
+        extra_flags.append(fragment_preference)
 
     s2n_server_options = ProviderOptions(
         mode=Provider.ServerMode,
@@ -120,7 +118,8 @@ def test_s2n_server_buffered_send(managed_process, cipher, provider, protocol, c
 @pytest.mark.parametrize("certificate", MINIMAL_TEST_CERTS, ids=get_parameter_name)
 @pytest.mark.parametrize("buffer_size", SEND_BUFFER_SIZES, ids=get_parameter_name)
 @pytest.mark.parametrize("fragment_preference", FRAGMENT_PREFERENCE, ids=get_parameter_name)
-def test_s2n_client_buffered_send(managed_process, cipher, provider, protocol, certificate, buffer_size, fragment_preference):
+def test_s2n_client_buffered_send(managed_process, cipher, provider, protocol, certificate, buffer_size,
+                                  fragment_preference):
     # Communication Timeline
     # Client [S2N]                       | Server [S2N|OpenSSL]
     # Handshake                          | Handshake
@@ -152,7 +151,7 @@ def test_s2n_client_buffered_send(managed_process, cipher, provider, protocol, c
         verbose=False)
 
     server = managed_process(provider, provider_server_options,
-        close_marker=CLOSE_MARKER)
+                             close_marker=CLOSE_MARKER)
     client = managed_process(S2N, s2n_client_options)
 
     for results in client.get_results():

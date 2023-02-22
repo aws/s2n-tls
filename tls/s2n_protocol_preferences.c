@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_connection.h"
 #include "error/s2n_errno.h"
+#include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preferences, struct s2n_blob *protocol)
@@ -107,9 +107,10 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
      * s2n_realloc will just update the size field here
      */
     RESULT_GUARD_POSIX(s2n_realloc(&new_protocols, 0));
+    RESULT_ENSURE_GTE(protocol_count, 0);
 
-    for (size_t i = 0; i < protocol_count; i++) {
-        const uint8_t * protocol = (const uint8_t *)protocols[i];
+    for (size_t i = 0; i < (size_t) protocol_count; i++) {
+        const uint8_t *protocol = (const uint8_t *) protocols[i];
         size_t length = strlen(protocols[i]);
 
         /**
@@ -119,7 +120,7 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
          */
         RESULT_ENSURE(length < 256, S2N_ERR_INVALID_APPLICATION_PROTOCOL);
 
-        RESULT_GUARD(s2n_protocol_preferences_append(&new_protocols, protocol, (uint8_t)length));
+        RESULT_GUARD(s2n_protocol_preferences_append(&new_protocols, protocol, (uint8_t) length));
     }
 
     /* now we can free the previous list since we've validated all new input */
@@ -138,28 +139,28 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
 }
 
 S2N_RESULT s2n_select_server_preference_protocol(struct s2n_connection *conn, struct s2n_stuffer *server_list,
-    struct s2n_blob *client_list)
+        struct s2n_blob *client_list)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(server_list);
     RESULT_ENSURE_REF(client_list);
 
-    while(s2n_stuffer_data_available(server_list) > 0) {
+    while (s2n_stuffer_data_available(server_list) > 0) {
         struct s2n_blob protocol = { 0 };
         RESULT_ENSURE_OK(s2n_protocol_preferences_read(server_list, &protocol), S2N_ERR_BAD_MESSAGE);
-        
+
         bool match_found = false;
         RESULT_ENSURE_OK(s2n_protocol_preferences_contain(client_list, &protocol, &match_found), S2N_ERR_BAD_MESSAGE);
-        
+
         if (match_found) {
             RESULT_ENSURE_LT(protocol.size, sizeof(conn->application_protocol));
             RESULT_CHECKED_MEMCPY(conn->application_protocol, protocol.data, protocol.size);
             conn->application_protocol[protocol.size] = '\0';
             return S2N_RESULT_OK;
-        }    
+        }
     }
 
-    return S2N_RESULT_OK;   
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_set_protocol_preferences(struct s2n_config *config, const char *const *protocols, int protocol_count)
@@ -174,7 +175,7 @@ int s2n_config_append_protocol_preference(struct s2n_config *config, const uint8
     return S2N_SUCCESS;
 }
 
-int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char * const *protocols, int protocol_count)
+int s2n_connection_set_protocol_preferences(struct s2n_connection *conn, const char *const *protocols, int protocol_count)
 {
     POSIX_GUARD_RESULT(s2n_protocol_preferences_set(&conn->application_protocols_overridden, protocols, protocol_count));
     return S2N_SUCCESS;

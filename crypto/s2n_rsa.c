@@ -13,37 +13,37 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_rsa.h"
+
 #include <openssl/evp.h>
 #include <openssl/rsa.h>
 #include <stdint.h>
-
-#include "error/s2n_errno.h"
-#include "stuffer/s2n_stuffer.h"
 
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_evp_signing.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
-#include "crypto/s2n_rsa.h"
 #include "crypto/s2n_rsa_signing.h"
-
+#include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key) {
+RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key)
+{
     PTR_ENSURE_REF(rsa_key);
 
     /* pragma gcc diagnostic was added in gcc 4.6 */
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wcast-qual"
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+    #pragma GCC diagnostic push
+    #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
     RSA *out_rsa_key = (RSA *) rsa_key->rsa;
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4,6,0)
-#pragma GCC diagnostic pop
+#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+    #pragma GCC diagnostic pop
 #endif
 
     return out_rsa_key;
@@ -81,7 +81,7 @@ static S2N_RESULT s2n_rsa_encrypted_size(const struct s2n_pkey *pkey, uint32_t *
 }
 
 static int s2n_rsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
-                        struct s2n_blob *signature)
+        struct s2n_blob *signature)
 {
     switch (sig_alg) {
         case S2N_SIGNATURE_RSA:
@@ -96,7 +96,7 @@ static int s2n_rsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig
 }
 
 static int s2n_rsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg, struct s2n_hash_state *digest,
-                          struct s2n_blob *signature)
+        struct s2n_blob *signature)
 {
     switch (sig_alg) {
         case S2N_SIGNATURE_RSA:
@@ -119,17 +119,17 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
     const s2n_rsa_public_key *pub_key = &pub->key.rsa_key;
 
     /* Safety: RSA_public_encrypt does not mutate the key */
-    int r = RSA_public_encrypt(in->size, ( unsigned char * )in->data, ( unsigned char * )out->data,
+    int r = RSA_public_encrypt(in->size, (unsigned char *) in->data, (unsigned char *) out->data,
             s2n_unsafe_rsa_get_non_const(pub_key), RSA_PKCS1_PADDING);
-    S2N_ERROR_IF(r != out->size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE((int64_t) r == (int64_t) out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
 }
 
 static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, struct s2n_blob *out)
 {
-    unsigned char intermediate[ 4096 ];
-    uint32_t      expected_size = 0;
+    unsigned char intermediate[4096];
+    uint32_t expected_size = 0;
 
     POSIX_GUARD_RESULT(s2n_rsa_encrypted_size(priv, &expected_size));
 
@@ -141,9 +141,9 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     const s2n_rsa_private_key *priv_key = &priv->key.rsa_key;
 
     /* Safety: RSA_private_decrypt does not mutate the key */
-    int r = RSA_private_decrypt(in->size, ( unsigned char * )in->data, intermediate,
+    int r = RSA_private_decrypt(in->size, (unsigned char *) in->data, intermediate,
             s2n_unsafe_rsa_get_non_const(priv_key), RSA_NO_PADDING);
-    S2N_ERROR_IF(r != expected_size, S2N_ERR_SIZE_MISMATCH);
+    POSIX_ENSURE((int64_t) r == (int64_t) expected_size, S2N_ERR_SIZE_MISMATCH);
 
     s2n_constant_time_pkcs1_unpad_or_dont(out->data, intermediate, r, out->size);
 
@@ -152,7 +152,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
 
 static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey *priv)
 {
-    uint8_t         plain_inpad[ 36 ] = { 1 }, plain_outpad[ 36 ] = { 0 }, encpad[ 8192 ];
+    uint8_t plain_inpad[36] = { 1 }, plain_outpad[36] = { 0 }, encpad[8192];
     struct s2n_blob plain_in = { 0 }, plain_out = { 0 }, enc = { 0 };
 
     plain_in.data = plain_inpad;
@@ -214,15 +214,14 @@ int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_
 
 int s2n_rsa_pkey_init(struct s2n_pkey *pkey)
 {
-    pkey->size      = &s2n_rsa_encrypted_size;
-    pkey->sign      = &s2n_rsa_sign;
-    pkey->verify    = &s2n_rsa_verify;
-    pkey->encrypt   = &s2n_rsa_encrypt;
-    pkey->decrypt   = &s2n_rsa_decrypt;
-    pkey->match     = &s2n_rsa_keys_match;
-    pkey->free      = &s2n_rsa_key_free;
+    pkey->size = &s2n_rsa_encrypted_size;
+    pkey->sign = &s2n_rsa_sign;
+    pkey->verify = &s2n_rsa_verify;
+    pkey->encrypt = &s2n_rsa_encrypt;
+    pkey->decrypt = &s2n_rsa_decrypt;
+    pkey->match = &s2n_rsa_keys_match;
+    pkey->free = &s2n_rsa_key_free;
     pkey->check_key = &s2n_rsa_check_key_exists;
     POSIX_GUARD_RESULT(s2n_evp_signing_set_pkey_overrides(pkey));
     return 0;
 }
-

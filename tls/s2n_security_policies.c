@@ -13,9 +13,9 @@
  * permissions and limitations under the License.
  */
 
-#include "api/s2n.h"
-
 #include "tls/s2n_security_policies.h"
+
+#include "api/s2n.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
@@ -231,6 +231,14 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_1_2016 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2017 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2017,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2018 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2018,
@@ -250,6 +258,14 @@ const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2019 = {
 const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
+const struct s2n_security_policy security_policy_cloudfront_tls_1_2_2021_chacha20_boosted = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_cloudfront_tls_1_2_2021_chacha20_boosted,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
     .ecc_preferences = &s2n_ecc_preferences_20200310,
@@ -760,103 +776,105 @@ const struct s2n_security_policy security_policy_null = {
 };
 
 struct s2n_security_policy_selection security_policy_selection[] = {
-    { .version="default", .security_policy=&security_policy_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="default_tls13", .security_policy=&security_policy_default_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="default_fips", .security_policy=&security_policy_default_fips, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy=&security_policy_elb_2015_04, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version = "default", .security_policy = &security_policy_20170210, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_tls13", .security_policy = &security_policy_default_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_fips", .security_policy = &security_policy_default_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy = &security_policy_elb_2015_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
-    { .version="ELBSecurityPolicy-TLS-1-0-2015-05", .security_policy=&security_policy_elb_2016_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-2016-08", .security_policy=&security_policy_elb_2016_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-TLS-1-1-2017-01", .security_policy=&security_policy_elb_tls_1_1_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-TLS-1-2-2017-01", .security_policy=&security_policy_elb_tls_1_2_2017_01, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-TLS-1-2-Ext-2018-06", .security_policy=&security_policy_elb_tls_1_2_ext_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-2018-06", .security_policy=&security_policy_elb_fs_2018_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-1-2-2019-08", .security_policy=&security_policy_elb_fs_1_2_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-1-1-2019-08", .security_policy=&security_policy_elb_fs_1_1_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy=&security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-Upstream", .security_policy=&security_policy_cloudfront_upstream, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-Upstream-TLS-1-0", .security_policy=&security_policy_cloudfront_upstream_tls10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-Upstream-TLS-1-1", .security_policy=&security_policy_cloudfront_upstream_tls11, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-Upstream-TLS-1-2", .security_policy=&security_policy_cloudfront_upstream_tls12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version = "ELBSecurityPolicy-TLS-1-0-2015-05", .security_policy = &security_policy_elb_2016_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-2016-08", .security_policy = &security_policy_elb_2016_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS-1-1-2017-01", .security_policy = &security_policy_elb_tls_1_1_2017_01, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS-1-2-2017-01", .security_policy = &security_policy_elb_tls_1_2_2017_01, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-TLS-1-2-Ext-2018-06", .security_policy = &security_policy_elb_tls_1_2_ext_2018_06, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-FS-2018-06", .security_policy = &security_policy_elb_fs_2018_06, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-FS-1-2-2019-08", .security_policy = &security_policy_elb_fs_1_2_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-FS-1-1-2019-08", .security_policy = &security_policy_elb_fs_1_1_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "ELBSecurityPolicy-FS-1-2-Res-2019-08", .security_policy = &security_policy_elb_fs_1_2_Res_2019_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream", .security_policy = &security_policy_cloudfront_upstream, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-0", .security_policy = &security_policy_cloudfront_upstream_tls10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-1", .security_policy = &security_policy_cloudfront_upstream_tls11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-Upstream-TLS-1-2", .security_policy = &security_policy_cloudfront_upstream_tls12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* CloudFront Viewer Facing */
-    { .version="CloudFront-SSL-v-3", .security_policy=&security_policy_cloudfront_ssl_v_3, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-0-2014", .security_policy=&security_policy_cloudfront_tls_1_0_2014, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-0-2016", .security_policy=&security_policy_cloudfront_tls_1_0_2016, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-1-2016", .security_policy=&security_policy_cloudfront_tls_1_1_2016, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-2-2018", .security_policy=&security_policy_cloudfront_tls_1_2_2018, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-2-2019", .security_policy=&security_policy_cloudfront_tls_1_2_2019, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-2-2021", .security_policy=&security_policy_cloudfront_tls_1_2_2021, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version = "CloudFront-SSL-v-3", .security_policy = &security_policy_cloudfront_ssl_v_3, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-0-2014", .security_policy = &security_policy_cloudfront_tls_1_0_2014, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-0-2016", .security_policy = &security_policy_cloudfront_tls_1_0_2016, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-1-2016", .security_policy = &security_policy_cloudfront_tls_1_1_2016, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2017", .security_policy = &security_policy_cloudfront_tls_1_2_2017, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2018", .security_policy = &security_policy_cloudfront_tls_1_2_2018, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2019", .security_policy = &security_policy_cloudfront_tls_1_2_2019, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2021", .security_policy = &security_policy_cloudfront_tls_1_2_2021, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2021-Chacha20-Boosted", .security_policy = &security_policy_cloudfront_tls_1_2_2021_chacha20_boosted, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* CloudFront Legacy (TLS 1.2) policies */
-    { .version="CloudFront-SSL-v-3-Legacy", .security_policy=&security_policy_cloudfront_ssl_v_3_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-0-2014-Legacy", .security_policy=&security_policy_cloudfront_tls_1_0_2014_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-0-2016-Legacy", .security_policy=&security_policy_cloudfront_tls_1_0_2016_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-1-2016-Legacy", .security_policy=&security_policy_cloudfront_tls_1_1_2016_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-2-2018-Legacy", .security_policy=&security_policy_cloudfront_tls_1_2_2018_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="CloudFront-TLS-1-2-2019-Legacy", .security_policy=&security_policy_cloudfront_tls_1_2_2019_legacy, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="AWS-CRT-SDK-SSLv3.0", .security_policy=&security_policy_aws_crt_sdk_ssl_v3, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="AWS-CRT-SDK-TLSv1.0", .security_policy=&security_policy_aws_crt_sdk_tls_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="AWS-CRT-SDK-TLSv1.1", .security_policy=&security_policy_aws_crt_sdk_tls_11, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="AWS-CRT-SDK-TLSv1.2", .security_policy=&security_policy_aws_crt_sdk_tls_12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="AWS-CRT-SDK-TLSv1.3", .security_policy=&security_policy_aws_crt_sdk_tls_13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
+    { .version = "CloudFront-SSL-v-3-Legacy", .security_policy = &security_policy_cloudfront_ssl_v_3_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-0-2014-Legacy", .security_policy = &security_policy_cloudfront_tls_1_0_2014_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-0-2016-Legacy", .security_policy = &security_policy_cloudfront_tls_1_0_2016_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-1-2016-Legacy", .security_policy = &security_policy_cloudfront_tls_1_1_2016_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2018-Legacy", .security_policy = &security_policy_cloudfront_tls_1_2_2018_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "CloudFront-TLS-1-2-2019-Legacy", .security_policy = &security_policy_cloudfront_tls_1_2_2019_legacy, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-SSLv3.0", .security_policy = &security_policy_aws_crt_sdk_ssl_v3, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.0", .security_policy = &security_policy_aws_crt_sdk_tls_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.1", .security_policy = &security_policy_aws_crt_sdk_tls_11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.2", .security_policy = &security_policy_aws_crt_sdk_tls_12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "AWS-CRT-SDK-TLSv1.3", .security_policy = &security_policy_aws_crt_sdk_tls_13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* KMS TLS Policies*/
-    { .version="KMS-TLS-1-0-2018-10", .security_policy=&security_policy_kms_tls_1_0_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="KMS-TLS-1-0-2021-08", .security_policy=&security_policy_kms_tls_1_0_2021_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="KMS-FIPS-TLS-1-2-2018-10", .security_policy=&security_policy_kms_fips_tls_1_2_2018_10, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="KMS-FIPS-TLS-1-2-2021-08", .security_policy=&security_policy_kms_fips_tls_1_2_2021_08, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="KMS-PQ-TLS-1-0-2019-06", .security_policy=&security_policy_kms_pq_tls_1_0_2019_06, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="KMS-PQ-TLS-1-0-2020-02", .security_policy=&security_policy_kms_pq_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="KMS-PQ-TLS-1-0-2020-07", .security_policy=&security_policy_kms_pq_tls_1_0_2020_07, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-SIKE-TEST-TLS-1-0-2019-11", .security_policy=&security_policy_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-SIKE-TEST-TLS-1-0-2020-02", .security_policy=&security_policy_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2020-12", .security_policy=&security_policy_pq_tls_1_0_2020_12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-1-2021-05-17", .security_policy=&security_policy_pq_tls_1_1_2021_05_17, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-18", .security_policy=&security_policy_pq_tls_1_0_2021_05_18, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-19", .security_policy=&security_policy_pq_tls_1_0_2021_05_19, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-20", .security_policy=&security_policy_pq_tls_1_0_2021_05_20, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-1-2021-05-21", .security_policy=&security_policy_pq_tls_1_1_2021_05_21, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-22", .security_policy=&security_policy_pq_tls_1_0_2021_05_22, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-23", .security_policy=&security_policy_pq_tls_1_0_2021_05_23, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-24", .security_policy=&security_policy_pq_tls_1_0_2021_05_24, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-25", .security_policy=&security_policy_pq_tls_1_0_2021_05_25, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="PQ-TLS-1-0-2021-05-26", .security_policy=&security_policy_pq_tls_1_0_2021_05_26, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20140601", .security_policy=&security_policy_20140601, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20141001", .security_policy=&security_policy_20141001, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20150202", .security_policy=&security_policy_20150202, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20150214", .security_policy=&security_policy_20150214, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20150306", .security_policy=&security_policy_20150306, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20160411", .security_policy=&security_policy_20160411, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20160804", .security_policy=&security_policy_20160804, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20160824", .security_policy=&security_policy_20160824, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20170210", .security_policy=&security_policy_20170210, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20170328", .security_policy=&security_policy_20170328, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20170328_gcm", .security_policy=&security_policy_20170328_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20190214", .security_policy=&security_policy_20190214, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20190214_gcm", .security_policy=&security_policy_20190214_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20210825", .security_policy=&security_policy_20210825, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20210825_gcm", .security_policy=&security_policy_20210825_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20170405", .security_policy=&security_policy_20170405, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20170405_gcm", .security_policy=&security_policy_20170405_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20170718", .security_policy=&security_policy_20170718, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20170718_gcm", .security_policy=&security_policy_20170718_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20190120", .security_policy=&security_policy_20190120, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20190121", .security_policy=&security_policy_20190121, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20190122", .security_policy=&security_policy_20190122, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20190801", .security_policy=&security_policy_20190801, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20190802", .security_policy=&security_policy_20190802, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20200207", .security_policy=&security_policy_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20201021", .security_policy=&security_policy_20201021, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20210816", .security_policy=&security_policy_20210816, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="20210816_GCM", .security_policy=&security_policy_20210816_gcm, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="rfc9151", .security_policy=&security_policy_rfc9151, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all", .security_policy=&security_policy_test_all, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_fips", .security_policy=&security_policy_test_all_fips, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_ecdsa", .security_policy=&security_policy_test_all_ecdsa, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_rsa_kex", .security_policy=&security_policy_test_all_rsa_kex, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_ecdsa_priority", .security_policy=&security_policy_test_ecdsa_priority, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_tls12", .security_policy=&security_policy_test_all_tls12, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="test_all_tls13", .security_policy=&security_policy_test_all_tls13, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version="null", .security_policy=&security_policy_null, .ecc_extension_required=0, .pq_kem_extension_required=0 },
-    { .version=NULL, .security_policy=NULL, .ecc_extension_required=0, .pq_kem_extension_required=0 }
+    { .version = "KMS-TLS-1-0-2018-10", .security_policy = &security_policy_kms_tls_1_0_2018_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-TLS-1-0-2021-08", .security_policy = &security_policy_kms_tls_1_0_2021_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-FIPS-TLS-1-2-2018-10", .security_policy = &security_policy_kms_fips_tls_1_2_2018_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-FIPS-TLS-1-2-2021-08", .security_policy = &security_policy_kms_fips_tls_1_2_2021_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-PQ-TLS-1-0-2019-06", .security_policy = &security_policy_kms_pq_tls_1_0_2019_06, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-PQ-TLS-1-0-2020-02", .security_policy = &security_policy_kms_pq_tls_1_0_2020_02, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-PQ-TLS-1-0-2020-07", .security_policy = &security_policy_kms_pq_tls_1_0_2020_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-SIKE-TEST-TLS-1-0-2019-11", .security_policy = &security_policy_pq_sike_test_tls_1_0_2019_11, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-SIKE-TEST-TLS-1-0-2020-02", .security_policy = &security_policy_pq_sike_test_tls_1_0_2020_02, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2020-12", .security_policy = &security_policy_pq_tls_1_0_2020_12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-1-2021-05-17", .security_policy = &security_policy_pq_tls_1_1_2021_05_17, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-18", .security_policy = &security_policy_pq_tls_1_0_2021_05_18, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-19", .security_policy = &security_policy_pq_tls_1_0_2021_05_19, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-20", .security_policy = &security_policy_pq_tls_1_0_2021_05_20, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-1-2021-05-21", .security_policy = &security_policy_pq_tls_1_1_2021_05_21, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-22", .security_policy = &security_policy_pq_tls_1_0_2021_05_22, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-23", .security_policy = &security_policy_pq_tls_1_0_2021_05_23, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-24", .security_policy = &security_policy_pq_tls_1_0_2021_05_24, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-25", .security_policy = &security_policy_pq_tls_1_0_2021_05_25, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-0-2021-05-26", .security_policy = &security_policy_pq_tls_1_0_2021_05_26, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20140601", .security_policy = &security_policy_20140601, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20141001", .security_policy = &security_policy_20141001, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20150202", .security_policy = &security_policy_20150202, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20150214", .security_policy = &security_policy_20150214, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20150306", .security_policy = &security_policy_20150306, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20160411", .security_policy = &security_policy_20160411, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20160804", .security_policy = &security_policy_20160804, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20160824", .security_policy = &security_policy_20160824, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170210", .security_policy = &security_policy_20170210, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170328", .security_policy = &security_policy_20170328, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170328_gcm", .security_policy = &security_policy_20170328_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20190214", .security_policy = &security_policy_20190214, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20190214_gcm", .security_policy = &security_policy_20190214_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20210825", .security_policy = &security_policy_20210825, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20210825_gcm", .security_policy = &security_policy_20210825_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170405", .security_policy = &security_policy_20170405, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170405_gcm", .security_policy = &security_policy_20170405_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170718", .security_policy = &security_policy_20170718, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20170718_gcm", .security_policy = &security_policy_20170718_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20190120", .security_policy = &security_policy_20190120, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20190121", .security_policy = &security_policy_20190121, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20190122", .security_policy = &security_policy_20190122, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20190801", .security_policy = &security_policy_20190801, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20190802", .security_policy = &security_policy_20190802, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20200207", .security_policy = &security_policy_test_all_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20201021", .security_policy = &security_policy_20201021, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20210816", .security_policy = &security_policy_20210816, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20210816_GCM", .security_policy = &security_policy_20210816_gcm, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "rfc9151", .security_policy = &security_policy_rfc9151, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_all", .security_policy = &security_policy_test_all, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_all_fips", .security_policy = &security_policy_test_all_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_all_ecdsa", .security_policy = &security_policy_test_all_ecdsa, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_all_rsa_kex", .security_policy = &security_policy_test_all_rsa_kex, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_ecdsa_priority", .security_policy = &security_policy_test_ecdsa_priority, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_all_tls12", .security_policy = &security_policy_test_all_tls12, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "test_all_tls13", .security_policy = &security_policy_test_all_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "null", .security_policy = &security_policy_null, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = NULL, .security_policy = NULL, .ecc_extension_required = 0, .pq_kem_extension_required = 0 }
 };
 
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy)
@@ -935,13 +953,15 @@ int s2n_security_policies_init()
             struct s2n_cipher_suite *cipher = cipher_preference->suites[j];
             POSIX_ENSURE_REF(cipher);
 
+            const uint8_t *iana = cipher->iana_value;
+
             if (cipher->minimum_required_tls_version >= S2N_TLS13) {
                 security_policy_selection[i].supports_tls13 = 1;
             }
 
             /* Sanity check that valid tls13 has minimum tls version set correctly */
-            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(cipher->iana_value) ^
-                (cipher->minimum_required_tls_version >= S2N_TLS13), S2N_ERR_INVALID_SECURITY_POLICY);
+            S2N_ERROR_IF(s2n_is_valid_tls13_cipher(iana) ^ (cipher->minimum_required_tls_version >= S2N_TLS13),
+                    S2N_ERR_INVALID_SECURITY_POLICY);
 
             if (s2n_cipher_suite_requires_ecc_extension(cipher)) {
                 security_policy_selection[i].ecc_extension_required = 1;
@@ -1065,14 +1085,15 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     return 0;
 }
 
-int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required) {
+int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required)
+{
     POSIX_ENSURE_REF(kem_preferences);
 
     /* Basic sanity checks to assert that the count is 0 if and only if the associated list is NULL */
     POSIX_ENSURE(S2N_IFF(kem_preferences->tls13_kem_group_count == 0, kem_preferences->tls13_kem_groups == NULL),
-                 S2N_ERR_INVALID_SECURITY_POLICY);
+            S2N_ERR_INVALID_SECURITY_POLICY);
     POSIX_ENSURE(S2N_IFF(kem_preferences->kem_count == 0, kem_preferences->kems == NULL),
-                 S2N_ERR_INVALID_SECURITY_POLICY);
+            S2N_ERR_INVALID_SECURITY_POLICY);
     POSIX_ENSURE(kem_preferences->tls13_kem_group_count <= S2N_SUPPORTED_KEM_GROUPS_COUNT, S2N_ERR_ARRAY_INDEX_OOB);
 
     /* The PQ KEM extension is applicable only to TLS 1.2 */

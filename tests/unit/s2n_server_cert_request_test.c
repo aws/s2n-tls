@@ -14,11 +14,10 @@
  */
 
 #include "api/s2n.h"
-
+#include "s2n_test.h"
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_tls.h"
-#include "stuffer/s2n_stuffer.h"
-#include "s2n_test.h"
 
 /*
  * Definitions in s2n_server_cert_request.c
@@ -70,13 +69,13 @@ int main(int argc, char **argv)
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
         EXPECT_EQUAL(cert_types_len, sizeof(s2n_cert_type_preference_list));
-        for (int idx = 0; idx < sizeof(s2n_cert_type_preference_list); idx++) {
+        for (size_t idx = 0; idx < sizeof(s2n_cert_type_preference_list); idx++) {
             EXPECT_EQUAL(their_cert_type_pref_list[idx], s2n_cert_type_preference_list[idx]);
         }
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test certificate types in server cert request when s2n_config_enable_cert_req_dss_legacy_compat is called
      * Certificate types enabled should be in s2n_cert_type_preference_list_legacy_dss */
@@ -98,13 +97,13 @@ int main(int argc, char **argv)
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
         EXPECT_EQUAL(cert_types_len, sizeof(s2n_cert_type_preference_list_legacy_dss));
-        for (int idx = 0; idx < sizeof(s2n_cert_type_preference_list_legacy_dss); idx++) {
+        for (size_t idx = 0; idx < sizeof(s2n_cert_type_preference_list_legacy_dss); idx++) {
             EXPECT_EQUAL(their_cert_type_pref_list[idx], s2n_cert_type_preference_list_legacy_dss[idx]);
         }
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     END_TEST();
     return 0;

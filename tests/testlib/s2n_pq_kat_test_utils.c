@@ -15,33 +15,36 @@
 
 #include <sys/param.h>
 
-#include "tls/s2n_kem.h"
-#include "testlib/s2n_nist_kats.h"
-#include "testlib/s2n_testlib.h"
-#include "utils/s2n_mem.h"
-#include "utils/s2n_safety.h"
 #include "pq-crypto/s2n_pq.h"
 #include "pq-crypto/s2n_pq_random.h"
+#include "testlib/s2n_nist_kats.h"
+#include "testlib/s2n_testlib.h"
+#include "tls/s2n_kem.h"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 /* We include s2n_drbg.c directly in order to access the static functions in our entropy callbacks. */
 #include "crypto/s2n_drbg.c"
 
 #define SEED_LENGTH 48
-uint8_t kat_entropy_buff[SEED_LENGTH] = {0};
-struct s2n_blob kat_entropy_blob = {.size = SEED_LENGTH, .data = kat_entropy_buff};
+uint8_t kat_entropy_buff[SEED_LENGTH] = { 0 };
+struct s2n_blob kat_entropy_blob = { .size = SEED_LENGTH, .data = kat_entropy_buff };
 struct s2n_drbg drbg_for_pq_kats;
 
-int s2n_pq_kat_rand_init(void) {
+int s2n_pq_kat_rand_init(void)
+{
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     return S2N_SUCCESS;
 }
 
-int s2n_pq_kat_rand_cleanup(void) {
+int s2n_pq_kat_rand_cleanup(void)
+{
     return S2N_SUCCESS;
 }
 
 /* The seed entropy is taken from the NIST KAT file. */
-int s2n_pq_kat_seed_entropy(void *ptr, uint32_t size) {
+int s2n_pq_kat_seed_entropy(void *ptr, uint32_t size)
+{
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     POSIX_ENSURE_REF(ptr);
     POSIX_ENSURE_EQ(size, kat_entropy_blob.size);
@@ -52,19 +55,22 @@ int s2n_pq_kat_seed_entropy(void *ptr, uint32_t size) {
 
 /* Since the NIST KATs were generated without prediction resistance, the
  * mix entropy callback should never be called. */
-static int s2n_pq_kat_mix_entropy(void *ptr, uint32_t size) {
+static int s2n_pq_kat_mix_entropy(void *ptr, uint32_t size)
+{
     return S2N_FAILURE;
 }
 
 /* Adapted from s2n_drbg.c::s2n_drbg_generate(); this allows us to side-step the DRBG
  * prediction resistance that is built in to s2n's DRBG modes. The PQ KATs were generated
  * using AES 256 CTR NO DF NO PR. */
-static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, struct s2n_blob *blob) {
+static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, struct s2n_blob *blob)
+{
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     RESULT_ENSURE_REF(drbg);
     RESULT_ENSURE_REF(drbg->ctx);
     uint8_t zeros_buffer[S2N_DRBG_MAX_SEED_SIZE] = { 0 };
-    struct s2n_blob zeros = { .data = zeros_buffer, .size = s2n_drbg_seed_size(drbg) };
+    struct s2n_blob zeros = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&zeros, zeros_buffer, s2n_drbg_seed_size(drbg)));
 
     RESULT_ENSURE(blob->size <= S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
@@ -76,15 +82,16 @@ static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, stru
 }
 
 /* Adapted from s2n_random.c::s2n_get_private_random_data(). */
-static S2N_RESULT s2n_get_random_data_for_pq_kat_tests(struct s2n_blob *blob) {
+static S2N_RESULT s2n_get_random_data_for_pq_kat_tests(struct s2n_blob *blob)
+{
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     uint32_t offset = 0;
     uint32_t remaining = blob->size;
 
-    while(remaining) {
+    while (remaining) {
         struct s2n_blob slice = { 0 };
 
-        RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));;
+        RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
         RESULT_GUARD(s2n_drbg_generate_for_pq_kat_tests(&drbg_for_pq_kats, &slice));
 
         remaining -= slice.size;
@@ -94,16 +101,19 @@ static S2N_RESULT s2n_get_random_data_for_pq_kat_tests(struct s2n_blob *blob) {
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_bytes) {
+S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_bytes)
+{
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-    struct s2n_blob out = { .data = buffer, .size = num_bytes };
+    struct s2n_blob out = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&out, buffer, num_bytes));
 
     RESULT_GUARD(s2n_get_random_data_for_pq_kat_tests(&out));
 
     return S2N_RESULT_OK;
 }
 
-static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name) {
+static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file_name)
+{
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
 
@@ -169,7 +179,7 @@ static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file
         POSIX_ENSURE_EQ(memcmp(pk_answer, pk, kem->public_key_length), 0);
         POSIX_ENSURE_EQ(memcmp(sk_answer, sk, kem->private_key_length), 0);
         POSIX_ENSURE_EQ(memcmp(ct_answer, ct, kem->ciphertext_length), 0);
-        POSIX_ENSURE_EQ(memcmp(ss_answer, server_shared_secret, kem->shared_secret_key_length ), 0);
+        POSIX_ENSURE_EQ(memcmp(ss_answer, server_shared_secret, kem->shared_secret_key_length), 0);
 
         /* Wipe the DRBG; it will reseed for each KAT test vector. */
         POSIX_GUARD_RESULT(s2n_drbg_wipe(&drbg_for_pq_kats));
@@ -208,10 +218,12 @@ S2N_RESULT s2n_pq_kem_kat_test(const struct s2n_kem_kat_test_vector *test_vector
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_pq_noop_asm() {
+S2N_RESULT s2n_pq_noop_asm()
+{
     return S2N_RESULT_OK;
 }
 
-bool s2n_pq_no_asm_available() {
+bool s2n_pq_no_asm_available()
+{
     return false;
 }

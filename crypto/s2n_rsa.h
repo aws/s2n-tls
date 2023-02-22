@@ -15,13 +15,11 @@
 
 #pragma once
 
-#include <stdint.h>
-#include "api/s2n.h"
-
 #include <openssl/rsa.h>
+#include <stdint.h>
 
+#include "api/s2n.h"
 #include "crypto/s2n_hash.h"
-
 #include "utils/s2n_blob.h"
 
 /* Forward declaration to avoid the circular dependency with s2n_pkey.h */
@@ -45,7 +43,7 @@ RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key);
 typedef struct s2n_rsa_key s2n_rsa_public_key;
 typedef struct s2n_rsa_key s2n_rsa_private_key;
 
-extern int s2n_rsa_pkey_init(struct s2n_pkey *pkey);
+int s2n_rsa_pkey_init(struct s2n_pkey *pkey);
 
-extern int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey);
-extern int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey);
+int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey);
+int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey);

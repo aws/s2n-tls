@@ -14,7 +14,9 @@
  */
 
 #include "s2n_pq.h"
+
 #include "crypto/s2n_openssl.h"
+#include "s2n_kyber_512_evp.h"
 
 static bool kyber512r3_avx2_bmi2_enabled = false;
 
@@ -97,6 +99,13 @@ bool s2n_pq_is_enabled() {
 #endif
 }
 
+bool s2n_libcrypto_supports_kyber_512() {
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER512)
+    return true;
+#else
+    return false;
+#endif
+}
 
 S2N_RESULT s2n_disable_kyber512r3_opt_avx2_bmi2() {
     kyber512r3_avx2_bmi2_enabled = false;

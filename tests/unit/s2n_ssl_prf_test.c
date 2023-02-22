@@ -13,14 +13,13 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-
-#include <string.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "crypto/s2n_fips.h"
-#include "testlib/s2n_testlib.h"
+#include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_prf.h"
 
 /*
@@ -40,12 +39,13 @@ int main(int argc, char **argv)
     char server_random_hex_in[] = "537fb7fe649225c9f37904b24916452d51794b3b5735fc7e628b6090db52209f";
     char master_secret_hex_in[] = "02b811717e3aa29e6b0526d7e9ae2b74496d461564401f47498e9cdbdf54c8afa69c25a648b360de2004c74850e8f7db";
 
-    struct s2n_stuffer client_random_in = {0};
-    struct s2n_stuffer server_random_in = {0};
-    struct s2n_stuffer premaster_secret_in = {0};
-    struct s2n_stuffer master_secret_hex_out = {0};
-    struct s2n_blob master_secret = {.data = master_secret_hex_pad,.size = sizeof(master_secret_hex_pad) };
-    struct s2n_blob pms = {0};
+    struct s2n_stuffer client_random_in = { 0 };
+    struct s2n_stuffer server_random_in = { 0 };
+    struct s2n_stuffer premaster_secret_in = { 0 };
+    struct s2n_stuffer master_secret_hex_out = { 0 };
+    struct s2n_blob master_secret = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&master_secret, master_secret_hex_pad, sizeof(master_secret_hex_pad)));
+    struct s2n_blob pms = { 0 };
 
     struct s2n_connection *conn = NULL;
 

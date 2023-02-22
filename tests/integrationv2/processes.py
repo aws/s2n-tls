@@ -1,4 +1,3 @@
-import time
 import os
 import select
 import selectors
@@ -183,7 +182,7 @@ class _processCommunicator(object):
                         data_str = str(data)
                         data_debug = data_str[:_DEBUG_LEN]
                         if len(data_str) > _DEBUG_LEN:
-                             data_debug += f' ...({len(data_str) - _DEBUG_LEN} more bytes)'
+                            data_debug += f' ...({len(data_str) - _DEBUG_LEN} more bytes)'
 
                         # fileobj2output[key.fileobj] is a list of data chunks
                         # that get joined later

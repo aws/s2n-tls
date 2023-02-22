@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include "api/s2n.h"
-#include <strings.h>
 #include <stdbool.h>
+#include <strings.h>
 
+#include "api/s2n.h"
 #include "crypto/s2n_ecc_evp.h"
 
 struct s2n_ecc_preferences {

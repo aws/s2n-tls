@@ -14,11 +14,10 @@
  */
 
 #include "s2n_test.h"
-
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
-#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
 static int reset_stuffers(struct s2n_stuffer *reread, struct s2n_stuffer *wipe)
@@ -41,7 +40,7 @@ int main(int argc, char **argv)
             s2n_tls13_chacha20_poly1305_sha256
         };
 
-        int hash_sizes[] = {
+        uint32_t hash_sizes[] = {
             32, 48, 32
         };
 
@@ -52,7 +51,7 @@ int main(int argc, char **argv)
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->secure->cipher_suite = &cipher_suites[i];
 
-            int hash_size = hash_sizes[i];
+            uint32_t hash_size = hash_sizes[i];
 
             EXPECT_SUCCESS(s2n_tls13_server_finished_send(server_conn));
             EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->handshake.io), hash_size);
@@ -92,7 +91,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
-    }
+    };
 
     /* Test that they can only run in TLS 1.3 mode */
     {
@@ -116,7 +115,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test for failure cases if cipher suites are incompatible */
     {
@@ -140,7 +139,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     /* Test for failure cases when finished secret key differs */
     {
@@ -172,7 +171,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
-    }
+    };
 
     END_TEST();
     return 0;
