@@ -71,8 +71,11 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* Only generate the session id for TLS1.3 if in middlebox compatibility mode */
-    if (conn->client_protocol_version >= S2N_TLS13 && !s2n_is_middlebox_compat_enabled(conn)) {
+    /* Only generate the session id for TLS1.3 if in middlebox compatibility mode
+     *
+     * actual_protocol_version is used here so the session id is generated if TLS1.3
+     * was not negotiated, even if the client supports it */
+    if (conn->actual_protocol_version >= S2N_TLS13 && !s2n_is_middlebox_compat_enabled(conn)) {
         return S2N_RESULT_OK;
     }
 
