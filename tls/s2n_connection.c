@@ -71,7 +71,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
 
-    /* `mode` is initialized here since its passed in as a parameter. */
+    /* `mode` is initialized here since it's passed in as a parameter. */
     conn->mode = mode;
 
     /* Allocate the fixed-size stuffers */
@@ -1055,9 +1055,10 @@ int s2n_connection_get_session_id(struct s2n_connection *conn, uint8_t *session_
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(session_id);
 
-    int session_id_len = s2n_connection_get_session_id_length(conn);
+    const int session_id_len = s2n_connection_get_session_id_length(conn);
+    POSIX_GUARD(session_id_len);
 
-    S2N_ERROR_IF(session_id_len > max_length, S2N_ERR_SESSION_ID_TOO_LONG);
+    POSIX_ENSURE((size_t) session_id_len <= max_length, S2N_ERR_SESSION_ID_TOO_LONG);
 
     POSIX_CHECKED_MEMCPY(session_id, conn->session_id, session_id_len);
 
@@ -1356,7 +1357,10 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
             s2n_openssl_x509_stack_pop_free);
     POSIX_ENSURE_REF(cert_chain_validated);
 
-    for (size_t cert_idx = 0; cert_idx < sk_X509_num(cert_chain_validated); cert_idx++) {
+    int cert_count = sk_X509_num(cert_chain_validated);
+    POSIX_ENSURE_GTE(cert_count, 0);
+
+    for (size_t cert_idx = 0; cert_idx < (size_t) cert_count; cert_idx++) {
         X509 *cert = sk_X509_value(cert_chain_validated, cert_idx);
         POSIX_ENSURE_REF(cert);
         DEFER_CLEANUP(uint8_t *cert_data = NULL, s2n_crypto_free);

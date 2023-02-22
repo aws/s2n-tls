@@ -84,7 +84,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer signature_algorithms_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
         POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
-        for (int i = 0; i < sig_hash_algs.len; i++) {
+        for (size_t i = 0; i < sig_hash_algs.len; i++) {
             POSIX_GUARD(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
         }
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer signature_algorithms_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&signature_algorithms_extension, 2 + (sig_hash_algs.len * 2)));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.len * 2));
-        for (int i = 0; i < sig_hash_algs.len; i++) {
+        for (size_t i = 0; i < sig_hash_algs.len; i++) {
             EXPECT_SUCCESS(s2n_stuffer_write_uint16(&signature_algorithms_extension, sig_hash_algs.iana_list[i]));
         }
 
