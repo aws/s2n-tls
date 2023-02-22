@@ -290,6 +290,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
                 conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_TRUE(conn->client_protocol_version >= S2N_TLS13);
 
                 EXPECT_SUCCESS(s2n_client_hello_send(conn));
                 EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_SESSION_ID));
