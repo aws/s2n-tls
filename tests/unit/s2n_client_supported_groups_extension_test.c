@@ -69,7 +69,7 @@ int main()
         EXPECT_EQUAL(length, ecc_pref->count * sizeof(uint16_t));
 
         uint16_t curve_id;
-        for (int i = 0; i < ecc_pref->count; i++) {
+        for (size_t i = 0; i < ecc_pref->count; i++) {
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
             EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
         }
@@ -137,7 +137,7 @@ int main()
             }
 
             uint16_t curve_id;
-            for (int i = 0; i < ecc_pref->count; i++) {
+            for (size_t i = 0; i < ecc_pref->count; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
                 EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
             }
@@ -171,7 +171,7 @@ int main()
             EXPECT_EQUAL(length, ecc_pref->count * sizeof(uint16_t));
 
             uint16_t curve_id;
-            for (int i = 0; i < ecc_pref->count; i++) {
+            for (size_t i = 0; i < ecc_pref->count; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &curve_id));
                 EXPECT_EQUAL(curve_id, ecc_pref->ecc_curves[i]->iana_id);
             }
@@ -514,7 +514,7 @@ int main()
         struct s2n_stuffer supported_groups_extension = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_alloc(&supported_groups_extension, 2 + ec_curves_count * 2));
         POSIX_GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, ec_curves_count * 2));
-        for (int i = 0; i < ec_curves_count; i++) {
+        for (size_t i = 0; i < ec_curves_count; i++) {
             POSIX_GUARD(s2n_stuffer_write_uint16(&supported_groups_extension, unsupported_curves[i].iana_id));
         }
 

@@ -42,6 +42,12 @@ int s2n_disable_atexit(void)
     return S2N_SUCCESS;
 }
 
+int s2n_enable_atexit(void)
+{
+    atexit_cleanup = true;
+    return S2N_SUCCESS;
+}
+
 int s2n_init(void)
 {
     /* USAGE-GUIDE says s2n_init MUST NOT be called more than once

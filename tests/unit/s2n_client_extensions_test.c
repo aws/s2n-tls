@@ -118,10 +118,10 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
     server_conn->kex_params.kem_params.kem = NULL;
 
     /* Send the client hello */
-    POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len), record_header_len);
-    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len), message_header_len);
-    POSIX_ENSURE_EQ(write(io_pair->client, client_hello_message, client_hello_len), client_hello_len);
-    POSIX_ENSURE_EQ(write(io_pair->client, client_extensions, client_extensions_len), client_extensions_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, record_header, record_header_len), (int64_t) record_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, message_header, message_header_len), (int64_t) message_header_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_hello_message, client_hello_len), (int64_t) client_hello_len);
+    POSIX_ENSURE_EQ(write(io_pair->client, client_extensions, client_extensions_len), (int64_t) client_extensions_len);
 
     POSIX_GUARD(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
     if (s2n_negotiate(server_conn, &server_blocked) == 0) {
@@ -905,14 +905,13 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
+
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS12;
         client_conn->server_protocol_version = S2N_TLS12;
         client_conn->client_protocol_version = S2N_TLS12;
-
-        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS12;
@@ -967,14 +966,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
+
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         client_conn->actual_protocol_version = S2N_TLS13;
         client_conn->server_protocol_version = S2N_TLS13;
         client_conn->client_protocol_version = S2N_TLS13;
-
-        EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;

@@ -1,6 +1,13 @@
 ---
 name: s2n-tls Documentation
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 jobs:
   generate-doxygen:
