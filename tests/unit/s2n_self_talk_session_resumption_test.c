@@ -999,6 +999,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_free(tls12_server_config));
     EXPECT_SUCCESS(s2n_config_free(tls13_client_config));
     EXPECT_SUCCESS(s2n_config_free(tls12_client_config));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls12_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(tls13_chain_and_key));
 
     END_TEST();
