@@ -997,7 +997,7 @@ S2N_API extern int s2n_config_set_protocol_preferences(struct s2n_config *config
 
 /**
  * Enum used to define the type, if any, of certificate status request
- * an S2N_CLIENT should make during the handshake. The only supported status request type is
+ * a connection should make during the handshake. The only supported status request type is
  * OCSP, `S2N_STATUS_REQUEST_OCSP`.
 */
 typedef enum {
@@ -1006,7 +1006,7 @@ typedef enum {
 } s2n_status_request_type;
 
 /**
- * Sets up an S2N_CLIENT to request the server certificate status during an SSL handshake. If set
+ * Sets up a connection to request the certificate status of a peer during an SSL handshake. If set
  * to S2N_STATUS_REQUEST_NONE, no status request is made.
  *
  * @param config The configuration object being updated
@@ -2208,7 +2208,7 @@ S2N_API extern int s2n_connection_get_session_id(struct s2n_connection *conn, ui
 S2N_API extern int s2n_connection_is_session_resumed(struct s2n_connection *conn);
 
 /**
- * Check is the connection is OCSP stapled.
+ * Check if the connection is OCSP stapled.
  *
  * @param conn A pointer to the s2n_connection object
  *

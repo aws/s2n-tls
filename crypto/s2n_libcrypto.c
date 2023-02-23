@@ -35,17 +35,17 @@
  * the new API. When dropping OpenSSL 1.0.2 support, we can move to the new API.
  */
 
-/* Version name for OpenSSL depends on the version string, but for AWS-LC and
- * BoringSSL, this can be statically asserted.
+/* The result of SSLeay_version(SSLEAY_VERSION) for OpenSSL and AWS-LC depends on the
+ * version. AWS-LC and BoringSSL have consistent prefixes that can be statically asserted.
  *
  * https://github.com/awslabs/aws-lc/commit/8f184f5d69604cc4645bafec47c2d6d9929cb50f
  * has not been pushed to the fips branch of AWS-LC. In addition, we can't
  * distinguish AWS-LC fips and non-fips at pre-processing time since AWS-LC
  * doesn't distribute fips-specific header files.
  */
-#define EXPECTED_AWSLC_VERSION_NAME_FIPS_OR_OLD "BoringSSL"
-#define EXPECTED_AWSLC_VERSION_NAME_NON_FIPS    "AWS-LC"
-#define EXPECTED_BORINGSSL_VERSION_NAME         "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_PREFIX_FIPS_OR_OLD "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_PREFIX_NON_FIPS    "AWS-LC"
+#define EXPECTED_BORINGSSL_VERSION_PREFIX         "BoringSSL"
 
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFPPS major minor fix patch status.
@@ -64,12 +64,12 @@ static const char *s2n_libcrypto_get_version_name(void)
     return SSLeay_version(SSLEAY_VERSION);
 }
 
-static S2N_RESULT s2n_libcrypto_validate_expected_version_name(const char *expected_version_name)
+static S2N_RESULT s2n_libcrypto_validate_expected_version_prefix(const char *expected_name_prefix)
 {
-    RESULT_ENSURE_REF(expected_version_name);
+    RESULT_ENSURE_REF(expected_name_prefix);
     RESULT_ENSURE_REF(s2n_libcrypto_get_version_name());
-    RESULT_ENSURE_EQ(strlen(expected_version_name), strlen(s2n_libcrypto_get_version_name()));
-    RESULT_ENSURE(s2n_constant_time_equals((const uint8_t *) expected_version_name, (const uint8_t *) s2n_libcrypto_get_version_name(), (const uint32_t) strlen(expected_version_name)), S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
+    RESULT_ENSURE_LTE(strlen(expected_name_prefix), strlen(s2n_libcrypto_get_version_name()));
+    RESULT_ENSURE(s2n_constant_time_equals((const uint8_t *) expected_name_prefix, (const uint8_t *) s2n_libcrypto_get_version_name(), (const uint32_t) strlen(expected_name_prefix)), S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH);
 
     return S2N_RESULT_OK;
 }
@@ -186,20 +186,20 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
 
     /* If we know the expected version name, we can validate it. */
     if (s2n_libcrypto_is_awslc()) {
-        const char *expected_awslc_version_name = NULL;
+        const char *expected_awslc_name_prefix = NULL;
         /* For backwards compatability, also check the AWS-LC API version see
          * https://github.com/awslabs/aws-lc/pull/467. When we are confident we
          * don't meet anymore "old" AWS-LC libcrypto's, this API version check
          * can be removed.
          */
         if (s2n_libcrypto_is_fips() || s2n_libcrypto_awslc_api_version() < 17) {
-            expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_FIPS_OR_OLD;
+            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_FIPS_OR_OLD;
         } else {
-            expected_awslc_version_name = EXPECTED_AWSLC_VERSION_NAME_NON_FIPS;
+            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_NON_FIPS;
         }
-        RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(expected_awslc_version_name));
+        RESULT_GUARD(s2n_libcrypto_validate_expected_version_prefix(expected_awslc_name_prefix));
     } else if (s2n_libcrypto_is_boringssl()) {
-        RESULT_GUARD(s2n_libcrypto_validate_expected_version_name(EXPECTED_BORINGSSL_VERSION_NAME));
+        RESULT_GUARD(s2n_libcrypto_validate_expected_version_prefix(EXPECTED_BORINGSSL_VERSION_PREFIX));
     }
 
     RESULT_GUARD(s2n_libcrypto_validate_expected_version_number());

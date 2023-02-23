@@ -38,7 +38,7 @@ static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, u
     /* Start with u = 0 */
     *u = 0;
 
-    for (int i = 0; i < b.size; i++) {
+    for (size_t i = 0; i < b.size; i++) {
         *u <<= 4;
         if (b.data[i] >= '0' && b.data[i] <= '9') {
             *u |= b.data[i] - '0';
@@ -58,7 +58,7 @@ int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, u
 {
     POSIX_ENSURE_GTE(s2n_stuffer_space_remaining(out), n);
 
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         uint8_t c;
         POSIX_GUARD(s2n_stuffer_read_uint8_hex(stuffer, &c));
         POSIX_GUARD(s2n_stuffer_write_uint8(out, c));
@@ -71,7 +71,7 @@ int s2n_stuffer_write_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *in, u
 {
     POSIX_ENSURE_GTE(s2n_stuffer_space_remaining(stuffer), n * 2);
 
-    for (int i = 0; i < n; i++) {
+    for (size_t i = 0; i < n; i++) {
         uint8_t c;
         POSIX_GUARD(s2n_stuffer_read_uint8(in, &c));
         POSIX_GUARD(s2n_stuffer_write_uint8_hex(stuffer, c));
@@ -129,7 +129,7 @@ static int s2n_stuffer_write_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, 
 
     POSIX_ENSURE_LTE(n, 64);
 
-    for (int i = b.size; i > 0; i--) {
+    for (size_t i = b.size; i > 0; i--) {
         b.data[i - 1] = hex[u & 0x0f];
         u >>= 4;
     }
@@ -167,7 +167,7 @@ int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char
 
     POSIX_GUARD(s2n_stuffer_alloc(stuffer, strlen(str) / 2));
 
-    for (int i = 0; i < strlen(str); i += 2) {
+    for (size_t i = 0; i < strlen(str); i += 2) {
         uint8_t u = 0;
 
         if (str[i] >= '0' && str[i] <= '9') {

@@ -103,7 +103,7 @@ int main()
         EXPECT_EQUAL(s2n_extension_iana_value_to_id(65280), s2n_unsupported_extension);
 
         /* Every supported extension can be handled */
-        for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
+        for (size_t i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
             EXPECT_EQUAL(s2n_extension_iana_value_to_id(s2n_supported_extensions[i]), i);
         }
     };
@@ -126,7 +126,7 @@ int main()
     /* Test bitfield behavior */
     {
         s2n_extension_bitfield test_bitfield = { 0 };
-        for (int i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
+        for (size_t i = 0; i < S2N_SUPPORTED_EXTENSIONS_COUNT; i++) {
             uint16_t iana = s2n_supported_extensions[i];
             s2n_extension_type_id id = s2n_extension_iana_value_to_id(iana);
 
