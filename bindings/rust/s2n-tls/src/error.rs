@@ -161,7 +161,7 @@ impl Error {
 
     /// An error occurred while running application code.
     ///
-    /// Can be emitted from [`callbacks::ConnectionFuture::poll()`] to indicate
+    /// Can be emitted from [`crate::callbacks::ConnectionFuture::poll()`] to indicate
     /// async task failure.
     pub fn application(error: Box<dyn std::error::Error + Send + Sync + 'static>) -> Self {
         Self(Context::Application(error))
