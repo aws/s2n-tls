@@ -59,7 +59,6 @@ pin_project! {
     /// A wrapper around an optional [`ConnectionFuture`]
     /// which either polls the future or immediately reports success.
     struct OptionalFuture{
-        #[pin]
         option: Option<Pin<Box<dyn ConnectionFuture>>>,
     }
 }

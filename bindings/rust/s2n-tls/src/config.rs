@@ -47,7 +47,7 @@ impl Config {
     /// This config _MUST_ have been initialized with a [`Builder`].
     /// Additionally, this does NOT increment the config reference count,
     /// so consider cloning the result if the source pointer is still
-    /// valid and useable afterwards.
+    /// valid and usable afterwards.
     pub(crate) unsafe fn from_raw(config: NonNull<s2n_config>) -> Self {
         let config = Self(config);
 
