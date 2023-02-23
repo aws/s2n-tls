@@ -199,7 +199,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture, VerifyHostNameCallback},
-        testing::{client_hello::*, *},
+        testing::{client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
@@ -441,6 +441,7 @@ mod tests {
     }
     #[test]
     fn client_hello_callback_sync() -> Result<(), Error> {
+        let (waker, wake_count) = new_count_waker();
         #[derive(Clone)]
         struct ClientHelloSyncCallback(Arc<AtomicUsize>);
         impl ClientHelloSyncCallback {
@@ -483,6 +484,7 @@ mod tests {
             // create and configure a server connection
             let mut server = crate::connection::Connection::new_server();
             server.set_config(config.clone())?;
+            server.set_waker(Some(&waker))?;
             Harness::new(server)
         };
 
@@ -498,6 +500,7 @@ mod tests {
         assert_eq!(callback.count(), 0);
         poll_tls_pair(pair);
         assert_eq!(callback.count(), 1);
+        assert_eq!(wake_count, 0);
         Ok(())
     }
 

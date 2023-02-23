@@ -284,6 +284,23 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_config_free(config));
             };
 
+            /* Generate a session id if the negotiated protocol is less than TLS1.3 */
+            {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+                conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_TRUE(conn->client_protocol_version >= S2N_TLS13);
+
+                EXPECT_SUCCESS(s2n_client_hello_send(conn));
+                EXPECT_SUCCESS(s2n_stuffer_skip_read(hello_stuffer, LENGTH_TO_SESSION_ID));
+
+                uint8_t session_id_length = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &session_id_length));
+                EXPECT_EQUAL(session_id_length, S2N_TLS_SESSION_ID_MAX_LEN);
+            }
+
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
 

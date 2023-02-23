@@ -30,15 +30,20 @@ IS_FIPS=$3
 
 source codebuild/bin/jobs.sh
 
+# These tags represents the latest versions that S2N is compatible
+# with. It prevents our build system from breaking when AWS-LC
+# is updated, last done on 2023-02-22.
+if [ "$IS_FIPS" == "1" ]; then
+  AWSLC_VERSION=AWS-LC-FIPS-1.0.3
+else
+  AWSLC_VERSION=v1.4.0
+fi
 mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"
-git clone https://github.com/awslabs/aws-lc.git
-if [ "$IS_FIPS" == "1" ]; then
-  echo "Checking out FIPS branch"
-  cd aws-lc
-  git checkout -b fips-2021-10-20 origin/fips-2021-10-20
-  cd ..
-fi
+echo "Checking out tag=$AWSLC_VERSION"
+# --branch can also take tags and detaches the HEAD at that commit in the resulting repository
+# --depth 1 Create a shallow clone with a history truncated to 1 commit
+git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_VERSION" --depth 1
 
 install_awslc() {
 	echo "Building with shared library=$1"
