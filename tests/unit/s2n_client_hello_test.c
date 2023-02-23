@@ -287,7 +287,7 @@ int main(int argc, char **argv)
             /* Generate a session id if the negotiated protocol is less than TLS1.3 */
             {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free) ;
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
                 conn->actual_protocol_version = S2N_TLS12;
