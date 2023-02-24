@@ -80,12 +80,6 @@ struct s2n_config {
      */
     unsigned no_signing_key : 1;
     /*
-     * This option exists to allow for polling the client_hello callback.
-     *
-     * Note: This defaults to false to ensure backwards compatibility.
-     */
-    unsigned client_hello_cb_enable_poll : 1;
-    /*
      * Whether to verify signatures locally before sending them over the wire.
      * See s2n_config_set_verify_after_sign.
      */

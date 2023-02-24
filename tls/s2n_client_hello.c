@@ -505,31 +505,24 @@ fail:
     RESULT_BAIL(S2N_ERR_CANCELLED);
 }
 
-bool s2n_client_hello_invoke_callback(struct s2n_connection *conn)
-{
-    /* Invoke only if the callback has not been called or if polling mode is enabled */
-    bool invoke = !conn->client_hello.callback_invoked || conn->config->client_hello_cb_enable_poll;
-    /*
-     * The callback should not be called if this client_hello is in response to a hello retry.
-     */
-    return invoke && !IS_HELLO_RETRY_HANDSHAKE(conn);
-}
-
 int s2n_client_hello_recv(struct s2n_connection *conn)
 {
-    if (conn->config->client_hello_cb_enable_poll == 0) {
-        POSIX_ENSURE(conn->client_hello.callback_async_blocked == 0, S2N_ERR_ASYNC_BLOCKED);
+    POSIX_ENSURE(!conn->client_hello.callback_async_blocked, S2N_ERR_ASYNC_BLOCKED);
+
+    /* Only parse the ClientHello once */
+    if (!conn->client_hello.parsed) {
+        POSIX_GUARD(s2n_parse_client_hello(conn));
+        conn->client_hello.parsed = true;
     }
 
-    if (conn->client_hello.parsed == 0) {
-        /* Parse client hello */
-        POSIX_GUARD(s2n_parse_client_hello(conn));
-        conn->client_hello.parsed = 1;
-    }
-    /* Call the client_hello_cb once unless polling is enabled. */
-    if (s2n_client_hello_invoke_callback(conn)) {
+    /* Only invoke the ClientHello callback once.
+     * This means that we do NOT invoke the callback again on the second ClientHello
+     * in a TLS1.3 retry handshake. We explicitly check for a retry because the
+     * callback state may have been cleared while parsing the second ClientHello.
+     */
+    if (!conn->client_hello.callback_invoked && !IS_HELLO_RETRY_HANDSHAKE(conn)) {
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
-        conn->client_hello.callback_invoked = 1;
+        conn->client_hello.callback_invoked = true;
 
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
         if (conn->config->client_hello_cb) {
