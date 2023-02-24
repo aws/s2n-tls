@@ -365,10 +365,9 @@ impl Connection {
     /// Performs the TLS handshake to completion
     ///
     /// Multiple callbacks can be configured for a connection and config, but
-    /// [`poll_negotiate`] can only execute and block on one callback at a time.
+    /// [`Self::poll_negotiate()`] can only execute and block on one callback at a time.
     /// The handshake is sequential, not concurrent, and stops execution when
-    /// it encounters an async callback. The async task is stored on the
-    /// [`Context::connection_future`].
+    /// it encounters an async callback.
     ///
     /// The handshake does not continue execution (and therefore can't call
     /// any other callbacks) until the blocking async task reports completion.
@@ -399,7 +398,7 @@ impl Connection {
                 Poll::Pending => {
                     // if there is no connection_future then return, otherwise continue
                     // looping and polling the future
-                    if self.context_mut().connection_future.is_none() {
+                    if self.context_mut().async_callback.is_none() {
                         return Poll::Pending;
                     }
                 }
@@ -411,14 +410,14 @@ impl Connection {
     //
     // If the future returns Pending, then re-set it back on the Connection.
     fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
-        self.take_connection_future().map(|mut fut| {
+        self.take_async_callback().map(|mut callback| {
             let waker = self.waker().ok_or(Error::MISSING_WAKER)?.clone();
             let mut ctx = core::task::Context::from_waker(&waker);
-            match fut.poll(self, &mut ctx) {
+            match Pin::new(&mut callback).poll(self, &mut ctx) {
                 Poll::Ready(result) => Poll::Ready(result),
                 Poll::Pending => {
                     // replace the future if it hasn't completed yet
-                    self.set_connection_future(fut);
+                    self.set_async_callback(callback);
                     Poll::Pending
                 }
             }
@@ -559,17 +558,16 @@ impl Connection {
     ///
     /// If the Future returns `Poll::Pending` and has not completed, then it
     /// should be re-set using [`Self::set_connection_future()`]
-    fn take_connection_future(&mut self) -> Option<InternalConnectionFuture> {
+    fn take_async_callback(&mut self) -> Option<AsyncCallback> {
         let ctx = self.context_mut();
-        ctx.connection_future.take()
+        ctx.async_callback.take()
     }
 
     /// Sets a `connection_future` on the connection context.
-    pub(crate) fn set_connection_future(&mut self, f: InternalConnectionFuture) {
+    pub(crate) fn set_async_callback(&mut self, callback: AsyncCallback) {
         let ctx = self.context_mut();
-        debug_assert!(ctx.connection_future.is_none());
-
-        ctx.connection_future = Some(f);
+        debug_assert!(ctx.async_callback.is_none());
+        ctx.async_callback = Some(callback);
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the connection.
@@ -661,38 +659,10 @@ impl Connection {
     }
 }
 
-// Captures the type of ConnectionFuture and executes future specific
-// tasks.
-//
-// As an example, we need to call `mark_client_hello_cb_done` when the
-// client_hello callback returns [`Poll::Ready`] to make progress on
-// the handshake.
-pub(crate) enum InternalConnectionFuture {
-    ClientHello(Pin<Box<dyn ConnectionFuture>>),
-}
-
-impl InternalConnectionFuture {
-    fn poll(
-        &mut self,
-        conn: &mut Connection,
-        ctx: &mut core::task::Context,
-    ) -> Poll<Result<(), Error>> {
-        let InternalConnectionFuture::ClientHello(fut) = self;
-        match fut.as_mut().poll(conn, ctx) {
-            Poll::Ready(res) => {
-                // mark the client_hello callback finished
-                conn.mark_client_hello_cb_done()?;
-                Poll::Ready(res)
-            }
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
-
 #[derive(Default)]
 struct Context {
     waker: Option<Waker>,
-    connection_future: Option<InternalConnectionFuture>,
+    async_callback: Option<AsyncCallback>,
 }
 
 #[cfg(feature = "quic")]
