@@ -343,7 +343,7 @@ int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     const struct s2n_kem *kem = kem_params->kem;
 
     if (kem_params->len_prefixed) {
-        kem_public_key_size public_key_length;
+        kem_public_key_size public_key_length = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
         POSIX_ENSURE(public_key_length == kem->public_key_length, S2N_ERR_BAD_MESSAGE);
     }
@@ -390,7 +390,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     const struct s2n_kem *kem = kem_params->kem;
 
     if (kem_params->len_prefixed) {
-        kem_ciphertext_key_size ciphertext_length;
+        kem_ciphertext_key_size ciphertext_length = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
         POSIX_ENSURE(ciphertext_length == kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
     }

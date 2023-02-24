@@ -342,10 +342,15 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
     bool is_hybrid_share_length_prefixed = 0;
     uint16_t actual_hybrid_share_size = key_share->blob.size;
 
-    /* The length of the hybrid key share must be one of two possible lengths. It's internal values are either length
+    /* The length of the hybrid key share must be one of two possible lengths. Its internal values are either length
      * prefixed, or they are not. If actual_hybrid_share_size is not one of these two lengths, then
      * s2n_is_tls13_hybrid_kem_length_prefixed() will return an error. */
-    POSIX_GUARD_RESULT(s2n_is_tls13_hybrid_kem_length_prefixed(actual_hybrid_share_size, kem_group, &is_hybrid_share_length_prefixed));
+    s2n_result result = s2n_is_tls13_hybrid_kem_length_prefixed(actual_hybrid_share_size, kem_group, &is_hybrid_share_length_prefixed);
+
+    /* Ignore KEM groups with unexpected overall total share sizes */
+    if (s2n_result_is_error(result)) {
+        return S2N_SUCCESS;
+    }
 
     if (is_hybrid_share_length_prefixed) {
         /* Ignore KEM groups with unexpected ECC share sizes */
