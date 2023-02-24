@@ -516,7 +516,10 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     }
 
     /* Only invoke the ClientHello callback once.
-     * Do not invoke again for a HelloRetry, even if we've reset the client hello */
+     * This means that we do NOT invoke the callback again on the second ClientHello
+     * in a TLS1.3 retry handshake. We explicitly check for a retry because the
+     * callback state may have been cleared while parsing the second ClientHello.
+     */
     if (!conn->client_hello.callback_invoked && !IS_HELLO_RETRY_HANDSHAKE(conn)) {
         /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.callback_invoked = true;
