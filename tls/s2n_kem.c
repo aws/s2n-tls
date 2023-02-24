@@ -70,8 +70,6 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
 const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .name = "secp256r1_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
-    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
-    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_512_r3,
 };
@@ -80,8 +78,6 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
 const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
     .name = "x25519_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
-    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
-    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_512_r3,
 };

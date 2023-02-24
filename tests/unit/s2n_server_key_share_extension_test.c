@@ -872,16 +872,11 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params->ecc_params));
                     EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, kem_group->kem->public_key_length));
                     EXPECT_OK(s2n_kem_generate_keypair(&client_params->kem_params));
-
                     EXPECT_SUCCESS(s2n_server_key_share_extension.send(conn, &stuffer));
+                    uint16_t expected_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->ciphertext_length;
 
-                    uint16_t expected_hybrid_share_size;
                     if (client_params->kem_params.len_prefixed) {
-                        /* PQ Share Size + PQ Share + ECC Share Size + ECC Share */
-                        expected_hybrid_share_size = kem_group->server_share_size;
-                    } else {
-                        /* PQ Share + ECC Share */
-                        expected_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->ciphertext_length;
+                        expected_hybrid_share_size += (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
                     }
 
                     /*  IANA ID (2 bytes) + total share size (2 bytes) + Hybrid Share */

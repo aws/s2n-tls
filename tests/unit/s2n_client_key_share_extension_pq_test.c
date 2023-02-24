@@ -741,10 +741,11 @@ int main()
                     EXPECT_SUCCESS(s2n_stuffer_reserve_uint16(&key_share_extension, &keyshare_list_size));
                     /* Write first share. Mess up point by erasing most of it */
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &client_pq_params[0]));
-                    size_t hybrid_share_size = kem_pref->tls13_kem_groups[0]->client_share_size;
+                    const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[0];
+                    size_t hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
 
-                    if (!len_prefixed) {
-                        hybrid_share_size -= (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
+                    if (len_prefixed) {
+                        hybrid_share_size += (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
                     }
 
                     EXPECT_SUCCESS(s2n_stuffer_wipe_n(&key_share_extension, hybrid_share_size));
@@ -800,10 +801,11 @@ int main()
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &client_pq_params[0]));
                     /* Write second share. Mess up point by erasing most of it */
                     EXPECT_SUCCESS(s2n_generate_pq_hybrid_key_share_for_test(&key_share_extension, &client_pq_params[1]));
-                    size_t hybrid_share_size = kem_pref->tls13_kem_groups[1]->client_share_size;
+                    const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[0];
+                    size_t hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
 
-                    if (!len_prefixed) {
-                        hybrid_share_size -= (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
+                    if (len_prefixed) {
+                        hybrid_share_size += (2 * S2N_SIZE_OF_KEY_SHARE_SIZE);
                     }
 
                     EXPECT_SUCCESS(s2n_stuffer_wipe_n(&key_share_extension, hybrid_share_size / 2));

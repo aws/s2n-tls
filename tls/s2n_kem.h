@@ -63,8 +63,6 @@ struct s2n_iana_to_kem {
 struct s2n_kem_group {
     const char *name;
     uint16_t iana_id;
-    uint16_t client_share_size;
-    uint16_t server_share_size;
     const struct s2n_ecc_named_curve *curve;
     const struct s2n_kem *kem;
 };
