@@ -92,8 +92,6 @@ extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
 /* x25519 KEM Groups */
 extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
 
-S2N_RESULT s2n_is_tls13_hybrid_kem_length_prefixed(uint16_t actual_hybrid_share_size,
-        const struct s2n_kem_group *kem_group, bool *is_length_prefixed);
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
 S2N_RESULT s2n_kem_decapsulate(struct s2n_kem_params *kem_params, const struct s2n_blob *ciphertext);
