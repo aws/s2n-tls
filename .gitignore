@@ -38,4 +38,4 @@ CMakeFiles/*
 build/
 result
 result-*
-tests/integrationv2/bin/SSLSocketClient.class
+*.class

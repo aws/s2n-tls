@@ -5,7 +5,7 @@ pkgs.stdenv.mkDerivation rec {
 
   src = pkgs.fetchzip {
     url =
-      "https://corretto.aws/downloads/latest/amazon-corretto-8-x64-linux-jdk.tar.gz";
+      "https://corretto.aws/downloads/resources/8.362.08.1/amazon-corretto-8.362.08.1-linux-x64.tar.gz";
     sha256 = "sha256-VRGfnyW97gY8e/UlXbg6zlEThTTYdVc6BdMKhl1osVI=";
   };
 
