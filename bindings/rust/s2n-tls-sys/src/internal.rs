@@ -18,6 +18,3 @@ extern "C" {
         config: *mut *mut s2n_config,
     ) -> ::libc::c_int;
 }
-extern "C" {
-    pub fn s2n_config_client_hello_cb_enable_poll(config: *mut s2n_config) -> ::libc::c_int;
-}
