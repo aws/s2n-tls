@@ -86,20 +86,6 @@ impl PrivateKeyOperation {
         Ok(())
     }
 
-    /// Performs the operation using the existing private key
-    ///
-    /// This is equivalent to how the operation would be performed
-    /// if the callback had not been set.
-    pub fn perform(self, conn: &mut Connection) -> Result<(), Error> {
-        unsafe {
-            let cert_chain = s2n_connection_get_selected_cert(conn.as_ptr()).into_result()?;
-            let key = s2n_cert_chain_and_key_get_private_key(cert_chain.as_ptr()).into_result()?;
-            s2n_async_pkey_op_perform(self.raw.as_ptr(), key.as_ptr()).into_result()?;
-            s2n_async_pkey_op_apply(self.raw.as_ptr(), conn.as_ptr()).into_result()?;
-        }
-        Ok(())
-    }
-
     /// Sets the output of the operation
     pub fn set_output(self, conn: &mut Connection, buf: &[u8]) -> Result<(), Error> {
         let buf_len: u32 = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
@@ -255,93 +241,6 @@ mod tests {
                     Poll::Pending
                 } else if let Some(op) = self.op.take() {
                     Poll::Ready(ecdsa_sign(op, conn, KEY))
-                } else {
-                    Poll::Ready(Err(error::Error::application(
-                        "missing pkey operation".into(),
-                    )))
-                }
-            }
-        }
-
-        struct TestPkeyCallback(Counter);
-        impl PrivateKeyCallback for TestPkeyCallback {
-            fn handle_operation(
-                &self,
-                _conn: &mut connection::Connection,
-                op: PrivateKeyOperation,
-            ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
-                self.0.increment();
-                let future = TestPkeyFuture {
-                    counter: 0,
-                    op: Some(op),
-                };
-                Ok(Some(Box::pin(future)))
-            }
-        }
-
-        let (waker, wake_count) = new_count_waker();
-        let counter = testing::Counter::default();
-        let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
-
-        assert_eq!(counter.count(), 0);
-        assert_eq!(wake_count, 0);
-        poll_tls_pair(pair);
-        assert_eq!(counter.count(), 1);
-        assert_eq!(wake_count, POLL_COUNT);
-
-        Ok(())
-    }
-
-    #[test]
-    fn sync_perform_success() -> Result<(), Error> {
-        struct TestPkeyCallback(Counter);
-        impl PrivateKeyCallback for TestPkeyCallback {
-            fn handle_operation(
-                &self,
-                conn: &mut connection::Connection,
-                op: PrivateKeyOperation,
-            ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
-                self.0.increment();
-                op.perform(conn)?;
-                Ok(None)
-            }
-        }
-
-        let (waker, wake_count) = new_count_waker();
-        let counter = testing::Counter::default();
-        let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
-
-        assert_eq!(counter.count(), 0);
-        assert_eq!(wake_count, 0);
-        poll_tls_pair(pair);
-        assert_eq!(counter.count(), 1);
-        assert_eq!(wake_count, 0);
-
-        Ok(())
-    }
-
-    #[test]
-    fn async_perform_success() -> Result<(), Error> {
-        const POLL_COUNT: usize = 10;
-
-        struct TestPkeyFuture {
-            counter: usize,
-            op: Option<PrivateKeyOperation>,
-        }
-        impl ConnectionFuture for TestPkeyFuture {
-            fn poll(
-                mut self: Pin<&mut Self>,
-                conn: &mut connection::Connection,
-                _ctx: &mut core::task::Context,
-            ) -> Poll<Result<(), error::Error>> {
-                conn.waker().expect("Uncaught missing waker").wake_by_ref();
-                self.counter += 1;
-                if self.counter < POLL_COUNT {
-                    Poll::Pending
-                } else if let Some(op) = self.op.take() {
-                    Poll::Ready(op.perform(conn))
                 } else {
                     Poll::Ready(Err(error::Error::application(
                         "missing pkey operation".into(),
