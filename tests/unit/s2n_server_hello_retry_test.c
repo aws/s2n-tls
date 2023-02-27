@@ -37,7 +37,6 @@ struct client_hello_context {
     int invocations;
     s2n_client_hello_cb_mode mode;
     bool mark_done;
-    bool enable_poll;
 };
 
 int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
@@ -47,20 +46,6 @@ int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(client_conn, &blocked), S2N_ERR_IO_BLOCKED);
 
-    int expected_invocation = 0;
-
-    /* if polling is enabled then confirm that the callback is incremented each time */
-    if (client_hello_ctx->enable_poll) {
-        do {
-            /* invocation should increase each time s2n_negotiate is called */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_ASYNC_BLOCKED);
-            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_APPLICATION_INPUT);
-            expected_invocation++;
-            EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
-        } while (expected_invocation < 10);
-    }
-    EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
-
     /* complete the callback on the next call */
     client_hello_ctx->mark_done = true;
     EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
@@ -69,8 +54,7 @@ int s2n_negotiate_poll_hello_retry(struct s2n_connection *server_conn,
      * hello retry will invoke the s2n_negotiate twice but the callback should
      * be called once regardless of polling
      */
-    expected_invocation++;
-    EXPECT_EQUAL(client_hello_ctx->invocations, expected_invocation);
+    EXPECT_EQUAL(client_hello_ctx->invocations, 1);
 
     return S2N_SUCCESS;
 }
@@ -110,7 +94,7 @@ int s2n_client_hello_poll_cb(struct s2n_connection *conn, void *ctx)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll)
+S2N_RESULT hello_retry_client_hello_cb_test()
 {
     struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&tls13_chain_and_key,
@@ -142,17 +126,11 @@ S2N_RESULT hello_retry_client_hello_cb_test(bool enable_poll)
     /* setup the client hello callback */
     struct client_hello_context client_hello_ctx = { .invocations = 0,
         .mode = S2N_CLIENT_HELLO_CB_NONBLOCKING,
-        .mark_done = false,
-        .enable_poll = enable_poll };
+        .mark_done = false };
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config,
             s2n_client_hello_poll_cb, &client_hello_ctx));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config,
             S2N_CLIENT_HELLO_CB_NONBLOCKING));
-
-    if (enable_poll) {
-        /* Enable callback polling mode */
-        EXPECT_SUCCESS(s2n_config_client_hello_cb_enable_poll(config));
-    }
 
     /* negotiate and make assertions */
     EXPECT_SUCCESS(s2n_negotiate_poll_hello_retry(server_conn, client_conn, &client_hello_ctx));
@@ -542,10 +520,7 @@ int main(int argc, char **argv)
 
     /* Hello Retry Request + (poll and no-poll) client hello callback */
     {
-        /* enable polling */
-        EXPECT_OK(hello_retry_client_hello_cb_test(true));
-        /* disable polling */
-        EXPECT_OK(hello_retry_client_hello_cb_test(false));
+        EXPECT_OK(hello_retry_client_hello_cb_test());
     };
 
     /* Test s2n_set_hello_retry_required correctly sets the handshake type to HELLO_RETRY_REQUEST,
