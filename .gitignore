@@ -38,4 +38,4 @@ CMakeFiles/*
 build/
 result
 result-*
-
+*.class
