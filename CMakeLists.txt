@@ -36,6 +36,8 @@ option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
+option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
+option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -661,17 +663,32 @@ if (BUILD_TESTING)
         foreach(test_file_path ${integv2_test_files})
             get_filename_component(test_filename ${test_file_path} NAME_WE)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
-            add_test(NAME ${test_target}
-                COMMAND
-                ${CMAKE_COMMAND} -E env
-                DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
-                LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib:$ENV{LD_LIBRARY_PATH}
-                PATH=${PROJECT_SOURCE_DIR}/bin:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin:$ENV{PATH}
-                PYTHONNOUSERSITE=1
-                S2N_INTEG_TEST=1
-                TOX_TEST_NAME=${test_file_path}
-                ${Python3_EXECUTABLE} -m tox
-                WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+	    if (S2N_FAST_INTEG_TESTS)
+	        cmake_host_system_information(RESULT N QUERY NUMBER_OF_LOGICAL_CORES)
+	        if (N EQUAL 0)
+		    set(N 1)
+		endif()
+   	        add_test(NAME ${test_target}
+		  COMMAND
+		  pytest
+		  -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
+		  -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
+		  --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
+		  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
+		)
+	    else()
+	        add_test(NAME ${test_target}
+                  COMMAND
+                  ${CMAKE_COMMAND} -E env
+                  DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
+                  LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib:$ENV{LD_LIBRARY_PATH}
+                  PATH=${PROJECT_SOURCE_DIR}/bin:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin:$ENV{PATH}
+                  PYTHONNOUSERSITE=1
+                  S2N_INTEG_TEST=1
+                  TOX_TEST_NAME=${test_file_path}
+                  ${Python3_EXECUTABLE} -m tox
+                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+	    endif()
             set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
             set_property(TEST ${test_target} PROPERTY TIMEOUT 7200)
         endforeach()
@@ -688,6 +705,12 @@ elseif(NOT DEFINED CMAKE_INSTALL_LIBDIR)
     set(CMAKE_INSTALL_LIBDIR "lib")
 endif()
 
+if (S2N_INSTALL_S2NC_S2ND)
+  install(
+    TARGETS s2nc s2nd RUNTIME DESTINATION bin
+    )
+endif()
+
 install(
         TARGETS ${PROJECT_NAME}
         EXPORT ${PROJECT_NAME}-targets
@@ -695,6 +718,7 @@ install(
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR} COMPONENT Runtime
         RUNTIME DESTINATION bin COMPONENT Runtime
 )
+
 
 configure_file("cmake/${PROJECT_NAME}-config.cmake"
         "${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}-config.cmake"
