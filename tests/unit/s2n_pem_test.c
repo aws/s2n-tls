@@ -21,6 +21,11 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
+/* The ECDSA private key is missing the "publicKey" field, which is optional.
+ * The missing field makes the cert type difficult to detect via ASN1 parsing */
+#define S2N_MISSING_ECDSA_PUB_CERT_KEY "../pems/missing_public_key_ecdsa_key.pem"
+#define S2N_MISSING_ECDSA_PUB_CERT_CERT_CHAIN "../pems/missing_public_key_ecdsa_cert.pem"
+
 static const char *valid_pem_pairs[][2] = {
     { S2N_RSA_2048_PKCS8_CERT_CHAIN, S2N_RSA_2048_PKCS8_KEY },
     { S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY },
@@ -34,6 +39,7 @@ static const char *valid_pem_pairs[][2] = {
     { S2N_LEADING_COMMENT_TEXT_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY },
     { S2N_LONG_BASE64_LINES_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY },
     { S2N_MISSING_LINE_ENDINGS_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY },
+    { S2N_MISSING_ECDSA_PUB_CERT_CERT_CHAIN, S2N_MISSING_ECDSA_PUB_CERT_KEY },
 
     /* Technically Invalid according to RFC, but that we are lenient towards */
     { S2N_INVALID_HEADER_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY },
