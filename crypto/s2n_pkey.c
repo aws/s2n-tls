@@ -15,9 +15,7 @@
 
 #include "crypto/s2n_pkey.h"
 
-#include <openssl/bio.h>
 #include <openssl/evp.h>
-#include <openssl/pem.h>
 
 #include "crypto/s2n_openssl_evp.h"
 #include "crypto/s2n_openssl_x509.h"
@@ -27,8 +25,6 @@
 #include "utils/s2n_safety.h"
 
 #define S2N_MAX_ALLOWED_CERT_TRAILING_BYTES 3
-
-DEFINE_POINTER_CLEANUP_FUNC(BIO*, BIO_free);
 
 int s2n_pkey_zero_init(struct s2n_pkey *pkey)
 {
@@ -133,70 +129,65 @@ int s2n_pkey_free(struct s2n_pkey *key)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_evp_pkey_to_private_key(struct s2n_pkey *priv_key, EVP_PKEY **evp_private_key)
+int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der, int type_hint)
 {
-    RESULT_ENSURE_REF(priv_key);
-    RESULT_ENSURE_REF(evp_private_key);
+    const unsigned char *key_to_parse = asn1der->data;
 
-    switch (EVP_PKEY_base_id(*evp_private_key)) {
-        case EVP_PKEY_RSA:
-            RESULT_GUARD_POSIX(s2n_rsa_pkey_init(priv_key));
-            RESULT_GUARD_POSIX(s2n_evp_pkey_to_rsa_private_key(
-                    &priv_key->key.rsa_key, *evp_private_key));
-            break;
-        case EVP_PKEY_RSA_PSS:
-            RESULT_GUARD_POSIX(s2n_rsa_pss_pkey_init(priv_key));
-            RESULT_GUARD_POSIX(s2n_evp_pkey_to_rsa_pss_private_key(
-                    &priv_key->key.rsa_key, *evp_private_key));
-            break;
-        case EVP_PKEY_EC:
-            RESULT_GUARD_POSIX(s2n_ecdsa_pkey_init(priv_key));
-            RESULT_GUARD_POSIX(s2n_evp_pkey_to_ecdsa_private_key(
-                    &priv_key->key.ecdsa_key, *evp_private_key));
-            break;
-        default:
-            RESULT_BAIL(S2N_ERR_DECODE_PRIVATE_KEY);
-    }
-
-    priv_key->pkey = *evp_private_key;
-    ZERO_TO_DISABLE_DEFER_CLEANUP(*evp_private_key);
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_pem_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *pem_data)
-{
-    RESULT_ENSURE_REF(pem_data);
-
-    DEFER_CLEANUP(BIO *bio = BIO_new_mem_buf(pem_data->data, pem_data->size),
-            BIO_free_pointer);
-    RESULT_ENSURE(bio, S2N_ERR_DECODE_PRIVATE_KEY);
-
-    DEFER_CLEANUP(EVP_PKEY *evp_pkey = NULL, EVP_PKEY_free_pointer);
-    evp_pkey = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
-    RESULT_ENSURE(evp_pkey, S2N_ERR_DECODE_PRIVATE_KEY);
-
-    RESULT_GUARD(s2n_evp_pkey_to_private_key(priv_key, &evp_pkey));
-    return S2N_RESULT_OK;
-}
-
-int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der)
-{
-    RESULT_ENSURE_REF(asn1der);
-
-    uint8_t *key_to_parse = asn1der->data;
-    DEFER_CLEANUP(EVP_PKEY *evp_private_key = d2i_AutoPrivateKey(NULL,
-            (const unsigned char **) (void *) &key_to_parse, asn1der->size),
+    /* Detect key type */
+    DEFER_CLEANUP(EVP_PKEY *evp_private_key = d2i_AutoPrivateKey(NULL, &key_to_parse, asn1der->size),
             EVP_PKEY_free_pointer);
+    /* We have found cases where d2i_AutoPrivateKey fails to detect the type of
+     * the key. For example, openssl fails to identify an EC key without the
+     * optional publicKey field.
+     *
+     * If d2i_AutoPrivateKey fails, try once more with the type we parsed from the PEM.
+     */
+    if (evp_private_key == NULL) {
+        evp_private_key = d2i_PrivateKey(type_hint, NULL, &key_to_parse, asn1der->size);
+    }
     POSIX_ENSURE(evp_private_key, S2N_ERR_DECODE_PRIVATE_KEY);
 
-    /* If key parsing is successful, d2i_AutoPrivateKey increments *key_to_parse
-     * to the byte following the parsed data.
-     */
+    /* If key parsing is successful, d2i_AutoPrivateKey increments *key_to_parse to the byte following the parsed data */
     uint32_t parsed_len = key_to_parse - asn1der->data;
-    POSIX_ENSURE(parsed_len == asn1der->size, S2N_ERR_DECODE_PRIVATE_KEY);
+    if (parsed_len != asn1der->size) {
+        POSIX_BAIL(S2N_ERR_DECODE_PRIVATE_KEY);
+    }
 
-    POSIX_GUARD_RESULT(s2n_evp_pkey_to_private_key(priv_key, &evp_private_key));
-    return S2N_SUCCESS;
+    /* Initialize s2n_pkey according to key type */
+    int type = EVP_PKEY_base_id(evp_private_key);
+
+    int ret;
+    switch (type) {
+        case EVP_PKEY_RSA:
+            ret = s2n_rsa_pkey_init(priv_key);
+            if (ret != 0) {
+                break;
+            }
+            ret = s2n_evp_pkey_to_rsa_private_key(&priv_key->key.rsa_key, evp_private_key);
+            break;
+        case EVP_PKEY_RSA_PSS:
+            ret = s2n_rsa_pss_pkey_init(priv_key);
+            if (ret != 0) {
+                break;
+            }
+            ret = s2n_evp_pkey_to_rsa_pss_private_key(&priv_key->key.rsa_key, evp_private_key);
+            break;
+        case EVP_PKEY_EC:
+            ret = s2n_ecdsa_pkey_init(priv_key);
+            if (ret != 0) {
+                break;
+            }
+            ret = s2n_evp_pkey_to_ecdsa_private_key(&priv_key->key.ecdsa_key, evp_private_key);
+            break;
+        default:
+            POSIX_BAIL(S2N_ERR_DECODE_PRIVATE_KEY);
+    }
+
+    priv_key->pkey = evp_private_key;
+    /* Reset to avoid DEFER_CLEANUP freeing our key */
+    evp_private_key = NULL;
+
+    return ret;
 }
 
 int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_pkey_type *pkey_type_out, struct s2n_blob *asn1der)

@@ -23,7 +23,7 @@
 
 /* The ECDSA private key is missing the "publicKey" field, which is optional.
  * The missing field makes the cert type difficult to detect via ASN1 parsing */
-#define S2N_MISSING_ECDSA_PUB_CERT_KEY "../pems/missing_public_key_ecdsa_key.pem"
+#define S2N_MISSING_ECDSA_PUB_CERT_KEY        "../pems/missing_public_key_ecdsa_key.pem"
 #define S2N_MISSING_ECDSA_PUB_CERT_CERT_CHAIN "../pems/missing_public_key_ecdsa_cert.pem"
 
 static const char *valid_pem_pairs[][2] = {

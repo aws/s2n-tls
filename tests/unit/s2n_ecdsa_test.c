@@ -107,9 +107,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) unmatched_private_key, sizeof(unmatched_private_key)));
     EXPECT_SUCCESS(s2n_stuffer_write(&unmatched_ecdsa_key_in, &b));
 
+    int type = 0;
     EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&ecdsa_key_in, &ecdsa_key_out));
-    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&unmatched_ecdsa_key_in, &unmatched_ecdsa_key_out));
+    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&ecdsa_key_in, &ecdsa_key_out, &type));
+    EXPECT_EQUAL(type, EVP_PKEY_EC);
+    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&unmatched_ecdsa_key_in, &unmatched_ecdsa_key_out, &type));
+    EXPECT_EQUAL(type, EVP_PKEY_EC);
 
     struct s2n_pkey pub_key = { 0 };
     struct s2n_pkey priv_key = { 0 };
@@ -121,13 +124,17 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
+    /* Test without a type hint */
+    int wrong_type = 0;
+    EXPECT_NOT_EQUAL(wrong_type, EVP_PKEY_EC);
+
     available_size = s2n_stuffer_data_available(&ecdsa_key_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&ecdsa_key_out, available_size), available_size));
-    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b, wrong_type));
 
     available_size = s2n_stuffer_data_available(&unmatched_ecdsa_key_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&unmatched_ecdsa_key_out, available_size), available_size));
-    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&unmatched_priv_key, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&unmatched_priv_key, &b, wrong_type));
 
     /* Verify that the public/private key pair match */
     EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));

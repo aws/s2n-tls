@@ -69,6 +69,5 @@ int s2n_pkey_decrypt(const struct s2n_pkey *pkey, struct s2n_blob *in, struct s2
 int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_key);
 int s2n_pkey_free(struct s2n_pkey *pkey);
 
-S2N_RESULT s2n_pem_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *pem_data);
-int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der);
+int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der, int type_hint);
 int s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_pkey_type *pkey_type, struct s2n_blob *asn1der);

@@ -121,36 +121,13 @@ int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_an
     POSIX_GUARD(s2n_pkey_zero_init(cert_and_key->private_key));
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
-    POSIX_GUARD(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer));
+    int type = 0;
+    POSIX_GUARD(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer, &type));
     key_blob.size = s2n_stuffer_data_available(key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(key_out_stuffer, key_blob.size);
     POSIX_ENSURE_REF(key_blob.data);
 
-    int result = s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob);
-
-    /* s2n-tls prefers its own custom PEM parsing because historically openssl's
-     * PEM parsing was fairly lax and tended to ignore invalid certificates rather
-     * than error on them. We prefer to fail early rather than continue without
-     * the full and correct chain intended by the application.
-     *
-     * However, because s2n-tls performs the PEM parsing, the libcrypto method
-     * we use to parse the ASN1 data then does not have access to the type information
-     * from the PEM. It attempts to detect the type, but may fail.
-     *
-     * Rather than attempt to extract and pass the type information from the PEM to
-     * the libcrypto ASN1 parsing method, we instead fall back to the libcrypto's
-     * full PEM parsing if the certificate has already passed our own PEM parsing.
-     */
-    if (result != S2N_SUCCESS) {
-        POSIX_GUARD(s2n_stuffer_reread(key_in_stuffer));
-
-        uint32_t size = s2n_stuffer_data_available(key_in_stuffer);
-        uint8_t *data = s2n_stuffer_raw_read(key_in_stuffer, size);
-        POSIX_GUARD(s2n_blob_init(&key_blob, data, size));
-
-        POSIX_GUARD_RESULT(s2n_pem_to_private_key(cert_and_key->private_key, &key_blob));
-    }
-
+    POSIX_GUARD(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type));
     return S2N_SUCCESS;
 }
 
