@@ -667,39 +667,52 @@ impl Connection {
         static_const_str!(cipher)
     }
 
-    pub fn selected_sig_alg(&self) -> Result<(SigAlg, HashAlg), Error> {
+    pub fn selected_signature_algorithm(&self) -> Result<SignatureAlgorithm, Error> {
         let mut sig_alg = s2n_tls_signature_algorithm::ANONYMOUS;
-        let mut hash_alg = s2n_tls_hash_algorithm::NONE;
         unsafe {
             s2n_connection_get_selected_signature_algorithm(self.connection.as_ptr(), &mut sig_alg)
                 .into_result()?;
+        }
+        sig_alg.try_into()
+    }
+
+    pub fn selected_hash_algorithm(&self) -> Result<HashAlgorithm, Error> {
+        let mut hash_alg = s2n_tls_hash_algorithm::NONE;
+        unsafe {
             s2n_connection_get_selected_digest_algorithm(self.connection.as_ptr(), &mut hash_alg)
                 .into_result()?;
         }
-        Ok((sig_alg.try_into()?, hash_alg.try_into()?))
+        hash_alg.try_into()
     }
 
-    pub fn selected_client_sig_alg(&self) -> Result<Option<(SigAlg, HashAlg)>, Error> {
+    pub fn selected_client_signature_algorithm(&self) -> Result<Option<SignatureAlgorithm>, Error> {
         let mut sig_alg = s2n_tls_signature_algorithm::ANONYMOUS;
-        let mut hash_alg = s2n_tls_hash_algorithm::NONE;
         unsafe {
             s2n_connection_get_selected_client_cert_signature_algorithm(
                 self.connection.as_ptr(),
                 &mut sig_alg,
             )
             .into_result()?;
+        }
+        Ok(match sig_alg {
+            s2n_tls_signature_algorithm::ANONYMOUS => None,
+            sig_alg => Some(sig_alg.try_into()?),
+        })
+    }
+
+    pub fn selected_client_hash_algorithm(&self) -> Result<Option<HashAlgorithm>, Error> {
+        let mut hash_alg = s2n_tls_hash_algorithm::NONE;
+        unsafe {
             s2n_connection_get_selected_client_cert_digest_algorithm(
                 self.connection.as_ptr(),
                 &mut hash_alg,
             )
             .into_result()?;
         }
-        match (sig_alg, hash_alg) {
-            (s2n_tls_signature_algorithm::ANONYMOUS, s2n_tls_hash_algorithm::NONE) => Ok(None),
-            (s2n_tls_signature_algorithm::ANONYMOUS, _) => Err(Error::INVALID_INPUT),
-            (_, s2n_tls_hash_algorithm::NONE) => Err(Error::INVALID_INPUT),
-            (sig_alg, hash_alg) => Ok(Some((sig_alg.try_into()?, hash_alg.try_into()?))),
-        }
+        Ok(match hash_alg {
+            s2n_tls_hash_algorithm::NONE => None,
+            hash_alg => Some(hash_alg.try_into()?),
+        })
     }
 }
 

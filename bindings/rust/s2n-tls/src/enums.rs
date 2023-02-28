@@ -127,14 +127,14 @@ impl From<AlertBehavior> for s2n_alert_behavior::Type {
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[allow(non_camel_case_types)]
-pub enum SigAlg {
+pub enum SignatureAlgorithm {
     RSA_PKCS1,
     RSA_PSS_RSAE,
     RSA_PSS_PSS,
     ECDSA,
 }
 
-impl TryFrom<s2n_tls_signature_algorithm::Type> for SigAlg {
+impl TryFrom<s2n_tls_signature_algorithm::Type> for SignatureAlgorithm {
     type Error = Error;
 
     fn try_from(input: s2n_tls_signature_algorithm::Type) -> Result<Self, Self::Error> {
@@ -152,7 +152,7 @@ impl TryFrom<s2n_tls_signature_algorithm::Type> for SigAlg {
 #[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 #[allow(non_camel_case_types)]
-pub enum HashAlg {
+pub enum HashAlgorithm {
     MD5,
     SHA1,
     SHA224,
@@ -161,7 +161,7 @@ pub enum HashAlg {
     SHA512,
 }
 
-impl TryFrom<s2n_tls_hash_algorithm::Type> for HashAlg {
+impl TryFrom<s2n_tls_hash_algorithm::Type> for HashAlgorithm {
     type Error = Error;
 
     fn try_from(input: s2n_tls_hash_algorithm::Type) -> Result<Self, Self::Error> {

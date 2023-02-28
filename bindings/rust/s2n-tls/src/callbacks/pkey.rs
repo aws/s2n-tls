@@ -4,16 +4,17 @@
 use crate::{
     callbacks::*,
     connection::Connection,
-    enums::{HashAlg, Mode, SigAlg},
+    enums::{HashAlgorithm, Mode, SignatureAlgorithm},
     error::{Error, Fallible},
     ffi::*,
 };
 use std::{pin::Pin, ptr::NonNull};
 
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum OperationType {
     Decrypt,
-    Sign(SigAlg, HashAlg),
+    Sign(SignatureAlgorithm, HashAlgorithm),
 }
 
 pub struct PrivateKeyOperation {
@@ -33,24 +34,26 @@ unsafe impl Send for PrivateKeyOperation {}
 unsafe impl Sync for PrivateKeyOperation {}
 
 impl PrivateKeyOperation {
-    /// # Safety
-    ///
-    /// Caller must ensure s2n_connection is a valid reference to a [`s2n_async_pkey_op`] object
-    /// All references obtained from s2n_async_pkey_fn will be valid.
-    pub(crate) unsafe fn try_from_cb(
+    pub(crate) fn try_from_cb(
         conn: &Connection,
         op_ptr: *mut s2n_async_pkey_op,
     ) -> Result<Self, Error> {
         let mut raw_kind = 0;
-        s2n_async_pkey_op_get_op_type(op_ptr, &mut raw_kind).into_result()?;
+        unsafe { s2n_async_pkey_op_get_op_type(op_ptr, &mut raw_kind) }.into_result()?;
 
         let kind = match raw_kind {
             s2n_async_pkey_op_type::SIGN => {
-                let (sig_alg, hash_alg) = match conn.mode() {
+                let sig_alg = match conn.mode() {
                     Mode::Client => conn
-                        .selected_client_sig_alg()?
+                        .selected_client_signature_algorithm()?
                         .ok_or(Error::INVALID_INPUT)?,
-                    Mode::Server => conn.selected_sig_alg()?,
+                    Mode::Server => conn.selected_signature_algorithm()?,
+                };
+                let hash_alg = match conn.mode() {
+                    Mode::Client => conn
+                        .selected_client_hash_algorithm()?
+                        .ok_or(Error::INVALID_INPUT)?,
+                    Mode::Server => conn.selected_hash_algorithm()?,
                 };
                 OperationType::Sign(sig_alg, hash_alg)
             }
@@ -68,10 +71,10 @@ impl PrivateKeyOperation {
     }
 
     /// The size of the slice returned by [`input()`]
-    pub fn input_size(&self) -> Result<u32, Error> {
+    pub fn input_size(&self) -> Result<usize, Error> {
         let mut size = 0;
         unsafe { s2n_async_pkey_op_get_input_size(self.raw.as_ptr(), &mut size) }.into_result()?;
-        Ok(size)
+        size.try_into().map_err(|_| Error::INVALID_INPUT)
     }
 
     /// Provides the input for the operation.
@@ -149,6 +152,8 @@ mod tests {
             config.set_security_policy(&security::DEFAULT_TLS13)?;
             config.load_pem(CERT, KEY)?;
             config.set_private_key_callback(callback)?;
+            // Our test certificates are untrusted, but disabling certificate
+            // verification does not affect handshake signatures.
             unsafe { config.disable_x509_verification() }?;
             config.build()?
         };
@@ -175,7 +180,7 @@ mod tests {
         key: &[u8],
     ) -> Result<(), error::Error> {
         match op.kind()? {
-            OperationType::Sign(SigAlg::ECDSA, _) => {
+            OperationType::Sign(SignatureAlgorithm::ECDSA, _) => {
                 let in_buf_size = op.input_size()?.try_into().expect("Invalid input size");
                 let mut in_buf = vec![0; in_buf_size];
                 op.input(&mut in_buf)?;
@@ -233,9 +238,9 @@ mod tests {
             fn poll(
                 mut self: Pin<&mut Self>,
                 conn: &mut connection::Connection,
-                _ctx: &mut core::task::Context,
+                ctx: &mut core::task::Context,
             ) -> Poll<Result<(), error::Error>> {
-                conn.waker().expect("Uncaught missing waker").wake_by_ref();
+                ctx.waker().wake_by_ref();
                 self.counter += 1;
                 if self.counter < POLL_COUNT {
                     Poll::Pending
@@ -325,10 +330,10 @@ mod tests {
         impl ConnectionFuture for TestPkeyFuture {
             fn poll(
                 mut self: Pin<&mut Self>,
-                conn: &mut connection::Connection,
-                _ctx: &mut core::task::Context,
+                _conn: &mut connection::Connection,
+                ctx: &mut core::task::Context,
             ) -> Poll<Result<(), error::Error>> {
-                conn.waker().expect("Uncaught missing waker").wake_by_ref();
+                ctx.waker().wake_by_ref();
                 self.counter += 1;
                 if self.counter < POLL_COUNT {
                     Poll::Pending
