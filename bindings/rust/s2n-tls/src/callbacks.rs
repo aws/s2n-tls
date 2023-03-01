@@ -32,6 +32,9 @@ pub use async_cb::*;
 mod client_hello;
 pub use client_hello::*;
 
+mod pkey;
+pub use pkey::*;
+
 /// Convert the connection pointer provided to a callback into a Connection
 /// and Context useable with the Rust bindings.
 ///

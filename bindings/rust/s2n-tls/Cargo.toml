@@ -24,3 +24,4 @@ pin-project-lite = "0.2"
 [dev-dependencies]
 bytes = { version = "1" }
 futures-test = "0.3"
+openssl = { version = "0.10" }

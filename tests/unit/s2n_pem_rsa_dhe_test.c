@@ -96,9 +96,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) dhparams_pem, strlen(dhparams_pem) + 1));
     EXPECT_SUCCESS(s2n_stuffer_write(&dhparams_in, &b));
 
+    int type = 0;
     EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&rsa_key_in, &rsa_key_out));
+    EXPECT_SUCCESS(s2n_stuffer_private_key_from_pem(&rsa_key_in, &rsa_key_out, &type));
     EXPECT_SUCCESS(s2n_stuffer_dhparams_from_pem(&dhparams_in, &dhparams_out));
+    EXPECT_EQUAL(type, EVP_PKEY_RSA);
 
     struct s2n_pkey priv_key = { 0 };
     struct s2n_pkey pub_key = { 0 };
@@ -109,9 +111,13 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
     EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
+    /* Test without a type hint */
+    int wrong_type = 0;
+    EXPECT_NOT_EQUAL(wrong_type, EVP_PKEY_RSA);
+
     available_size = s2n_stuffer_data_available(&rsa_key_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&rsa_key_out, available_size), available_size));
-    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b));
+    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b, wrong_type));
 
     EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));
 

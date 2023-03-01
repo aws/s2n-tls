@@ -129,14 +129,29 @@ int s2n_pkey_free(struct s2n_pkey *key)
     return S2N_SUCCESS;
 }
 
-int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der)
+int s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der, int type_hint)
 {
-    uint8_t *key_to_parse = asn1der->data;
+    const unsigned char *key_to_parse = asn1der->data;
 
-    /* Detect key type */
-    DEFER_CLEANUP(EVP_PKEY *evp_private_key = d2i_AutoPrivateKey(NULL, (const unsigned char **) (void *) &key_to_parse, asn1der->size),
+    /* We use "d2i_AutoPrivateKey" instead of "PEM_read_bio_PrivateKey" because
+     * s2n-tls prefers to perform its own custom PEM parsing. Historically,
+     * openssl's PEM parsing tended to ignore invalid certificates rather than
+     * error on them. We prefer to fail early rather than continue without
+     * the full and correct chain intended by the application.
+     */
+    DEFER_CLEANUP(EVP_PKEY *evp_private_key = d2i_AutoPrivateKey(NULL, &key_to_parse, asn1der->size),
             EVP_PKEY_free_pointer);
-    S2N_ERROR_IF(evp_private_key == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
+
+    /* We have found cases where d2i_AutoPrivateKey fails to detect the type of
+     * the key. For example, openssl fails to identify an EC key without the
+     * optional publicKey field.
+     *
+     * If d2i_AutoPrivateKey fails, try once more with the type we parsed from the PEM.
+     */
+    if (evp_private_key == NULL) {
+        evp_private_key = d2i_PrivateKey(type_hint, NULL, &key_to_parse, asn1der->size);
+    }
+    POSIX_ENSURE(evp_private_key, S2N_ERR_DECODE_PRIVATE_KEY);
 
     /* If key parsing is successful, d2i_AutoPrivateKey increments *key_to_parse to the byte following the parsed data */
     uint32_t parsed_len = key_to_parse - asn1der->data;

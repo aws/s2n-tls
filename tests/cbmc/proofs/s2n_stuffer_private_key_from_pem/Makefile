@@ -44,6 +44,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
+REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 REMOVE_FUNCTION_BODY += s2n_stuffer_resize
 REMOVE_FUNCTION_BODY += s2n_stuffer_rewrite
 REMOVE_FUNCTION_BODY += s2n_add_overflow

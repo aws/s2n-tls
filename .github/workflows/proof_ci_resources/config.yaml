@@ -1,0 +1,7 @@
+cadical-tag: latest
+cbmc-version: latest
+cbmc-viewer-version: latest
+kissat-tag: latest
+litani-version: latest
+proofs-dir: tests/cbmc/proofs
+run-cbmc-proofs-command: ./run-cbmc-proofs.py

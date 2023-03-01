@@ -1,0 +1,187 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+# CBMC starter kit 2.9
+name: Run CBMC proofs
+on:
+  push:
+    branches-ignore:
+      - gh-pages
+  pull_request:
+    branches-ignore:
+      - gh-pages
+
+# USAGE
+#
+# If you need to use different versions for tools like CBMC, modify this file:
+# .github/workflows/proof_ci_resources/config.yaml
+#
+# If you want the CI to use a different GitHub-hosted runner (which must still
+# be running Ubuntu 20.04), modify the value of this key:
+# jobs.run_cbmc_proofs.runs-on
+
+jobs:
+  run_cbmc_proofs:
+    runs-on: cbmc_ubuntu-latest_64-core
+    name: run_cbmc_proofs
+    permissions:
+      contents: read
+      id-token: write
+      pull-requests: read
+    steps:
+      - name: Check out repository and submodules recursively
+        uses: actions/checkout@v3
+        with:
+          submodules: 'recursive'
+      - name: Parse config file
+        run: |
+          CONFIG_FILE='.github/workflows/proof_ci_resources/config.yaml'
+          for setting in cadical-tag cbmc-version cbmc-viewer-version kissat-tag litani-version proofs-dir run-cbmc-proofs-command; do
+            VAR=$(echo $setting | tr "[:lower:]" "[:upper:]" | tr - _)
+            echo "${VAR}"=$(yq .$setting $CONFIG_FILE) >> $GITHUB_ENV
+          done
+      - name: Ensure CBMC, CBMC viewer, Litani versions have been specified
+        shell: bash
+        run: |
+          should_exit=false
+          if [ "${{ env.CBMC_VERSION }}" == "" ]; then
+            echo "You must specify a CBMC version (e.g. 'latest' or '5.70.0')"
+            should_exit=true
+          fi
+          if [ "${{ env.CBMC_VIEWER_VERSION }}" == "" ]; then
+            echo "You must specify a CBMC viewer version (e.g. 'latest' or '3.6')"
+            should_exit=true
+          fi
+          if [ "${{ env.LITANI_VERSION }}" == "" ]; then
+            echo "You must specify a Litani version (e.g. 'latest' or '1.27.0')"
+            should_exit=true
+          fi
+          if [[ "$should_exit" == true ]]; then exit 1; fi
+      - name: Install latest CBMC
+        if: ${{ env.CBMC_VERSION == 'latest' }}
+        shell: bash
+        run: |
+          # Search within 5 most recent releases for latest available package
+          CBMC_REL="https://api.github.com/repos/diffblue/cbmc/releases?page=1&per_page=5"
+          CBMC_DEB=$(curl -s $CBMC_REL | jq -r '.[].assets[].browser_download_url' | grep -e 'ubuntu-20.04' | head -n 1)
+          CBMC_ARTIFACT_NAME=$(basename $CBMC_DEB)
+          curl -o $CBMC_ARTIFACT_NAME -L $CBMC_DEB
+          sudo dpkg -i $CBMC_ARTIFACT_NAME
+          rm ./$CBMC_ARTIFACT_NAME
+      - name: Install CBMC ${{ env.CBMC_VERSION }}
+        if: ${{ env.CBMC_VERSION != 'latest' }}
+        shell: bash
+        run: |
+          curl -o cbmc.deb -L \
+            https://github.com/diffblue/cbmc/releases/download/cbmc-${{ env.CBMC_VERSION }}/ubuntu-20.04-cbmc-${{ env.CBMC_VERSION }}-Linux.deb
+          sudo dpkg -i ./cbmc.deb
+          rm ./cbmc.deb
+      - name: Install latest CBMC viewer
+        if: ${{ env.CBMC_VIEWER_VERSION == 'latest' }}
+        shell: bash
+        run: |
+          CBMC_VIEWER_REL="https://api.github.com/repos/model-checking/cbmc-viewer/releases/latest"
+          CBMC_VIEWER_VERSION=$(curl -s $CBMC_VIEWER_REL | jq -r .name | sed  's/viewer-//')
+          pip3 install cbmc-viewer==$CBMC_VIEWER_VERSION
+      - name: Install CBMC viewer ${{ env.CBMC_VIEWER_VERSION }}
+        if: ${{ env.CBMC_VIEWER_VERSION != 'latest' }}
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes \
+            build-essential universal-ctags
+          pip3 install cbmc-viewer==${{ env.CBMC_VIEWER_VERSION }}
+      - name: Install latest Litani
+        if: ${{ env.LITANI_VERSION == 'latest' }}
+        shell: bash
+        run: |
+          # Search within 5 most recent releases for latest available package
+          LITANI_REL="https://api.github.com/repos/awslabs/aws-build-accumulator/releases?page=1&per_page=5"
+          LITANI_DEB=$(curl -s $LITANI_REL | jq -r '.[].assets[0].browser_download_url' | head -n 1)
+          DBN_PKG_FILENAME=$(basename $LITANI_DEB)
+          curl -L $LITANI_DEB -o $DBN_PKG_FILENAME
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes ./$DBN_PKG_FILENAME
+          rm ./$DBN_PKG_FILENAME
+      - name: Install Litani ${{ env.LITANI_VERSION }}
+        if: ${{ env.LITANI_VERSION != 'latest' }}
+        shell: bash
+        run: |
+          curl -o litani.deb -L \
+            https://github.com/awslabs/aws-build-accumulator/releases/download/${{ env.LITANI_VERSION }}/litani-${{ env.LITANI_VERSION }}.deb
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes ./litani.deb
+          rm ./litani.deb
+      - name: Install ${{ env.KISSAT_TAG }} kissat
+        if: ${{ env.KISSAT_TAG != '' }}
+        shell: bash
+        run: |
+          if ${{ env.KISSAT_TAG == 'latest' }}
+          then
+            KISSAT_REL="https://api.github.com/repos/arminbiere/kissat/releases/latest"
+            KISSAT_TAG_NAME=$(curl -s $KISSAT_REL | jq -r '.tag_name')
+          else
+            KISSAT_TAG_NAME=${{ env.KISSAT_TAG }}
+          fi
+          echo "Installing kissat $KISSAT_TAG_NAME"
+          git clone https://github.com/arminbiere/kissat.git \
+            && cd kissat \
+            && git checkout $KISSAT_TAG_NAME \
+            && ./configure \
+            && cd build \
+            && make -j;
+          echo "$(pwd)" >> $GITHUB_PATH
+      - name: Install ${{ env.CADICAL_TAG }} cadical
+        if: ${{ env.CADICAL_TAG != '' }}
+        shell: bash
+        run: |
+          if ${{ env.CADICAL_TAG == 'latest' }}
+          then
+            CADICAL_REL="https://api.github.com/repos/arminbiere/cadical/releases/latest"
+            CADICAL_TAG_NAME=$(curl -s $CADICAL_REL | jq -r '.tag_name')
+          else
+            CADICAL_TAG_NAME=${{ env.CADICAL_TAG }}
+          fi
+          echo "Installing cadical $CADICAL_TAG_NAME"
+          git clone https://github.com/arminbiere/cadical.git \
+            && cd cadical \
+            && git checkout $CADICAL_TAG_NAME \
+            && ./configure \
+            && cd build \
+            && make -j;
+          echo "$(pwd)" >> $GITHUB_PATH
+      - name: Run CBMC proofs
+        shell: bash
+        env:
+          EXTERNAL_SAT_SOLVER: kissat
+        working-directory: ${{ env.PROOFS_DIR }}
+        run: ${{ env.RUN_CBMC_PROOFS_COMMAND }}
+      - name: Check repository visibility
+        shell: bash
+        run: |
+          VIZ="${{ fromJson(toJson(github.event.repository)).visibility }}";
+          echo "REPO_VISIBILITY=${VIZ}" | tee -a "${GITHUB_ENV}";
+      - name: Set name for zip artifact with CBMC proof results
+        id: artifact
+        if: ${{ env.REPO_VISIBILITY == 'public' }}
+        run: |
+          echo "name=cbmc_proof_results_${{ fromJson(toJson(github.event.repository)).name }}_$(date +%Y_%m_%d_%H_%M_%S)" >> $GITHUB_OUTPUT
+      - name: Create zip artifact with CBMC proof results
+        if: ${{ env.REPO_VISIBILITY == 'public' }}
+        shell: bash
+        run: |
+          FINAL_REPORT_DIR=$PROOFS_DIR/output/latest/html
+          pushd $FINAL_REPORT_DIR \
+            && zip -r ${{ steps.artifact.outputs.name }}.zip . \
+            && popd \
+            && mv $FINAL_REPORT_DIR/${{ steps.artifact.outputs.name }}.zip .
+      - name: Upload zip artifact of CBMC proof results to GitHub Actions
+        if: ${{ env.REPO_VISIBILITY == 'public' }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ steps.artifact.outputs.name }}
+          path: ${{ steps.artifact.outputs.name }}.zip
+      - name: CBMC proof results
+        shell: bash
+        run: |
+          python3 ${{ env.PROOFS_DIR }}/lib/summarize.py \
+            --run-file ${{ env.PROOFS_DIR }}/output/latest/html/run.json
