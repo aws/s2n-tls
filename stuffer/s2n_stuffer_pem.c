@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include <openssl/evp.h>
 #include <string.h>
 
 #include "error/s2n_errno.h"
@@ -127,15 +128,15 @@ static int s2n_stuffer_data_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)
+int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(pem));
     POSIX_PRECONDITION(s2n_stuffer_validate(asn1));
-    int rc;
+    POSIX_ENSURE_REF(type);
 
-    rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_RSA_PRIVATE_KEY);
-    if (!rc) {
-        return rc;
+    if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_RSA_PRIVATE_KEY) == S2N_SUCCESS) {
+        *type = EVP_PKEY_RSA;
+        return S2N_SUCCESS;
     }
 
     s2n_stuffer_reread(pem);
@@ -146,21 +147,25 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
      * compatible with OpenSSL's default output, and since "EC PARAMETERS" is
      * only needed for non-standard curves that aren't currently supported.
      */
-    rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_EC_PARAMETERS);
-    if (rc < 0) {
+    if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_EC_PARAMETERS) != S2N_SUCCESS) {
         s2n_stuffer_reread(pem);
     }
     s2n_stuffer_wipe(asn1);
 
-    rc = s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_EC_PRIVATE_KEY);
-    if (!rc) {
-        return rc;
+    if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_EC_PRIVATE_KEY) == S2N_SUCCESS) {
+        *type = EVP_PKEY_EC;
+        return S2N_SUCCESS;
     }
 
     /* If it does not match either format, try PKCS#8 */
     s2n_stuffer_reread(pem);
     s2n_stuffer_reread(asn1);
-    return s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS8_PRIVATE_KEY);
+    if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS8_PRIVATE_KEY) == S2N_SUCCESS) {
+        *type = EVP_PKEY_RSA;
+        return S2N_SUCCESS;
+    }
+
+    POSIX_BAIL(S2N_ERR_INVALID_PEM);
 }
 
 int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1)

@@ -80,12 +80,12 @@ impl Connection {
         }
 
         let mut connection = Self { connection };
-        connection.init_context();
+        connection.init_context(mode);
         connection
     }
 
-    fn init_context(&mut self) {
-        let context = Box::<Context>::default();
+    fn init_context(&mut self, mode: Mode) {
+        let context = Box::new(Context::new(mode));
         let context = Box::into_raw(context) as *mut c_void;
         // allocate a new context object
         unsafe {
@@ -108,11 +108,19 @@ impl Connection {
         Self::new(Mode::Server)
     }
 
+    pub(crate) fn as_ptr(&mut self) -> *mut s2n_connection {
+        self.connection.as_ptr()
+    }
+
     /// # Safety
     ///
     /// Caller must ensure s2n_connection is a valid reference to a [`s2n_connection`] object
     pub(crate) unsafe fn from_raw(connection: NonNull<s2n_connection>) -> Self {
         Self { connection }
+    }
+
+    pub(crate) fn mode(&self) -> Mode {
+        self.context().mode
     }
 
     /// can be used to configure s2n to either use built-in blinding (set blinding
@@ -349,6 +357,7 @@ impl Connection {
     /// called. Reusing the same connection handle(s) is more performant than repeatedly
     /// calling s2n_connection_new and s2n_connection_free
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
+        let mode = self.mode();
         unsafe {
             // Wiping the connection will wipe the pointer to the context,
             // so retrieve and drop that memory first.
@@ -358,7 +367,7 @@ impl Connection {
             s2n_connection_wipe(self.connection.as_ptr()).into_result()
         }?;
 
-        self.init_context();
+        self.init_context(mode);
         Ok(self)
     }
 
@@ -657,12 +666,70 @@ impl Connection {
         // are static and immutable since they are const fields on static const structs
         static_const_str!(cipher)
     }
+
+    pub fn selected_signature_algorithm(&self) -> Result<SignatureAlgorithm, Error> {
+        let mut sig_alg = s2n_tls_signature_algorithm::ANONYMOUS;
+        unsafe {
+            s2n_connection_get_selected_signature_algorithm(self.connection.as_ptr(), &mut sig_alg)
+                .into_result()?;
+        }
+        sig_alg.try_into()
+    }
+
+    pub fn selected_hash_algorithm(&self) -> Result<HashAlgorithm, Error> {
+        let mut hash_alg = s2n_tls_hash_algorithm::NONE;
+        unsafe {
+            s2n_connection_get_selected_digest_algorithm(self.connection.as_ptr(), &mut hash_alg)
+                .into_result()?;
+        }
+        hash_alg.try_into()
+    }
+
+    pub fn selected_client_signature_algorithm(&self) -> Result<Option<SignatureAlgorithm>, Error> {
+        let mut sig_alg = s2n_tls_signature_algorithm::ANONYMOUS;
+        unsafe {
+            s2n_connection_get_selected_client_cert_signature_algorithm(
+                self.connection.as_ptr(),
+                &mut sig_alg,
+            )
+            .into_result()?;
+        }
+        Ok(match sig_alg {
+            s2n_tls_signature_algorithm::ANONYMOUS => None,
+            sig_alg => Some(sig_alg.try_into()?),
+        })
+    }
+
+    pub fn selected_client_hash_algorithm(&self) -> Result<Option<HashAlgorithm>, Error> {
+        let mut hash_alg = s2n_tls_hash_algorithm::NONE;
+        unsafe {
+            s2n_connection_get_selected_client_cert_digest_algorithm(
+                self.connection.as_ptr(),
+                &mut hash_alg,
+            )
+            .into_result()?;
+        }
+        Ok(match hash_alg {
+            s2n_tls_hash_algorithm::NONE => None,
+            hash_alg => Some(hash_alg.try_into()?),
+        })
+    }
 }
 
-#[derive(Default)]
 struct Context {
+    mode: Mode,
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
+}
+
+impl Context {
+    fn new(mode: Mode) -> Self {
+        Context {
+            mode,
+            waker: None,
+            async_callback: None,
+        }
+    }
 }
 
 #[cfg(feature = "quic")]
