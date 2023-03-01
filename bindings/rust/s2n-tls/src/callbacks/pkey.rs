@@ -181,7 +181,7 @@ mod tests {
     ) -> Result<(), error::Error> {
         match op.kind()? {
             OperationType::Sign(SignatureAlgorithm::ECDSA, _) => {
-                let in_buf_size = op.input_size()?.try_into().expect("Invalid input size");
+                let in_buf_size = op.input_size()?;
                 let mut in_buf = vec![0; in_buf_size];
                 op.input(&mut in_buf)?;
 
