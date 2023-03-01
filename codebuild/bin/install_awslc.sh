@@ -36,7 +36,7 @@ source codebuild/bin/jobs.sh
 if [ "$IS_FIPS" == "1" ]; then
   AWSLC_VERSION=AWS-LC-FIPS-1.0.3
 else
-  AWSLC_VERSION=v1.4.0
+  AWSLC_VERSION=v1.5.0
 fi
 mkdir -p "$BUILD_DIR"||true
 cd "$BUILD_DIR"
@@ -47,7 +47,7 @@ git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_VERSION" --dept
 
 install_awslc() {
 	echo "Building with shared library=$1"
-	cmake ./aws-lc -Bbuild -GNinja -DBUILD_SHARED_LIBS=$1 -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS="${IS_FIPS}"
+	cmake ./aws-lc -Bbuild -GNinja -DDISABLE_GO=ON -DBUILD_SHARED_LIBS=$1 -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS="${IS_FIPS}"
 	ninja -j "${JOBS}" -C build install
 	ninja -C build clean
 }
