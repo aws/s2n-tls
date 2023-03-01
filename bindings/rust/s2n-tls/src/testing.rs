@@ -2,9 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{callbacks::VerifyHostNameCallback, config::*, security, testing::s2n_tls::Harness};
-use alloc::collections::VecDeque;
+use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
-use core::task::Poll;
+use core::{
+    sync::atomic::{AtomicUsize, Ordering},
+    task::Poll,
+};
 
 pub mod client_hello;
 pub mod s2n_tls;
@@ -16,6 +19,40 @@ type Result<T, E = Error> = core::result::Result<T, E>;
 ///
 /// This is to prevent endless looping without making progress on the connection.
 const SAMPLES: usize = 100;
+
+pub fn test_error(msg: &str) -> crate::error::Error {
+    crate::error::Error::application(msg.into())
+}
+
+pub fn assert_test_error(input: Error, msg: &str) {
+    let error = input
+        .downcast::<crate::error::Error>()
+        .expect("Unexpected generic error type");
+    if let Some(inner) = error.application_error() {
+        assert_eq!(msg, inner.to_string())
+    } else {
+        panic!("Unexpected known error type");
+    }
+}
+
+#[derive(Clone)]
+pub struct Counter(Arc<AtomicUsize>);
+impl Counter {
+    fn new() -> Self {
+        Counter(Arc::new(AtomicUsize::new(0)))
+    }
+    pub fn count(&self) -> usize {
+        self.0.load(Ordering::Relaxed)
+    }
+    pub fn increment(&self) {
+        self.0.fetch_add(1, Ordering::Relaxed);
+    }
+}
+impl Default for Counter {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 
 pub trait Connection: core::fmt::Debug {
     fn poll<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>>;
@@ -198,4 +235,13 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
     // TODO add assertions to make sure the handshake actually succeeded
 
     pair
+}
+
+pub fn poll_tls_pair_result(mut pair: Pair<Harness, Harness>) -> Result<()> {
+    loop {
+        match pair.poll() {
+            Poll::Ready(result) => return result,
+            Poll::Pending => continue,
+        }
+    }
 }

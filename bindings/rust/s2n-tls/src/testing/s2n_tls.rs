@@ -539,6 +539,46 @@ mod tests {
     }
 
     #[test]
+    fn no_client_auth() -> Result<(), Error> {
+        use crate::enums::ClientAuthType;
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_auth_type(ClientAuthType::None)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client, SAMPLES);
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        for conn in [server, client] {
+            assert!(!conn.client_cert_used());
+            let cert = conn.client_cert_chain_bytes()?;
+            assert!(cert.is_none());
+            let sig_alg = conn.selected_client_signature_algorithm()?;
+            assert!(sig_alg.is_none());
+            let hash_alg = conn.selected_client_hash_algorithm()?;
+            assert!(hash_alg.is_none());
+        }
+
+        Ok(())
+    }
+
+    #[test]
     fn client_auth() -> Result<(), Error> {
         use crate::enums::ClientAuthType;
 
@@ -565,11 +605,17 @@ mod tests {
         let server = pair.server.0.connection;
         let client = pair.client.0.connection;
 
-        assert!(server.client_cert_used());
-        assert!(client.client_cert_used());
         let cert = server.client_cert_chain_bytes()?;
         assert!(cert.is_some());
         assert!(!cert.unwrap().is_empty());
+
+        for conn in [server, client] {
+            assert!(conn.client_cert_used());
+            let sig_alg = conn.selected_client_signature_algorithm()?;
+            assert!(sig_alg.is_some());
+            let hash_alg = conn.selected_client_hash_algorithm()?;
+            assert!(hash_alg.is_some());
+        }
 
         Ok(())
     }

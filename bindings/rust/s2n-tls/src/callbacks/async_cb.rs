@@ -102,7 +102,7 @@ impl ConnectionFuture for OptionalFuture {
 #[derive(PartialEq)]
 enum MarkDone {
     ClientHello,
-    // None,
+    None,
 }
 
 pin_project! {
@@ -141,14 +141,11 @@ impl AsyncCallback {
         CallbackResult::Success
     }
 
-    // pub(crate) fn trigger(
-    //    future: ConnectionFutureResult,
-    //    conn: &mut Connection,
-    //) -> CallbackResult {
-    //    let future = OptionalFuture::new(future);
-    //    let cleanup = MarkDone::None;
-    //    let callback = AsyncCallback { future, cleanup };
-    //    conn.set_async_callback(callback);
-    //    CallbackResult::Success
-    //}
+    pub(crate) fn trigger(future: ConnectionFutureResult, conn: &mut Connection) -> CallbackResult {
+        let future = OptionalFuture::new(future);
+        let cleanup = MarkDone::None;
+        let callback = AsyncCallback { future, cleanup };
+        conn.set_async_callback(callback);
+        CallbackResult::Success
+    }
 }
