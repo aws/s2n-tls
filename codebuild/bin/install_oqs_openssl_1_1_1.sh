@@ -38,8 +38,8 @@ git clone --branch OQS-OpenSSL_1_1_1-stable https://github.com/open-quantum-safe
 git clone https://github.com/open-quantum-safe/liboqs.git
 cd liboqs
 
-# Use commit that first added support for Kyber Round 3 to LibOQS
-git checkout 65b3fb6e717eae73db6886a3657302576f5c9458
+# Use commit that supports Kyber round 3; hybrid draft spec version 5
+git checkout cf6d8a059e446d24e2af06949d83605ae0f4f414
 
 mkdir build && cd build
 cmake -GNinja -DCMAKE_INSTALL_PREFIX=${BUILD_DIR}/openssl/oqs ..
@@ -50,8 +50,8 @@ ninja install
 # Complete the OpenSSL Build
 cd "$BUILD_DIR"/openssl
 
-# Pin to OQS-OpenSSL commit that is compatible with initial Kyber Round 3 LibOQS implementation
-git checkout 6e3999fe2766b67dc929de2e03c943706729852b
+# Pin to OQS-OpenSSL commit that is compatible with Kyber round 3; hybrid draft spec version 5 LibOQS implementation
+git checkout 613d1bea7afa23dc11f340e75990cb47d77711e9
 
 if [ "$PLATFORM" == "linux" ]; then
     CONFIGURE="./config -d"

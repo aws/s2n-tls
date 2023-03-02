@@ -25,5 +25,5 @@
 #define S2N_SIZE_OF_NAMED_GROUP         2
 #define S2N_SIZE_OF_KEY_SHARE_SIZE      2
 
-S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);
+S2N_RESULT s2n_ecdhe_send_public_key(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out, bool len_prefixed);
 int s2n_ecdhe_parameters_send(struct s2n_ecc_evp_params *ecc_evp_params, struct s2n_stuffer *out);
