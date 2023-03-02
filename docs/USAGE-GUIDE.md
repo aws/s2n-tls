@@ -815,7 +815,7 @@ fails synchronously, simply return S2N_FAILURE from the callback. If the offload
 fails asynchronously, s2n-tls does not provide a way to communicate that result. Instead,
 simply shutdown and cleanup the connection as you would for any other error.
 
-## TLS1.3 Pre-Shared Key Related Calls
+## TLS1.3 Pre-Shared Keys
 
 s2n-tls supports pre-shared keys (PSKs) as of TLS1.3. PSKs allow users to establish secrets outside of the handshake, skipping certificate exchange and authentication.
 
@@ -830,23 +830,23 @@ A PSK must not be shared between more than one server and one client. An entity 
 
 ### Configuring External Pre-Shared Keys
 
-Both clients and servers will need to create and append a PSK to a connection in order to negotiate that PSK. Call **s2n_external_psk_new** to allocate memory for a PSK object. Call **s2n_psk_set_identity** to set a unique identifier for the PSK. Note that this identity will be transmitted over the network unencrypted, so do not include any confidential information in it. Call **s2n_psk_set_secret** to set the secret value for a given PSK. Deriving a shared secret from a password or other low-entropy source is _not_ secure and is subject to dictionary attacks. Call **s2n_psk_set_hmac** to change the default PSK hmac algorithm (**S2N_PSK_HMAC_SHA256**) for a given PSK. Note that the hmac algorithm may influence server cipher-suite selection.
+Both clients and servers will need to create and append a PSK to a connection in order to negotiate that PSK. Call `s2n_external_psk_new` to allocate memory for a PSK object. Call `s2n_psk_set_identity()` to set a unique identifier for the PSK. Note that this identity will be transmitted over the network unencrypted, so do not include any confidential information in it. Call `s2n_psk_set_secret` to set the secret value for a given PSK. Deriving a shared secret from a password or other low-entropy source is _not_ secure and is subject to dictionary attacks. Call `s2n_psk_set_hmac()` to change the default PSK hmac algorithm (**S2N_PSK_HMAC_SHA256**) for a given PSK. Note that the hmac algorithm may influence server cipher-suite selection.
 
-Call **s2n_connection_append_psk** to append the newly created PSK to the connection. Both server and client should call this API to add PSKs to their connection. The order this API is called matters, as PSKs that are appended first will be more preferred than PSKs appended last. Use **s2n_psk_free** to free the memory allocated for this PSK once you have associated it with a connection.
+Call `s2n_connection_append_psk()` to append the newly created PSK to the connection. Both server and client should call this API to add PSKs to their connection. The order this API is called matters, as PSKs that are appended first will be more preferred than PSKs appended last. Use `s2n_psk_free()` to free the memory allocated for this PSK once you have associated it with a connection.
 
-External PSKs and Session Resumption cannot both be used in TLS13. Therefore, users must pick which mode they are using by calling **s2n_config_set_psk_mode** prior to selecting a PSK. Additionally **s2n_connection_set_psk_mode** overrides the PSK mode set on the config for a particular connection.
+External PSKs and Session Resumption cannot both be used in TLS13. Therefore, users must pick which mode they are using by calling `s2n_config_set_psk_mode()` prior to selecting a PSK. Additionally `s2n_connection_set_psk_mode()` overrides the PSK mode set on the config for a particular connection.
 
 ### Selecting a Pre-Shared Key
 
-By default, a server chooses the first identity in its PSK list that also appears in the client's PSK list. The **s2n_psk_selection_callback** is available if you would like to implement your own PSK selection logic. Currently, this callback is not asynchronous. Call **s2n_config_set_psk_selection_callback** to associate your **s2n_psk_selection_callback** with a config.
+By default, a server chooses the first identity in its PSK list that also appears in the client's PSK list. The `s2n_psk_selection_callback()` is available if you would like to implement your own PSK selection logic. Currently, this callback is not asynchronous. Call `s2n_config_set_psk_selection_callback()` to associate your `s2n_psk_selection_callback` with a config.
 
-The **s2n_psk_selection_callback** will provide the list of PSK identities sent by the client in the **psk_list** input parameter. You will need to create an offered PSK object by calling **s2n_offered_psk_new** and pass this object as a parameter in **s2n_offered_psk_list_next** in order to populate the offered PSK object. Call **s2n_offered_psk_list_has_next** prior to calling **s2n_offered_psk_list_next** to determine if there exists another PSK in the **psk_list**. Call **s2n_offered_psk_get_identity** to get the identity of a particular **s2n_offered_psk**.
+The `s2n_psk_selection_callback` will provide the list of PSK identities sent by the client in the **psk_list** input parameter. You will need to create an offered PSK object by calling `s2n_offered_psk_new()` and pass this object as a parameter in `s2n_offered_psk_list_next()` in order to populate the offered PSK object. Call `s2n_offered_psk_list_has_next()` prior to calling `s2n_offered_psk_list_next()` to determine if there exists another PSK in the **psk_list**. Call `s2n_offered_psk_get_identity()` to get the identity of a particular **s2n_offered_psk**.
 
-Call **s2n_offered_psk_list_choose_psk** to choose a particular **s2n_offered_psk** to be used for the connection. Note that the server must have already configured the corresponding PSK on the connection using **s2n_connection_append_psk**. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. Call **s2n_offered_psk_free** once you have chosen a particular PSK to free the memory allocated.
+Call `s2n_offered_psk_list_choose_psk()` to choose a particular **s2n_offered_psk** to be used for the connection. Note that the server must have already configured the corresponding PSK on the connection using `s2n_connection_append_psk()`. To disable PSKs for the connection and perform a full handshake instead, set the PSK identity to NULL. Call `s2n_offered_psk_free()` once you have chosen a particular PSK to free the memory allocated.
 
-If desired, **s2n_offered_psk_list_reread** returns the offered PSK list to its original read state. After **s2n_offered_psk_list_reread** is called, the next call to **s2n_offered_psk_list_next** will return the first PSK in the offered PSK list.
+If desired, `s2n_offered_psk_list_reread()` returns the offered PSK list to its original read state. After `s2n_offered_psk_list_reread()` is called, the next call to `s2n_offered_psk_list_next()` will return the first PSK in the offered PSK list.
 
-In the following example, **s2n_psk_selection_callback** chooses the first client offered PSK identity present in an external store.
+In the following example, `s2n_psk_selection_callback` chooses the first client offered PSK identity present in an external store.
 
 ```c
 int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
@@ -875,7 +875,7 @@ int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
 
 ### Retrieve the Negotiated Pre-Shared Key
 
-Use **s2n_connection_get_negotiated_psk_identity** to retrieve the PSK identity selected by the server for the connection.
+Use `s2n_connection_get_negotiated_psk_identity()` to retrieve the PSK identity selected by the server for the connection.
 
 ## I/O functions
 
