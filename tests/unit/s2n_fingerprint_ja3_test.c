@@ -38,6 +38,11 @@
     /* legacy compression methods */        \
     0x01, 0x00
 
+typedef enum {
+    S2N_CH_FROM_IO = 0,
+    S2N_CH_FROM_RAW,
+} s2n_ch_source;
+
 static S2N_RESULT s2n_validate_ja3_str_list(struct s2n_stuffer *input)
 {
     uint32_t skipped = 0;
@@ -84,15 +89,22 @@ static S2N_RESULT s2n_validate_ja3_str(uint8_t *ja3, uint32_t ja3_size,
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_client_hello_from_raw(struct s2n_client_hello **client_hello,
-        struct s2n_connection *server, uint8_t *input, uint32_t input_size)
+static S2N_RESULT s2n_client_hello_from_source(struct s2n_client_hello **client_hello,
+        struct s2n_connection *server, uint8_t *input, uint32_t input_size, s2n_ch_source source)
 {
-    RESULT_GUARD_POSIX(s2n_connection_wipe(server));
-
-    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&server->handshake.io, input, input_size));
-    RESULT_GUARD_POSIX(s2n_client_hello_recv(server));
-
-    *client_hello = s2n_connection_get_client_hello(server);
+    switch (source) {
+        case S2N_CH_FROM_IO:
+            RESULT_GUARD_POSIX(s2n_connection_wipe(server));
+            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&server->handshake.io, input, input_size));
+            RESULT_GUARD_POSIX(s2n_client_hello_recv(server));
+            *client_hello = s2n_connection_get_client_hello(server);
+            RESULT_ENSURE_REF(*client_hello);
+            break;
+        case S2N_CH_FROM_RAW:
+            *client_hello = s2n_client_hello_parse_raw_message(input, input_size);
+            RESULT_GUARD_PTR(*client_hello);
+            break;
+    }
     return S2N_RESULT_OK;
 }
 
@@ -101,6 +113,10 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     uint8_t output_mem[500] = { 0 };
+    s2n_ch_source sources[] = {
+        S2N_CH_FROM_IO,
+        S2N_CH_FROM_RAW,
+    };
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
@@ -254,7 +270,9 @@ int main(int argc, char **argv)
         };
 
         /* Test: single entry lists */
-        {
+        for (size_t i = 0; i < s2n_array_len(sources); i++) {
+            s2n_ch_source source = sources[i];
+
             uint8_t minimal_client_hello[] = {
                 /* protocol version */
                 0x03, 0x02,
@@ -279,12 +297,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all"));
 
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server->handshake.io,
-                    minimal_client_hello, sizeof(minimal_client_hello)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server));
-
-            struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
-            EXPECT_NOT_NULL(client_hello);
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    minimal_client_hello, sizeof(minimal_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -299,7 +315,9 @@ int main(int argc, char **argv)
          * in order for the ClientHello to be considered valid, but all
          * other fields can be empty.
          */
-        {
+        for (size_t i = 0; i < s2n_array_len(sources); i++) {
+            s2n_ch_source source = sources[i];
+
             uint8_t minimal_client_hello[] = {
                 /* protocol version */
                 0x03, 0x01,
@@ -321,12 +339,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all"));
 
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server->handshake.io,
-                    minimal_client_hello, sizeof(minimal_client_hello)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server));
-
-            struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
-            EXPECT_NOT_NULL(client_hello);
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    minimal_client_hello, sizeof(minimal_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -365,7 +381,9 @@ int main(int argc, char **argv)
         };
 
         /* Test: grease values ignored */
-        {
+        for (size_t i = 0; i < s2n_array_len(sources); i++) {
+            s2n_ch_source source = sources[i];
+
             const uint8_t grease_value = 0x0A;
             uint8_t minimal_client_hello[] = {
                 /* protocol version */
@@ -394,12 +412,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(server, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all"));
 
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server->handshake.io,
-                    minimal_client_hello, sizeof(minimal_client_hello)));
-            EXPECT_SUCCESS(s2n_client_hello_recv(server));
-
-            struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
-            EXPECT_NOT_NULL(client_hello);
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    minimal_client_hello, sizeof(minimal_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -492,7 +508,9 @@ int main(int argc, char **argv)
      * No definitive source exists for JA3 test vectors.
      * We sample some test values used by other implementations.
      */
-    {
+    for (size_t i = 0; i < s2n_array_len(sources); i++) {
+        s2n_ch_source source = sources[i];
+
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server);
@@ -522,9 +540,10 @@ int main(int argc, char **argv)
                                         "49156-47-150-65-7-49169-49159-49164-49154-"
                                         "5-4-21-18-9-20-17-8-6-3-255,,,";
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -561,9 +580,10 @@ int main(int argc, char **argv)
                                         "5-4-21-18-9-20-17-8-6-3-255,11-10-35-15,"
                                         "24-23,0-1-2";
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -600,9 +620,10 @@ int main(int argc, char **argv)
                                         "5-4-21-18-9-20-17-8-6-3-255,11-10-35-15,"
                                         "24-23,0-1-2";
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -651,9 +672,10 @@ int main(int argc, char **argv)
                                         "49169-49159-49164-49154-5-4-21-18-9-20-"
                                         "17-8-6-3-255,11-10-35-13-15,24-23,0-1-2";
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -703,9 +725,10 @@ int main(int argc, char **argv)
                                         "45-43-27-21,29-23-24,0";
             S2N_BLOB_FROM_HEX(expected_hash, "66918128f1b9b03303d77c6f2eefd128");
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -766,9 +789,10 @@ int main(int argc, char **argv)
                                         "30-25-24,0-1-2";
             S2N_BLOB_FROM_HEX(expected_hash, "456523fc94726331a4d5a2e1d40b2cd7");
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -818,9 +842,10 @@ int main(int argc, char **argv)
                                         "23-65281-10-11-35-16-5-13-28,29-23-24-25,0";
             S2N_BLOB_FROM_HEX(expected_hash, "839bbe3ed07fed922ded5aaf714d6842");
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -894,9 +919,10 @@ int main(int argc, char **argv)
                                         "24,0-1-2";
             S2N_BLOB_FROM_HEX(expected_hash, "10a6b69a81bac09072a536ce9d35dd43");
 
-            struct s2n_client_hello *client_hello = NULL;
-            EXPECT_OK(s2n_client_hello_from_raw(&client_hello, server,
-                    raw_client_hello, sizeof(raw_client_hello)));
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
+                    s2n_client_hello_free);
+            EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
+                    raw_client_hello, sizeof(raw_client_hello), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,

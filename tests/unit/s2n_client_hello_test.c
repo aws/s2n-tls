@@ -1397,6 +1397,159 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_SAFETY);
     };
 
+    /* Test s2n_client_hello_parse_raw_message
+     *
+     * Comparing ClientHellos produced by connection IO parsing vs
+     * produced by s2n_client_hello_parse_raw_message is difficult, but we can
+     * use JA3 fingerprints as an approximation. See s2n_fingerprint_ja3_test.c
+     */
+    {
+        const char *security_policies[] = { "default", "default_tls13", "test_all" };
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        /* Test: Can parse ClientHellos sent by the s2n client */
+        for (size_t i = 0; i < s2n_array_len(security_policies); i++) {
+            const char *security_policy = security_policies[i];
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, security_policy));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client));
+            uint32_t raw_size = s2n_stuffer_data_available(&client->handshake.io);
+            EXPECT_NOT_EQUAL(raw_size, 0);
+            uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);
+            EXPECT_NOT_NULL(raw);
+
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
+            EXPECT_NOT_NULL(client_hello = s2n_client_hello_parse_raw_message(raw, raw_size));
+            EXPECT_TRUE(client_hello->alloced);
+        };
+
+        /* Test: Rejects invalid ClientHellos
+         *
+         * This test is important to verify that no memory is leaked when parsing fails.
+         */
+        {
+            struct s2n_client_hello *client_hello = NULL;
+
+            uint8_t too_short[] = { 0x03, 0x03 };
+            client_hello = s2n_client_hello_parse_raw_message(too_short, sizeof(too_short));
+            EXPECT_NULL(client_hello);
+            EXPECT_EQUAL(s2n_errno, S2N_ERR_STUFFER_OUT_OF_DATA);
+
+            uint8_t all_zeroes[50] = { 0 };
+            client_hello = s2n_client_hello_parse_raw_message(all_zeroes, sizeof(all_zeroes));
+            EXPECT_NULL(client_hello);
+            EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+        };
+
+        /* Test: Rejects SSLv2 */
+        {
+            uint8_t sslv2_client_hello[] = {
+                SSLv2_CLIENT_HELLO_HEADER,
+                SSLv2_CLIENT_HELLO_PREFIX,
+                SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+                SSLv2_CLIENT_HELLO_CHALLENGE,
+            };
+
+            /* Try parsing variations on the complete record vs just the message.
+             * The sslv2 record header is technically the first two bytes,
+             * but s2n-tls usually starts parsing after the first five bytes.
+             */
+            for (size_t i = 0; i <= S2N_TLS_RECORD_HEADER_LENGTH; i++) {
+                struct s2n_client_hello *client_hello = s2n_client_hello_parse_raw_message(
+                        sslv2_client_hello + i, sizeof(sslv2_client_hello) - i);
+                EXPECT_NULL(client_hello);
+                EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+            }
+
+            /* Sanity check: s2n accepts the test sslv2 message via the connection */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "test_all"));
+
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server->header_in,
+                        sslv2_client_hello, S2N_TLS_RECORD_HEADER_LENGTH));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server->in,
+                        sslv2_client_hello + S2N_TLS_RECORD_HEADER_LENGTH,
+                        sizeof(sslv2_client_hello) - S2N_TLS_RECORD_HEADER_LENGTH));
+
+                EXPECT_FALSE(server->client_hello.sslv2);
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                EXPECT_OK(s2n_negotiate_until_message(server, &blocked, SERVER_HELLO));
+                EXPECT_TRUE(server->client_hello.sslv2);
+                EXPECT_FALSE(server->client_hello.alloced);
+            }
+        };
+    };
+
+    /* Test s2n_client_hello_free */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_free(NULL), S2N_ERR_NULL);
+
+        /* Test: Accepts but ignores NULL / already freed */
+        {
+            struct s2n_client_hello *client_hello = NULL;
+            for (size_t i = 0; i < 3; i++) {
+                EXPECT_SUCCESS(s2n_client_hello_free(&client_hello));
+                EXPECT_NULL(client_hello);
+            }
+        };
+
+        /* Test: Errors on client hello associated with a connection */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client->handshake.io, &server->handshake.io,
+                    s2n_stuffer_data_available(&client->handshake.io)));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server));
+
+            struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
+            EXPECT_NOT_NULL(client_hello);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_free(&client_hello), S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_NOT_NULL(s2n_connection_get_client_hello(server));
+            EXPECT_NOT_EQUAL(server->client_hello.raw_message.size, 0);
+        };
+
+        /* Test: Frees client hello from raw message */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client));
+            uint32_t raw_size = s2n_stuffer_data_available(&client->handshake.io);
+            EXPECT_NOT_EQUAL(raw_size, 0);
+            uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);
+            EXPECT_NOT_NULL(raw);
+
+            struct s2n_client_hello *client_hello = s2n_client_hello_parse_raw_message(
+                    raw, raw_size);
+            EXPECT_NOT_NULL(client_hello);
+
+            for (size_t i = 0; i < 3; i++) {
+                EXPECT_SUCCESS(s2n_client_hello_free(&client_hello));
+                EXPECT_NULL(client_hello);
+            }
+        };
+    };
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     END_TEST();

@@ -74,3 +74,28 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch,
 int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch,
         s2n_fingerprint_type type, uint32_t max_size,
         uint8_t *output, uint32_t *output_size);
+
+/**
+ * Creates an s2n_client_hello from bytes representing a ClientHello message.
+ *
+ * Unlike s2n_connection_get_client_hello, the s2n_client_hello produced by this
+ * method is owned by the application and must be freed with s2n_client_hello_free.
+ *
+ * This method does not support SSLv2 ClientHellos.
+ *
+ * @param raw_message The raw bytes representing the ClientHello.
+ * @param raw_message_size The actual size of the data written to `output`.
+ * @returns An new s2n_client_hello on success, or NULL on failure.
+ */
+struct s2n_client_hello *s2n_client_hello_parse_raw_message(uint8_t *raw_message, uint32_t raw_message_size);
+
+/**
+ * Frees an s2n_client_hello structure.
+ *
+ * This method will error if called to free an s2n_client_hello received from
+ * s2n_connection_get_client_hello and associated with a connection.
+ *
+ * @param ch The structure to be freed.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+int s2n_client_hello_free(struct s2n_client_hello **ch);
