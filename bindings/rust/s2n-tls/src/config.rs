@@ -264,6 +264,16 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn load_public_pem(&mut self, certificate: &[u8]) -> Result<&mut Self, Error> {
+        let size: u32 = certificate
+            .len()
+            .try_into()
+            .map_err(|_| Error::INVALID_INPUT)?;
+        let certificate = certificate.as_ptr() as *mut u8;
+        unsafe { s2n_config_add_cert_chain(self.as_mut_ptr(), certificate, size) }.into_result()?;
+        Ok(self)
+    }
+
     pub fn trust_pem(&mut self, certificate: &[u8]) -> Result<&mut Self, Error> {
         let certificate = CString::new(certificate).map_err(|_| Error::INVALID_INPUT)?;
         unsafe {
