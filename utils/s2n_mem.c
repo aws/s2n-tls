@@ -20,6 +20,7 @@
 
 #include <stdint.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <sys/mman.h>
 #include <unistd.h>
 
@@ -51,7 +52,7 @@ static int s2n_mem_init_impl(void)
     POSIX_ENSURE(sysconf_rc > 0, S2N_FAILURE);
 
     /* page_size must be a valid uint32 */
-    POSIX_ENSURE(sysconf_rc <= UINT32_MAX, S2N_FAILURE);
+    POSIX_ENSURE(sysconf_rc <= ((LONG_MAX > UINT32_MAX) ? UINT32_MAX : LONG_MAX), S2N_FAILURE);
 
     page_size = (uint32_t) sysconf_rc;
 
