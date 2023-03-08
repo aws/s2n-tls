@@ -13,5 +13,22 @@
  * permissions and limitations under the License.
  */
 
-/* We moved this implemention into rust! */
-#include "s2n-tls-internals/s2n_result.h"
+#include "utils/s2n_result.h"
+
+#include <stdio.h>
+#include <string.h>
+
+#include "api/s2n.h"
+#include "s2n_test.h"
+
+int main(int argc, char **argv)
+{
+    s2n_result success = { S2N_SUCCESS };
+    s2n_result failure = { S2N_FAILURE };
+
+    EXPECT_TRUE(s2n_result_is_ok(success));
+    EXPECT_FALSE(s2n_result_is_ok(failure));
+
+    EXPECT_TRUE(s2n_result_is_error(failure));
+    EXPECT_FALSE(s2n_result_is_error(success));
+}

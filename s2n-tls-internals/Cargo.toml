@@ -1,0 +1,15 @@
+[package]
+name = "s2n-tls-internals"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+
+[lib]
+crate-type=["staticlib"]
+
+[build-dependencies]
+bindgen = "0.53.1"
+
+[dependencies]
