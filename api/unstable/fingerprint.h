@@ -83,11 +83,11 @@ int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch,
  *
  * This method does not support SSLv2 ClientHellos.
  *
- * @param raw_message The raw bytes representing the ClientHello.
- * @param raw_message_size The actual size of the data written to `output`.
- * @returns An new s2n_client_hello on success, or NULL on failure.
+ * @param bytes The raw bytes representing the ClientHello.
+ * @param size The size of raw_message.
+ * @returns A new s2n_client_hello on success, or NULL on failure.
  */
-struct s2n_client_hello *s2n_client_hello_parse_raw_message(uint8_t *raw_message, uint32_t raw_message_size);
+struct s2n_client_hello *s2n_client_hello_parse_bytes(uint8_t *bytes, uint32_t size);
 
 /**
  * Frees an s2n_client_hello structure.

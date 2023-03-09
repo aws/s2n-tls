@@ -1397,10 +1397,10 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_parse_client_hello(server_conn), S2N_ERR_SAFETY);
     };
 
-    /* Test s2n_client_hello_parse_raw_message
+    /* Test s2n_client_hello_parse_bytes
      *
      * Comparing ClientHellos produced by connection IO parsing vs
-     * produced by s2n_client_hello_parse_raw_message is difficult, but we can
+     * produced by s2n_client_hello_parse_bytes is difficult, but we can
      * use JA3 fingerprints as an approximation. See s2n_fingerprint_ja3_test.c
      */
     {
@@ -1425,7 +1425,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(raw);
 
             DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
-            EXPECT_NOT_NULL(client_hello = s2n_client_hello_parse_raw_message(raw, raw_size));
+            EXPECT_NOT_NULL(client_hello = s2n_client_hello_parse_bytes(raw, raw_size));
             EXPECT_TRUE(client_hello->alloced);
         };
 
@@ -1437,12 +1437,12 @@ int main(int argc, char **argv)
             struct s2n_client_hello *client_hello = NULL;
 
             uint8_t too_short[] = { 0x03, 0x03 };
-            client_hello = s2n_client_hello_parse_raw_message(too_short, sizeof(too_short));
+            client_hello = s2n_client_hello_parse_bytes(too_short, sizeof(too_short));
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_STUFFER_OUT_OF_DATA);
 
             uint8_t all_zeroes[50] = { 0 };
-            client_hello = s2n_client_hello_parse_raw_message(all_zeroes, sizeof(all_zeroes));
+            client_hello = s2n_client_hello_parse_bytes(all_zeroes, sizeof(all_zeroes));
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
         };
@@ -1461,7 +1461,7 @@ int main(int argc, char **argv)
              * but s2n-tls usually starts parsing after the first five bytes.
              */
             for (size_t i = 0; i <= S2N_TLS_RECORD_HEADER_LENGTH; i++) {
-                struct s2n_client_hello *client_hello = s2n_client_hello_parse_raw_message(
+                struct s2n_client_hello *client_hello = s2n_client_hello_parse_bytes(
                         sslv2_client_hello + i, sizeof(sslv2_client_hello) - i);
                 EXPECT_NULL(client_hello);
                 EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
@@ -1539,7 +1539,7 @@ int main(int argc, char **argv)
             uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);
             EXPECT_NOT_NULL(raw);
 
-            struct s2n_client_hello *client_hello = s2n_client_hello_parse_raw_message(
+            struct s2n_client_hello *client_hello = s2n_client_hello_parse_bytes(
                     raw, raw_size);
             EXPECT_NOT_NULL(client_hello);
 
