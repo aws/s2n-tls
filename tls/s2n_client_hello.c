@@ -363,7 +363,7 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &session_id_len));
     RESULT_ENSURE(session_id_len <= S2N_TLS_SESSION_ID_MAX_LEN, S2N_ERR_BAD_MESSAGE);
     uint8_t *session_id = s2n_stuffer_raw_read(in, session_id_len);
-    RESULT_ENSURE(session_id, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(session_id != NULL, S2N_ERR_BAD_MESSAGE);
     RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->session_id, session_id, session_id_len));
 
     /* cipher suites */
@@ -372,7 +372,7 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     RESULT_ENSURE(cipher_suites_length > 0, S2N_ERR_BAD_MESSAGE);
     RESULT_ENSURE(cipher_suites_length % S2N_TLS_CIPHER_SUITE_LEN == 0, S2N_ERR_BAD_MESSAGE);
     uint8_t *cipher_suites = s2n_stuffer_raw_read(in, cipher_suites_length);
-    RESULT_ENSURE(cipher_suites, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(cipher_suites != NULL, S2N_ERR_BAD_MESSAGE);
     RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->cipher_suites, cipher_suites, cipher_suites_length));
 
     /* legacy_compression_methods (ignored) */
