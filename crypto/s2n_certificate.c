@@ -270,9 +270,6 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
  * A recent CAB thread proposed removing support for multiple CNs:
  * https://cabforum.org/pipermail/public/2016-April/007242.html
  */
-
-DEFINE_POINTER_CLEANUP_FUNC(unsigned char *, OPENSSL_free);
-
 int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     POSIX_ENSURE_REF(chain_and_key->cn_names);
@@ -297,8 +294,13 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
         /* We need to try and decode the CN since it may be encoded as unicode with a
          * direct ASCII equivalent. Any non ASCII bytes in the string will fail later when we
          * actually compare hostnames.
+         * 
+         * Note that DEFER_CLEANUP is not used for `utf8_str` as we do not want to free memory
+         * in the error case (utf8_out_len < 0) as `ASN1_STRING_to_UTF8` does not allocate on failure,
+         * and attempting to free in such a case will result in a double-free. We do need to free 
+         * memory for the zero return case and the success case, however, as these both allocate. 
          */
-        DEFER_CLEANUP(unsigned char *utf8_str, OPENSSL_free_pointer);
+        unsigned char *utf8_str;
         const int utf8_out_len = ASN1_STRING_to_UTF8(&utf8_str, asn1_str);
         if (utf8_out_len < 0) {
             /* On failure, ASN1_STRING_to_UTF8 does not allocate any memory */
@@ -310,16 +312,19 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             struct s2n_blob *cn_name = NULL;
             POSIX_GUARD_RESULT(s2n_array_pushback(chain_and_key->cn_names, (void **) &cn_name));
             if (cn_name == NULL) {
+                OPENSSL_free(utf8_str);
                 POSIX_BAIL(S2N_ERR_NULL_CN_NAME);
             }
 
             if (s2n_alloc(cn_name, utf8_out_len) < 0) {
+                OPENSSL_free(utf8_str);
                 S2N_ERROR_PRESERVE_ERRNO();
             }
             POSIX_CHECKED_MEMCPY(cn_name->data, utf8_str, utf8_out_len);
             cn_name->size = utf8_out_len;
             /* normalize cn_name to lowercase */
             POSIX_GUARD(s2n_blob_char_to_lower(cn_name));
+            OPENSSL_free(utf8_str);
         }
     }
 
