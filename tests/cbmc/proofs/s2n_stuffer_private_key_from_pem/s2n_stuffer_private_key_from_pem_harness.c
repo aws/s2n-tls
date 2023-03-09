@@ -16,16 +16,14 @@
 #include <assert.h>
 #include <cbmc_proof/cbmc_utils.h>
 #include <cbmc_proof/make_common_datastructures.h>
-#include <string.h>
 
 #include "api/s2n.h"
-#include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_mem.h"
 
 void s2n_stuffer_private_key_from_pem_harness()
 {
     /* Non-deterministic inputs. */
     struct s2n_stuffer *pem = cbmc_allocate_s2n_stuffer();
+    int *type = malloc(sizeof(int));
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(pem)));
     __CPROVER_assume(s2n_blob_is_bounded(&pem->blob, MAX_BLOB_SIZE));
 
@@ -35,7 +33,7 @@ void s2n_stuffer_private_key_from_pem_harness()
     nondet_s2n_mem_init();
 
     /* Operation under verification. */
-    s2n_stuffer_private_key_from_pem(pem, asn1);
+    s2n_stuffer_private_key_from_pem(pem, asn1, type);
 
     /* Post-conditions. */
     assert(s2n_result_is_ok(s2n_stuffer_validate(pem)));

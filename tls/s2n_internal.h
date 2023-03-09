@@ -46,9 +46,10 @@ struct s2n_connection;
 S2N_PRIVATE_API int s2n_connection_get_config(struct s2n_connection *conn, struct s2n_config **config);
 
 /*
- * Enable polling the async client_hello callback to make progress.
+ * Sets a certificate chain on the config.
  *
- * `s2n_negotiate` must be called multiple times to poll the callback function
- * and make progress.
+ * It does NOT set a private key, so the connection will need to be configured to
+ * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#offloading-asynchronous-private-key-operations).
  */
-S2N_PRIVATE_API int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config);
+S2N_PRIVATE_API int s2n_config_add_cert_chain(struct s2n_config *config,
+        uint8_t *cert_chain_pem, uint32_t cert_chain_pem_size);

@@ -526,6 +526,25 @@ int s2n_config_add_cert_chain_and_key(struct s2n_config *config, const char *cer
     return S2N_SUCCESS;
 }
 
+/* Only used in the Rust bindings. Superseded by s2n_config_add_cert_chain_and_key_to_store */
+int s2n_config_add_cert_chain(struct s2n_config *config,
+        uint8_t *cert_chain_pem, uint32_t cert_chain_pem_size)
+{
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE(config->cert_ownership != S2N_APP_OWNED, S2N_ERR_CERT_OWNERSHIP);
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+            s2n_cert_chain_and_key_ptr_free);
+    POSIX_ENSURE_REF(chain_and_key);
+    POSIX_GUARD(s2n_cert_chain_and_key_load_public_pem_bytes(chain_and_key,
+            cert_chain_pem, cert_chain_pem_size));
+    POSIX_GUARD(s2n_config_add_cert_chain_and_key_impl(config, chain_and_key));
+    config->cert_ownership = S2N_LIB_OWNED;
+
+    ZERO_TO_DISABLE_DEFER_CLEANUP(chain_and_key);
+    return S2N_SUCCESS;
+}
+
 int s2n_config_add_cert_chain_and_key_to_store(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     POSIX_ENSURE_REF(config);
@@ -986,20 +1005,6 @@ int s2n_config_get_ctx(struct s2n_config *config, void **ctx)
     POSIX_ENSURE_REF(ctx);
 
     *ctx = config->context;
-
-    return S2N_SUCCESS;
-}
-
-/*
- * Set the client_hello callback behavior to polling.
- *
- * Polling means that the callback function can be called multiple times.
- */
-int s2n_config_client_hello_cb_enable_poll(struct s2n_config *config)
-{
-    POSIX_ENSURE_REF(config);
-
-    config->client_hello_cb_enable_poll = 1;
 
     return S2N_SUCCESS;
 }

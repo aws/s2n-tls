@@ -68,7 +68,7 @@ jobs:
               widgets:
               - type: 'number'
                 title: 'Ready to merge'
-                issue_query: 'repo:aws/s2n-tls is:open is:pr review:approved'
+                issue_query: 'repo:aws/s2n-tls is:open is:pr review:approved -label:do_not_merge'
                 color: 'green'
               - type: 'number'
                 title: 'No review (external) last 14 days'

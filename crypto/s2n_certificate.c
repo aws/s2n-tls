@@ -113,21 +113,21 @@ int s2n_cert_chain_and_key_set_cert_chain(struct s2n_cert_chain_and_key *cert_an
     return S2N_SUCCESS;
 }
 
-int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key, struct s2n_stuffer *key_in_stuffer, struct s2n_stuffer *key_out_stuffer)
+int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_and_key *cert_and_key,
+        struct s2n_stuffer *key_in_stuffer, struct s2n_stuffer *key_out_stuffer)
 {
     struct s2n_blob key_blob = { 0 };
 
     POSIX_GUARD(s2n_pkey_zero_init(cert_and_key->private_key));
 
     /* Convert pem to asn1 and asn1 to the private key. Handles both PKCS#1 and PKCS#8 formats */
-    POSIX_GUARD(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer));
+    int type = 0;
+    POSIX_GUARD(s2n_stuffer_private_key_from_pem(key_in_stuffer, key_out_stuffer, &type));
     key_blob.size = s2n_stuffer_data_available(key_out_stuffer);
     key_blob.data = s2n_stuffer_raw_read(key_out_stuffer, key_blob.size);
     POSIX_ENSURE_REF(key_blob.data);
 
-    /* Get key type and create appropriate key context */
-    POSIX_GUARD(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob));
-
+    POSIX_GUARD(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type));
     return S2N_SUCCESS;
 }
 
