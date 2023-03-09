@@ -270,6 +270,9 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
  * A recent CAB thread proposed removing support for multiple CNs:
  * https://cabforum.org/pipermail/public/2016-April/007242.html
  */
+
+DEFINE_POINTER_CLEANUP_FUNC(unsigned char *, OPENSSL_free);
+
 int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     POSIX_ENSURE_REF(chain_and_key->cn_names);
@@ -295,36 +298,34 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
          * direct ASCII equivalent. Any non ASCII bytes in the string will fail later when we
          * actually compare hostnames.
          * 
-         * Note that DEFER_CLEANUP is not used for `utf8_str` as we do not want to free memory
-         * in the error case (utf8_out_len < 0) as `ASN1_STRING_to_UTF8` does not allocate on failure,
-         * and attempting to free in such a case will result in a double-free. We do need to free 
-         * memory for the zero return case and the success case, however, as these both allocate. 
+         * `ASN1_STRING_to_UTF8` allocates in both the success case and in the zero return case, but
+         * not in the failure case (negative return value). Therefore, we use `ZERO_TO_DISABLE_DEFER_CLEANUP`
+         * in the failure case to prevent double-freeing `utf8_str`. For the zero and success cases, `utf8_str`
+         * will be freed by the `DEFER_CLEANUP`.
          */
-        unsigned char *utf8_str;
+        DEFER_CLEANUP(unsigned char *utf8_str, OPENSSL_free_pointer);
         const int utf8_out_len = ASN1_STRING_to_UTF8(&utf8_str, asn1_str);
         if (utf8_out_len < 0) {
             /* On failure, ASN1_STRING_to_UTF8 does not allocate any memory */
+            ZERO_TO_DISABLE_DEFER_CLEANUP(utf8_str);
             continue;
         } else if (utf8_out_len == 0) {
-            /* We still need to free memory here see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 */
-            OPENSSL_free(utf8_str);
+            /* We still need to free memory for this case, so let the DEFER_CLEANUP free it
+             see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 */
         } else {
             struct s2n_blob *cn_name = NULL;
             POSIX_GUARD_RESULT(s2n_array_pushback(chain_and_key->cn_names, (void **) &cn_name));
             if (cn_name == NULL) {
-                OPENSSL_free(utf8_str);
                 POSIX_BAIL(S2N_ERR_NULL_CN_NAME);
             }
 
             if (s2n_alloc(cn_name, utf8_out_len) < 0) {
-                OPENSSL_free(utf8_str);
                 S2N_ERROR_PRESERVE_ERRNO();
             }
             POSIX_CHECKED_MEMCPY(cn_name->data, utf8_str, utf8_out_len);
             cn_name->size = utf8_out_len;
             /* normalize cn_name to lowercase */
             POSIX_GUARD(s2n_blob_char_to_lower(cn_name));
-            OPENSSL_free(utf8_str);
         }
     }
 
