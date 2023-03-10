@@ -812,28 +812,39 @@ int main(int argc, char **argv)
                 S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID,
                 S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY));
         POSIX_ENSURE_REF(chain->cert_chain);
-        POSIX_ENSURE_REF(chain->cert_chain->head);
+
         struct s2n_cert *head = chain->cert_chain->head;
+        POSIX_ENSURE_REF(head);
+
         struct s2n_blob *leaf_bytes = &head->raw;
-        EXPECT_NOT_NULL(leaf_bytes);
         const unsigned char *leaf_der = leaf_bytes->data;
+        EXPECT_NOT_NULL(leaf_der);
+
         DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
         cert = d2i_X509(NULL, &leaf_der, leaf_bytes->size);
+        EXPECT_NOT_NULL(cert);
+
         DEFER_CLEANUP(X509_NAME *x509_name = NULL, X509_NAME_free_pointer);
         x509_name = X509_NAME_new();
+        EXPECT_NOT_NULL(x509_name);
+
         /* Add an zero length CN name */
-        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING, (unsigned char *) (uintptr_t) "", -1, -1, 1));
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
+                (unsigned char *) (uintptr_t) "", -1, -1, 1));
         /* Add an invalid CN name */
-        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, 29, (unsigned char *) (uintptr_t) "invalid", -1, -1, 1));
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, 29,
+                (unsigned char *) (uintptr_t) "invalid", -1, -1, 1));
         /* Add a valid CN name */
-        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING, (unsigned char *) (uintptr_t) "valid", -1, -1, 1));
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
+                (unsigned char *) (uintptr_t) "valid", -1, -1, 1));
+
         X509_set_subject_name(cert, x509_name);
 
         uint32_t len = 0;
         EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
         EXPECT_EQUAL(len, 1);
 
-        s2n_cert_chain_and_key_load_cns(chain, cert);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 
         EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
         EXPECT_EQUAL(len, 2);
