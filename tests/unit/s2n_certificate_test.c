@@ -809,8 +809,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                 s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
-                S2N_RSA_2048_SHA256_INTERMEDIATE_CERT_CUSTOM_OID,
-                S2N_RSA_2048_SHA256_INTERMEDIATE_CA_KEY));
+                S2N_DEFAULT_TEST_CERT_CHAIN,
+                S2N_DEFAULT_TEST_PRIVATE_KEY));
         POSIX_ENSURE_REF(chain->cert_chain);
 
         struct s2n_cert *head = chain->cert_chain->head;
@@ -836,7 +836,7 @@ int main(int argc, char **argv)
         /* Try loading a zero length CN name */
         EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
                 (unsigned char *) (uintptr_t) "", -1, -1, 1));
-        X509_set_subject_name(cert, x509_name);
+        EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 
         /* No CN name has been added */
@@ -848,7 +848,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(x509_name);
         EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, 29,
                 (unsigned char *) (uintptr_t) "invalid", -1, -1, 1));
-        X509_set_subject_name(cert, x509_name);
+        EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 
         /* No CN name has been added */
@@ -860,7 +860,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(x509_name);
         EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
                 (unsigned char *) (uintptr_t) "valid", -1, -1, 1));
-        X509_set_subject_name(cert, x509_name);
+        EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 
         /* 1 more CN name has been added */
