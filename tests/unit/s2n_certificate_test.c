@@ -828,24 +828,42 @@ int main(int argc, char **argv)
         x509_name = X509_NAME_new();
         EXPECT_NOT_NULL(x509_name);
 
-        /* Add an zero length CN name */
-        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
-                (unsigned char *) (uintptr_t) "", -1, -1, 1));
-        /* Add an invalid CN name */
-        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, 29,
-                (unsigned char *) (uintptr_t) "invalid", -1, -1, 1));
-        /* Add a valid CN name */
-        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
-                (unsigned char *) (uintptr_t) "valid", -1, -1, 1));
-
-        X509_set_subject_name(cert, x509_name);
-
+        /* We start with one CN name already */
         uint32_t len = 0;
         EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
         EXPECT_EQUAL(len, 1);
 
+        /* Try loading a zero length CN name */
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
+                (unsigned char *) (uintptr_t) "", -1, -1, 1));
+        X509_set_subject_name(cert, x509_name);
         EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
 
+        /* No CN name has been added */
+        EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
+        EXPECT_EQUAL(len, 1);
+
+        /* Try loading an invalid CN name */
+        x509_name = X509_NAME_new();
+        EXPECT_NOT_NULL(x509_name);
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, 29,
+                (unsigned char *) (uintptr_t) "invalid", -1, -1, 1));
+        X509_set_subject_name(cert, x509_name);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
+
+        /* No CN name has been added */
+        EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
+        EXPECT_EQUAL(len, 1);
+
+        /* Add a valid CN name */
+        x509_name = X509_NAME_new();
+        EXPECT_NOT_NULL(x509_name);
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
+                (unsigned char *) (uintptr_t) "valid", -1, -1, 1));
+        X509_set_subject_name(cert, x509_name);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
+
+        /* 1 more CN name has been added */
         EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
         EXPECT_EQUAL(len, 2);
     };
