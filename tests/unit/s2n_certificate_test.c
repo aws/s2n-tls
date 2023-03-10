@@ -29,6 +29,8 @@
 #define ext_value_MAX_LEN            UINT16_MAX
 #define OFFSET_INSUFFICIENT_MEM_SIZE 3
 
+DEFINE_POINTER_CLEANUP_FUNC(X509_NAME *, X509_NAME_free);
+
 struct host_verify_data {
     bool callback_invoked;
     bool allow;
