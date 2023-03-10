@@ -1418,7 +1418,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, security_policy));
 
+            EXPECT_SUCCESS(s2n_handshake_write_header(&client->handshake.io, TLS_CLIENT_HELLO));
             EXPECT_SUCCESS(s2n_client_hello_send(client));
+            EXPECT_SUCCESS(s2n_handshake_finish_header(&client->handshake.io));
+
             uint32_t raw_size = s2n_stuffer_data_available(&client->handshake.io);
             EXPECT_NOT_EQUAL(raw_size, 0);
             uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);
@@ -1436,12 +1439,22 @@ int main(int argc, char **argv)
         {
             struct s2n_client_hello *client_hello = NULL;
 
-            uint8_t too_short[] = { 0x03, 0x03 };
+            uint8_t wrong_message_type[50] = { 0x02, 0x00, 0x00, 1 };
+            client_hello = s2n_client_hello_parse_bytes(wrong_message_type, sizeof(wrong_message_type));
+            EXPECT_NULL(client_hello);
+            EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+
+            uint8_t wrong_message_size[50] = { 0x01, 0x00, 0x00, UINT8_MAX };
+            client_hello = s2n_client_hello_parse_bytes(wrong_message_size, sizeof(wrong_message_size));
+            EXPECT_NULL(client_hello);
+            EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
+
+            uint8_t too_short[5] = { 0x01, 0x00, 0x00, 1 };
             client_hello = s2n_client_hello_parse_bytes(too_short, sizeof(too_short));
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_STUFFER_OUT_OF_DATA);
 
-            uint8_t all_zeroes[50] = { 0 };
+            uint8_t all_zeroes[50] = { 0x01, 0x00, 0x00, 46 };
             client_hello = s2n_client_hello_parse_bytes(all_zeroes, sizeof(all_zeroes));
             EXPECT_NULL(client_hello);
             EXPECT_EQUAL(s2n_errno, S2N_ERR_BAD_MESSAGE);
@@ -1533,7 +1546,10 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
 
+            EXPECT_SUCCESS(s2n_handshake_write_header(&client->handshake.io, TLS_CLIENT_HELLO));
             EXPECT_SUCCESS(s2n_client_hello_send(client));
+            EXPECT_SUCCESS(s2n_handshake_finish_header(&client->handshake.io));
+
             uint32_t raw_size = s2n_stuffer_data_available(&client->handshake.io);
             EXPECT_NOT_EQUAL(raw_size, 0);
             uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);

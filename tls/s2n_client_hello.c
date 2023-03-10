@@ -478,12 +478,19 @@ static S2N_RESULT s2n_client_hello_parse_bytes_impl(struct s2n_client_hello **re
     struct s2n_stuffer in = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&in_blob, raw_message, raw_message_size));
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&in, &in_blob));
+
+    uint8_t message_type = 0;
+    uint32_t message_len = 0;
+    RESULT_GUARD(s2n_handshake_parse_header(&in, &message_type, &message_len));
+    RESULT_ENSURE(message_type == TLS_CLIENT_HELLO, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(message_len == s2n_stuffer_data_available(&in), S2N_ERR_BAD_MESSAGE);
+
     RESULT_GUARD_POSIX(s2n_collect_client_hello(client_hello, &in));
+    RESULT_ENSURE(s2n_stuffer_data_available(&in) == 0, S2N_ERR_BAD_MESSAGE);
 
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     uint8_t random[S2N_TLS_RANDOM_DATA_LEN] = { 0 };
     RESULT_GUARD(s2n_client_hello_parse_raw(client_hello, protocol_version, random));
-    RESULT_ENSURE(s2n_stuffer_data_available(&in) == 0, S2N_ERR_BAD_MESSAGE);
 
     *result = client_hello;
     ZERO_TO_DISABLE_DEFER_CLEANUP(client_hello);

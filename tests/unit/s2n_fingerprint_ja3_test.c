@@ -38,6 +38,16 @@
     /* legacy compression methods */        \
     0x01, 0x00
 
+/* This macro currently assumes that the message size is only one byte (<=255). */
+#define S2N_INIT_CLIENT_HELLO(name, ...)                 \
+    uint8_t _##name##_message[] = { __VA_ARGS__ };       \
+    EXPECT_TRUE(sizeof(_##name##_message) <= UINT8_MAX); \
+    uint8_t name[] = {                                   \
+        TLS_CLIENT_HELLO,                                \
+        0x00, 0x00, sizeof(_##name##_message),           \
+        __VA_ARGS__                                      \
+    }
+
 typedef enum {
     S2N_CH_FROM_IO = 0,
     S2N_CH_FROM_RAW,
@@ -95,7 +105,8 @@ static S2N_RESULT s2n_client_hello_from_source(struct s2n_client_hello **client_
     switch (source) {
         case S2N_CH_FROM_IO:
             RESULT_GUARD_POSIX(s2n_connection_wipe(server));
-            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&server->handshake.io, input, input_size));
+            RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&server->handshake.io,
+                    input + TLS_HANDSHAKE_HEADER_LENGTH, input_size - TLS_HANDSHAKE_HEADER_LENGTH));
             RESULT_GUARD_POSIX(s2n_client_hello_recv(server));
             *client_hello = s2n_connection_get_client_hello(server);
             RESULT_ENSURE_REF(*client_hello);
@@ -273,21 +284,20 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(sources); i++) {
             s2n_ch_source source = sources[i];
 
-            uint8_t minimal_client_hello[] = {
-                /* protocol version */
-                0x03, 0x02,
-                S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
-                /* cipher suites size */
-                0x00, 0x02,
-                /* cipher suites */
-                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
-                /* extensions size */
-                0x00, 0x08,
-                /* extension: supported groups */
-                0x00, TLS_EXTENSION_SUPPORTED_GROUPS, 0x00, 0x04,
-                0x00, 0x02, 0x00, TLS_EC_CURVE_SECP_256_R1
-            };
+            S2N_INIT_CLIENT_HELLO(client_hello_bytes,
+                    /* protocol version */
+                    0x03, 0x02,
+                    S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
+                    /* cipher suites size */
+                    0x00, 0x02,
+                    /* cipher suites */
+                    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                    S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
+                    /* extensions size */
+                    0x00, 0x08,
+                    /* extension: supported groups */
+                    0x00, TLS_EXTENSION_SUPPORTED_GROUPS, 0x00, 0x04,
+                    0x00, 0x02, 0x00, TLS_EC_CURVE_SECP_256_R1);
             const uint8_t expected_ja3[] = "770,49199,10,23,";
             size_t expected_ja3_size = strlen((const char *) expected_ja3);
 
@@ -300,7 +310,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
                     s2n_client_hello_free);
             EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
-                    minimal_client_hello, sizeof(minimal_client_hello), source));
+                    client_hello_bytes, sizeof(client_hello_bytes), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -318,18 +328,17 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < s2n_array_len(sources); i++) {
             s2n_ch_source source = sources[i];
 
-            uint8_t minimal_client_hello[] = {
-                /* protocol version */
-                0x03, 0x01,
-                S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
-                /* cipher suites size */
-                0x00, 0x02,
-                /* cipher suites */
-                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
-                /* extensions size */
-                0x00, 0x00
-            };
+            S2N_INIT_CLIENT_HELLO(client_hello_bytes,
+                    /* protocol version */
+                    0x03, 0x01,
+                    S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
+                    /* cipher suites size */
+                    0x00, 0x02,
+                    /* cipher suites */
+                    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                    S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
+                    /* extensions size */
+                    0x00, 0x00);
             const uint8_t expected_ja3[] = "769,49199,,,";
             size_t expected_ja3_size = strlen((const char *) expected_ja3);
 
@@ -342,7 +351,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
                     s2n_client_hello_free);
             EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
-                    minimal_client_hello, sizeof(minimal_client_hello), source));
+                    client_hello_bytes, sizeof(client_hello_bytes), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -385,24 +394,23 @@ int main(int argc, char **argv)
             s2n_ch_source source = sources[i];
 
             const uint8_t grease_value = 0x0A;
-            uint8_t minimal_client_hello[] = {
-                /* protocol version */
-                0x03, 0x02,
-                S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
-                /* cipher suites size */
-                0x00, 0x04,
-                /* cipher suites */
-                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                grease_value, grease_value,
-                S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
-                /* extensions size */
-                0x00, 0x0E,
-                /* extension: grease */
-                grease_value, grease_value, 0x00, 0x00,
-                /* extension: supported groups */
-                0x00, TLS_EXTENSION_SUPPORTED_GROUPS, 0x00, 0x06,
-                0x00, 0x04, 0x00, TLS_EC_CURVE_SECP_256_R1, grease_value, grease_value
-            };
+            S2N_INIT_CLIENT_HELLO(client_hello_bytes,
+                    /* protocol version */
+                    0x03, 0x02,
+                    S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
+                    /* cipher suites size */
+                    0x00, 0x04,
+                    /* cipher suites */
+                    TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+                    grease_value, grease_value,
+                    S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
+                    /* extensions size */
+                    0x00, 0x0E,
+                    /* extension: grease */
+                    grease_value, grease_value, 0x00, 0x00,
+                    /* extension: supported groups */
+                    0x00, TLS_EXTENSION_SUPPORTED_GROUPS, 0x00, 0x06,
+                    0x00, 0x04, 0x00, TLS_EC_CURVE_SECP_256_R1, grease_value, grease_value);
             const uint8_t expected_ja3[] = "770,49199,10,23,";
             size_t expected_ja3_size = strlen((const char *) expected_ja3);
 
@@ -415,7 +423,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL,
                     s2n_client_hello_free);
             EXPECT_OK(s2n_client_hello_from_source(&client_hello, server,
-                    minimal_client_hello, sizeof(minimal_client_hello), source));
+                    client_hello_bytes, sizeof(client_hello_bytes), source));
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -520,7 +528,8 @@ int main(int argc, char **argv)
          * https://github.com/lafaspot/ja3_4java/blob/d605ea2b51c1024eb9056568aac68c2d26011c4f/src/test/resources/openssl-ssl3.bin
          */
         {
-            uint8_t raw_client_hello[] = {
+            uint8_t raw_client_hello[135] = {
+                0x01, 0x00, 0x00, 0x83,
                 0x03, 0x00, 0x54, 0x3D, 0xD2, 0xA9, 0xB2, 0xD7, 0x59, 0xF7, 0xC4,
                 0xCF, 0x64, 0x30, 0xEB, 0xCC, 0xF7, 0x36, 0x58, 0x9B, 0x78, 0xB8,
                 0x9D, 0xB5, 0x0D, 0x59, 0xAF, 0x82, 0xA6, 0xC0, 0xAC, 0xFB, 0xA0,
@@ -556,7 +565,8 @@ int main(int argc, char **argv)
          * https://github.com/lafaspot/ja3_4java/blob/d605ea2b51c1024eb9056568aac68c2d26011c4f/src/test/resources/openssl-ssl3.bin
          */
         {
-            uint8_t raw_client_hello[] = {
+            uint8_t raw_client_hello[164] = {
+                0x01, 0x00, 0x00, 0xA0,
                 0x03, 0x01, 0x54, 0x3D, 0xD2, 0xDD, 0x48, 0xF5, 0x17, 0xCA, 0x9A,
                 0x93, 0xB1, 0xE5, 0x99, 0xF0, 0x19, 0xFD, 0xEC, 0xE7, 0x04, 0xA2,
                 0x3E, 0x86, 0xC1, 0xDC, 0xAC, 0x58, 0x84, 0x27, 0xAB, 0xBA, 0xDD,
@@ -596,7 +606,8 @@ int main(int argc, char **argv)
          * https://github.com/lafaspot/ja3_4java/blob/d605ea2b51c1024eb9056568aac68c2d26011c4f/src/test/resources/openssl-tls1_1.bin
          */
         {
-            uint8_t raw_client_hello[] = {
+            uint8_t raw_client_hello[164] = {
+                0x01, 0x00, 0x00, 0xA0,
                 0x03, 0x02, 0x54, 0x3D, 0xD2, 0xED, 0x90, 0x7E, 0x47, 0xD0, 0x08,
                 0x6F, 0x34, 0xBE, 0xE2, 0xC5, 0x2D, 0xD6, 0xCC, 0xD8, 0xDE, 0x63,
                 0xBA, 0x93, 0x87, 0xF5, 0xE8, 0x10, 0xB0, 0x9D, 0x9D, 0x49, 0xB3,
@@ -636,7 +647,8 @@ int main(int argc, char **argv)
          * https://github.com/lafaspot/ja3_4java/blob/d605ea2b51c1024eb9056568aac68c2d26011c4f/src/test/resources/openssl-tls1_2.bin
          */
         {
-            uint8_t raw_client_hello[] = {
+            uint8_t raw_client_hello[258] = {
+                0x01, 0x00, 0x00, 0xFE,
                 0x03, 0x03, 0x54, 0x3D, 0xD3, 0x28, 0x32, 0x83, 0x69, 0x2D, 0x85,
                 0xF9, 0x41, 0x6B, 0x5C, 0xCC, 0x65, 0xD2, 0xAA, 0xFC, 0xA4, 0x5C,
                 0x65, 0x30, 0xB3, 0xC6, 0xEA, 0xFB, 0xF6, 0xD3, 0x71, 0xB6, 0xA0,
@@ -688,7 +700,8 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/chrome-grease-single.pcap
          */
         {
-            uint8_t raw_client_hello[508] = {
+            uint8_t raw_client_hello[512] = {
+                0x01, 0x00, 0x01, 0xFC,
                 0x03, 0x03, 0x86, 0xad, 0xa4, 0xcc, 0x19, 0xe7, 0x14, 0x54, 0x54,
                 0xfd, 0xe7, 0x37, 0x33, 0xdf, 0x66, 0xcb, 0xf6, 0xef, 0x3e, 0xc0,
                 0xa1, 0x54, 0xc6, 0xdd, 0x14, 0x5e, 0xc0, 0x83, 0xac, 0xb9, 0xb4,
@@ -749,7 +762,8 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/curl-ipv6.pcap
          */
         {
-            uint8_t raw_client_hello[508] = {
+            uint8_t raw_client_hello[512] = {
+                0x01, 0x00, 0x01, 0xFC,
                 0x03, 0x03, 0x40, 0xc7, 0x8a, 0xef, 0x5c, 0x7f, 0xed, 0x98, 0x4a,
                 0x19, 0x8a, 0x03, 0x0b, 0xc0, 0x2d, 0xc0, 0xd6, 0x8f, 0x0b, 0x14,
                 0x7d, 0x23, 0x3d, 0x90, 0xb4, 0x2b, 0x4b, 0x28, 0x2c, 0x44, 0x0c,
@@ -813,7 +827,8 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/test.pcap
          */
         {
-            uint8_t raw_client_hello[] = {
+            uint8_t raw_client_hello[240] = {
+                0x01, 0x00, 0x00, 0xEC,
                 0x03, 0x03, 0x90, 0xe8, 0xcc, 0xee, 0xe5, 0x70, 0xa2, 0xa1, 0x2f,
                 0x6b, 0x69, 0xd2, 0x66, 0x96, 0x0f, 0xcf, 0x20, 0xd5, 0x32, 0x6e,
                 0xc4, 0xb2, 0x8c, 0xc7, 0xbd, 0x0a, 0x06, 0xc2, 0xa5, 0x14, 0xfc,
@@ -866,7 +881,8 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/ncat-port-4450.pcap
          */
         {
-            uint8_t raw_client_hello[508] = {
+            uint8_t raw_client_hello[512] = {
+                0x01, 0x00, 0x01, 0xFC,
                 0x03, 0x03, 0xf4, 0x0f, 0xfd, 0xee, 0xc7, 0x27, 0xc2, 0x1e, 0x32,
                 0x70, 0x5f, 0x85, 0x25, 0xa6, 0xbb, 0x6c, 0xca, 0x4b, 0x6c, 0xbe,
                 0x01, 0x66, 0x32, 0x66, 0x76, 0x4b, 0x67, 0x74, 0x3b, 0x91, 0xbd,
