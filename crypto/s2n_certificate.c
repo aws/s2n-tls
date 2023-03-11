@@ -297,15 +297,23 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
         /* We need to try and decode the CN since it may be encoded as unicode with a
          * direct ASCII equivalent. Any non ASCII bytes in the string will fail later when we
          * actually compare hostnames.
+         * 
+         * `ASN1_STRING_to_UTF8` allocates in both the success case and in the zero return case, but
+         * not in the failure case (negative return value). Therefore, we use `ZERO_TO_DISABLE_DEFER_CLEANUP`
+         * in the failure case to prevent double-freeing `utf8_str`. For the zero and success cases, `utf8_str`
+         * will be freed by the `DEFER_CLEANUP`.
          */
         DEFER_CLEANUP(unsigned char *utf8_str, OPENSSL_free_pointer);
         const int utf8_out_len = ASN1_STRING_to_UTF8(&utf8_str, asn1_str);
         if (utf8_out_len < 0) {
             /* On failure, ASN1_STRING_to_UTF8 does not allocate any memory */
+            ZERO_TO_DISABLE_DEFER_CLEANUP(utf8_str);
             continue;
         } else if (utf8_out_len == 0) {
-            /* We still need to free memory here see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 */
-            OPENSSL_free(utf8_str);
+            /* We still need to free memory for this case, so let the DEFER_CLEANUP free it
+             * see https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-2017-7521 and 
+             * https://security.archlinux.org/CVE-2017-7521 
+            */
         } else {
             struct s2n_blob *cn_name = NULL;
             POSIX_GUARD_RESULT(s2n_array_pushback(chain_and_key->cn_names, (void **) &cn_name));
