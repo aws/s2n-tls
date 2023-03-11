@@ -80,14 +80,14 @@ int s2n_stuffer_alloc_ro_from_fd(struct s2n_stuffer *stuffer, int rfd)
 
     POSIX_ENSURE(fstat(rfd, &st) >= 0, S2N_ERR_FSTAT);
 
-    POSIX_ENSURE(st.st_size > 0, S2N_FAILURE);
-    POSIX_ENSURE(st.st_size <= UINT32_MAX, S2N_FAILURE);
+    POSIX_ENSURE_GT(st.st_size, 0);
+    POSIX_ENSURE_LTE(st.st_size, UINT32_MAX);
 
     uint8_t *map = mmap(NULL, st.st_size, PROT_READ, MAP_PRIVATE, rfd, 0);
     POSIX_ENSURE(map != MAP_FAILED, S2N_ERR_MMAP);
 
     struct s2n_blob b = { 0 };
-    POSIX_ENSURE(s2n_blob_init(&b, map, (uint32_t) st.st_size), S2N_FAILURE);
+    POSIX_GUARD(s2n_blob_init(&b, map, (uint32_t) st.st_size));
     return s2n_stuffer_init(stuffer, &b);
 }
 
