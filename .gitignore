@@ -39,3 +39,5 @@ build/
 result
 result-*
 *.class
+Testing/
+s2n-tls-internals/target
