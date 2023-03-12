@@ -15,7 +15,7 @@
 
 #include "tls/s2n_ktls.h"
 
-bool platform_supports_ktls()
+bool s2n_ktls_is_supported_on_platform()
 {
 #ifdef S2N_PLATFORM_SUPPORTS_KTLS
     return true;
