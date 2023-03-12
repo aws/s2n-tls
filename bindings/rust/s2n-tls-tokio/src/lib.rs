@@ -34,6 +34,14 @@ macro_rules! ready {
     };
 }
 
+// The context passed to recv_io_cb/send_io_cb
+struct RxTxContext<'a, 'b, S>
+    where S: AsyncRead + AsyncWrite + Unpin, 'b: 'a
+{
+    stream: Pin<&'a mut S>,
+    async_context: &'a mut std::task::Context<'b>,
+}
+
 #[derive(Clone)]
 pub struct TlsAcceptor<B: Builder = Config>
 where
@@ -190,13 +198,16 @@ where
         // We protect against this by pinning the stream during the action
         // and clearing the context afterwards.
         unsafe {
-            let context = self as *mut Self as *mut c_void;
+            let mut context = RxTxContext {
+                stream: Pin::new(&mut self.stream),
+                async_context: ctx
+            };
+            let context = (&mut context as *mut RxTxContext<S>).cast();
 
             self.as_mut().set_receive_callback(Some(Self::recv_io_cb))?;
             self.as_mut().set_send_callback(Some(Self::send_io_cb))?;
             self.as_mut().set_receive_context(context)?;
             self.as_mut().set_send_context(context)?;
-            self.as_mut().set_waker(Some(ctx.waker()))?;
 
             let result = action(Pin::new(self));
 
@@ -204,7 +215,6 @@ where
             self.as_mut().set_send_callback(None)?;
             self.as_mut().set_receive_context(std::ptr::null_mut())?;
             self.as_mut().set_send_context(std::ptr::null_mut())?;
-            self.as_mut().set_waker(None)?;
             result
         }
     }
@@ -214,12 +224,9 @@ where
         F: FnOnce(Pin<&mut S>, &mut Context) -> Poll<Result<usize, std::io::Error>>,
     {
         debug_assert_ne!(ctx, std::ptr::null_mut());
-        let tls = unsafe { &mut *(ctx as *mut Self) };
+        let tls = unsafe { &mut *(ctx as *mut RxTxContext<S>) };
 
-        let mut async_context = Context::from_waker(tls.conn.as_ref().waker().unwrap());
-        let stream = Pin::new(&mut tls.stream);
-
-        match action(stream, &mut async_context) {
+        match action(tls.stream.as_mut(), tls.async_context) {
             Poll::Ready(Ok(len)) => len as c_int,
             Poll::Pending => {
                 set_errno(Errno(libc::EWOULDBLOCK));
