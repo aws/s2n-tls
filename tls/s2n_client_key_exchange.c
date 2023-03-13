@@ -32,7 +32,7 @@
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
 
-#define get_client_hello_protocol_version(conn) (conn->client_hello_version == S2N_SSLv2 ? conn->client_protocol_version : conn->client_hello_version)
+#define get_client_hello_protocol_version(conn) (conn->client_hello.version == S2N_SSLv2 ? conn->client_protocol_version : conn->client_hello.version)
 
 typedef S2N_RESULT s2n_kex_client_key_method(const struct s2n_kex *kex, struct s2n_connection *conn, struct s2n_blob *shared_key);
 typedef void *s2n_stuffer_action(struct s2n_stuffer *stuffer, uint32_t data_len);

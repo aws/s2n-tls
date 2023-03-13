@@ -1330,7 +1330,7 @@ static int s2n_handshake_handle_sslv2(struct s2n_connection *conn)
     /* Handle an SSLv2 client hello */
     POSIX_GUARD(s2n_stuffer_copy(&conn->in, &conn->handshake.io, s2n_stuffer_data_available(&conn->in)));
     /* Set the client hello version */
-    conn->client_hello_version = S2N_SSLv2;
+    conn->client_hello.version = S2N_SSLv2;
     /* Execute the state machine handler */
     int r = ACTIVE_STATE(conn).handler[conn->mode](conn);
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));

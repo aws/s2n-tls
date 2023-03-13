@@ -201,7 +201,7 @@ int main(int argc, char **argv)
 
             struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
             EXPECT_NOT_NULL(client_hello);
-            EXPECT_FALSE(client_hello->sslv2);
+            EXPECT_EQUAL(client_hello->version, S2N_TLS12);
 
             uint32_t output_size = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_fingerprint_string(client_hello,
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
              * not when processing the actual ClientHello message.
              * So we need to set the versions manually.
              */
-            server->client_hello_version = S2N_SSLv2;
+            server->client_hello.version = S2N_SSLv2;
             server->client_protocol_version = S2N_TLS12;
 
             uint8_t sslv2_client_hello[] = {
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 
             struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
             EXPECT_NOT_NULL(client_hello);
-            EXPECT_TRUE(client_hello->sslv2);
+            EXPECT_EQUAL(client_hello->version, S2N_SSLv2);
 
             uint32_t output_size = 0;
             EXPECT_FAILURE_WITH_ERRNO(
