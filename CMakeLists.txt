@@ -38,6 +38,7 @@ option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
+option(S2N_STRICT_CHECK "Enable build with stricter checks" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -267,8 +268,12 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
+        -Wno-missing-braces -Wno-strict-prototypes -Wa,--noexecstack
 )
+
+if (S2N_STRICT_CHECK)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare)
+endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
@@ -370,6 +375,10 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
     # add cast-qual back in for non AWS-LC
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
+endif()
+
+if (S2N_STRICT_CHECK)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_STRICT_CHECK)
 endif()
 
 if (COVERAGE)
