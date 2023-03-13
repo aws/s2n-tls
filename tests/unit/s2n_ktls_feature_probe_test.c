@@ -29,11 +29,7 @@ int main(int argc, char **argv)
 #if defined(__linux__)
     /* kTLS support was first added to AL2 starting in 5.10.130. */
     #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 130))
-        if (!s2n_ktls_is_supported_on_platform()) {
-            FAIL_MSG("kTLS feature probe is not working");
-        } else {
-            EXPECT_TRUE(true);
-        }
+        EXPECT_TRUE(s2n_ktls_is_supported_on_platform());
     #endif
 #endif
     };
