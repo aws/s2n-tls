@@ -460,7 +460,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_client_hello_parse_bytes_impl(struct s2n_client_hello **result,
+static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **result,
         uint8_t *raw_message, uint32_t raw_message_size)
 {
     RESULT_ENSURE_REF(result);
@@ -497,10 +497,10 @@ static S2N_RESULT s2n_client_hello_parse_bytes_impl(struct s2n_client_hello **re
     return S2N_RESULT_OK;
 }
 
-struct s2n_client_hello *s2n_client_hello_parse_bytes(uint8_t *raw_message, uint32_t raw_message_size)
+struct s2n_client_hello *s2n_client_hello_parse_message(uint8_t *raw_message, uint32_t raw_message_size)
 {
     struct s2n_client_hello *result = NULL;
-    PTR_GUARD_RESULT(s2n_client_hello_parse_bytes_impl(&result, raw_message, raw_message_size));
+    PTR_GUARD_RESULT(s2n_client_hello_parse_message_impl(&result, raw_message, raw_message_size));
     return result;
 }
 

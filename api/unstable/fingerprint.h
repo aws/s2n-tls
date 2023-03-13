@@ -87,7 +87,7 @@ int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch,
  * @param size The size of raw_message.
  * @returns A new s2n_client_hello on success, or NULL on failure.
  */
-struct s2n_client_hello *s2n_client_hello_parse_bytes(uint8_t *bytes, uint32_t size);
+struct s2n_client_hello *s2n_client_hello_parse_message(uint8_t *bytes, uint32_t size);
 
 /**
  * Frees an s2n_client_hello structure.

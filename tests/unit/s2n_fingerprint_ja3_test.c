@@ -112,7 +112,7 @@ static S2N_RESULT s2n_client_hello_from_source(struct s2n_client_hello **client_
             RESULT_ENSURE_REF(*client_hello);
             break;
         case S2N_CH_FROM_RAW:
-            *client_hello = s2n_client_hello_parse_bytes(input, input_size);
+            *client_hello = s2n_client_hello_parse_message(input, input_size);
             RESULT_GUARD_PTR(*client_hello);
             break;
     }
