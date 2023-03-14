@@ -458,6 +458,17 @@ if(S2N_AWSLC_KYBER_UNSTABLE AND LIBCRYPTO_SUPPORTS_EVP_KYBER_512)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_KYBER512)
 endif()
 
+# Determine if kTLS is supported
+try_compile(
+        PLATFORM_SUPPORTS_KTLS
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/ktls.c"
+)
+if(PLATFORM_SUPPORTS_KTLS)
+    message(STATUS "feature probe: kTLS supported")
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_PLATFORM_SUPPORTS_KTLS)
+endif()
+
 if (NOT DEFINED CMAKE_AR)
 	message(STATUS "CMAKE_AR undefined, setting to `ar` by default")
 	SET(CMAKE_AR ar)
