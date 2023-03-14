@@ -435,7 +435,7 @@ int main(int argc, char **argv)
         fragmented_message(p[1]);
         EXPECT_SUCCESS(s2n_config_free(config));
         EXPECT_SUCCESS(s2n_connection_free(conn));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -481,7 +481,7 @@ int main(int argc, char **argv)
         coalesced_message(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -527,7 +527,7 @@ int main(int argc, char **argv)
         interleaved_message(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -573,7 +573,7 @@ int main(int argc, char **argv)
         interleaved_fragmented_warning_alert(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -619,7 +619,7 @@ int main(int argc, char **argv)
         interleaved_fragmented_fatal_alert(p[1]);
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
