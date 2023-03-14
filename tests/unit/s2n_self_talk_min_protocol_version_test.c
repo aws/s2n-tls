@@ -57,36 +57,26 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t version)
     s2n_cleanup();
 
     /* Expect failure of handshake */
-    _exit(result == 0 ? 1 : 0);
+    exit(result == 0 ? 1 : 0);
 }
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
-    struct s2n_cert_chain_and_key *chain_and_key;
 
     BEGIN_TEST();
 
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
 
     /* TLS1.2 and TLS1.3 have different version negotiation mechanisms.
      * We should test both.
      */
     for (uint8_t version = S2N_TLS12; version <= S2N_TLS13; version++) {
-        EXPECT_NOT_NULL(config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        /* Pick cipher preference with TLSv1.2 as a minimum version */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "CloudFront-TLS-1-2-2019"));
-
         /* Create a pipe */
         struct s2n_test_io_pair io_pair;
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
@@ -101,10 +91,21 @@ int main(int argc, char **argv)
             mock_client(&io_pair, version);
         }
 
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                s2n_config_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        /* Pick cipher preference with TLSv1.2 as a minimum version */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "CloudFront-TLS-1-2-2019"));
+
         /* This is the server process, close the client end of the pipe */
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
@@ -117,19 +118,13 @@ int main(int argc, char **argv)
         /* Check that blinding was not invoked */
         EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
 
-        /* Free connection */
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-
         /* Close the pipes */
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
         /* Clean up */
         EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
         EXPECT_EQUAL(status, 0);
-
-        EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     END_TEST();
 }
