@@ -179,37 +179,30 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     return 0;
 }
 
-char *cert_chain_pem;
-char *private_key_pem;
-char *dhparams_pem;
+S2N_RESULT cleanup_io_data(struct iovec **iov, int iov_size, struct s2n_blob *blob)
+{
+    if (*iov) {
+        for (int i = 0; i < iov_size; i++) {
+            free((*iov)[i].iov_base);
+        }
+        free(*iov);
+    } else {
+        s2n_free(blob);
+    }
+
+    return S2N_RESULT_OK;
+}
 
 int test_send(int use_tls13, int use_iov, int prefer_throughput)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    struct s2n_cert_chain_and_key *chain_and_key;
-
-    EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
-
-    if (use_tls13) {
-        POSIX_GUARD(s2n_config_set_cipher_preferences(config, "test_all"));
-    } else {
-        POSIX_GUARD(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
-    }
+    char *cert_chain_pem, *private_key_pem, *dhparams_pem;
 
     /* Get some random data to send/receive */
     uint32_t data_size = 0;
-    DEFER_CLEANUP(struct s2n_blob blob = { 0 }, s2n_free);
+    struct s2n_blob blob = { 0 };
 
     /* These numbers are chosen so that some of the payload is bigger
      * than max TLS1.3 record size (2**14 + 1), which is needed to validate
@@ -260,13 +253,35 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
         const int client_rc = !use_iov ? mock_client(&io_pair, blob.data, data_size) : mock_client_iov(&io_pair, iov, iov_size);
 
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
-        _exit(client_rc);
+        EXPECT_OK(cleanup_io_data(&iov, iov_size, &blob));
+        exit(client_rc);
+    }
+
+    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(), s2n_cert_chain_and_key_ptr_free);
+
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+
+    if (use_tls13) {
+        POSIX_GUARD(s2n_config_set_cipher_preferences(config, "test_all"));
+    } else {
+        POSIX_GUARD(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
     }
 
     /* This is the server process, close the client end of the pipe */
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     if (prefer_throughput) {
@@ -355,21 +370,16 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     }
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
 
-    /* Clean up */
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(s2n_config_free(config));
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
-    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-    if (iov) {
-        for (int i = 0; i < iov_size; i++) {
-            free(iov[i].iov_base);
-        }
-        free(iov);
-    }
+    /* Clean up */
+    EXPECT_OK(cleanup_io_data(&iov, iov_size, &blob));
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+    free(cert_chain_pem);
+    free(private_key_pem);
+    free(dhparams_pem);
 
     return 0;
 }
@@ -380,9 +390,6 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
 
     BEGIN_TEST();
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     for (int use_tls13 = 0; use_tls13 < 2; use_tls13++) {
         for (int use_iovec = 0; use_iovec < 2; use_iovec++) {
@@ -391,9 +398,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    free(cert_chain_pem);
-    free(private_key_pem);
-    free(dhparams_pem);
     END_TEST();
     return 0;
 }
