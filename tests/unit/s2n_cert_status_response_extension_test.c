@@ -18,9 +18,8 @@
 #include "tls/extensions/s2n_cert_status_response.h"
 
 const uint8_t ocsp_data[] = "OCSP DATA";
-struct s2n_cert_chain_and_key *chain_and_key;
 
-int s2n_test_enable_sending_extension(struct s2n_connection *conn)
+int s2n_test_enable_sending_extension(struct s2n_connection *conn, struct s2n_cert_chain_and_key *chain_and_key)
 {
     conn->mode = S2N_SERVER;
     conn->status_type = S2N_STATUS_REQUEST_OCSP;
@@ -34,6 +33,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
@@ -50,26 +50,26 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_cert_status_response_extension.should_send(conn));
 
         /* Send if all prerequisites met */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         EXPECT_TRUE(s2n_cert_status_response_extension.should_send(conn));
 
         /* Don't send if client */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         conn->mode = S2N_CLIENT;
         EXPECT_FALSE(s2n_cert_status_response_extension.should_send(conn));
 
         /* Don't send if no status request configured */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         conn->status_type = S2N_STATUS_REQUEST_NONE;
         EXPECT_FALSE(s2n_cert_status_response_extension.should_send(conn));
 
         /* Don't send if no certificate set */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         conn->handshake_params.our_chain_and_key = NULL;
         EXPECT_FALSE(s2n_cert_status_response_extension.should_send(conn));
 
         /* Don't send if no ocsp data */
-        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn));
+        EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
         EXPECT_SUCCESS(s2n_free(&conn->handshake_params.our_chain_and_key->ocsp_status));
         EXPECT_FALSE(s2n_cert_status_response_extension.should_send(conn));
 
