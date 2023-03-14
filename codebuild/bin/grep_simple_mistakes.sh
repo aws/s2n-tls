@@ -196,10 +196,24 @@ S2N_UNNECESSARY_EXTERNS=$(find "$PWD" -type f -name "s2n*.[h]" \! -path "*/api/*
   -exec grep -RE "extern (.*?) (.*?)\(" {} +)
 if [[ -n $S2N_UNNECESSARY_EXTERNS ]]; then
   FAILED=1
-  echo "Found unnecessary 'extern' in function declaration"
-  echo "$S2N_UNNECESSARY_EXTERNS"
+  printf "\e[1;34mFound unnecessary 'extern' in function declaration:\e[0m\n"
+  printf "$S2N_UNNECESSARY_EXTERNS\n\n"
 fi
 
+#############################################
+# Assert ENSURE/GUARD have a valid error code
+#############################################
+S2N_ENSURE_WITH_INVALID_ERROR_CODE=$(find "$PWD" -type f -name "s2n*.c" -path "*" \! -path "*/tests/*" \
+    -exec grep -RE "(ENSURE|GUARD_OSSL)\(.*?, .*?);" {} + | grep -v "S2N_ERR_")
+if [[ -n $S2N_ENSURE_WITH_INVALID_ERROR_CODE ]]; then
+  FAILED=1
+  printf "\e[1;34mENSURE and GUARD_OSSL require a valid error code from errors/s2n_errno.h:\e[0m\n"
+  printf "$S2N_ENSURE_WITH_INVALID_ERROR_CODE\n\n"
+fi
+
+#############################################
+# REPORT FINAL RESULTS
+#############################################
 if [ $FAILED == 1 ]; then
   printf "\\033[31;1mFAILED Grep For Simple Mistakes check\\033[0m\\n"
   exit -1
