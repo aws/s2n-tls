@@ -1385,8 +1385,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn);
 
         /* Handshake is hello retry and TLS1.3 was negotiated */
-        EXPECT_OK(s2n_handshake_type_set_flag(server_conn, HELLO_RETRY_REQUEST));
         server_conn->actual_protocol_version = S2N_TLS13;
+        EXPECT_OK(s2n_handshake_type_set_tls13_flag(server_conn, HELLO_RETRY_REQUEST));
 
         /* Second client hello has version SSLv2 */
         server_conn->client_hello_version = S2N_SSLv2;
