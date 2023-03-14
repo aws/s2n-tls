@@ -272,7 +272,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimpl
 )
 
 if (S2N_STRICT_CHECK)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare -DS2N_STRICT_CHECK)
 endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
@@ -375,10 +375,6 @@ list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 if (NOT $ENV{S2N_LIBCRYPTO} STREQUAL "awslc")
     # add cast-qual back in for non AWS-LC
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
-endif()
-
-if (S2N_STRICT_CHECK)
-    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_STRICT_CHECK)
 endif()
 
 if (COVERAGE)
