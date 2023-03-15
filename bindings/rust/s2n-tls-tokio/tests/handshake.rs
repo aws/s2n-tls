@@ -197,8 +197,8 @@ async fn io_stream_access() -> Result<(), Box<dyn std::error::Error>> {
     let (mut client_result, _server_result) =
         common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
-    assert_eq!(client_result.io_ref().local_addr().unwrap(), client_addr);
-    assert_eq!(client_result.io_mut().local_addr().unwrap(), client_addr);
+    assert_eq!(client_result.get_ref().local_addr().unwrap(), client_addr);
+    assert_eq!(client_result.get_mut().local_addr().unwrap(), client_addr);
 
     Ok(())
 }

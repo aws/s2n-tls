@@ -166,13 +166,13 @@ where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
     S: AsyncRead + AsyncWrite + Unpin,
 {
-    ///Access a reference to the underlaying io stream
-    pub fn io_ref(&self) -> &S {
+    ///Access a shared reference to the underlaying io stream
+    pub fn get_ref(&self) -> &S {
         &self.stream
     }
 
     ///Access the mutable reference to the underlaying io stream
-    pub fn io_mut(&mut self) -> &mut S {
+    pub fn get_mut(&mut self) -> &mut S {
         &mut self.stream
     }
 
