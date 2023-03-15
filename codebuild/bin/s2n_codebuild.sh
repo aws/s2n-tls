@@ -107,7 +107,7 @@ run_unit_tests() {
             -D${CMAKE_PQ_OPTION} \
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
-            -DS2N_STRICT_CHECK=on
+            -DEXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS=on
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
     cmake --build build/ --target test -- ARGS="-L unit --output-on-failure -j $(nproc)"
