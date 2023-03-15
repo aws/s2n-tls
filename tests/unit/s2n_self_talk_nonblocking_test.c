@@ -198,7 +198,9 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
-    char *cert_chain_pem, *private_key_pem, *dhparams_pem;
+    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+    char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
+    char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
 
     /* Get some random data to send/receive */
     uint32_t data_size = 0;
@@ -256,10 +258,6 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
         EXPECT_OK(cleanup_io_data(&iov, iov_size, &blob));
         exit(client_rc);
     }
-
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -377,9 +375,6 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     /* Clean up */
     EXPECT_OK(cleanup_io_data(&iov, iov_size, &blob));
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
-    free(cert_chain_pem);
-    free(private_key_pem);
-    free(dhparams_pem);
 
     return 0;
 }
