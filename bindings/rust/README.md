@@ -24,5 +24,5 @@ $ ./bindings/rust/generate.sh
 
 `s2n-tls` will maintain a rolling MSRV (minimum supported rust version) policy of at least 6 months. The current s2n-quic version is not guaranteed to build on Rust versions earlier than the MSRV.
 
-The current MSRV is [1.57.0][msrv-url].
+The current MSRV is [1.63.0][msrv-url].
 
