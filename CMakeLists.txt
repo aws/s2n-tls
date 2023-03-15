@@ -41,7 +41,7 @@ option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS "Additional compiler warnings are treated as errors. Warnings may
 indicate danger points where you should verify with the S2N-TLS developers that the security of
 the library is not compromised. These warnings are currently failing for some builds; once the problems are fixed,
-they will be moved to UNSAFE TREAT WARNINGS AS ERRORS." OFF)
+they will be moved to UNSAFE_TREAT_WARNINGS_AS_ERRORS." OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
