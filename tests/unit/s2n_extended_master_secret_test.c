@@ -117,7 +117,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
 
             /* Fallback to full handshake */
-            EXPECT_TRUE(s2n_handshake_type_check_tls12_flag(conn, FULL_HANDSHAKE));
+            EXPECT_TRUE(s2n_handshake_type_check_flag(conn, FULL_HANDSHAKE));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -156,7 +156,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_conn_set_handshake_type(conn));
 
-            EXPECT_FALSE(s2n_handshake_type_check_tls12_flag(conn, FULL_HANDSHAKE));
+            EXPECT_FALSE(s2n_handshake_type_check_flag(conn, FULL_HANDSHAKE));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };

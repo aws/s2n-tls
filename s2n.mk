@@ -219,7 +219,7 @@ ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
 endif
 
-# Determine if EVP_md5_sha1 is available
+# Determine if EVP_RC4 is available
 TRY_EVP_RC4 := $(call try_compile,$(S2N_ROOT)/tests/features/evp_rc4.c)
 ifeq ($(TRY_EVP_RC4), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_RC4
@@ -247,6 +247,12 @@ endif
 TRY_COMPILE_CLONE := $(call try_compile,$(S2N_ROOT)/tests/features/clone.c)
 ifeq ($(TRY_COMPILE_CLONE), 0)
 	DEFAULT_CFLAGS += -DS2N_CLONE_SUPPORTED
+endif
+
+# Determine if kTLS is available
+TRY_COMPILE_KTLS := $(call try_compile,$(S2N_ROOT)/tests/features/ktls.c)
+ifeq ($(TRY_COMPILE_KTLS), 0)
+	DEFAULT_CFLAGS += -DS2N_PLATFORM_SUPPORTS_KTLS
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
