@@ -523,6 +523,15 @@ Client authentication can be configured by calling `s2n_config_set_client_auth_t
 
 When using client authentication, the server MUST implement the `s2n_verify_host_fn`, because the default behavior will likely reject all client certificates.
 
+When using client authentication with TLS1.3, `s2n_negotiate` will report a successful
+handshake to clients before the server validates the client certificate. If the server then
+rejects the client certificate, the client may later receive an alert while calling s2n_recv,
+potentially after already having sent application data with s2n_send. This is a quirk of the
+TLS1.3 protocol message ordering: the server does not send any more handshake messages
+after the client sends the client certificate (see the [TLS1.3 state machine](https://www.rfc-editor.org/rfc/rfc8446.html#appendix-A.2)).
+There is no security risk, since the client has already authenticated the server,
+but it could make handshake failures and authentication errors more difficult to handle.
+
 ### Certificate Inspection
 
 Applications may want to know which certificate was used by a server for authentication during a connection, since servers can set multiple certificates. `s2n_connection_get_selected_cert()` will return the local certificate chain object used to authenticate. `s2n_connection_get_peer_cert_chain()` will provide the peer's certificate chain, if they sent one. Use `s2n_cert_chain_get_length()` and `s2n_cert_chain_get_cert()` to parse the certificate chain object and get a single certificate from the chain. Use `s2n_cert_get_der()` to get the DER encoded certificate if desired.
