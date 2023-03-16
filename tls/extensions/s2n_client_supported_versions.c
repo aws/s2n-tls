@@ -52,7 +52,7 @@ const s2n_extension_type s2n_client_supported_versions_extension = {
     .is_response = false,
     .send = s2n_client_supported_versions_send,
     .recv = s2n_client_supported_versions_recv,
-    .should_send = s2n_extension_send_if_tls13_connection,
+    .should_send = s2n_extension_send_if_client_supports_tls13,
     .if_missing = s2n_extension_noop_if_missing,
 };
 

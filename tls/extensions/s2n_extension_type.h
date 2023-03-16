@@ -98,6 +98,7 @@ int s2n_extension_recv_noop(struct s2n_connection *conn, struct s2n_stuffer *out
 /* Common implementations for should_send */
 bool s2n_extension_always_send(struct s2n_connection *conn);
 bool s2n_extension_never_send(struct s2n_connection *conn);
+bool s2n_extension_send_if_client_supports_tls13(struct s2n_connection *conn);
 bool s2n_extension_send_if_tls13_connection(struct s2n_connection *conn);
 
 /* Common implementations for if_missing */

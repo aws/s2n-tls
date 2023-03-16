@@ -75,10 +75,20 @@ int main()
             EXPECT_FALSE(s2n_extension_never_send(NULL));
 
             struct s2n_connection conn = { 0 };
+            conn.client_protocol_version = S2N_TLS12;
             conn.actual_protocol_version = S2N_TLS12;
             EXPECT_FALSE(s2n_extension_send_if_tls13_connection(&conn));
+            EXPECT_FALSE(s2n_extension_send_if_client_supports_tls13(&conn));
+
+            conn.client_protocol_version = S2N_TLS13;
+            conn.actual_protocol_version = S2N_TLS12;
+            EXPECT_FALSE(s2n_extension_send_if_tls13_connection(&conn));
+            EXPECT_TRUE(s2n_extension_send_if_client_supports_tls13(&conn));
+
+            conn.client_protocol_version = S2N_TLS13;
             conn.actual_protocol_version = S2N_TLS13;
             EXPECT_TRUE(s2n_extension_send_if_tls13_connection(&conn));
+            EXPECT_TRUE(s2n_extension_send_if_client_supports_tls13(&conn));
         };
 
         /* Test common implementations for if_missing */

@@ -228,6 +228,11 @@ bool s2n_extension_never_send(struct s2n_connection *conn)
     return false;
 }
 
+bool s2n_extension_send_if_client_supports_tls13(struct s2n_connection *conn)
+{
+    return s2n_connection_get_client_protocol_version(conn) >= S2N_TLS13;
+}
+
 bool s2n_extension_send_if_tls13_connection(struct s2n_connection *conn)
 {
     return s2n_connection_get_protocol_version(conn) >= S2N_TLS13;
