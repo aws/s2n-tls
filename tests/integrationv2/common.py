@@ -45,10 +45,11 @@ class AvailablePorts(object):
 
     def _get_available_port(self):
         next_port = 0
-        with socket.socket(socket.AF_INET) as s:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             s.bind(('127.0.0.1', next_port))
             next_port = s.getsockname()[1]
-            s.close()
+            #s.close()
         return next_port
 
     def __iter__(self):
