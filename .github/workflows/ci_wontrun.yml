@@ -1,0 +1,27 @@
+name: CodeBuild
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+jobs:
+  buildspec:
+    runs-on: ubuntu-latest
+    name: Check for modified spec files
+    steps:
+      - users: actions/checkout@v3
+        with:
+          fetch-depth: 0
+      - name: Get altered spec files
+        id: spec-files-changed
+        uses: tj-actions/changed-files@v35
+        with:
+          files: codebuild/spec/*.{yml,yaml}
+      - name: Run step if any file(s) in the docs folder change
+        if: steps.spec-files-changed.outputs.any_changed == 'true'
+        run: |
+          echo "Our CodeBuild CI will not trigger if any buildspec files changed- please provide manual testing links in the PR."
+          echo "This PR touched ${{ steps.spec-files-changed.outputs.all_changed_files }}"
+          exit 1
+
