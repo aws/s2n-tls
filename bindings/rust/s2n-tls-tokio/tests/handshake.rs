@@ -185,3 +185,20 @@ async fn handshake_error_with_blinding() -> Result<(), Box<dyn std::error::Error
 
     Ok(())
 }
+
+#[tokio::test]
+async fn io_stream_access() -> Result<(), Box<dyn std::error::Error>> {
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let client_addr = client_stream.local_addr().unwrap();
+    let client = TlsConnector::new(common::client_config()?.build()?);
+    let server = TlsAcceptor::new(common::server_config()?.build()?);
+
+    let (mut client_result, _server_result) =
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
+
+    assert_eq!(client_result.get_ref().local_addr().unwrap(), client_addr);
+    assert_eq!(client_result.get_mut().local_addr().unwrap(), client_addr);
+
+    Ok(())
+}
