@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.0)
 project (s2n C)
 
+cmake_policy(SET CMP0057 NEW) #support IN_LIST operator. Cmake 3.26.0+ is defaulting to OLD, while 3.3-3.25 use NEW.
 if(POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW) #option does nothing when a normal variable of the same name exists.
 endif()
@@ -685,6 +686,11 @@ if (BUILD_TESTING)
     endif()
 
     if (S2N_INTEG_TESTS)
+	# Launching too many of these causes issues, limit the worker count.
+        list(APPEND PORT_COLLISION_RISK
+            "integrationv2_session_resumption"
+            "integrationv2_signature_algorithms"
+            "integrationv2_version_negotiation")
         find_package (Python3 COMPONENTS Interpreter Development)
         file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
         foreach(test_file_path ${integv2_test_files})
@@ -692,8 +698,8 @@ if (BUILD_TESTING)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
 	    if (S2N_FAST_INTEG_TESTS)
 	        cmake_host_system_information(RESULT N QUERY NUMBER_OF_LOGICAL_CORES)
-	        if (N EQUAL 0)
-		    set(N 1)
+	        if (N EQUAL 0 OR ${test_target} IN_LIST PORT_COLLISION_RISK)
+		    set(N 2)
 		endif()
    	        add_test(NAME ${test_target}
 		  COMMAND

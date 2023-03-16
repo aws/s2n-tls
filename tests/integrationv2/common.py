@@ -43,7 +43,7 @@ class AvailablePorts(object):
     that all need unique port numbers.
     """
 
-    def __init__(self, low=8000, high=30000):
+    def __init__(self, low=8445, high=30000):
         worker_count = int(os.getenv('PYTEST_XDIST_WORKER_COUNT'))
         chunk_size = int((high - low) / worker_count)
 
