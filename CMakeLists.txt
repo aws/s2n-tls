@@ -275,7 +275,7 @@ target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimpl
 )
 
 if (EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare -DEXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare )
 endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
