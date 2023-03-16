@@ -525,7 +525,7 @@ When using client authentication, the server MUST implement the `s2n_verify_host
 
 When using client authentication with TLS1.3, `s2n_negotiate` will report a successful
 handshake to clients before the server validates the client certificate. If the server then
-rejects the client certificate, the client may later receive an alert while calling s2n_recv,
+rejects the client certificate, the client may later receive an alert while calling `s2n_recv`,
 potentially after already having sent application data with s2n_send. This is a quirk of the
 TLS1.3 protocol message ordering: the server does not send any more handshake messages
 after the client sends the client certificate (see the [TLS1.3 state machine](https://www.rfc-editor.org/rfc/rfc8446.html#appendix-A.2)).
