@@ -63,8 +63,9 @@ extern const struct s2n_security_policy security_policy_20190214;
 extern const struct s2n_security_policy security_policy_20190214_gcm;
 extern const struct s2n_security_policy security_policy_20190801;
 extern const struct s2n_security_policy security_policy_20190802;
-extern const struct s2n_security_policy security_policy_default_tls13;
-extern const struct s2n_security_policy security_policy_default_fips;
+extern const struct s2n_security_policy security_policy_default_20230317;
+extern const struct s2n_security_policy security_policy_default_tls13_20230317;
+extern const struct s2n_security_policy security_policy_default_fips_20230317;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;

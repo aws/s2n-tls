@@ -15,6 +15,7 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "pq-crypto/s2n_pq.h"
 #include "s2n_test.h"
@@ -22,12 +23,65 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_algorithms.h"
 
+const struct s2n_security_policy security_policy_default_tls13_20201110 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20210831,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
+static S2N_RESULT s2n_test_security_policies_compatible(const struct s2n_security_policy *policy,
+        const char *default_policy, struct s2n_cert_chain_and_key *cert_chain)
+{
+    DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
+            s2n_config_ptr_free);
+    RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(server_config, cert_chain));
+
+    DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
+            s2n_config_ptr_free);
+    RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(client_config));
+
+    DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+            s2n_connection_ptr_free);
+    RESULT_GUARD_POSIX(s2n_connection_set_config(server, server_config));
+    RESULT_GUARD_POSIX(s2n_connection_set_cipher_preferences(server, default_policy));
+
+    DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    RESULT_GUARD_POSIX(s2n_connection_set_config(client, client_config));
+    client->security_policy_override = policy;
+
+    DEFER_CLEANUP(struct s2n_test_io_pair test_io_pair = { 0 },
+            s2n_io_pair_close);
+    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(&test_io_pair));
+    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client, server, &test_io_pair));
+    RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server, client));
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_TRUE(s2n_array_len(ALL_SUPPORTED_KEM_GROUPS) == S2N_SUPPORTED_KEM_GROUPS_COUNT);
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_pss_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    if (s2n_is_rsa_pss_certs_supported()) {
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
+                S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
+    }
 
     /* Perform basic checks on all Security Policies. */
     for (size_t policy_index = 0; security_policy_selection[policy_index].version != NULL; policy_index++) {
@@ -609,7 +663,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-        EXPECT_EQUAL(config->security_policy, &security_policy_20170210);
+        EXPECT_EQUAL(config->security_policy, &security_policy_default_20230317);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20170210);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20140601);
@@ -623,7 +677,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-        EXPECT_EQUAL(config->security_policy, &security_policy_default_tls13);
+        EXPECT_EQUAL(config->security_policy, &security_policy_default_tls13_20230317);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20210831);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
@@ -733,7 +787,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_EQUAL(security_policy, &security_policy_20170210);
+        EXPECT_EQUAL(security_policy, &security_policy_default_20230317);
         EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_20170210);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20140601);
@@ -749,7 +803,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_EQUAL(security_policy, &security_policy_default_tls13);
+        EXPECT_EQUAL(security_policy, &security_policy_default_tls13_20230317);
         EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_20210831);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
@@ -978,6 +1032,75 @@ int main(int argc, char **argv)
 
         EXPECT_ERROR_WITH_ERRNO(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences), S2N_ERR_INVALID_SECURITY_POLICY);
     }
+
+    EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
+    /* Sanity check that changes to default security policies are not completely
+     * backwards incompatible.
+     *
+     * If we get into a situation where the current default has NO options in
+     * common with a past version of the default, then updating s2n-tls is more dangerous.
+     *
+     * This check only performs one basic handshake, so isn't exhaustive.
+     */
+    {
+        /* Sanity check "default" */
+        {
+            const struct s2n_security_policy *versioned_policies[] = {
+                &security_policy_20170210,
+                &security_policy_default_20230317,
+            };
+
+            for (size_t i = 0; i < s2n_array_len(versioned_policies); i++) {
+                EXPECT_OK(s2n_test_security_policies_compatible(
+                        versioned_policies[i], "default", rsa_chain_and_key));
+            }
+        };
+
+        /* Sanity check "default_tls13" */
+        {
+            const struct s2n_security_policy *versioned_policies[] = {
+                &security_policy_default_tls13_20201110,
+                &security_policy_default_tls13_20230317,
+            };
+
+            struct s2n_cert_chain_and_key *supported_certs[] = {
+                rsa_chain_and_key,
+                ecdsa_chain_and_key,
+                rsa_pss_chain_and_key,
+            };
+            size_t supported_certs_size = s2n_array_len(supported_certs);
+            if (!s2n_is_rsa_pss_certs_supported()) {
+                supported_certs_size--;
+            }
+
+            for (size_t policy_i = 0; policy_i < s2n_array_len(versioned_policies); policy_i++) {
+                for (size_t cert_i = 0; cert_i < supported_certs_size; cert_i++) {
+                    EXPECT_OK(s2n_test_security_policies_compatible(
+                            versioned_policies[policy_i], "default_tls13", supported_certs[cert_i]));
+                }
+            }
+        };
+
+        /* Sanity check "default_fips" */
+        {
+            const struct s2n_security_policy *versioned_policies[] = {
+                &security_policy_default_fips_20230317,
+            };
+
+            struct s2n_cert_chain_and_key *supported_certs[] = {
+                rsa_chain_and_key,
+                ecdsa_chain_and_key,
+            };
+
+            for (size_t policy_i = 0; policy_i < s2n_array_len(versioned_policies); policy_i++) {
+                for (size_t cert_i = 0; cert_i < s2n_array_len(supported_certs); cert_i++) {
+                    EXPECT_OK(s2n_test_security_policies_compatible(
+                            versioned_policies[policy_i], "default_fips", supported_certs[cert_i]));
+                }
+            }
+        };
+    };
 
     END_TEST();
 }
