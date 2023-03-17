@@ -1,6 +1,5 @@
 import subprocess
 import socket
-import threading
 
 from constants import TEST_CERT_DIRECTORY
 from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
@@ -40,9 +39,6 @@ class AvailablePorts(object):
     that all need unique port numbers.
     """
 
-    def __init__(self):
-        self.lock = threading.Lock()
-
     def _get_available_port(self):
         next_port = 0
         with socket.socket(socket.AF_INET) as s:
@@ -55,8 +51,7 @@ class AvailablePorts(object):
         return self
 
     def __next__(self):
-        with self.lock:
-            return self._get_available_port()
+        return self._get_available_port()
 
 
 class TimeoutException(subprocess.SubprocessError):

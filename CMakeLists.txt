@@ -688,6 +688,7 @@ if (BUILD_TESTING)
     if (S2N_INTEG_TESTS)
 	# Launching too many of these causes issues, limit the worker count.
         list(APPEND PORT_COLLISION_RISK
+            "integrationv2_record_padding"
             "integrationv2_session_resumption"
             "integrationv2_signature_algorithms"
             "integrationv2_version_negotiation")
