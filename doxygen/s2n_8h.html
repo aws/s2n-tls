@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.39-736bbed0</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.39-3a4639e2</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -8257,6 +8257,7 @@ Reusing the same connection handle(s) is more performant than repeatedly calling
       </table>
 </div><div class="memdoc">
 <p >Performs the initial "handshake" phase of a TLS connection and must be called before any <a class="el" href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv()</a> or <a class="el" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send()</a> calls.</p>
+<dl class="section note"><dt>Note</dt><dd>When using client authentication with TLS1.3, <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> will report a successful handshake to clients before the server validates the client certificate. If the server then rejects the client certificate, the client may later receive an alert while calling s2n_recv, potentially after already having sent application data with s2n_send.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
