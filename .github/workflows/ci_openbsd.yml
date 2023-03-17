@@ -15,23 +15,15 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build and test in OpenBSD
         id: test
-        uses: vmactions/openbsd-vm@v0.1.2
+        uses: cross-platform-actions/action@v0.10.0
         with:
-          mem: 2048
-          prepare: |
-            # The / (root) mount point in the VM doesn't have enough disk
-            # space to build the project. These commands put the actual 'work'
-            # directory in the /home mount (which has lots of disk space) and
-            # creates symlinks to 'work' in the locations that the runner uses
-            # when copying artifacts back and forth between the VM and macOS
-            # host.
-            mv /Users/runner /home
-            rm -rf /Users
-            ln -s /home /Users
-            ln -sf /home/work /root/work
-            pkg_add ninja cmake
-            pkg_info
+          operating_system: openbsd
+          architecture: x86-64
+          version: '7.2'
+          shell: bash
           run: |
+            sudo pkg_add ninja cmake
+            pkg_info
             sysctl -n kern.version
             .github/s2n_bsd.sh
       - name: upload test results
