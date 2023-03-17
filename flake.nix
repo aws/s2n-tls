@@ -81,6 +81,8 @@
             pythonEnv
             corretto-8
             gnutls-3-7
+            pkgs.iproute2
+            pkgs.apacheHttpd
 
             # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
             llvmPkgs.llvm
