@@ -37,6 +37,10 @@ option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
+option(EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS "Additional compiler warnings are treated as errors. Warnings may
+indicate danger points where you should verify with the S2N-TLS developers that the security of
+the library is not compromised. These warnings are currently failing for some builds; once the problems are fixed,
+they will be moved to UNSAFE_TREAT_WARNINGS_AS_ERRORS." OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -266,8 +270,12 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
+        -Wno-missing-braces -Wno-strict-prototypes -Wa,--noexecstack
 )
+
+if (EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare )
+endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
