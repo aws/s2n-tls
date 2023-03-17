@@ -688,6 +688,9 @@ if (BUILD_TESTING)
     if (S2N_INTEG_TESTS)
 	# Launching too many of these causes issues, limit the worker count.
         list(APPEND PORT_COLLISION_RISK
+            "integrationv2_early_data"
+            "integrationv2_happy_path"
+            "integrationv2_hello_retry_requests"
             "integrationv2_record_padding"
             "integrationv2_session_resumption"
             "integrationv2_signature_algorithms"
@@ -700,7 +703,7 @@ if (BUILD_TESTING)
 	    if (S2N_FAST_INTEG_TESTS)
 	        cmake_host_system_information(RESULT N QUERY NUMBER_OF_LOGICAL_CORES)
 	        if (N EQUAL 0 OR ${test_target} IN_LIST PORT_COLLISION_RISK)
-		    set(N 2)
+		    set(N 1)
 		endif()
    	        add_test(NAME ${test_target}
 		  COMMAND
