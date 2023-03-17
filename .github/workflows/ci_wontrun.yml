@@ -17,7 +17,9 @@ jobs:
         id: spec-files-changed
         uses: tj-actions/changed-files@v35
         with:
-          files: codebuild/spec/*.{yml,yaml}
+          files: |
+              codebuild/spec/*.{yml,yaml}
+              buildspec.yml
       - name: Run step if any file(s) in the docs folder change
         if: steps.spec-files-changed.outputs.any_changed == 'true'
         run: |
