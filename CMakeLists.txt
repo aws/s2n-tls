@@ -1,6 +1,7 @@
 cmake_minimum_required (VERSION 3.0)
 project (s2n C)
 
+cmake_policy(SET CMP0057 NEW) #support IN_LIST operator. Cmake 3.26.0+ is defaulting to OLD, while 3.3-3.25 use NEW.
 if(POLICY CMP0077)
     cmake_policy(SET CMP0077 NEW) #option does nothing when a normal variable of the same name exists.
 endif()
@@ -23,7 +24,6 @@ option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
-option(S2N_AWSLC_KYBER_UNSTABLE "Prefer the AWS-LC provided PQ implementation." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -445,16 +445,16 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
 endif()
 
-# Determine if Kyber512 implementation from AWS-LC is available
+# Determine if KEM Kyber512 implementation from AWS-LC is available
 try_compile(
-        LIBCRYPTO_SUPPORTS_EVP_KYBER_512
+        LIBCRYPTO_SUPPORTS_EVP_KEM_KYBER_512
         ${CMAKE_BINARY_DIR}
-        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kyber_512.c"
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kem_kyber_512.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         COMPILE_DEFINITIONS "-Werror"
 )
 
-if(S2N_AWSLC_KYBER_UNSTABLE AND LIBCRYPTO_SUPPORTS_EVP_KYBER_512)
+if(LIBCRYPTO_SUPPORTS_EVP_KEM_KYBER_512)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_KYBER512)
 endif()
 
@@ -686,6 +686,11 @@ if (BUILD_TESTING)
     endif()
 
     if (S2N_INTEG_TESTS)
+	# Launching too many of these causes issues, limit the worker count.
+        list(APPEND PORT_COLLISION_RISK
+            "integrationv2_session_resumption"
+            "integrationv2_signature_algorithms"
+            "integrationv2_version_negotiation")
         find_package (Python3 COMPONENTS Interpreter Development)
         file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
         foreach(test_file_path ${integv2_test_files})
@@ -693,8 +698,8 @@ if (BUILD_TESTING)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
 	    if (S2N_FAST_INTEG_TESTS)
 	        cmake_host_system_information(RESULT N QUERY NUMBER_OF_LOGICAL_CORES)
-	        if (N EQUAL 0)
-		    set(N 1)
+	        if (N EQUAL 0 OR ${test_target} IN_LIST PORT_COLLISION_RISK)
+		    set(N 2)
 		endif()
    	        add_test(NAME ${test_target}
 		  COMMAND

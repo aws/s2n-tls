@@ -1,7 +1,7 @@
 [package]
 name = "s2n-tls-tokio"
 description = "An implementation of TLS streams for Tokio built on top of s2n-tls"
-version = "0.0.26"
+version = "0.0.27"
 authors = ["AWS s2n"]
 edition = "2021"
 rust-version = "1.63.0"
@@ -15,7 +15,7 @@ default = []
 errno = { version = "0.3" }
 libc = { version = "0.2" }
 pin-project-lite = { version = "0.2" }
-s2n-tls = { version = "=0.0.26", path = "../s2n-tls" }
+s2n-tls = { version = "=0.0.27", path = "../s2n-tls" }
 tokio = { version = "1", features = ["net", "time"] }
 
 [dev-dependencies]

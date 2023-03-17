@@ -231,6 +231,12 @@ ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
 	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
 endif
 
+# Determine if the Kyber 512 KEM API is available in libcrypto
+TRY_LIBCRYPTO_SUPPORTS_KYBER512 := $(call try_compile,$(S2N_ROOT)/tests/features/evp_kem_kyber_512.c)
+ifeq ($(TRY_LIBCRYPTO_SUPPORTS_KYBER512), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_KYBER512
+endif
+
 # Determine if madvise() is available
 TRY_COMPILE_MADVISE := $(call try_compile,$(S2N_ROOT)/tests/features/madvise.c)
 ifeq ($(TRY_COMPILE_MADVISE), 0)
