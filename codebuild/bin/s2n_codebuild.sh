@@ -49,7 +49,7 @@ if [[ "$OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     # and will not produce any output
     while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
 
-    if [[ "$GCC_VERSION" == "9" && "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then
+    if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" || "$S2N_LIBCRYPTO" == "awslc" ]]; then
         # https://github.com/aws/s2n-tls/issues/3758
         # Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
         echo "running task pedantic_valgrind"
