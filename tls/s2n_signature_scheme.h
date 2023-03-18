@@ -73,6 +73,7 @@ extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha256;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha384;
 extern const struct s2n_signature_scheme s2n_rsa_pss_rsae_sha512;
 
+extern const struct s2n_signature_preferences s2n_signature_preferences_20230317;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20140601;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20200207;
 extern const struct s2n_signature_preferences s2n_signature_preferences_20201021;

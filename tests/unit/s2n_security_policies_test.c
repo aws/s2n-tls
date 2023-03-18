@@ -15,6 +15,7 @@
 
 #include "tls/s2n_security_policies.h"
 
+#include "crypto/s2n_rsa_pss.h"
 #include "crypto/s2n_rsa_signing.h"
 #include "pq-crypto/s2n_pq.h"
 #include "s2n_test.h"
@@ -22,12 +23,56 @@
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_algorithms.h"
 
+static S2N_RESULT s2n_test_security_policies_compatible(const struct s2n_security_policy *policy,
+        const char *default_policy, struct s2n_cert_chain_and_key *cert_chain)
+{
+    DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
+            s2n_config_ptr_free);
+    RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(server_config, cert_chain));
+
+    DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
+            s2n_config_ptr_free);
+    RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(client_config));
+
+    DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+            s2n_connection_ptr_free);
+    RESULT_GUARD_POSIX(s2n_connection_set_config(server, server_config));
+    RESULT_GUARD_POSIX(s2n_connection_set_cipher_preferences(server, default_policy));
+
+    DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+            s2n_connection_ptr_free);
+    RESULT_GUARD_POSIX(s2n_connection_set_config(client, client_config));
+    client->security_policy_override = policy;
+
+    DEFER_CLEANUP(struct s2n_test_io_pair test_io_pair = { 0 },
+            s2n_io_pair_close);
+    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(&test_io_pair));
+    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client, server, &test_io_pair));
+    RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server, client));
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_TRUE(s2n_array_len(ALL_SUPPORTED_KEM_GROUPS) == S2N_SUPPORTED_KEM_GROUPS_COUNT);
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_pss_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+    if (s2n_is_rsa_pss_certs_supported()) {
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_chain_and_key,
+                S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
+    }
 
     /* Perform basic checks on all Security Policies. */
     for (size_t policy_index = 0; security_policy_selection[policy_index].version != NULL; policy_index++) {
@@ -978,6 +1023,28 @@ int main(int argc, char **argv)
 
         EXPECT_ERROR_WITH_ERRNO(s2n_validate_certificate_signature_preferences(&test_certificate_signature_preferences), S2N_ERR_INVALID_SECURITY_POLICY);
     }
+
+    EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
+    /* Test that security policies are compatible with other policies */
+    {
+        /* 20230317 */
+        {
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_tls13", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_fips", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "20230317", rsa_chain_and_key));
+
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_tls13", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_fips", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "20230317", ecdsa_chain_and_key));
+
+            if (s2n_is_rsa_pss_certs_supported()) {
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_tls13", rsa_pss_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "20230317", rsa_pss_chain_and_key));
+            }
+        };
+    };
 
     END_TEST();
 }

@@ -282,6 +282,42 @@ const struct s2n_signature_preferences s2n_signature_preferences_default_fips = 
     .signature_schemes = s2n_sig_scheme_pref_list_default_fips,
 };
 
+/*
+ * FIPS compliant.
+ * Supports TLS1.3.
+ * Prefers PSS over PKCS1.
+ */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20230317[] = {
+    /* RSA */
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+
+    /* TLS1.2 with ECDSA */
+    &s2n_ecdsa_sha256, /* same iana value as TLS 1.3 s2n_ecdsa_secp256r1_sha256 */
+    &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
+    &s2n_ecdsa_sha512,
+    &s2n_ecdsa_sha224,
+
+    /* TLS1.3 with ECDSA */
+    &s2n_ecdsa_secp256r1_sha256,
+    &s2n_ecdsa_secp384r1_sha384,
+    &s2n_ecdsa_secp521r1_sha512,
+
+    /* TLS1.3 with RSA-PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20230317 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20230317),
+    .signature_schemes = s2n_sig_scheme_pref_list_20230317,
+};
+
 /* Add s2n_ecdsa_secp521r1_sha512 */
 const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201021[] = {
     /* RSA PSS */
