@@ -17,6 +17,7 @@ SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 TESTS=$(SRCS:.c=)
 VALGRIND_TESTS=$(SRCS:.c=.valgrind)
+PEDANTIC_VALGRIND_TESTS:=$(SRCS:.c=.pedantic_valgrind)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
 # Users can specify a subset of tests to be run, otherwise run all tests.
@@ -62,9 +63,21 @@ $(VALGRIND_TESTS)::
 	valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
 	./$(@:.valgrind=)
 
+$(PEDANTIC_VALGRIND_TESTS)::
+	@${CC} ${CFLAGS} -o $(@:.pedantic_valgrind=) $(@:.pedantic_valgrind=.c) ${LDFLAGS} 2>&1
+	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
+	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
+	S2N_VALGRIND=1 \
+	valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --run-libc-freeres=yes -q --error-exitcode=9 --gen-suppressions=all --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
+	./$(@:.pedantic_valgrind=)
+
 .PHONY : valgrind
 valgrind: $(VALGRIND_TESTS)
 
+# https://github.com/aws/s2n-tls/issues/3758
+# Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
+.PHONY : pedantic_valgrind
+pedantic_valgrind: $(PEDANTIC_VALGRIND_TESTS)
 
 .PHONY : clean
 clean: decruft
