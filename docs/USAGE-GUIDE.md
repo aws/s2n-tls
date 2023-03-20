@@ -413,7 +413,7 @@ The following chart maps the security policy version to protocol version and cip
 |          "20190801"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
 |          "20190802"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
 |          "20200207"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |                  |
-|          "20230317"                          |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |     |   X   |                  |
+|          "20230317"                          |       |        |        |    X   |    X    |    X    |                   |   X   |    X    |      |     |     |   X   |                  |
 |          "rfc9151"                           |       |        |        |    X   |    X    |         |                   |   X   |    X    |      |     |  X  |   X   |                  |
 |  "CloudFront-TLS-1-2-2021"                   |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |                  |
 |  "CloudFront-TLS-1-2-2021-ChaCha20-Boosted"  |       |        |        |    X   |    X    |         |          X        |   X   |    X    |      |     |     |   X   |        X         |
