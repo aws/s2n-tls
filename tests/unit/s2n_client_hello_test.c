@@ -221,6 +221,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+            conn->actual_protocol_version = i;
 
             conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
             EXPECT_MEMCPY_SUCCESS(conn->session_id, test_session_id, S2N_TLS_SESSION_ID_MAX_LEN);

@@ -19,16 +19,16 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
-const struct s2n_security_policy security_policy_20170210 = {
-    .minimum_protocol_version = S2N_TLS10,
+const struct s2n_security_policy security_policy_default_20230317 = {
+    .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20170210,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
-const struct s2n_security_policy security_policy_default_tls13 = {
-    .minimum_protocol_version = S2N_TLS10,
+const struct s2n_security_policy security_policy_default_tls13_20230317 = {
+    .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20210831,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20200207,
@@ -42,13 +42,21 @@ const struct s2n_security_policy security_policy_default_tls13 = {
  *
  * Supports TLS1.2
  */
-const struct s2n_security_policy security_policy_default_fips = {
+const struct s2n_security_policy security_policy_default_fips_20230317 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_default_fips,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_default_fips,
     .certificate_signature_preferences = &s2n_signature_preferences_default_fips,
     .ecc_preferences = &s2n_ecc_preferences_default_fips,
+};
+
+const struct s2n_security_policy security_policy_20170210 = {
+    .minimum_protocol_version = S2N_TLS10,
+    .cipher_preferences = &cipher_preferences_20170210,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
 const struct s2n_security_policy security_policy_20190801 = {
@@ -784,9 +792,9 @@ const struct s2n_security_policy security_policy_null = {
 };
 
 struct s2n_security_policy_selection security_policy_selection[] = {
-    { .version = "default", .security_policy = &security_policy_20170210, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "default_tls13", .security_policy = &security_policy_default_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "default_fips", .security_policy = &security_policy_default_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default", .security_policy = &security_policy_default_20230317, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_tls13", .security_policy = &security_policy_default_tls13_20230317, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_fips", .security_policy = &security_policy_default_fips_20230317, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy = &security_policy_elb_2015_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-05", .security_policy = &security_policy_elb_2016_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },

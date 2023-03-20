@@ -392,7 +392,7 @@ The following chart maps the security policy version to protocol version and cip
 
 |           version                            | SSLv3 | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE | ChaCha20-Boosted |
 |----------------------------------------------|-------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|------------------|
-|          "default"                           |       |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |                  |
+|          "default"                           |       |        |        |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |                  |
 |          "20190214"                          |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |                  |
 |          "20170718"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |      |     |     |   X   |                  |
 |          "20170405"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
@@ -409,7 +409,7 @@ The following chart maps the security policy version to protocol version and cip
 |          "20190120"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
 |          "20190121"                          |       |   X    |    X   |    X   |         |    X    |                   |       |    X    |  X   |     |     |   X   |                  |
 |          "20190122"                          |       |   X    |    X   |    X   |         |    X    |                   |   X   |    X    |  X   |     |  X  |   X   |                  |
-|        "default_tls13"                       |       |   X    |    X   |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |                  |
+|        "default_tls13"                       |       |        |        |    X   |    X    |    X    |          X        |   X   |    X    |      |     |     |   X   |                  |
 |          "20190801"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
 |          "20190802"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |   X   |                  |
 |          "20200207"                          |       |   X    |    X   |    X   |    X    |    X    |          X        |       |    X    |      |     |     |       |                  |
