@@ -57,7 +57,7 @@ const struct s2n_security_policy security_policy_20230317 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .certificate_signature_preferences = &s2n_signature_preferences_20230317,
-    .ecc_preferences = &s2n_ecc_preferences_default_fips,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
 const struct s2n_security_policy security_policy_20190801 = {
