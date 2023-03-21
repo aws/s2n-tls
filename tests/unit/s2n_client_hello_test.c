@@ -1500,35 +1500,6 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(server->client_hello.alloced);
             }
         };
-
-        /* Test: Does NOT modify input */
-        {
-            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-
-            EXPECT_SUCCESS(s2n_handshake_write_header(&client->handshake.io, TLS_CLIENT_HELLO));
-            EXPECT_SUCCESS(s2n_client_hello_send(client));
-            EXPECT_SUCCESS(s2n_handshake_finish_header(&client->handshake.io));
-
-            uint32_t raw_size = s2n_stuffer_data_available(&client->handshake.io);
-            EXPECT_NOT_EQUAL(raw_size, 0);
-            uint8_t *raw = s2n_stuffer_raw_read(&client->handshake.io, raw_size);
-            EXPECT_NOT_NULL(raw);
-
-            DEFER_CLEANUP(struct s2n_stuffer saved = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_alloc(&saved, raw_size));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&saved, raw, raw_size));
-            uint8_t *saved_raw = s2n_stuffer_raw_read(&saved, raw_size);
-            EXPECT_NOT_NULL(saved_raw);
-            EXPECT_NOT_EQUAL(raw, saved_raw);
-
-            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
-            EXPECT_NOT_NULL(client_hello = s2n_client_hello_parse_message(raw, raw_size));
-
-            /* Expect input unchanged */
-            EXPECT_BYTEARRAY_EQUAL(raw, saved_raw, raw_size);
-        };
     };
 
     /* Test s2n_client_hello_free */

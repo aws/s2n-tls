@@ -460,7 +460,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
 }
 
 static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **result,
-        uint8_t *raw_message, uint32_t raw_message_size)
+        const uint8_t *raw_message, uint32_t raw_message_size)
 {
     RESULT_ENSURE_REF(result);
 
@@ -473,10 +473,9 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
     client_hello->alloced = true;
     ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
 
-    struct s2n_blob in_blob = { 0 };
-    struct s2n_stuffer in = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&in_blob, raw_message, raw_message_size));
-    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&in, &in_blob));
+    DEFER_CLEANUP(struct s2n_stuffer in = { 0 }, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_stuffer_alloc(&in, raw_message_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&in, raw_message, raw_message_size));
 
     uint8_t message_type = 0;
     uint32_t message_len = 0;
@@ -496,7 +495,7 @@ static S2N_RESULT s2n_client_hello_parse_message_impl(struct s2n_client_hello **
     return S2N_RESULT_OK;
 }
 
-struct s2n_client_hello *s2n_client_hello_parse_message(uint8_t *raw_message, uint32_t raw_message_size)
+struct s2n_client_hello *s2n_client_hello_parse_message(const uint8_t *raw_message, uint32_t raw_message_size)
 {
     struct s2n_client_hello *result = NULL;
     PTR_GUARD_RESULT(s2n_client_hello_parse_message_impl(&result, raw_message, raw_message_size));
