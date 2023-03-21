@@ -329,8 +329,7 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     RESULT_ENSURE_REF(client_hello);
 
     struct s2n_stuffer in_stuffer = { 0 };
-    RESULT_GUARD_POSIX(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&in_stuffer, client_hello->raw_message.size));
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&in_stuffer, &client_hello->raw_message));
     struct s2n_stuffer *in = &in_stuffer;
 
     /**
