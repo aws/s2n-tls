@@ -33,6 +33,11 @@ benchmark: libs
 valgrind: libs
 	${MAKE} -C unit valgrind
 
+# https://github.com/aws/s2n-tls/issues/3758
+# Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
+pedantic_valgrind: libs
+	${MAKE} -C unit pedantic_valgrind
+
 .PHONY : libs
 libs:
 	${MAKE} -C testlib
