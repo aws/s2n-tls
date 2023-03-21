@@ -122,9 +122,8 @@ for file in $S2N_FILES_ASSERT_NOTNULL_CHECK; do
     # $line_one definitely contains an assignment from s2n_stuffer_raw_read(),
     # because that's what we grepped for. So verify that either $line_one or
     # $line_two contains a null check.
-    manual_null_check_regex="(.*(if|ENSURE_POSIX|POSIX_ENSURE).*=\ NULL)|(ENSURE_REF)"
-    if [[ $line_one == *"notnull_check("* ]] || [[ $line_one =~ $manual_null_check_regex ]] ||\
-    [[ $line_two == *"notnull_check("* ]] || [[ $line_two =~ $manual_null_check_regex ]]; then
+    null_check_regex="(.*(if|ENSURE).*=\ NULL)|(ENSURE_REF)"
+    if [[ $line_one =~ $null_check_regex ]] || [[ $line_two =~ $null_check_regex ]]; then
       # Found a notnull_check
       continue
     else
