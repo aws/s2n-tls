@@ -193,7 +193,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
             continue;
         }
 
-        out.size = MIN(size, s2n_stuffer_data_available(&conn->in));
+        out.size = MIN((uint32_t) size, s2n_stuffer_data_available(&conn->in));
 
         POSIX_GUARD(s2n_stuffer_erase_and_read(&conn->in, &out));
         bytes_read += out.size;

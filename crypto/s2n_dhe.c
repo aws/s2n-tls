@@ -18,6 +18,7 @@
 #include <openssl/bn.h>
 #include <openssl/dh.h>
 #include <openssl/evp.h>
+#include <stddef.h>
 #include <stdint.h>
 
 #include "crypto/s2n_openssl.h"
@@ -142,7 +143,7 @@ int s2n_pkcs3_to_dh_params(struct s2n_dh_params *dh_params, struct s2n_blob *pkc
     uint8_t *original_ptr = pkcs3->data;
     dh_params->dh = d2i_DHparams(NULL, (const unsigned char **) (void *) &pkcs3->data, pkcs3->size);
     POSIX_GUARD(s2n_check_p_g_dh_params(dh_params));
-    if (pkcs3->data && (pkcs3->data - original_ptr != pkcs3->size)) {
+    if (pkcs3->data && (pkcs3->data - original_ptr != (ptrdiff_t) pkcs3->size)) {
         DH_free(dh_params->dh);
         POSIX_BAIL(S2N_ERR_INVALID_PKCS3);
     }

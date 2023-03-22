@@ -180,7 +180,7 @@ S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *
      * We only care about the result of this call if it fails. */
     uint32_t early_data_to_send = 0;
     RESULT_GUARD_POSIX(s2n_connection_get_remaining_early_data_size(conn, &early_data_to_send));
-    early_data_to_send = MIN(data_len, early_data_to_send);
+    early_data_to_send = MIN((uint32_t) data_len, early_data_to_send);
     if (early_data_to_send) {
         ssize_t send_result = s2n_send(conn, data, early_data_to_send, blocked);
         RESULT_GUARD_POSIX(send_result);

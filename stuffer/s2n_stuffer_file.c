@@ -17,6 +17,7 @@
 #include <fcntl.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
+#include <limits.h>
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -28,20 +29,24 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
 
+    uint32_t rlen = len;
     /* Make sure we have enough space to write */
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, len));
+    if (SSIZE_MAX < UINT32_MAX && len > SSIZE_MAX)
+        rlen = SSIZE_MAX;
+    else if (len > UINT32_MAX)
+        rlen = UINT32_MAX;
 
     /* "undo" the skip write */
-    stuffer->write_cursor -= len;
+    stuffer->write_cursor -= rlen;
 
     ssize_t r = 0;
     do {
         POSIX_ENSURE(stuffer->blob.data && (r >= 0 || errno == EINTR), S2N_ERR_READ);
-        r = read(rfd, stuffer->blob.data + stuffer->write_cursor, len);
+        r = read(rfd, stuffer->blob.data + stuffer->write_cursor, rlen);
     } while (r < 0);
 
     /* Record just how many bytes we have written */
-    POSIX_ENSURE(r <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, (uint32_t) r));
     if (bytes_written != NULL) {
         *bytes_written = r;
@@ -53,19 +58,25 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
 
+    uint32_t rlen = len;
     /* Make sure we even have the data */
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, len));
+    if (SSIZE_MAX < UINT32_MAX && len > SSIZE_MAX)
+        rlen = SSIZE_MAX;
+    else if (len > UINT32_MAX)
+        rlen = UINT32_MAX;
+    if (stuffer->read_cursor > UINT32_MAX - rlen)
+        rlen = UINT32_MAX - stuffer->read_cursor;
 
     /* "undo" the skip read */
-    stuffer->read_cursor -= len;
+    stuffer->read_cursor -= rlen;
 
     ssize_t w = 0;
     do {
         POSIX_ENSURE(stuffer->blob.data && (w >= 0 || errno == EINTR), S2N_ERR_WRITE);
-        w = write(wfd, stuffer->blob.data + stuffer->read_cursor, len);
+        w = write(wfd, stuffer->blob.data + stuffer->read_cursor, rlen);
     } while (w < 0);
 
-    POSIX_ENSURE(w <= UINT32_MAX - stuffer->read_cursor, S2N_ERR_INTEGER_OVERFLOW);
     stuffer->read_cursor += w;
     if (bytes_sent != NULL) {
         *bytes_sent = w;
