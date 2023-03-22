@@ -54,12 +54,6 @@ int main()
 {
     BEGIN_TEST();
 
-#if defined(OPENSSL_IS_AWSLC) && defined(AWS_LC_API_VERSION)
-    const unsigned long lc_vers = awslc_api_version_num();
-#else
-    const unsigned long lc_vers = SSLeay();
-#endif
-
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
         const struct s2n_kem_test_vector vector = test_vectors[i];
         const struct s2n_kem *kem = vector.kem;
