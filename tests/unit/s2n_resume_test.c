@@ -703,7 +703,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_deserialize_resumption_state(conn, NULL, &ticket_stuffer));
 
             EXPECT_TRUE(conn->ems_negotiated);
-            EXPECT_EQUAL(conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(conn->resume_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_rsa_with_aes_128_gcm_sha256);
 
             EXPECT_BYTEARRAY_EQUAL(test_master_secret.data, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN);
@@ -1246,6 +1246,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS12;
+            conn->handshake.handshake_type = NEGOTIATED;
 
             struct s2n_blob secret = { 0 };
             struct s2n_stuffer secret_stuffer = { 0 };
@@ -1269,6 +1270,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         };
+
 
         /* Check session ticket can be decrypted with a small secret in TLS13 session resumption. */
         {
