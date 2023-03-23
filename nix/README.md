@@ -16,7 +16,7 @@ separate from the buildPhase, configurePhase and checkPhase.
 - Oneshot: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ" `
 - Specific test: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ happy_path"`
 
-- Interactivly: 
+- interactively: 
 
 ```
 nix develop
