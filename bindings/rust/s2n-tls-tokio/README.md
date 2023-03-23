@@ -1,0 +1,1 @@
+`s2n-tls-tokio` provides async bindings that allow consumers to use `s2n-tls` with the tokio runtime.
