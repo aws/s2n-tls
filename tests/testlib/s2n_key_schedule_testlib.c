@@ -32,9 +32,9 @@ S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn,
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(early_secret);
-    RESULT_CHECKED_MEMCPY(conn->secrets.tls13.extract_secret,
+    RESULT_CHECKED_MEMCPY(conn->secrets.version.tls13.extract_secret,
             early_secret->data, early_secret->size);
-    conn->secrets.tls13.extract_secret_type = S2N_EARLY_SECRET;
+    conn->secrets.extract_secret_type = S2N_EARLY_SECRET;
     return S2N_RESULT_OK;
 }
 
@@ -43,9 +43,9 @@ S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn,
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(handshake_secret);
-    RESULT_CHECKED_MEMCPY(conn->secrets.tls13.extract_secret,
+    RESULT_CHECKED_MEMCPY(conn->secrets.version.tls13.extract_secret,
             handshake_secret->data, handshake_secret->size);
-    conn->secrets.tls13.extract_secret_type = S2N_HANDSHAKE_SECRET;
+    conn->secrets.extract_secret_type = S2N_HANDSHAKE_SECRET;
     return S2N_RESULT_OK;
 }
 
@@ -54,8 +54,8 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn,
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(master_secret);
-    RESULT_CHECKED_MEMCPY(conn->secrets.tls13.extract_secret,
+    RESULT_CHECKED_MEMCPY(conn->secrets.version.tls13.extract_secret,
             master_secret->data, master_secret->size);
-    conn->secrets.tls13.extract_secret_type = S2N_MASTER_SECRET;
+    conn->secrets.extract_secret_type = S2N_MASTER_SECRET;
     return S2N_RESULT_OK;
 }
