@@ -1271,7 +1271,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         };
 
-
         /* Check session ticket can be decrypted with a small secret in TLS13 session resumption. */
         {
             struct s2n_connection *conn;
