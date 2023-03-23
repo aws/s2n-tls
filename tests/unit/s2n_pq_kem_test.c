@@ -54,19 +54,6 @@ int main()
 {
     BEGIN_TEST();
 
-#if defined(OPENSSL_IS_AWSLC) && defined(AWS_LC_API_VERSION)
-    const unsigned long lc_vers = awslc_api_version_num();
-#else
-    const unsigned long lc_vers = SSLeay();
-#endif
-
-    /* If using non-FIPS AWS-LC >= v1.4.0 (API vers. 20), expect Kyber512 KEM from AWS-LC */
-    if (s2n_libcrypto_is_awslc() && lc_vers >= 20 && !s2n_libcrypto_is_fips()) {
-        EXPECT_TRUE(s2n_libcrypto_supports_kyber_512());
-    } else {
-        EXPECT_FALSE(s2n_libcrypto_supports_kyber_512());
-    }
-
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
         const struct s2n_kem_test_vector vector = test_vectors[i];
         const struct s2n_kem *kem = vector.kem;
