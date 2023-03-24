@@ -30,7 +30,7 @@ integ
 Nix can store build artifacts in an external store, to reduce build times, and to allow CI to only do the build task once.
 While there are [services to handle this](https://www.cachix.org/), for s2n-tls' CI, we're relying on S3 buckets.
 
-In it's simplest form, the `nix copy` command can be used to stash a specific pacakge, but in the case of CI, where we'd like to stash an entire build environment,
+In its simplest form, the `nix copy` command can be used to stash a specific package, but in the case of CI, where we'd like to stash an entire build environment,
  more sophistication is required.
 
 By using inputDerivation, we can create a meta-package that contains all the packages in our devShell.
