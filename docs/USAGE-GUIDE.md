@@ -390,6 +390,8 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 The following chart maps the security policy version to protocol version and ciphersuites supported.
 
+Perhaps add RSA and RSA-PSS
+                                                            enc         enc                 sign    enc     enc    enc   ke      ke
 |      version       | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3  | AES-CBC | ChaCha20-Poly1305 | ECDSA | AES-GCM | 3DES | RC4 | DHE | ECDHE |
 |--------------------|--------|--------|--------|---------|---------|-------------------|-------|---------|------|-----|-----|-------|
 |     "default"      |   X    |    X   |    X   |         |    X    |          X        |       |    X    |      |     |     |   X   |
