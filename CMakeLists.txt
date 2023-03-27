@@ -695,27 +695,24 @@ if (BUILD_TESTING)
     if (S2N_INTEG_TESTS)
         find_package (Python3 COMPONENTS Interpreter Development)
         file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
-        if (DEFINED ENV{CODEBUILD_BUILD_NUMBER})
-            message(STATUS "Codebuild detected: integ test run will be single threaded.")
-        endif()
         foreach(test_file_path ${integv2_test_files})
             get_filename_component(test_filename ${test_file_path} NAME_WE)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
-            if (S2N_FAST_INTEG_TESTS)
-                cmake_host_system_information(RESULT N QUERY NUMBER_OF_LOGICAL_CORES)
-                if (N EQUAL 0 OR DEFINED ENV{CODEBUILD_BUILD_NUMBER})
-                    set(N 1)
-                endif()
-                add_test(NAME ${test_target}
-                    COMMAND
-                    pytest
-                    -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
-                    -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
-                    --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
-                    WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
-                )
-            else()
-                add_test(NAME ${test_target}
+	    if (S2N_FAST_INTEG_TESTS)
+	        cmake_host_system_information(RESULT N QUERY NUMBER_OF_LOGICAL_CORES)
+	        if (N EQUAL 0)
+		    set(N 1)
+		endif()
+   	        add_test(NAME ${test_target}
+		  COMMAND
+		  pytest
+		  -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
+		  -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
+		  --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
+		  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
+		)
+	    else()
+	        add_test(NAME ${test_target}
                   COMMAND
                   ${CMAKE_COMMAND} -E env
                   DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
