@@ -104,6 +104,7 @@
             pkgs.which
           ];
         };
+        packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
           (finalAttrs: previousAttrs: { doCheck = true; });
