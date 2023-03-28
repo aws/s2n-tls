@@ -1776,6 +1776,11 @@ typedef enum {
 /**
  * Performs the initial "handshake" phase of a TLS connection and must be called before any s2n_recv() or s2n_send() calls.
  *
+ * @note When using client authentication with TLS1.3, s2n_negotiate() will report a successful
+ * handshake to clients before the server validates the client certificate. If the server then
+ * rejects the client certificate, the client may later receive an alert while calling s2n_recv,
+ * potentially after already having sent application data with s2n_send.
+ *
  * @param conn A pointer to the s2n_connection object
  * @param blocked A pointer which will be set to the blocked status. 
  * @returns S2N_SUCCESS if the handshake completed. S2N_FAILURE if the handshake encountered an error or is blocked.

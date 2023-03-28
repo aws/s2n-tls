@@ -83,7 +83,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
 
-    _exit(0);
+    exit(0);
 }
 
 int main(int argc, char **argv)

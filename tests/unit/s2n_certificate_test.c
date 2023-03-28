@@ -29,6 +29,8 @@
 #define ext_value_MAX_LEN            UINT16_MAX
 #define OFFSET_INSUFFICIENT_MEM_SIZE 3
 
+DEFINE_POINTER_CLEANUP_FUNC(X509_NAME *, X509_NAME_free);
+
 struct host_verify_data {
     bool callback_invoked;
     bool allow;
@@ -802,6 +804,66 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_set_sct_list(chain, sct_list, sizeof(sct_list)));
         EXPECT_EQUAL(chain->sct_list.size, sizeof(sct_list));
         EXPECT_BYTEARRAY_EQUAL(chain->sct_list.data, sct_list, sizeof(sct_list));
+    };
+
+    /* Test s2n_cert_chain_and_key_load_cns */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain,
+                S2N_DEFAULT_TEST_CERT_CHAIN,
+                S2N_DEFAULT_TEST_PRIVATE_KEY));
+        POSIX_ENSURE_REF(chain->cert_chain);
+
+        struct s2n_cert *head = chain->cert_chain->head;
+        POSIX_ENSURE_REF(head);
+
+        struct s2n_blob *leaf_bytes = &head->raw;
+        const unsigned char *leaf_der = leaf_bytes->data;
+        EXPECT_NOT_NULL(leaf_der);
+
+        DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
+        cert = d2i_X509(NULL, &leaf_der, leaf_bytes->size);
+        EXPECT_NOT_NULL(cert);
+
+        DEFER_CLEANUP(X509_NAME *x509_name = NULL, X509_NAME_free_pointer);
+        x509_name = X509_NAME_new();
+        EXPECT_NOT_NULL(x509_name);
+
+        /* We start with one CN name already */
+        uint32_t len = 0;
+        EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
+        EXPECT_EQUAL(len, 1);
+
+        /* Try loading a zero length CN name */
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
+                (unsigned char *) (uintptr_t) "", -1, -1, 1));
+        EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
+
+        /* No CN name has been added */
+        EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
+        EXPECT_EQUAL(len, 1);
+
+        /* Try loading an invalid CN name */
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, 29,
+                (unsigned char *) (uintptr_t) "invalid", -1, -1, 1));
+        EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
+
+        /* No CN name has been added */
+        EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
+        EXPECT_EQUAL(len, 1);
+
+        /* Add a valid CN name */
+        EXPECT_SUCCESS(X509_NAME_add_entry_by_NID(x509_name, NID_commonName, V_ASN1_IA5STRING,
+                (unsigned char *) (uintptr_t) "valid", -1, -1, 1));
+        EXPECT_EQUAL(X509_set_subject_name(cert, x509_name), 1);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_cns(chain, cert));
+
+        /* 1 more CN name has been added */
+        EXPECT_OK(s2n_array_num_elements(chain->cn_names, &len));
+        EXPECT_EQUAL(len, 2);
     };
 
     END_TEST();

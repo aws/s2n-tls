@@ -97,7 +97,7 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
 
     s2n_cleanup();
 
-    _exit(result);
+    exit(result);
 }
 
 int main(int argc, char **argv)

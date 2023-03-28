@@ -60,39 +60,26 @@ int mock_client(struct s2n_test_io_pair *io_pair)
     s2n_config_free(client_config);
     s2n_cleanup();
 
-    _exit(0);
+    exit(0);
 }
 
 /**
  * This test ensures that we don't allow releasing connection buffers if they contain part
- * of the unprocessed record, avoiding conneciton corruption.
+ * of the unprocessed record, avoiding connection corruption.
  */
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
     char *cert_chain_pem;
     char *private_key_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_stuffer in, out;
     uint8_t buf[sizeof(buf_to_send)];
     uint32_t n = 0;
     ssize_t ret = 0;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
-    EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     /* Create a pipe */
     struct s2n_test_io_pair io_pair;
@@ -104,19 +91,29 @@ int main(int argc, char **argv)
         /* This is the client process, close the server end of the pipe */
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
-        /* Free the config */
-        EXPECT_SUCCESS(s2n_config_free(config));
-        free(cert_chain_pem);
-        free(private_key_pem);
-
         /* Run the client */
         mock_client(&io_pair);
     }
 
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+            s2n_connection_ptr_free);
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+            s2n_cert_chain_and_key_ptr_free);
+    DEFER_CLEANUP(struct s2n_stuffer in, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer out, s2n_stuffer_free);
+
+    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, private_key_pem));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
     /* This is the server process, close the client end of the pipe */
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* Make pipes non-blocking */
@@ -191,15 +188,10 @@ int main(int argc, char **argv)
         s2n_stuffer_send_to_fd(&out, io_pair.server, s2n_stuffer_data_available(&out), NULL);
     } while (!server_shutdown);
 
-    EXPECT_SUCCESS(s2n_connection_free(conn));
-
-    /* Clean up */
-    EXPECT_SUCCESS(s2n_stuffer_free(&in));
-    EXPECT_SUCCESS(s2n_stuffer_free(&out));
     EXPECT_EQUAL(waitpid(-1, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
-    EXPECT_SUCCESS(s2n_config_free(config));
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+
+    /* Clean up */
     free(cert_chain_pem);
     free(private_key_pem);
 

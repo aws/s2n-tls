@@ -18,3 +18,10 @@ extern "C" {
         config: *mut *mut s2n_config,
     ) -> ::libc::c_int;
 }
+extern "C" {
+    pub fn s2n_config_add_cert_chain(
+        config: *mut s2n_config,
+        cert_chain_pem: *mut u8,
+        cert_chain_pem_size: u32,
+    ) -> ::libc::c_int;
+}

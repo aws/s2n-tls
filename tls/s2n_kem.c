@@ -70,8 +70,6 @@ const struct s2n_iana_to_kem kem_mapping[3] = {
 const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .name = "secp256r1_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
-    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
-    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + SECP256R1_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_512_r3,
 };
@@ -80,8 +78,6 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
 const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
     .name = "x25519_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
-    .client_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_PUBLIC_KEY_BYTES),
-    .server_share_size = (S2N_SIZE_OF_KEY_SHARE_SIZE + X25519_SHARE_SIZE) + (S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_512_r3,
 };
@@ -285,7 +281,9 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 
     const struct s2n_kem *kem = kem_params->kem;
 
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
+    if (kem_params->len_prefixed) {
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->public_key_length));
+    }
 
     /* We don't need to store the public key after sending it.
      * We write it directly to *out. */
@@ -313,15 +311,17 @@ int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_ENSURE_REF(kem_params->kem);
 
     const struct s2n_kem *kem = kem_params->kem;
-    kem_public_key_size public_key_length;
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
-    S2N_ERROR_IF(public_key_length != kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+    if (kem_params->len_prefixed) {
+        kem_public_key_size public_key_length = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint16(in, &public_key_length));
+        POSIX_ENSURE(public_key_length == kem->public_key_length, S2N_ERR_BAD_MESSAGE);
+    }
 
     /* Alloc memory for the public key; the peer receiving it will need it
      * later during the handshake to encapsulate the shared secret. */
-    POSIX_GUARD(s2n_alloc(&(kem_params->public_key), public_key_length));
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, kem_params->public_key.data, public_key_length));
+    POSIX_GUARD(s2n_alloc(&(kem_params->public_key), kem->public_key_length));
+    POSIX_GUARD(s2n_stuffer_read_bytes(in, kem_params->public_key.data, kem->public_key_length));
 
     return S2N_SUCCESS;
 }
@@ -335,7 +335,9 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 
     const struct s2n_kem *kem = kem_params->kem;
 
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
+    if (kem_params->len_prefixed) {
+        POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->ciphertext_length));
+    }
 
     /* Ciphertext will get written to *out */
     struct s2n_blob ciphertext = { 0 };
@@ -356,12 +358,14 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_ENSURE_REF(kem_params->private_key.data);
 
     const struct s2n_kem *kem = kem_params->kem;
-    kem_ciphertext_key_size ciphertext_length;
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
-    S2N_ERROR_IF(ciphertext_length != kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
+    if (kem_params->len_prefixed) {
+        kem_ciphertext_key_size ciphertext_length = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint16(in, &ciphertext_length));
+        POSIX_ENSURE(ciphertext_length == kem->ciphertext_length, S2N_ERR_BAD_MESSAGE);
+    }
 
-    const struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_read(in, ciphertext_length), .size = ciphertext_length };
+    const struct s2n_blob ciphertext = { .data = s2n_stuffer_raw_read(in, kem->ciphertext_length), .size = kem->ciphertext_length };
     POSIX_ENSURE_REF(ciphertext.data);
 
     /* Saves the shared secret in kem_params */

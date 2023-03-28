@@ -13,6 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include <openssl/crypto.h>
+
+#include "crypto/s2n_fips.h"
+#include "crypto/s2n_openssl.h"
 #include "pq-crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"

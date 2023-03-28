@@ -81,6 +81,8 @@
             pythonEnv
             corretto-8
             gnutls-3-7
+            pkgs.iproute2
+            pkgs.apacheHttpd
 
             # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
             llvmPkgs.llvm
@@ -102,6 +104,7 @@
             pkgs.which
           ];
         };
+        packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
           (finalAttrs: previousAttrs: { doCheck = true; });

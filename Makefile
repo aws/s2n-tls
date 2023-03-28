@@ -67,6 +67,12 @@ integrationv2: bin
 valgrind: bin
 	$(MAKE) -C tests valgrind
 
+# https://github.com/aws/s2n-tls/issues/3758
+# Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
+.PHONY : pedantic_valgrind
+pedantic_valgrind: bin
+	$(MAKE) -C tests pedantic_valgrind
+
 .PHONY : fuzz
 ifeq ($(shell uname),Linux)
 fuzz : fuzz-linux

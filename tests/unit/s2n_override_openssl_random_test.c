@@ -129,6 +129,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_dh_params_free(&dh_params));
     EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_out));
     EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
+    EXPECT_SUCCESS(s2n_stuffer_free(&test_entropy));
     free(dhparams_pem);
 
     END_TEST();

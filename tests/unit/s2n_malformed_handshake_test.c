@@ -227,8 +227,6 @@ void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_le
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
     s2n_blocked_status blocked;
     int status;
     pid_t pid;
@@ -237,8 +235,8 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-    EXPECT_NOT_NULL(config = s2n_config_new());
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -270,7 +268,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -319,7 +317,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -368,7 +366,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -417,7 +415,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -466,7 +464,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -515,7 +513,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_config_free(config));
-        _exit(0);
+        exit(0);
     }
 
     /* This is the parent process, close the write end of the pipe */
@@ -536,8 +534,6 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
     EXPECT_EQUAL(status, 0);
     EXPECT_SUCCESS(close(p[0]));
-    EXPECT_SUCCESS(s2n_connection_free(conn));
-    EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
 }

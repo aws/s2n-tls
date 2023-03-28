@@ -14,8 +14,17 @@
 */
 
 #include <openssl/evp.h>
+#include <openssl/nid.h>
 
 int main() {
-    EVP_PKEY_CTX *kyber_pkey_ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_KYBER512, NULL);
-   return 0;
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_KEM, NULL);
+    if (ctx == NULL) {
+        return 1;
+    }
+    if (!EVP_PKEY_CTX_kem_set_params(ctx, NID_KYBER512_R3)) {
+        EVP_PKEY_CTX_free(ctx);
+        return 1;
+    }
+    EVP_PKEY_CTX_free(ctx);
+    return 0;
 }
