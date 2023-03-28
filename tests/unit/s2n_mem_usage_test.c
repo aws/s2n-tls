@@ -54,7 +54,7 @@
 #ifdef __FreeBSD__
     #define MEM_PER_CONNECTION 57
 #elif defined(__OpenBSD__)
-    #define MEM_PER_CONNECTION 75
+    #define MEM_PER_CONNECTION 60
 #else
     #define MEM_PER_CONNECTION 49
 #endif

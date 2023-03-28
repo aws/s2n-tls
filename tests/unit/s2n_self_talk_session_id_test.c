@@ -282,7 +282,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     sleep(1);
 
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
-    _exit(result);
+    exit(result);
 }
 
 int main(int argc, char **argv)
@@ -310,8 +310,6 @@ int main(int argc, char **argv)
         0xcb, 0x04 };
 
     BEGIN_TEST();
-    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     /* Create a pipe */
     struct s2n_test_io_pair io_pair;
@@ -326,6 +324,9 @@ int main(int argc, char **argv)
         /* Write the fragmented hello message */
         mock_client(&io_pair);
     }
+
+    EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
 
     /* This is the server process, close the client end of the pipe */
     EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));

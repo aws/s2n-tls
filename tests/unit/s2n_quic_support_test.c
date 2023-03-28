@@ -39,10 +39,10 @@ int main(int argc, char **argv)
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         EXPECT_NOT_NULL(conn);
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(conn), S2N_RSA_PSS_NOT_SUPPORTED);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_enable_quic(conn), S2N_ERR_RSA_PSS_NOT_SUPPORTED);
         EXPECT_FALSE(conn->quic_enabled);
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_RSA_PSS_NOT_SUPPORTED);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_RSA_PSS_NOT_SUPPORTED);
         EXPECT_NOT_EQUAL(config, conn->config);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));

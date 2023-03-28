@@ -43,7 +43,6 @@ struct s2n_client_hello {
      * issues a hello retry.
      */
     unsigned int parsed : 1;
-
     /*
      * SSLv2 ClientHellos have a different format.
      * Cipher suites are each three bytes instead of two.
@@ -51,9 +50,20 @@ struct s2n_client_hello {
      * the raw_message will not contain the protocol version.
      */
     unsigned int sslv2 : 1;
+    /*
+     * The memory for this structure can be either owned by the application
+     * or tied to and managed by a connection.
+     *
+     * If owned by the application, it can be freed using s2n_client_hello_free.
+     * Otherwise, it is freed with s2n_connection_free.
+     *
+     * We could simplify this by moving the client hello structure off of the
+     * connection structure.
+     */
+    unsigned int alloced : 1;
 };
 
-int s2n_client_hello_free(struct s2n_client_hello *client_hello);
+int s2n_client_hello_free_raw_message(struct s2n_client_hello *client_hello);
 
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
 

@@ -204,6 +204,7 @@ int s2n_kem_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
      * to kem_params.shared_secret. */
     POSIX_ENSURE_REF(shared_key);
     S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
+    conn->kex_params.kem_params.len_prefixed = true; /* PQ TLS 1.2 is always length prefixed. */
 
     POSIX_GUARD(s2n_kem_recv_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
 
@@ -303,6 +304,8 @@ int s2n_kem_client_key_send(struct s2n_connection *conn, struct s2n_blob *shared
      * to kem_params.shared_secret. */
     POSIX_ENSURE_REF(shared_key);
     S2N_ERROR_IF(shared_key != &(conn->kex_params.kem_params.shared_secret), S2N_ERR_SAFETY);
+
+    conn->kex_params.kem_params.len_prefixed = true; /* PQ TLS 1.2 is always length prefixed */
 
     POSIX_GUARD(s2n_kem_send_ciphertext(&(conn->handshake.io), &(conn->kex_params.kem_params)));
 

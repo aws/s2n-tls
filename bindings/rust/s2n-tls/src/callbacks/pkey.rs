@@ -150,7 +150,7 @@ mod tests {
         let config = {
             let mut config = config::Builder::new();
             config.set_security_policy(&security::DEFAULT_TLS13)?;
-            config.load_pem(CERT, KEY)?;
+            config.load_public_pem(CERT)?;
             config.set_private_key_callback(callback)?;
             // Our test certificates are untrusted, but disabling certificate
             // verification does not affect handshake signatures.

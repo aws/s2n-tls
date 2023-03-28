@@ -119,5 +119,6 @@ int main(int argc, char **argv)
         FAIL_MSG("Found unexpected test vectors in the KAT file. Has the KAT file been changed? Did you update NUM_TEST_VECTORS?");
     }
 
+    fclose(kat_file);
     END_TEST();
 }

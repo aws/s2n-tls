@@ -113,3 +113,19 @@ jobs:
         with:
           command: clippy
           args: --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
+  msrv:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+      # Enforce crate msrv matches rust-toolchain
+      - name: Check MSRV of s2n-tls
+        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls/Cargo.toml
+
+      - name: Check MSRV of s2n-tls-sys
+        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-sys/Cargo.toml
+
+      - name: Check MSRV of s2n-tokio
+        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-tokio/Cargo.toml
+

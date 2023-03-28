@@ -41,13 +41,23 @@ fi
 make clean;
 
 echo "Using $JOBS jobs for make..";
+echo "running with libcrypto: ${S2N_LIBCRYPTO}, gcc_version: ${GCC_VERSION}"
 
 if [[ "$OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     # For linux make a build with debug symbols and run valgrind
     # We have to output something every 9 minutes, as some test may run longer than 10 minutes
     # and will not produce any output
     while sleep 9m; do echo "=====[ $SECONDS seconds still running ]====="; done &
-    S2N_DEBUG=true make -j $JOBS valgrind
+
+    if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" || "$S2N_LIBCRYPTO" == "awslc" ]]; then
+        # https://github.com/aws/s2n-tls/issues/3758
+        # Run valgrind in pedantic mode (--errors-for-leak-kinds=all)
+        echo "running task pedantic_valgrind"
+        S2N_DEBUG=true make -j $JOBS pedantic_valgrind
+    else
+        S2N_DEBUG=true make -j $JOBS valgrind
+    fi
+
     kill %1
 fi
 
@@ -106,7 +116,8 @@ run_unit_tests() {
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
             -D${CMAKE_PQ_OPTION} \
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
-            -DBUILD_SHARED_LIBS=on
+            -DBUILD_SHARED_LIBS=on \
+            -DEXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS=on
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
     cmake --build build/ --target test -- ARGS="-L unit --output-on-failure -j $(nproc)"

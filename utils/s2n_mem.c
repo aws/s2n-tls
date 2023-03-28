@@ -48,10 +48,10 @@ static int s2n_mem_init_impl(void)
     long sysconf_rc = sysconf(_SC_PAGESIZE);
 
     /* sysconf must not error, and page_size cannot be 0 */
-    POSIX_ENSURE(sysconf_rc > 0, S2N_FAILURE);
+    POSIX_ENSURE_GT(sysconf_rc, 0);
 
     /* page_size must be a valid uint32 */
-    POSIX_ENSURE(sysconf_rc <= UINT32_MAX, S2N_FAILURE);
+    POSIX_ENSURE_LTE(sysconf_rc, UINT32_MAX);
 
     page_size = (uint32_t) sysconf_rc;
 

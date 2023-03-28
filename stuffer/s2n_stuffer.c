@@ -360,11 +360,11 @@ int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *io
             continue;
         }
         size_t iov_len_op = iov[i].iov_len - to_skip;
-        POSIX_ENSURE(iov_len_op <= UINT32_MAX, S2N_FAILURE);
+        POSIX_ENSURE_LTE(iov_len_op, UINT32_MAX);
         uint32_t iov_len = (uint32_t) iov_len_op;
         uint32_t iov_size_to_take = MIN(size_left, iov_len);
         POSIX_ENSURE_REF(iov[i].iov_base);
-        POSIX_ENSURE(to_skip < iov[i].iov_len, S2N_FAILURE);
+        POSIX_ENSURE_LT(to_skip, iov[i].iov_len);
         POSIX_CHECKED_MEMCPY(ptr, ((uint8_t *) (iov[i].iov_base)) + to_skip, iov_size_to_take);
         size_left -= iov_size_to_take;
         if (size_left == 0) {

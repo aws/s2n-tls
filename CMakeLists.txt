@@ -23,7 +23,6 @@ option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
 You likely want this on older compilers." OFF)
-option(S2N_AWSLC_KYBER_UNSTABLE "Prefer the AWS-LC provided PQ implementation." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -38,6 +37,10 @@ option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
+option(EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS "Additional compiler warnings are treated as errors. Warnings may
+indicate danger points where you should verify with the S2N-TLS developers that the security of
+the library is not compromised. These warnings are currently failing for some builds; once the problems are fixed,
+they will be moved to UNSAFE_TREAT_WARNINGS_AS_ERRORS." OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -267,8 +270,12 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
+        -Wno-missing-braces -Wno-strict-prototypes -Wa,--noexecstack
 )
+
+if (EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare )
+endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
@@ -445,17 +452,28 @@ if (LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX)
 endif()
 
-# Determine if Kyber512 implementation from AWS-LC is available
+# Determine if KEM Kyber512 implementation from AWS-LC is available
 try_compile(
-        LIBCRYPTO_SUPPORTS_EVP_KYBER_512
+        LIBCRYPTO_SUPPORTS_EVP_KEM_KYBER_512
         ${CMAKE_BINARY_DIR}
-        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kyber_512.c"
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kem_kyber_512.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         COMPILE_DEFINITIONS "-Werror"
 )
 
-if(S2N_AWSLC_KYBER_UNSTABLE AND LIBCRYPTO_SUPPORTS_EVP_KYBER_512)
+if(LIBCRYPTO_SUPPORTS_EVP_KEM_KYBER_512)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_KYBER512)
+endif()
+
+# Determine if kTLS is supported
+try_compile(
+        PLATFORM_SUPPORTS_KTLS
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/ktls.c"
+)
+if(PLATFORM_SUPPORTS_KTLS)
+    message(STATUS "feature probe: kTLS supported")
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_PLATFORM_SUPPORTS_KTLS)
 endif()
 
 if (NOT DEFINED CMAKE_AR)
@@ -463,6 +481,20 @@ if (NOT DEFINED CMAKE_AR)
 	SET(CMAKE_AR ar)
 else()
 	message(STATUS "CMAKE_AR found: ${CMAKE_AR}")
+endif()
+
+if (NOT DEFINED CMAKE_RANLIB)
+    message(STATUS "CMAKE_RANLIB undefined, setting to `ranlib` by default")
+    SET(CMAKE_RANLIB ranlib)
+else()
+    message(STATUS "CMAKE_RANLIB found: ${CMAKE_RANLIB}")
+endif()
+
+if (NOT DEFINED CMAKE_OBJCOPY)
+    message(STATUS "CMAKE_OBJCOPY undefined, setting to `objcopy` by default")
+    SET(CMAKE_OBJCOPY objcopy)
+else()
+    message(STATUS "CMAKE_OBJCOPY found: ${CMAKE_OBJCOPY}")
 endif()
 
 if (S2N_INTERN_LIBCRYPTO)
@@ -501,14 +533,14 @@ if (S2N_INTERN_LIBCRYPTO)
           # copy the static version of libcrypto
           cp ${crypto_STATIC_LIBRARY} s2n_libcrypto.a &&
           # dump all of the symbols and prefix them with `s2n$`
-          bash -c "nm s2n_libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
+          bash -c "${CMAKE_NM} s2n_libcrypto.a | awk '/ [A-Z] /{print $3\" s2n$\"$3}' | sort | uniq > libcrypto.symbols" &&
           # redefine the libcrypto libary symbols
-          objcopy --redefine-syms libcrypto.symbols s2n_libcrypto.a &&
+          ${CMAKE_OBJCOPY} --redefine-syms libcrypto.symbols s2n_libcrypto.a &&
           rm -rf s2n_libcrypto &&
           mkdir s2n_libcrypto &&
           cd s2n_libcrypto &&
           # extract libcrypto objects from the archive
-	  ${CMAKE_AR} x ../s2n_libcrypto.a &&
+          ${CMAKE_AR} x ../s2n_libcrypto.a &&
           # rename all of the object files so we don't have any object name collisions
           bash -c "find . -name '*.o' -type f -print0 | xargs -0 -n1 -- basename | xargs -I{} mv {} s2n_crypto__{}"
         VERBATIM
@@ -546,7 +578,7 @@ if (S2N_INTERN_LIBCRYPTO)
             TARGET ${PROJECT_NAME} POST_BUILD
             DEPENDS libcrypto.symbols
             COMMAND
-              bash -c "ar -r lib/libs2n.a s2n_libcrypto/*.o"
+                bash -c "${CMAKE_AR} -r lib/libs2n.a s2n_libcrypto/*.o"
             VERBATIM
         )
     endif()
@@ -602,6 +634,9 @@ if (BUILD_TESTING)
             )
         endif()
         target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        if (S2N_LTO)
+            target_compile_options(${test_case_name} PRIVATE -flto)
+        endif()
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
         set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
 

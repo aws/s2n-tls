@@ -173,6 +173,7 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     POSIX_GUARD(s2n_stuffer_read_uint16(&kem_id_stuffer, &kem_id));
 
     POSIX_GUARD(s2n_get_kem_from_extension_id(kem_id, &(conn->kex_params.kem_params.kem)));
+    conn->kex_params.kem_params.len_prefixed = true; /* PQ TLS 1.2 is always length prefixed. */
     POSIX_GUARD(s2n_kem_recv_public_key(in, &(conn->kex_params.kem_params)));
 
     kem_data->raw_public_key.data = conn->kex_params.kem_params.public_key.data;
@@ -320,6 +321,7 @@ int s2n_kem_server_key_send(struct s2n_connection *conn, struct s2n_blob *data_t
     POSIX_ENSURE_REF(data_to_sign->data);
 
     POSIX_GUARD(s2n_stuffer_write_uint16(out, kem->kem_extension_id));
+    conn->kex_params.kem_params.len_prefixed = true; /* PQ TLS 1.2 is always length prefixed. */
     POSIX_GUARD(s2n_kem_send_public_key(out, &(conn->kex_params.kem_params)));
 
     data_to_sign->size = sizeof(kem_extension_size) + sizeof(kem_public_key_size) + kem->public_key_length;
