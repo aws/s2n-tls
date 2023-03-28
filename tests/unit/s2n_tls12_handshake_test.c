@@ -21,6 +21,7 @@
 #include "utils/s2n_safety.h"
 
 /* Just to get access to the static functions / variables we need to test */
+#include "crypto/s2n_rsa_pss.h"
 #include "tls/s2n_handshake_io.c"
 
 static message_type_t invalid_handshake[S2N_MAX_HANDSHAKE_LENGTH] = { 0 };
@@ -522,6 +523,61 @@ int main(int argc, char **argv)
             }
         }
     };
+    /* Server requests a client certificate and RSA PSS isn't supported, downgrade to TLS1.2 in case client attempts to send
+     * RSA certificate*/
+    {
+        if (!s2n_is_rsa_pss_certs_supported()) {
+
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key= NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key, S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key=NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key, S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
+
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, rsa_chain_and_key));
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain_and_key));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+            server_conn->server_protocol_version = S2N_TLS13;
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+            client_conn->client_protocol_version = S2N_TLS13;
+            client_conn->actual_protocol_version = S2N_TLS13;
+
+            s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED);
+            s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED);
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
+
+            /*If client authentication is configured then TLS protocol version should downgrade to TLS1.2 */
+            if(server_conn->client_cert_auth_type == S2N_CERT_AUTH_REQUIRED)
+            {
+                EXPECT_SUCCESS(client_conn->actual_protocol_version = S2N_TLS12);
+                EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS12);
+
+            }
+            else {
+                EXPECT_SUCCESS(client_conn->actual_protocol_version = S2N_TLS13);
+                EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS13);
+
+            }
+        }
+    }
 
     END_TEST();
     return 0;
