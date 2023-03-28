@@ -530,10 +530,10 @@ int main(int argc, char **argv)
 
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key= NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key, S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key, S2N_RSA_2048_PKCS1_CERT_CHAIN,S2N_RSA_2048_PKCS1_KEY));
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key=NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key, S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key, S2N_ECDSA_P256_PKCS1_CERT_CHAIN,S2N_ECDSA_P256_PKCS1_KEY));
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(client_config);
@@ -569,7 +569,6 @@ int main(int argc, char **argv)
             {
                 EXPECT_SUCCESS(client_conn->actual_protocol_version = S2N_TLS12);
                 EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS12);
-
             }
             else {
                 EXPECT_SUCCESS(client_conn->actual_protocol_version = S2N_TLS13);
