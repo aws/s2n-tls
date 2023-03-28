@@ -526,7 +526,7 @@ int main(int argc, char **argv)
     /* Server requests a client certificate and RSA PSS isn't supported, downgrade to TLS1.2 in case client attempts to send
      * RSA certificate*/
     {
-        if (!s2n_is_rsa_pss_certs_supported()){
+        if (!s2n_is_rsa_pss_certs_supported()) {
 
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -570,7 +570,8 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(client_conn->actual_protocol_version = S2N_TLS12);
                 EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS12);
             }
-            else {
+            else
+            {
                 EXPECT_SUCCESS(client_conn->actual_protocol_version = S2N_TLS13);
                 EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS13);
 
