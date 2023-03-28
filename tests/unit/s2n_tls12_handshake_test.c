@@ -526,14 +526,14 @@ int main(int argc, char **argv)
     /* Server requests a client certificate and RSA PSS isn't supported, downgrade to TLS1.2 in case client attempts to send
      * RSA certificate*/
     {
-        if (!s2n_is_rsa_pss_certs_supported()) {
+        if (!s2n_is_rsa_pss_certs_supported()){
 
 
-            DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key= NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key, S2N_RSA_2048_PKCS1_CERT_CHAIN,S2N_RSA_2048_PKCS1_KEY));
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key, S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
 
-            DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key=NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key, S2N_ECDSA_P256_PKCS1_CERT_CHAIN,S2N_ECDSA_P256_PKCS1_KEY));
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_chain_and_key, S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(client_config);
@@ -565,7 +565,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_server_hello_send(server_conn));
 
             /*If client authentication is configured then TLS protocol version should downgrade to TLS1.2 */
-            if(server_conn->client_cert_auth_type == S2N_CERT_AUTH_REQUIRED)
+            if (server_conn->client_cert_auth_type == S2N_CERT_AUTH_REQUIRED)
             {
                 EXPECT_SUCCESS(client_conn->actual_protocol_version = S2N_TLS12);
                 EXPECT_SUCCESS(server_conn->actual_protocol_version = S2N_TLS12);
