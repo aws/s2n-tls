@@ -32,7 +32,6 @@ typedef enum {
 
 struct s2n_tls13_secrets {
     uint8_t extract_secret[S2N_TLS13_SECRET_MAX_LEN];
-    s2n_extract_secret_type_t extract_secret_type;
 
     uint8_t client_early_secret[S2N_TLS13_SECRET_MAX_LEN];
     uint8_t client_handshake_secret[S2N_TLS13_SECRET_MAX_LEN];

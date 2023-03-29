@@ -160,7 +160,7 @@ S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&output, label, label_size));
     RESULT_GUARD(s2n_key_log_hex_encode(&output, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&output, ' '));
-    RESULT_GUARD(s2n_key_log_hex_encode(&output, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
+    RESULT_GUARD(s2n_key_log_hex_encode(&output, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
 
     uint8_t *data = s2n_stuffer_raw_read(&output, len);
     RESULT_ENSURE_REF(data);
