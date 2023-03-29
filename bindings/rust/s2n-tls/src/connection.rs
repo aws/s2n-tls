@@ -50,6 +50,9 @@ impl fmt::Debug for Connection {
         if let Ok(version) = self.actual_protocol_version() {
             debug.field("actual_protocol_version", &version);
         }
+        if let Ok(curve) = self.selected_curve() {
+            debug.field("selected_curve", &curve);
+        }
         debug.finish_non_exhaustive()
     }
 }
@@ -665,6 +668,11 @@ impl Connection {
         // The strings returned by s2n_connection_get_cipher
         // are static and immutable since they are const fields on static const structs
         static_const_str!(cipher)
+    }
+
+    pub fn selected_curve(&self) -> Result<&str, Error> {
+        let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
+        static_const_str!(curve)
     }
 
     pub fn selected_signature_algorithm(&self) -> Result<SignatureAlgorithm, Error> {
