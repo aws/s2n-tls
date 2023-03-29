@@ -698,8 +698,10 @@ if (BUILD_TESTING)
         foreach(test_file_path ${integv2_test_files})
             get_filename_component(test_filename ${test_file_path} NAME_WE)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
-            if (S2N_INTEG_DIRECT)
-                # For Nix and environments where LD_LIBRARY_PATH is already correct (no tox).
+            if (S2N_INTEG_NIX)
+                # For Nix and environments where LD_LIBRARY_PATH is already correct.
+                # We're also dropping tox and calling pytest directly, because
+                # Nix is already handling all of the python setup.
                 add_test(NAME ${test_target}
                         COMMAND
                         pytest
@@ -710,6 +712,8 @@ if (BUILD_TESTING)
                 )
             else()
                 # For use with libcryptos built into test-deps, and not in LD_LIBRARY_PATH.
+                # This is a duplication of tests/integrationv2/Makefile and
+                # can go away once all the Nix porting is finished.
                 add_test(NAME ${test_target}
                         COMMAND
                         ${CMAKE_COMMAND} -E env
