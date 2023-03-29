@@ -201,6 +201,11 @@ struct s2n_connection {
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
+    /* The version stored in the ticket / session we are resuming.
+     * We expect the connection to negotiate this version during
+     * the resumption handshake.
+     */
+    uint8_t resume_protocol_version;
 
     /* Flag indicating whether a protocol version has been
      * negotiated yet. */
@@ -366,7 +371,6 @@ struct s2n_connection {
     struct s2n_blob client_ticket;
     uint32_t ticket_lifetime_hint;
     struct s2n_ticket_fields tls13_ticket_fields;
-    uint8_t resume_protocol_version;
 
     /* Session ticket extension from client to attempt to decrypt as the server. */
     uint8_t ticket_ext_data[S2N_TLS12_TICKET_SIZE_IN_BYTES];
