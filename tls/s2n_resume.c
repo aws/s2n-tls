@@ -43,14 +43,13 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
     return config->use_session_cache;
 }
 
-/* A quirk of the TLS1.2 session resumption behavior is that if a ticket is set
- * on the connection using s2n_connection_set_session, s2n_connection_get_session
- * will return a valid ticket, even before actually receiving a new session ticket
- * from the server.
+/* If a protocol version is required before the actual_protocol_version
+ * is negotiated, we should fall back to resume_protocol_version if available.
  *
- * To maintain this behavior, we use resume_protocol_version (set when a ticket
- * is set on the connection) instead of actual_protocol_version before the
- * connection is negotiated.
+ * This covers the case where the application requests a ticket / session state
+ * before a NewSessionTicket message has been sent or received. Historically,
+ * in that case we return the ticket / session state already set for the connection.
+ * resume_protocol_version represents the protocol version of that existing ticket / state.
  */
 static uint8_t s2n_resume_protocol_version(struct s2n_connection *conn)
 {
