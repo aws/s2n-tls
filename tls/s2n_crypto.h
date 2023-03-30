@@ -47,9 +47,12 @@ struct s2n_tls12_secrets {
     uint8_t master_secret[S2N_TLS_SECRET_LEN];
 };
 
-union s2n_secrets {
-    struct s2n_tls12_secrets tls12;
-    struct s2n_tls13_secrets tls13;
+struct s2n_secrets {
+    union {
+        struct s2n_tls12_secrets tls12;
+        struct s2n_tls13_secrets tls13;
+    } version;
+    s2n_extract_secret_type_t extract_secret_type;
 };
 
 struct s2n_crypto_parameters {

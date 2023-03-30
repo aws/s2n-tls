@@ -43,6 +43,23 @@ int s2n_allowed_to_cache_connection(struct s2n_connection *conn)
     return config->use_session_cache;
 }
 
+/* If a protocol version is required before the actual_protocol_version
+ * is negotiated, we should fall back to resume_protocol_version if available.
+ *
+ * This covers the case where the application requests a ticket / session state
+ * before a NewSessionTicket message has been sent or received. Historically,
+ * in that case we return the ticket / session state already set for the connection.
+ * resume_protocol_version represents the protocol version of that existing ticket / state.
+ */
+static uint8_t s2n_resume_protocol_version(struct s2n_connection *conn)
+{
+    if (!IS_NEGOTIATED(conn) && conn->resume_protocol_version) {
+        return conn->resume_protocol_version;
+    } else {
+        return conn->actual_protocol_version;
+    }
+}
+
 static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *to)
 {
     POSIX_ENSURE_REF(to);
@@ -58,10 +75,10 @@ static int s2n_tls12_serialize_resumption_state(struct s2n_connection *conn, str
 
     /* Write the entry */
     POSIX_GUARD(s2n_stuffer_write_uint8(to, S2N_SERIALIZED_FORMAT_TLS12_V3));
-    POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->actual_protocol_version));
+    POSIX_GUARD(s2n_stuffer_write_uint8(to, s2n_resume_protocol_version(conn)));
     POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint64(to, now));
-    POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
+    POSIX_GUARD(s2n_stuffer_write_bytes(to, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
     POSIX_GUARD(s2n_stuffer_write_uint8(to, conn->ems_negotiated));
 
     return S2N_SUCCESS;
@@ -126,7 +143,7 @@ static S2N_RESULT s2n_tls13_serialize_resumption_state(struct s2n_connection *co
 
 static S2N_RESULT s2n_serialize_resumption_state(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    if (conn->actual_protocol_version < S2N_TLS13) {
+    if (s2n_resume_protocol_version(conn) < S2N_TLS13) {
         RESULT_GUARD_POSIX(s2n_tls12_serialize_resumption_state(conn, out));
     } else {
         RESULT_GUARD(s2n_tls13_serialize_resumption_state(conn, out));
@@ -158,7 +175,7 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
     S2N_ERROR_IF(then > now, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     S2N_ERROR_IF(now - then > conn->config->session_state_lifetime_in_nanos, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
-    POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(from, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
 
     if (s2n_stuffer_data_available(from)) {
         uint8_t ems_negotiated = 0;
@@ -216,7 +233,7 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &conn->actual_protocol_version));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &conn->resume_protocol_version));
 
     uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(from, S2N_TLS_CIPHER_SUITE_LEN);
     RESULT_ENSURE_REF(cipher_suite_wire);
@@ -225,7 +242,7 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     uint64_t then = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &then));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, conn->secrets.tls12.master_secret, S2N_TLS_SECRET_LEN));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
 
     if (s2n_stuffer_data_available(from)) {
         uint8_t ems_negotiated = 0;
@@ -505,7 +522,7 @@ S2N_RESULT s2n_connection_get_session_state_size(struct s2n_connection *conn, si
     RESULT_ENSURE_REF(conn->secure);
     RESULT_ENSURE_REF(state_size);
 
-    if (conn->actual_protocol_version < S2N_TLS13) {
+    if (s2n_resume_protocol_version(conn) < S2N_TLS13) {
         *state_size = S2N_TLS12_STATE_SIZE_IN_BYTES;
         return S2N_RESULT_OK;
     }

@@ -66,7 +66,7 @@ static S2N_RESULT s2n_set_test_secret(struct s2n_connection *conn, uint8_t *secr
      * indicate that all secrets have already been derived.
      * This test is interested in keys, not secrets.
      */
-    conn->secrets.tls13.extract_secret_type = S2N_MASTER_SECRET;
+    conn->secrets.extract_secret_type = S2N_MASTER_SECRET;
     return S2N_RESULT_OK;
 }
 
@@ -138,7 +138,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(modes[i]), s2n_connection_ptr_free);
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
-                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.server_handshake_secret, secret));
+                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.version.tls13.server_handshake_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
                 conn->handshake.message_number = one_rtt_message_nums[SERVER_HELLO];
@@ -185,7 +185,7 @@ int main(int argc, char **argv)
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
-                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_handshake_secret, secret));
+                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.version.tls13.client_handshake_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
                 conn->handshake.message_number = one_rtt_message_nums[SERVER_FINISHED];
@@ -238,7 +238,7 @@ int main(int argc, char **argv)
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
-                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.server_app_secret, secret));
+                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.version.tls13.server_app_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
                 conn->handshake.message_number = one_rtt_message_nums[trigger_message];
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
                 conn->secure->cipher_suite = cipher_suite;
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
-                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_app_secret, secret));
+                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.version.tls13.client_app_secret, secret));
 
                 conn->handshake.handshake_type = one_rtt_handshake_type;
                 conn->handshake.message_number = one_rtt_message_nums[CLIENT_FINISHED];
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS13;
                 EXPECT_OK(s2n_conn_choose_state_machine(conn, S2N_TLS13));
                 conn->early_data_state = S2N_EARLY_DATA_REQUESTED;
-                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.tls13.client_early_secret, secret));
+                EXPECT_OK(s2n_set_test_secret(conn, conn->secrets.version.tls13.client_early_secret, secret));
 
                 conn->handshake.handshake_type = resumed_handshake_type;
                 conn->handshake.message_number = resumed_message_nums[trigger_message];

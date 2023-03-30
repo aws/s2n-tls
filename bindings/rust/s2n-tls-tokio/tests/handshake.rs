@@ -33,6 +33,7 @@ async fn handshake_basic() -> Result<(), Box<dyn std::error::Error>> {
         assert!(tls.as_ref().handshake_type()?.contains("NEGOTIATED"));
         // Cipher suite may change, so just makes sure we can retrieve it.
         assert!(tls.as_ref().cipher_suite().is_ok());
+        assert!(tls.as_ref().selected_curve().is_ok());
     }
 
     Ok(())

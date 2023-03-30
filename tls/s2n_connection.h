@@ -201,6 +201,11 @@ struct s2n_connection {
     uint8_t client_protocol_version;
     uint8_t server_protocol_version;
     uint8_t actual_protocol_version;
+    /* The version stored in the ticket / session we are resuming.
+     * We expect the connection to negotiate this version during
+     * the resumption handshake.
+     */
+    uint8_t resume_protocol_version;
 
     /* Flag indicating whether a protocol version has been
      * negotiated yet. */
@@ -209,7 +214,7 @@ struct s2n_connection {
     /* Our crypto parameters */
     struct s2n_crypto_parameters *initial;
     struct s2n_crypto_parameters *secure;
-    union s2n_secrets secrets;
+    struct s2n_secrets secrets;
 
     /* Which set is the client/server actually using? */
     struct s2n_crypto_parameters *client;
