@@ -16,7 +16,7 @@ function configure {
           -DBUILD_TESTING=ON \
           -DS2N_INTEG_TESTS=ON \
           -DS2N_INSTALL_S2NC_S2ND=ON \
-          -DS2N_FAST_INTEG_TESTS=ON \
+          -DS2N_INTEG_NIX=ON \
           -DBUILD_SHARED_LIBS=ON \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
 }
