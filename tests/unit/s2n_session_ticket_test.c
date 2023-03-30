@@ -811,7 +811,8 @@ int main(int argc, char **argv)
 
     /* Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST */
     {
-        const size_t iterations = 225;
+        const size_t iterations = 450;
+        const size_t allowed_failures = 2;
         size_t wrong_key_selected = 0;
 
         /* This test sets up three different ticket encryption keys at various times in their encryption lifetime. The test
@@ -821,7 +822,7 @@ int main(int argc, char **argv)
          * rarely so as long as the test passes the majority of the time, we consider the selection algorithm to be
          * working as intended.
          *
-         * Here, out of 225 iterations we allow the test to fail (1 / 225) = 0.4% of the time. This is a higher failure rate
+         * Here, out of 450 iterations we allow the test to fail (2 / 450) = 0.4% of the time. This is a higher failure rate
          * than technically needed, but it keeps us from having to do too many iterations and slowing down the test.
          */
         for (size_t i = 0; i < iterations; i++) {
@@ -893,7 +894,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
-        EXPECT_TRUE(wrong_key_selected <= 2);
+        EXPECT_TRUE(wrong_key_selected <= allowed_failures);
     };
 
     /* Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and
