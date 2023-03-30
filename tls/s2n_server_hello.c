@@ -241,7 +241,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
             POSIX_CHECKED_MEMCPY(conn->session_id, session_id, session_id_len);
             POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
             /* Erase master secret which might have been set for session resumption */
-            POSIX_CHECKED_MEMSET((uint8_t *) conn->secrets.tls12.master_secret, 0, S2N_TLS_SECRET_LEN);
+            POSIX_CHECKED_MEMSET((uint8_t *) conn->secrets.version.tls12.master_secret, 0, S2N_TLS_SECRET_LEN);
 
             /* Erase client session ticket which might have been set for session resumption */
             POSIX_GUARD(s2n_free(&conn->client_ticket));
