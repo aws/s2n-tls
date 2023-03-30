@@ -302,6 +302,101 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&cb_session_data));
     }
 
+    /* Test: Client does not accept a handshake that does not match its stored session */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls12_client_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_server_config));
+
+        /* Setup: initial handshake */
+        DEFER_CLEANUP(struct s2n_blob tls12_ticket = { 0 }, s2n_free);
+        {
+            /* Create nonblocking pipes */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Negotiate initial handshake */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+            EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+            /* Store TLS1.2 ticket */
+            int tls12_ticket_length = s2n_connection_get_session_length(client_conn);
+            EXPECT_SUCCESS(s2n_alloc(&tls12_ticket, tls12_ticket_length));
+            EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_ticket.data, tls12_ticket.size));
+        }
+
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+        /* Reject incorrect protocol version */
+        {
+            /* Create nonblocking pipes */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Client sets up a resumption connection with the received session ticket data */
+            EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.data, tls12_ticket.size));
+
+            /* Change the protocol version */
+            client_conn->resume_protocol_version = S2N_TLS10;
+
+            /* Expect handshake rejected */
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_BAD_MESSAGE);
+        }
+
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+        /* Reject incorrect cipher suite */
+        {
+            /* Create nonblocking pipes */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Client sets up a resumption connection with the received session ticket data */
+            EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.data, tls12_ticket.size));
+
+            /* Change the cipher suite */
+            EXPECT_NOT_EQUAL(client_conn->secure->cipher_suite, &s2n_rsa_with_aes_256_cbc_sha);
+            client_conn->secure->cipher_suite = &s2n_rsa_with_aes_256_cbc_sha;
+
+            /* Expect handshake rejected */
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_BAD_MESSAGE);
+        }
+
+        EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+        /* Sanity check: unmodified session accepted */
+        {
+            /* Create nonblocking pipes */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Client sets up a resumption connection with the received session ticket data */
+            EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.data, tls12_ticket.size));
+
+            /* Expect handshake accepted */
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_FALSE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+        }
+    }
+
     /* Test: Server does not accept an expired ticket and instead does a full handshake */
     {
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -403,12 +498,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* Test: A client with a valid TLS1.2 session ticket and TLS1.3 cipher preferences
-     * will fail connecting to a TLS1.3 server. This is because the server
-     * interprets the client as a TLS1.2 client and sends the client a TLS1.2 Server Hello.
-     * The client receives this TLS1.2 Server Hello and errors, because the client 
-     * views the TLS1.2 Server Hello as a downgrade attack, given that the client advertised
-     * its TLS1.3 ability in the Client Hello.
+    /* Test: A TLS1.3 client with a valid TLS1.2 ticket can fall back to a TLS1.3 connection
+     *
+     * This could occur when upgrading a fleet of TLS1.2 servers to TLS1.3
+     * without disabling session resumption.
      */
     {
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -428,6 +521,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server_conn));
+        EXPECT_TRUE(client_conn->ems_negotiated);
 
         /* Store the TLS1.2 session ticket */
         size_t tls12_session_ticket_len = s2n_connection_get_session_length(client_conn);
@@ -443,12 +537,17 @@ int main(int argc, char **argv)
 
         /* Client sets up a resumption connection with the received TLS1.2 session ticket data */
         EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+        /* We want to ensure that ems is handled properly too */
+        EXPECT_TRUE(client_conn->ems_negotiated);
 
         /* Set client config to TLS1.3 cipher preferences */
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
 
         /* Negotiate second connection */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn), S2N_ERR_PROTOCOL_DOWNGRADE_DETECTED);
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_TRUE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
+        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -648,6 +747,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config[j]));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_server_config));
 
             /* Client sets up a resumption connection with the received session ticket data */
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_ticket.blob.data, s2n_stuffer_data_available(&tls12_ticket)));
@@ -681,6 +781,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config[j]));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
             /* Client sets up a resumption connection with the received session ticket data */
             EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls13_ticket.blob.data, s2n_stuffer_data_available(&tls13_ticket)));
