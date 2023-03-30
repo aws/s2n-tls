@@ -199,7 +199,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
         uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - 1;
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-            ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
+                ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -472,12 +472,12 @@ int main(int argc, char **argv)
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
         EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
-        
+
         /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
         uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - 1;
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
-             ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
+                ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -541,7 +541,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
         uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - 1;
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
-             ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
+                ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
