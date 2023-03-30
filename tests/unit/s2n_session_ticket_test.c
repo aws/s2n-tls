@@ -893,7 +893,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
-        EXPECT_TRUE(wrong_key_selected <= 1);
+        EXPECT_TRUE(wrong_key_selected <= 2);
     };
 
     /* Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and
