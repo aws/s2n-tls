@@ -321,7 +321,7 @@ if (s2n_negotiate(conn, &blocked) < 0) {
 
 Blinding is a mitigation against timing side-channels which in some cases can leak information about encrypted data. By default s2n-tls will cause a thread to sleep between 10 and 30 seconds whenever tampering is detected.
 
-Setting the `S2N_SELF_SERVICE_BLINDING` option with `s2n_connection_set_blinding()` turns off this behavior. This is useful for applications that are handling many connections in a single thread. In that case, if `s2n_recv()` or `s2n_negotiate()` return an error, self-service applications must call `s2n_connection_get_delay()` and pause activity on the connection  for the specified number of nanoseconds before calling `close()` or `shutdown()`. `s2n_shutdown()` will fail if called before the blinding delay elapses.
+Setting the `S2N_SELF_SERVICE_BLINDING` option with `s2n_connection_set_blinding()` turns off this behavior. This is useful for applications that are handling many connections in a single thread. In that case, if `s2n_recv()` or `s2n_negotiate()` return an error, self-service applications must call `s2n_connection_get_delay()` and pause activity on the connection for the specified number of nanoseconds before calling `close()` or `shutdown()`. `s2n_shutdown()` will fail if called before the blinding delay elapses.
 
 ### Stacktraces
 s2n-tls has an mechanism to capture stacktraces when errors occur.
@@ -499,6 +499,208 @@ legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotia
 |   "20190802"   |      X       |      X     |        |
 |   "20200207"   |      X       |      X     |   X    |
 |   "rfc9151"    |              |      X     |        |
+
+## Sending and Receiving
+
+### Basic IO setup
+
+By default, s2n-tls sends and receives data using a provided file descriptor
+(usually a socket) and the read/write system calls. The file descriptor can be set with
+`s2n_connection_set_fd()`, or separate read and write file descriptors can be
+set with `s2n_connection_set_read_fd()` and `s2n_connection_set_write_fd()`.
+The file descriptor set should be active and connected.
+
+In general the application is free to configure the file descriptor as preferred,
+including socket options. s2n-tls itself sets a few socket options:
+* If available, TCP_QUICKACK is used during the TLS handshake
+* If available and enabled via `s2n_connection_use_corked_io()`, TCP_CORK is
+used during the TLS handshake. TCP_NOPUSH or TCP_NODELAY may be used if TCP_CORK
+is not available.
+
+**Important Note:**
+If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
+a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
+the process to terminate unless it is handled or ignored by the application.
+
+### Blocking or Non-Blocking?
+
+s2n-tls supports both blocking and non-blocking I/O.
+* In blocking mode, each s2n-tls I/O function will not return until it has sent
+or received all data.
+* In non-blocking mode an s2n-tls I/O function may return while there is
+still I/O pending. In this case `s2n_error_get_type()` will report **S2N_ERR_T_BLOCKED**
+and the value of the s2n_blocked_status parameter will be set appropriately. s2n-tls I/O functions
+should be called repeatedly until the **blocked** parameter is **S2N_NOT_BLOCKED**.
+
+Servers in particular usually prefer non-blocking mode. In blocking mode, a single connection
+blocks the thread while waiting for more IO. In non-blocking mode, multiple connections
+can make progress by returning control while waiting for more IO.
+
+To use s2n-tls in non-blocking mode, set the underlying file descriptors as non-blocking. 
+For example:
+```c
+int flags = fcntl(fd, F_GETFL, 0);
+if (flags < 0) return S2N_FAILURE;
+if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) return S2N_FAILURE;
+```
+
+### Errors and Alerts
+
+If the peer sends an alert, the next call to a read IO method will report **S2N_FAILURE** and
+`s2n_error_get_type()` will return **S2N_ERR_T_ALERT**. The specific alert received
+is available by calling `s2n_connection_get_alert()`. By default, s2n-tls treats
+all alerts as fatal.
+
+If s2n-tls encounters a fatal error, the next call to a write IO method will send
+a close_notify alert to the peer. Except for a few exceptions, s2n-tls does not
+send specific alerts in order to avoid leaking information that could be used for
+a sidechannel attack. To ensure that the alert is sent, `s2n_shutdown()` should
+be called after an error.
+
+### Performing the TLS Handshake
+
+Before application data can be sent or received, an application must perform a handshake
+to establish a TLS connection with the peer.
+
+To perform the handshake, call `s2n_negotiate()` until it either returns **S2N_SUCCESS**
+or returns **S2N_FAILURE** without a **S2N_ERR_T_BLOCKED** error.
+
+### Application Data
+
+After the TLS handshake, an application can send and receive encrypted data.
+
+Although most s2n-tls APIs are not thread-safe, `s2n_send()` and `s2n_recv()`
+may be called simultaneously from different threads.
+
+Even if an application only intends to send data or only intends to receive data,
+it should implement both send and receive in order to handle alerts and post-handshake
+TLS control messages like session tickets.
+
+#### Sending Application Data
+
+`s2n_send()` and its variants encrypt and send application data to the peer.
+The sending methods return the number of bytes written and may indicate a partial
+write, even if blocking IO is used.
+
+Unlike OpenSSL, repeated calls to `s2n_send()` should not duplicate the original
+parameters, but should update the inputs per the indication of size written.
+
+For example:
+```c
+char data[10]; /* Some data we want to write */
+
+s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+int written = 0;
+do {
+    int w = s2n_send(conn, data + written, sizeof(data) - written, &blocked);
+    if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+        /* Some kind of fatal error */
+        return S2N_FAILURE;
+    }
+    written += w;
+} while (blocked != S2N_NOT_BLOCKED);
+```
+
+`s2n_sendv_with_offset()` behaves like `s2n_send()`, but supports vectorized buffers.
+The offset input should be updated between calls to reflect the data already written.
+
+For example:
+```c
+char data[10]; /* Some data we want to write */
+struct iovec iov[1] = { 0 };
+iov[0].iov_base = data;
+iov[0].iov_len = sieof(data);
+
+s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+int written = 0;
+do {
+    int w = s2n_sendv_with_offset(conn, iov, 1, written, &blocked);
+    if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+        /* Some kind of fatal error */
+        return S2N_FAILURE;
+    }
+    written += w;
+} while (blocked != S2N_NOT_BLOCKED);
+```
+
+`s2n_sendv()` also supports vectorized buffers, but assumes an offset of 0.
+Because of this assumption, a caller would have to make sure that the input vectors
+are updated to account for a partial write. Therefore `s2n_sendv_with_offset()`
+is preferred.
+
+#### Receiving Application Data
+
+`s2n_recv()` reads and decrypts application data from the peer, copying it into
+the application-provided output buffer. It returns the number of bytes read, and
+may indicate a partial read even if blocking IO is used.
+It returns "0" to indicate that the peer has shutdown the connection.
+
+**NOTE:** By default, `s2n_recv()` will return after reading a single TLS record.
+To instead read until the provided output buffer is full, call `s2n_config_set_recv_multi_record()`.
+
+Unlike OpenSSL, repeated calls to `s2n_recv()` should not duplicate the original parameters,
+but should update the inputs per the indication of size read.
+
+For example:
+```c
+char data[10] = { 0 }; /* Empty buffer to read into */
+
+s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+int bytes_read = 0;
+do {
+    int r = s2n_recv(conn, data + bytes_read, sizeof(data) - bytes_read, &blocked);
+    if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+        /* Some kind of fatal error */
+        return S2N_FAILURE;
+    }
+    bytes_read += r;
+} while (blocked != S2N_NOT_BLOCKED);
+```
+
+`s2n_peek()` can be used to check if more application data may be returned
+from `s2n_recv()` without performing another read from the file descriptor.
+This is useful when using select() on the underlying s2n-tls file descriptor, because
+a call to `s2n_recv()` may read more data into the s2n-tls's internal buffer than
+was requested or can fit into the application-provided output buffer. This extra
+application data will be returning by the next call to `s2n_recv()`, but select()
+will be unable to tell the application that there is more data available and that
+`s2n_recv()` should be called again. An application can solve this problem by
+calling `s2n_peek()` to determine if `s2n_recv()` needs to be called again.
+
+### Closing the Connection
+
+`s2n_shutdown()` attempts a  graceful closure at the TLS layer. It does not close the
+underlying transport. The call may block on either reading or writing.
+
+`s2n_shutdown()` should be called even after an error sending or receiving 
+application data in order to ensure that s2n-tls sends an alert to notify the peer of the failure.
+
+Because `s2n_shutdown()` attempts a graceful shutdown, it will not return success
+unless a close_notify alert is successfully both sent and received. As a result,
+`s2n_shutdown()` may fail when interacting with a non-conformant TLS implementation.
+
+Once `s2n_shutdown()` is complete:
+* The s2n_connection handle cannot be used for reading or writing.
+* The underlying transport can be closed, most likely via `close()`.
+* The s2n_connection handle can be freed via `s2n_connection_free()` or reused
+via `s2n_connection_wipe()`
+
+### Custom IO Callbacks
+
+By default, s2n-tls sends and receives data using a provided file descriptor
+(usually a socket) and the read/write system calls. To change this default behavior,
+an application can implement custom send and receive methods using `s2n_connection_set_recv_cb()`
+and `s2n_connection_set_send_cb()`. 
+The application can pass inputs (such as a file descriptor or destination buffer)
+to the custom IO methods by using `s2n_connection_set_recv_ctx()` and `s2n_connection_set_send_ctx()`.
+s2n-tls will call the custom IO methods with the custom context instead of calling
+the default implementation.
+
+The custom IO methods may send or receive less than the requested length. They
+should return the number of bytes sent/received, or set errno and return an error code < 0.
+s2n-tls will interpret errno set to EWOULDBLOCK or EAGAIN as indicating a retriable
+blocking error, and set **s2n_errno** and the s2n_blocked_status appropriately.
+s2n-tls will interpret a return value of 0 as a closed connection.
 
 ## Certificates and Authentication
 
@@ -727,29 +929,6 @@ Once **resize_threshold** is hit, records return to the maximum size configured 
 And if the maximum fragment length negotiated with the peer is lower than what dynamic record sizing
 would normally produce, the lower value will be used.
 
-## Connection-oriented functions
-
-### s2n\_connection\_set\_fd
-
-```c
-int s2n_connection_set_fd(struct s2n_connection *conn,
-                          int readfd);
-int s2n_connection_set_read_fd(struct s2n_connection *conn,
-                               int readfd);
-int s2n_connection_set_write_fd(struct s2n_connection *conn,
-                                int writefd);
-```
-
-**s2n_connection_set_fd** sets the file-descriptor for an s2n-tls connection. This
-file-descriptor should be active and connected. s2n-tls also supports setting the
-read and write file-descriptors to different values (for pipes or other unusual
-types of I/O).
-
-**Important Note:**
-If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
-a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
-the process to terminate unless it is handled or ignored by the application.
-
 ## Private Key Operation Related Calls
 
 By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
@@ -888,182 +1067,6 @@ int s2n_psk_selection_callback(struct s2n_connection *conn, void *context,
     return S2N_SUCCESS;
 }
 ```
-
-## I/O functions
-
-s2n-tls supports both blocking and non-blocking I/O. To use s2n-tls in non-blocking
-mode, set the underlying file descriptors as non-blocking (i.e. with
-**fcntl**). In blocking mode, each s2n-tls I/O function will not return until it is
-complete. In non-blocking mode an s2n-tls I/O function may return while there is
-still I/O pending. In this case the value of the **blocked** parameter will be set
-to either **S2N_BLOCKED_ON_READ** or **S2N_BLOCKED_ON_WRITE**, depending on the
-direction in which s2n-tls is blocked.
-
-s2n-tls I/O functions should be called repeatedly until the **blocked** parameter is
-**S2N_NOT_BLOCKED**.
-
-If the read end of the pipe is closed unexpectedly, writing to the pipe will raise
-a SIGPIPE signal. **s2n-tls does NOT handle SIGPIPE.** A SIGPIPE signal will cause
-the process to terminate unless it is handled or ignored by the application.
-
-### s2n\_negotiate
-
-```c
-int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
-```
-
-**s2n_negotiate** performs the initial "handshake" phase of a TLS connection and must be called before any **s2n_recv** or **s2n_send** calls.
-
-### s2n\_send
-
-```c
-ssize_t s2n_send(struct s2n_connection *conn
-              void *buf,
-              ssize_t size,
-              s2n_blocked_status *blocked);
-```
-
-**s2n_send** writes and encrypts **size** of **buf** data to the associated connection. **s2n_send** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_send** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size written. For example;
-
-```c
-s2n_blocked_status blocked;
-int written = 0;
-char data[10]; /* Some data we want to write */
-do {
-    int w = s2n_send(conn, data + written, 10 - written, &blocked);
-    if (w < 0) {
-        /* Some kind of error */
-        break;
-    }
-    written += w;
-} while (blocked != S2N_NOT_BLOCKED);
-```
-
-### s2n\_sendv\_with\_offset
-
-```c
-ssize_t s2n_sendv_with_offset(struct s2n_connection *conn
-              const struct iovec *bufs,
-              ssize_t count,
-              ssize_t offs,
-              s2n_blocked_status *blocked);
-```
-
-**s2n_sendv_with_offset** works in the same way as **s2n_send** except that it accepts vectorized buffers. **s2n_sendv_with_offset** will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. **NOTE:** Unlike OpenSSL, repeated calls to **s2n_sendv_with_offset** should not duplicate the original parameters, but should update **bufs** and **count** per the indication of size written. For example;
-
-```c
-s2n_blocked_status blocked;
-int written = 0;
-char data[10]; /* Some data we want to write */
-struct iovec iov[1];
-iov[0].iov_base = data;
-iov[0].iov_len = 10;
-do {
-    int w = s2n_sendv_with_offset(conn, iov, 1, written, &blocked);
-    if (w < 0) {
-        /* Some kind of error */
-        break;
-    }
-    written += w;
-} while (blocked != S2N_NOT_BLOCKED);
-```
-
-### s2n\_sendv
-
-```c
-ssize_t s2n_sendv(struct s2n_connection *conn
-              const struct iovec *bufs,
-              ssize_t count,
-              s2n_blocked_status *blocked);
-```
-
-**s2n_sendv** works in the same way as **s2n_sendv_with_offset** except that the latter's **offs** parameter is implicitly assumed to be 0. Therefore in the partial write case, the caller would have to make sure that **bufs** and **count** fields are modified in a way that takes the partial writes into account.
-
-### s2n\_recv
-
-```c
-ssize_t s2n_recv(struct s2n_connection *conn,
-             void *buf,
-             ssize_t size,
-             s2n_blocked_status *blocked);
-```
-
-**s2n_recv** decrypts and reads **size* to **buf** data from the associated
-connection. **s2n_recv** will return the number of bytes read and also return
-"0" on connection shutdown by the peer.
-
-**NOTE:** By default, **s2n_recv** will return after reading a single TLS record. To change this
-behavior such that it will read up to **size**, the config for the connection can be updated
-by calling **s2n_config_set_recv_multi_record**.
-
-**NOTE:** Unlike OpenSSL, repeated calls to **s2n_recv** should not duplicate the original parameters, but should update **buf** and **size** per the indication of size read. For example;
-
-```c
-s2n_blocked_status blocked;
-int bytes_read = 0;
-char data[10];
-do {
-    int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &blocked);
-    if (r < 0) {
-        /* Some kind of error */
-        break;
-    }
-    bytes_read += r;
-} while (blocked != S2N_NOT_BLOCKED);
-```
-
-### s2n\_peek
-
-```c
-uint32_t s2n_peek(struct s2n_connection *conn);
-```
-
-**s2n_peek** allows users of s2n-tls to peek inside the data buffer of an s2n-tls connection to see if there more data to be read without actually reading it. This is useful when using select() on the underlying s2n-tls file descriptor with a message based application layer protocol. As a single call to s2n_recv may read all data off the underlying file descriptor, select() will be unable to tell you there if there is more application data ready for processing already loaded into the s2n-tls buffer. s2n_peek can then be used to determine if s2n_recv needs to be called before more data comes in on the raw fd.
-
-
-
-### s2n\_connection\_set\_send\_cb
-
-```c
-int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_connection_recv recv);
-int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_connection_send send);
-int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx);
-int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx);
-```
-
-s2n-tls also provides an I/O abstraction layer in the event the application would
-like to keep control over I/O operations. **s2n_connection_set_recv_cb** and
-**s2n_connection_set_send_cb** may be used to send or receive data with callbacks
-defined by the user. These may be blocking or nonblocking.
-
-```c
-typedef int s2n_connection_send(void *io_context, const uint8_t *buf, uint32_t len);
-typedef int s2n_connection_recv(void *io_context, uint8_t *buf, uint32_t len);
-```
-
-These callbacks take as input a context containing anything needed in the
-function (for example, a file descriptor), the buffer holding data to be sent
-or received, and the length of the buffer. The **io_context** passed to the
-callbacks may be set separately using **s2n_connection_set_recv_ctx** and
-**s2n_connection_set_send_ctx**.
-
-The callback may send or receive less than the requested length. The function
-should return the number of bytes sent/received, or set errno and return an error code < 0.
-
-### s2n_shutdown
-
-```c
-int s2n_shutdown(struct s2n_connection *conn,
-                 s2n_blocked_status *blocked);
-```
-
-**s2n_shutdown** attempts a closure at the TLS layer. It does not close the underlying transport. The call may block in either direction.
-Unlike other TLS implementations, **s2n_shutdown** attempts a graceful shutdown by default. It will not return with success unless a close_notify alert is successfully
-sent and received. As a result, **s2n_shutdown** may fail when interacting with a non-conformant TLS implementation.
-Once **s2n_shutdown** is complete:
-* The s2n_connection handle cannot be used for reading for writing.
-* The underlying transport can be closed. Most likely via `close()`.
-* The s2n_connection handle can be freed via [s2n_connection_free](#s2n\_connection\_free) or reused via [s2n_connection_wipe](#s2n\_connection\_wipe)
 
 ## Using Early Data / 0RTT
 
