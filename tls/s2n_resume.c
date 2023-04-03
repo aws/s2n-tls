@@ -644,20 +644,16 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
         total_weight += ticket_keys_weight[i].key_weight;
     }
 
-    /* Pick a random number in [0, 1). Using 53 bits (IEEE 754 double-precision floats). */
+    /* Pick a random number in [0, total_weight) to use to select a key. */
     uint64_t random_int = 0;
-    POSIX_GUARD_RESULT(s2n_public_random(pow(2, 53), &random_int));
-    double random = (double) random_int / (double) pow(2, 53);
+    POSIX_GUARD_RESULT(s2n_public_random(total_weight, &random_int));
 
     /* Compute cumulative weight of encrypt-decrypt keys */
     for (int i = 0; i < num_encrypt_decrypt_keys; i++) {
-        ticket_keys_weight[i].key_weight = ticket_keys_weight[i].key_weight / total_weight;
-
         if (i > 0) {
             ticket_keys_weight[i].key_weight += ticket_keys_weight[i - 1].key_weight;
         }
-
-        if (ticket_keys_weight[i].key_weight > random) {
+        if (ticket_keys_weight[i].key_weight > random_int) {
             return ticket_keys_weight[i].key_index;
         }
     }
