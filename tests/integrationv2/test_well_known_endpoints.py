@@ -6,7 +6,7 @@ from common import ProviderOptions, Ciphers, pq_enabled
 from fixtures import managed_process  # lgtm [py/unused-import]
 from global_flags import get_flag, is_criterion_on, S2N_FIPS_MODE, S2N_USE_CRITERION
 from providers import Provider, S2N
-from utils import invalid_test_parameters, get_parameter_name, to_bytes
+from utils import invalid_test_parameters, get_parameter_name, to_bytes, flaky_test
 
 
 ENDPOINTS = [
@@ -90,6 +90,7 @@ else:
 @pytest.mark.parametrize("endpoint", ENDPOINTS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", CIPHERS, ids=get_parameter_name)
+@flaky_test()
 def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cipher):
     port = "443"
 

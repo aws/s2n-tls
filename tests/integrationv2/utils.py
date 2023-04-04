@@ -1,6 +1,8 @@
 from common import Protocols
+from functools import wraps
 from providers import S2N
 from global_flags import get_flag, S2N_FIPS_MODE
+import time
 
 
 def to_bytes(val):
@@ -129,3 +131,30 @@ def invalid_test_parameters(*args, **kwargs):
                 return True
 
     return False
+
+
+def flaky_test(max_iterations=5):
+    def decorator(fun):
+        @wraps(fun)
+        def wrapper(*args, **kwargs):
+            iterations = 0
+
+            while iterations + 1 < max_iterations:
+                try:
+                    return fun(*args, **kwargs)
+
+                except AssertionError as assert_error:
+                    # compute an exponential back off starting at 500ms
+                    sleep_time = 2 ** iterations / 2
+                    iterations += 1
+                    print(f"Flaky test failure in \"{fun.__name__}\" "
+                          f"({iterations}/{max_iterations}). Retrying in {sleep_time} second(s).")
+                    for line in assert_error.__str__().strip().split("\n"):
+                        print(f"  {line}")
+                    time.sleep(sleep_time)
+
+            # don't wrap the last iteration
+            return fun(*args, **kwargs)
+
+        return wrapper
+    return decorator
