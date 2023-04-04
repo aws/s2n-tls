@@ -77,6 +77,28 @@ And when invoking CMake for your project, do one of two things:
  1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n-tls build.
  2. If you have globally installed s2n-tls, do nothing, it will automatically be found.
 
+
+### Cross Compiling for 32 Bit Platforms
+There is an example toolchain for 32 bit cross-comiling in `cmake/toolchains/32-bit.toolchain`.
+
+First, you will need to download a 32 bit version of libcrypto. Many linux distributions are [multi-arch](https://help.ubuntu.com/community/MultiArch) which allows you to download multi architectures of the same library from the distro package manager. For ubuntu this can be down with the following
+```
+# we're interesed in i386 (32 bit) architectures
+dpkg --add-architecture i386
+
+# update apt so it knows to look for 32 bit packages
+apt update
+
+# install the 32 bit (i386) version of libcrypto
+apt install libssl-dev:i386
+```
+
+Then wipe out the build directory (to clear the cmake cache allowing for the new toolchain) then run
+```
+cmake . -Bbuild -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/32-bit.toolchain
+cmake --build ./build -j $(nproc)
+```
+
 ## Building s2n-tls with Openssl
 
 We keep the build artifacts in the *-build directory:
@@ -386,7 +408,7 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 `s2n_config_set_cipher_preferences()` sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.
 
-### Chart: Security Policy Version To Protocol Version And Ciphersuites 
+### Chart: Security Policy Version To Protocol Version And Ciphersuites
 
 The following chart maps the security policy version to protocol version and ciphersuites supported.
 
@@ -567,7 +589,7 @@ The OCSP stapling information will be automatically validated if the underlying 
 
 Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates that have been revoked by the CA. CAs publish updated versions of these lists periodically. A validator wishing to verify a certificate obtains a CRL from the CA, validates the CRL, and checks to ensure the certificate is not contained in the list, and therefore has not been revoked by the CA.
 
-The s2n CRL lookup callback must be implemented and set via `s2n_config_set_crl_lookup_cb()` to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain. 
+The s2n CRL lookup callback must be implemented and set via `s2n_config_set_crl_lookup_cb()` to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain.
 
 The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback, outside of s2n-tls. It is not possible in s2n-tls to obtain CRLs in real-time. Applications should load these CRLs into memory, by creating `s2n_crl`s via `s2n_crl_new()`, and adding the obtained CRL data via `s2n_crl_load_pem()`. The `s2n_crl` should be freed via `s2n_crl_free()` when no longer needed.
 
@@ -664,7 +686,7 @@ for details about proper SSLv2 ClientHello parsing.
 
 ### Client Hello Callback
 
-Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully, as modifying the connection in response to untrusted input can be dangerous. In particular, switching from an `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack. 
+Users can access the Client Hello during the handshake by setting the callback `s2n_config_set_client_hello_cb()`. A possible use-case for this is to modify the `s2n_connection` based on information in the Client Hello. This should be done carefully, as modifying the connection in response to untrusted input can be dangerous. In particular, switching from an `s2n_config` that supports TLS1.3 to one that does not opens the server up to a possible version downgrade attack.
 
 `s2n_connection_server_name_extension_used()` MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.
 
@@ -673,7 +695,7 @@ Users can access the Client Hello during the handshake by setting the callback `
 The callback can be invoked in two modes: **S2N_CLIENT_HELLO_CB_BLOCKING** or **S2N_CLIENT_HELLO_CB_NONBLOCKING**. Use `s2n_config_set_client_hello_cb_mode()` to set the desired mode.
 
 The default mode, "blocking mode", will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won't slow down the handshake or block the main thread, like logging or simple configuration changes.
- 
+
 In contrast, "non-blocking mode" will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls `s2n_client_hello_cb_done()` will the handshake be able to resume.
 
 ## Record sizes
