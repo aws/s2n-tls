@@ -99,12 +99,16 @@ fn build_vendored() {
         .flag_if_supported("-z noexecstack")
         // we use some deprecated libcrypto features so don't warn here
         .flag_if_supported("-Wno-deprecated-declarations")
-        .define("_POSIX_C_SOURCE", "200112L");
+        .define("_POSIX_C_SOURCE", "200112L")
+        .define("_FORTIFY_SOURCE", "2");
+
+    // Enabling _FORTIFY_SOURCE requires at least some optimizations to be enabled so use level 1
+    // at the minimum.
+    if env("OPT_LEVEL") == "0" {
+        build.opt_level(1);
+    }
 
     if env("PROFILE") == "release" {
-        // fortify source is only available in release mode
-        build.define("_FORTIFY_SOURCE", "2");
-
         // build s2n-tls with LTO if supported
         build
             .flag_if_supported("-flto")
