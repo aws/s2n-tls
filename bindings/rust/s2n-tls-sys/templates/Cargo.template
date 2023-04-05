@@ -17,6 +17,7 @@ include = [
   "lib/**/*.S",
   "lib/CMakeLists.txt",
   "lib/**/*.cmake",
+  "lib/**/*.flags", # for feature probes
   "src/**/*.rs",
   "tests/**/*.rs",
 ]
