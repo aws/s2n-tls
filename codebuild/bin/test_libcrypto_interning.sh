@@ -15,27 +15,10 @@
 
 set -e
 
-
+source codebuild/bin/s2n_setup_env.sh
 source codebuild/bin/jobs.sh
 
-# build 2 different version of libcrypto to make it easy to break the application if
-# interning doesn't work as expected
-WHICH_LIBCRYPTO=$(echo "${S2N_LIBCRYPTO:-"openssl-1.1.1"}")
-TARGET_LIBCRYPTO="${WHICH_LIBCRYPTO//[-.]/_}"
-TARGET_LIBCRYPTO_PATH="$(pwd)/build/${TARGET_LIBCRYPTO}"
-OPENSSL_1_0="$(pwd)/build/openssl_1_0"
-if [ ! -f $OPENSSL_1_0/lib/libcrypto.a ]; then
-  ./codebuild/bin/install_openssl_1_0_2.sh $OPENSSL_1_0/src $OPENSSL_1_0 linux
-fi
-if [ ! -f $TARGET_LIBCRYPTO_PATH/lib/libcrypto.a ]; then
-  if [ "$TARGET_LIBCRYPTO" == "awslc" ]; then
-    ./codebuild/bin/install_${TARGET_LIBCRYPTO}.sh $TARGET_LIBCRYPTO_PATH/src $TARGET_LIBCRYPTO_PATH 0
-  else
-    ./codebuild/bin/install_${TARGET_LIBCRYPTO}.sh $TARGET_LIBCRYPTO_PATH/src $TARGET_LIBCRYPTO_PATH linux
-  fi
-fi
-
-COMMON_FLAGS="-DCMAKE_PREFIX_PATH=$TARGET_LIBCRYPTO_PATH -DCMAKE_BUILD_TYPE=RelWithDebInfo"
+COMMON_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -DCMAKE_BUILD_TYPE=RelWithDebInfo"
 LTO_FLAGS="-DS2N_LTO=on"
 
 # use LTO-aware commands if possible
@@ -98,14 +81,14 @@ ldd ./build/shared-testing/lib/libs2n.so | grep -q libcrypto && fail "shared-tes
 # run the tests and make sure they all pass with the prefixed version
 tests build/shared-testing
 # load the wrong version of libcrypto and the tests should still pass
-LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so tests build/shared-testing
+LD_PRELOAD=$OPENSSL_1_0_2_INSTALL_DIR/lib/libcrypto.so tests build/shared-testing
 
 # ensure the small app will compile with both versions of openssl without any linking issues
 for build in shared shared-lto; do
   # create a small app that links against both s2n and libcrypto
   write_app build/$build/app.c
 
-  for target in $OPENSSL_1_0 $TARGET_LIBCRYPTO_PATH; do
+  for target in $OPENSSL_1_0_2_INSTALL_DIR $LIBCRYPTO_ROOT; do
     echo "testing $build linking with $target"
     mkdir -p $target/bin
     cc -fPIE -Iapi -I$target/include build/$build/app.c build/$build/lib/libs2n.so $target/lib/libcrypto.a -lpthread -ldl -o $target/bin/test-app
@@ -130,7 +113,7 @@ for build in static; do
   # create a small app that links against both s2n and libcrypto
   write_app build/$build/app.c
 
-  for target in $OPENSSL_1_0 $TARGET_LIBCRYPTO_PATH; do
+  for target in $OPENSSL_1_0_2_INSTALL_DIR $LIBCRYPTO_ROOT; do
     echo "testing $build linking with $target"
     mkdir -p $target/bin
     cc -fPIE -Iapi -I$target/include build/$build/app.c build/$build/lib/libs2n.a $target/lib/libcrypto.a -lpthread -ldl -o $target/bin/test-app
@@ -147,9 +130,9 @@ done
 
 run_connection_test() {
     local TARGET="$1"
-    LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nd -c default_tls13 localhost 4433 &> /dev/null &
+    LD_PRELOAD=$OPENSSL_1_0_2_INSTALL_DIR/lib/libcrypto.so ./build/$TARGET/bin/s2nd -c default_tls13 localhost 4433 &> /dev/null &
     local SERVER_PID=$!
-    LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nc -i -c default_tls13 localhost 4433 | tee build/client.log
+    LD_PRELOAD=$OPENSSL_1_0_2_INSTALL_DIR/lib/libcrypto.so ./build/$TARGET/bin/s2nc -i -c default_tls13 localhost 4433 | tee build/client.log
     kill $SERVER_PID &> /dev/null || true
 
     # ensure a TLS 1.3 session was negotiated
