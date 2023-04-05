@@ -1,29 +1,35 @@
 ### Nix support
 
+### Quickstart
+
+- `sudo bash -c “mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix”`
+- Run the multi-user command from `https://nixos.org/download.html#nix-install-linux`
+- Enable flakes: `mkdir ~/.config/nix; echo "experimental-features = nix-command flakes" > ~/.config/nix.conf`
+- `cd s2n-tls`
 ### Devshell
 
 To enter a development shell with everything needed to build and test, run `nix develop` at the root of the project.
 
 There are some helper scripts in the environment to make building easier, but if you're familiar with Nix, note that these are 
 separate from the buildPhase, configurePhase and checkPhase.
+### Configure and build
+
+From inside the devShell: `configure; build`.
 
 ### Unit tests
 
-- Oneshot: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;unit" `
+From inside the devShell after configuring and building run `unit`.  Individual tests can be run by passing regex snippets to the unit function, e.g. `unit stuffer`
+
+The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;unit" `
 
 ### Integration tests
 
-- Oneshot: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ" `
-- Specific test: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ happy_path"`
+From inside a devShell after running configure and build, use `integ` to run all the tests.  Note that some of the tests are still broken under nix, so some failures are expected.
 
-- interactively: 
+The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ" `
 
-```
-nix develop
-configure
-build
-integ
-```
+Like with the unit tests, an individual test can be run with a regex: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ happy_path"`
+
 
 ### S3 Binary Cache
 
