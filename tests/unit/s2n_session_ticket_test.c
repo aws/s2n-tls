@@ -813,23 +813,23 @@ int main(int argc, char **argv)
 
     /* Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST */
     {
-        const size_t iterations = 450;
-        const size_t allowed_failures = 1;
-        size_t wrong_key_selected = 0;
+        const size_t allowed_failures = 10;
+        size_t failures = 0;
+        bool expected_key_chosen = false;
 
         /* This test sets up three different ticket encryption keys at various times in their encryption lifetime. The test
          * is meant to check that the weighted random selection algorithm correctly selects the key that is at its
-         * encryption peak. However the test will sometimes pick a key that is not at its peak encryption because the
-         * selection function uses a weighted random selection algorithm. We only expect this behavior
-         * rarely so as long as the test passes the majority of the time, we consider the selection algorithm to be
-         * working as intended.
+         * encryption peak. However the test will sometimes pick a key that is not at its encryption peak because the
+         * selection function uses a weighted random selection algorithm. Here we assert that the likelihood of 
+         * the expected key NOT getting chosen is low. 
          *
-         * We expect the test to fail 0.02% of the time. This value is drawn from the weight of the correct key, 
-         * which does not change per test run. Therefore, we run the test 450 times and allow the test to choose the wrong key
-         * (1 / 450) = 0.2% of the time. This is a higher failure rate than technically needed, but it keeps us from 
-         * having to do too many iterations and slowing down the entire test.
+         * We expect to choose the wrong key 0.02% of the time. This value is drawn from the weight of the expected key, 
+         * which does not change per test run. Therefore, the probability that the test chooses the wrong key
+         * allowed_failures times is 0.0002 ^ 10, which is extremely unlikely to occur.
          */
-        for (size_t i = 0; i < iterations; i++) {
+        while (expected_key_chosen == false) {
+            EXPECT_TRUE(failures < allowed_failures);
+
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -881,10 +881,10 @@ int main(int argc, char **argv)
                     serialized_session_state_length);
             int result = memcmp(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name2,
                     s2n_array_len(ticket_key_name2));
-            if (result != 0) {
-                EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES, ticket_key_name1,
-                        s2n_array_len(ticket_key_name1));
-                wrong_key_selected += 1;
+            if (result == 0) {
+                expected_key_chosen = true;
+            } else {
+                failures += 1;
             }
             /* Verify the lifetime hint from the server */
             EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
@@ -897,7 +897,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(server_config));
             EXPECT_SUCCESS(s2n_config_free(client_config));
         }
-        EXPECT_TRUE(wrong_key_selected <= allowed_failures);
     };
 
     /* Testing s2n_config_set_ticket_encrypt_decrypt_key_lifetime and
