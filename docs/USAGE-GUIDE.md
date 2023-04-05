@@ -81,9 +81,9 @@ And when invoking CMake for your project, do one of two things:
 ### Cross Compiling for 32 Bit Platforms
 There is an example toolchain for 32 bit cross-comiling in `cmake/toolchains/32-bit.toolchain`.
 
-First, you will need to download a 32 bit version of libcrypto. Many linux distributions are [multi-arch](https://help.ubuntu.com/community/MultiArch) which allows you to download multi architectures of the same library from the distro package manager. For ubuntu this can be down with the following
+First, you will need access to a 32 bit version of libcrypto. Many linux distributions are [multi-arch](https://help.ubuntu.com/community/MultiArch) compatible which allows you to download 32 bit packages on a 64 bit platform. For Ubuntu this can be done with the following
 ```
-# we're interesed in i386 (32 bit) architectures
+# we're interested in i386 (32 bit) architectures
 dpkg --add-architecture i386
 
 # update apt so it knows to look for 32 bit packages

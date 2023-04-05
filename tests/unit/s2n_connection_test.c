@@ -124,8 +124,25 @@ int main(int argc, char **argv)
      */
     {
         /* Carefully consider any increases to this number. */
-        const uint16_t max_connection_size = 4264;
-        const uint16_t min_connection_size = max_connection_size * 0.9;
+        const uint16_t max_connection_size_64 = 4264;
+        /* this constant determines the min size relative to the max size */
+        const double tolerance = 0.9;
+
+        /* these numbers were obtained with parent commit:
+         * 92b571ae3c71ad3a69511fae65982a93cb9a271b. The size_reduction is
+         * calculated as 64 bit connection size - 32 bit connection size for
+         * some particular feature set.
+         */
+        const uint16_t size_reduction = 4256 - 3260;
+        const uint16_t max_connection_size_32 = max_connection_size_64 - size_reduction;
+
+        uint16_t max_connection_size;
+        if (sizeof(void *) == 8) { /* platform is 64 bit */
+            max_connection_size = max_connection_size_64;
+        } else { /* platform is 32 bit */
+            max_connection_size = max_connection_size_32;
+        }
+        uint16_t min_connection_size = max_connection_size * tolerance;
 
         size_t connection_size = sizeof(struct s2n_connection);
 
