@@ -9,9 +9,6 @@ You may need to validate the peer’s hostname by implementing the s2n_verify_ho
 ## Why is s2n hanging for so long before erroring?
 s2n-tls sleeps for 10-30 seconds after specific errors occur to prevent peers from learning about encrypted data. This technique is called blinding and it is utilized to prevent side-channel attacks.
 
-## When does `s2n_connection_get_handshake_type_name()` include the WITH_SESSION_TICKET flag in a TLS12 handshake, but not in a TLS13 handshake? Is the TLS13 handshake still doing session resumption?
-In TLS13 the session ticket is sent after the handshake in a post-handshake message. Since the handshake itself no longer contains this message, the `s2n_connection_get_handshake_type_name()` will not include it.
-
 ## Which security policy should I use if I want to make sure that it will never be altered?
 Our numbered security policies are guaranteed to never change. We will not alter or update them based on changing cryptography standards. However, our named security policies (like “default” or “default_tls13”) change based on new cryptography standards that come out. 
 
