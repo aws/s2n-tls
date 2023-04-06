@@ -402,7 +402,7 @@ int s2n_config_set_alert_behavior(struct s2n_config *config, s2n_alert_behavior 
 int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn verify_host_fn, void *data)
 {
     POSIX_ENSURE_REF(config);
-    config->verify_host = verify_host_fn;
+    config->verify_host_fn = verify_host_fn;
     config->data_for_verify_host = data;
     return 0;
 }
