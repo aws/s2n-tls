@@ -1256,6 +1256,80 @@ int s2n_early_data_cb_async_impl(struct s2n_connection *conn, struct s2n_offered
 
 **s2n_offered_early_data_get_context_length** and **s2n_offered_early_data_get_context** can be called to examine the optional user context associated with the early data. Unlike most s2n-tls callbacks, the context is not configured when the callback is set. Instead, the context is associated with the specific pre-shared key or session ticket used for early data. The context can be set for external pre-shared keys by calling **s2n_psk_set_early_data_context**. For session tickets, **s2n_connection_set_server_early_data_context** can be used to set the context the server includes on its new session tickets. Because the server needs to serialize the context when creating a new session ticket, the context is a byte buffer instead of the usual void pointer.
 
+# Callbacks
+
+The following is a list of all callbacks types and functions available for s2n-tls.
+
+```
+typedef int (*s2n_clock_time_nanoseconds)(void *, uint64_t *);
+    S2N_API extern int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
+    S2N_API extern int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
+
+
+typedef int (*s2n_cache_retrieve_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size, void *value, uint64_t *value_size);
+    S2N_API extern int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);
+typedef int (*s2n_cache_store_callback)(struct s2n_connection *conn, void *, uint64_t ttl_in_seconds, const void *key, uint64_t key_size, const void *value, uint64_t value_size);
+    S2N_API extern int s2n_config_set_cache_store_callback(struct s2n_config *config, s2n_cache_store_callback cache_store_callback, void *data);
+typedef int (*s2n_cache_delete_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size);
+    S2N_API extern int s2n_config_set_cache_delete_callback(struct s2n_config *config, s2n_cache_delete_callback cache_delete_callback, void *data);
+
+
+typedef int (*s2n_mem_init_callback)(void);
+typedef int (*s2n_mem_cleanup_callback)(void);
+typedef int (*s2n_mem_malloc_callback)(void **ptr, uint32_t requested, uint32_t *allocated);
+typedef int (*s2n_mem_free_callback)(void *ptr, uint32_t size);
+    S2N_API extern int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
+        s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
+
+
+typedef int (*s2n_rand_init_callback)(void);
+typedef int (*s2n_rand_cleanup_callback)(void);
+typedef int (*s2n_rand_seed_callback)(void *data, uint32_t size);
+typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
+    S2N_API extern int s2n_rand_set_callbacks(s2n_rand_init_callback rand_init_callback, s2n_rand_cleanup_callback rand_cleanup_callback, s2n_rand_seed_callback rand_seed_callback, s2n_rand_mix_callback rand_mix_callback);
+
+
+typedef struct s2n_cert_chain_and_key *(*s2n_cert_tiebreak_callback)(struct s2n_cert_chain_and_key *cert1, struct s2n_cert_chain_and_key *cert2, uint8_t *name, uint32_t name_len);
+    S2N_API extern int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb);
+
+
+typedef uint8_t (*s2n_verify_host_fn)(const char *host_name, size_t host_name_len, void *data);
+    S2N_API extern int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
+
+
+typedef int s2n_client_hello_fn(struct s2n_connection *conn, void *ctx);
+    S2N_API extern int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
+    S2N_API extern int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn host_fn, void *data);
+
+
+typedef int s2n_recv_fn(void *io_context, uint8_t *buf, uint32_t len);
+    S2N_API extern int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv);
+    S2N_API extern int s2n_connection_set_recv_ctx(struct s2n_connection *conn, void *ctx);
+typedef int s2n_send_fn(void *io_context, const uint8_t *buf, uint32_t len);
+    S2N_API extern int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send);
+    S2N_API extern int s2n_connection_set_send_ctx(struct s2n_connection *conn, void *ctx);
+
+
+typedef int (*s2n_session_ticket_fn)(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket);
+    S2N_API extern int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
+
+
+typedef int (*s2n_psk_selection_callback)(struct s2n_connection *conn, void *context, struct s2n_offered_psk_list *psk_list);
+    S2N_API int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
+
+
+typedef int (*s2n_async_pkey_fn)(struct s2n_connection *conn, struct s2n_async_pkey_op *op);
+    S2N_API extern int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
+
+
+typedef int (*s2n_key_log_fn)(void *ctx, struct s2n_connection *conn, uint8_t *logline, size_t len);
+    S2N_API extern int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback, void *ctx);
+
+
+typedef int (*s2n_early_data_cb)(struct s2n_connection *conn, struct s2n_offered_early_data *early_data);
+    S2N_API int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_data_cb cb);
+
+```
 
 # Examples
 
