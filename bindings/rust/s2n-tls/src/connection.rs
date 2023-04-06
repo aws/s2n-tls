@@ -318,6 +318,26 @@ impl Connection {
         Ok(self)
     }
 
+    /// TODO
+    /// - docs
+    /// - test
+    /// - move verify_host to callback folder
+    pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        self.context_mut().verify_host_callback = Some(Box::new(handler));
+        unsafe {
+            s2n_connection_set_verify_host_callback(
+                self.connection.as_ptr(),
+                Some(verify_host_cb_fn),
+                self.context_mut() as *mut Context as *mut c_void,
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// # Safety
     ///
     /// The `context` pointer must live at least as long as the connection
@@ -728,6 +748,7 @@ struct Context {
     mode: Mode,
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
+    verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
 }
 
 impl Context {
@@ -736,6 +757,7 @@ impl Context {
             mode,
             waker: None,
             async_callback: None,
+            verify_host_callback: None,
         }
     }
 }
