@@ -198,7 +198,6 @@ int main(int argc, char **argv)
 
         /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-
         uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1),
                 ticket_key1, s2n_array_len(ticket_key1), key_intro_time));
@@ -813,22 +812,24 @@ int main(int argc, char **argv)
 
     /* Scenario 2: Client sends empty ST and server has multiple encrypt-decrypt keys to choose from for encrypting NST */
     {
-        const size_t allowed_failures = 10;
+        const size_t allowed_failures = 1;
         size_t failures = 0;
         bool expected_key_chosen = false;
 
         /* This test sets up three different ticket encryption keys at various times in their encryption lifetime. The test
          * is meant to check that the weighted random selection algorithm correctly selects the key that is at its
          * encryption peak. However the test will sometimes pick a key that is not at its encryption peak because the
-         * selection function uses a weighted random selection algorithm. Here we assert that the likelihood of 
-         * the expected key NOT getting chosen is low. 
+         * selection function uses a weighted random selection algorithm. Here we retry the test once if the key chosen
+         * is not the expected key.
          *
-         * We expect to choose the wrong key 0.02% of the time. This value is drawn from the weight of the expected key, 
+         * The wrong key will be chosen 0.02% of the time. This value is drawn from the weight of the expected key, 
          * which does not change per test run. Therefore, the probability that the test chooses the wrong key
-         * allowed_failures times is 0.0002 ^ 10, which is extremely unlikely to occur.
+         * more than allowed_failures times is 0.0002 ^ 2 = 0.00000004, which is extremely unlikely to occur. If
+         * the logic changes to chose the wrong key at a higher rate, say 50% of the time, this test would fail at a
+         * 0.5 ^ 2 = 0.25 or 25% of the time. This rate is high enough for us to notice and investigate.
          */
         while (expected_key_chosen == false) {
-            EXPECT_TRUE(failures < allowed_failures);
+            EXPECT_TRUE(failures <= allowed_failures);
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
