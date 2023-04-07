@@ -374,8 +374,7 @@ impl Builder {
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
-        let context = self.0.context_mut();
-        context.verify_host_callback = Some(Box::new(handler));
+        self.0.context_mut().verify_host_callback = Some(Box::new(handler));
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),

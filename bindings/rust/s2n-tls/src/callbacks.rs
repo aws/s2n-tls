@@ -68,6 +68,7 @@ pub trait VerifyHostNameCallback {
     fn verify_host_name(&self, host_name: &str) -> bool;
 }
 
+/// The `[s2n_tls_sys::s2n_verify_host_fn]` function called by the s2n-tls C library.
 pub(crate) unsafe extern "C" fn verify_host_cb_fn(
     host_name: *const ::libc::c_char,
     host_name_len: usize,

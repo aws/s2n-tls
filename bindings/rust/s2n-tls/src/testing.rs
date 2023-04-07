@@ -1,7 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{callbacks::VerifyHostNameCallback, config::*, security, testing::s2n_tls::Harness};
+use crate::{
+    callbacks::VerifyHostNameCallback, config::*, enums::Blinding, security,
+    testing::s2n_tls::Harness,
+};
 use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
 use core::{
@@ -208,6 +211,28 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     Ok(builder)
 }
 
+pub fn tls_pair(config: crate::config::Config) -> Pair<Harness, Harness> {
+    // create and configure a server connection
+    let mut server = crate::connection::Connection::new_server();
+    // some tests check for connection failure so disable blinding to avoid delay
+    server.as_mut().set_blinding(Blinding::SelfService).unwrap();
+    server
+        .set_config(config.clone())
+        .expect("Failed to bind config to server connection");
+    let server = Harness::new(server);
+
+    // create a client connection
+    let mut client = crate::connection::Connection::new_client();
+    // some tests check for connection failure so disable blinding to avoid delay
+    client.as_mut().set_blinding(Blinding::SelfService).unwrap();
+    client
+        .set_config(config)
+        .expect("Unable to set client config");
+    let client = Harness::new(client);
+
+    Pair::new(server, client, SAMPLES)
+}
+
 pub fn establish_connection(config: crate::config::Config) {
     // create and configure a server connection
     let mut server = crate::connection::Connection::new_server();
@@ -247,7 +272,7 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
     pair
 }
 
-pub fn poll_tls_pair_result(mut pair: Pair<Harness, Harness>) -> Result<()> {
+pub fn poll_tls_pair_result(pair: &mut Pair<Harness, Harness>) -> Result<()> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => return result,

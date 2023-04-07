@@ -328,10 +328,11 @@ impl Connection {
         Ok(self)
     }
 
-    /// TODO
-    /// - docs
-    /// - test
-    /// - move verify_host to callback folder
+    /// Set a custom callback function which is run during client certificate validation during
+    /// a mutual TLS handshake.
+    ///
+    /// The callback may be called more than once during certificate validation as each SAN on
+    /// the certificate will be checked.
     pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
         &mut self,
         handler: T,
@@ -437,12 +438,14 @@ impl Connection {
 
             match res {
                 Poll::Ready(res) => {
-                    #[cfg(test)]
-                    {
-                        self.handshake_complete = true;
-                    }
-
-                    return Poll::Ready(res.map(|_| self));
+                    let res = res.map(|_| {
+                        #[cfg(test)]
+                        {
+                            self.handshake_complete = true;
+                        }
+                        self
+                    });
+                    return Poll::Ready(res);
                 }
                 Poll::Pending => {
                     // if there is no connection_future then return, otherwise continue

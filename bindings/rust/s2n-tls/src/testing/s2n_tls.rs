@@ -204,6 +204,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture},
+        enums::ClientAuthType,
         testing::{client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
@@ -533,6 +534,46 @@ mod tests {
         builder.trust_location(Some(&cert), None)?;
 
         establish_connection(builder.build()?);
+        Ok(())
+    }
+
+    #[test]
+    fn reject_verify_host() -> Result<(), Error> {
+        let reject_config = {
+            let mut keypair = CertKeyPair::default();
+            let mut config = crate::config::Builder::new();
+            // configure the config VerifyHostNameCallback to reject all certificates
+            config.set_verify_host_callback(RejectAllClientCertificatesHandler {})?;
+            config.set_security_policy(&security::DEFAULT_TLS13)?;
+            config.load_pem(keypair.cert(), keypair.key())?;
+            config.trust_pem(keypair.cert())?;
+            config.set_client_auth_type(ClientAuthType::Required)?;
+            config.build()?
+        };
+
+        // confirm that default connection establishment fails
+        let mut pair = tls_pair(reject_config.clone());
+        assert!(poll_tls_pair_result(&mut pair).is_err());
+        assert!(!pair.server.0.is_handshake_complete());
+        assert!(!pair.client.0.is_handshake_complete());
+
+        // confirm that overriding the verify_host_callback on connection causes
+        // the handshake to succeed
+        pair = tls_pair(reject_config);
+        pair.server
+            .0
+            .connection
+            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})
+            .unwrap();
+        pair.client
+            .0
+            .connection
+            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})
+            .unwrap();
+        assert!(poll_tls_pair_result(&mut pair).is_ok());
+        assert!(pair.server.0.is_handshake_complete());
+        assert!(pair.client.0.is_handshake_complete());
+
         Ok(())
     }
 
