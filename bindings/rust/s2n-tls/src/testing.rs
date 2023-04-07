@@ -238,7 +238,11 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
         }
     }
 
-    // TODO add assertions to make sure the handshake actually succeeded
+    #[cfg(test)]
+    {
+        assert!(pair.server.0.is_handshake_complete());
+        assert!(pair.client.0.is_handshake_complete());
+    }
 
     pair
 }

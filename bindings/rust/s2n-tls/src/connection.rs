@@ -36,6 +36,8 @@ macro_rules! static_const_str {
 
 pub struct Connection {
     connection: NonNull<s2n_connection>,
+    #[cfg(test)]
+    pub(crate) handshake_complete: bool,
 }
 
 impl fmt::Debug for Connection {
@@ -82,7 +84,11 @@ impl Connection {
             }
         }
 
-        let mut connection = Self { connection };
+        let mut connection = Self {
+            connection,
+            #[cfg(test)]
+            handshake_complete: false,
+        };
         connection.init_context(mode);
         connection
     }
@@ -119,7 +125,11 @@ impl Connection {
     ///
     /// Caller must ensure s2n_connection is a valid reference to a [`s2n_connection`] object
     pub(crate) unsafe fn from_raw(connection: NonNull<s2n_connection>) -> Self {
-        Self { connection }
+        Self {
+            connection,
+            #[cfg(test)]
+            handshake_complete: false,
+        }
     }
 
     pub(crate) fn mode(&self) -> Mode {
@@ -426,7 +436,14 @@ impl Connection {
             let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
 
             match res {
-                Poll::Ready(res) => return Poll::Ready(res.map(|_| self)),
+                Poll::Ready(res) => {
+                    #[cfg(test)]
+                    {
+                        self.handshake_complete = true;
+                    }
+
+                    return Poll::Ready(res.map(|_| self));
+                }
                 Poll::Pending => {
                     // if there is no connection_future then return, otherwise continue
                     // looping and polling the future

@@ -28,6 +28,11 @@ impl Harness {
             handshake_done: false,
         }
     }
+
+    #[cfg(test)]
+    pub fn is_handshake_complete(&self) -> bool {
+        self.connection.handshake_complete
+    }
 }
 
 impl super::Connection for Harness {
