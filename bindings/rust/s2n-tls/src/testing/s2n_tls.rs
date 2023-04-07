@@ -209,13 +209,13 @@ mod tests {
     #[test]
     fn handshake_default() {
         let config = build_config(&security::DEFAULT).unwrap();
-        s2n_tls_pair(config);
+        establish_connection(config);
     }
 
     #[test]
     fn handshake_default_tls13() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
-        s2n_tls_pair(config)
+        establish_connection(config)
     }
 
     #[test]
@@ -527,7 +527,7 @@ mod tests {
         builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
         builder.trust_location(Some(&cert), None)?;
 
-        s2n_tls_pair(builder.build()?);
+        establish_connection(builder.build()?);
         Ok(())
     }
 

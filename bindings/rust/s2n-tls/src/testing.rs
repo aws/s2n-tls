@@ -208,7 +208,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     Ok(builder)
 }
 
-pub fn s2n_tls_pair(config: crate::config::Config) {
+pub fn establish_connection(config: crate::config::Config) {
     // create and configure a server connection
     let mut server = crate::connection::Connection::new_server();
     server
