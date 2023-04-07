@@ -168,11 +168,17 @@ impl CertKeyPair {
     }
 }
 
-#[derive(Default)]
 pub struct UnsecureAcceptAllClientCertificatesHandler {}
 impl VerifyHostNameCallback for UnsecureAcceptAllClientCertificatesHandler {
     fn verify_host_name(&self, _host_name: &str) -> bool {
         true
+    }
+}
+
+pub struct RejectAllClientCertificatesHandler {}
+impl VerifyHostNameCallback for RejectAllClientCertificatesHandler {
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        false
     }
 }
 
@@ -191,10 +197,10 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     builder
         .load_pem(keypair.cert(), keypair.key())
         .expect("Unable to load cert/pem");
+    builder
+        .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})
+        .expect("Unable to set a host verify callback.");
     unsafe {
-        builder
-            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler::default())
-            .expect("Unable to set a host verify callback.");
         builder
             .disable_x509_verification()
             .expect("Unable to disable x509 verification");

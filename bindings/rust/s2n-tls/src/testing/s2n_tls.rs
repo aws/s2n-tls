@@ -198,7 +198,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        callbacks::{ClientHelloCallback, ConnectionFuture, VerifyHostNameCallback},
+        callbacks::{ClientHelloCallback, ConnectionFuture},
         testing::{client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
@@ -515,13 +515,6 @@ mod tests {
 
     #[test]
     fn trust_location() -> Result<(), Error> {
-        struct AcceptAllHostnames {}
-        impl VerifyHostNameCallback for AcceptAllHostnames {
-            fn verify_host_name(&self, _: &str) -> bool {
-                true
-            }
-        }
-
         let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
         let mut cert = pem_dir.to_path_buf();
         cert.push("rsa_4096_sha512_client_cert.pem");
@@ -530,7 +523,7 @@ mod tests {
 
         let mut builder = crate::config::Builder::new();
         builder.set_security_policy(&security::DEFAULT_TLS13)?;
-        builder.set_verify_host_callback(AcceptAllHostnames {})?;
+        builder.set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})?;
         builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
         builder.trust_location(Some(&cert), None)?;
 
