@@ -1966,6 +1966,32 @@ S2N_API extern int s2n_connection_free(struct s2n_connection *conn);
  */
 S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
+typedef enum {
+    /* The write side of the connection is closed.
+     * IO methods that write, like s2n_send(), cannot be called. */
+    S2N_WRITE_CLOSED,
+    /* The read side of the connection is closed.
+     * IO methods that read, like s2n_recv(), cannot be called. */
+    S2N_READ_CLOSED,
+    /* The read and write sides of the connection are both closed.
+     * No IO methods can be called.
+     */
+    S2N_FULL_CLOSED,
+} s2n_closed_type;
+
+/**
+ * Reports whether or not the connection is closed.
+ *
+ * TLS1.2 only considers a connection closed or not closed, but TLS1.3 supports
+ * "half-close" behavior where the read and write sides of a connection can be
+ * closed separately.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @param side The type of closure being queried
+ * @returns true if closed, false otherwise
+ */
+S2N_API extern bool s2n_connection_is_closed(struct s2n_connection *conn, s2n_closed_type side);
+
 /**
  * Used to declare what type of client certificate authentication to use.
  *

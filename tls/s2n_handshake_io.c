@@ -1622,11 +1622,6 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         /* Flush any pending I/O or alert messages */
         POSIX_GUARD(s2n_flush(conn, blocked));
 
-        /* If the connection is closed, the handshake will never complete. */
-        if (conn->closed) {
-            POSIX_BAIL(S2N_ERR_CLOSED);
-        }
-
         /* If the handshake was paused, retry the current message */
         if (conn->handshake.paused) {
             *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
@@ -1634,6 +1629,8 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
         }
 
         if (CONNECTION_IS_WRITER(conn)) {
+            POSIX_ENSURE(!s2n_connection_is_closed(conn, S2N_WRITE_CLOSED), S2N_ERR_CLOSED);
+
             *blocked = S2N_BLOCKED_ON_WRITE;
             const int write_result = s2n_handshake_write_io(conn);
 
@@ -1666,6 +1663,8 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
                 S2N_ERROR_PRESERVE_ERRNO();
             }
         } else {
+            POSIX_ENSURE(!s2n_connection_is_closed(conn, S2N_READ_CLOSED), S2N_ERR_CLOSED);
+
             *blocked = S2N_BLOCKED_ON_READ;
             const int read_result = s2n_handshake_read_io(conn);
 
