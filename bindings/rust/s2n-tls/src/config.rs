@@ -374,6 +374,21 @@ impl Builder {
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn verify_host_cb_fn(
+            host_name: *const ::libc::c_char,
+            host_name_len: usize,
+            context: *mut ::libc::c_void,
+        ) -> u8 {
+            let host_name = host_name as *const u8;
+            let host_name = core::slice::from_raw_parts(host_name, host_name_len);
+            if let Ok(host_name_str) = core::str::from_utf8(host_name) {
+                let context = &mut *(context as *mut Context);
+                let handler = context.verify_host_callback.as_mut().unwrap();
+                return handler.verify_host_name(host_name_str) as u8;
+            }
+            0 // If the host name can't be parsed, fail closed.
+        }
+
         self.0.context_mut().verify_host_callback = Some(Box::new(handler));
         unsafe {
             s2n_config_set_verify_host_callback(
