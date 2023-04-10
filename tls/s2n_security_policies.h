@@ -27,10 +27,32 @@
 
 struct s2n_security_policy {
     uint8_t minimum_protocol_version;
+    /* TLS 1.0 - 1.2 - cipher preference includes multiple elements such
+     * as signature algorithms, record algorithms, and key exchange algorithms
+     * TLS 1.3 - cipher preference only determines record encryption
+     */
     const struct s2n_cipher_preferences *cipher_preferences;
+    /* kem_preferences is only used for Post-Quantum cryptography */
     const struct s2n_kem_preferences *kem_preferences;
+    /* TLS 1.2 - optional extension to specify signature algorithms other than
+     * default: https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
+     * TLS 1.3 - required extension specifying signature algorithms
+    */
     const struct s2n_signature_preferences *signature_preferences;
+    /* TLS 1.3 - optional extension
+     * The "signature_algorithms_cert" extension applies to signatures in
+     * certificates, and the "signature_algorithms" extension, which
+     * originally appeared in TLS 1.2, applies to signatures in
+     * CertificateVerify messages.
+     * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
+    */
     const struct s2n_signature_preferences *certificate_signature_preferences;
+    /* TLS 1.0 - 1.2 - "elliptic_curves" extension indicates supported groups
+     * for both key exchange and signature algorithms (ECDSA).
+     * TLS 1.3 - the "supported_groups" extension indicates the named groups
+     * which the client supports for key exchange, ordered from most preferred
+     * to least preferred: https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
+     */
     const struct s2n_ecc_preferences *ecc_preferences;
 };
 
