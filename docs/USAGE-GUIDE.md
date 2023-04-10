@@ -1261,8 +1261,8 @@ int s2n_early_data_cb_async_impl(struct s2n_connection *conn, struct s2n_offered
 The following is a list of all callbacks types and functions available for s2n-tls. Callbacks supported in the Rust bindings are marked with `[Rust]`.
 
 ## Clock
-- [Rust] int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
-- [Rust] int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
+- `[Rust]` int s2n_config_set_wall_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
+- `[Rust]` int s2n_config_set_monotonic_clock(struct s2n_config *config, s2n_clock_time_nanoseconds clock_fn, void *ctx);
 
 ## Cache
 - int s2n_config_set_cache_retrieve_callback(struct s2n_config *config, s2n_cache_retrieve_callback cache_retrieve_callback, void *data);
@@ -1278,15 +1278,15 @@ The following is a list of all callbacks types and functions available for s2n-t
 
 ## Certificate
 - int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb);
-- [Rust] int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
-- [Rust] int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn host_fn, void *data);
+- `[Rust]` int s2n_config_set_verify_host_callback(struct s2n_config *config, s2n_verify_host_fn, void *data);
+- `[Rust]` int s2n_connection_set_verify_host_callback(struct s2n_connection *conn, s2n_verify_host_fn host_fn, void *data);
 
 ## Client Hello
-- [Rust] int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
+- `[Rust]` int s2n_config_set_client_hello_cb(struct s2n_config *config, s2n_client_hello_fn client_hello_callback, void *ctx);
 
 ## IO
-- [Rust] int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv);
-- [Rust] int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send);
+- `[Rust]` int s2n_connection_set_recv_cb(struct s2n_connection *conn, s2n_recv_fn recv);
+- `[Rust]` int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send);
 
 ## Session Ticket
 - int s2n_config_set_session_ticket_cb(struct s2n_config *config, s2n_session_ticket_fn callback, void *ctx);
@@ -1295,10 +1295,10 @@ The following is a list of all callbacks types and functions available for s2n-t
 - int s2n_config_set_psk_selection_callback(struct s2n_config *config, s2n_psk_selection_callback cb, void *context);
 
 ## PKey
-- [Rust] int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
+- `[Rust]` int s2n_config_set_async_pkey_callback(struct s2n_config *config, s2n_async_pkey_fn fn);
 
 ## Key log
-- [Rust] int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback, void *ctx);
+- `[Rust]` int s2n_config_set_key_log_cb(struct s2n_config *config, s2n_key_log_fn callback, void *ctx);
 
 ## Early Date
 - int s2n_config_set_early_data_cb(struct s2n_config *config, s2n_early_data_cb cb);
