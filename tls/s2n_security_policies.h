@@ -109,6 +109,10 @@ extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_24;
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_25;
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2021_05_26;
 extern const struct s2n_security_policy security_policy_pq_tls_1_0_2023_01_24;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_07;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_08;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_09;
+extern const struct s2n_security_policy security_policy_pq_tls_1_2_2023_04_10;
 
 extern const struct s2n_security_policy security_policy_cloudfront_upstream;
 extern const struct s2n_security_policy security_policy_cloudfront_upstream_tls10;
