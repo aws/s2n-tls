@@ -365,8 +365,12 @@ impl Builder {
         self.enable_ocsp()
     }
 
-    /// Set a custom callback function which is run during client certificate validation during
-    /// a mutual TLS handshake.
+    /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
+    /// trusted.
+    ///
+    /// The default behavior is to require that the hostname match the server name set with
+    /// [`Self::set_server_name()`]. This will likely lead to all client certificates being
+    /// rejected, so the callback will need to be overridden when using client authentication.
     ///
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.

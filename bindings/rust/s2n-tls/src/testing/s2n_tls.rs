@@ -28,11 +28,6 @@ impl Harness {
             handshake_done: false,
         }
     }
-
-    #[cfg(test)]
-    pub fn is_handshake_complete(&self) -> bool {
-        self.connection.handshake_complete
-    }
 }
 
 impl super::Connection for Harness {
@@ -538,7 +533,7 @@ mod tests {
     }
 
     #[test]
-    fn reject_verify_host() -> Result<(), Error> {
+    fn connection_level_verify_host_callback() -> Result<(), Error> {
         let reject_config = {
             let mut keypair = CertKeyPair::default();
             let mut config = crate::config::Builder::new();
@@ -554,8 +549,6 @@ mod tests {
         // confirm that default connection establishment fails
         let mut pair = tls_pair(reject_config.clone());
         assert!(poll_tls_pair_result(&mut pair).is_err());
-        assert!(!pair.server.0.is_handshake_complete());
-        assert!(!pair.client.0.is_handshake_complete());
 
         // confirm that overriding the verify_host_callback on connection causes
         // the handshake to succeed
@@ -571,8 +564,6 @@ mod tests {
             .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})
             .unwrap();
         assert!(poll_tls_pair_result(&mut pair).is_ok());
-        assert!(pair.server.0.is_handshake_complete());
-        assert!(pair.client.0.is_handshake_complete());
 
         Ok(())
     }

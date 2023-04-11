@@ -36,8 +36,6 @@ macro_rules! static_const_str {
 
 pub struct Connection {
     connection: NonNull<s2n_connection>,
-    #[cfg(test)]
-    pub(crate) handshake_complete: bool,
 }
 
 impl fmt::Debug for Connection {
@@ -84,11 +82,7 @@ impl Connection {
             }
         }
 
-        let mut connection = Self {
-            connection,
-            #[cfg(test)]
-            handshake_complete: false,
-        };
+        let mut connection = Self { connection };
         connection.init_context(mode);
         connection
     }
@@ -125,11 +119,7 @@ impl Connection {
     ///
     /// Caller must ensure s2n_connection is a valid reference to a [`s2n_connection`] object
     pub(crate) unsafe fn from_raw(connection: NonNull<s2n_connection>) -> Self {
-        Self {
-            connection,
-            #[cfg(test)]
-            handshake_complete: false,
-        }
+        Self { connection }
     }
 
     pub(crate) fn mode(&self) -> Mode {
@@ -328,8 +318,12 @@ impl Connection {
         Ok(self)
     }
 
-    /// Set a custom callback function which is run during client certificate validation during
-    /// a mutual TLS handshake.
+    /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
+    /// trusted.
+    ///
+    /// The default behavior is to require that the hostname match the server name set with
+    /// [`Self::set_server_name()`]. This will likely lead to all client certificates being
+    /// rejected, so the callback will need to be overridden when using client authentication.
     ///
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.
@@ -453,13 +447,7 @@ impl Connection {
 
             match res {
                 Poll::Ready(res) => {
-                    let res = res.map(|_| {
-                        #[cfg(test)]
-                        {
-                            self.handshake_complete = true;
-                        }
-                        self
-                    });
+                    let res = res.map(|_| self);
                     return Poll::Ready(res);
                 }
                 Poll::Pending => {
