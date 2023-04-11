@@ -14,7 +14,7 @@ s2n-tls sleeps for a random period between 10 and 30 seconds after specific erro
 Our numbered security policies are guaranteed to never change. We will not alter or update them based on changing cryptography standards. However, our named security policies (like “default” or “default_tls13”) change based on new cryptography standards that come out. See [security policies](USAGE-GUIDE.md/#security-policies).
 
 ### Why does s2n-tls have a dependency on OpenSSL? Isn't s2n-tls a replacement for OpenSSL?
-s2n-tls links to a libcrypto in order to perform cryptographic operations. OpenSSL is a well-known libcrypto library that can provide those cryptographic operations, but other libcryptos can be used as well.
+s2n-tls links to a libcrypto in order to perform cryptographic operations. OpenSSL is a well-known libcrypto library that can provide those cryptographic operations, but other libcryptos can be used as well, such as [AWS-LC](https://github.com/aws/aws-lc).
 
 ### Does s2n-tls have an OpenSSL compatibility layer to make transitioning to s2n-tls easier? 
 s2n-tls does not provide compatibility with OpenSSL’s APIs. OpenSSL’s APIs are complex and creating a shim layer would take a lot of engineering effort. Currently we are focused on making our library as easy to use as possible and building useful features. A better choice for API compatibility with OpenSSL is [AWS-LC](https://github.com/aws/aws-lc).
