@@ -5,7 +5,7 @@ from configuration import (available_ports, ALL_TEST_CIPHERS, PROTOCOLS)
 from common import Certificates, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # lgtm [py/unused-import]
 from global_flags import S2N_PROVIDER_VERSION, get_flag
-from providers import Provider, S2N, OpenSSL, GnuTLS
+from providers import Provider, S2N, GnuTLS, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 # If we test every available cert, the test takes too long.
@@ -44,16 +44,6 @@ def verify_downgrade(protocol):
     else:
         protocol_version = protocol.value
     return protocol_version
-
-
-def assert_s2n_handshake_complete_downgrade(results, protocol, is_complete=True):
-    expected_version = verify_downgrade(protocol)
-    if is_complete:
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in results.stdout
-    else:
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) not in results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
@@ -252,6 +242,12 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_
         assert_openssl_handshake_complete(results)
 
 
+"""
+A s2n server that requests for a client certificate, and doesn't support RSA PSS,
+should downgrade to TLS 1.2 in case the client attempts to send an RSA PSS Certificate.     
+"""
+
+
 def test_client_auth_with_downgrade(managed_process):
     port = next(available_ports)
 
@@ -283,12 +279,14 @@ def test_client_auth_with_downgrade(managed_process):
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(GnuTLS, client_options, timeout=5)
 
+    expected_version = verify_downgrade(Protocols.TLS13)
+
     for results in client.get_results():
         results.assert_success()
-        assert b"Version" in results.stdout
 
     for results in server.get_results():
         results.assert_success()
-        # When a server requests for a client certificate, and doesn't support RSA PSS,
-        # downgrade to TLS 1.2 in case the client attempts to send an RSA PSS Certificate.
-        assert_s2n_handshake_complete_downgrade(results, Protocols.TLS13, is_complete=True)
+        # Verify downgrade to TLS1.2 when openssl1.0.2 is the lib-crypto.
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
+
