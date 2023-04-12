@@ -25,12 +25,12 @@
 
 #define EXPECT_BLINDING(conn)                            \
     EXPECT_NOT_EQUAL(s2n_connection_get_delay(conn), 0); \
-    EXPECT_TRUE(s2n_connection_is_closed(conn, S2N_FULL_CLOSED)); \
+    EXPECT_TRUE(s2n_connection_is_closed(conn, S2N_FULL_CLOSED));
 
-#define EXPECT_NO_BLINDING(conn)                     \
-    EXPECT_EQUAL(s2n_connection_get_delay(conn), 0); \
+#define EXPECT_NO_BLINDING(conn)                                    \
+    EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);                \
     EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_WRITE_CLOSED)); \
-    EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_READ_CLOSED)); \
+    EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_READ_CLOSED));
 
 S2N_RESULT s2n_result_func(bool success)
 {

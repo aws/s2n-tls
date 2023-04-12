@@ -13,15 +13,14 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_alerts.h"
-
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_alerts.h"
 #include "tls/s2n_tls.h"
 
 #define ERROR_ALERTS_COUNT (UINT16_MAX)
-#define END_OF_DATA 0
-#define MODE_COUNT 2
+#define END_OF_DATA        0
+#define MODE_COUNT         2
 
 int s2n_test_ch_cb(struct s2n_connection *conn, void *context)
 {
@@ -70,7 +69,7 @@ int main(int argc, char **argv)
     uint8_t error_alerts[ERROR_ALERTS_COUNT][2] = { 0 };
     size_t error_alerts_count = 0;
     for (size_t level_i = 0; level_i < s2n_array_len(test_alert_levels); level_i++) {
-        for(size_t alert_code = 0; alert_code <= UINT8_MAX; alert_code++) {
+        for (size_t alert_code = 0; alert_code <= UINT8_MAX; alert_code++) {
             /* Skip closure alerts */
             if (alert_code == S2N_TLS_ALERT_CLOSE_NOTIFY) {
                 continue;
@@ -232,7 +231,7 @@ int main(int argc, char **argv)
             struct s2n_connection *failed_conn = server;
             struct s2n_connection *closed_conn = client;
 
-            switch(test_errors[i]) {
+            switch (test_errors[i]) {
                 case S2N_ERR_CANCELLED:
                     /* Error triggered by callback failure during handshake */
                     EXPECT_SUCCESS(s2n_connection_set_config(server, bad_cb_config));
