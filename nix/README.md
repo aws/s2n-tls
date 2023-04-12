@@ -16,9 +16,10 @@ In the context of s2n-tls, we're using it to ease the setup of development envir
 #### What is this doing?
 
 1. Creates a /nix store directory where artifacts (_derivations_) will be stored.  It's not advised to change this, even for small roots - if you have disk space constraints, consider using a [bindmount](https://docs.rackspace.com/support/how-to/bind-mounts-in-linux/)
-1. Installs nix
-2. Enables the experimental _flakes_ feature.  A flake is simply a source tree (such as a Git repository) containing a file named flake.nix that provides a standardized interface to Nix artifacts such as packages or NixOS modules. See the [blog post](https://www.tweag.io/blog/2020-05-25-flakes/) for more.
-1. cd into the s2n-tls project root, where flake.nix lives.
+2. Installs nix
+3. Enables the experimental _flakes_ feature.  A flake is simply a source tree (such as a Git repository) containing a file named flake.nix that provides a standardized interface to Nix artifacts such as packages or NixOS modules. See the [blog post](https://www.tweag.io/blog/2020-05-25-flakes/) for more.
+4. cd into the s2n-tls project root, where flake.nix lives.
+
 ### Devshell
 
 A devShell is an environment with all of the build dependencies installed (on PATH) and ready for use. It is intended to easily get a usable development environment setup.
