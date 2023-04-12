@@ -21,7 +21,7 @@ In the context of s2n-tls, we're using it to ease the setup of development envir
 1. cd into the s2n-tls project root, where flake.nix lives.
 ### Devshell
 
-A devShell is an environment will all of the build dependencies installed and ready for use, intended to easily get a useable development environment setup.
+A devShell is an environment with all of the build dependencies installed (on PATH) and ready for use. It is intended to easily get a usable development environment setup.
 
 To enter the development shell, run `nix develop` at the root of the project.
 
