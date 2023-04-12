@@ -622,7 +622,7 @@ For example:
 char data[10]; /* Some data we want to write */
 struct iovec iov[1] = { 0 };
 iov[0].iov_base = data;
-iov[0].iov_len = sieof(data);
+iov[0].iov_len = sizeof(data);
 
 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_written = 0;
