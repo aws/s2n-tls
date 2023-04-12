@@ -684,7 +684,7 @@ calling `s2n_peek()` to determine if `s2n_recv()` needs to be called again.
 
 ### Closing the Connection
 
-`s2n_shutdown()` attempts a  graceful closure at the TLS layer. It does not close the
+`s2n_shutdown()` attempts a graceful closure at the TLS layer. It does not close the
 underlying transport. The call may block on either reading or writing.
 
 `s2n_shutdown()` should be called even after an error sending or receiving 
