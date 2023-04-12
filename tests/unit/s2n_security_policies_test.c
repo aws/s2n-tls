@@ -575,6 +575,11 @@ int main(int argc, char **argv)
             "AWS-CRT-SDK-TLSv1.1",
             "AWS-CRT-SDK-TLSv1.2",
             "AWS-CRT-SDK-TLSv1.3",
+            /* PQ TLS */
+            "PQ-TLS-1-2-2023-04-07",
+            "PQ-TLS-1-2-2023-04-08",
+            "PQ-TLS-1-2-2023-04-09",
+            "PQ-TLS-1-2-2023-04-10",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
