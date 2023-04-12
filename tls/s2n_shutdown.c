@@ -19,6 +19,21 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+static bool s2n_is_close_notify_required(struct s2n_connection *conn)
+{
+    /* We only send one close_notify */
+    if (conn->close_notify_queued) {
+        return false;
+    }
+    /* We don't send a close_notify if an error alert was already sent.
+     * Sending an error alert always sets conn->closing: see s2n_flush.
+     */
+    if (conn->closing) {
+        return false;
+    }
+    return true;
+}
+
 int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
@@ -33,13 +48,15 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     POSIX_GUARD_RESULT(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
     S2N_ERROR_IF(elapsed < conn->delay, S2N_ERR_SHUTDOWN_PAUSED);
 
-    /* Queue our close_notify alert.
-     * If we have already sent a close_notify, then this operation is a no-op.
-     */
-    POSIX_GUARD(s2n_queue_writer_close_alert_warning(conn));
-
-    /* Flush any pending records, then send the queued close_notify. */
+    /* Flush any outstanding data or alerts */
     POSIX_GUARD(s2n_flush(conn, blocked));
+
+    /* Send our close_notify alert if not sent yet */
+    if (s2n_is_close_notify_required(conn)) {
+        POSIX_GUARD(s2n_queue_writer_close_alert_warning(conn));
+        conn->close_notify_queued = 1;
+        POSIX_GUARD(s2n_flush(conn, blocked));
+    }
 
     /*
      * The purpose of the peer responding to our close_notify
