@@ -750,6 +750,8 @@ class GnuTLS(Provider):
 
     @staticmethod
     def protocol_to_priority_str(protocol):
+        if not protocol:
+            return None
         return {
             Protocols.TLS10.value: "VERS-TLS1.0",
             Protocols.TLS11.value: "VERS-TLS1.1",

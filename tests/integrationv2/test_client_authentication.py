@@ -4,9 +4,9 @@ import pytest
 from configuration import (available_ports, ALL_TEST_CIPHERS, PROTOCOLS)
 from common import Certificates, ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # lgtm [py/unused-import]
-from providers import Provider, S2N, OpenSSL
+from global_flags import S2N_PROVIDER_VERSION, get_flag
+from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
-
 
 # If we test every available cert, the test takes too long.
 # Choose a good representative subset.
@@ -29,6 +29,25 @@ def assert_openssl_handshake_complete(results, is_complete=True):
 
 def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True):
     expected_version = get_expected_s2n_version(protocol, provider)
+    if is_complete:
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) in results.stdout
+    else:
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_version)) not in results.stdout
+
+
+# If protocol version is TLS1.3 and lib-crypto is openssl-1.0.2, protocol version should downgrade to TLS1.2
+def verify_downgrade(protocol):
+    if protocol is Protocols.TLS13 and "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+        protocol_version = '33'
+    else:
+        protocol_version = protocol.value
+    return protocol_version
+
+
+def assert_s2n_handshake_complete_downgrade(results, protocol, is_complete=True):
+    expected_version = verify_downgrade(protocol)
     if is_complete:
         assert to_bytes("Actual protocol version: {}".format(
             expected_version)) in results.stdout
@@ -231,3 +250,45 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_
         assert b'read client certificate' in results.stderr
         assert b'read certificate verify' in results.stderr
         assert_openssl_handshake_complete(results)
+
+
+def test_client_auth_with_downgrade(managed_process):
+    port = next(available_ports)
+
+    random_bytes = data_bytes(64)
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        port=port,
+        data_to_send=random_bytes,
+        use_client_auth=True,
+        key=Certificates.RSA_2048_PKCS1.key,
+        cert=Certificates.RSA_2048_PKCS1.cert,
+        trust_store=Certificates.ECDSA_256.cert,
+        insecure=False,
+    )
+
+    client_options.extra_flags = ["--no-ca-verification"]
+
+    server_options = ProviderOptions(
+        mode=Provider.ServerMode,
+        port=port,
+        use_client_auth=True,
+        protocol=Protocols.TLS13,
+        key=Certificates.ECDSA_256.key,
+        cert=Certificates.ECDSA_256.cert,
+        trust_store=Certificates.RSA_2048_PKCS1.cert,
+        insecure=False,
+    )
+
+    server = managed_process(S2N, server_options, timeout=5)
+    client = managed_process(GnuTLS, client_options, timeout=5)
+
+    for results in client.get_results():
+        results.assert_success()
+        assert b"Version" in results.stdout
+
+    for results in server.get_results():
+        results.assert_success()
+        # When a server requests for a client certificate, and doesn't support RSA PSS,
+        # downgrade to TLS 1.2 in case the client attempts to send an RSA PSS Certificate.
+        assert_s2n_handshake_complete_downgrade(results, Protocols.TLS13, is_complete=True)
