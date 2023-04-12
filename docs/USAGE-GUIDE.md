@@ -604,7 +604,7 @@ char data[10]; /* Some data we want to write */
 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_written = 0;
 do {
-    int w = s2n_send(conn, data + written, sizeof(data) - bytes_written, &blocked);
+    int w = s2n_send(conn, data + bytes_written, sizeof(data) - bytes_written, &blocked);
     if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
         /* Some kind of fatal error */
         return S2N_FAILURE;
