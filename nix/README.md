@@ -47,7 +47,7 @@ What is this doing?
 3. source the shell functions needed to configure, build and run tests
 ### Integration tests
 
-From inside a devShell after running configure and build, use `integ <test name>` to run all the tests.  Note that some of the tests are still broken under nix, so some failures are expected.
+From inside a devShell after running configure and build, use `integ <test name>` to run the integ tests matching the regex `<test name>`, or with no arguments to run all the integ tests.  Note that some of the tests are still broken under nix, so some failures are expected.
 For example: `integ happy_path`.
 
 The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ" `
