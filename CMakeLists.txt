@@ -698,32 +698,34 @@ if (BUILD_TESTING)
         foreach(test_file_path ${integv2_test_files})
             get_filename_component(test_filename ${test_file_path} NAME_WE)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
-	    if (S2N_FAST_INTEG_TESTS)
-	        cmake_host_system_information(RESULT N QUERY NUMBER_OF_LOGICAL_CORES)
-	        if (N EQUAL 0)
-		    set(N 1)
-		endif()
-   	        add_test(NAME ${test_target}
-		  COMMAND
-		  pytest
-		  -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
-		  -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
-		  --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
-		  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
-		)
-	    else()
-	        add_test(NAME ${test_target}
-                  COMMAND
-                  ${CMAKE_COMMAND} -E env
-                  DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
-                  LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib:$ENV{LD_LIBRARY_PATH}
-                  PATH=${PROJECT_SOURCE_DIR}/bin:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin:$ENV{PATH}
-                  PYTHONNOUSERSITE=1
-                  S2N_INTEG_TEST=1
-                  TOX_TEST_NAME=${test_file_path}
-                  ${Python3_EXECUTABLE} -m tox
-                  WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
-	    endif()
+            if (S2N_INTEG_NIX)
+                # For Nix and environments where LD_LIBRARY_PATH is already correct.
+                # We're also dropping tox and calling pytest directly, because
+                # Nix is already handling all of the python setup.
+                add_test(NAME ${test_target}
+                        COMMAND
+                        pytest
+                        -x -n=1 --maxfail=1 --reruns=0 --cache-clear -rpfsq
+                        -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
+                        --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
+                        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
+                )
+            else()
+                # For use with libcryptos built into test-deps, and not in LD_LIBRARY_PATH.
+                # This is a duplication of tests/integrationv2/Makefile and
+                # can go away once all the Nix porting is finished.
+                add_test(NAME ${test_target}
+                        COMMAND
+                        ${CMAKE_COMMAND} -E env
+                        DYLD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
+                        LD_LIBRARY_PATH=${PROJECT_SOURCE_DIR}/libcrypto-root/lib:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/lib:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/nettle/lib:$ENV{LD_LIBRARY_PATH}
+                        PATH=${PROJECT_SOURCE_DIR}/bin:${PROJECT_SOURCE_DIR}/test-deps/openssl-1.1.1/bin:${PROJECT_SOURCE_DIR}/test-deps/gnutls37/bin:$ENV{PATH}
+                        PYTHONNOUSERSITE=1
+                        S2N_INTEG_TEST=1
+                        TOX_TEST_NAME=${test_file_path}
+                        ${Python3_EXECUTABLE} -m tox
+                        WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2)
+            endif()
             set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
             set_property(TEST ${test_target} PROPERTY TIMEOUT 7200)
         endforeach()

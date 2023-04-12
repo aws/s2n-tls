@@ -507,7 +507,7 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
     struct s2n_blob server_random = { 0 };
     POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
-    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
 
     uint8_t master_secret_label[] = "master secret";
     struct s2n_blob label = { 0 };
@@ -525,7 +525,7 @@ int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *p
     struct s2n_blob server_random = { 0 };
     POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
-    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
 
     uint8_t master_secret_label[] = "hybrid master secret";
     struct s2n_blob label = { 0 };
@@ -590,7 +590,7 @@ S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struc
     RESULT_ENSURE_REF(conn);
 
     struct s2n_blob extended_master_secret = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&extended_master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&extended_master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
 
     uint8_t extended_master_secret_label[] = "extended master secret";
     /* Subtract one from the label size to remove the "\0" */
@@ -639,11 +639,11 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
     struct s2n_hash_state *md5 = hash_workspace;
     POSIX_GUARD(s2n_hash_copy(md5, &conn->handshake.hashes->md5));
     POSIX_GUARD(s2n_hash_update(md5, prefix, 4));
-    POSIX_GUARD(s2n_hash_update(md5, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    POSIX_GUARD(s2n_hash_update(md5, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
     POSIX_GUARD(s2n_hash_update(md5, xorpad1, 48));
     POSIX_GUARD(s2n_hash_digest(md5, md5_digest, MD5_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_reset(md5));
-    POSIX_GUARD(s2n_hash_update(md5, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    POSIX_GUARD(s2n_hash_update(md5, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
     POSIX_GUARD(s2n_hash_update(md5, xorpad2, 48));
     POSIX_GUARD(s2n_hash_update(md5, md5_digest, MD5_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_digest(md5, md5_digest, MD5_DIGEST_LENGTH));
@@ -652,11 +652,11 @@ static int s2n_sslv3_finished(struct s2n_connection *conn, uint8_t prefix[4], st
     struct s2n_hash_state *sha1 = hash_workspace;
     POSIX_GUARD(s2n_hash_copy(sha1, &conn->handshake.hashes->sha1));
     POSIX_GUARD(s2n_hash_update(sha1, prefix, 4));
-    POSIX_GUARD(s2n_hash_update(sha1, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    POSIX_GUARD(s2n_hash_update(sha1, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
     POSIX_GUARD(s2n_hash_update(sha1, xorpad1, 40));
     POSIX_GUARD(s2n_hash_digest(sha1, sha_digest, SHA_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_reset(sha1));
-    POSIX_GUARD(s2n_hash_update(sha1, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    POSIX_GUARD(s2n_hash_update(sha1, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
     POSIX_GUARD(s2n_hash_update(sha1, xorpad2, 40));
     POSIX_GUARD(s2n_hash_update(sha1, sha_digest, SHA_DIGEST_LENGTH));
     POSIX_GUARD(s2n_hash_digest(sha1, sha_digest, SHA_DIGEST_LENGTH));
@@ -708,8 +708,8 @@ int s2n_prf_client_finished(struct s2n_connection *conn)
     label.data = client_finished_label;
     label.size = sizeof(client_finished_label) - 1;
 
-    master_secret.data = conn->secrets.tls12.master_secret;
-    master_secret.size = sizeof(conn->secrets.tls12.master_secret);
+    master_secret.data = conn->secrets.version.tls12.master_secret;
+    master_secret.size = sizeof(conn->secrets.version.tls12.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure->cipher_suite->prf_alg) {
             case S2N_HMAC_SHA256:
@@ -766,8 +766,8 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     label.data = server_finished_label;
     label.size = sizeof(server_finished_label) - 1;
 
-    master_secret.data = conn->secrets.tls12.master_secret;
-    master_secret.size = sizeof(conn->secrets.tls12.master_secret);
+    master_secret.data = conn->secrets.version.tls12.master_secret;
+    master_secret.size = sizeof(conn->secrets.version.tls12.master_secret);
     if (conn->actual_protocol_version == S2N_TLS12) {
         switch (conn->secure->cipher_suite->prf_alg) {
             case S2N_HMAC_SHA256:
@@ -849,7 +849,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     struct s2n_blob server_random = { 0 };
     POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
-    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.tls12.master_secret, sizeof(conn->secrets.tls12.master_secret)));
+    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
     struct s2n_blob label, out;
     uint8_t key_expansion_label[] = "key expansion";
     uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];

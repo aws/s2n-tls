@@ -90,6 +90,7 @@ else:
 @pytest.mark.parametrize("endpoint", ENDPOINTS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", CIPHERS, ids=get_parameter_name)
+@pytest.mark.flaky(reruns=5, reruns_delay=4)
 def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cipher):
     port = "443"
 
