@@ -38,6 +38,10 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    if (!s2n_is_tls13_fully_supported()) {
+        return 0;
+    }
+
     uint8_t alert_header[] = {
         /* type */
         TLS_ALERT,
