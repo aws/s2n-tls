@@ -37,15 +37,6 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
             expected_version)) not in results.stdout
 
 
-# If protocol version is TLS1.3 and lib-crypto is openssl-1.0.2, protocol version should downgrade to TLS1.2
-def verify_downgrade(protocol):
-    if protocol is Protocols.TLS13 and "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
-        protocol_version = '33'
-    else:
-        protocol_version = protocol.value
-    return protocol_version
-
-
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
@@ -243,12 +234,14 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_
 
 
 """
-A s2n server that requests for a client certificate, and doesn't support RSA PSS,
-should downgrade to TLS 1.2 in case the client attempts to send an RSA PSS Certificate.     
+In TLS 1.3, RSA-PSS is the recommended signature algorithm for RSA certificates, and the protocol mandates its use.
+However, not all servers support RSA-PSS signatures, particularly those built with openSSL1.0.2 versions. When the 
+server requests client authentication and the client sends an RSA certificate using TLS 1.3, if the server does not 
+support RSA-PSS, the connection fails. To avoid this, the client and server should negotiate a downgrade to TLS1.2.
 """
 
 
-def test_client_auth_with_downgrade(managed_process):
+def test_tls_12_client_auth_downgrade(managed_process):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -279,14 +272,17 @@ def test_client_auth_with_downgrade(managed_process):
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(GnuTLS, client_options, timeout=5)
 
-    expected_version = verify_downgrade(Protocols.TLS13)
-
     for results in client.get_results():
         results.assert_success()
 
+    # If protocol version is TLS1.3 and lib-crypto is openssl-1.0.2, protocol version should downgrade to TLS1.2.
+    # The downgrade occurs because openssl-1.0.2 doesn't support RSA-PSS signature scheme.
+    if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+        expected_protocol_version = Protocols.TLS12.value
+    else:
+        expected_protocol_version = Protocols.TLS13.value
+
     for results in server.get_results():
         results.assert_success()
-        # Verify downgrade to TLS1.2 when openssl1.0.2 is the lib-crypto.
         assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in results.stdout
-
+            expected_protocol_version)) in results.stdout
