@@ -13,12 +13,12 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_connection.h"
 #include "s2n_test.h"
+#include "tls/s2n_connection.h"
 
 bool is_32_bit_platform()
 {
-    return (sizeof (void*) == 4);
+    return (sizeof(void *) == 4);
 }
 
 /* Test s2n_connection does not grow too much.
