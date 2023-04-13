@@ -2,11 +2,13 @@ import copy
 import pytest
 
 from configuration import (available_ports, ALL_TEST_CIPHERS, PROTOCOLS)
-from common import Certificates, ProviderOptions, Protocols, data_bytes
+from common import Certificates, ProviderOptions, Protocols, data_bytes, Signatures
 from fixtures import managed_process  # lgtm [py/unused-import]
 from global_flags import S2N_PROVIDER_VERSION, get_flag
 from providers import Provider, S2N, GnuTLS, OpenSSL
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
+from test_signature_algorithms import signature_marker
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes, \
+    get_expected_gnutls_version
 
 # If we test every available cert, the test takes too long.
 # Choose a good representative subset.
@@ -36,6 +38,16 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
         assert to_bytes("Actual protocol version: {}".format(
             expected_version)) not in results.stdout
 
+def expected_signature(protocol, signature):
+    if protocol < Protocols.TLS12:
+        # ECDSA by default hashes with SHA-1.
+        #
+        # This is inferred from extended version of TLS1.1 rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
+        if signature.sig_type == 'ECDSA':
+            signature = Signatures.ECDSA_SHA1
+        else:
+            signature = Signatures.RSA_MD5_SHA1
+    return signature
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
@@ -272,17 +284,30 @@ def test_tls_12_client_auth_downgrade(managed_process):
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(GnuTLS, client_options, timeout=5)
 
-    for results in client.get_results():
-        results.assert_success()
-
-    # If protocol version is TLS1.3 and lib-crypto is openssl-1.0.2, protocol version should downgrade to TLS1.2.
+    #  A s2n server built with OpenSSL1.0.2 and enabling client auth will downgrade the protocol to TLS1.2.
     # The downgrade occurs because openssl-1.0.2 doesn't support RSA-PSS signature scheme.
     if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
         expected_protocol_version = Protocols.TLS12.value
     else:
         expected_protocol_version = Protocols.TLS13.value
 
+    # The client signature algorithm will be always 'RSA-PSS' when the protocol version is TLS1.3 and 'RSS'
+    # if it's TLS1.2
+    if expected_protocol_version == Protocols.TLS12.value:
+        signature_expected = Signatures.RSA_SHA224
+    elif expected_protocol_version == Protocols.TLS13.value:
+        signature_expected = Signatures.RSA_PSS_RSAE_SHA256
+
+    for results in client.get_results():
+        results.assert_success()
+
     for results in server.get_results():
         results.assert_success()
         assert to_bytes("Actual protocol version: {}".format(
             expected_protocol_version)) in results.stdout
+        assert signature_marker(Provider.ClientMode,
+                                signature_expected) in results.stdout
+
+
+
+
