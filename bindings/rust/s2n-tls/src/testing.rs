@@ -55,7 +55,11 @@ impl Default for Counter {
 }
 
 pub trait Connection: core::fmt::Debug {
-    fn poll<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>>;
+    fn poll<Ctx: Context>(
+        &mut self,
+        async_context: &mut std::task::Context,
+        context: &mut Ctx,
+    ) -> Poll<Result<()>>;
 }
 
 pub trait Context {
@@ -78,14 +82,15 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
             max_iterations,
         }
     }
-    pub fn poll(&mut self) -> Poll<Result<()>> {
+    pub fn poll(&mut self, context: &mut std::task::Context<'_>) -> Poll<Result<()>> {
         assert!(
             self.max_iterations > 0,
             "handshake has iterated too many times: {:#?}",
             self,
         );
-        let client_res = self.client.0.poll(&mut self.client.1);
-        let server_res = self.server.0.poll(&mut self.server.1);
+        let client_res = self.client.0.poll(context, &mut self.client.1);
+
+        let server_res = self.server.0.poll(context, &mut self.server.1);
         self.client.1.transfer(&mut self.server.1);
         self.max_iterations -= 1;
         match (client_res, server_res) {
@@ -202,7 +207,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     Ok(builder)
 }
 
-pub fn s2n_tls_pair(config: crate::config::Config) {
+pub fn s2n_tls_pair(config: crate::config::Config, context: &mut std::task::Context<'_>) {
     // create and configure a server connection
     let mut server = crate::connection::Connection::new_server();
     server
@@ -218,12 +223,15 @@ pub fn s2n_tls_pair(config: crate::config::Config) {
     let client = Harness::new(client);
 
     let pair = Pair::new(server, client, SAMPLES);
-    poll_tls_pair(pair);
+    poll_tls_pair(pair, context);
 }
 
-pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness> {
+pub fn poll_tls_pair(
+    mut pair: Pair<Harness, Harness>,
+    context: &mut std::task::Context<'_>,
+) -> Pair<Harness, Harness> {
     loop {
-        match pair.poll() {
+        match pair.poll(context) {
             Poll::Ready(result) => {
                 result.unwrap();
                 break;
@@ -237,9 +245,12 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
     pair
 }
 
-pub fn poll_tls_pair_result(mut pair: Pair<Harness, Harness>) -> Result<()> {
+pub fn poll_tls_pair_result(
+    mut pair: Pair<Harness, Harness>,
+    cx: &mut std::task::Context<'_>,
+) -> Result<()> {
     loop {
-        match pair.poll() {
+        match pair.poll(cx) {
             Poll::Ready(result) => return result,
             Poll::Pending => continue,
         }

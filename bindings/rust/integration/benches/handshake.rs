@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use criterion::{criterion_group, criterion_main, Criterion};
+use futures_test::task::noop_context;
 use s2n_tls::{
     security,
     testing::{build_config, s2n_tls_pair},
@@ -15,7 +16,7 @@ pub fn handshake(c: &mut Criterion) {
         group.bench_function(format!("handshake_{:?}", policy), move |b| {
             // This does include connection initalization overhead.
             // TODO: create a separate benchamrk that excludes this step.
-            b.iter(|| s2n_tls_pair(config.clone()));
+            b.iter(|| s2n_tls_pair(config.clone(), &mut noop_context()));
         });
     }
 

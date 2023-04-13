@@ -314,8 +314,12 @@ mod tests {
         let mut mut_pooled_conn: PooledConnection<ConfigPoolRef> =
             PooledConnection::new(&config_pool)?;
         let waker = futures_test::task::new_count_waker().0;
-        mut_pooled_conn.set_waker(Some(&waker))?;
-        assert!(mut_pooled_conn.waker().unwrap().will_wake(&waker));
+        let mut context = std::task::Context::from_waker(&waker);
+
+        let found_waker = mut_pooled_conn.in_async_context(&mut context, |mut_pooled_conn| {
+            mut_pooled_conn.with_async_context(|cx| cx.unwrap().waker().clone())
+        });
+        assert!(found_waker.will_wake(&waker));
 
         Ok(())
     }
