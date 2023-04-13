@@ -78,8 +78,11 @@ And when invoking CMake for your project, do one of two things:
  2. If you have globally installed s2n-tls, do nothing, it will automatically be found.
 
 
-### Cross Compiling for 32 Bit Platforms
-There is an example toolchain for 32 bit cross-comiling in `cmake/toolchains/32-bit.toolchain`.
+### 32 Bit Platforms
+s2n-tls has support for 32 bit builds, but they are not built or tested in our CI, so they may or may not work. If you run into any issue let us know! We welcome pull requests and/or suggestions about how to better support 32 bit customers!
+
+#### Cross Compiling for 32 Bit Platforms
+There is an example toolchain for 32 bit cross-compiling in `cmake/toolchains/32-bit.toolchain`.
 
 First, you will need access to a 32 bit version of libcrypto. Many linux distributions are [multi-arch](https://help.ubuntu.com/community/MultiArch) compatible which allows you to download 32 bit packages on a 64 bit platform. For Ubuntu this can be done with the following
 ```
@@ -93,7 +96,7 @@ apt update
 apt install libssl-dev:i386
 ```
 
-Then wipe out the build directory (to clear the cmake cache allowing for the new toolchain) then run
+Then wipe out the build directory (to clear the cmake cache allowing for the new toolchain) and run
 ```
 cmake . -Bbuild -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/32-bit.toolchain
 cmake --build ./build -j $(nproc)
