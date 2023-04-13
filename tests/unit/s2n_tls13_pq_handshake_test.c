@@ -185,15 +185,15 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     /* Verify secrets aren't just zero'ed memory */
     uint8_t all_zeros[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
     POSIX_CHECKED_MEMSET((void *) all_zeros, 0, S2N_TLS13_SECRET_MAX_LEN);
-    struct s2n_tls13_secrets *client_secrets = &client_conn->secrets.tls13;
-    struct s2n_tls13_secrets *server_secrets = &server_conn->secrets.tls13;
+    struct s2n_tls13_secrets *client_secrets = &client_conn->secrets.version.tls13;
+    struct s2n_tls13_secrets *server_secrets = &server_conn->secrets.version.tls13;
     POSIX_ENSURE_EQ(server_secret_info.size, client_secret_info.size);
     uint8_t size = server_secret_info.size;
-    POSIX_ENSURE_EQ(client_secrets->extract_secret_type, S2N_HANDSHAKE_SECRET);
+    POSIX_ENSURE_EQ(client_conn->secrets.extract_secret_type, S2N_HANDSHAKE_SECRET);
     POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->extract_secret, size));
     POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->client_handshake_secret, size));
     POSIX_ENSURE_NE(0, memcmp(all_zeros, client_secrets->server_handshake_secret, size));
-    POSIX_ENSURE_EQ(server_secrets->extract_secret_type, S2N_HANDSHAKE_SECRET);
+    POSIX_ENSURE_EQ(server_conn->secrets.extract_secret_type, S2N_HANDSHAKE_SECRET);
     POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->extract_secret, size));
     POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->client_handshake_secret, size));
     POSIX_ENSURE_NE(0, memcmp(all_zeros, server_secrets->server_handshake_secret, size));

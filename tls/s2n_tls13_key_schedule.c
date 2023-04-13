@@ -332,6 +332,6 @@ S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->initial);
     conn->client = conn->initial;
     conn->server = conn->initial;
-    conn->secrets.tls13.extract_secret_type = S2N_NONE_SECRET;
+    conn->secrets.extract_secret_type = S2N_NONE_SECRET;
     return S2N_RESULT_OK;
 }

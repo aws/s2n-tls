@@ -64,27 +64,34 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* Only generate the session id for pre-TLS1.3 if using tickets */
-    if (conn->client_protocol_version < S2N_TLS13 && !conn->config->use_tickets) {
+    /* Only generate the session id if using tickets */
+    bool generate = conn->config->use_tickets;
+
+    /* TLS1.3 doesn't require session ids. The field is actually renamed to legacy_session_id.
+     * However, we still set a session id if dealing with troublesome middleboxes
+     * (middlebox compatibility mode) or if trying to use a TLS1.2 ticket.
+     */
+    if (conn->client_protocol_version >= S2N_TLS13) {
+        generate = s2n_is_middlebox_compat_enabled(conn) || conn->resume_protocol_version;
+    }
+
+    /* Session id not needed - no-op */
+    if (!generate) {
         return S2N_RESULT_OK;
     }
 
-    /* Only generate the session id for TLS1.3 if in middlebox compatibility mode
+    /* QUIC should not allow session ids for any reason.
      *
-     * s2n_connection_get_protocol_version, which returns conn->actual_protocol_version, is used here because
-     * s2n_tls12_client_deserialize_session_state sets actual_protocol_version based on the protocol the 
-     * server that issued the session ticket indicated. If we are attempting to resume a session for that
-     * session ticket, we should base the decision of whether to generate a session ID on the protocol version
-     * we are attempting to resume with. */
-    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 && !s2n_is_middlebox_compat_enabled(conn)) {
-        return S2N_RESULT_OK;
-    }
+     *= https://tools.ietf.org/rfc/rfc9001#section-8.4
+     *# A server SHOULD treat the receipt of a TLS ClientHello with a non-empty
+     *# legacy_session_id field as a connection error of type PROTOCOL_VIOLATION.
+     */
+    RESULT_ENSURE(!conn->quic_enabled, S2N_ERR_UNSUPPORTED_WITH_QUIC);
 
     struct s2n_blob session_id = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&session_id, conn->session_id, S2N_TLS_SESSION_ID_MAX_LEN));
     RESULT_GUARD(s2n_get_public_random_data(&session_id));
     conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
-
     return S2N_RESULT_OK;
 }
 
