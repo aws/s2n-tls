@@ -25,6 +25,26 @@
 /* Kept up-to-date by s2n_security_policies_test */
 #define NUM_RSA_PSS_SCHEMES 6
 
+/**
+ * Note that s2n-tls is not RFC compliant with
+ *
+ * If the client provided a "signature_algorithms" extension, then all
+ * certificates provided by the server MUST be signed by a
+ * hash/signature algorithm pair that appears in that extension.
+ * https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2 (TLS 1.2)
+ *
+ * And is also not compliant with
+ *
+ * If no "signature_algorithms_cert" extension is present, then the
+ * "signature_algorithms" extension also applies to signatures appearing in
+ * certificates.
+ * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3 (TLS 1.3)
+ *
+ * In s2n-tls, the signature_algorithms extension only applies to signatures in
+ * CertificateVerify messages. To specify acceptable signature algorithms for
+ * certificates the certificate_signature_preferences field should be set in the
+ * security policy.
+ */
 struct s2n_security_policy {
     uint8_t minimum_protocol_version;
     /* TLS 1.0 - 1.2 - cipher preference includes multiple elements such
@@ -34,24 +54,28 @@ struct s2n_security_policy {
     const struct s2n_cipher_preferences *cipher_preferences;
     /* kem_preferences is only used for Post-Quantum cryptography */
     const struct s2n_kem_preferences *kem_preferences;
-    /* TLS 1.2 - optional extension to specify signature algorithms other than
+    /* This field roughly corresponds to the "signature_algorithms" extension.
+     * The client serializes this field of the security_policy to populate the
+     * extension, and it is also used by the server to choose an appropriate
+     * entry from the options supplied by the client.
+     * TLS 1.2 - optional extension to specify signature algorithms other than
      * default: https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
      * TLS 1.3 - required extension specifying signature algorithms
     */
     const struct s2n_signature_preferences *signature_preferences;
-    /* TLS 1.3 - optional extension
-     * The "signature_algorithms_cert" extension applies to signatures in
-     * certificates, and the "signature_algorithms" extension, which
-     * originally appeared in TLS 1.2, applies to signatures in
-     * CertificateVerify messages.
-     * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
+    /* When this field is set, the endpoint will ensure that the peer's
+     * certificate signature algorithm is in the specified list. Note that this
+     * list does not correspond to the signature_algorithms_cert extension.
+     * There is no scenario in which this information is transmitted to a peer.
     */
     const struct s2n_signature_preferences *certificate_signature_preferences;
-    /* TLS 1.0 - 1.2 - "elliptic_curves" extension indicates supported groups
+    /* This field roughly corresponds to the information in the
+     * "supported_groups" extension.
+     * TLS 1.0 - 1.2 - "elliptic_curves" extension indicates supported groups
      * for both key exchange and signature algorithms (ECDSA).
      * TLS 1.3 - the "supported_groups" extension indicates the named groups
-     * which the client supports for key exchange, ordered from most preferred
-     * to least preferred: https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
+     * which the client supports for key exchange
+     * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
      */
     const struct s2n_ecc_preferences *ecc_preferences;
 };
