@@ -38,16 +38,6 @@ def assert_s2n_handshake_complete(results, protocol, provider, is_complete=True)
         assert to_bytes("Actual protocol version: {}".format(
             expected_version)) not in results.stdout
 
-def expected_signature(protocol, signature):
-    if protocol < Protocols.TLS12:
-        # ECDSA by default hashes with SHA-1.
-        #
-        # This is inferred from extended version of TLS1.1 rfc- https://www.rfc-editor.org/rfc/rfc4492#section-5.10
-        if signature.sig_type == 'ECDSA':
-            signature = Signatures.ECDSA_SHA1
-        else:
-            signature = Signatures.RSA_MD5_SHA1
-    return signature
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
@@ -307,7 +297,3 @@ def test_tls_12_client_auth_downgrade(managed_process):
             expected_protocol_version)) in results.stdout
         assert signature_marker(Provider.ClientMode,
                                 signature_expected) in results.stdout
-
-
-
-
