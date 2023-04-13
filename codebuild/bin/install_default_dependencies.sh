@@ -72,7 +72,7 @@ if [[ "$S2N_LIBCRYPTO" == "awslc-fips" && ! -d "$AWSLC_FIPS_INSTALL_DIR" ]]; the
     codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_FIPS_INSTALL_DIR" "1" > /dev/null ;
 fi
 if [[ "$S2N_LIBCRYPTO" == "awslc-fips-2022" && ! -d "$AWSLC_FIPS_2022_INSTALL_DIR" ]]; then
-    codebuild/bin/install_awslc_fips_2022.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" "$OS_NAME" > /dev/null ;
+    codebuild/bin/install_awslc_fips_2022.sh "$(mktemp -d)" "$AWSLC_FIPS_2022_INSTALL_DIR" > /dev/null ;
 fi
 
 if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then

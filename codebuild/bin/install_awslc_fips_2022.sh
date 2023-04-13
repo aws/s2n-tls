@@ -16,17 +16,16 @@ set -e
 pushd "$(pwd)"
 
 usage() {
-    echo "install_awslc_fips_2022.sh build_dir install_dir os_name"
+    echo "install_awslc_fips_2022.sh build_dir install_dir"
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "2" ]; then
     usage
 fi
 
 BUILD_DIR=$1
 INSTALL_DIR=$2
-OS_NAME=$3
 
 source codebuild/bin/jobs.sh
 
