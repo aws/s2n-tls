@@ -724,6 +724,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
 }
 
+
 S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert)
 {
     RESULT_ENSURE_REF(conn);
@@ -732,6 +733,21 @@ S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 
     const struct s2n_security_policy *security_policy;
     RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
 
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2
+    *= type=exception
+    *= reason=not implemented due to lack of utility
+    *# If the client provided a "signature_algorithms" extension, then all
+    *# certificates provided by the server MUST be signed by a
+    *# hash/signature algorithm pair that appears in that extension.
+    *
+    *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
+    *= type=exception
+    *= reason=not implemented due to lack of utility
+    *# If no "signature_algorithms_cert" extension is present, then the
+    *# "signature_algorithms" extension also applies to signatures appearing in
+    *# certificates.
+    */
     if (security_policy->certificate_signature_preferences == NULL) {
         return S2N_RESULT_OK;
     }

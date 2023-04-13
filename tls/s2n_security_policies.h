@@ -30,20 +30,6 @@
  * likely differs between different TLS versions, as the mechanics of cipher
  * negotiation often have significant differences between TLS versions.
  *
- *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2
- *= type=exception
- *= reason=not implemented due to lack of utility
- *# If the client provided a "signature_algorithms" extension, then all
- *# certificates provided by the server MUST be signed by a
- *# hash/signature algorithm pair that appears in that extension.
- *
- *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
- *= type=exception
- *= reason=not implemented due to lack of utility
- *# If no "signature_algorithms_cert" extension is present, then the
- *# "signature_algorithms" extension also applies to signatures appearing in
- *# certificates.
- *
  * In s2n-tls, the signature_algorithms extension only applies to signatures in
  * CertificateVerify messages. To specify acceptable signature algorithms for
  * certificates the certificate_signature_preferences field should be set in the
@@ -67,16 +53,17 @@ struct s2n_security_policy {
      * TLS 1.3 - required extension specifying signature algorithms
     */
     const struct s2n_signature_preferences *signature_preferences;
-    /* When this field is set, the endpoint will ensure that the peer's
-     * certificate signature algorithm is in the specified list. Note that this
-     * list does not correspond to the signature_algorithms_cert extension.
-     * There is no scenario in which this information is transmitted to a peer.
+    /* When this field is set, the endpoint will ensure that the signatures on
+     * the certificates in the peer's certificate chain are in the specified
+     * list. Note that s2n-tls does not support the signature_algorithms_cert
+     * extension. Unlike the signature_preferences field, this information is
+     * never transmitted to a peer.
     */
     const struct s2n_signature_preferences *certificate_signature_preferences;
     /* This field roughly corresponds to the information in the
      * "supported_groups" extension.
      * TLS 1.0 - 1.2 - "elliptic_curves" extension indicates supported groups
-     * for both key exchange and signature algorithms (ECDSA).
+     * for both key exchange and signature algorithms.
      * TLS 1.3 - the "supported_groups" extension indicates the named groups
      * which the client supports for key exchange
      * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
