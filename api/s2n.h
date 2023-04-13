@@ -1711,10 +1711,16 @@ S2N_API extern int s2n_connection_set_protocol_preferences(struct s2n_connection
 /**
  * Sets the server name for the connection.
  *
- * It may be desirable for clients
+ * The provided server name will be sent by the client to the server in the
+ * server_name ClientHello extension. It may be desirable for clients
  * to provide this information to facilitate secure connections to
  * servers that host multiple 'virtual' servers at a single underlying
  * network address.
+ *
+ * s2n-tls does not place any restrictions on the provided server name. However,
+ * other TLS implementations might. Specifically, the TLS specification for the
+ * server_name extension requires that it be an ASCII-encoded DNS name without a
+ * trailing dot, and explicitly forbids literal IPv4 or IPv6 addresses.
  *
  * @param conn The connection object being queried
  * @param server_name A pointer to a string containing the desired server name
