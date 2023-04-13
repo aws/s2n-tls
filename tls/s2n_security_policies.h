@@ -25,20 +25,24 @@
 /* Kept up-to-date by s2n_security_policies_test */
 #define NUM_RSA_PSS_SCHEMES 6
 
-/**
- * Note that s2n-tls is not RFC compliant with
+/* The s2n_security_policy struct is used to define acceptable and available
+ * algorithms for use in the TLS protocol. Note that the behavior of each field
+ * likely differs between different TLS versions, as the mechanics of cipher
+ * negotiation often have significant differences between TLS versions.
  *
- * If the client provided a "signature_algorithms" extension, then all
- * certificates provided by the server MUST be signed by a
- * hash/signature algorithm pair that appears in that extension.
- * https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2 (TLS 1.2)
+ *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2
+ *= type=exception
+ *= reason=not implemented due to lack of utility
+ *# If the client provided a "signature_algorithms" extension, then all
+ *# certificates provided by the server MUST be signed by a
+ *# hash/signature algorithm pair that appears in that extension.
  *
- * And is also not compliant with
- *
- * If no "signature_algorithms_cert" extension is present, then the
- * "signature_algorithms" extension also applies to signatures appearing in
- * certificates.
- * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3 (TLS 1.3)
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
+ *= type=exception
+ *= reason=not implemented due to lack of utility
+ *# If no "signature_algorithms_cert" extension is present, then the
+ *# "signature_algorithms" extension also applies to signatures appearing in
+ *# certificates.
  *
  * In s2n-tls, the signature_algorithms extension only applies to signatures in
  * CertificateVerify messages. To specify acceptable signature algorithms for
