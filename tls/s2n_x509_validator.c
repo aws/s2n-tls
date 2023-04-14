@@ -724,7 +724,6 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
 }
 
-
 S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert)
 {
     RESULT_ENSURE_REF(conn);
