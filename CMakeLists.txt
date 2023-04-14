@@ -662,7 +662,7 @@ if (BUILD_TESTING)
             s2n_session_ticket_test
             s2n_x509_validator_test
         )
-        message(STATUS "Detected 32-Bit system - disabling the following test - ${CTEST_CUSTOM_TESTS_IGNORE}")
+        message(STATUS "Detected 32-Bit system - disabling the following tests - ${CTEST_CUSTOM_TESTS_IGNORE}")
         file(WRITE "${CMAKE_BINARY_DIR}/CTestCustom.cmake" "SET(CTEST_CUSTOM_TESTS_IGNORE ${CTEST_CUSTOM_TESTS_IGNORE})")
     endif()
 
