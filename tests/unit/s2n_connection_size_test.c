@@ -39,6 +39,9 @@ int main(int argc, char **argv)
      * just running it on a single platform keeps us from having to maintain
      * multiple static constants.
     */
+    if (is_32_bit_platform()) {
+        return 0;
+    }
 
     /* Carefully consider any increases to this number. */
     const uint16_t max_connection_size = 4264;

@@ -655,11 +655,8 @@ if (BUILD_TESTING)
     endforeach(test_case)
 
     if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-        # s2n_connection_size_test - pointer size is different on 32 bit
-        #                            platforms resulting in different struct size
-        # other tests have 2038 time_t issues
+        # these tests have 2038 time_t issues
         set(CTEST_CUSTOM_TESTS_IGNORE
-            s2n_connection_size_test
             s2n_cert_status_extension_test
             s2n_self_talk_nonblocking_test
             s2n_session_ticket_test
