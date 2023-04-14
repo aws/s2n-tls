@@ -79,7 +79,7 @@ And when invoking CMake for your project, do one of two things:
 
 
 ### 32 Bit Platforms
-s2n-tls does not support 32 bit builds. Our CI does not build or test on 32 bit platforms, so they may or may not work. If you run into a problem with 32 bit builds you can open an issue and we may or may not be able to help you. Note that we are unlikely to accept PR's for 32 bit issues at this time since we cannot properly test them. We hope to offer improved 32 bit support in the future, contingent upon updating our CI so that it can be properly tested.
+s2n-tls does not support 32 bit builds. Our CI does not build or test on 32 bit platforms, so they may or may not work. If you run into a problem with 32 bit builds you can open an issue and we may or may not be able to help you. Note that we are unlikely to accept PR's for 32 bit issues at this time since we cannot properly test them. We hope to offer improved 32 bit support in the future, contingent upon updating our CI with coverage for 32 bit platforms.
 
 #### Cross Compiling for 32 Bit Platforms
 There is an example toolchain for 32 bit cross-compiling in `cmake/toolchains/32-bit.toolchain`.
