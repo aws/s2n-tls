@@ -7,8 +7,7 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from global_flags import S2N_PROVIDER_VERSION, get_flag
 from providers import Provider, S2N, GnuTLS, OpenSSL
 from test_signature_algorithms import signature_marker
-from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes, \
-    get_expected_gnutls_version
+from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 # If we test every available cert, the test takes too long.
 # Choose a good representative subset.
