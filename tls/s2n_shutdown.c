@@ -73,6 +73,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
      */
     if (!s2n_handshake_is_complete(conn)) {
         POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+        *blocked = S2N_NOT_BLOCKED;
         return S2N_SUCCESS;
     }
 
