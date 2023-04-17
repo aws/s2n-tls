@@ -528,12 +528,13 @@ how to handle C signals, or simply ignore the SIGPIPE signal by calling
 ### Blocking or Non-Blocking?
 
 s2n-tls supports both blocking and non-blocking I/O.
-* In blocking mode, each s2n-tls I/O function will not return until it has sent
-or received all data.
-* In non-blocking mode an s2n-tls I/O function may return while there is
-still I/O pending. In this case `s2n_error_get_type()` will report **S2N_ERR_T_BLOCKED**
-and the value of the s2n_blocked_status parameter will be set appropriately. s2n-tls I/O functions
-should be called repeatedly until the **blocked** parameter is **S2N_NOT_BLOCKED**.
+* In blocking mode, each s2n-tls I/O function will not return until it has completed
+the requested IO operation.
+* In non-blocking mode, an s2n-tls I/O function may return while there is
+still I/O pending. If **S2N_FAILURE** is returned, `s2n_error_get_type()`
+will report **S2N_ERR_T_BLOCKED**. The s2n_blocked_status parameter will be
+set to indicate which IO direction blocked. s2n-tls I/O functions should be called
+repeatedly until the **blocked** parameter is **S2N_NOT_BLOCKED**.
 
 Servers in particular usually prefer non-blocking mode. In blocking mode, a single connection
 blocks the thread while waiting for more IO. In non-blocking mode, multiple connections
@@ -555,7 +556,7 @@ If the peer sends an alert, the next call to a read IO method will report **S2N_
 is available by calling `s2n_connection_get_alert()`.
 
 In TLS1.3, all alerts are fatal. s2n-tls also treats all alerts as fatal in earlier
-version of TLS by default. `s2n_config_set_alert_behavior()` can be called to
+versions of TLS by default. `s2n_config_set_alert_behavior()` can be called to
 force s2n-tls to treat pre-TLS1.3 warning alerts as not fatal, but that behavior
 is not recommended unless required for compatibility. In the past, attacks against
 TLS have involved manipulating the alert level to disguise fatal alerts as warnings.
@@ -594,32 +595,44 @@ The sending methods return the number of bytes written and may indicate a partia
 write. Partial writes are possible not just for non-blocking I/O, but also for
 connections aborted while active.
 
+A single call to `s2n_send()` may involve multiple system calls to write the
+provided application data. s2n-tls breaks the application data into fixed-sized
+records before encryption, and calls write for each record.
+[See the record size documentation for how record size may impact performance](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#record-sizes).
+
+To ensure that all data passed to `s2n_send()` is successfully sent, either call
+`s2n_send()` until its s2n_blocked_status parameter is **S2N_NOT_BLOCKED** or
+until the return values across all calls have added up to the length of the data.
+
 Unlike OpenSSL, repeated calls to `s2n_send()` should not duplicate the original
 parameters, but should update the inputs per the indication of size written.
 
-For example:
+For example, to send the message "hello world":
 ```c
-char data[10]; /* Some data we want to write */
-
+char data[] = "hello world";
 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_written = 0;
 do {
     int w = s2n_send(conn, data + bytes_written, sizeof(data) - bytes_written, &blocked);
     if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
-        /* Some kind of fatal error */
-        return S2N_FAILURE;
+        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
+        break;
     }
     bytes_written += w;
 } while (blocked != S2N_NOT_BLOCKED);
-printf("Written: %.*s", bytes_written, data);
+```
+Or alternatively, the loop condition can be:
+```c
+} while (bytes_written < sizeof(data));
 ```
 
 `s2n_sendv_with_offset()` behaves like `s2n_send()`, but supports vectorized buffers.
 The offset input should be updated between calls to reflect the data already written.
 
-For example:
+For example, to send the message "hello world":
 ```c
-char data[10]; /* Some data we want to write */
+char data[] = "hello world";
+
 struct iovec iov[1] = { 0 };
 iov[0].iov_base = data;
 iov[0].iov_len = sizeof(data);
@@ -629,12 +642,11 @@ int bytes_written = 0;
 do {
     int w = s2n_sendv_with_offset(conn, iov, 1, bytes_written, &blocked);
     if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
-        /* Some kind of fatal error */
-        return S2N_FAILURE;
+        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
+        break;
     }
     bytes_written += w;
 } while (blocked != S2N_NOT_BLOCKED);
-printf("Written: %.*s", bytes_written, data);
 ```
 
 `s2n_sendv()` also supports vectorized buffers, but assumes an offset of 0.
@@ -649,27 +661,53 @@ the application-provided output buffer. It returns the number of bytes read, and
 may indicate a partial read even if blocking IO is used.
 It returns "0" to indicate that the peer has shutdown the connection.
 
-**NOTE:** By default, `s2n_recv()` will return after reading a single TLS record.
-To instead read until the provided output buffer is full, call `s2n_config_set_recv_multi_record()`.
+By default, `s2n_recv()` will return after reading a single TLS record.
+To instead read until the provided output buffer is full, call `s2n_recv()` until
+its s2n_blocked_status parameter is **S2N_NOT_BLOCKED**. Alternatively, use
+`s2n_config_set_recv_multi_record()` to configure s2n-tls to read multiple
+TLS records until the provided output buffer is full.
 
 Unlike OpenSSL, repeated calls to `s2n_recv()` should not duplicate the original parameters,
 but should update the inputs per the indication of size read.
 
-For example:
+For example, to read all data sent by the peer into one buffer:
 ```c
-char data[10] = { 0 }; /* Empty buffer to read into */
+char buffer[MAX_BUFFER_SIZE] = { 0 };
 
 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_read = 0;
 do {
-    int r = s2n_recv(conn, data + bytes_read, sizeof(data) - bytes_read, &blocked);
+    int r = s2n_recv(conn, buffer + bytes_read, sizeof(buffer) - bytes_read, &blocked);
     if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
-        /* Some kind of fatal error */
-        return S2N_FAILURE;
+        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
+        break;
     }
     bytes_read += r;
 } while (blocked != S2N_NOT_BLOCKED);
-printf("Read: %.*s", bytes_read, data);
+printf("Received: %.*s", bytes_read, buffer);
+```
+
+Careful: `bytes_read < sizeof(buffer)` is not a valid loop condition here.
+If the peer indicates end-of-data, `s2n_recv()` will begin returning 0 and you
+may enter an infinite loop.
+
+As another example, to echo any data sent by the peer:
+```c
+char buffer[MAX_BUFFER_SIZE] = { 0 };
+
+s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+while (true) {
+    int r = s2n_recv(conn, buffer, sizeof(buffer), &blocked);
+    if (r == 0) {
+        printf("End of data.");
+        break;
+    } else if (r > 0) {
+        printf("Received: %.*s", r, buffer);
+    } else if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
+        break;
+    }
+}
 ```
 
 `s2n_peek()` can be used to check if more application data may be returned
