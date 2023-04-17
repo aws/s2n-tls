@@ -732,6 +732,30 @@ S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 
     const struct s2n_security_policy *security_policy;
     RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
 
+    /**
+     * We only restrict the signature algorithm on the certificates in the
+     * peer's certificate chain if the certificate_signature_preferences field
+     * is set in the security policy. This is contrary to the RFC, which
+     * specifies that the signatures in the "signature_algorithms" extension
+     * apply to signatures in the certificate chain in certain scenarios, so RFC
+     * compliance would imply validating that the certificate chain signature
+     * algorithm matches one of the algorithms specified in the
+     * "signature_algorithms" extension.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2
+     *= type=exception
+     *= reason=not implemented due to lack of utility
+     *# If the client provided a "signature_algorithms" extension, then all
+     *# certificates provided by the server MUST be signed by a
+     *# hash/signature algorithm pair that appears in that extension.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
+     *= type=exception
+     *= reason=not implemented due to lack of utility
+     *# If no "signature_algorithms_cert" extension is present, then the
+     *# "signature_algorithms" extension also applies to signatures appearing in
+     *# certificates.
+     */
     if (security_policy->certificate_signature_preferences == NULL) {
         return S2N_RESULT_OK;
     }
