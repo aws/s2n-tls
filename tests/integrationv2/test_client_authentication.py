@@ -273,17 +273,17 @@ def test_tls_12_client_auth_downgrade(managed_process):
     server = managed_process(S2N, server_options, timeout=5)
     client = managed_process(GnuTLS, client_options, timeout=5)
 
-    #  A s2n server built with OpenSSL1.0.2 and enabling client auth will downgrade the protocol to TLS1.2.
+    # A s2n server built with OpenSSL1.0.2 and enabling client auth will downgrade the protocol to TLS1.2.
     # The downgrade occurs because openssl-1.0.2 doesn't support RSA-PSS signature scheme.
     if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
         expected_protocol_version = Protocols.TLS12.value
     else:
         expected_protocol_version = Protocols.TLS13.value
 
-    # The client signature algorithm will be always 'RSA-PSS' when the protocol version is TLS1.3 and 'RSS'
-    # if it's TLS1.2
+    # The client signature algorithm type will be always 'RSA-PSS' when the protocol version is TLS1.3 and 'RSS'
+    # if it's TLS1.2.
     if expected_protocol_version == Protocols.TLS12.value:
-        signature_expected = Signatures.RSA_SHA224
+        signature_expected = Signatures.RSA_SHA256
     elif expected_protocol_version == Protocols.TLS13.value:
         signature_expected = Signatures.RSA_PSS_RSAE_SHA256
 
