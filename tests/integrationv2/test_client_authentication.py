@@ -280,7 +280,7 @@ def test_tls_12_client_auth_downgrade(managed_process):
     else:
         expected_protocol_version = Protocols.TLS13.value
 
-    # The client signature algorithm type will be always 'RSA-PSS' when the protocol version is TLS1.3 and 'RSS'
+    # The client signature algorithm type will be always 'RSA-PSS' when the protocol version is TLS1.3 and 'RSA'
     # if it's TLS1.2.
     if expected_protocol_version == Protocols.TLS12.value:
         signature_expected = Signatures.RSA_SHA256
