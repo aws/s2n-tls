@@ -1,0 +1,1 @@
+`s2n-tls-tokio` provides async bindings that allow consumers to use [s2n-tls](https://github.com/aws/s2n-tls) within the tokio runtime. To consume `s2n-tls` outside of an async context consider using the [s2n-tls](https://crates.io/crates/s2n-tls) crate.
