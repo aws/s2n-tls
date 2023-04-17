@@ -321,12 +321,11 @@ impl Connection {
     /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
     /// trusted.
     ///
-    /// The default behavior is to require that the hostname match the server name set with
-    /// [`Self::set_server_name()`]. This will likely lead to all client certificates being
-    /// rejected, so the callback will need to be overridden when using client authentication.
-    ///
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.
+    ///
+    /// Corresponds to the underlying
+    /// [C API](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#ad39f5c65f5c201d7af140baff29a02eb)
     pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
         &mut self,
         handler: T,

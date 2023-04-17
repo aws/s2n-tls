@@ -524,7 +524,7 @@ mod tests {
 
         let mut builder = crate::config::Builder::new();
         builder.set_security_policy(&security::DEFAULT_TLS13)?;
-        builder.set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})?;
+        builder.set_verify_host_callback(UnsecureAcceptAllCertificatesHandler {})?;
         builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
         builder.trust_location(Some(&cert), None)?;
 
@@ -538,7 +538,7 @@ mod tests {
             let mut keypair = CertKeyPair::default();
             let mut config = crate::config::Builder::new();
             // configure the config VerifyHostNameCallback to reject all certificates
-            config.set_verify_host_callback(RejectAllClientCertificatesHandler {})?;
+            config.set_verify_host_callback(RejectAllCertificatesHandler {})?;
             config.set_security_policy(&security::DEFAULT_TLS13)?;
             config.load_pem(keypair.cert(), keypair.key())?;
             config.trust_pem(keypair.cert())?;
@@ -556,12 +556,12 @@ mod tests {
         pair.server
             .0
             .connection
-            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})
+            .set_verify_host_callback(UnsecureAcceptAllCertificatesHandler {})
             .unwrap();
         pair.client
             .0
             .connection
-            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler {})
+            .set_verify_host_callback(UnsecureAcceptAllCertificatesHandler {})
             .unwrap();
         assert!(poll_tls_pair_result(&mut pair).is_ok());
 
