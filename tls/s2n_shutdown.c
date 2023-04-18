@@ -28,7 +28,7 @@ static bool s2n_is_close_notify_required(struct s2n_connection *conn)
     /* We don't send a close_notify if an error alert was already sent.
      * Sending an error alert always sets conn->closing: see s2n_flush.
      */
-    if (conn->closing) {
+    if (conn->write_closing) {
         return false;
     }
     return true;
