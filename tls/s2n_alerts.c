@@ -256,8 +256,8 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
     struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, alert, sizeof(alert)));
 
-    /* If there is an alert pending or we've already sent a close_notify, do nothing */
-    if (s2n_stuffer_data_available(&conn->writer_alert_out) || conn->close_notify_queued) {
+    /* If there is an alert pending, do nothing */
+    if (s2n_stuffer_data_available(&conn->writer_alert_out)) {
         return S2N_SUCCESS;
     }
 
@@ -266,7 +266,6 @@ int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
     }
 
     POSIX_GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
-    conn->close_notify_queued = 1;
 
     return S2N_SUCCESS;
 }
