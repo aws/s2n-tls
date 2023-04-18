@@ -51,7 +51,11 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     /* Flush any outstanding data or alerts */
     POSIX_GUARD(s2n_flush(conn, blocked));
 
-    /* Send our close_notify alert if not sent yet */
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-6.1
+     *# Each party MUST send a "close_notify" alert before closing its write
+     *# side of the connection, unless it has already sent some error alert.
+     */
     if (s2n_is_close_notify_required(conn)) {
         POSIX_GUARD(s2n_queue_writer_close_alert_warning(conn));
         conn->close_notify_queued = 1;
