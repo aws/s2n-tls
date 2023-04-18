@@ -60,7 +60,7 @@ $(VALGRIND_TESTS)::
 	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_VALGRIND=1 \
-	valgrind --leak-check=full --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
+	valgrind --leak-check=full --track-fds=yes --run-libc-freeres=no -q --error-exitcode=9 --gen-suppressions=all --log-fd=2 --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
 	./$(@:.valgrind=)
 
 $(PEDANTIC_VALGRIND_TESTS)::
@@ -68,7 +68,7 @@ $(PEDANTIC_VALGRIND_TESTS)::
 	@DYLD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$DYLD_LIBRARY_PATH" \
 	LD_LIBRARY_PATH="$(LIBCRYPTO_ROOT)/lib:$$LD_LIBRARY_PATH" \
 	S2N_VALGRIND=1 \
-	valgrind --leak-check=full --show-leak-kinds=all --errors-for-leak-kinds=all --run-libc-freeres=yes -q --error-exitcode=9 --gen-suppressions=all --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
+	valgrind --leak-check=full --track-fds=yes --show-leak-kinds=all --errors-for-leak-kinds=all --run-libc-freeres=yes -q --error-exitcode=9 --gen-suppressions=all --num-callers=40 --leak-resolution=high --undef-value-errors=no --trace-children=yes --suppressions=valgrind.suppressions \
 	./$(@:.pedantic_valgrind=)
 
 .PHONY : valgrind
