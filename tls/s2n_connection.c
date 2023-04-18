@@ -1542,7 +1542,7 @@ S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status side)
+bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status status)
 {
     if (!conn) {
         return false;
@@ -1558,7 +1558,7 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
      *# alert of their own.
      */
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        switch (side) {
+        switch (status) {
             case S2N_IO_WRITABLE:
             case S2N_IO_READABLE:
             case S2N_IO_FULL_DUPLEX:
@@ -1568,7 +1568,7 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
         }
     }
 
-    switch (side) {
+    switch (status) {
         case S2N_IO_WRITABLE:
             return !conn->write_closed;
         case S2N_IO_READABLE:
