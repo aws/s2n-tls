@@ -26,6 +26,7 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
+#include "unstable/minimal_config.h"
 #include "unstable/npn.h"
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
@@ -730,6 +731,121 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(config, s2n_test_async_pkey_fn));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
     };
+
+    /* Test loading system certs */
+    {
+        /* s2n_config_load_system_certs safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(NULL), S2N_ERR_NULL);
+        }
+
+        /* s2n_minimal_config_new should not load system certs */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_minimal_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_NULL(config->trust_store.trust_store);
+            EXPECT_FALSE(config->loaded_system_certs);
+
+            /* System certs can be loaded onto the minimal config */
+            EXPECT_SUCCESS(s2n_config_load_system_certs(config));
+            EXPECT_NOT_NULL(config->trust_store.trust_store);
+            EXPECT_TRUE(config->loaded_system_certs);
+
+            /* Attempting to load system certs multiple times on the same config should error */
+            for (int i = 0; i < 20; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+                EXPECT_TRUE(config->loaded_system_certs);
+            }
+        }
+
+        /* s2n_config_new should load system certs */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_NOT_NULL(config->trust_store.trust_store);
+            EXPECT_TRUE(config->loaded_system_certs);
+
+            /* Attempting to load system certs multiple times on the same config should error */
+            for (int i = 0; i < 20; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+                EXPECT_TRUE(config->loaded_system_certs);
+            }
+        }
+
+        /* The default config should load system certs */
+        {
+            struct s2n_config *config = s2n_fetch_default_config();
+            EXPECT_NOT_NULL(config);
+            EXPECT_TRUE(config->loaded_system_certs);
+        }
+
+        /* System certs can be loaded again after wiping the trust store */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            for (int i = 0; i < 20; i++) {
+                /* System certs were already loaded, so an attempt to load them should fail */
+                EXPECT_NOT_NULL(config->trust_store.trust_store);
+                EXPECT_TRUE(config->loaded_system_certs);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+
+                EXPECT_SUCCESS(s2n_config_wipe_trust_store(config));
+
+                /* The trust store is cleared after a wipe, so it should be possible to load system certs again */
+                EXPECT_FALSE(config->loaded_system_certs);
+                EXPECT_SUCCESS(s2n_config_load_system_certs(config));
+                EXPECT_TRUE(config->loaded_system_certs);
+            }
+        }
+
+        /* Ensure that system certs are properly loaded into the X509_STORE.
+         *
+         * The API to retrieve the contents of an X509_STORE wasn't added until OpenSSL 1.1.0.
+         */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_minimal_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_NULL(config->trust_store.trust_store);
+            EXPECT_FALSE(config->loaded_system_certs);
+
+            /* Initialize the X509_STORE by adding a cert */
+            EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&config->trust_store, S2N_RSA_PSS_2048_SHA256_CA_CERT, NULL));
+            EXPECT_NOT_NULL(config->trust_store.trust_store);
+            EXPECT_FALSE(config->loaded_system_certs);
+
+            /* The X509_STORE should only contain the single cert that was added. */
+            STACK_OF(X509_OBJECT) *x509_store_contents = X509_STORE_get0_objects(config->trust_store.trust_store);
+            EXPECT_NOT_NULL(x509_store_contents);
+            int initial_contents_count = sk_X509_OBJECT_num(x509_store_contents);
+            EXPECT_EQUAL(initial_contents_count, 1);
+
+            /* Override the system cert file to guarantee that a system cert will be loaded */
+            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", S2N_SHA1_ROOT_SIGNATURE_CA_CERT, 1));
+
+            /* Load the system cert into the store */
+            EXPECT_SUCCESS(s2n_config_load_system_certs(config));
+            EXPECT_TRUE(config->loaded_system_certs);
+            int system_certs_contents_count = sk_X509_OBJECT_num(x509_store_contents);
+
+            /* LibreSSL doesn't use the SSL_CERT_FILE environment variable to set the system cert location,
+             * so we don't know how many system certs will be loaded, if any.
+             */
+    #if !defined(LIBRESSL_VERSION_NUMBER)
+            EXPECT_EQUAL(system_certs_contents_count, initial_contents_count + 1);
+    #endif
+
+            /* Additional calls to s2n_config_load_default_certs should not add additional certs to the store */
+            for (int i = 0; i < 20; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+                EXPECT_TRUE(config->loaded_system_certs);
+                int additional_call_contents_count = sk_X509_OBJECT_num(x509_store_contents);
+                EXPECT_TRUE(additional_call_contents_count == system_certs_contents_count);
+            }
+        }
+#endif
+    }
 
     END_TEST();
 }
