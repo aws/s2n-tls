@@ -106,7 +106,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(conn->close_notify_queued);
         EXPECT_FALSE(conn->closed);
 
-        /* Queue reader alert */
+        /* Queue writer alert */
         EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
         EXPECT_FALSE(conn->closing);
 
