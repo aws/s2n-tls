@@ -398,7 +398,13 @@ S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connectio
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
 int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection);
 
-/* Kill a bad connection */
+typedef enum {
+    S2N_IO_WRITABLE,
+    S2N_IO_READABLE,
+    S2N_IO_FULL_DUPLEX,
+    S2N_IO_CLOSED,
+} s2n_io_status;
+bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status status);
 S2N_RESULT s2n_connection_set_closed(struct s2n_connection *conn);
 
 /* Send/recv a stuffer to/from a connection */

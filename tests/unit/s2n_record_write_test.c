@@ -55,18 +55,18 @@ int main(int argc, char *argv[])
 
         /* Test: Alerts include a sane protocol version */
         {
-            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(client_conn);
+            EXPECT_NOT_NULL(server_conn);
 
             DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
-            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&out, client_conn));
+            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&out, server_conn));
 
-            EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(client_conn));
+            EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(server_conn));
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO),
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_until_message(server_conn, &blocked, SERVER_HELLO),
                     S2N_ERR_CLOSED);
 
             uint8_t content_type = 0;

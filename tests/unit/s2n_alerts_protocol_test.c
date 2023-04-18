@@ -175,7 +175,7 @@ int main(int argc, char **argv)
                  *# receipt of a fatal alert message, both parties MUST immediately close
                  *# the connection.
                  */
-                EXPECT_TRUE(s2n_connection_is_closed(receiver, S2N_FULL_CLOSED));
+                EXPECT_TRUE(s2n_connection_check_io_status(receiver, S2N_IO_CLOSED));
 
                 /**
                  *= https://tools.ietf.org/rfc/rfc8446#section-6.2
@@ -308,7 +308,7 @@ int main(int argc, char **argv)
              *# receipt of a fatal alert message, both parties MUST immediately close
              *# the connection.
              */
-            EXPECT_TRUE(s2n_connection_is_closed(failed_conn, S2N_FULL_CLOSED));
+            EXPECT_TRUE(s2n_connection_check_io_status(failed_conn, S2N_IO_CLOSED));
 
             /**
              *= https://tools.ietf.org/rfc/rfc8446#section-6.2
@@ -384,7 +384,7 @@ int main(int argc, char **argv)
             } else {
                 EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
             }
-            EXPECT_TRUE(s2n_connection_is_closed(receiver, S2N_READ_CLOSED));
+            EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
 
             /*
              *= https://tools.ietf.org/rfc/rfc8446#section-6.1
@@ -438,7 +438,7 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(sender, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
-        EXPECT_TRUE(s2n_connection_is_closed(sender, S2N_WRITE_CLOSED));
+        EXPECT_FALSE(s2n_connection_check_io_status(sender, S2N_IO_WRITABLE));
 
         /* Receive close_notify
          *
@@ -449,7 +449,7 @@ int main(int argc, char **argv)
          *# implementation SHOULD indicate end-of-data to the application.
          */
         EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
-        EXPECT_TRUE(s2n_connection_is_closed(receiver, S2N_READ_CLOSED));
+        EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
 
         /* Read side is NOT affected.
          * The receiver of the close_notify can continue to send, and the sender
@@ -504,11 +504,11 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(sender, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
-        EXPECT_TRUE(s2n_connection_is_closed(sender, S2N_FULL_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(sender, S2N_IO_CLOSED));
 
         /* Receive close_notify */
         EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
-        EXPECT_TRUE(s2n_connection_is_closed(receiver, S2N_FULL_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(receiver, S2N_IO_CLOSED));
 
         /* Read side is affected.
          * The receiver should discard writes and just send a close_notify.

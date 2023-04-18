@@ -1093,33 +1093,33 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
     return conn->delay - elapsed;
 }
 
-static int s2n_connection_kill(struct s2n_connection *conn)
+static S2N_RESULT s2n_connection_kill(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD(s2n_connection_set_closed(conn));
 
     /* Delay between 10 and 30 seconds in nanoseconds */
     int64_t min = TEN_S, max = 3 * TEN_S;
 
     /* Keep track of the delay so that it can be enforced */
     uint64_t rand_delay = 0;
-    POSIX_GUARD_RESULT(s2n_public_random(max - min, &rand_delay));
+    RESULT_GUARD(s2n_public_random(max - min, &rand_delay));
 
     conn->delay = min + rand_delay;
 
     /* Restart the write timer */
-    POSIX_GUARD_RESULT(s2n_timer_start(conn->config, &conn->write_timer));
+    RESULT_GUARD(s2n_timer_start(conn->config, &conn->write_timer));
 
     if (conn->blinding == S2N_BUILT_IN_BLINDING) {
         struct timespec sleep_time = { .tv_sec = conn->delay / ONE_S, .tv_nsec = conn->delay % ONE_S };
-        int r;
 
+        int r = 0;
         do {
             r = nanosleep(&sleep_time, &sleep_time);
         } while (r != 0);
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **conn)
@@ -1159,7 +1159,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
             break;
         default:
             /* Apply blinding to all other errors */
-            RESULT_GUARD_POSIX(s2n_connection_kill(*conn));
+            RESULT_GUARD(s2n_connection_kill(*conn));
             break;
     }
 
@@ -1542,11 +1542,13 @@ S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-bool s2n_connection_is_closed(struct s2n_connection *conn, s2n_closed_type side)
+bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status side)
 {
     if (!conn) {
         return false;
     }
+
+    const bool is_full_duplex = !conn->read_closed && !conn->write_closed;
 
     /*
      *= https://tools.ietf.org/rfc/rfc8446#section-6.1
@@ -1556,17 +1558,26 @@ bool s2n_connection_is_closed(struct s2n_connection *conn, s2n_closed_type side)
      *# alert of their own.
      */
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
-        return conn->read_closed || conn->write_closed;
+        switch (side) {
+            case S2N_IO_WRITABLE:
+            case S2N_IO_READABLE:
+            case S2N_IO_FULL_DUPLEX:
+                return is_full_duplex;
+            case S2N_IO_CLOSED:
+                return !is_full_duplex;
+        }
     }
 
     switch (side) {
-        case S2N_WRITE_CLOSED:
-            return conn->write_closed;
-        case S2N_READ_CLOSED:
-            return conn->read_closed;
-        case S2N_FULL_CLOSED:
+        case S2N_IO_WRITABLE:
+            return !conn->write_closed;
+        case S2N_IO_READABLE:
+            return !conn->read_closed;
+        case S2N_IO_FULL_DUPLEX:
+            return is_full_duplex;
+        case S2N_IO_CLOSED:
             return conn->read_closed && conn->write_closed;
-        default:
-            return false;
     }
+
+    return false;
 }

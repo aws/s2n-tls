@@ -223,8 +223,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < 10; i++) {
             EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
             EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
-            EXPECT_FALSE(s2n_connection_is_closed(client_conn, S2N_READ_CLOSED));
-            EXPECT_FALSE(s2n_connection_is_closed(client_conn, S2N_WRITE_CLOSED));
+            EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_FULL_DUPLEX));
             EXPECT_FALSE(client_conn->write_closing);
         }
     };
@@ -539,8 +538,8 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
         EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(client_conn, server_conn), S2N_ERR_ALERT);
         EXPECT_EQUAL(s2n_connection_get_alert(server_conn), S2N_TLS_ALERT_HANDSHAKE_FAILURE);
-        EXPECT_TRUE(s2n_connection_is_closed(client_conn, S2N_FULL_CLOSED));
-        EXPECT_TRUE(s2n_connection_is_closed(server_conn, S2N_FULL_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));
 
         /* Callback triggered */
         EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);

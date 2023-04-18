@@ -191,7 +191,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
-                EXPECT_TRUE(s2n_connection_is_closed(conn, S2N_FULL_CLOSED));
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
-                EXPECT_TRUE(s2n_connection_is_closed(conn, S2N_FULL_CLOSED));
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -225,8 +225,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
-                EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_WRITE_CLOSED));
-                EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_READ_CLOSED));
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
@@ -246,7 +245,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
-                EXPECT_TRUE(s2n_connection_is_closed(conn, S2N_FULL_CLOSED));
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
@@ -267,9 +266,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
 
                 /* Expect no close */
-                EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_FULL_CLOSED));
-                EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_WRITE_CLOSED));
-                EXPECT_FALSE(s2n_connection_is_closed(conn, S2N_READ_CLOSED));
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));

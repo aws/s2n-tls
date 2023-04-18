@@ -38,8 +38,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(server_conn, &blocked), S2N_ERR_IO_BLOCKED);
 
         /* Error did not close connection */
-        EXPECT_FALSE(s2n_connection_is_closed(server_conn, S2N_WRITE_CLOSED));
-        EXPECT_FALSE(s2n_connection_is_closed(server_conn, S2N_READ_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_FULL_DUPLEX));
 
         /* Error did not trigger blinding */
         EXPECT_EQUAL(s2n_connection_get_delay(server_conn), 0);
@@ -79,7 +78,7 @@ int main(int argc, char **argv)
                 S2N_ERR_BAD_MESSAGE);
 
         /* Error closes connection */
-        EXPECT_TRUE(s2n_connection_is_closed(server_conn, S2N_FULL_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));
 
         /* Error triggers blinding */
         EXPECT_NOT_EQUAL(s2n_connection_get_delay(server_conn), 0);
@@ -117,7 +116,7 @@ int main(int argc, char **argv)
                 S2N_ERR_DECRYPT);
 
         /* Error closes connection */
-        EXPECT_TRUE(s2n_connection_is_closed(server_conn, S2N_FULL_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));
 
         /* Error triggers blinding */
         EXPECT_NOT_EQUAL(s2n_connection_get_delay(server_conn), 0);
