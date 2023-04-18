@@ -371,8 +371,8 @@ impl Builder {
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.
     ///
-    /// Corresponds to the underlying
-    /// [C API](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a079022d5c18f4ffd64c1c6dedb3bbc66).
+    /// Corresponds to the underlying C API
+    /// [s2n_config_set_verify_host_callback](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html).
     pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
         &mut self,
         handler: T,
