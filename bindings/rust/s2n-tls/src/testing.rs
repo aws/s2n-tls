@@ -171,8 +171,8 @@ impl CertKeyPair {
     }
 }
 
-pub struct UnsecureAcceptAllCertificatesHandler {}
-impl VerifyHostNameCallback for UnsecureAcceptAllCertificatesHandler {
+pub struct InsecureAcceptAllCertificatesHandler {}
+impl VerifyHostNameCallback for InsecureAcceptAllCertificatesHandler {
     fn verify_host_name(&self, _host_name: &str) -> bool {
         true
     }
@@ -201,7 +201,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
         .load_pem(keypair.cert(), keypair.key())
         .expect("Unable to load cert/pem");
     builder
-        .set_verify_host_callback(UnsecureAcceptAllCertificatesHandler {})
+        .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
         .expect("Unable to set a host verify callback.");
     unsafe {
         builder

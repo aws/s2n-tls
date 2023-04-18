@@ -524,7 +524,7 @@ mod tests {
 
         let mut builder = crate::config::Builder::new();
         builder.set_security_policy(&security::DEFAULT_TLS13)?;
-        builder.set_verify_host_callback(UnsecureAcceptAllCertificatesHandler {})?;
+        builder.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
         builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
         builder.trust_location(Some(&cert), None)?;
 
@@ -556,12 +556,12 @@ mod tests {
         pair.server
             .0
             .connection
-            .set_verify_host_callback(UnsecureAcceptAllCertificatesHandler {})
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
             .unwrap();
         pair.client
             .0
             .connection
-            .set_verify_host_callback(UnsecureAcceptAllCertificatesHandler {})
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
             .unwrap();
         assert!(poll_tls_pair_result(&mut pair).is_ok());
 

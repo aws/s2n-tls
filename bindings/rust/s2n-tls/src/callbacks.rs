@@ -22,7 +22,7 @@
 //!   [Connection::waker()](`crate::connection::Connection::waker()`)
 //!   can be used to register the task for wakeup. See [`ClientHelloCallback`] as an example.
 
-use crate::{config::Context, connection::Connection};
+use crate::{config::Context, connection::Connection, error::ErrorType};
 use core::{mem::ManuallyDrop, ptr::NonNull, time::Duration};
 use s2n_tls_sys::s2n_connection;
 
@@ -76,4 +76,22 @@ pub trait WallClock {
 /// A trait for the callback used to retrieve the monotonic time.
 pub trait MonotonicClock {
     fn get_time(&self) -> Duration;
+}
+
+/// Parse a slice from raw bytes.
+///
+/// # Safety
+///
+/// The caller must ensure that the memory underlying str is a valid
+/// slice.
+pub(crate) unsafe fn slice_from_raw<'a>(
+    name: *const ::libc::c_char,
+    name_len: usize,
+) -> Result<&'a str, ErrorType> {
+    let host_name = name as *const u8;
+    let host_name = core::slice::from_raw_parts(host_name, name_len);
+    match core::str::from_utf8(host_name) {
+        Ok(host_name_str) => Ok(host_name_str),
+        Err(_err) => Err(ErrorType::UsageError),
+    }
 }
