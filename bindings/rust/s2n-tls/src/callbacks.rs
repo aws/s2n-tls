@@ -22,7 +22,7 @@
 //!   [Connection::waker()](`crate::connection::Connection::waker()`)
 //!   can be used to register the task for wakeup. See [`ClientHelloCallback`] as an example.
 
-use crate::{config::Context, connection::Connection, error::ErrorType};
+use crate::{config::Context, connection::Connection};
 use core::{mem::ManuallyDrop, ptr::NonNull, time::Duration};
 use s2n_tls_sys::s2n_connection;
 
@@ -78,20 +78,22 @@ pub trait MonotonicClock {
     fn get_time(&self) -> Duration;
 }
 
-/// Parse a slice from raw bytes.
+/// Invoke the user provided VerifyHostNameCallback on the host_name.
 ///
 /// # Safety
 ///
-/// The caller must ensure that the memory underlying str is a valid
+/// The caller must ensure that the memory underlying host_name is a valid
 /// slice.
-pub(crate) unsafe fn slice_from_raw<'a>(
-    name: *const ::libc::c_char,
-    name_len: usize,
-) -> Result<&'a str, ErrorType> {
-    let host_name = name as *const u8;
-    let host_name = core::slice::from_raw_parts(host_name, name_len);
+pub(crate) unsafe fn verify_host(
+    host_name: *const ::libc::c_char,
+    host_name_len: usize,
+    handler: &mut Box<dyn VerifyHostNameCallback>,
+) -> u8 {
+    let host_name = host_name as *const u8;
+    let host_name = core::slice::from_raw_parts(host_name, host_name_len);
+
     match core::str::from_utf8(host_name) {
-        Ok(host_name_str) => Ok(host_name_str),
-        Err(_err) => Err(ErrorType::UsageError),
+        Ok(host_name_str) => handler.verify_host_name(host_name_str) as u8,
+        Err(_) => 0, // If the host name can't be parsed, fail closed.
     }
 }
