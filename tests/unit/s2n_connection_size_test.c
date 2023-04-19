@@ -40,6 +40,7 @@ int main(int argc, char **argv)
      * multiple static constants.
     */
     if (is_32_bit_platform()) {
+        END_TEST();
         return 0;
     }
 
