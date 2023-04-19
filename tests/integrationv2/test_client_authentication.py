@@ -2,11 +2,12 @@ import copy
 import pytest
 
 from configuration import (available_ports, ALL_TEST_CIPHERS, PROTOCOLS)
-from common import Certificates, ProviderOptions, Protocols, data_bytes
+from common import Certificates, ProviderOptions, Protocols, data_bytes, Signatures
 from fixtures import managed_process  # lgtm [py/unused-import]
-from providers import Provider, S2N, OpenSSL
+from global_flags import S2N_PROVIDER_VERSION, get_flag
+from providers import Provider, S2N, GnuTLS, OpenSSL
+from test_signature_algorithms import signature_marker
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
-
 
 # If we test every available cert, the test takes too long.
 # Choose a good representative subset.
@@ -231,3 +232,67 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_
         assert b'read client certificate' in results.stderr
         assert b'read certificate verify' in results.stderr
         assert_openssl_handshake_complete(results)
+
+
+"""
+In TLS 1.3, RSA-PSS is the recommended signature algorithm for RSA certificates, and the protocol mandates its use.
+However, not all servers support RSA-PSS signatures, particularly those built with openSSL1.0.2 versions. When the 
+server requests client authentication and the client sends an RSA certificate using TLS 1.3, if the server does not 
+support RSA-PSS, the connection fails. To avoid this, the client and server should negotiate a downgrade to TLS1.2.
+"""
+
+
+def test_tls_12_client_auth_downgrade(managed_process):
+    port = next(available_ports)
+
+    random_bytes = data_bytes(64)
+    client_options = ProviderOptions(
+        mode=Provider.ClientMode,
+        port=port,
+        data_to_send=random_bytes,
+        use_client_auth=True,
+        key=Certificates.RSA_2048_PKCS1.key,
+        cert=Certificates.RSA_2048_PKCS1.cert,
+        trust_store=Certificates.ECDSA_256.cert,
+        insecure=False,
+    )
+
+    client_options.extra_flags = ["--no-ca-verification"]
+
+    server_options = ProviderOptions(
+        mode=Provider.ServerMode,
+        port=port,
+        use_client_auth=True,
+        protocol=Protocols.TLS13,
+        key=Certificates.ECDSA_256.key,
+        cert=Certificates.ECDSA_256.cert,
+        trust_store=Certificates.RSA_2048_PKCS1.cert,
+        insecure=False,
+    )
+
+    server = managed_process(S2N, server_options, timeout=5)
+    client = managed_process(GnuTLS, client_options, timeout=5)
+
+    # A s2n server built with OpenSSL1.0.2 and enabling client auth will downgrade the protocol to TLS1.2.
+    # The downgrade occurs because openssl-1.0.2 doesn't support RSA-PSS signature scheme.
+    if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+        expected_protocol_version = Protocols.TLS12.value
+    else:
+        expected_protocol_version = Protocols.TLS13.value
+
+    # The client signature algorithm type will be always 'RSA-PSS' when the protocol version is TLS1.3 and 'RSA'
+    # if it's TLS1.2.
+    if expected_protocol_version == Protocols.TLS12.value:
+        signature_expected = Signatures.RSA_SHA256
+    elif expected_protocol_version == Protocols.TLS13.value:
+        signature_expected = Signatures.RSA_PSS_RSAE_SHA256
+
+    for results in client.get_results():
+        results.assert_success()
+
+    for results in server.get_results():
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(
+            expected_protocol_version)) in results.stdout
+        assert signature_marker(Provider.ClientMode,
+                                signature_expected) in results.stdout

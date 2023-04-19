@@ -113,6 +113,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
+
     /* s2n_get_server_name */
     {
         const char *test_server_name = "A server name";
@@ -778,6 +779,107 @@ int main(int argc, char **argv)
                         S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
                 EXPECT_NOT_EQUAL(conn->post_handshake.in.blob.size, 0);
             };
+        };
+    };
+
+    /* Test: s2n_connection_check_io_status */
+    {
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            EXPECT_FALSE(s2n_connection_check_io_status(NULL, S2N_IO_WRITABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(NULL, S2N_IO_READABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(NULL, S2N_IO_FULL_DUPLEX));
+            EXPECT_FALSE(s2n_connection_check_io_status(NULL, S2N_IO_CLOSED));
+            EXPECT_FALSE(s2n_connection_check_io_status(NULL, 10));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, 10));
+
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            conn->write_closed = 10;
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            conn->read_closed = 10;
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+        }
+
+        /* TLS1.2 */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
+
+            /* Full duplex by default */
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+
+            /* Close write */
+            conn->write_closed = 1;
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+            conn->write_closed = 0;
+
+            /* Close read */
+            conn->read_closed = 1;
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+            conn->read_closed = 0;
+
+            /* Close both */
+            conn->read_closed = 1;
+            conn->write_closed = 1;
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+        };
+
+        /* TLS1.3 */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
+
+            /* Full duplex by default */
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+
+            /* Close write */
+            conn->write_closed = 1;
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+            conn->write_closed = 0;
+
+            /* Close read */
+            conn->read_closed = 1;
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+            conn->read_closed = 0;
+
+            /* Close both */
+            conn->read_closed = 1;
+            conn->write_closed = 1;
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
         };
     };
 

@@ -15,15 +15,15 @@
 
 set -e
 
-
+source codebuild/bin/s2n_setup_env.sh
 source codebuild/bin/jobs.sh
 
 # build 2 different version of libcrypto to make it easy to break the application if
 # interning doesn't work as expected
 WHICH_LIBCRYPTO=$(echo "${S2N_LIBCRYPTO:-"openssl-1.1.1"}")
 TARGET_LIBCRYPTO="${WHICH_LIBCRYPTO//[-.]/_}"
-TARGET_LIBCRYPTO_PATH="$(pwd)/build/${TARGET_LIBCRYPTO}"
-OPENSSL_1_0="$(pwd)/build/openssl_1_0"
+TARGET_LIBCRYPTO_PATH="${TEST_DEPS_DIR}/${WHICH_LIBCRYPTO}"
+OPENSSL_1_0="$OPENSSL_1_0_2_INSTALL_DIR"
 if [ ! -f $OPENSSL_1_0/lib/libcrypto.a ]; then
   ./codebuild/bin/install_openssl_1_0_2.sh $OPENSSL_1_0/src $OPENSSL_1_0 linux
 fi

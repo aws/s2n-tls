@@ -198,7 +198,8 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        callbacks::{ClientHelloCallback, ConnectionFuture, VerifyHostNameCallback},
+        callbacks::{ClientHelloCallback, ConnectionFuture},
+        enums::ClientAuthType,
         testing::{client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
@@ -209,13 +210,13 @@ mod tests {
     #[test]
     fn handshake_default() {
         let config = build_config(&security::DEFAULT).unwrap();
-        s2n_tls_pair(config);
+        establish_connection(config);
     }
 
     #[test]
     fn handshake_default_tls13() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
-        s2n_tls_pair(config)
+        establish_connection(config)
     }
 
     #[test]
@@ -515,13 +516,6 @@ mod tests {
 
     #[test]
     fn trust_location() -> Result<(), Error> {
-        struct AcceptAllHostnames {}
-        impl VerifyHostNameCallback for AcceptAllHostnames {
-            fn verify_host_name(&self, _: &str) -> bool {
-                true
-            }
-        }
-
         let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
         let mut cert = pem_dir.to_path_buf();
         cert.push("rsa_4096_sha512_client_cert.pem");
@@ -530,11 +524,47 @@ mod tests {
 
         let mut builder = crate::config::Builder::new();
         builder.set_security_policy(&security::DEFAULT_TLS13)?;
-        builder.set_verify_host_callback(AcceptAllHostnames {})?;
+        builder.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
         builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
         builder.trust_location(Some(&cert), None)?;
 
-        s2n_tls_pair(builder.build()?);
+        establish_connection(builder.build()?);
+        Ok(())
+    }
+
+    #[test]
+    fn connection_level_verify_host_callback() -> Result<(), Error> {
+        let reject_config = {
+            let mut keypair = CertKeyPair::default();
+            let mut config = crate::config::Builder::new();
+            // configure the config VerifyHostNameCallback to reject all certificates
+            config.set_verify_host_callback(RejectAllCertificatesHandler {})?;
+            config.set_security_policy(&security::DEFAULT_TLS13)?;
+            config.load_pem(keypair.cert(), keypair.key())?;
+            config.trust_pem(keypair.cert())?;
+            config.set_client_auth_type(ClientAuthType::Required)?;
+            config.build()?
+        };
+
+        // confirm that default connection establishment fails
+        let mut pair = tls_pair(reject_config.clone());
+        assert!(poll_tls_pair_result(&mut pair).is_err());
+
+        // confirm that overriding the verify_host_callback on connection causes
+        // the handshake to succeed
+        pair = tls_pair(reject_config);
+        pair.server
+            .0
+            .connection
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+            .unwrap();
+        pair.client
+            .0
+            .connection
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+            .unwrap();
+        assert!(poll_tls_pair_result(&mut pair).is_ok());
+
         Ok(())
     }
 

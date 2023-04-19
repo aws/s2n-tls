@@ -318,6 +318,40 @@ impl Connection {
         Ok(self)
     }
 
+    /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
+    /// trusted.
+    ///
+    /// The callback may be called more than once during certificate validation as each SAN on
+    /// the certificate will be checked.
+    ///
+    /// Corresponds to the underlying C API
+    /// [s2n_connection_set_verify_host_callback](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html).
+    pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        unsafe extern "C" fn verify_host_cb_fn(
+            host_name: *const ::libc::c_char,
+            host_name_len: usize,
+            context: *mut ::libc::c_void,
+        ) -> u8 {
+            let context = &mut *(context as *mut Context);
+            let handler = context.verify_host_callback.as_mut().unwrap();
+            verify_host(host_name, host_name_len, handler)
+        }
+
+        self.context_mut().verify_host_callback = Some(Box::new(handler));
+        unsafe {
+            s2n_connection_set_verify_host_callback(
+                self.connection.as_ptr(),
+                Some(verify_host_cb_fn),
+                self.context_mut() as *mut Context as *mut c_void,
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// # Safety
     ///
     /// The `context` pointer must live at least as long as the connection
@@ -406,7 +440,10 @@ impl Connection {
             let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
 
             match res {
-                Poll::Ready(res) => return Poll::Ready(res.map(|_| self)),
+                Poll::Ready(res) => {
+                    let res = res.map(|_| self);
+                    return Poll::Ready(res);
+                }
                 Poll::Pending => {
                     // if there is no connection_future then return, otherwise continue
                     // looping and polling the future
@@ -728,6 +765,7 @@ struct Context {
     mode: Mode,
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
+    verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
 }
 
 impl Context {
@@ -736,6 +774,7 @@ impl Context {
             mode,
             waker: None,
             async_callback: None,
+            verify_host_callback: None,
         }
     }
 }

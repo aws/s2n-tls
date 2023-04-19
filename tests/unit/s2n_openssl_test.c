@@ -29,7 +29,7 @@ int main(int argc, char** argv)
     if (strcmp(env_libcrypto, "boringssl") == 0) {
         EXPECT_FALSE(s2n_libcrypto_is_awslc());
         EXPECT_TRUE(s2n_libcrypto_is_boringssl());
-    } else if (strcmp(env_libcrypto, "awslc") == 0 || strcmp(env_libcrypto, "awslc-fips") == 0) {
+    } else if (strstr(env_libcrypto, "awslc") != NULL) {
         EXPECT_TRUE(s2n_libcrypto_is_awslc());
         EXPECT_FALSE(s2n_libcrypto_is_boringssl());
     } else {
