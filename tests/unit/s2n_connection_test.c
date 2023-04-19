@@ -113,7 +113,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-
     /* s2n_get_server_name */
     {
         const char *test_server_name = "A server name";
