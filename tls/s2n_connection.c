@@ -306,8 +306,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     } else {
         POSIX_GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
         if (!conn->verify_host_fn_overridden) {
-            if (config->verify_host != NULL) {
-                conn->verify_host_fn = config->verify_host;
+            if (config->verify_host_fn != NULL) {
+                conn->verify_host_fn = config->verify_host_fn;
                 conn->data_for_verify_host = config->data_for_verify_host;
             } else {
                 conn->verify_host_fn = s2n_default_verify_host;

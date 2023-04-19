@@ -365,38 +365,34 @@ impl Builder {
         self.enable_ocsp()
     }
 
-    /// Set a custom callback function which is run during client certificate validation during
-    /// a mutual TLS handshake.
+    /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
+    /// trusted.
     ///
     /// The callback may be called more than once during certificate validation as each SAN on
     /// the certificate will be checked.
+    ///
+    /// Corresponds to the underlying C API
+    /// [s2n_config_set_verify_host_callback](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html).
     pub fn set_verify_host_callback<T: 'static + VerifyHostNameCallback>(
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
-        unsafe extern "C" fn verify_host_cb(
+        unsafe extern "C" fn verify_host_cb_fn(
             host_name: *const ::libc::c_char,
             host_name_len: usize,
             context: *mut ::libc::c_void,
         ) -> u8 {
-            let host_name = host_name as *const u8;
-            let host_name = core::slice::from_raw_parts(host_name, host_name_len);
-            if let Ok(host_name_str) = core::str::from_utf8(host_name) {
-                let context = &mut *(context as *mut Context);
-                let handler = context.verify_host_callback.as_mut().unwrap();
-                return handler.verify_host_name(host_name_str) as u8;
-            }
-            0 // If the host name can't be parsed, fail closed.
+            let context = &mut *(context as *mut Context);
+            let handler = context.verify_host_callback.as_mut().unwrap();
+            verify_host(host_name, host_name_len, handler)
         }
 
-        let handler = Box::new(handler);
-        let context = self.0.context_mut();
-        context.verify_host_callback = Some(handler);
+        self.0.context_mut().verify_host_callback = Some(Box::new(handler));
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),
-                Some(verify_host_cb),
-                self.0.context_mut() as *mut _ as *mut c_void,
+                Some(verify_host_cb_fn),
+                self.0.context_mut() as *mut Context as *mut c_void,
             )
             .into_result()?;
         }
