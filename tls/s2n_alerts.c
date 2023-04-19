@@ -168,7 +168,7 @@ S2N_RESULT s2n_alerts_close_if_fatal(struct s2n_connection *conn, struct s2n_blo
         RESULT_ENSURE_EQ(alert->data[0], S2N_TLS_ALERT_LEVEL_WARNING);
         return S2N_RESULT_OK;
     }
-    conn->closing = true;
+    conn->write_closing = 1;
     return S2N_RESULT_OK;
 }
 
@@ -220,7 +220,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
-                conn->closed = 1;
+                conn->read_closed = 1;
                 conn->close_notify_received = true;
                 return 0;
             }
@@ -237,7 +237,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
             }
 
             /* All other alerts are treated as fatal errors */
-            conn->closed = 1;
+            POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
             POSIX_BAIL(S2N_ERR_ALERT);
         }
     }

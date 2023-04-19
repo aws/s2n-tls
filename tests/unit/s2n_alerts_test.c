@@ -191,7 +191,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
-                EXPECT_TRUE(conn->closed);
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
-                EXPECT_TRUE(conn->closed);
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             }
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
-                EXPECT_FALSE(conn->closed);
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
@@ -245,7 +245,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, warning_alert, sizeof(warning_alert)));
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
-                EXPECT_TRUE(conn->closed);
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
@@ -264,7 +264,9 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, user_canceled_alert, sizeof(user_canceled_alert)));
 
                 EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
-                EXPECT_FALSE(conn->closed);
+
+                /* Expect no close */
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
                 EXPECT_SUCCESS(s2n_config_free(config));
@@ -353,29 +355,29 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
         /* Sanity check: s2n_flush doesn't close the connection */
-        conn->closing = false;
+        conn->write_closing = false;
         EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_FALSE(conn->closing);
+        EXPECT_FALSE(conn->write_closing);
 
         /* Test: a fatal reader alert closes the connection */
-        conn->closing = false;
+        conn->write_closing = false;
         EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
         EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_TRUE(conn->closing);
+        EXPECT_TRUE(conn->write_closing);
 
         /* Test: a close_notify alert closes the connection
          * This is our only writer alert, and technically it's a warning.
          */
-        conn->closing = false;
+        conn->write_closing = false;
         EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
         EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_TRUE(conn->closing);
+        EXPECT_TRUE(conn->write_closing);
 
         /* Test: a no_renegotiation alert does not close the connection */
-        conn->closing = false;
+        conn->write_closing = false;
         EXPECT_OK(s2n_queue_reader_no_renegotiation_alert(conn));
         EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_FALSE(conn->closing);
+        EXPECT_FALSE(conn->write_closing);
     }
 
     END_TEST();
