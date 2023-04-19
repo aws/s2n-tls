@@ -42,7 +42,7 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
         errno = 0;
         int r = s2n_connection_recv_stuffer(output, conn, remaining);
         if (r == 0) {
-            conn->closed = 1;
+            conn->read_closed = 1;
             RESULT_BAIL(S2N_ERR_CLOSED);
         } else if (r < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -114,7 +114,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
     struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, (uint8_t *) buf, 0));
 
-    if (conn->closed) {
+    if (!s2n_connection_check_io_status(conn, S2N_IO_READABLE)) {
         return 0;
     }
     *blocked = S2N_BLOCKED_ON_READ;
@@ -122,7 +122,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
     POSIX_GUARD_RESULT(s2n_early_data_validate_recv(conn));
 
-    while (size && !conn->closed) {
+    while (size && s2n_connection_check_io_status(conn, S2N_IO_READABLE)) {
         int isSSLv2 = 0;
         uint8_t record_type;
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
@@ -174,7 +174,6 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
             switch (record_type) {
                 case TLS_ALERT:
                     POSIX_GUARD(s2n_process_alert_fragment(conn));
-                    POSIX_GUARD(s2n_flush(conn, blocked));
                     break;
                 case TLS_HANDSHAKE: {
                     s2n_result result = s2n_post_handshake_recv(conn);

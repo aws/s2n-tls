@@ -1,0 +1,33 @@
+name: Close stale PRs
+on:
+  schedule:
+    - cron: "30 1 * * *"
+  pull_request:
+    paths: [.github/workflows/stale.yml]
+    branches: [main]
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: actions/stale@v8
+        with:
+          stale-pr-message: >
+            This PR has been automatically marked as stale because it has not had
+            recent activity. It will be closed if no further activity occurs. Thank you
+            for your contributions.
+          days-before-pr-stale: 60
+          days-before-pr-close: 7
+          days-before-issue-stale: -1
+          days-before-issue-close: -1
+          exempt-pr-labels: ops-backlog,status/needs_team_discussion,status/on_hold
+          stale-pr-label: status/stale
+
+          # Perform a dry-run if the workflow was changed in a PR
+          debug-only: ${{ github.event_name == 'pull_request' }}
+
+          # The github API rate limit isn't as much of a concern in debug mode. See
+          # https://github.com/actions/stale#debugging.
+          operations-per-run: ${{ github.event_name == 'pull_request' && 100 || 30 }}

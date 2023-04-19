@@ -217,7 +217,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, output_buffer, sizeof(output_buffer), &blocked), S2N_ERR_BAD_MESSAGE);
 
         /* Error closed connection */
-        EXPECT_TRUE(server_conn->closed);
+        EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));
 
         /* Error triggers blinding */
         EXPECT_NOT_EQUAL(s2n_connection_get_delay(server_conn), 0);
