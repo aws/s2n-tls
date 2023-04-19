@@ -654,6 +654,18 @@ if (BUILD_TESTING)
 
     endforeach(test_case)
 
+    if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+        # these tests have 2038 time_t issues
+        set(CTEST_CUSTOM_TESTS_IGNORE
+            s2n_cert_status_extension_test
+            s2n_self_talk_nonblocking_test
+            s2n_session_ticket_test
+            s2n_x509_validator_test
+        )
+        message(STATUS "Detected 32-Bit system - disabling the following tests - ${CTEST_CUSTOM_TESTS_IGNORE}")
+        file(WRITE "${CMAKE_BINARY_DIR}/CTestCustom.cmake" "SET(CTEST_CUSTOM_TESTS_IGNORE ${CTEST_CUSTOM_TESTS_IGNORE})")
+    endif()
+
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
 
