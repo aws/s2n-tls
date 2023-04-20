@@ -532,11 +532,13 @@ int main(int argc, char **argv)
     /* Test: End-of-Data
      *
      *= https://tools.ietf.org/rfc/rfc8446#6.1
+     *= type=test
      *# If a transport-level close
      *# is received prior to a "close_notify", the receiver cannot know that
      *# all the data that was sent has been received.
      *
      *= https://tools.ietf.org/rfc/rfc8446#6.1
+     *= type=test
      *# If the application protocol using TLS provides that any data may be
      *# carried over the underlying transport after the TLS connection is
      *# closed, the TLS implementation MUST receive a "close_notify" alert
