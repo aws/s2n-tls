@@ -187,7 +187,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         uint64_t elapsed;
         POSIX_GUARD_RESULT(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
         /* Reset record size back to a single segment after threshold seconds of inactivity */
-        if (elapsed - conn->last_write_elapsed > (uint64_t) conn->dynamic_record_timeout_threshold * 1000000000) {
+        if (elapsed - conn->last_write_elapsed > (uint64_t) conn->dynamic_record_timeout_threshold * ONE_SEC_IN_NANOS) {
             conn->active_application_bytes_consumed = 0;
         }
         conn->last_write_elapsed = elapsed;
