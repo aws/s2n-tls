@@ -454,13 +454,16 @@ int main(int argc, char **argv)
          */
         EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
         EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
         /* Read side is NOT affected.
          * The receiver of the close_notify can continue to send, and the sender
          * should continue to read.
          */
         EXPECT_EQUAL(s2n_send(receiver, data, sizeof(data), &blocked), sizeof(data));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
         EXPECT_EQUAL(s2n_recv(sender, data, sizeof(data), &blocked), sizeof(data));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
         /* Respond with close_notify */
         EXPECT_SUCCESS(s2n_shutdown(receiver, &blocked));
@@ -507,12 +510,13 @@ int main(int argc, char **argv)
         /* Send close_notify */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(sender, &blocked), S2N_ERR_IO_BLOCKED);
-        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
         EXPECT_TRUE(s2n_connection_check_io_status(sender, S2N_IO_CLOSED));
+        EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
         /* Receive close_notify */
         EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), END_OF_DATA);
         EXPECT_TRUE(s2n_connection_check_io_status(receiver, S2N_IO_CLOSED));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
         /* Read side is affected.
          * The receiver should discard writes and just send a close_notify.
@@ -612,6 +616,7 @@ int main(int argc, char **argv)
             const uint8_t partial_write = sizeof(data) / 2;
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_EQUAL(s2n_send(sender, data, partial_write, &blocked), partial_write);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             /* Close one end of pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, mode));
@@ -619,6 +624,7 @@ int main(int argc, char **argv)
             /* First read should report a partial read, but also close the connection */
             EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), partial_write);
             EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
             /* Subsequent reads should NOT report END_OF_DATA, but instead an error */
             for (size_t i = 0; i < 5; i++) {
