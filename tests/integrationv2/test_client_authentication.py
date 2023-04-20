@@ -275,7 +275,16 @@ def test_tls_12_client_auth_downgrade(managed_process):
 
     # A s2n server built with OpenSSL1.0.2 and enabling client auth will downgrade the protocol to TLS1.2.
     # The downgrade occurs because openssl-1.0.2 doesn't support RSA-PSS signature scheme.
-    if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION):
+    #
+    # TLS 1.3 is disabled when s2n-tls is built with libressl and boringssl, so TLS 1.2 will be negotiated
+    # with these libcryptos as well. https://github.com/aws/s2n-tls/issues/3250
+    if any([
+        libcrypto_str in get_flag(S2N_PROVIDER_VERSION) for libcrypto_str in [
+            "openssl-1.0.2",
+            "libressl",
+            "boringssl"
+        ]
+    ]):
         expected_protocol_version = Protocols.TLS12.value
     else:
         expected_protocol_version = Protocols.TLS13.value
