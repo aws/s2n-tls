@@ -695,22 +695,47 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     OCSP_CERTID_free(cert_id);
     RESULT_GUARD_OSSL(ocsp_resp_find_status_res, S2N_ERR_CERT_UNTRUSTED);
 
-    uint64_t this_update = 0;
-    RESULT_GUARD(s2n_asn1_time_to_nano_since_epoch_ticks((const char *) thisupd->data,
-            (uint32_t) thisupd->length, &this_update));
+    //uint64_t this_update = 0;
+    //RESULT_GUARD(s2n_asn1_time_to_nano_since_epoch_ticks((const char *) thisupd->data,
+    //        (uint32_t) thisupd->length, &this_update));
+    //
+    //uint64_t next_update = 0;
+    //if (nextupd) {
+    //    // I don't think we can replicate this in the nasty ASN1 times
+    //    RESULT_GUARD(s2n_asn1_time_to_nano_since_epoch_ticks((const char *) nextupd->data,
+    //            (uint32_t) nextupd->length, &next_update));
+    //} else {
+    //    next_update = this_update + DEFAULT_OCSP_NEXT_UPDATE_PERIOD;
+    //}
 
-    uint64_t next_update = 0;
+    uint64_t current_sys_time = 0;
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
+    time_t current_time = (time_t) (current_sys_time / 1000000000);
+
+    //  ASN1_GENERALIZEDTIME *ASN1_GENERALIZEDTIME_set(ASN1_GENERALIZEDTIME *s,time_t t);
+    ASN1_GENERALIZEDTIME time;
+    ASN1_TIME_set(&time, current_time);
+    int pday;
+    int psec;
+    ASN1_TIME_diff(&pday, &psec, thisupd, &time);
+
+    // ensure that current_time is after or the same as this_update
+    RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_INVALID);
+
     if (nextupd) {
-        RESULT_GUARD(s2n_asn1_time_to_nano_since_epoch_ticks((const char *) nextupd->data,
-                (uint32_t) nextupd->length, &next_update));
+        ASN1_TIME_diff(&pday, &psec, &time, nextupd);
+        RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_INVALID);
     } else {
-        next_update = this_update + DEFAULT_OCSP_NEXT_UPDATE_PERIOD;
+        // assume that nextupd was DEFAULT_OCSP_NEXT_UPDATE_PERIOD after thisupd
+        // this means that if the current time was more than 0 days and 3600
+        // seconds ahead of nextup, we consider it invalid.
+        // we already compared time to thisupd, so reuse those value
+        RESULT_ENSURE(pday == 0 && psec < 3600, S2N_ERR_CERT_EXPIRED);
     }
 
-    uint64_t current_time = 0;
-    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_time));
-    RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_INVALID);
-    RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_EXPIRED);
+    // ensure that current_time is before or the same as this_update
+    // RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_INVALID);
+    // RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_EXPIRED);
 
     switch (status) {
         case V_OCSP_CERTSTATUS_GOOD:
