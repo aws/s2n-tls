@@ -43,9 +43,9 @@
  * distinguish AWS-LC fips and non-fips at pre-processing time since AWS-LC
  * doesn't distribute fips-specific header files.
  */
-#define EXPECTED_AWSLC_VERSION_PREFIX_FIPS_OR_OLD "BoringSSL"
-#define EXPECTED_AWSLC_VERSION_PREFIX_NON_FIPS    "AWS-LC"
-#define EXPECTED_BORINGSSL_VERSION_PREFIX         "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_PREFIX_OLD "BoringSSL"
+#define EXPECTED_AWSLC_VERSION_PREFIX_NEW "AWS-LC"
+#define EXPECTED_BORINGSSL_VERSION_PREFIX "BoringSSL"
 
 /* https://www.openssl.org/docs/man{1.0.2, 1.1.1, 3.0}/man3/OPENSSL_VERSION_NUMBER.html
  * OPENSSL_VERSION_NUMBER in hex is: MNNFFPPS major minor fix patch status.
@@ -192,10 +192,10 @@ S2N_RESULT s2n_libcrypto_validate_runtime(void)
          * don't meet anymore "old" AWS-LC libcrypto's, this API version check
          * can be removed.
          */
-        if (s2n_libcrypto_is_fips() || s2n_libcrypto_awslc_api_version() < 17) {
-            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_FIPS_OR_OLD;
+        if (s2n_libcrypto_awslc_api_version() < 17) {
+            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_OLD;
         } else {
-            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_NON_FIPS;
+            expected_awslc_name_prefix = EXPECTED_AWSLC_VERSION_PREFIX_NEW;
         }
         RESULT_GUARD(s2n_libcrypto_validate_expected_version_prefix(expected_awslc_name_prefix));
     } else if (s2n_libcrypto_is_boringssl()) {
