@@ -16,7 +16,6 @@
 #include <strings.h>
 #include <time.h>
 
-#include "api/unstable/minimal_config.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hkdf.h"

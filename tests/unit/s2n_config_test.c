@@ -26,7 +26,6 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
-#include "unstable/minimal_config.h"
 #include "unstable/npn.h"
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
