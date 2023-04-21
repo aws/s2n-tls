@@ -235,14 +235,18 @@ def test_client_auth_with_s2n_client_with_cert(managed_process, provider, other_
 
 
 """
-In TLS 1.3, RSA-PSS is the recommended signature algorithm for RSA certificates, and the protocol mandates its use.
-However, not all servers support RSA-PSS signatures, particularly those built with openSSL1.0.2 versions. When the 
-server requests client authentication and the client sends an RSA certificate using TLS 1.3, if the server does not 
-support RSA-PSS, the connection fails. To avoid this, the client and server should negotiate a downgrade to TLS1.2.
+TLS1.3 requires that RSA-PSS be used for RSA signatures. However, older libcrypto implementations
+like openssl-1.0.2 do not support the RSA-PSS algorithm, so s2n-tls doesn't support RSA-PSS when
+built with those older libcryptos. If a server that doesn't support RSA-PSS requests client
+authentication when using TLS1.3, and the client responds with an RSA certificate, then the
+connection will fail because the server is unable to use RSA-PSS. To avoid this scenario, a server
+configured to request client authentication but not built to support RSA-PSS should not support
+TLS1.3, even if its security policy would normally allow TLS1.3.
 """
 
 
-def test_tls_12_client_auth_downgrade(managed_process):
+@pytest.mark.parametrize("certificate", [Certificates.RSA_2048_PKCS1, Certificates.ECDSA_256], ids=get_parameter_name)
+def test_tls_12_client_auth_downgrade(managed_process, certificate):
     port = next(available_ports)
 
     random_bytes = data_bytes(64)
@@ -251,8 +255,8 @@ def test_tls_12_client_auth_downgrade(managed_process):
         port=port,
         data_to_send=random_bytes,
         use_client_auth=True,
-        key=Certificates.RSA_2048_PKCS1.key,
-        cert=Certificates.RSA_2048_PKCS1.cert,
+        key=certificate.key,
+        cert=certificate.cert,
         trust_store=Certificates.ECDSA_256.cert,
         insecure=False,
     )
@@ -266,11 +270,15 @@ def test_tls_12_client_auth_downgrade(managed_process):
         protocol=Protocols.TLS13,
         key=Certificates.ECDSA_256.key,
         cert=Certificates.ECDSA_256.cert,
-        trust_store=Certificates.RSA_2048_PKCS1.cert,
+        trust_store=certificate.cert,
         insecure=False,
     )
 
     server = managed_process(S2N, server_options, timeout=5)
+
+    # The client needs to send a TLS 1.3 client hello and support TLS 1.2 in order to continue the
+    # handshake after the server downgrades. GnuTLS is configured to support this if no protocol
+    # version is specified.
     client = managed_process(GnuTLS, client_options, timeout=5)
 
     # A s2n server built with OpenSSL1.0.2 and enabling client auth will downgrade the protocol to TLS1.2.
@@ -283,19 +291,24 @@ def test_tls_12_client_auth_downgrade(managed_process):
     else:
         expected_protocol_version = Protocols.TLS12.value
 
-    # The client signature algorithm type will be always 'RSA-PSS' when the protocol version is TLS1.3 and 'RSA'
-    # if it's TLS1.2.
-    if expected_protocol_version == Protocols.TLS12.value:
-        signature_expected = Signatures.RSA_SHA256
-    elif expected_protocol_version == Protocols.TLS13.value:
-        signature_expected = Signatures.RSA_PSS_RSAE_SHA256
+    expected_signature_type = "ECDSA"
+
+    # If negotiating with an RSA cert, expect an RSA-PSS signature algorithm in a TLS 1.3 handshake.
+    # Otherwise, expect RSA.
+    if certificate.algorithm == "RSA":
+        if expected_protocol_version == Protocols.TLS13.value:
+            expected_signature_type = "RSA-PSS"
+        else:
+            expected_signature_type = "RSA"
 
     for results in client.get_results():
         results.assert_success()
 
     for results in server.get_results():
         results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_protocol_version)) in results.stdout
-        assert signature_marker(Provider.ClientMode,
-                                signature_expected) in results.stdout
+        assert to_bytes(
+            f"Actual protocol version: {expected_protocol_version}"
+        ) in results.stdout
+        assert to_bytes(
+            f"Client signature negotiated: {expected_signature_type}"
+        ) in results.stdout
