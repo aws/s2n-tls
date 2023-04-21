@@ -47,6 +47,9 @@ struct s2n_connection;
  */
 struct s2n_x509_trust_store {
     X509_STORE *trust_store;
+
+    /* Indicates whether system default certs have been loaded into the trust store */
+    unsigned loaded_system_certs : 1;
 };
 
 /**

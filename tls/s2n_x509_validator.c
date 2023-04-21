@@ -64,6 +64,8 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store)
 
 int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store)
 {
+    POSIX_ENSURE(!store->loaded_system_certs, S2N_ERR_X509_TRUST_STORE);
+
     if (!store->trust_store) {
         store->trust_store = X509_STORE_new();
         POSIX_ENSURE_REF(store->trust_store);
@@ -74,6 +76,7 @@ int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store
         s2n_x509_trust_store_wipe(store);
         POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
     }
+    store->loaded_system_certs = true;
 
     return 0;
 }
@@ -141,6 +144,7 @@ void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store)
     if (store->trust_store) {
         X509_STORE_free(store->trust_store);
         store->trust_store = NULL;
+        store->loaded_system_certs = false;
     }
 }
 

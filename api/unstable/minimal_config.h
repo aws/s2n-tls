@@ -29,7 +29,7 @@
  *
  * @returns A new s2n_config object
  */
-S2N_API struct s2n_config* s2n_minimal_config_new(void);
+S2N_API struct s2n_config* s2n_config_new_minimal(void);
 
 /**
  * Loads system certificates into the trust store.
@@ -38,7 +38,7 @@ S2N_API struct s2n_config* s2n_minimal_config_new(void);
  * verify the authenticity of public TLS servers. If s2n-tls is operating as a client connecting to
  * such a server, applications can add these system certificates to the config's trust store.
  *
- * This API is intended to be used on certificates created with `s2n_minimal_config_new`, which
+ * This API is intended to be used on certificates created with `s2n_config_new_minimal`, which
  * does not load system certificates into the config's trust store by default.
  *
  * @note This API will error if called on a config that has already loaded system certificates
