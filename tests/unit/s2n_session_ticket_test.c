@@ -29,14 +29,26 @@
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
+/**
+ * This function is used to "skip" time in unit tests. It will return the
+ * current system time in nanoseconds plus TIME_SKIP of nanoseconds. TIME_SKIP
+ * is a uint64_t passed in as the data parameter.
+ */
 int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 {
     struct timespec current_time;
 
     clock_gettime(S2N_CLOCK_SYS, &current_time);
 
-    *nanoseconds = current_time.tv_sec * 1000000000;
-    *nanoseconds += current_time.tv_nsec;
+    /**
+     * current_time fields are represented as time_t which are platform
+     * dependent. On 32 bit platforms attempting to convert the current system
+     * time to nanoseconds will overflow, causing odd failures in unit tests.
+     * We upcast current_time fields to uint64_t to avoid this.
+     */
+    *nanoseconds = 0;
+    *nanoseconds += (uint64_t) current_time.tv_sec * ONE_SEC_IN_NANOS;
+    *nanoseconds += (uint64_t) current_time.tv_nsec;
     *nanoseconds += *(uint64_t *) data;
 
     return 0;
@@ -357,9 +369,10 @@ int main(int argc, char **argv)
 
         /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
+        uint64_t key_intro_time_seconds = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
+        // 7199? Fascinating. That's just two hours into 1970?
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
-                ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
+                ticket_key2, s2n_array_len(ticket_key2), key_intro_time_seconds));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
@@ -822,7 +835,7 @@ int main(int argc, char **argv)
          * selection function uses a weighted random selection algorithm. Here we retry the test once if the key chosen
          * is not the expected key.
          *
-         * The wrong key will be chosen 0.02% of the time. This value is drawn from the weight of the expected key, 
+         * The wrong key will be chosen 0.02% of the time. This value is drawn from the weight of the expected key,
          * which does not change per test run. Therefore, the probability that the test chooses the wrong key
          * more than allowed_failures times is 0.0002 ^ 2 = 0.00000004, which is extremely unlikely to occur. If
          * the logic changes to chose the wrong key at a higher rate, say 50% of the time, this test would fail at a
