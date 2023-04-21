@@ -762,9 +762,26 @@ or if called on a connection in a bad state.
 
 Once `s2n_shutdown()` is complete:
 * The s2n_connection handle cannot be used for reading or writing.
-* The underlying transport can be closed, most likely via `close()`.
+* The underlying transport can be closed, most likely via `shutdown()` or `close()`.
 * The s2n_connection handle can be freed via `s2n_connection_free()` or reused
 via `s2n_connection_wipe()`
+
+#### Closing the connection for writes
+
+TLS1.3 supports closing the write side of a TLS connection while leaving the read
+side unaffected. This feature is usually referred to as "half-close".
+
+s2n-tls offers the `s2n_shutdown_write()` method to close the write side of
+a connection. Unlike `s2n_shutdown()`, it does not wait for the peer to respond
+with a close_notify alert.
+
+`s2n_shutdown_write()` may still be called for earlier TLS versions, but most
+TLS implementations will react by immediately discarding any pending writes and
+closing the connection.
+
+If `s2n_shutdown_write()` is used, the application should still call `s2n_shutdown()`
+or wait for `s2n_recv()` to return 0 to indicate end-of-data before cleaning up
+the connection or closing the read side of the underlying transport.
 
 ### Custom IO Callbacks
 
