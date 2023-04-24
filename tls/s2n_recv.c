@@ -115,8 +115,23 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
     POSIX_GUARD(s2n_blob_init(&out, (uint8_t *) buf, 0));
 
     if (!s2n_connection_check_io_status(conn, S2N_IO_READABLE)) {
+        /*
+         *= https://tools.ietf.org/rfc/rfc8446#6.1
+         *# If a transport-level close
+         *# is received prior to a "close_notify", the receiver cannot know that
+         *# all the data that was sent has been received.
+         *
+         *= https://tools.ietf.org/rfc/rfc8446#6.1
+         *# If the application protocol using TLS provides that any data may be
+         *# carried over the underlying transport after the TLS connection is
+         *# closed, the TLS implementation MUST receive a "close_notify" alert
+         *# before indicating end-of-data to the application layer.
+         */
+        POSIX_ENSURE(conn->close_notify_received, S2N_ERR_CLOSED);
+        *blocked = S2N_NOT_BLOCKED;
         return 0;
     }
+
     *blocked = S2N_BLOCKED_ON_READ;
 
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
@@ -127,13 +142,11 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
         uint8_t record_type;
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
         if (r < 0) {
-            if (s2n_errno == S2N_ERR_CLOSED) {
-                *blocked = S2N_NOT_BLOCKED;
-                if (!bytes_read) {
-                    return 0;
-                } else {
-                    return bytes_read;
-                }
+            /* Don't propagate the error if we already read some bytes.
+             * We'll report S2N_ERR_CLOSED on the next call.
+             */
+            if (s2n_errno == S2N_ERR_CLOSED && bytes_read) {
+                return bytes_read;
             }
 
             /* Don't propagate the error if we already read some bytes */
