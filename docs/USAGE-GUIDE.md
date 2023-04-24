@@ -752,8 +752,14 @@ calling `s2n_peek()` to determine if `s2n_recv()` needs to be called again.
 `s2n_shutdown()` attempts a graceful closure at the TLS layer. It does not close the
 underlying transport. The call may block on either reading or writing.
 
-`s2n_shutdown()` should be called even after an error sending or receiving 
-application data in order to ensure that s2n-tls sends an alert to notify the peer of the failure.
+`s2n_shutdown()` should be called after an error in order to ensure that s2n-tls
+sends an alert to notify the peer of the failure.
+
+`s2n_shutdown()` will discard any application data received from the peer. This
+can lead to data truncation, so `s2n_shutdown_write()` may be preferred for TLS1.3
+connections where the peer continues sending after the application initiates
+shutdown. See [Closing the connection for writes](#closing-the-connection-for-writes)
+below.
 
 Because `s2n_shutdown()` attempts a graceful shutdown, it will not return success
 unless a close_notify alert is successfully both sent and received. As a result,
@@ -769,11 +775,13 @@ via `s2n_connection_wipe()`
 #### Closing the connection for writes
 
 TLS1.3 supports closing the write side of a TLS connection while leaving the read
-side unaffected. This feature is usually referred to as "half-close".
+side unaffected. This indicates "end-of-data" to the peer without preventing
+future reads. This feature is usually referred to as "half-close".
 
 s2n-tls offers the `s2n_shutdown_write()` method to close the write side of
 a connection. Unlike `s2n_shutdown()`, it does not wait for the peer to respond
-with a close_notify alert.
+with a close_notify alert and does not discard any incoming application data. An
+application can continue to call `s2n_recv()` after a call to `s2n_shutdown_write()`.
 
 `s2n_shutdown_write()` may still be called for earlier TLS versions, but most
 TLS implementations will react by immediately discarding any pending writes and

@@ -508,6 +508,55 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
         };
+
+        /* Test: Full close after half close */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_skip_handshake(conn));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+
+            /* Successful half-close.
+             * Subsequent calls are no-ops.
+             */
+            for (size_t i = 0; i < 5; i++) {
+                EXPECT_SUCCESS(s2n_shutdown_write(conn, &blocked));
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
+            }
+
+            /* Full close blocks on input */
+            for (size_t i = 0; i < 5; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO_BLOCKED);
+                EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+                EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
+            }
+
+            /* Copy alert from output to input */
+            EXPECT_SUCCESS(s2n_stuffer_copy(&output, &input, s2n_stuffer_data_available(&output)));
+
+            /* Full close succeeds.
+             * Subsequent calls are no-ops.
+             */
+            for (size_t i = 0; i < 5; i++) {
+                EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+                EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
+                EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
+            }
+        };
     }
 
     END_TEST();
