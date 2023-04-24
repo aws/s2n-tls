@@ -1,7 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{callbacks::VerifyHostNameCallback, config::*, security, testing::s2n_tls::Harness};
+use crate::{
+    callbacks::VerifyHostNameCallback, config::*, enums::Blinding, security,
+    testing::s2n_tls::Harness,
+};
 use alloc::{collections::VecDeque, sync::Arc};
 use bytes::Bytes;
 use core::{
@@ -168,11 +171,17 @@ impl CertKeyPair {
     }
 }
 
-#[derive(Default)]
-pub struct UnsecureAcceptAllClientCertificatesHandler {}
-impl VerifyHostNameCallback for UnsecureAcceptAllClientCertificatesHandler {
+pub struct InsecureAcceptAllCertificatesHandler {}
+impl VerifyHostNameCallback for InsecureAcceptAllCertificatesHandler {
     fn verify_host_name(&self, _host_name: &str) -> bool {
         true
+    }
+}
+
+pub struct RejectAllCertificatesHandler {}
+impl VerifyHostNameCallback for RejectAllCertificatesHandler {
+    fn verify_host_name(&self, _host_name: &str) -> bool {
+        false
     }
 }
 
@@ -191,10 +200,10 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     builder
         .load_pem(keypair.cert(), keypair.key())
         .expect("Unable to load cert/pem");
+    builder
+        .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+        .expect("Unable to set a host verify callback.");
     unsafe {
-        builder
-            .set_verify_host_callback(UnsecureAcceptAllClientCertificatesHandler::default())
-            .expect("Unable to set a host verify callback.");
         builder
             .disable_x509_verification()
             .expect("Unable to disable x509 verification");
@@ -202,7 +211,29 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     Ok(builder)
 }
 
-pub fn s2n_tls_pair(config: crate::config::Config) {
+pub fn tls_pair(config: crate::config::Config) -> Pair<Harness, Harness> {
+    // create and configure a server connection
+    let mut server = crate::connection::Connection::new_server();
+    // some tests check for connection failure so disable blinding to avoid delay
+    server.as_mut().set_blinding(Blinding::SelfService).unwrap();
+    server
+        .set_config(config.clone())
+        .expect("Failed to bind config to server connection");
+    let server = Harness::new(server);
+
+    // create a client connection
+    let mut client = crate::connection::Connection::new_client();
+    // some tests check for connection failure so disable blinding to avoid delay
+    client.as_mut().set_blinding(Blinding::SelfService).unwrap();
+    client
+        .set_config(config)
+        .expect("Unable to set client config");
+    let client = Harness::new(client);
+
+    Pair::new(server, client, SAMPLES)
+}
+
+pub fn establish_connection(config: crate::config::Config) {
     // create and configure a server connection
     let mut server = crate::connection::Connection::new_server();
     server
@@ -232,12 +263,10 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
         }
     }
 
-    // TODO add assertions to make sure the handshake actually succeeded
-
     pair
 }
 
-pub fn poll_tls_pair_result(mut pair: Pair<Harness, Harness>) -> Result<()> {
+pub fn poll_tls_pair_result(pair: &mut Pair<Harness, Harness>) -> Result<()> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => return result,

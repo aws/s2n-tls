@@ -373,8 +373,8 @@ int main(int argc, char **argv)
 
             /* Pretend we didn't test the above error condition.
              * The S2N_ERR_BAD_MESSAGE error triggered S2N to close the connection. */
-            server_conn->closed = false;
-            client_conn->closed = false;
+            server_conn->write_closed = false;
+            client_conn->write_closed = false;
 
             /* Read the remaining early data properly */
             EXPECT_SUCCESS(s2n_recv_early_data(server_conn, actual_payload, sizeof(actual_payload),

@@ -29,6 +29,10 @@ case "${S2N_BUILD_PRESET-default}" in
         : "${S2N_LIBCRYPTO:=awslc-fips}"
         : "${GCC_VERSION:=9}"
         ;;
+    "awslc-fips-2022_gcc6")
+        : "${S2N_LIBCRYPTO:=awslc-fips-2022}"
+        : "${GCC_VERSION:=6}"
+        ;;
     "libressl_gcc6")
         : "${S2N_LIBCRYPTO:=libressl}"
         : "${GCC_VERSION:=6}"

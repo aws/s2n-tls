@@ -66,8 +66,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown(response, &blocked));
 
         /* Both connections successfully closed */
-        EXPECT_TRUE(server_conn->closed);
-        EXPECT_TRUE(client_conn->closed);
+        EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_CLOSED));
 
         /* Closed connections behave properly */
         for (size_t i = 0; i < 5; i++) {
@@ -128,8 +128,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown(request, &blocked));
 
         /* Both connections successfully closed */
-        EXPECT_TRUE(server_conn->closed);
-        EXPECT_TRUE(client_conn->closed);
+        EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));
+        EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_CLOSED));
 
         /* Closed connections behave properly */
         for (size_t i = 0; i < 5; i++) {

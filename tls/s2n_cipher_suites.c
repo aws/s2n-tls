@@ -1210,7 +1210,6 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
     if (conn->client_protocol_version < conn->server_protocol_version) {
         uint8_t fallback_scsv[S2N_TLS_CIPHER_SUITE_LEN] = { TLS_FALLBACK_SCSV };
         if (s2n_wire_ciphers_contain(fallback_scsv, wire, count, cipher_suite_len)) {
-            conn->closed = 1;
             POSIX_BAIL(S2N_ERR_FALLBACK_DETECTED);
         }
     }

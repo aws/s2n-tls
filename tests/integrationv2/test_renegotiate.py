@@ -100,6 +100,12 @@ class Msg(object):
                 # to inconsistent use of bytes vs decode and str vs encode.
                 # As a workaround, just prepend a throwaway non-ASCII utf-8 character.
                 data_bytes.append(bytes([0xc2, 0xbb]) + to_bytes(message.data_str))
+        # We assume that the client will close the connection.
+        # Give the server one last message to send without a corresponding send_marker.
+        # The message will never be sent, but waiting to send it will prevent the server
+        # from closing the connection before the client can.
+        if mode is Provider.ServerMode:
+            data_bytes.append(to_bytes("Placeholder to prevent server socket close"))
         return data_bytes
 
     @staticmethod
@@ -246,7 +252,7 @@ def test_s2n_client_rejects_openssl_hello_request(managed_process, cipher, curve
     for results in s2n_client.get_results():
         assert results.exit_code != 0
         assert not renegotiate_was_started(results)
-        assert to_bytes("TLS alert received") in results.stderr
+        assert to_bytes("Received alert: 40") in results.stderr
 
 
 """
