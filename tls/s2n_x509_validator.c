@@ -689,8 +689,9 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
 
-
     /**
+     * It is fine to use ASN1_TIME functions with ASN1_GENERALIZEDTIME structures
+     * From openssl documnetation:
      * It is recommended that functions starting with ASN1_TIME be used instead
      * of those starting with ASN1_UTCTIME or ASN1_GENERALIZEDTIME. The
      * functions starting with ASN1_UTCTIME and ASN1_GENERALIZEDTIME act only on
@@ -706,33 +707,31 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
 
     uint64_t current_sys_time_nanoseconds = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time_nanoseconds));
-    // convert the current_sys_time (which is in nanoseconds) to seconds
+    /* convert the current_sys_time (which is in nanoseconds) to seconds */
     time_t current_sys_time_seconds = (time_t) (current_sys_time_nanoseconds / ONE_SEC_IN_NANOS);
-
-    // ASN1_GENERALIZEDTIME *ASN1_GENERALIZEDTIME_set(ASN1_GENERALIZEDTIME *s,time_t t);
-    ASN1_GENERALIZEDTIME current_sys_time;
+    ASN1_GENERALIZEDTIME current_sys_time = { 0 };
     ASN1_TIME_set(&current_sys_time, current_sys_time_seconds);
 
-    int pday;
-    int psec;
-    // ensure that current_time is after or the same as this_update
+    int pday = 0;
+    int psec = 0;
+    /* ensure that current_time is after or the same as "this update" */
     ASN1_TIME_diff(&pday, &psec, thisupd, &current_sys_time);
     RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_INVALID);
 
+    /* ensure that current_time is before or the same as "next update" */
     if (nextupd) {
         ASN1_TIME_diff(&pday, &psec, &current_sys_time, nextupd);
         RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_EXPIRED);
     } else {
-        // assume that nextupd was DEFAULT_OCSP_NEXT_UPDATE_PERIOD after thisupd
-        // this means that if the current time was more than 0 days and 3600
-        // seconds ahead of nextup, we consider it invalid.
-        // we already compared current_sys_time to thisupd, so reuse those value
+        /**
+         * if nextupd isn't present, assume that nextup is
+         * DEFAULT_OCSP_NEXT_UPDATE_PERIOD after thisupd. This means that if the
+         * current time was more than 0 days and DEFAULT_OCSP_NEXT_UPDATE_PERIOD
+         * seconds ahead of nextup, we consider it invalid. We already compared
+         * current_sys_time to thisupd, so reuse those values
+         */
         RESULT_ENSURE(pday == 0 && psec < DEFAULT_OCSP_NEXT_UPDATE_PERIOD / ONE_SEC_IN_NANOS, S2N_ERR_CERT_EXPIRED);
     }
-
-    // ensure that current_time is before or the same as this_update
-    // RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_INVALID);
-    // RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_EXPIRED);
 
     switch (status) {
         case V_OCSP_CERTSTATUS_GOOD:

@@ -25,9 +25,8 @@ static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 
 static int fetch_early_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
-    // 2028-01-01
-    // *timestamp = 2145920461000000000;
-    *timestamp = 1830301261000000000;
+    // 2038-01-01
+    *timestamp = 2145920461000000000;
     return 0;
 }
 
