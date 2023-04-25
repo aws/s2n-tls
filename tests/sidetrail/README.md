@@ -129,12 +129,10 @@ export S2N=<path_to_s2n>
 
 ### Building the image
 
-To build the image, start with `s2n/codebuild/spec/sidetrail/Dockerfile`
-
-```shell
-cd $S2N
-docker build -f codebuild/spec/sidetrail/Dockerfile --tag sidetrail .
-```
+To build the image, run this scripts:
+- [install sidetrail dependencies]("https://github.com/aws/s2n-tls/blob/main/codebuild/bin/install_sidetrail_dependencies.sh")
+- [install sidetrail]("https://github.com/aws/s2n-tls/blob/main/codebuild/bin/install_sidetrail.sh")
+- [run sidetrail]("https://github.com/aws/s2n-tls/blob/main/codebuild/bin/run_sidetrail.sh")
 
 This step takes about 25 minutes on my laptop.
 
