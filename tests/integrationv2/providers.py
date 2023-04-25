@@ -408,8 +408,6 @@ class OpenSSL(Provider):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
-        # Current provider needs 1.1.x https://github.com/aws/s2n-tls/issues/3963
-        self._is_openssl_11()
 
     @classmethod
     def get_send_marker(cls):
