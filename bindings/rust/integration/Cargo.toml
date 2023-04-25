@@ -22,3 +22,7 @@ harness = false
 [[bench]]
 name = "s2nd"
 harness = false
+
+[[bench]]
+name = "dhparam"
+harness = false
