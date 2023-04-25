@@ -1,4 +1,5 @@
 import os
+import subprocess
 import pytest
 import threading
 
@@ -404,6 +405,8 @@ class OpenSSL(Provider):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
+        # current s_client is designed for 1.1.1 https://github.com/aws/s2n-tls/issues/3963
+        self._client_major_ver()
 
     @classmethod
     def get_send_marker(cls):
@@ -476,6 +479,16 @@ class OpenSSL(Provider):
                 return False
 
         return True
+
+    def _client_major_ver(self):
+        result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
+
+        version_str = result.stdout.split(" ")
+        project = version_str[0]
+        version = version_str[1]
+        print(f"Project: {project} version: {version}")
+        assert project == "OpenSSL"
+        assert version.split('.')[0] == "1"
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
