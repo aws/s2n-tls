@@ -30,9 +30,9 @@
 #define S2N_CLOCK_SYS CLOCK_REALTIME
 
 /**
- * This function is used to "skip" time in unit tests. It will return the
- * current system time in nanoseconds plus TIME_SKIP of nanoseconds. TIME_SKIP
- * is a uint64_t passed in as the data parameter.
+ * This function is used to "skip" time in unit tests. It will mock the system
+ * time to be current_time (ns) + data (ns). The "data" parameter is a uint64_t
+ * passed in as a void*.
  */
 int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 {
@@ -41,10 +41,11 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
     clock_gettime(S2N_CLOCK_SYS, &current_time);
 
     /**
-     * current_time fields are represented as time_t which are platform
-     * dependent. On 32 bit platforms attempting to convert the current system
-     * time to nanoseconds will overflow, causing odd failures in unit tests.
-     * We upcast current_time fields to uint64_t to avoid this.
+     * current_time fields are represented as time_t, and time_t has a platform
+     * dependent size. On 32 bit platforms, attempting to convert the current
+     * system time to nanoseconds will overflow, causing odd failures in unit
+     * tests. We upcast current_time fields to uint64_t before multiplying to
+     * avoid this.
      */
     *nanoseconds = 0;
     *nanoseconds += (uint64_t) current_time.tv_sec * ONE_SEC_IN_NANOS;
@@ -369,10 +370,9 @@ int main(int argc, char **argv)
 
         /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
         POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
-        uint64_t key_intro_time_seconds = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
-        // 7199? Fascinating. That's just two hours into 1970?
+        uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
-                ticket_key2, s2n_array_len(ticket_key2), key_intro_time_seconds));
+                ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 

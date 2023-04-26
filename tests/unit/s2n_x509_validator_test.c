@@ -424,7 +424,7 @@ int main(int argc, char **argv)
     };
 
     /* test expired certificate fails as untrusted. This test uses post-2038
-     * and will fail on platforms where time_t is 4 bytes.
+     * dates and will fail on platforms where time_t is 4 bytes.
      */
     if (sizeof(time_t) != 4) {
         struct s2n_x509_trust_store trust_store;

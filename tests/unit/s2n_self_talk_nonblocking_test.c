@@ -30,7 +30,7 @@
 static const float minimum_send_percent = 5.0;
 static const uint32_t max_client_run_time = 300;
 
-#define MIN_PERCENT_COMPLETE(remaining, total)          ((((total - remaining) / (total * 1.0)) * 100.0) > minimum_send_percent)
+#define MIN_PERCENT_COMPLETE(remaining, total) ((((total - remaining) / (total * 1.0)) * 100.0) > minimum_send_percent)
 
 int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32_t size)
 {
