@@ -143,9 +143,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_NO_DASHES_CERT_CHAIN       "../pems/rsa_2048_no_dashes_cert.pem"
 
 /* OCSP Stapled Response Testing files */
-#define S2N_OCSP_SERVER_CERT               "../pems/ocsp/server_cert.pem"
-#define S2N_OCSP_SERVER_CERT_EARLY_EXPIRE  "../pems/ocsp/server_cert_early_expire.pem"
-#define S2N_OCSP_SERVER_ECDSA_CERT         "../pems/ocsp/server_ecdsa_cert.pem"
+#define S2N_OCSP_SERVER_CERT              "../pems/ocsp/server_cert.pem"
+#define S2N_OCSP_SERVER_CERT_EARLY_EXPIRE "../pems/ocsp/server_cert_early_expire.pem"
+#define S2N_OCSP_SERVER_ECDSA_CERT        "../pems/ocsp/server_ecdsa_cert.pem"
 
 #define S2N_OCSP_SERVER_KEY                  "../pems/ocsp/server_key.pem"
 #define S2N_OCSP_CA_CERT                     "../pems/ocsp/ca_cert.pem"

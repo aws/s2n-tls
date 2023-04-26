@@ -18,14 +18,14 @@
 
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
-    // 2200-11-27
+    /* 2200-11-27 */
     *timestamp = 7283958536000000000;
     return 0;
 }
 
 static int fetch_early_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
-    // 2038-01-01
+    /* 2038-01-01 */
     *timestamp = 2145920461000000000;
     return 0;
 }
@@ -33,14 +33,14 @@ static int fetch_early_expired_after_ocsp_timestamp(void *data, uint64_t *timest
 #if S2N_OCSP_STAPLING_SUPPORTED
 static int fetch_invalid_before_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
-    // 2015-02-27
+    /* 2015-02-27 */
     *timestamp = 1425019604000000000;
     return 0;
 }
 
 static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
-    // 2019-03-17
+    /* 2019-03-17 */
     *timestamp = 1552824239000000000;
     return 0;
 }
