@@ -257,7 +257,22 @@ void s2n_wipe_static_configs(void)
 int s2n_config_load_system_certs(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
-    POSIX_GUARD(s2n_x509_trust_store_from_system_defaults(&config->trust_store));
+
+    struct s2n_x509_trust_store *store = &config->trust_store;
+    POSIX_ENSURE(!store->loaded_system_certs, S2N_ERR_X509_TRUST_STORE);
+
+    if (!store->trust_store) {
+        store->trust_store = X509_STORE_new();
+        POSIX_ENSURE_REF(store->trust_store);
+    }
+
+    int err_code = X509_STORE_set_default_paths(store->trust_store);
+    if (!err_code) {
+        s2n_x509_trust_store_wipe(store);
+        POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
+    }
+    store->loaded_system_certs = true;
+
     return S2N_SUCCESS;
 }
 

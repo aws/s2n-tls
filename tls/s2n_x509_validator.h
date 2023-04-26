@@ -75,9 +75,6 @@ void s2n_x509_trust_store_init_empty(struct s2n_x509_trust_store *store);
 /** Returns TRUE if the trust store has certificates installed, FALSE otherwise */
 uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store);
 
-/** Initializes the trust store to default system paths **/
-int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store);
-
 /** Initialize trust store from a PEM. This will allocate memory, and load PEM into the Trust Store **/
 int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char *pem);
 
