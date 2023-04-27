@@ -70,7 +70,7 @@ openssl ocsp -CAfile ca_cert.pem \
 ```
 
 ### Index Files
-The index files in the previous commands are in the CA Database format, and are the source of truth for certificates being verified or rejected
+The index files in the previous commands are in the CA Database format, and are the source of truth for certificates being verified or rejected.
 
 > The index file consists of zero or more lines, each containing the following fields separated by tab characters:
 >

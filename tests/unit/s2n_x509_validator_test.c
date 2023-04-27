@@ -549,8 +549,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
-        s2n_x509_trust_store_wipe(&trust_store);
+
         s2n_x509_validator_wipe(&validator);
+        s2n_x509_trust_store_wipe(&trust_store);
     };
 
     /* test validator in safe mode, with properly configured trust store, but host isn't trusted*/

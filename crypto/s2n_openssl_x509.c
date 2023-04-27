@@ -17,15 +17,15 @@
 
 #include "api/s2n.h"
 
-int s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
+S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
 {
-    if (*cert_chain != NULL) {
-        sk_X509_pop_free(*cert_chain, X509_free);
-    }
-    return S2N_SUCCESS;
+    RESULT_ENSURE_REF(*cert_chain);
+    sk_X509_pop_free(*cert_chain, X509_free);
+    *cert_chain = NULL;
+    return S2N_RESULT_OK;
 }
 
-int s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **time)
+S2N_CLEANUP_RESULT s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **time)
 {
     /* The ANS1_*TIME structs are just typedef wrappers around ASN1_STRING
      *
@@ -34,6 +34,8 @@ int s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **time)
      * ASN1_STRING_free().
      * https://www.openssl.org/docs/man1.1.1/man3/ASN1_TIME_to_tm.html
      */
+    RESULT_ENSURE_REF(*time);
     ASN1_STRING_free((ASN1_STRING *) *time);
-    return S2N_SUCCESS;
+    *time = NULL;
+    return S2N_RESULT_OK;
 }

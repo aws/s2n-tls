@@ -18,17 +18,21 @@ set -e
 # This script assumes the existence of
 # ca_key.pem
 # ca_cert.pem
-# server_key.pem
+# server_key.pem - the private key for early expiry cert being generated
 # config/ca.cnf
 # config/server_early_expiry.cnf
-# config/serial
+
+echo "generating serial file"
+touch config/serial
+# the openssl ca command will read this file to figure out the serial number,
+# increment it for each certificate that is signed. This is the serial number in
+# hex notation.
+echo "1024" > config/serial
 
 echo "generating server early expiry CSR"
 openssl req  -new -nodes -key server_key.pem -out server_early_expire.csr -config config/server_early_expire.cnf
 
 echo "creating empty CA database"
-# delete the old one
-rm certs_early_expire_index.txt -f
 # it's mandatory for this to exist, although it is initially empty
 # this data base will be updated during the ca command
 touch certs_early_expire_index.txt
@@ -40,6 +44,8 @@ mkdir -p to_nuke
 
 # use the "batch" option to disable prompting
 # the enddate argument is in YYYYMMDDHHMMSS format
+# use the "notext" option because s2n can't parse .pem certificates with the
+# text information inside of them
 openssl ca -batch \
     -in server_early_expire.csr  \
     -out server_cert_early_expire.pem \
@@ -54,8 +60,8 @@ echo "verifying generated certificates"
 openssl verify -CAfile ca_cert.pem server_cert_early_expire.pem
 
 echo "generating ocsp response"
-# This is the target next_update date for the cert. This date needs to be before
-# 2038 so that next_update field can be tested on 32 bit platforms.
+# This is the target next_update date for the OCSP response. This date needs to
+# be before 2038 so that next_update field can be tested on 32 bit platforms.
 target_date="2036-01-01"
 current_date=$(date +%Y-%m-%d)
 expiration_days=$(( ($(date -d "$target_date" +%s) - $(date -d "$current_date" +%s)) / 86400 ))
@@ -81,4 +87,6 @@ rm server_early_expire.csr
 # delete all of them
 rm certs_early_expire_index* -f
 rm to_nuke -rf
+rm config/serial
 rm config/serial.old
+

@@ -25,7 +25,6 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crl.h"
-#include "utils/s2n_asn1_time.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_rfc5952.h"
 #include "utils/s2n_safety.h"
@@ -712,16 +711,17 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     time_t current_sys_time_seconds = (time_t) (current_sys_time_nanoseconds / ONE_SEC_IN_NANOS);
 
     DEFER_CLEANUP(ASN1_GENERALIZEDTIME *current_sys_time = ASN1_GENERALIZEDTIME_set(0, current_sys_time_seconds), s2n_openssl_asn1_time_free_pointer);
+    RESULT_ENSURE_REF(current_sys_time);
 
     int pday = 0;
     int psec = 0;
+    RESULT_GUARD_OSSL(ASN1_TIME_diff(&pday, &psec, thisupd, current_sys_time), S2N_ERR_CERT_UNTRUSTED);
     /* ensure that current_time is after or the same as "this update" */
-    ASN1_TIME_diff(&pday, &psec, thisupd, current_sys_time);
     RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_INVALID);
 
     /* ensure that current_time is before or the same as "next update" */
     if (nextupd) {
-        ASN1_TIME_diff(&pday, &psec, current_sys_time, nextupd);
+        RESULT_GUARD_OSSL(ASN1_TIME_diff(&pday, &psec, current_sys_time, nextupd), S2N_ERR_CERT_UNTRUSTED);
         RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_EXPIRED);
     } else {
         /**
