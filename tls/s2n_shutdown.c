@@ -38,7 +38,7 @@ static bool s2n_error_alert_received(struct s2n_connection *conn)
 
 static bool s2n_error_alert_sent(struct s2n_connection *conn)
 {
-    /* Sending an alert always sets conn->closing: see s2n_flush() */
+    /* Sending an alert always sets conn->write_closing: see s2n_flush() */
     if (!conn->write_closing) {
         return false;
     }
