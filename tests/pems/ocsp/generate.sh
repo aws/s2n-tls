@@ -33,7 +33,6 @@ rm certs_early_expire_index.txt -f
 # this data base will be updated during the ca command
 touch certs_early_expire_index.txt
 
-
 echo "generating server certificate and signing it"
 # this directory holds the duplicate certs that the CA command generates
 # https://security.stackexchange.com/questions/111448/how-to-avoid-writing-pem-while-signing-a-csr

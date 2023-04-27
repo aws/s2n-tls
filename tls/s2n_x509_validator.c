@@ -709,7 +709,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time_nanoseconds));
     /* convert the current_sys_time (which is in nanoseconds) to seconds */
     time_t current_sys_time_seconds = (time_t) (current_sys_time_nanoseconds / ONE_SEC_IN_NANOS);
-    ASN1_GENERALIZEDTIME current_sys_time = { 0 };
+    DEFER_CLEANUP(ASN1_TIME current_sys_time = {0}, s2n_openssl_asn1_time_free);
     ASN1_TIME_set(&current_sys_time, current_sys_time_seconds);
 
     int pday = 0;
