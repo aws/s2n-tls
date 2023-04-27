@@ -295,7 +295,7 @@ int main(int argc, char **argv)
             failed_conn->delay = 0;
 
             /* In most cases, the alert will not be sent until we attempt to shutdown */
-            EXPECT_SUCCESS(s2n_shutdown_write(failed_conn, &blocked));
+            EXPECT_SUCCESS(s2n_shutdown_send(failed_conn, &blocked));
             EXPECT_EQUAL(expected_alert == S2N_TLS_ALERT_CLOSE_NOTIFY,
                     failed_conn->close_notify_queued);
 
@@ -437,7 +437,7 @@ int main(int argc, char **argv)
 
         /* Send close_notify */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        EXPECT_SUCCESS(s2n_shutdown_write(sender, &blocked));
+        EXPECT_SUCCESS(s2n_shutdown_send(sender, &blocked));
         EXPECT_FALSE(s2n_connection_check_io_status(sender, S2N_IO_WRITABLE));
 
         /* Receive close_notify
@@ -505,7 +505,7 @@ int main(int argc, char **argv)
 
         /* Send close_notify */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        EXPECT_SUCCESS(s2n_shutdown_write(sender, &blocked));
+        EXPECT_SUCCESS(s2n_shutdown_send(sender, &blocked));
         EXPECT_TRUE(s2n_connection_check_io_status(sender, S2N_IO_CLOSED));
 
         /* Receive close_notify */

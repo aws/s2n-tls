@@ -78,7 +78,7 @@ static S2N_RESULT s2n_send_close_notify(struct s2n_connection *conn, s2n_blocked
     return S2N_RESULT_OK;
 }
 
-int s2n_shutdown_write(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);

@@ -1982,11 +1982,11 @@ S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status 
  *
  * Like `s2n_shutdown()`, this method does not affect the underlying transport.
  *
- * `s2n_shutdown_write()` may still be called for earlier TLS versions, but most
+ * `s2n_shutdown_send()` may still be called for earlier TLS versions, but most
  * TLS implementations will react by immediately discarding any pending writes and
  * closing the connection.
  *
- * Once `s2n_shutdown_write()` is complete:
+ * Once `s2n_shutdown_send()` is complete:
  * * The s2n_connection handle CANNOT be used for writing.
  * * The s2n_connection handle CAN be used for reading.
  * * The write side of the underlying transport can be closed. Most likely via `shutdown()`.
@@ -1999,7 +1999,7 @@ S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status 
  * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_shutdown_write(struct s2n_connection *conn, s2n_blocked_status *blocked);
+S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
 /**
  * Used to declare what type of client certificate authentication to use.
