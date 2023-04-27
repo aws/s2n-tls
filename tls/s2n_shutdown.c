@@ -19,6 +19,11 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+typedef enum {
+    S2N_SHUTDOWN_RDWR,
+    S2N_SHUTDOWN_WR,
+} s2n_shutdown_how;
+
 static bool s2n_error_alert_received(struct s2n_connection *conn)
 {
     /* We don't check s2n_connection_get_alert() or s2n_stuffer_data_available()
@@ -49,62 +54,8 @@ static bool s2n_error_alert_sent(struct s2n_connection *conn)
     return true;
 }
 
-static S2N_RESULT s2n_send_close_notify(struct s2n_connection *conn, s2n_blocked_status *blocked)
-{
-    RESULT_ENSURE_REF(conn);
-
-    /* Enforce blinding.
-     * If an application is using self-service blinding, ensure that they have
-     * waited the required time before triggering the close_notify alert.
-     */
-    uint64_t elapsed = 0;
-    RESULT_GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
-    RESULT_ENSURE(elapsed >= conn->delay, S2N_ERR_SHUTDOWN_PAUSED);
-
-    /* Flush any outstanding data or alerts */
-    RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-6.1
-     *# Each party MUST send a "close_notify" alert before closing its write
-     *# side of the connection, unless it has already sent some error alert.
-     */
-    if (s2n_is_close_notify_required(conn)) {
-        RESULT_GUARD_POSIX(s2n_queue_writer_close_alert_warning(conn));
-        conn->close_notify_queued = 1;
-        RESULT_GUARD_POSIX(s2n_flush(conn, blocked));
-    }
-
-    return S2N_RESULT_OK;
-}
-
-int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(blocked);
-
-    /* Treat this call as a no-op if already wiped */
-    if (conn->send == NULL) {
-        return S2N_SUCCESS;
-    }
-
-    /* Treat this call as a no-op if an error alert was already received.
-     * Error alerts close the connection without any exchange of close_notify alerts. */
-    if (s2n_error_alert_received(conn)) {
-        return S2N_SUCCESS;
-    }
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-6.1
-     *# Each party MUST send a "close_notify" alert before closing its write
-     *# side of the connection
-     */
-    POSIX_GUARD_RESULT(s2n_send_close_notify(conn, blocked));
-
-    return S2N_SUCCESS;
-}
-
-int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_shutdown_impl(struct s2n_connection *conn, s2n_shutdown_how how,
+        s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
@@ -119,8 +70,6 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     if (s2n_error_alert_received(conn)) {
         return S2N_SUCCESS;
     }
-
-<<<<<<< HEAD
 
     /* Enforce blinding.
      * If an application is using self-service blinding, ensure that they have
@@ -141,22 +90,21 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
         return S2N_SUCCESS;
     }
 
-=======
->>>>>>> cabaa9be1 (Add new API to perform half-close)
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-6.1
      *# Each party MUST send a "close_notify" alert before closing its write
-     *# side of the connection
+     *# side of the connection, unless it has already sent some error alert.
      */
-<<<<<<< HEAD
     if (!conn->close_notify_queued) {
         POSIX_GUARD(s2n_queue_writer_close_alert_warning(conn));
         conn->close_notify_queued = 1;
         POSIX_GUARD(s2n_flush(conn, blocked));
     }
-=======
-    POSIX_GUARD_RESULT(s2n_send_close_notify(conn, blocked));
->>>>>>> cabaa9be1 (Add new API to perform half-close)
+
+    /* If we're only closing the write side, then we've succeeded. */
+    if (how == S2N_SHUTDOWN_WR) {
+        return S2N_SUCCESS;
+    }
 
     /*
      * The purpose of the peer responding to our close_notify
@@ -191,5 +139,17 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
 
     *blocked = S2N_NOT_BLOCKED;
+    return S2N_SUCCESS;
+}
+
+int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_GUARD(s2n_shutdown_impl(conn, S2N_SHUTDOWN_WR, blocked));
+    return S2N_SUCCESS;
+}
+
+int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_GUARD(s2n_shutdown_impl(conn, S2N_SHUTDOWN_RDWR, blocked));
     return S2N_SUCCESS;
 }
