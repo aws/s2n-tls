@@ -30,6 +30,7 @@ int s2n_openssl_asn1_time_free(ASN1_GENERALIZEDTIME *time)
     /* The ASN1_TIME, ASN1_UTCTIME and ASN1_GENERALIZEDTIME structures are
      * represented as an ASN1_STRING internally and can be freed up using
      * ASN1_STRING_free().
+     * https://www.openssl.org/docs/man1.1.1/man3/ASN1_TIME_to_tm.html
      */
     ASN1_STRING_free((ASN1_TIME *) time);
     return S2N_SUCCESS;
