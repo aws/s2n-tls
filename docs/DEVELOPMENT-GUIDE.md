@@ -190,7 +190,7 @@ Lastly, s2n-tls studiously avoids locks. s2n-tls is designed to be thread-safe, 
 
 ### Code formatting and commenting
 
-s2n-tls is written in C99. The code formatting and indentation should be relatively clear from reading some s2n-tls source files, but there is also an automated "make indent" target that will indent the s2n-tls sources. We have a .clang-format file which we are adopting.
+s2n-tls is written in C99. The code formatting and indentation should be relatively clear from reading some s2n-tls source files, but we also have a .clang-format file which we are adopting. The code format is checked by a CI job, and if clang-format finds any unformatted code the check will fail. For convenience, there is a utility script at `./codebuild/bin/clang_format_changed_files.sh` which will format all of the source files changed on a git branch.
 
 There should be no need for comments to explain *what* s2n-tls code is doing; variables and functions should be given clear and human-readable names that make their purpose and intent intuitive. Comments explaining *why* we are doing something are encouraged. Often some context setting is necessary; a reference to an RFC, or a reminder of some critical state that is hard to work directly into the immediate code in a natural way. All comments should be written using C syntax `/* */` and **avoid** C++ comments `//` even though C99 compilers allow `//`.
 
@@ -224,6 +224,24 @@ To avoid adding unneeded code to the production build of s2n-tls, there is also 
 Unit tests are run automatically with `make`. To run a subset of the unit tests, set the `UNIT_TESTS` environment variable with the unit test name(s). For example:
 ```
 UNIT_TESTS=s2n_hash_test make
+```
+
+### Debugging With GDB
+When trying to debug a failing test case, it is often useful to use a debugger like `gdb`. To do this, first make sure that the tests and s2n are compiled with debug information. This can be done by setting the CMAKE_BUILD_TYPE to DEBUG. Alternately, you can set the build type to R.
+```
+# generate the build configuration with debug symbols enabled
+cmake . \
+    -Bbuild \
+    -DCMAKE_BUILD_TYPE=DEBUG
+```
+
+Then a unit test can be run from gdb. Note that our unit tests rely on relative paths for cert locations and things, so the test executable must be invoked from the directly that holds the test source file.
+
+consider the `s2n_x509_validator_test`. This source file for this resides at `s2n-tls/tests/unit/s2n_x509_validator_test.c`, while the test executable will reside at `s2n-tls/build/bin/s2n_x509_validator_test.c`. So running the test with gdb can be done with the following
+```
+pwd
+# .../s2n-tls/tests/unit/
+gdb ../../build/bin/s2n_x509_validator_test
 ```
 
 ## A tour of s2n-tls memory handling: blobs and stuffers
