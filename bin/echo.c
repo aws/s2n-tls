@@ -261,8 +261,10 @@ int negotiate(struct s2n_connection *conn, int fd)
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
                     s2n_strerror(s2n_errno, "EN"),
                     s2n_strerror_debug(s2n_errno, "EN"));
-            fprintf(stderr, "Alert: %d\n",
-                    s2n_connection_get_alert(conn));
+            if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_ALERT) {
+                fprintf(stderr, "Alert: %d\n",
+                        s2n_connection_get_alert(conn));
+            }
             S2N_ERROR_PRESERVE_ERRNO();
         }
 
@@ -375,12 +377,17 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
                     return 0;
                 }
                 if (bytes_read < 0) {
-                    if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED) {
-                        /* Wait until poll tells us data is ready */
-                        continue;
+                    switch (s2n_error_get_type(s2n_errno)) {
+                        case S2N_ERR_T_BLOCKED:
+                            /* Wait until poll tells us data is ready */
+                            continue;
+                        case S2N_ERR_T_ALERT:
+                            fprintf(stderr, "Received alert: %d\n", s2n_connection_get_alert(conn));
+                            break;
+                        default:
+                            fprintf(stderr, "Error reading from connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                            break;
                     }
-
-                    fprintf(stderr, "Error reading from connection: '%s' %d\n", s2n_strerror(s2n_errno, "EN"), s2n_connection_get_alert(conn));
                     exit(1);
                 }
 
