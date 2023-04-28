@@ -140,6 +140,15 @@ bool s2n_libcrypto_is_boringssl()
 #endif
 }
 
+bool s2n_libcrypto_is_libressl()
+{
+#if defined(LIBRESSL_VERSION_NUMBER)
+    return true;
+#else
+    return false;
+#endif
+}
+
 S2N_RESULT s2n_libcrypto_init(void)
 {
 #if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)

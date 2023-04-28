@@ -731,5 +731,204 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
     };
 
+    /* Test loading system certs */
+    {
+        /* s2n_config_load_system_certs safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(NULL), S2N_ERR_NULL);
+        }
+
+        /* s2n_config_new_minimal should not load system certs */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_NULL(config->trust_store.trust_store);
+            EXPECT_FALSE(config->trust_store.loaded_system_certs);
+
+            /* System certs can be loaded onto the minimal config */
+            EXPECT_SUCCESS(s2n_config_load_system_certs(config));
+            EXPECT_NOT_NULL(config->trust_store.trust_store);
+            EXPECT_TRUE(config->trust_store.loaded_system_certs);
+
+            /* Attempting to load system certs multiple times on the same config should error */
+            for (int i = 0; i < 20; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+                EXPECT_TRUE(config->trust_store.loaded_system_certs);
+            }
+        }
+
+        /* s2n_config_new should load system certs */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_NOT_NULL(config->trust_store.trust_store);
+            EXPECT_TRUE(config->trust_store.loaded_system_certs);
+
+            /* Attempting to load system certs multiple times on the same config should error */
+            for (int i = 0; i < 20; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+                EXPECT_TRUE(config->trust_store.loaded_system_certs);
+            }
+        }
+
+        /* The default config should load system certs */
+        {
+            struct s2n_config *config = s2n_fetch_default_config();
+            EXPECT_NOT_NULL(config);
+            EXPECT_TRUE(config->trust_store.loaded_system_certs);
+        }
+
+        /* System certs can be loaded again after wiping the trust store */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            for (int i = 0; i < 20; i++) {
+                /* System certs were already loaded, so an attempt to load them should fail */
+                EXPECT_NOT_NULL(config->trust_store.trust_store);
+                EXPECT_TRUE(config->trust_store.loaded_system_certs);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+
+                EXPECT_SUCCESS(s2n_config_wipe_trust_store(config));
+
+                /* The trust store is cleared after a wipe, so it should be possible to load system certs again */
+                EXPECT_FALSE(config->trust_store.loaded_system_certs);
+                EXPECT_SUCCESS(s2n_config_load_system_certs(config));
+                EXPECT_TRUE(config->trust_store.loaded_system_certs);
+            }
+        }
+
+        /* Ensure that system certs are properly loaded into the X509_STORE.
+         *
+         * The API used to retrieve the contents of an X509_STORE, X509_STORE_get0_objects,
+         * wasn't added until OpenSSL 1.1.0.
+         */
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_NULL(config->trust_store.trust_store);
+            EXPECT_FALSE(config->trust_store.loaded_system_certs);
+
+            /* Initialize the X509_STORE by adding a cert */
+            EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&config->trust_store, S2N_RSA_PSS_2048_SHA256_CA_CERT, NULL));
+            EXPECT_NOT_NULL(config->trust_store.trust_store);
+            EXPECT_FALSE(config->trust_store.loaded_system_certs);
+
+            /* The X509_STORE should only contain the single cert that was added. */
+            STACK_OF(X509_OBJECT) *x509_store_contents = X509_STORE_get0_objects(config->trust_store.trust_store);
+            EXPECT_NOT_NULL(x509_store_contents);
+            int initial_contents_count = sk_X509_OBJECT_num(x509_store_contents);
+            EXPECT_EQUAL(initial_contents_count, 1);
+
+            /* Override the system cert file to guarantee that a system cert will be loaded */
+            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", S2N_SHA1_ROOT_SIGNATURE_CA_CERT, 1));
+
+            /* Load the system cert into the store */
+            EXPECT_SUCCESS(s2n_config_load_system_certs(config));
+            EXPECT_TRUE(config->trust_store.loaded_system_certs);
+            int system_certs_contents_count = sk_X509_OBJECT_num(x509_store_contents);
+
+            /* LibreSSL doesn't use the SSL_CERT_FILE environment variable to set the system cert location,
+             * so we don't know how many system certs will be loaded, if any.
+             */
+            if (!s2n_libcrypto_is_libressl()) {
+                EXPECT_EQUAL(system_certs_contents_count, initial_contents_count + 1);
+            }
+
+            /* Additional calls to s2n_config_load_default_certs should not add additional certs to the store */
+            for (int i = 0; i < 20; i++) {
+                EXPECT_FAILURE_WITH_ERRNO(s2n_config_load_system_certs(config), S2N_ERR_X509_TRUST_STORE);
+                EXPECT_TRUE(config->trust_store.loaded_system_certs);
+                int additional_call_contents_count = sk_X509_OBJECT_num(x509_store_contents);
+                EXPECT_TRUE(additional_call_contents_count == system_certs_contents_count);
+            }
+
+            EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE"));
+        }
+#endif
+
+        /* Self-talk tests */
+        {
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+            /* Ensure a handshake succeeds with a minimal server config and no mutual auth */
+            {
+                DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new_minimal(), s2n_config_ptr_free);
+                EXPECT_NOT_NULL(server_config);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+                DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new_minimal(), s2n_config_ptr_free);
+                EXPECT_NOT_NULL(client_config);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+                EXPECT_SUCCESS(s2n_set_server_name(client_conn, "s2nTestServer"));
+
+                struct s2n_test_io_pair io_pair = { 0 };
+                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_FALSE(server_config->trust_store.loaded_system_certs);
+                EXPECT_NULL(server_config->trust_store.trust_store);
+
+                EXPECT_FALSE(client_config->trust_store.loaded_system_certs);
+                EXPECT_NOT_NULL(client_config->trust_store.trust_store);
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            }
+
+            /* Ensure a handshake fails gracefully with an uninitialized trust store */
+            {
+                DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new_minimal(), s2n_config_ptr_free);
+                EXPECT_NOT_NULL(server_config);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+                DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new_minimal(), s2n_config_ptr_free);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
+                EXPECT_NOT_NULL(client_config);
+
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+                EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+                struct s2n_test_io_pair io_pair = { 0 };
+                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_FALSE(server_config->trust_store.loaded_system_certs);
+                EXPECT_NULL(server_config->trust_store.trust_store);
+
+                EXPECT_FALSE(client_config->trust_store.loaded_system_certs);
+                EXPECT_NULL(client_config->trust_store.trust_store);
+
+                /* The client should fail to validate the server's certificate without an initialized trust store */
+                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                        S2N_ERR_CERT_UNTRUSTED);
+            }
+        }
+    }
+
     END_TEST();
 }

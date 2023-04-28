@@ -62,22 +62,6 @@ uint8_t s2n_x509_trust_store_has_certs(struct s2n_x509_trust_store *store)
     return store->trust_store ? (uint8_t) 1 : (uint8_t) 0;
 }
 
-int s2n_x509_trust_store_from_system_defaults(struct s2n_x509_trust_store *store)
-{
-    if (!store->trust_store) {
-        store->trust_store = X509_STORE_new();
-        POSIX_ENSURE_REF(store->trust_store);
-    }
-
-    int err_code = X509_STORE_set_default_paths(store->trust_store);
-    if (!err_code) {
-        s2n_x509_trust_store_wipe(store);
-        POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
-    }
-
-    return 0;
-}
-
 int s2n_x509_trust_store_add_pem(struct s2n_x509_trust_store *store, const char *pem)
 {
     POSIX_ENSURE_REF(store);
@@ -141,6 +125,7 @@ void s2n_x509_trust_store_wipe(struct s2n_x509_trust_store *store)
     if (store->trust_store) {
         X509_STORE_free(store->trust_store);
         store->trust_store = NULL;
+        store->loaded_system_certs = false;
     }
 }
 

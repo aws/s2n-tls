@@ -113,7 +113,6 @@ static int s2n_config_init(struct s2n_config *config)
     POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
-    POSIX_GUARD(s2n_x509_trust_store_from_system_defaults(&config->trust_store));
 
     return 0;
 }
@@ -232,15 +231,18 @@ int s2n_config_defaults_init(void)
     if (s2n_is_in_fips_mode()) {
         POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
         POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
+        POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_fips_config));
     } else {
         /* Set up default */
         POSIX_GUARD(s2n_config_init(&s2n_default_config));
         POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
+        POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
     }
 
     /* Set up TLS 1.3 defaults */
     POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
     POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
+    POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_tls13_config));
 
     return S2N_SUCCESS;
 }
@@ -252,7 +254,29 @@ void s2n_wipe_static_configs(void)
     s2n_config_cleanup(&s2n_default_tls13_config);
 }
 
-struct s2n_config *s2n_config_new(void)
+int s2n_config_load_system_certs(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+
+    struct s2n_x509_trust_store *store = &config->trust_store;
+    POSIX_ENSURE(!store->loaded_system_certs, S2N_ERR_X509_TRUST_STORE);
+
+    if (!store->trust_store) {
+        store->trust_store = X509_STORE_new();
+        POSIX_ENSURE_REF(store->trust_store);
+    }
+
+    int err_code = X509_STORE_set_default_paths(store->trust_store);
+    if (!err_code) {
+        s2n_x509_trust_store_wipe(store);
+        POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
+    }
+    store->loaded_system_certs = true;
+
+    return S2N_SUCCESS;
+}
+
+struct s2n_config *s2n_config_new_minimal(void)
 {
     struct s2n_blob allocator = { 0 };
     struct s2n_config *new_config;
@@ -265,6 +289,17 @@ struct s2n_config *s2n_config_new(void)
         s2n_free(&allocator);
         return NULL;
     }
+
+    return new_config;
+}
+
+struct s2n_config *s2n_config_new(void)
+{
+    struct s2n_config *new_config = s2n_config_new_minimal();
+    PTR_ENSURE_REF(new_config);
+
+    /* For backwards compatibility, s2n_config_new loads system certs by default. */
+    PTR_GUARD_POSIX(s2n_config_load_system_certs(new_config));
 
     return new_config;
 }
