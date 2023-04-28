@@ -1,6 +1,6 @@
 {
   "nodes": {
-    "awslc": {
+    "aws-lc": {
       "inputs": {
         "flake-utils": "flake-utils",
         "nix": "nix",
@@ -16,7 +16,7 @@
       },
       "original": {
         "owner": "dougch",
-        "ref": "1b841e7ccda1b8cd9cf43ce9",
+        "ref": "nix",
         "repo": "aws-lc",
         "type": "github"
       }
@@ -217,7 +217,7 @@
     },
     "root": {
       "inputs": {
-        "awslc": "awslc",
+        "aws-lc": "aws-lc",
         "flake-utils": "flake-utils_2",
         "nix": "nix_2",
         "nixpkgs": "nixpkgs_4"
