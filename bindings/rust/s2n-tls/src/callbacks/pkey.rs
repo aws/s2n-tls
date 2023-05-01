@@ -303,11 +303,11 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let mut pair = new_pair(callback, waker)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        let result = poll_tls_pair_result(pair);
+        let result = poll_tls_pair_result(&mut pair);
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, 0);
 
@@ -359,11 +359,11 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let mut pair = new_pair(callback, waker)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        let result = poll_tls_pair_result(pair);
+        let result = poll_tls_pair_result(&mut pair);
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, POLL_COUNT);
 

@@ -49,9 +49,9 @@ variable before compiling.
 1. Add fuzz testing in `tests/fuzz/s2n_KEM_NAME_fuzz_test.c`
 1. Add formal verification in `tests/saw/KEM_NAME/verify.saw`
 1. Create a new `s2n_cipher_suite` in `tls/s2n_cipher_suites.c`
-1. Create a new `s2n_cipher_preferences` in `tls/s2n_cipher_prefrences.c` that uses the new cipher suite
+1. Create a new `s2n_cipher_preferences` in `tls/s2n_cipher_preferences.c` that uses the new cipher suite
     1. Once this change is made, the KEM will be available for use in TLS handshakes; ensure that all testing/verification has been completed
-    
+
 ## How to add a new variant to an existing PQ KEM family for use in hybrid TLS 1.2
 1. Add the code to `pq-crypto/KEM_NAME/`
     1. Update `pq-crypto/Makefile` to build that directory
@@ -64,7 +64,7 @@ variable before compiling.
 1. Add fuzz testing in `tests/fuzz/s2n_KEM_NAME_fuzz_test.c`
 1. Add formal verification in `tests/saw/KEM_NAME/verify.saw`
 1. Update the appropriate `supported_KEM_NAME_params` array in `tls/s2n_kem.c`
-    1. Once this change is made, the KEM extension will be available for use in TLS handshakes; ensure that all testing/verification has been completed 
+    1. Once this change is made, the KEM extension will be available for use in TLS handshakes; ensure that all testing/verification has been completed
 
 ## How to use PQ cipher suites for hybrid TLS 1.2
 1. Checkout s2n `git clone https://github.com/awslabs/s2n.git`

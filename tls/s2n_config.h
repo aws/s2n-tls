@@ -146,7 +146,7 @@ struct s2n_config {
 
     /* Return TRUE if the host should be trusted, If FALSE this will likely be called again for every host/alternative name
      * in the certificate. If any respond TRUE. If none return TRUE, the cert will be considered untrusted. */
-    uint8_t (*verify_host)(const char *host_name, size_t host_name_len, void *data);
+    s2n_verify_host_fn verify_host_fn;
     void *data_for_verify_host;
 
     s2n_crl_lookup_callback crl_lookup_cb;
@@ -192,6 +192,9 @@ struct s2n_config {
     void *renegotiate_request_ctx;
     s2n_renegotiate_request_cb renegotiate_request_cb;
 };
+
+struct s2n_config *s2n_config_new_minimal(void);
+int s2n_config_load_system_certs(struct s2n_config *config);
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 

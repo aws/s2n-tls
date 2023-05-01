@@ -316,21 +316,14 @@ struct s2n_connection {
     uint64_t wire_bytes_out;
     uint64_t early_data_bytes;
 
-    /* Is the connection open or closed ? We use C's only
-     * atomic type as both the reader and the writer threads
-     * may declare a connection closed.
+    /* Is the connection open or closed?
      *
-     * A connection can be gracefully closed or hard-closed.
-     * When gracefully closed the reader or the writer mark
-     * the connection as closing, and then the writer will
-     * send an alert message before closing the connection
-     * and marking it as closed.
-     *
-     * A hard-close goes straight to closed with no alert
-     * message being sent.
+     * We use C's only atomic type as an error requires shutting down both read
+     * and write, so both the reader and writer threads may access both fields.
      */
-    sig_atomic_t closing;
-    sig_atomic_t closed;
+    sig_atomic_t read_closed;
+    sig_atomic_t write_closing;
+    sig_atomic_t write_closed;
 
     /* TLS extension data */
     char server_name[S2N_MAX_SERVER_NAME + 1];
@@ -405,8 +398,14 @@ S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connectio
 int s2n_connection_is_managed_corked(const struct s2n_connection *s2n_connection);
 int s2n_connection_is_client_auth_enabled(struct s2n_connection *s2n_connection);
 
-/* Kill a bad connection */
-int s2n_connection_kill(struct s2n_connection *conn);
+typedef enum {
+    S2N_IO_WRITABLE,
+    S2N_IO_READABLE,
+    S2N_IO_FULL_DUPLEX,
+    S2N_IO_CLOSED,
+} s2n_io_status;
+bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status status);
+S2N_RESULT s2n_connection_set_closed(struct s2n_connection *conn);
 
 /* Send/recv a stuffer to/from a connection */
 int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connection *conn, uint32_t len);

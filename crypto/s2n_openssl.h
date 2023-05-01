@@ -58,3 +58,4 @@
 
 bool s2n_libcrypto_is_awslc();
 bool s2n_libcrypto_is_boringssl();
+bool s2n_libcrypto_is_libressl();

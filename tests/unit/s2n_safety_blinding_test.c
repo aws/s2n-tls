@@ -25,11 +25,11 @@
 
 #define EXPECT_BLINDING(conn)                            \
     EXPECT_NOT_EQUAL(s2n_connection_get_delay(conn), 0); \
-    EXPECT_TRUE(conn->closed);
+    EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
 #define EXPECT_NO_BLINDING(conn)                     \
     EXPECT_EQUAL(s2n_connection_get_delay(conn), 0); \
-    EXPECT_FALSE(conn->closed);
+    EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
 S2N_RESULT s2n_result_func(bool success)
 {
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
             s2n_errno = S2N_ERR_CIPHER_NOT_SUPPORTED;
             EXPECT_OK(s2n_connection_apply_error_blinding(&conn));
             EXPECT_EQUAL(s2n_connection_get_delay(conn), 0);
-            EXPECT_TRUE(conn->closed);
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
         };
 
         /* Blinds for an average error */
