@@ -51,7 +51,7 @@ static uint8_t verify_host_accept_everything(const char *host_name, size_t host_
     return 1;
 }
 
-int test_with_system_time(uint64_t system_time_nanos, s2n_error expected)
+int test_with_system_time(uint64_t system_time_nanos, int expected)
 {
     DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
     s2n_x509_trust_store_init_empty(&trust_store);
@@ -90,7 +90,8 @@ int test_with_system_time(uint64_t system_time_nanos, s2n_error expected)
     uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
     EXPECT_TRUE(ocsp_data_len > 0);
 
-    if (expected != S2N_ERR_T_OK) {
+    /* OK enums have 0 values */
+    if (expected != 0) {
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
                                         s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
                 expected);
@@ -101,6 +102,7 @@ int test_with_system_time(uint64_t system_time_nanos, s2n_error expected)
 
     EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, old_clock, NULL));
     EXPECT_SUCCESS(s2n_connection_free(connection));
+    return 0;
 }
 
 /**
@@ -142,11 +144,11 @@ int main(int argc, char **argv)
 
     test_with_system_time(this_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds), S2N_ERR_CERT_INVALID);
     test_with_system_time(this_update_timestamp_nanoseconds - one_hour_nanoseconds, S2N_ERR_CERT_INVALID);
-    test_with_system_time(this_update_timestamp_nanoseconds + one_hour_nanoseconds, S2N_ERR_T_OK);
-    test_with_system_time(this_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds), S2N_ERR_T_OK);
+    test_with_system_time(this_update_timestamp_nanoseconds + one_hour_nanoseconds, S2N_ERR_OK);
+    test_with_system_time(this_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds), S2N_ERR_OK);
 
-    test_with_system_time(next_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds), S2N_ERR_T_OK);
-    test_with_system_time(next_update_timestamp_nanoseconds - one_hour_nanoseconds, S2N_ERR_T_OK);
+    test_with_system_time(next_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds), S2N_ERR_OK);
+    test_with_system_time(next_update_timestamp_nanoseconds - one_hour_nanoseconds, S2N_ERR_OK);
     test_with_system_time(next_update_timestamp_nanoseconds + one_hour_nanoseconds, S2N_ERR_CERT_EXPIRED);
     test_with_system_time(next_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds), S2N_ERR_CERT_EXPIRED);
 #endif
