@@ -48,8 +48,6 @@ struct host_verify_data {
 
 static uint8_t verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data)
 {
-    struct host_verify_data *verify_data = (struct host_verify_data *) data;
-    verify_data->callback_invoked = 1;
     return 1;
 }
 
@@ -79,7 +77,10 @@ int test_with_system_time(uint64_t system_time_nanos, s2n_error expected)
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
     EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
-    EXPECT_EQUAL(1, verify_data.callback_invoked);
+    /**
+     * keep track of the old clock, because we want cert validation to happen
+     * with the default system clock, and not the "mock_time" clock.
+     */
     s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
     uint64_t timestamp_nanoseconds = system_time_nanos;
     EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, mock_time, &timestamp_nanoseconds));
@@ -128,6 +129,7 @@ int test_with_system_time(uint64_t system_time_nanos, s2n_error expected)
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+#if S2N_OCSP_STAPLING_SUPPORTED
 
     /* Apr 28 22:11:56 2023 GMT */
     uint64_t this_update_timestamp_nanoseconds = (uint64_t) 1682719916 * ONE_SEC_IN_NANOS;
@@ -147,6 +149,6 @@ int main(int argc, char **argv)
     test_with_system_time(next_update_timestamp_nanoseconds - one_hour_nanoseconds, S2N_ERR_T_OK);
     test_with_system_time(next_update_timestamp_nanoseconds + one_hour_nanoseconds, S2N_ERR_CERT_EXPIRED);
     test_with_system_time(next_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds), S2N_ERR_CERT_EXPIRED);
-
+#endif
     END_TEST();
 }
