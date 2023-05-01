@@ -227,7 +227,7 @@ UNIT_TESTS=s2n_hash_test make
 ```
 
 ### Debugging With GDB
-When trying to debug a failing test case, it is often useful to use a debugger like `gdb`. To do this, first make sure that the tests and s2n are compiled with debug information. This can be done by setting the CMAKE_BUILD_TYPE to DEBUG. Alternately, you can set the build type to R.
+When trying to debug a failing test case, it is often useful to use a debugger like `gdb`. First make sure that the tests and s2n are compiled with debug information. This can be done by setting the `CMAKE_BUILD_TYPE` to `DEBUG`. Alternatively, you can set the build type to `RelWithDebInfo` to get a release build with debug info included.
 ```
 # generate the build configuration with debug symbols enabled
 cmake . \
@@ -235,9 +235,9 @@ cmake . \
     -DCMAKE_BUILD_TYPE=DEBUG
 ```
 
-Then a unit test can be run from gdb. Note that our unit tests rely on relative paths for cert locations and things, so the test executable must be invoked from the directly that holds the test source file.
+Our unit tests rely on relative paths for certificates, so the test executable must be invoked from folder that holds the test source file, or you can `cd` into the unit test folder once gdb is running.
 
-consider the `s2n_x509_validator_test`. This source file for this resides at `s2n-tls/tests/unit/s2n_x509_validator_test.c`, while the test executable will reside at `s2n-tls/build/bin/s2n_x509_validator_test.c`. So running the test with gdb can be done with the following
+To run the `s2n_x509_validator_test` with `gdb`
 ```
 pwd
 # .../s2n-tls/tests/unit/
