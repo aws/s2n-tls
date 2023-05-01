@@ -235,7 +235,7 @@ cmake . \
     -DCMAKE_BUILD_TYPE=DEBUG
 ```
 
-Our unit tests rely on relative paths for certificates, so the test executable must be invoked from folder that holds the test source file, or you can `cd` into the unit test folder once gdb is running.
+Our unit tests rely on relative paths for certificates, so the test executable must be invoked from the folder that holds the test source file, or you can `cd` into the unit test folder once gdb is running.
 
 To run the `s2n_x509_validator_test` with `gdb`
 ```
