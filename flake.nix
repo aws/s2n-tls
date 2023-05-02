@@ -14,7 +14,7 @@
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         gnutls-3-7 = import nix/gnutls.nix { pkgs = pkgs; };
         libcrypto_packages = [
-          # Libcryptos we always expect to be available
+          # TLS utilites we use for interop testing.
           openssl_1_1_1
           gnutls-3-7
         ];
@@ -36,6 +36,7 @@
           pkgs.shellcheck
           pkgs.nixfmt
           pkgs.python310Packages.pep8
+          pkgs.python310Packages.ipython
 
           # Rust
           pkgs.rustup

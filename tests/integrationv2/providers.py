@@ -405,8 +405,8 @@ class OpenSSL(Provider):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
-        # current s_client is designed for 1.1.1 https://github.com/aws/s2n-tls/issues/3963
-        self._client_major_ver()
+        # Current provider needs 1.1.x https://github.com/aws/s2n-tls/issues/3963
+        self._is_openssl_11()
 
     @classmethod
     def get_send_marker(cls):
@@ -480,15 +480,14 @@ class OpenSSL(Provider):
 
         return True
 
-    def _client_major_ver(self):
+    def _is_openssl_11(self) -> None:
         result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
-
         version_str = result.stdout.split(" ")
         project = version_str[0]
         version = version_str[1]
-        print(f"Project: {project} version: {version}")
-        assert project == "OpenSSL"
-        assert version.split('.')[0] == "1"
+        print(f"openssl version: {project} version: {version}")
+        if ( project != "OpenSSL" or version[0:3] != "1.1" ):
+            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']
