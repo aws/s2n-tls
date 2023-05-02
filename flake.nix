@@ -13,7 +13,7 @@
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         gnutls-3-7 = import nix/gnutls.nix { pkgs = pkgs; };
-        libcrypto_packages = [
+        tls_packages = [
           # TLS utilites we use for interop testing.
           openssl_1_1_1
           gnutls-3-7
@@ -85,7 +85,7 @@
           #  - run integ tests
           #  - do common development operations (e.g. lint, debug, and manage repos)
           inherit system;
-          buildInputs = libcrypto_packages ++ common_packages;
+          packages = tls_packages ++ common_packages;
           # This env var can be over-ridden instead of recreating the shellHook.
           S2N_LIBCRYPTO = "openssl-1.1.1";
           shellHook = ''

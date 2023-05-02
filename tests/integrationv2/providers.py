@@ -486,7 +486,7 @@ class OpenSSL(Provider):
         project = version_str[0]
         version = version_str[1]
         print(f"openssl version: {project} version: {version}")
-        if ( project != "OpenSSL" or version[0:3] != "1.1" ):
+        if (project != "OpenSSL" or version[0:3] != "1.1"):
             raise FileNotFoundError(f"Openssl version returned {version}, expected 1.1.x.")
 
     def setup_client(self):
