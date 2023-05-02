@@ -193,6 +193,9 @@ struct s2n_config {
     s2n_renegotiate_request_cb renegotiate_request_cb;
 };
 
+struct s2n_config *s2n_config_new_minimal(void);
+int s2n_config_load_system_certs(struct s2n_config *config);
+
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 
 int s2n_config_defaults_init(void);
