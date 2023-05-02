@@ -268,7 +268,7 @@ S2N_API extern struct s2n_config *s2n_config_new(void);
  * @returns A new configuration object suitable for configuring connections and associating certs
  * and keys.
  */
-S2N_API struct s2n_config *s2n_config_new_minimal(void);
+S2N_API extern struct s2n_config *s2n_config_new_minimal(void);
 
 /**
  * Frees the memory associated with an `s2n_config` object.
@@ -859,7 +859,7 @@ S2N_API extern int s2n_config_wipe_trust_store(struct s2n_config *config);
  * @param config The configuration object being updated
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API int s2n_config_load_system_certs(struct s2n_config *config);
+S2N_API extern int s2n_config_load_system_certs(struct s2n_config *config);
 
 typedef enum {
     S2N_VERIFY_AFTER_SIGN_DISABLED,
