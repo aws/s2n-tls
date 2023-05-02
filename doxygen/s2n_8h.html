@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.43-00c7b4f5</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.43-9cc4042f</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -550,6 +550,8 @@ Functions</h2></td></tr>
 <tr class="separator:a9c7664ec2fe4c694148ad303f4229f94"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aff6abacafd51a48a2870755d765f56e8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aff6abacafd51a48a2870755d765f56e8">s2n_shutdown</a> (struct s2n_connection *conn, <a class="el" href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a> *blocked)</td></tr>
 <tr class="separator:aff6abacafd51a48a2870755d765f56e8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aed14fae7ae16fffda06087b8aec78035"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aed14fae7ae16fffda06087b8aec78035">s2n_shutdown_send</a> (struct s2n_connection *conn, <a class="el" href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a> *blocked)</td></tr>
+<tr class="separator:aed14fae7ae16fffda06087b8aec78035"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a2229eaee45a85050eae6b12924e6fea3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a2229eaee45a85050eae6b12924e6fea3">s2n_config_get_client_auth_type</a> (struct s2n_config *config, <a class="el" href="s2n_8h.html#a8757c094681bb8151329c8dc067106b8">s2n_cert_auth_type</a> *client_auth_type)</td></tr>
 <tr class="separator:a2229eaee45a85050eae6b12924e6fea3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a923be772e04a448409f93d4cf234ca33"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a923be772e04a448409f93d4cf234ca33">s2n_config_set_client_auth_type</a> (struct s2n_config *config, <a class="el" href="s2n_8h.html#a8757c094681bb8151329c8dc067106b8">s2n_cert_auth_type</a> client_auth_type)</td></tr>
@@ -9587,9 +9589,55 @@ Safety</h1>
 <p >Unlike other TLS implementations, <code>s2n_shutdown</code> attempts a graceful shutdown by default. It will not return with success unless a close_notify alert is successfully sent and received. As a result, <code>s2n_shutdown</code> may fail when interacting with a non-conformant TLS implementation.</p>
 <p >Once <code>s2n_shutdown</code> is complete:</p><ul>
 <li>The s2n_connection handle cannot be used for reading for writing.</li>
-<li>The underlying transport can be closed. Most likely via <code>close()</code>.</li>
+<li>The underlying transport can be closed. Most likely via <code>shutdown()</code> or <code>close()</code>.</li>
 <li>The s2n_connection handle can be freed via <a class="el" href="s2n_8h.html#a9c7664ec2fe4c694148ad303f4229f94">s2n_connection_free()</a> or reused via <a class="el" href="s2n_8h.html#ae42c3c7b37df666c2b3e6a53c1ea5f76">s2n_connection_wipe()</a></li>
 </ul>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status, as in <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="aed14fae7ae16fffda06087b8aec78035" name="aed14fae7ae16fffda06087b8aec78035"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aed14fae7ae16fffda06087b8aec78035">&#9670;&#160;</a></span>s2n_shutdown_send()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_shutdown_send </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a> *&#160;</td>
+          <td class="paramname"><em>blocked</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Attempts to close the write side of the TLS connection.</p>
+<p >TLS1.3 supports closing the write side of a TLS connection while leaving the read side unaffected. This feature is usually referred to as "half-close". We send a close_notify alert, but do not wait for the peer to respond.</p>
+<p >Like <code><a class="el" href="s2n_8h.html#aff6abacafd51a48a2870755d765f56e8">s2n_shutdown()</a></code>, this method does not affect the underlying transport.</p>
+<p ><code><a class="el" href="s2n_8h.html#aed14fae7ae16fffda06087b8aec78035">s2n_shutdown_send()</a></code> may still be called for earlier TLS versions, but most TLS implementations will react by immediately discarding any pending writes and closing the connection.</p>
+<p >Once <code><a class="el" href="s2n_8h.html#aed14fae7ae16fffda06087b8aec78035">s2n_shutdown_send()</a></code> is complete:</p><ul>
+<li>The s2n_connection handle CANNOT be used for writing.</li>
+<li>The s2n_connection handle CAN be used for reading.</li>
+<li>The write side of the underlying transport can be closed. Most likely via <code>shutdown()</code>.</li>
+</ul>
+<p >The application should still call <code><a class="el" href="s2n_8h.html#aff6abacafd51a48a2870755d765f56e8">s2n_shutdown()</a></code> or wait for <code><a class="el" href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv()</a></code> to return 0 to indicate end-of-data before cleaning up the connection or closing the read side of the underlying transport.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
