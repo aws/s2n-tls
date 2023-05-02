@@ -1964,7 +1964,7 @@ S2N_API extern int s2n_connection_free(struct s2n_connection *conn);
  *
  * Once `s2n_shutdown` is complete:
  * * The s2n_connection handle cannot be used for reading for writing.
- * * The underlying transport can be closed. Most likely via `close()`.
+ * * The underlying transport can be closed. Most likely via `shutdown()` or `close()`.
  * * The s2n_connection handle can be freed via s2n_connection_free() or reused via s2n_connection_wipe()
  *
  * @param conn A pointer to the s2n_connection object
@@ -1972,6 +1972,34 @@ S2N_API extern int s2n_connection_free(struct s2n_connection *conn);
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
+
+/**
+ * Attempts to close the write side of the TLS connection.
+ *
+ * TLS1.3 supports closing the write side of a TLS connection while leaving the read
+ * side unaffected. This feature is usually referred to as "half-close". We send
+ * a close_notify alert, but do not wait for the peer to respond.
+ *
+ * Like `s2n_shutdown()`, this method does not affect the underlying transport.
+ *
+ * `s2n_shutdown_send()` may still be called for earlier TLS versions, but most
+ * TLS implementations will react by immediately discarding any pending writes and
+ * closing the connection.
+ *
+ * Once `s2n_shutdown_send()` is complete:
+ * * The s2n_connection handle CANNOT be used for writing.
+ * * The s2n_connection handle CAN be used for reading.
+ * * The write side of the underlying transport can be closed. Most likely via `shutdown()`.
+ *
+ * The application should still call `s2n_shutdown()` or wait for `s2n_recv()` to
+ * return 0 to indicate end-of-data before cleaning up the connection or closing
+ * the read side of the underlying transport.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
 
 /**
  * Used to declare what type of client certificate authentication to use.
