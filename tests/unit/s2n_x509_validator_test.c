@@ -16,8 +16,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-DEFINE_POINTER_CLEANUP_FUNC(struct s2n_connection *, s2n_connection_free);
-
 static int mock_time(void *data, uint64_t *timestamp)
 {
     *timestamp = *(uint64_t *) data;
@@ -1383,6 +1381,116 @@ int main(int argc, char **argv)
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     };
+
+    /**
+     * Test OCSP validation at various offsets from update times.
+     * libcrypto ASN1 comparison calculates differences in terms of days and seconds,
+     * so try mocking the system time to a collection of more than day & less
+     * than day differences.
+     * The T's in the below diagram represent test cases that should fail
+     * The F's represent test cases that should succeed
+     *    S2N_ERR_CERT_INVALID                            S2N_ERR_CERT_EXPIRED
+     *          |   |                                        |   |
+     *          v   v                                        v   v
+     *          F   F   T   T                        T   T   F   F
+     *          v   v   v   v                        v   v   v   v
+     * <----------|---|---|----------------------------|---|---|--->
+     *                ^                                    ^
+     *       this update                                 next update
+     *                |---|
+     *                  one day
+     *
+     * If this test is failing make sure that the this_update_timestamp_nanoseconds
+     * matches the actual timestamp of ocsp_response_early_expire.der
+     *
+     * openssl ocsp -respin ocsp_response_early_expire.der -text -noverify | grep "This Update"
+     */
+    {
+        /* Apr 28 22:11:56 2023 GMT */
+        uint64_t this_update_timestamp_nanoseconds = (uint64_t) 1682719916 * ONE_SEC_IN_NANOS;
+
+        /* Apr 28 22:11:56 2023 GMT */
+        uint64_t next_update_timestamp_nanoseconds = (uint64_t) 2082838316 * ONE_SEC_IN_NANOS;
+
+        uint64_t one_hour_nanoseconds = (uint64_t) 60 * 60 * ONE_SEC_IN_NANOS;
+        uint64_t one_day_nanoseconds = 24 * one_hour_nanoseconds;
+
+        uint64_t times[] = {
+            this_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
+            this_update_timestamp_nanoseconds - one_hour_nanoseconds,
+            this_update_timestamp_nanoseconds + one_hour_nanoseconds,
+            this_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds),
+            next_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
+            next_update_timestamp_nanoseconds - one_hour_nanoseconds,
+            next_update_timestamp_nanoseconds + one_hour_nanoseconds,
+            next_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds)
+        };
+
+        int expected_result[] = {
+            S2N_ERR_CERT_INVALID,
+            S2N_ERR_CERT_INVALID,
+            S2N_ERR_OK,
+            S2N_ERR_OK,
+            S2N_ERR_OK,
+            S2N_ERR_OK,
+            S2N_ERR_CERT_EXPIRED,
+            S2N_ERR_CERT_EXPIRED,
+        };
+
+        EXPECT_EQUAL(s2n_array_len(times), s2n_array_len(expected_result));
+
+        for (int i = 0; i < s2n_array_len(times); i++) {
+            /* print out test case for easier debugging from logs in CI */
+            fprintf(stdout, "\n Running Test Case  %i\n", i);
+            DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+            s2n_x509_trust_store_init_empty(&trust_store);
+            EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 1));
+
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+
+            struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
+            EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_OCSP_SERVER_CERT_EARLY_EXPIRE, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
+
+            /**
+             * keep track of the old clock, because we want cert validation to happen
+             * with the default system clock, and not the "mock_time" clock.
+             */
+            s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
+            uint64_t timestamp_nanoseconds = times[i];
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, mock_time, &timestamp_nanoseconds));
+
+            DEFER_CLEANUP(struct s2n_stuffer ocsp_data_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_EARLY_EXPIRE_DER, S2N_MAX_TEST_PEM_SIZE));
+            uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
+            EXPECT_TRUE(ocsp_data_len > 0);
+
+            if (expected_result[i] != S2N_ERR_OK) {
+                EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
+                        expected_result[i]);
+            } else {
+                EXPECT_OK(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                        s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len));
+            }
+
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, old_clock, NULL));
+        };
+    };
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
     /* test validator in safe mode, with default host name validator. Connection server name matches alternative name on a certificate. */
     {
@@ -1728,114 +1836,6 @@ int main(int argc, char **argv)
         s2n_config_free(config);
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
-    };
-
-    /**
-     * Test OCSP validation at various offsets from update times
-     * libcrypto ASN1 comparison calculates differences in terms of days and seconds,
-     * so try mocking the system time to a collection of more than day & less
-     * day differences.
-     * The T's in the below diagram represent test cases that should fail
-     * The F's represent test cases that should succeed
-     *    S2N_ERR_CERT_INVALID                            S2N_ERR_CERT_EXPIRED
-     *          |   |                                        |   |
-     *          v   v                                        v   v
-     *          F   F   T   T                        T   T   F   F
-     *          v   v   v   v                        v   v   v   v
-     * <----------|---|---|----------------------------|---|---|--->
-     *                ^                                    ^
-     *       this update                                 next update
-     *                |---|
-     *                  one day
-     *
-     * If this test is failing make sure that the this_update_timestamp_nanoseconds
-     * matches the actual timestamp of ocsp_response_early_expire.der
-     *
-     * openssl ocsp -respin ocsp_response_early_expire.der -text -noverify | grep "This Update"
-     */
-    {
-        /* Apr 28 22:11:56 2023 GMT */
-        uint64_t this_update_timestamp_nanoseconds = (uint64_t) 1682719916 * ONE_SEC_IN_NANOS;
-
-        /* Apr 28 22:11:56 2023 GMT */
-        uint64_t next_update_timestamp_nanoseconds = (uint64_t) 2082838316 * ONE_SEC_IN_NANOS;
-
-        uint64_t one_hour_nanoseconds = (uint64_t) 60 * 60 * ONE_SEC_IN_NANOS;
-        uint64_t one_day_nanoseconds = 24 * one_hour_nanoseconds;
-
-        size_t test_cases = 8;
-
-        uint64_t times[] = {
-            this_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
-            this_update_timestamp_nanoseconds - one_hour_nanoseconds,
-            this_update_timestamp_nanoseconds + one_hour_nanoseconds,
-            this_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds),
-            next_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
-            next_update_timestamp_nanoseconds - one_hour_nanoseconds,
-            next_update_timestamp_nanoseconds + one_hour_nanoseconds,
-            next_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds)
-        };
-
-        int expected_result[] = {
-            S2N_ERR_CERT_INVALID,
-            S2N_ERR_CERT_INVALID,
-            S2N_ERR_OK,
-            S2N_ERR_OK,
-            S2N_ERR_OK,
-            S2N_ERR_OK,
-            S2N_ERR_CERT_EXPIRED,
-            S2N_ERR_CERT_EXPIRED,
-        };
-
-        for (size_t i = 0; i < test_cases; i++) {
-            DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
-            s2n_x509_trust_store_init_empty(&trust_store);
-            EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
-
-            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
-            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 1));
-
-            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_free_pointer);
-            EXPECT_NOT_NULL(connection);
-
-            struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
-            EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(connection, verify_host_accept_everything, &verify_data));
-
-            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
-            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, S2N_OCSP_SERVER_CERT_EARLY_EXPIRE, &cert_chain_stuffer));
-            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
-            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
-            EXPECT_NOT_NULL(chain_data);
-
-            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
-            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
-
-            /**
-             * keep track of the old clock, because we want cert validation to happen
-             * with the default system clock, and not the "mock_time" clock.
-             */
-            s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
-            uint64_t timestamp_nanoseconds = times[i];
-            EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, mock_time, &timestamp_nanoseconds));
-
-            DEFER_CLEANUP(struct s2n_stuffer ocsp_data_stuffer = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_EARLY_EXPIRE_DER, S2N_MAX_TEST_PEM_SIZE));
-            uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
-            EXPECT_TRUE(ocsp_data_len > 0);
-
-            if (expected_result[i] != S2N_ERR_OK) {
-                EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                                                s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
-                        expected_result[i]);
-            } else {
-                EXPECT_OK(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                        s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len));
-            }
-
-            EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, old_clock, NULL));
-        };
     };
 
     /* Test trust store can be wiped */
