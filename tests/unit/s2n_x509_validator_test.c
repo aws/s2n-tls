@@ -478,14 +478,14 @@ int main(int argc, char **argv)
 
     /* test expired certificate fails as untrusted. This test uses pre-2038 dates */
     {
-        struct s2n_x509_trust_store trust_store;
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
-        struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 0);
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
@@ -501,9 +501,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
-        s2n_config_set_wall_clock(connection->config, fetch_early_expired_after_ocsp_timestamp, NULL);
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, fetch_early_expired_after_ocsp_timestamp, NULL));
 
-        struct s2n_pkey public_key_out;
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_ERROR_WITH_ERRNO(
@@ -512,12 +512,7 @@ int main(int argc, char **argv)
                 S2N_ERR_CERT_EXPIRED);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
-        s2n_config_set_wall_clock(connection->config, old_clock, NULL);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, old_clock, NULL));
     };
 
     /* test validator in safe mode, with properly configured trust store, but the server's end-entity cert is invalid. */
@@ -1006,7 +1001,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     * Test invalid OCSP date range post 2038
+     * Test invalid OCSP date range post-2038
      * This test sets the clock time to be after the expiration date of the cert
      * and after the "Next Update" field of the OCSP response. Since this clock
      * time is then after 2038, this test fails on platforms where time_t is 32
@@ -1063,14 +1058,14 @@ int main(int argc, char **argv)
      * and after the "Next Update" field of the OCSP response.
      */
     {
-        struct s2n_x509_trust_store trust_store;
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
 
-        struct s2n_x509_validator validator;
-        s2n_x509_validator_init(&validator, &trust_store, 1);
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 1));
 
-        struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
 
         struct host_verify_data verify_data = { .callback_invoked = 0, .found_name = 0, .name = NULL };
@@ -1082,16 +1077,16 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        struct s2n_pkey public_key_out;
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
         EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type, &public_key_out));
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
-        s2n_config_set_wall_clock(connection->config, fetch_early_expired_after_ocsp_timestamp, NULL);
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, fetch_early_expired_after_ocsp_timestamp, NULL));
 
-        struct s2n_stuffer ocsp_data_stuffer = { 0 };
+        DEFER_CLEANUP(struct s2n_stuffer ocsp_data_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_EARLY_EXPIRE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
@@ -1099,12 +1094,7 @@ int main(int argc, char **argv)
                                         s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
                 S2N_ERR_CERT_EXPIRED);
 
-        s2n_config_set_wall_clock(connection->config, old_clock, NULL);
-        s2n_stuffer_free(&ocsp_data_stuffer);
-        s2n_connection_free(connection);
-        s2n_pkey_free(&public_key_out);
-        s2n_x509_validator_wipe(&validator);
-        s2n_x509_trust_store_wipe(&trust_store);
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, old_clock, NULL));
     }
 
     /* Test invalid OCSP date range (thisupdate is off) */
@@ -1440,8 +1430,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_array_len(times), s2n_array_len(expected_result));
 
         for (int i = 0; i < s2n_array_len(times); i++) {
-            /* print out test case for easier debugging from logs in CI */
-            fprintf(stdout, "\n Running Test Case  %i\n", i);
             DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
             s2n_x509_trust_store_init_empty(&trust_store);
             EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
