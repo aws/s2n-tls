@@ -397,7 +397,13 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 
 ## Config
 
-`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new_minimal()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
+`s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
+
+Creating configs with `s2n_config_new()` can have performance implications at config-creation time
+due to loading default system certificates into the trust store (see 
+[Configuring the Trust Store](#configuring-the-trust-store)). If these system certificates are not
+needed for certificate validation, configs can be created with `s2n_config_new_minimal()` instead, 
+for increased performance.
 
 Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
 
@@ -829,24 +835,18 @@ Authentication is usually the most expensive part of the handshake. To avoid the
 ### Configuring the Trust Store
 
 To validate the peer’s certificate, a config's local “trust store” must contain a certificate
-that can authenticate the peer’s certificate.
-
-Configs created with `s2n_config_new_minimal()` contain empty trust stores, and are not able to
-validate any certificates by default. To add certificates to the trust store, call
+that can authenticate the peer’s certificate. To add certificates to the trust store, call
 `s2n_config_set_verification_ca_location()` or `s2n_config_add_pem_to_trust_store()`.
 
 Operating systems typically install a set of default system certificates used by TLS clients to
-verify the authenticity of public TLS servers. If s2n-tls is operating as a client connecting to
-such a server, `s2n_config_load_system_certs()` can be used to load the system default certificates
-into the trust store. Alternatively, a config can be created with `s2n_config_new()`, which loads
-the system certificates into the trust store by default.
+verify the authenticity of public TLS servers. `s2n_config_new()` initializes the trust store with
+these system certificates by default. If s2n-tls is verifying certificates and is not a TLS client
+connecting to a public TLS server, the system certificates should be cleared with
+`s2n_config_wipe_trust_store()` before calling `s2n_config_set_verification_ca_location()` or
+`s2n_config_add_pem_to_trust_store()`.
 
-If s2n-tls is operating as a server, or is a client connecting to a non-public TLS server, the
-certificates issued to public TLS servers should not be trusted. In these scenarios, 
-`s2n_config_new_minimal()` should be used when creating configs to avoid loading system 
-certificates into the trust store and trusting public TLS certificates.
-
-To clear a config's trust store of all certificates, call `s2n_config_wipe_trust_store()`.
+Configs created with `s2n_config_new_minimal()` are initialized with empty trust stores. To add
+default system certificates to these configs, call `s2n_config_load_system_certs()`.
 
 ### Server Authentication
 

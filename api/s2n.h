@@ -244,9 +244,6 @@ S2N_API extern int s2n_cleanup(void);
  * Creates a new s2n_config object and initializes it with default system certificates. This object
  * can (and should) be associated with many connection objects.
  *
- * Use `s2n_config_new_minimal()` to create a new s2n_config object without loading system
- * certificates by default.
- *
  * The returned config should be freed with `s2n_config_free()` after it's no longer in use by any
  * connection.
  *
@@ -256,11 +253,11 @@ S2N_API extern int s2n_cleanup(void);
 S2N_API extern struct s2n_config *s2n_config_new(void);
 
 /**
- * Creates a new s2n_config object with minimal default options.
+ * Creates a new s2n_config object with minimal default options. This function has better
+ * performance than `s2n_config_new()` due to skipping expensive operations.
  *
- * This API is similar to `s2n_config_new()`, except that the returned config is created without
- * loading default system certificates into the trust store. To add system certificates to this
- * config, call `s2n_config_load_system_certs()`.
+ * This function does not load default system certificates into the trust store by default. To add
+ * system certificates to this config, call `s2n_config_load_system_certs()`.
  *
  * The returned config should be freed with `s2n_config_free()` after it's no longer in use by any
  * connection.
@@ -811,12 +808,12 @@ S2N_API extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config 
 /**
  * Adds to the trust store from a CA file or directory containing trusted certificates.
  *
- * If default system certificates should not be present in the trust store in addition to the
- * certificates specified by `ca_pem_filename` and `ca_dir`, `config` should be created with
- * `s2n_config_new_minimal()`, which will initialize the config with an empty trust store. To
- * override a trust store that contains existing certificates, call `s2n_config_wipe_trust_store()`
- * before calling this function.
+ * When configs are created with `s2n_config_new()`, the trust store is initialized with default
+ * system certificates. To completely override these certificates, call
+ * `s2n_config_wipe_trust_store()` before calling this function.
  *
+ * @note The trust store will be initialized with the common locations for the host
+ * operating system by default.
  * @param config The configuration object being updated
  * @param ca_pem_filename A string for the file path of the CA PEM file.
  * @param ca_dir A string for the directory of the CA PEM files.
@@ -825,12 +822,11 @@ S2N_API extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config 
 S2N_API extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 
 /**
- * Adds a PEM to the trust store. This will allocate memory and load a PEM into the trust store.
+ * Adds a PEM to the trust store. This will allocate memory, and load `pem` into the trust store.
  *
- * If default system certificates should not be present in the trust store in addition to the
- * certificates in `pem`, `config` should be created with `s2n_config_new_minimal()`, which will
- * initialize the config with an empty trust store. To override a trust store that contains
- * existing certificates, call `s2n_config_wipe_trust_store()` before calling this function.
+ * When configs are created with `s2n_config_new()`, the trust store is initialized with default
+ * system certificates. To completely override these certificates, call
+ * `s2n_config_wipe_trust_store()` before calling this function.
  *
  * @param config The configuration object being updated
  * @param pem The string value of the PEM certificate.
@@ -841,8 +837,12 @@ S2N_API extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, 
 /**
  * Clears the trust store of all certificates.
  *
- * @param config The configuration object being updated
+ * When configs are created with `s2n_config_new()`, the trust store is initialized with default
+ * system certificates. To completely override these certificates, call this function before
+ * functions like `s2n_config_set_verification_ca_location()` or
+ * `s2n_config_add_pem_to_trust_store()`.
  *
+ * @param config The configuration object being updated
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_config_wipe_trust_store(struct s2n_config *config);
