@@ -19,6 +19,11 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+typedef enum {
+    S2N_SHUTDOWN_RDWR,
+    S2N_SHUTDOWN_WR,
+} s2n_shutdown_how;
+
 static bool s2n_error_alert_received(struct s2n_connection *conn)
 {
     /* We don't check s2n_connection_get_alert() or s2n_stuffer_data_available()
@@ -49,7 +54,8 @@ static bool s2n_error_alert_sent(struct s2n_connection *conn)
     return true;
 }
 
-int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
+int s2n_shutdown_impl(struct s2n_connection *conn, s2n_shutdown_how how,
+        s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
@@ -95,6 +101,11 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
         POSIX_GUARD(s2n_flush(conn, blocked));
     }
 
+    /* If we're only closing the write side, then we've succeeded. */
+    if (how == S2N_SHUTDOWN_WR) {
+        return S2N_SUCCESS;
+    }
+
     /*
      * The purpose of the peer responding to our close_notify
      * with its own close_notify is to prevent application data truncation.
@@ -128,5 +139,17 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
 
     *blocked = S2N_NOT_BLOCKED;
+    return S2N_SUCCESS;
+}
+
+int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_GUARD(s2n_shutdown_impl(conn, S2N_SHUTDOWN_WR, blocked));
+    return S2N_SUCCESS;
+}
+
+int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_GUARD(s2n_shutdown_impl(conn, S2N_SHUTDOWN_RDWR, blocked));
     return S2N_SUCCESS;
 }
