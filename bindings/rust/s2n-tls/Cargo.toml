@@ -25,3 +25,4 @@ pin-project-lite = "0.2"
 bytes = { version = "1" }
 futures-test = "0.3"
 openssl = { version = "0.10" }
+temp-env = { version = "0.3" }
