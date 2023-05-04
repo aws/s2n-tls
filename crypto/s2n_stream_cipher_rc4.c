@@ -21,20 +21,30 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static uint8_t s2n_stream_cipher_rc4_available()
+static const EVP_CIPHER *s2n_evp_rc4()
 {
 #ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
-    if (s2n_is_in_fips_mode()) {
-        return 0;
-    } else {
-        return (EVP_rc4() ? 1 : 0);
-    }
+    return EVP_rc4();
 #else
-    return 0;
-#endif /* S2N_LIBCRYPTO_SUPPORTS_EVP_RC4 */
+    return NULL;
+#endif
 }
 
-#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
+static uint8_t s2n_stream_cipher_rc4_available()
+{
+    if (s2n_is_in_fips_mode()) {
+        return 0;
+    }
+    /* RC4 MIGHT be available in Openssl-3.0, depending on whether or not the
+     * "legacy" provider is loaded. However, for simplicity, assume that RC4
+     * is unavailable.
+     */
+    if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
+        return 0;
+    }
+    return (s2n_evp_rc4() ? 1 : 0);
+}
+
 static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
 {
     POSIX_ENSURE_GTE(out->size, in->size);
@@ -64,7 +74,7 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
 static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     POSIX_ENSURE_EQ(in->size, 16);
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
     return 0;
 }
@@ -72,7 +82,7 @@ static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key,
 static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
     POSIX_ENSURE_EQ(in->size, 16);
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
     return 0;
 }
@@ -90,39 +100,6 @@ static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
 
     return 0;
 }
-#else
-
-static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-#endif /* S2N_LIBCRYPTO_SUPPORTS_EVP_RC4 */
 
 const struct s2n_cipher s2n_rc4 = {
     .type = S2N_STREAM,

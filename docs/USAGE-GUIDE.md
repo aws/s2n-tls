@@ -179,6 +179,12 @@ cd ../../ # root of project
 make
 ```
 
+### Available algorithms
+Not all algorithms are available from all versions of Openssl:
+* ChaChaPoly is not supported before Openssl-1.1.1
+* RSA-PSS is not supported before Openssl-1.1.1
+* RC4 is not supported after Openssl-3.
+
 ## Building s2n-tls with LibreSSL
 
 To build s2n-tls with LibreSSL, do the following:
