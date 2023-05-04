@@ -253,11 +253,11 @@ S2N_API extern int s2n_cleanup(void);
 S2N_API extern struct s2n_config *s2n_config_new(void);
 
 /**
- * Creates a new s2n_config object with minimal default options. This function has better
- * performance than `s2n_config_new()` due to skipping expensive operations.
+ * Creates a new s2n_config object with minimal default options.
  *
- * This function does not load default system certificates into the trust store by default. To add
- * system certificates to this config, call `s2n_config_load_system_certs()`.
+ * This function has better performance than `s2n_config_new()` because it does not load default
+ * system certificates into the trust store by default. To add system certificates to this config,
+ * call `s2n_config_load_system_certs()`.
  *
  * The returned config should be freed with `s2n_config_free()` after it's no longer in use by any
  * connection.
