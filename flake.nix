@@ -2,11 +2,14 @@
   description = "A flake for s2n-tls";
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+  # TODO: https://github.com/aws/aws-lc/pull/830
+  inputs.aws-lc.url = "github:dougch/aws-lc?ref=nix";
 
-  outputs = { self, nix, nixpkgs, flake-utils }:
+  outputs = { self, nix, nixpkgs, flake-utils, aws-lc }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        awslc = aws-lc.packages.${system};
         # TODO: We have parts of our CI that rely on clang-format-15, but that is only avalible on github:nixos/nixpkgs/nixos-unstable
         llvmPkgs = pkgs.llvmPackages_14;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
@@ -104,6 +107,14 @@
             pkgs.which
           ];
         };
+        devShells.awslc = devShells.default.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            # library builds with what is first in CMAKE path.
+            packages = [ pkgs.cmake awslc.aws-lc ] ++ tls_packages ++ common_packages;
+            S2N_LIBCRYPTO=awslc;
+          });
+
+
         packages.devShell = devShells.default.inputDerivation;
         packages.default = packages.s2n-tls;
         packages.s2n-tls-openssl3 = packages.s2n-tls.overrideAttrs
