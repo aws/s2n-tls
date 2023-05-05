@@ -250,6 +250,9 @@ int print_connection_info(struct s2n_connection *conn)
         printf("\n");
     }
 
+    printf("Wire Bytes In: %lu\n", s2n_connection_get_wire_bytes_in(conn));
+    printf("Wire Bytes Out: %lu\n", s2n_connection_get_wire_bytes_out(conn));
+
     return 0;
 }
 
