@@ -17,6 +17,4 @@
 
 #include "utils/s2n_result.h"
 
-S2N_RESULT s2n_libcrypto_init(void);
 S2N_RESULT s2n_libcrypto_validate_runtime(void);
-S2N_RESULT s2n_libcrypto_cleanup(void);
