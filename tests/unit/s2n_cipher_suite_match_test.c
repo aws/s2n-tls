@@ -41,6 +41,10 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    char dhparams_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+    EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem,
+            S2N_MAX_TEST_PEM_SIZE));
+
     /* Test client cipher selection */
     {
         /* Setup connections */
@@ -839,6 +843,31 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(conn, invalid_cipher_pref, invalid_cipher_count), S2N_ERR_CIPHER_NOT_SUPPORTED);
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        };
+
+        /* Client sends cipher that requires DH params */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+            /* The client only offers one cipher suite, which requires dh kex */
+            uint8_t wire[] = { TLS_DHE_RSA_WITH_AES_128_GCM_SHA256 };
+
+            /* By default, the server does not accept cipher suites with dh kex. */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_set_cipher_as_tls_server(server, wire, 1),
+                    S2N_ERR_CIPHER_NOT_SUPPORTED);
+
+            /* With dh params configured, the server accepts cipher suites with dh kex. */
+            EXPECT_SUCCESS(s2n_config_add_dhparams(config, dhparams_pem));
+            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(server, wire, 1));
+            EXPECT_EQUAL(server->secure->cipher_suite, &s2n_dhe_rsa_with_aes_128_gcm_sha256);
         };
 
         EXPECT_SUCCESS(s2n_config_free(server_config));
