@@ -163,16 +163,22 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        # Disable chacha20 tests in unsupported libcryptos
-        if any([
-            libcrypto in get_flag(S2N_PROVIDER_VERSION)
-            for libcrypto in [
-                "openssl-1.0.2",
-                "libressl"
-            ]
-        ]) and "CHACHA20" in cipher.name:
-            return False
+        # Disable chacha20 and RC4 tests in lc's that don't support those
+        # algorithms
+        unsupported_configurations = {
+            "CHACHA20": ["openssl-1.0.2", "libressl"],
+            "RC4"     : ["openssl-3"],
+        }
 
+        for unsupported_cipher, unsupported_libcryptos in unsupported_configurations.items():
+            # the queried cipher has some libcrypto's that don't support it
+            # e.g. "RC4" in "TLS_ECDHE_RSA_WITH_RC4_128_SHA"
+            if unsupported_cipher in cipher.name:
+                current_libcrypto = get_flag(S2N_PROVIDER_VERSION)
+                for lc in unsupported_libcryptos:
+                    # e.g. "openssl-3" in "openssl-3.0.7"
+                    if lc in current_libcrypto:
+                        return False
         return True
 
     @classmethod
@@ -314,12 +320,12 @@ class S2N(Provider):
 class CriterionS2N(S2N):
     """
     Wrap the S2N provider in criterion-rust
-    The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary 
-    and moves the s2nc/d command line arguments into an environment variable.  The binary created by 
-    `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds 
-    and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables 
-    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning 
-    s2nc/d as subprocesses. 
+    The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary
+    and moves the s2nc/d command line arguments into an environment variable.  The binary created by
+    `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds
+    and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables
+    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning
+    s2nc/d as subprocesses.
     """
     criterion_off = 'off'
     criterion_delta = 'delta'
