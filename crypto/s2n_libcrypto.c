@@ -17,17 +17,13 @@
 
 #include <openssl/crypto.h>
 #include <openssl/opensslv.h>
+#include <string.h>
 
 #include "crypto/s2n_crypto.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_openssl.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
-#if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-    #include <openssl/provider.h>
-#endif
-
-#include <string.h>
 
 /* Note: OpenSSL 1.0.2 -> 1.1.0 implemented a new API to get the version number
  * and version name. We have to handle that by using old functions
@@ -148,40 +144,6 @@ bool s2n_libcrypto_is_libressl()
     return false;
 #endif
 }
-
-S2N_RESULT s2n_libcrypto_init(void)
-{
-#if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "default") != NULL, S2N_ERR_OSSL_PROVIDER);
-    #ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_RC4
-    /* needed to support RC4 algorithm
-     * https://www.openssl.org/docs/man3.0/man7/OSSL_PROVIDER-legacy.html
-     */
-    RESULT_ENSURE(OSSL_PROVIDER_load(NULL, "legacy") != NULL, S2N_ERR_OSSL_PROVIDER);
-    #endif
-#endif
-
-    return S2N_RESULT_OK;
-}
-
-#if S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)
-int s2n_libcrypto_cleanup_cb(OSSL_PROVIDER *provider, void *cbdata)
-{
-    return OSSL_PROVIDER_unload(provider);
-}
-
-S2N_RESULT s2n_libcrypto_cleanup(void)
-{
-    RESULT_GUARD_OSSL(OSSL_PROVIDER_do_all(NULL, *s2n_libcrypto_cleanup_cb, NULL), S2N_ERR_ATEXIT);
-
-    return S2N_RESULT_OK;
-}
-#else
-S2N_RESULT s2n_libcrypto_cleanup(void)
-{
-    return S2N_RESULT_OK;
-}
-#endif
 
 /* Performs various checks to validate that the libcrypto used at compile-time
  * is the same libcrypto being used at run-time.
