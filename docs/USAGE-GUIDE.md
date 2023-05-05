@@ -183,7 +183,7 @@ make
 Not all algorithms are available from all versions of Openssl:
 * ChaChaPoly is not supported before Openssl-1.1.1
 * RSA-PSS is not supported before Openssl-1.1.1
-* RC4 is not supported after Openssl-3.
+* RC4 is not supported with Openssl-3.0 or later.
 
 ## Building s2n-tls with LibreSSL
 
