@@ -61,7 +61,7 @@ fn main() {
     gen_bindings(
         "#include \"unstable/fingerprint.h\"",
         &out_dir.join("lib"),
-        functions.with_feature(Some("unstable-fingerprint")),
+        functions.with_feature(Some("fingerprint")),
     )
     .allowlist_type("s2n_fingerprint_type")
     .allowlist_function("s2n_client_hello_get_fingerprint.*")

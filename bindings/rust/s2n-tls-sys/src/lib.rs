@@ -20,6 +20,12 @@ mod internal;
 #[cfg(feature = "internal")]
 pub use internal::*;
 
+#[cfg(feature = "fingerprint")]
+mod fingerprint;
+
+#[cfg(feature = "fingerprint")]
+pub use fingerprint::*;
+
 // Additional defines that don't get imported with bindgen
 
 pub mod s2n_status_code {

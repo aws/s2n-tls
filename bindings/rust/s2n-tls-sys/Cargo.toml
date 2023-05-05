@@ -26,6 +26,7 @@ default = []
 pq = ["cmake"] # the pq build logic is complicated so just use cmake instead
 quic = []
 internal = []
+fingerprint = []
 
 [dependencies]
 libc = "0.2"
