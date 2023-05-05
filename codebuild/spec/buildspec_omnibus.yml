@@ -231,6 +231,13 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
 
+    - identifier: 32BitBuildAndUnit
+      buildspec: codebuild/spec/buildspec_32bit_cross_compile.yml
+      env:
+        privileged-mode: true
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
