@@ -7,13 +7,6 @@ from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from global_flags import S2N_USE_CRITERION
 from stat import S_IMODE
 
-
-TLS_13_LIBCRYPTOS = {
-    "awslc",
-    "openssl-1.1.1"
-}
-
-
 class Provider(object):
     """
     A provider defines a specific provider of TLS. This could be
@@ -152,13 +145,22 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        # Disable TLS 1.3 tests for all libcryptos that don't support 1.3
-        if all([
-            libcrypto not in get_flag(S2N_PROVIDER_VERSION)
-            for libcrypto in TLS_13_LIBCRYPTOS
-        ]) and protocol == Protocols.TLS13:
-            return False
+        # TLS 1.3 is unsupported for openssl-1.0
+        # libressl and boringssl are disabled because of configuration issues
+        # see https://github.com/aws/s2n-tls/issues/3250
+        TLS_13_UNSUPPORTED_LIBCRYPTOS = {
+            "libressl",
+            "boringssl",
+            "openssl-1.0"
+        }
 
+        # Disable TLS 1.3 tests for all libcryptos that don't support 1.3
+        if protocol == Protocols.TLS13:
+            current_libcrypto = get_flag(S2N_PROVIDER_VERSION)
+            for unsupported_lc in TLS_13_UNSUPPORTED_LIBCRYPTOS:
+                # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
+                if unsupported_lc in current_libcrypto:
+                    return False
         return True
 
     @classmethod
@@ -314,12 +316,12 @@ class S2N(Provider):
 class CriterionS2N(S2N):
     """
     Wrap the S2N provider in criterion-rust
-    The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary 
-    and moves the s2nc/d command line arguments into an environment variable.  The binary created by 
-    `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds 
-    and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables 
-    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning 
-    s2nc/d as subprocesses. 
+    The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary
+    and moves the s2nc/d command line arguments into an environment variable.  The binary created by
+    `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds
+    and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables
+    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning
+    s2nc/d as subprocesses.
     """
     criterion_off = 'off'
     criterion_delta = 'delta'
