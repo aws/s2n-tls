@@ -466,7 +466,7 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
 
     s2n_per_thread_rand_state.drbgs_initialized = false;
 
-    RESULT_ENSURE(pthread_setspecific(s2n_per_thread_rand_state_key, NULL), S2N_ERR_DRBG);
+    RESULT_ENSURE(pthread_setspecific(s2n_per_thread_rand_state_key, NULL) == 0, S2N_ERR_DRBG);
 
     return S2N_RESULT_OK;
 }
