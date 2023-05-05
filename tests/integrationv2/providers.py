@@ -7,6 +7,7 @@ from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from global_flags import S2N_USE_CRITERION
 from stat import S_IMODE
 
+
 class Provider(object):
     """
     A provider defines a specific provider of TLS. This could be
