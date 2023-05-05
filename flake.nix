@@ -11,6 +11,7 @@
         llvmPkgs = pkgs.llvmPackages_14;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
+        openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         gnutls-3-7 = import nix/gnutls.nix { pkgs = pkgs; };
         tls_packages = [
@@ -30,7 +31,6 @@
           llvmPkgs.llvm-manpages
           llvmPkgs.libclang
           llvmPkgs.clang-manpages
-          pkgs.cmake
 
           # Linters/Formatters
           pkgs.shellcheck
@@ -85,9 +85,11 @@
           #  - run integ tests
           #  - do common development operations (e.g. lint, debug, and manage repos)
           inherit system;
-          packages = tls_packages ++ common_packages;
-          # This env var can be over-ridden instead of recreating the shellHook.
+          buildInputs = [ pkgs.cmake ] ++ tls_packages;
+          packages = common_packages;
           S2N_LIBCRYPTO = "openssl-1.1.1";
+          # Integ s_client/server tests expect openssl 1.1.1.
+          # GnuTLS-cli and serv utilities needed for some integration tests.
           shellHook = ''
             export S2N_LIBCRYPTO=openssl-1.1.1
             echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
@@ -96,6 +98,19 @@
             source ${writeScript ./nix/shell.sh}
           '';
         };
+
+        devShells.openssl3 = devShells.default.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            # Re-include cmake to update the environment with a new libcrypto.
+            buildInputs = [ pkgs.cmake openssl_3_0 ];
+            S2N_LIBCRYPTO = "openssl-3.0";
+            shellHook = ''
+              echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
+              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+              source ${writeScript ./nix/shell.sh}
+            '';
+          });
 
         # Used to backup the devShell to s3 for caching.
         packages.devShell = devShells.default.inputDerivation;

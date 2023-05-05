@@ -10,6 +10,11 @@ banner()
 }
 
 
+function clean {
+    banner "Cleanup up ./build"
+    rm -rf ./build
+}
+
 function configure {
     banner "Configuring with cmake"
     cmake -S . -B./build \
@@ -103,3 +108,15 @@ function do-clang-format {
     src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i)
 }
+
+function test_libcrypto_counts {
+    # This is a starting point for a unit test of the devShell.
+    # The choosen S2N_LIBCRYPTO should be 2, and the others should be zero.
+    banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
+    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o1=0; o3=0;awslc=0}
+      /openssl-3.0/{o3++}
+      /openssl-1.1/{o1++}
+      /aws-lc/{awslc++}
+      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o1,"\nAwlc:\t\t",awslc}'
+}
+
