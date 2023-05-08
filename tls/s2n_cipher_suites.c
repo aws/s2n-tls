@@ -1331,9 +1331,9 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
              * being NULL indicates that no curve was agreed upon during key exchange,and the communication is not secured
              * using elliptic curve cryptography. ecdhe ciphersuite requires an elliptic curve to generate keys and hence cannot
              * be selected when supported_groups extension is not sent. */
-            if(conn->kex_params.server_ecc_evp_params.negotiated_curve == NULL){
-                if(s2n_kex_includes(match->key_exchange_alg, &s2n_ecdhe)){
-                    continue ;
+            if (conn->kex_params.server_ecc_evp_params.negotiated_curve == NULL) {
+                if (s2n_kex_includes(match->key_exchange_alg, &s2n_ecdhe)) {
+                    continue;
                 }
             }
 

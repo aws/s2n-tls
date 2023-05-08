@@ -1179,7 +1179,7 @@ int main(int argc, char **argv)
 
                 /*
                  * Client did not signal chacha20 boosting.
-                 * TLS_AES_256_GCM_SHA384 > TLS_CHACHA20_POLY1305_SHA256
+                 * TLS_AES_256_GCM_SHA384 > TLS_CHACHA20_POLY1305_SHA256_su
                  */
                 uint8_t test_wire_2[] = {
                     /* Client did not signal chacha20 boosting. Negotiated if chacha20 boosting is off. */
@@ -1417,13 +1417,13 @@ int main(int argc, char **argv)
 
     /* Test s2n server should not select ecdhe ciphersuite if supported_groups extension is not sent by the client.*/
     {
-            uint8_t wire_ciphers_ecdhe_rsa_fallback[] = {
-                TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-                TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-                TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-                TLS_RSA_WITH_AES_256_GCM_SHA384,
-                TLS_RSA_WITH_AES_128_CBC_SHA
-            };
+        uint8_t wire_ciphers_ecdhe_rsa_fallback[] = {
+            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
+            TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
+            TLS_RSA_WITH_AES_256_GCM_SHA384,
+            TLS_RSA_WITH_AES_128_CBC_SHA
+        };
 
         const uint8_t cipher_count_ecdhe_rsa_fallback = sizeof(wire_ciphers_ecdhe_rsa_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
 
@@ -1449,7 +1449,6 @@ int main(int argc, char **argv)
          * no curve was agreed upon during key exchange, and the communication is not secured using elliptic curve cryptography. ecdhe ciphersuite
          * requires an elliptic curve to generate keys and hence cannot be selected when supported_groups extension is not sent. */
         {
-
             /* The client offers the default_tls13 ciphersuites */
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
             /* No shared curve between client and server */
@@ -1463,7 +1462,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
-
         }
 
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert));
