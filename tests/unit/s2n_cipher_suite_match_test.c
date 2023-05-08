@@ -327,7 +327,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
         EXPECT_NOT_NULL(ecc_pref);
 
-
         /* Assume default for negotiated curve. */
         /* Shouldn't be necessary unless the test fails, but we want the failure to be obvious. */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
@@ -872,7 +871,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server->secure->cipher_suite, &s2n_dhe_rsa_with_aes_128_gcm_sha256);
         };
 
-
         EXPECT_SUCCESS(s2n_config_free(server_config));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
@@ -882,8 +880,6 @@ int main(int argc, char **argv)
         free(rsa_private_key_pem);
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
-
-
 
     /* Test chacha20 boosting behaviour */
     {
