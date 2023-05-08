@@ -14,6 +14,7 @@
  */
 
 #include <errno.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
@@ -250,8 +251,8 @@ int print_connection_info(struct s2n_connection *conn)
         printf("\n");
     }
 
-    printf("Wire Bytes In: %lu\n", s2n_connection_get_wire_bytes_in(conn));
-    printf("Wire Bytes Out: %lu\n", s2n_connection_get_wire_bytes_out(conn));
+    printf("Wire bytes in: %"PRIu64"\n", s2n_connection_get_wire_bytes_in(conn));
+    printf("Wire bytes out: %"PRIu64"\n", s2n_connection_get_wire_bytes_out(conn));
 
     return 0;
 }
