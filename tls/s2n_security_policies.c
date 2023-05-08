@@ -42,7 +42,7 @@ const struct s2n_security_policy security_policy_default_tls13 = {
  *
  * Supports TLS1.2
  */
-const struct s2n_security_policy  security_policy_default_fips = {
+const struct s2n_security_policy security_policy_default_fips = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_default_fips,
     .kem_preferences = &kem_preferences_null,
