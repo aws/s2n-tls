@@ -691,11 +691,19 @@ mod tests {
             builder.with_system_certs(false).unwrap();
 
             let config = builder.build().unwrap();
+            let mut config_with_system_certs = config.clone();
+
             let mut pair = tls_pair(config);
 
             // System certificates should not be loaded into the trust store. The handshake
-            // should fail since the cert should not be trusted.
+            // should fail since the certificate should not be trusted.
             assert!(poll_tls_pair_result(&mut pair).is_err());
+
+            // The handshake should succeed after trusting the certificate.
+            unsafe {
+                s2n_tls_sys::s2n_config_load_system_certs(config_with_system_certs.as_mut_ptr());
+            }
+            establish_connection(config_with_system_certs);
         });
     }
 }
