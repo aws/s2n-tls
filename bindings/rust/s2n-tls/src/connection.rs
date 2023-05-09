@@ -8,7 +8,7 @@ use crate::{
     config::Config,
     enums::*,
     error::{Error, Fallible, Pollable},
-    security,
+    security, client_hello::ClientHello,
 };
 use core::{
     convert::TryInto,
@@ -675,6 +675,13 @@ impl Connection {
         }
 
         unsafe { Ok(Some(std::slice::from_raw_parts(chain, len as usize))) }
+    }
+
+    pub fn client_hello(&mut self) -> Result<&mut ClientHello, Error> {
+        let mut handle = unsafe {
+            s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()?
+        };
+        Ok(ClientHello::from_ptr(unsafe {handle.as_mut()}))
     }
 
     pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {

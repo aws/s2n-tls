@@ -700,6 +700,9 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/chrome-grease-single.pcap
          */
         {
+            /* this client hello is 512 bytes long, but only explicitly specifies
+             * 302 of them. The remaining bytes are implicitly zero.
+             */
             uint8_t raw_client_hello[512] = {
                 0x01, 0x00, 0x01, 0xFC,
                 0x03, 0x03, 0x86, 0xad, 0xa4, 0xcc, 0x19, 0xe7, 0x14, 0x54, 0x54,
@@ -762,6 +765,9 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/curl-ipv6.pcap
          */
         {
+            /* this client hello is 512 bytes long, but only explicitly specifies
+             * 302 of them. The remaining bytes are implicitly zero.
+             */
             uint8_t raw_client_hello[512] = {
                 0x01, 0x00, 0x01, 0xFC,
                 0x03, 0x03, 0x40, 0xc7, 0x8a, 0xef, 0x5c, 0x7f, 0xed, 0x98, 0x4a,
@@ -881,6 +887,9 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/ncat-port-4450.pcap
          */
         {
+            /* this client hello is 512 bytes long, but only explicitly specifies
+             * 404 of them. The remaining bytes are implicitly zero.
+             */
             uint8_t raw_client_hello[512] = {
                 0x01, 0x00, 0x01, 0xFC,
                 0x03, 0x03, 0xf4, 0x0f, 0xfd, 0xee, 0xc7, 0x27, 0xc2, 0x1e, 0x32,
