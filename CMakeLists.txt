@@ -658,8 +658,6 @@ if (BUILD_TESTING)
         # these tests have 2038 time_t issues
         set(CTEST_CUSTOM_TESTS_IGNORE
             s2n_cert_status_extension_test
-            s2n_self_talk_nonblocking_test
-            s2n_session_ticket_test
             s2n_x509_validator_test
         )
         message(STATUS "Detected 32-Bit system - disabling the following tests - ${CTEST_CUSTOM_TESTS_IGNORE}")
