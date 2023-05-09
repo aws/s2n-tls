@@ -1332,17 +1332,6 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 continue;
             }
 
-            /* The s2n server should not select ecdhe ciphersuite if supported_groups is not sent by client.
-             * The supported_groups extension indicates the elliptic curves supported by client.The negotiated_curve
-             * being NULL indicates that no curve was agreed upon during key exchange,and the communication is not secured
-             * using elliptic curve cryptography. ecdhe ciphersuite requires an elliptic curve to generate keys and hence cannot
-             * be selected when supported_groups extension is not sent. */
-            if (conn->kex_params.server_ecc_evp_params.negotiated_curve == NULL) {
-                if (s2n_kex_includes(match->key_exchange_alg, &s2n_ecdhe)) {
-                    continue;
-                }
-            }
-
             conn->secure->cipher_suite = match;
             return S2N_SUCCESS;
         }

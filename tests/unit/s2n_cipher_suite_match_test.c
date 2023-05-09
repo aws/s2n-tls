@@ -1179,7 +1179,7 @@ int main(int argc, char **argv)
 
                 /*
                  * Client did not signal chacha20 boosting.
-                 * TLS_AES_256_GCM_SHA384 > TLS_CHACHA20_POLY1305_SHA256_su
+                 * TLS_AES_256_GCM_SHA384 > TLS_CHACHA20_POLY1305_SHA256
                  */
                 uint8_t test_wire_2[] = {
                     /* Client did not signal chacha20 boosting. Negotiated if chacha20 boosting is off. */
@@ -1414,61 +1414,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert));
     };
-
-    /* Test s2n server should not select ecdhe ciphersuite if supported_groups extension is not sent by the client.*/
-    {
-        uint8_t wire_ciphers_ecdhe_rsa_fallback[] = {
-            TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256,
-            TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384,
-            TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384,
-            TLS_RSA_WITH_AES_256_GCM_SHA384,
-            TLS_RSA_WITH_AES_128_CBC_SHA
-        };
-
-        const uint8_t cipher_count_ecdhe_rsa_fallback = sizeof(wire_ciphers_ecdhe_rsa_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
-
-        /* Initialize config and certs needed for this test */
-        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
-        char *rsa_cert_chain_pem, *rsa_private_key_pem;
-        struct s2n_cert_chain_and_key *rsa_cert;
-        EXPECT_NOT_NULL(rsa_cert = s2n_cert_chain_and_key_new());
-
-        /* Allocate all PEMs we need for this test. */
-        EXPECT_NOT_NULL(rsa_cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(rsa_private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, rsa_cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, rsa_private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(rsa_cert, rsa_cert_chain_pem, rsa_private_key_pem));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
-
-        struct s2n_connection *conn = NULL;
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-
-        /* The supported_groups extension indicates the elliptic curves supported by client. The negotiated_curve being NULL indicates that
-         * no curve was agreed upon during key exchange, and the communication is not secured using elliptic curve cryptography. ecdhe ciphersuite
-         * requires an elliptic curve to generate keys and hence cannot be selected when supported_groups extension is not sent. */
-        {
-            /* The client offers the default_tls13 ciphersuites */
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
-            /* No shared curve between client and server */
-            conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
-            conn->actual_protocol_version = conn->server_protocol_version;
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-            EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers_ecdhe_rsa_fallback, cipher_count_ecdhe_rsa_fallback));
-            EXPECT_EQUAL(conn->secure_renegotiation, 0);
-            /* Ensure rsa ciphersuite is chosen*/
-            const struct s2n_cipher_suite *expected_wire_choice = &s2n_rsa_with_aes_128_cbc_sha;
-            EXPECT_EQUAL(conn->secure->cipher_suite, expected_wire_choice);
-
-            EXPECT_SUCCESS(s2n_connection_wipe(conn));
-        }
-
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert));
-        free(rsa_cert_chain_pem);
-        free(rsa_private_key_pem);
-        EXPECT_SUCCESS(s2n_connection_free(conn));
-    }
 
     END_TEST();
 }

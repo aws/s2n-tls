@@ -460,7 +460,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     };
 
-    /* Test that curve selection will be NIST P-256 when tls12 client does not sending curve extension. */
+    /* Test that curve selection will be NIST P-256 when tls12 client does not sending curve extension.
+     * When the supported_groups extension is not sent by the client, the server can choose any curve.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc4492#section-4
+     *= type=test
+     */
     {
         S2N_BLOB_FROM_HEX(tls12_client_hello_no_curves,
                 /* clang-format off */

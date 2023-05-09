@@ -452,6 +452,11 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
     POSIX_ENSURE_GT(ecc_pref->count, 0);
+    /* When a curve is not negotiated between client and server, the server is free to choose any elliptic curves.
+     * Since we are setting the default curve to be p256, ecdhe ciphersuites can also be negotiated.
+     *
+     * https://www.rfc-editor.org/rfc/rfc4492#section-4
+     */
     if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
         conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
     } else {
