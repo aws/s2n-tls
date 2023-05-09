@@ -26,7 +26,6 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
-#include "utils/s2n_bitmap.h"
 #include "utils/s2n_safety.h"
 
 /*************************
