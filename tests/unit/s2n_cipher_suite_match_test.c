@@ -22,7 +22,6 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
-#include "utils/s2n_bitmap.h"
 
 static s2n_result s2n_conn_set_chosen_psk(struct s2n_connection *conn)
 {
