@@ -143,13 +143,15 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_NO_DASHES_CERT_CHAIN       "../pems/rsa_2048_no_dashes_cert.pem"
 
 /* OCSP Stapled Response Testing files */
-#define S2N_OCSP_SERVER_CERT       "../pems/ocsp/server_cert.pem"
-#define S2N_OCSP_SERVER_ECDSA_CERT "../pems/ocsp/server_ecdsa_cert.pem"
+#define S2N_OCSP_SERVER_CERT              "../pems/ocsp/server_cert.pem"
+#define S2N_OCSP_SERVER_CERT_EARLY_EXPIRE "../pems/ocsp/server_cert_early_expire.pem"
+#define S2N_OCSP_SERVER_ECDSA_CERT        "../pems/ocsp/server_ecdsa_cert.pem"
 
 #define S2N_OCSP_SERVER_KEY                  "../pems/ocsp/server_key.pem"
 #define S2N_OCSP_CA_CERT                     "../pems/ocsp/ca_cert.pem"
 #define S2N_OCSP_CA_KEY                      "../pems/ocsp/ca_key.pem"
 #define S2N_OCSP_RESPONSE_DER                "../pems/ocsp/ocsp_response.der"
+#define S2N_OCSP_RESPONSE_EARLY_EXPIRE_DER   "../pems/ocsp/ocsp_response_early_expire.der"
 #define S2N_OCSP_RESPONSE_NO_NEXT_UPDATE_DER "../pems/ocsp/ocsp_response_no_next_update.der"
 #define S2N_OCSP_RESPONSE_REVOKED_DER        "../pems/ocsp/ocsp_response_revoked.der"
 #define S2N_OCSP_RESPONSE_WRONG_SIGNER_DER   "../pems/ocsp/ocsp_response_wrong_signer.der"
