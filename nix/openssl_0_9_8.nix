@@ -1,3 +1,5 @@
+# Present as a historical record.
+# Only needed if https://github.com/aws/s2n-tls/issues/3810 is resolved.
 { pkgs }:
 pkgs.stdenv.mkDerivation rec {
   pname = "openssl";

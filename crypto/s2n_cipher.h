@@ -107,3 +107,6 @@ extern const struct s2n_cipher s2n_chacha20_poly1305;
 
 extern const struct s2n_cipher s2n_tls13_aes128_gcm;
 extern const struct s2n_cipher s2n_tls13_aes256_gcm;
+
+S2N_RESULT s2n_rc4_init();
+S2N_RESULT s2n_rc4_cleanup();
