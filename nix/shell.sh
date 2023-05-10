@@ -4,9 +4,9 @@ export PATH=$SRC_ROOT/build/bin:$PATH
 
 banner()
 {
-    echo "+------------------------------------------+"
-    printf "| %-40s |\n" "$1"
-    echo "+------------------------------------------+"
+    echo "+---------------------------------------------------------+"
+    printf "| %-55s |\n" "$1"
+    echo "+---------------------------------------------------------+"
 }
 
 
@@ -109,7 +109,7 @@ function do-clang-format {
     echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i)
 }
 
-function test_libcrypto_counts {
+function test_toolchain_counts {
     # This is a starting point for a unit test of the devShell.
     # The choosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
@@ -118,5 +118,14 @@ function test_libcrypto_counts {
       /openssl-1.1/{o1++}
       /aws-lc/{awslc++}
       END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o1,"\nAwlc:\t\t",awslc}'
+    banner "Checking tooling counts (these should all be 1)"
+    echo -e "\nOpenssl integ:\t $(openssl version|grep -c '1.1.1')"
+    echo -e "Corretto:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto')"
+    echo -e "gnutls-cli:\t $(gnutls-cli --version |grep -c 'gnutls-cli 3.7.3')"
+    echo -e "gnutls-serv:\t $(gnutls-serv --version |grep -c 'gnutls-serv 3.7.3')"
+    echo -e "Nix Python:\t $(which python|grep -c '/nix/store')"
+    echo -e "Nix pytest:\t $(which pytest|grep -c '/nix/store')"
+    echo -e "Nix sslyze:\t $(which sslyze|grep -c '/nix/store')"
+    echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
 }
 
