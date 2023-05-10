@@ -10,13 +10,12 @@ to understand what version was negotiated.
 For backwards compatibility reasons, the version field in the TLS record header
 is set to "TLS1.0" when sending the ClientHello message, and for later messages
 is still never set higher than "TLS1.2".
-The ClientHello message itself contains another version field, which is also never set
-higher than "TLS1.2".
+The ClientHello message has its own version field, which will also never be set
+higher than "TLS1.2" for similar reasons.
 If the client does support TLS1.3, it will include that information in the ClientHello
-"supported_versions" extension instead of any of the legacy version fields.
+"supported_versions" extension instead of setting any of the legacy version fields.
 
-s2n-tls offers [methods](USAGE-GUIDE/#protocol-version) to retrieve the correct
-protocol versions without worrying about which version fields are still meaningful.
+s2n-tls offers [methods](USAGE-GUIDE/#protocol-version) to retrieve accurate protocol versions.
 
 ### Why isn't my connection using TLS1.3?
 There are several possible reasons:
