@@ -1,0 +1,29 @@
+[req]
+distinguished_name = server_distinguished_name
+prompt = no
+
+# extensions csr request
+x509_extensions = v3_req
+
+# extensions included in the generated certificate
+req_extensions = req_ext
+
+[server_distinguished_name]
+countryName = US
+stateOrProvinceName = WA
+organizationName = s2n
+commonName = s2n Test Cert
+
+[v3_req]
+subjectAltName = @alt_names
+
+[req_ext]
+subjectAltName = @alt_names
+basicConstraints=CA:FALSE
+subjectKeyIdentifier=hash
+keyUsage=digitalSignature,keyEncipherment
+extendedKeyUsage=serverAuth
+authorityInfoAccess = OCSP;URI:http://ocsp.s2ntest.com
+
+[alt_names]
+DNS = localhost
