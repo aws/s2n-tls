@@ -103,6 +103,14 @@ static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_le
     return 0;
 }
 
+/* some tests try to mock the system time to a date post 2038. If this test is
+ * run on a platform where time_t is 32 bits, the time_t will overflow, so we
+ * only run these tests on platforms with a 64 bit time_t.
+ */
+static bool large_time_t() {
+    return sizeof(time_t) == 8;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -429,11 +437,13 @@ int main(int argc, char **argv)
         s2n_x509_trust_store_wipe(&trust_store);
     };
 
-    /* test expired certificate fails as untrusted. The test fails on platforms
-     * where time_t is 4 bytes because attempting to mock the system time to a
-     * post-2038 date overflows the time_t.
+    /* test post-2038 certificate expiration.
+     *
+     * The expired certificate should fail as untrusted. This test fails on
+     * platforms where time_t is 4 bytes because representing dates past 2038 as
+     * unix seconds overflows the time_t.
      */
-    if (sizeof(time_t) != 4) {
+    if (large_time_t()) {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -476,7 +486,11 @@ int main(int argc, char **argv)
         s2n_x509_trust_store_wipe(&trust_store);
     };
 
-    /* test expired certificate fails as untrusted. This test uses pre-2038 dates */
+    /* test pre-2038 certificate expiration
+     *
+     * After the expiration date, the certificate should fail as untrusted. This
+     * test uses pre-2038 dates for 32 bit time_t concerns
+     */
     {
         DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
         s2n_x509_trust_store_init_empty(&trust_store);
@@ -1002,12 +1016,11 @@ int main(int argc, char **argv)
 
     /**
      * Test invalid OCSP date range post-2038
-     * This test sets the clock time to be after the expiration date of the cert
-     * and after the "Next Update" field of the OCSP response. Since this clock
-     * time is then after 2038, this test fails on platforms where time_t is 32
-     * bits.
+     *
+     * After the "Next Update" time in the OCSP response, the certificate should
+     * fail as expired.
      */
-    if (sizeof(time_t) != 4) {
+    if (large_time_t()) {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
@@ -1054,6 +1067,7 @@ int main(int argc, char **argv)
 
     /**
      * Test invalid OCSP date range pre-2038
+     *
      * This test sets the clock time to be after the expiration date of the cert
      * and after the "Next Update" field of the OCSP response.
      */
@@ -1374,6 +1388,7 @@ int main(int argc, char **argv)
 
     /**
      * Test OCSP validation at various offsets from update times.
+     *
      * libcrypto ASN1 comparison calculates differences in terms of days and seconds,
      * so try mocking the system time to a collection of more than day & less
      * than day differences.
