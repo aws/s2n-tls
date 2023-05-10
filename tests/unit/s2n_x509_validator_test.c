@@ -107,7 +107,7 @@ static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_le
  * run on a platform where time_t is 32 bits, the time_t will overflow, so we
  * only run these tests on platforms with a 64 bit time_t.
  */
-static bool large_time_t()
+static bool s2n_supports_large_time_t()
 {
     return sizeof(time_t) == 8;
 }
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
      * platforms where time_t is 4 bytes because representing dates past 2038 as
      * unix seconds overflows the time_t.
      */
-    if (large_time_t()) {
+    if (s2n_supports_large_time_t()) {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -1021,7 +1021,7 @@ int main(int argc, char **argv)
      * After the "Next Update" time in the OCSP response, the certificate should
      * fail as expired.
      */
-    if (large_time_t()) {
+    if (s2n_supports_large_time_t()) {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
@@ -1421,31 +1421,45 @@ int main(int argc, char **argv)
         uint64_t one_hour_nanoseconds = (uint64_t) 60 * 60 * ONE_SEC_IN_NANOS;
         uint64_t one_day_nanoseconds = 24 * one_hour_nanoseconds;
 
-        uint64_t times[] = {
-            this_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
-            this_update_timestamp_nanoseconds - one_hour_nanoseconds,
-            this_update_timestamp_nanoseconds + one_hour_nanoseconds,
-            this_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds),
-            next_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
-            next_update_timestamp_nanoseconds - one_hour_nanoseconds,
-            next_update_timestamp_nanoseconds + one_hour_nanoseconds,
-            next_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds)
+        struct {
+            uint64_t time;
+            int result;
+        } test_cases[] = {
+            {
+                    .time = this_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
+                    .result = S2N_ERR_CERT_INVALID,
+            },
+            {
+                    .time = this_update_timestamp_nanoseconds - one_hour_nanoseconds,
+                    .result = S2N_ERR_CERT_INVALID,
+            },
+            {
+                    .time = this_update_timestamp_nanoseconds + one_hour_nanoseconds,
+                    .result = S2N_ERR_OK,
+            },
+            {
+                    .time = this_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds),
+                    .result = S2N_ERR_OK,
+            },
+            {
+                    .time = next_update_timestamp_nanoseconds - (one_day_nanoseconds + one_hour_nanoseconds),
+                    .result = S2N_ERR_OK,
+            },
+            {
+                    .time = next_update_timestamp_nanoseconds - one_hour_nanoseconds,
+                    .result = S2N_ERR_OK,
+            },
+            {
+                    .time = next_update_timestamp_nanoseconds + one_hour_nanoseconds,
+                    .result = S2N_ERR_CERT_EXPIRED,
+            },
+            {
+                    .time = next_update_timestamp_nanoseconds + (one_day_nanoseconds + one_hour_nanoseconds),
+                    .result = S2N_ERR_CERT_EXPIRED,
+            }
         };
 
-        int expected_result[] = {
-            S2N_ERR_CERT_INVALID,
-            S2N_ERR_CERT_INVALID,
-            S2N_ERR_OK,
-            S2N_ERR_OK,
-            S2N_ERR_OK,
-            S2N_ERR_OK,
-            S2N_ERR_CERT_EXPIRED,
-            S2N_ERR_CERT_EXPIRED,
-        };
-
-        EXPECT_EQUAL(s2n_array_len(times), s2n_array_len(expected_result));
-
-        for (int i = 0; i < s2n_array_len(times); i++) {
+        for (int i = 0; i < s2n_array_len(test_cases); i++) {
             DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
             s2n_x509_trust_store_init_empty(&trust_store);
             EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
@@ -1475,7 +1489,7 @@ int main(int argc, char **argv)
              * with the default system clock, and not the "mock_time" clock.
              */
             s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
-            uint64_t timestamp_nanoseconds = times[i];
+            uint64_t timestamp_nanoseconds = test_cases[i].time;
             EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, mock_time, &timestamp_nanoseconds));
 
             DEFER_CLEANUP(struct s2n_stuffer ocsp_data_stuffer = { 0 }, s2n_stuffer_free);
@@ -1483,10 +1497,10 @@ int main(int argc, char **argv)
             uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
             EXPECT_TRUE(ocsp_data_len > 0);
 
-            if (expected_result[i] != S2N_ERR_OK) {
+            if (test_cases[i].result != S2N_ERR_OK) {
                 EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
                                                 s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
-                        expected_result[i]);
+                        test_cases[i].result);
             } else {
                 EXPECT_OK(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
                         s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len));
