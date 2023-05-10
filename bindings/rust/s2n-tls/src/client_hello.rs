@@ -1,30 +1,52 @@
 use std::ops::Deref;
 use std::ops::DerefMut;
-use std::ptr::NonNull;
-use std::sync::atomic::AtomicU32;
-use std::sync::atomic::Ordering;
 
 use s2n_tls_sys::s2n_client_hello;
 use s2n_tls_sys::s2n_client_hello_parse_message;
 
 use crate::error::Fallible;
 
-pub enum ClientHelloHashTypes {
+#[derive(Copy, Clone)]
+pub enum FingerprintType {
     JA3,
 }
 
 // this is the size of the MD5 hash digest that is used for the JA3 fingerprint
 const MD5_HASH_SIZE: u32 = 16;
 
-impl From<ClientHelloHashTypes> for s2n_tls_sys::s2n_fingerprint_type::Type {
-    fn from(value: ClientHelloHashTypes) -> Self {
+impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
+    fn from(value: FingerprintType) -> Self {
         match value {
-            ClientHelloHashTypes::JA3 => s2n_tls_sys::s2n_fingerprint_type::FINGERPRINT_JA3,
+            FingerprintType::JA3 => s2n_tls_sys::s2n_fingerprint_type::FINGERPRINT_JA3,
         }
     }
 }
 
+/// ClientHello is an opaque wrapper struct around `s2n_client_hello`. Note that
+/// the size of this type is not known, and as such it can only be used through
+/// references and pointers.
+///
+/// This implementation is motivated by the different memory_management required
+/// for different s2n_client_hello pointers. `s2n_client_hello_parse_message`
+/// returns a *mut s2n_client_hello which owns it's own data. This neatly fits
+///  the "smart pointer" pattern and can be represented as a Box<T>.
+///
+/// `s2n_connection_get_client_hello` returns a *mut s2n_client_hello which
+/// references memory owned by the connection, and therefore must not outlive
+/// the connection struct. This is best represented as a reference tied to the
+/// lifetime of the connection struct.
+
 pub struct ClientHello(s2n_client_hello);
+
+// safety justifications
+// 1 - casting *s2n_client_hello <-> *ClientHello: a struct with only one field
+// has the same layout as that field
+// https://rust-lang.github.io/unsafe-code-guidelines/layout/structs-and-tuples.html#single-field-structs
+// 2 - casting *const s2n_client_hello -> *mut s2n_client_hello: This is safe as
+// long as the data is not actually mutated. As authors of s2n-tls, we know that
+// the get_hash and get_fingerprint methods do not mutate the data, and use mut
+// pointers as a matter of convention because it makes working with s2n_stuffers
+// and s2n_blobs easier.
 
 impl Deref for ClientHello {
     type Target = s2n_client_hello;
@@ -39,70 +61,67 @@ impl DerefMut for ClientHello {
     }
 }
 
-// I think that I need to impl AsRef
-
 impl ClientHello {
     // This is the initial "guess" at the fingerprint size. If someone only wants to calculate
     // the actual fingerprint, we don't want to have to generate the JA3 fingerprint twice, so
-    // we make an educated guess at a size that will work for most values. This value was choosen
+    // we make an educated guess at a size that will work for most values. This value was chosen
     // by looking through the "known test cases" in s2n_fingerprint_jajajajajaj3333 whatever and
     // picking a power of two that supported all of those cases.
     const INITIAL_FINGERPRINT_CAPACITY: u32 = 256;
 
-    // s2n_client_hello_parse_message will allocate memory for the s2n_client_hello which must
-    // be freed by the application. By converting the raw pointer into a Box (owned) pointer,
-    // we ensure that the drop function - which calls s2n_client_hello_free - will automatically]
-    // be called when the value goes out of scope.
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
         let handle = unsafe {
             s2n_client_hello_parse_message(hello.as_ptr(), hello.len() as u32).into_result()?
         };
-
-        unsafe { Ok(Box::from_raw(handle.as_ptr() as *mut ClientHello)) }
+        let client_hello = handle.as_ptr() as *mut ClientHello;
+        // safety: s2n_client_hello_parse_message returns a pointer that "owns"
+        // it's memory. This memory must be cleaned up by the application. The
+        // Box<Self> will call Self::Drop when it goes out of scope so memory
+        // will be automatically managed.
+        unsafe { Ok(Box::from_raw(client_hello)) }
     }
 
-    // this accept a mut ref instead of a pointer, so that lifetimes are nicely
-    // calculated for us. I think that I should make this function unsafe
-    pub fn from_ptr(hello: &mut s2n_client_hello) -> &mut Self {
-        unsafe { &mut *(hello as *mut s2n_client_hello as *mut ClientHello) }
+    // this accepts a mut ref instead of a pointer, so that lifetimes are nicely
+    // calculated for us. As is always the case, the reference must not be null
+    pub fn from_ptr(hello: &s2n_client_hello) -> &Self {
+        // safety: see safety justifications [1]
+        unsafe { &*(hello as *const s2n_client_hello as *const ClientHello) }
     }
 
-    pub fn get_hash(&mut self, hash: ClientHelloHashTypes) -> Vec<u8> {
-        let mut hash: Vec<u8> = Vec::with_capacity(MD5_HASH_SIZE as usize);
-        unsafe {
-            hash.set_len(MD5_HASH_SIZE as usize);
-        }
-        let handle: *mut s2n_client_hello = self.deref_mut();
+    pub fn get_hash(&self, hash: FingerprintType) -> Vec<u8> {
+        let mut hash_result = vec![0; MD5_HASH_SIZE as usize];
+        // safety justifications [2]
+        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
         let mut hash_size: u32 = 0;
         let mut str_size: u32 = 0;
         unsafe {
             s2n_tls_sys::s2n_client_hello_get_fingerprint_hash(
                 handle,
-                ClientHelloHashTypes::JA3.into(),
+                hash.into(),
                 MD5_HASH_SIZE,
-                hash.as_mut_ptr(),
+                hash_result.as_mut_ptr(),
                 &mut hash_size,
                 &mut str_size,
             )
             .into_result()
-            // panic because any error that are experienced are unrecoverable
-            // TODO: Why can we panic here
+            // get_fingerprint_hash is not expected to be fallible. A failure
+            // implies a more exotic, non-recoverable error like OOM.
             .unwrap()
         };
-        hash
+        hash_result
     }
 
-    pub fn get_fingerprint_string(&mut self, hash: ClientHelloHashTypes) -> String {
-        // this is the capacity for which we try to construct the string
+    pub fn get_fingerprint_string(&self, hash: FingerprintType) -> String {
         let mut capacity = Self::INITIAL_FINGERPRINT_CAPACITY;
         loop {
-            let mut string: Vec<u8> = Vec::with_capacity(capacity as usize);
-            unsafe { string.set_len(capacity as usize) };
+            // safety justifications [2]
+            let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
+            let mut string: Vec<u8> = vec![0; capacity as usize];
             let mut output_size = 0;
             let result = unsafe {
                 s2n_tls_sys::s2n_client_hello_get_fingerprint_string(
-                    &mut self.0,
-                    ClientHelloHashTypes::JA3.into(),
+                    handle,
+                    hash.into(),
                     capacity,
                     string.as_mut_ptr(),
                     &mut output_size,
@@ -116,15 +135,15 @@ impl ClientHello {
                 if s2n_error.name() == "TOO_BIG" {
                     capacity *= 2;
                 } else {
-                    // TODO: Why can we panic here
+                    // get_fingerprint_hash is not expected to be fallible for well
+                    // structured input. A failure implies a more exotic, non-recoverable
+                    // error like OOM.
                     panic!("{}", s2n_error);
                 }
             } else {
-                // safety: We test to have a high level of confidence that the "get_fingerprint_string"
-                // implementation is correct, and therefore this operation is safe.
                 string.truncate(output_size as usize);
-                // prefer "unwrap" over "from_utf8_checked" so that if we are wrong
-                // we get a nice error message.
+                // prefer "unwrap" over "from_utf8_unchecked" so that if we are
+                // wrong we get a nice error message.
                 return String::from_utf8(string).unwrap();
             }
         }
@@ -135,127 +154,29 @@ impl Drop for ClientHello {
     fn drop(&mut self) {
         println!("doing a drop over here");
         let mut client_hello: *mut s2n_client_hello = self.deref_mut();
-        let dummy_location = std::ptr::addr_of_mut!(client_hello);
-        unsafe {
-            s2n_tls_sys::s2n_client_hello_free(dummy_location)
-                .into_result()
-                .unwrap()
+        // ignore failures. There isn't anything to be done to handle them, but
+        // allowing the program to continue is preferable to crashing.
+        let _ = unsafe {
+            s2n_tls_sys::s2n_client_hello_free(std::ptr::addr_of_mut!(client_hello)).into_result()
         };
     }
 }
-/*
-impl ClientHello {
-    // This is the initial "guess" at the fingerprint size. If someone only wants to calculate
-    // the actual fingerprint, we don't want to have to generate the JA3 fingerprint twice, so
-    // we make an educated guess at a size that will work for most values. This value was choosen
-    // by looking through the "known test cases" in s2n_fingerprint_jajajajajaj3333 whatever and
-    // picking a power of two that supported all of those cases.
-    const INITIAL_FINGERPRINT_CAPACITY: u32 = 256;
 
-    // the s2n_connection_get_client_hello returns a pointer that is not owned by the application
-    // and must not be freed. The owned bit is set to false so that s2n_client_hello_free is not
-    // called when the struct is dropped.
-    pub fn client_hello_from_ptr(hello: NonNull<s2n_client_hello>) -> ClientHello {
-        ClientHello {
-            handle: hello,
-            owned: false,
-        }
-    }
-
-    // s2n_client_hello_parse_message will allocate memory for the s2n_client_hello which must
-    // be freed by the application. So we set the "owned" flag to "true" which results in the
-    // Drop impl calling the appropriate s2n_client_hello_free method
-    pub fn parse_client_hello(hello: &[u8]) -> Result<ClientHello, crate::error::Error> {
-        let handle = unsafe {
-            s2n_client_hello_parse_message(hello.as_ptr(), hello.len() as u32).into_result()?
-        };
-        Ok(ClientHello {
-            handle,
-            owned: true,
-        })
-    }
-
-    pub fn get_hash(&self, hash: ClientHelloHashTypes) -> Vec<u8> {
-        let mut hash: Vec<u8> = Vec::with_capacity(MD5_HASH_SIZE as usize);
-        unsafe {
-            hash.set_len(MD5_HASH_SIZE as usize);
-        }
-        let mut hash_size: u32 = 0;
-        let mut str_size: u32 = 0;
-        unsafe {
-            s2n_tls_sys::s2n_client_hello_get_fingerprint_hash(
-                self.handle.as_ptr(),
-                ClientHelloHashTypes::JA3.into(),
-                MD5_HASH_SIZE,
-                hash.as_mut_ptr(),
-                &mut hash_size,
-                &mut str_size,
-            )
-            .into_result()
-            // panic because any error that are experienced are unrecoverable
-            // TODO: Why can we panic here
-            .unwrap()
-        };
-        hash
-    }
-
-    pub fn get_fingerprint_string(&self, hash: ClientHelloHashTypes) -> String {
-        // this is the capacity for which we try to construct the string
-        let mut capacity = Self::INITIAL_FINGERPRINT_CAPACITY;
-        loop {
-            let mut string: Vec<u8> = Vec::with_capacity(capacity as usize);
-            unsafe { string.set_len(capacity as usize) };
-            let mut output_size = 0;
-            let result = unsafe {
-                s2n_tls_sys::s2n_client_hello_get_fingerprint_string(
-                    self.handle.as_ptr(),
-                    ClientHelloHashTypes::JA3.into(),
-                    capacity,
-                    string.as_mut_ptr(),
-                    &mut output_size,
-                )
-                .into_result()
-            };
-
-            // if the fingerprint failed because the buffer was too small, double
-            // the buffer size and try again
-            if let Err(s2n_error) = result {
-                if s2n_error.name() == "TOO_BIG" {
-                    capacity *= 2;
-                } else {
-                    // TODO: Why can we panic here
-                    panic!("{}", s2n_error);
-                }
-            } else {
-                // safety: We test to have a high level of confidence that the "get_fingerprint_string"
-                // implementation is correct, and therefore this operation is safe.
-                string.truncate(output_size as usize);
-                // prefer "unwrap" over "from_utf8_checked" so that if we are wrong
-                // we get a nice error message.
-                return String::from_utf8(string).unwrap();
-            }
-        }
-    }
-}
-
-impl Drop for ClientHello {
-    fn drop(&mut self) {
-        if self.owned {
-            println!("doing a drop over here");
-            unsafe {
-                s2n_tls_sys::s2n_client_hello_free(&mut self.handle.as_ptr())
-                    .into_result()
-                    .unwrap()
-            };
-        } else {
-            println!("no dropping necessary");
-        }
-    }
-}
-*/
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    // makes sure that the get_fingerprint method properly catches the "too
+    // small" error and can resize the buffer
+    #[test]
+    fn resizing_fingerprint_test() {
+        todo!("implement a test with big fingerprint")
+    }
+
+    #[test]
+    fn io_fingerprint_test() {
+        todo!("implement a test that uses a ClientHello from actual IO")
+    }
 
     fn known_test_case(
         raw_client_hello: Vec<u8>,
@@ -267,11 +188,11 @@ mod tests {
             .map(|i| u8::from_str_radix(&expected_hash_hex[i..i + 2], 16).unwrap())
             .collect();
         crate::init::init();
-        let mut client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
-        let hash = client_hello.get_hash(ClientHelloHashTypes::JA3);
+        let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
+        let hash = client_hello.get_hash(FingerprintType::JA3);
         assert_eq!(hash, expected_hash);
 
-        let fingerprint = client_hello.get_fingerprint_string(ClientHelloHashTypes::JA3);
+        let fingerprint = client_hello.get_fingerprint_string(FingerprintType::JA3);
         assert_eq!(&fingerprint, expected_fingerprint);
     }
 
@@ -312,50 +233,6 @@ mod tests {
     }
 
     #[test]
-    fn another_valid() {
-        let raw_client_hello = vec![
-            0x01, 0x00, 0x01, 0xFC, 0x03, 0x03, 0xf4, 0x0f, 0xfd, 0xee, 0xc7, 0x27, 0xc2, 0x1e,
-            0x32, 0x70, 0x5f, 0x85, 0x25, 0xa6, 0xbb, 0x6c, 0xca, 0x4b, 0x6c, 0xbe, 0x01, 0x66,
-            0x32, 0x66, 0x76, 0x4b, 0x67, 0x74, 0x3b, 0x91, 0xbd, 0xb2, 0x20, 0x83, 0xd4, 0x9e,
-            0x77, 0xaf, 0xc1, 0x5a, 0x63, 0x35, 0xba, 0x2f, 0xe9, 0x76, 0xbe, 0x9a, 0x42, 0x6b,
-            0x2e, 0xb5, 0x58, 0x23, 0x84, 0x2a, 0x99, 0x2b, 0x37, 0x88, 0xd1, 0xf7, 0x9d, 0xd6,
-            0x20, 0x00, 0x9c, 0x13, 0x02, 0x13, 0x03, 0x13, 0x01, 0xc0, 0x2c, 0xc0, 0x30, 0x00,
-            0xa3, 0x00, 0x9f, 0xcc, 0xa9, 0xcc, 0xa8, 0xcc, 0xaa, 0xc0, 0xaf, 0xc0, 0xad, 0xc0,
-            0xa3, 0xc0, 0x9f, 0xc0, 0x5d, 0xc0, 0x61, 0xc0, 0x57, 0xc0, 0x53, 0xc0, 0x24, 0xc0,
-            0x28, 0x00, 0x6b, 0x00, 0x6a, 0xc0, 0x73, 0xc0, 0x77, 0x00, 0xc4, 0x00, 0xc3, 0xc0,
-            0x0a, 0xc0, 0x14, 0x00, 0x39, 0x00, 0x38, 0x00, 0x88, 0x00, 0x87, 0x00, 0x9d, 0xc0,
-            0xa1, 0xc0, 0x9d, 0xc0, 0x51, 0x00, 0x3d, 0x00, 0xc0, 0x00, 0x35, 0x00, 0x84, 0xc0,
-            0x2b, 0xc0, 0x2f, 0x00, 0xa2, 0x00, 0x9e, 0xc0, 0xae, 0xc0, 0xac, 0xc0, 0xa2, 0xc0,
-            0x9e, 0xc0, 0x5c, 0xc0, 0x60, 0xc0, 0x56, 0xc0, 0x52, 0xc0, 0x23, 0xc0, 0x27, 0x00,
-            0x67, 0x00, 0x40, 0xc0, 0x72, 0xc0, 0x76, 0x00, 0xbe, 0x00, 0xbd, 0xc0, 0x09, 0xc0,
-            0x13, 0x00, 0x33, 0x00, 0x32, 0x00, 0x9a, 0x00, 0x99, 0x00, 0x45, 0x00, 0x44, 0x00,
-            0x9c, 0xc0, 0xa0, 0xc0, 0x9c, 0xc0, 0x50, 0x00, 0x3c, 0x00, 0xba, 0x00, 0x2f, 0x00,
-            0x96, 0x00, 0x41, 0x00, 0xff, 0x01, 0x00, 0x01, 0x17, 0x00, 0x00, 0x00, 0x0e, 0x00,
-            0x0c, 0x00, 0x00, 0x09, 0x31, 0x32, 0x37, 0x2e, 0x30, 0x2e, 0x30, 0x2e, 0x31, 0x00,
-            0x0b, 0x00, 0x04, 0x03, 0x00, 0x01, 0x02, 0x00, 0x0a, 0x00, 0x0c, 0x00, 0x0a, 0x00,
-            0x1d, 0x00, 0x17, 0x00, 0x1e, 0x00, 0x19, 0x00, 0x18, 0x00, 0x23, 0x00, 0x00, 0x00,
-            0x16, 0x00, 0x00, 0x00, 0x17, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x30, 0x00, 0x2e, 0x04,
-            0x03, 0x05, 0x03, 0x06, 0x03, 0x08, 0x07, 0x08, 0x08, 0x08, 0x09, 0x08, 0x0a, 0x08,
-            0x0b, 0x08, 0x04, 0x08, 0x05, 0x08, 0x06, 0x04, 0x01, 0x05, 0x01, 0x06, 0x01, 0x03,
-            0x03, 0x02, 0x03, 0x03, 0x01, 0x02, 0x01, 0x03, 0x02, 0x02, 0x02, 0x04, 0x02, 0x05,
-            0x02, 0x06, 0x02, 0x00, 0x2b, 0x00, 0x09, 0x08, 0x03, 0x04, 0x03, 0x03, 0x03, 0x02,
-            0x03, 0x01, 0x00, 0x2d, 0x00, 0x02, 0x01, 0x01, 0x00, 0x33, 0x00, 0x26, 0x00, 0x24,
-            0x00, 0x1d, 0x00, 0x20, 0x29, 0x61, 0x96, 0xc4, 0x0c, 0x16, 0x7c, 0xde, 0x20, 0x01,
-            0x86, 0x32, 0xdf, 0x84, 0x2f, 0x67, 0x2f, 0x3f, 0x64, 0x17, 0xc0, 0x2e, 0xa2, 0xb2,
-            0x9e, 0xfc, 0xa8, 0xb0, 0xc5, 0x71, 0x6e, 0x7d, 0x00, 0x15, 0x00, 0x6c,
-        ];
-        let mut raw_client_512 = vec![0; 512];
-        for (i, v) in raw_client_hello.iter().enumerate() {
-            raw_client_512[i] = *v;
-        }
-        crate::init::init();
-        // why does this one fail
-        //assert_eq!(raw_client_hello.len(), 512);
-        assert!(raw_client_hello.len() < raw_client_512.len());
-        ClientHello::parse_client_hello(raw_client_512.as_slice()).unwrap();
-    }
-
-    #[test]
     fn bytes_512_2() {
         let raw_client_hello = vec![
             0x01, 0x00, 0x01, 0xFC, 0x03, 0x03, 0x40, 0xc7, 0x8a, 0xef, 0x5c, 0x7f, 0xed, 0x98,
@@ -392,5 +269,4 @@ mod tests {
         // why does this one fail
         ClientHello::parse_client_hello(raw_client_512.as_slice()).unwrap();
     }
-
 }

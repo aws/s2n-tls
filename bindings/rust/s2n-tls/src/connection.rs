@@ -677,7 +677,22 @@ impl Connection {
         unsafe { Ok(Some(std::slice::from_raw_parts(chain, len as usize))) }
     }
 
-    pub fn client_hello(&mut self) -> Result<&mut ClientHello, Error> {
+    /// The memory backing the ClientHello is owned by the Connection, so we
+    /// tie the ClientHello to the lifetime of the Connection. This is validated
+    /// with a doc test that ensures the ClientHello is invalid once the
+    /// connection has gone out of scope.
+    ///
+    /// ```compile_fail
+    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::connection::Connection;
+    /// use s2n_tls::enums::Mode;
+    ///
+    /// let mut conn = Connection::new(Mode::Server);
+    /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
+    /// drop(conn);
+    /// let hash = client_hello.get_hash(FingerprintType::JA3);
+    /// ```
+    pub fn client_hello(&mut self) -> Result<&ClientHello, Error> {
         let mut handle = unsafe {
             s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()?
         };
