@@ -1,4 +1,5 @@
 import os
+import subprocess
 import pytest
 import threading
 
@@ -6,12 +7,6 @@ from common import ProviderOptions, Ciphers, Curves, Protocols, Signatures
 from global_flags import get_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 from global_flags import S2N_USE_CRITERION
 from stat import S_IMODE
-
-
-TLS_13_LIBCRYPTOS = {
-    "awslc",
-    "openssl-1.1.1"
-}
 
 
 class Provider(object):
@@ -152,13 +147,22 @@ class S2N(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        # Disable TLS 1.3 tests for all libcryptos that don't support 1.3
-        if all([
-            libcrypto not in get_flag(S2N_PROVIDER_VERSION)
-            for libcrypto in TLS_13_LIBCRYPTOS
-        ]) and protocol == Protocols.TLS13:
-            return False
+        # TLS 1.3 is unsupported for openssl-1.0
+        # libressl and boringssl are disabled because of configuration issues
+        # see https://github.com/aws/s2n-tls/issues/3250
+        TLS_13_UNSUPPORTED_LIBCRYPTOS = {
+            "libressl",
+            "boringssl",
+            "openssl-1.0"
+        }
 
+        # Disable TLS 1.3 tests for all libcryptos that don't support 1.3
+        if protocol == Protocols.TLS13:
+            current_libcrypto = get_flag(S2N_PROVIDER_VERSION)
+            for unsupported_lc in TLS_13_UNSUPPORTED_LIBCRYPTOS:
+                # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
+                if unsupported_lc in current_libcrypto:
+                    return False
         return True
 
     @classmethod
@@ -314,12 +318,12 @@ class S2N(Provider):
 class CriterionS2N(S2N):
     """
     Wrap the S2N provider in criterion-rust
-    The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary 
-    and moves the s2nc/d command line arguments into an environment variable.  The binary created by 
-    `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds 
-    and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables 
-    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning 
-    s2nc/d as subprocesses. 
+    The CriterionS2N provider modifies the test command being run by pytest to be the criterion benchmark binary
+    and moves the s2nc/d command line arguments into an environment variable.  The binary created by
+    `cargo bench --no-run` has a unique name and must be searched for, which the CriterionS2N provider finds
+    and replaces in the final testing command. The arguments to s2nc/d are moved to the environment variables
+    `S2NC_ARGS` or `S2ND_ARGS`, along with the test name, which are read by the rust benchmark when spawning
+    s2nc/d as subprocesses.
     """
     criterion_off = 'off'
     criterion_delta = 'delta'
@@ -404,6 +408,8 @@ class OpenSSL(Provider):
         Provider.__init__(self, options)
         # We print some OpenSSL logging that includes stderr
         self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
+        # Current provider needs 1.1.x https://github.com/aws/s2n-tls/issues/3963
+        self._is_openssl_11()
 
     @classmethod
     def get_send_marker(cls):
@@ -476,6 +482,15 @@ class OpenSSL(Provider):
                 return False
 
         return True
+
+    def _is_openssl_11(self) -> None:
+        result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
+        version_str = result.stdout.split(" ")
+        project = version_str[0]
+        version = version_str[1]
+        print(f"openssl version: {project} version: {version}")
+        if (project != "OpenSSL" or version[0:3] != "1.1"):
+            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.1.x.")
 
     def setup_client(self):
         cmd_line = ['openssl', 's_client']

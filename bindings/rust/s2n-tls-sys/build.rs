@@ -104,12 +104,14 @@ fn build_vendored() {
     if env("PROFILE") == "release" {
         // fortify source is only available in release mode
         build.define("_FORTIFY_SOURCE", "2");
+        build.define("NDEBUG", "1");
 
         // build s2n-tls with LTO if supported
-        build
-            .flag_if_supported("-flto")
-            .flag_if_supported("-ffat-lto-objects")
-            .define("NDEBUG", "1");
+        if build.get_compiler().is_like_gnu() {
+            build
+                .flag_if_supported("-flto")
+                .flag_if_supported("-ffat-lto-objects");
+        }
     }
 
     if !pq {

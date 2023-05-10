@@ -24,6 +24,7 @@
 
 #include "utils/s2n_random.h"
 
+#include <openssl/rand.h>
 #include <pthread.h>
 #include <stdlib.h>
 #include <sys/wait.h>
@@ -727,6 +728,18 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
     return EXIT_SUCCESS;
 }
 
+static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_case)
+{
+    s2n_disable_atexit();
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_SUCCESS(s2n_cleanup());
+
+    unsigned char rndbytes[16];
+    EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
+
+    return S2N_SUCCESS;
+}
+
 struct random_test_case random_test_cases[] = {
     { "Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     { "Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
@@ -737,6 +750,7 @@ struct random_test_case random_test_cases[] = {
      * to use 1 below and in s2n_random_test_case_failure_cb().
      */
     { "Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1 },
+    { "Test libcrypto's RAND engine is reset correctly after manual s2n_cleanup()", s2n_random_rand_bytes_after_cleanup_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
 };
 
 int main(int argc, char **argv)
