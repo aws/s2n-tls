@@ -25,7 +25,6 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crl.h"
-#include "utils/s2n_asn1_time.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_rfc5952.h"
 #include "utils/s2n_safety.h"
@@ -34,6 +33,7 @@
     #include <openssl/ocsp.h>
 DEFINE_POINTER_CLEANUP_FUNC(OCSP_RESPONSE *, OCSP_RESPONSE_free);
 DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
+
 #endif
 
 #ifndef X509_V_FLAG_PARTIAL_CHAIN
@@ -43,6 +43,13 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
 #define DEFAULT_MAX_CHAIN_DEPTH 7
 /* Time used by default for nextUpdate if none provided in OCSP: 1 hour since thisUpdate. */
 #define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600000000000
+
+/* s2n's internal clock uses epoch-nanoseconds and is stored in a uint64_t.
+ * Occasionally there is a need to downcast this to a time_t, which represents
+ * epoch-seconds. This downcast is not safe because it might overflow the time_t
+ * value on 32 bit platforms where the size of a time_t might be 4 bytes.
+ */
+#define MAX_32_TIMESTAMP_NANOS 2147483647 * ONE_SEC_IN_NANOS
 
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509_CRL) *, sk_X509_CRL_free);
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(GENERAL_NAME) *, GENERAL_NAMES_free);
@@ -503,9 +510,12 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
 
     uint64_t current_sys_time = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
+    if (sizeof(time_t) == 4) {
+        RESULT_ENSURE_LTE(current_sys_time, MAX_32_TIMESTAMP_NANOS);
+    }
 
     /* this wants seconds not nanoseconds */
-    time_t current_time = (time_t) (current_sys_time / 1000000000);
+    time_t current_time = (time_t) (current_sys_time / ONE_SEC_IN_NANOS);
     X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
 
     int verify_ret = X509_verify_cert(validator->store_ctx);
@@ -674,28 +684,53 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
 
+    /**
+     * It is fine to use ASN1_TIME functions with ASN1_GENERALIZEDTIME structures
+     * From openssl documentation:
+     * It is recommended that functions starting with ASN1_TIME be used instead
+     * of those starting with ASN1_UTCTIME or ASN1_GENERALIZEDTIME. The
+     * functions starting with ASN1_UTCTIME and ASN1_GENERALIZEDTIME act only on
+     * that specific time format. The functions starting with ASN1_TIME will
+     * operate on either format.
+     * https://www.openssl.org/docs/man1.1.1/man3/ASN1_TIME_to_generalizedtime.html
+     */
     ASN1_GENERALIZEDTIME *revtime, *thisupd, *nextupd;
     /* Actual verification of the response */
     const int ocsp_resp_find_status_res = OCSP_resp_find_status(basic_response, cert_id, &status, &reason, &revtime, &thisupd, &nextupd);
     OCSP_CERTID_free(cert_id);
     RESULT_GUARD_OSSL(ocsp_resp_find_status_res, S2N_ERR_CERT_UNTRUSTED);
 
-    uint64_t this_update = 0;
-    RESULT_GUARD(s2n_asn1_time_to_nano_since_epoch_ticks((const char *) thisupd->data,
-            (uint32_t) thisupd->length, &this_update));
-
-    uint64_t next_update = 0;
-    if (nextupd) {
-        RESULT_GUARD(s2n_asn1_time_to_nano_since_epoch_ticks((const char *) nextupd->data,
-                (uint32_t) nextupd->length, &next_update));
-    } else {
-        next_update = this_update + DEFAULT_OCSP_NEXT_UPDATE_PERIOD;
+    uint64_t current_sys_time_nanoseconds = 0;
+    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time_nanoseconds));
+    if (sizeof(time_t) == 4) {
+        RESULT_ENSURE_LTE(current_sys_time_nanoseconds, MAX_32_TIMESTAMP_NANOS);
     }
+    /* convert the current_sys_time (which is in nanoseconds) to seconds */
+    time_t current_sys_time_seconds = (time_t) (current_sys_time_nanoseconds / ONE_SEC_IN_NANOS);
 
-    uint64_t current_time = 0;
-    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_time));
-    RESULT_ENSURE(current_time >= this_update, S2N_ERR_CERT_INVALID);
-    RESULT_ENSURE(current_time <= next_update, S2N_ERR_CERT_EXPIRED);
+    DEFER_CLEANUP(ASN1_GENERALIZEDTIME *current_sys_time = ASN1_GENERALIZEDTIME_set(0, current_sys_time_seconds), s2n_openssl_asn1_time_free_pointer);
+    RESULT_ENSURE_REF(current_sys_time);
+
+    int pday = 0;
+    int psec = 0;
+    RESULT_GUARD_OSSL(ASN1_TIME_diff(&pday, &psec, thisupd, current_sys_time), S2N_ERR_CERT_UNTRUSTED);
+    /* ensure that current_time is after or the same as "this update" */
+    RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_INVALID);
+
+    /* ensure that current_time is before or the same as "next update" */
+    if (nextupd) {
+        RESULT_GUARD_OSSL(ASN1_TIME_diff(&pday, &psec, current_sys_time, nextupd), S2N_ERR_CERT_UNTRUSTED);
+        RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_EXPIRED);
+    } else {
+        /**
+         * if nextupd isn't present, assume that nextup is
+         * DEFAULT_OCSP_NEXT_UPDATE_PERIOD after thisupd. This means that if the
+         * current time was more than 0 days and DEFAULT_OCSP_NEXT_UPDATE_PERIOD
+         * seconds ahead of nextup, we consider it invalid. We already compared
+         * current_sys_time to thisupd, so reuse those values
+         */
+        RESULT_ENSURE(pday == 0 && psec < DEFAULT_OCSP_NEXT_UPDATE_PERIOD / ONE_SEC_IN_NANOS, S2N_ERR_CERT_EXPIRED);
+    }
 
     switch (status) {
         case V_OCSP_CERTSTATUS_GOOD:
