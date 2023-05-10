@@ -107,7 +107,8 @@ static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_le
  * run on a platform where time_t is 32 bits, the time_t will overflow, so we
  * only run these tests on platforms with a 64 bit time_t.
  */
-static bool large_time_t() {
+static bool large_time_t()
+{
     return sizeof(time_t) == 8;
 }
 
