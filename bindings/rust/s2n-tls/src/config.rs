@@ -323,9 +323,10 @@ impl Builder {
         Ok(self)
     }
 
-    /// Sets whether or not default system certificates will be loaded into the trust store. Set to
-    /// false for increased performance if system certificates are not needed during certificate
-    /// validation.
+    /// Sets whether or not default system certificates will be loaded into the trust store.
+    ///
+    /// Set to false for increased performance if system certificates are not needed during
+    /// certificate validation.
     pub fn with_system_certs(&mut self, load_system_certs: bool) -> Result<&mut Self, Error> {
         self.load_system_certs = load_system_certs;
         Ok(self)
