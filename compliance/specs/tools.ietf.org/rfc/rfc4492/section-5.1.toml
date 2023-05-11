@@ -1,0 +1,109 @@
+target = "https://tools.ietf.org/rfc/rfc4492#section-5.1"
+
+# 5.1.  Client Hello Extensions
+#
+# This section specifies two TLS extensions that can be included with
+# the ClientHello message as described in [4], the Supported Elliptic
+# Curves Extension and the Supported Point Formats Extension.
+# 
+# When these extensions are sent:
+# 
+# The extensions SHOULD be sent along with any ClientHello message that
+# proposes ECC cipher suites.
+# 
+# Meaning of these extensions:
+# 
+# These extensions allow a client to enumerate the elliptic curves it
+# supports and/or the point formats it can parse.
+# 
+# Structure of these extensions:
+# 
+# The general structure of TLS extensions is described in [4], and this
+# specification adds two new types to ExtensionType.
+# 
+#     enum { elliptic_curves(10), ec_point_formats(11) } ExtensionType;
+# 
+# elliptic_curves (Supported Elliptic Curves Extension):   Indicates
+#    the set of elliptic curves supported by the client.  For this
+#    extension, the opaque extension_data field contains
+#    EllipticCurveList.  See Section 5.1.1 for details.
+# 
+# ec_point_formats (Supported Point Formats Extension):   Indicates the
+#    set of point formats that the client can parse.  For this
+#    extension, the opaque extension_data field contains
+#    ECPointFormatList.  See Section 5.1.2 for details.
+# 
+# Actions of the sender:
+# 
+# A client that proposes ECC cipher suites in its ClientHello message
+# appends these extensions (along with any others), enumerating the
+# curves it supports and the point formats it can parse.  Clients
+# SHOULD send both the Supported Elliptic Curves Extension and the
+# Supported Point Formats Extension.  If the Supported Point Formats
+# Extension is indeed sent, it MUST contain the value 0 (uncompressed)
+# as one of the items in the list of point formats.
+# 
+# Actions of the receiver:
+# 
+# A server that receives a ClientHello containing one or both of these
+# extensions MUST use the client's enumerated capabilities to guide its
+# selection of an appropriate cipher suite.  One of the proposed ECC
+# cipher suites must be negotiated only if the server can successfully
+# complete the handshake while using the curves and point formats
+# supported by the client (cf. Sections 5.3 and 5.4).
+# 
+# NOTE: A server participating in an ECDHE-ECDSA key exchange may use
+# different curves for (i) the ECDSA key in its certificate, and (ii)
+# the ephemeral ECDH key in the ServerKeyExchange message.  The server
+# must consider the extensions in both cases.
+# 
+# If a server does not understand the Supported Elliptic Curves
+# Extension, does not understand the Supported Point Formats Extension,
+# or is unable to complete the ECC handshake while restricting itself
+# to the enumerated curves and point formats, it MUST NOT negotiate the
+# use of an ECC cipher suite.  Depending on what other cipher suites
+# are proposed by the client and supported by the server, this may
+# result in a fatal handshake failure alert due to the lack of common
+# cipher suites.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The extensions SHOULD be sent along with any ClientHello message that
+proposes ECC cipher suites.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients
+SHOULD send both the Supported Elliptic Curves Extension and the
+Supported Point Formats Extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the Supported Point Formats
+Extension is indeed sent, it MUST contain the value 0 (uncompressed)
+as one of the items in the list of point formats.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A server that receives a ClientHello containing one or both of these
+extensions MUST use the client's enumerated capabilities to guide its
+selection of an appropriate cipher suite.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a server does not understand the Supported Elliptic Curves
+Extension, does not understand the Supported Point Formats Extension,
+or is unable to complete the ECC handshake while restricting itself
+to the enumerated curves and point formats, it MUST NOT negotiate the
+use of an ECC cipher suite.
+'''
+
