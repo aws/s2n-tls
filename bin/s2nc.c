@@ -47,7 +47,7 @@
 
 /*
  * s2nc is an example client that uses many s2n-tls APIs. It's main purpose is to provide
- * testing functionality for s2n-tls integration tests, and as such, it should be not used
+ * testing functionality for s2n-tls integration tests, and as such, it should not be used
  * for any production purposes.
  */
 void usage()
