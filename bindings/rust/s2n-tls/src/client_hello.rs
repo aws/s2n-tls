@@ -4,7 +4,6 @@ use std::ops::DerefMut;
 use s2n_tls_sys::*;
 
 use crate::error::Error;
-use crate::error::ErrorType;
 use crate::error::Fallible;
 
 #[derive(Copy, Clone)]

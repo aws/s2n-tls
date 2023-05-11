@@ -8,8 +8,9 @@ use crate::{
     config::Config,
     enums::*,
     error::{Error, Fallible, Pollable},
-    security, client_hello::ClientHello,
+    security,
 };
+
 use core::{
     convert::TryInto,
     fmt,
@@ -692,7 +693,8 @@ impl Connection {
     /// drop(conn);
     /// let hash = client_hello.get_hash(FingerprintType::JA3);
     /// ```
-    pub fn client_hello(&self) -> Result<&ClientHello, Error> {
+    #[cfg(feature = "fingerprint")]
+    pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
         let mut handle = unsafe {
             s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()?
         };

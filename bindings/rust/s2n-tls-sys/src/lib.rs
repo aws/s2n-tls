@@ -21,6 +21,7 @@ mod internal;
 pub use internal::*;
 
 #[cfg(feature = "fingerprint")]
+#[rustfmt::skip]
 mod fingerprint;
 
 #[cfg(feature = "fingerprint")]

@@ -10,6 +10,7 @@ license = "Apache-2.0"
 
 [features]
 default = []
+fingerprint = ["s2n-tls-sys/fingerprint"]
 quic = ["s2n-tls-sys/quic"]
 pq = ["s2n-tls-sys/pq"]
 testing = ["bytes"]
@@ -18,7 +19,11 @@ testing = ["bytes"]
 bytes = { version = "1", optional = true }
 errno = { version = "0.3" }
 libc = "0.2"
+<<<<<<< HEAD
 s2n-tls-sys = { version = "=0.0.31", path = "../s2n-tls-sys", features = ["internal", "fingerprint"] }
+=======
+s2n-tls-sys = { version = "=0.0.30", path = "../s2n-tls-sys", features = ["internal"] }
+>>>>>>> 276550bc (gate behind feature flag)
 pin-project-lite = "0.2"
 
 [dev-dependencies]
@@ -26,7 +31,11 @@ bytes = { version = "1" }
 futures-test = "0.3"
 openssl = { version = "0.10" }
 <<<<<<< HEAD
+<<<<<<< HEAD
 temp-env = { version = "0.3" }
 =======
 hex = "0.4"
 >>>>>>> fc3bc891 (clean up pair generation and add test case for io)
+=======
+hex = "0.4"
+>>>>>>> 276550bc (gate behind feature flag)
