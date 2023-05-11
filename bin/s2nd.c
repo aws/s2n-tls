@@ -38,6 +38,12 @@
 
 #define MAX_CERTIFICATES 50
 
+/*
+ * s2nd is an example server that uses many s2n-tls APIs. It's main purpose is to provide
+ * testing functionality for s2n-tls integration tests, and as such, it should be not used
+ * for any production purposes.
+ */
+
 static char default_certificate_chain[] =
         "-----BEGIN CERTIFICATE-----"
         "MIIDHTCCAgWgAwIBAgIUPxywpg3/+VHmj8jJSvK62XC06zMwDQYJKoZIhvcNAQEL"

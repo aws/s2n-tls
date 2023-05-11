@@ -1309,4 +1309,7 @@ int s2n_early_data_cb_async_impl(struct s2n_connection *conn, struct s2n_offered
 # Examples
 
 To understand the API it may be easiest to see examples in action. s2n-tls's [bin/](https://github.com/aws/s2n-tls/blob/main/bin/) directory
-includes an example client (s2nc) and server (s2nd).
+includes an example client (`s2nc`) and server (`s2nd`). 
+
+**Note:** `s2nc` and `s2nd` are primarily intended to provide testing 
+functionality for s2n-tls integration tests, and as such, they should be not used for any production purposes.
