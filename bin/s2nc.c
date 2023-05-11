@@ -46,9 +46,8 @@
 #define OPT_BUFFERED_SEND      1007
 
 /*
- * s2nc is an example client that uses many s2n-tls APIs. It's main purpose is to provide
- * testing functionality for s2n-tls integration tests, and as such, it should not be used
- * for any production purposes.
+ * s2nc is an example client that uses many s2n-tls APIs.
+ * It is intended for testing purposes only, and should not be used in production.
  */
 void usage()
 {
