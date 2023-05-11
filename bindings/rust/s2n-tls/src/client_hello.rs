@@ -3,6 +3,7 @@ use std::ops::DerefMut;
 
 use s2n_tls_sys::*;
 
+use crate::error::Error;
 use crate::error::ErrorType;
 use crate::error::Fallible;
 
@@ -62,14 +63,6 @@ impl DerefMut for ClientHello {
 }
 
 impl ClientHello {
-    // This is the initial "guess" at the fingerprint size. If someone only
-    // wants to calculate the actual fingerprint, we don't want to have to
-    // generate the JA3 fingerprint twice, so we make an educated guess at a
-    // size that will work for most values. This value was chosen by looking
-    //  through the "known test cases" in s2n_fingerprint_ja3_test and choosing
-    // a power of two that worked for the values there.
-    const INITIAL_FINGERPRINT_CAPACITY: u32 = 256;
-
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
         let handle = unsafe {
             s2n_client_hello_parse_message(hello.as_ptr(), hello.len() as u32).into_result()?
@@ -84,9 +77,76 @@ impl ClientHello {
 
     // this accepts a mut ref instead of a pointer, so that lifetimes are nicely
     // calculated for us. As is always the case, the reference must not be null
-    pub fn from_ptr(hello: &s2n_client_hello) -> &Self {
+    // this is marked "pub(crate)" to expose it to the connection module but
+    // prevent it from being used externally
+    pub(crate) fn from_ptr(hello: &s2n_client_hello) -> &Self {
         // safety: see safety justifications [1]
         unsafe { &*(hello as *const s2n_client_hello as *const ClientHello) }
+    }
+
+    /// internal function which calculates the hash, and also returns the size
+    /// required for the full fingerprint. External customers should instead use
+    /// `fingerprint_hash()` or `fingerprint()`.
+    fn fingerprint_hash_and_size_hint(
+        &self,
+        hash: FingerprintType,
+    ) -> Result<(Vec<u8>, u32), Error> {
+        let mut hash_result = vec![0; MD5_HASH_SIZE as usize];
+        // safety justifications [2]
+        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
+        let mut hash_size: u32 = 0;
+        let mut str_size: u32 = 0;
+        unsafe {
+            s2n_client_hello_get_fingerprint_hash(
+                handle,
+                hash.into(),
+                MD5_HASH_SIZE,
+                hash_result.as_mut_ptr(),
+                &mut hash_size,
+                &mut str_size,
+            )
+            .into_result()?
+        };
+        Ok((hash_result, str_size))
+    }
+
+    /// `fingerprint_string_with_size` will try to compute the fingerprint
+    /// string using a buffer of size `capacity`. This is useful for customers
+    /// who are very concerned with efficiency, since it allows the fingerprint
+    /// string to be calculated in a single pass.
+    pub fn fingerprint_string_with_size(
+        &self,
+        hash: FingerprintType,
+        capacity: u32,
+    ) -> Result<String, Error> {
+        // safety justifications [2]
+        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
+        let mut string: Vec<u8> = vec![0; capacity as usize];
+        let mut output_size = 0;
+        unsafe {
+            s2n_tls_sys::s2n_client_hello_get_fingerprint_string(
+                handle,
+                hash.into(),
+                capacity,
+                string.as_mut_ptr(),
+                &mut output_size,
+            )
+            .into_result()?
+        };
+        return Ok(String::from_utf8(string)
+            .map_err(|parse_error| Error::application(Box::new(parse_error)))?);
+    }
+
+    /// `fingerprint` returns a Vector containing the raw bytes of the has and a
+    /// String containing the fingerprint string. This function will calculate
+    /// the fingerprint twice. First it will calculate the hash and figure out
+    /// how large the fingerprint string will be, then on the second pass it
+    /// will allocate an appropriately sized buffer and calculate the
+    /// fingerprint string.
+    pub fn fingerprint(&self, hash: FingerprintType) -> Result<(Vec<u8>, String), Error> {
+        let (fingerprint_hash, string_size) = self.fingerprint_hash_and_size_hint(hash)?;
+        let fingerprint_string = self.fingerprint_string_with_size(hash, string_size)?;
+        Ok((fingerprint_hash, fingerprint_string))
     }
 
     pub fn fingerprint_hash(&self, hash: FingerprintType) -> Vec<u8> {
@@ -105,49 +165,9 @@ impl ClientHello {
                 &mut str_size,
             )
             .into_result()
-            // get_fingerprint_hash is not expected to be fallible. A failure
-            // implies a more exotic, non-recoverable error like OOM.
             .unwrap()
         };
         hash_result
-    }
-
-    pub fn fingerprint_string(&self, hash: FingerprintType) -> String {
-        let mut capacity = Self::INITIAL_FINGERPRINT_CAPACITY;
-        loop {
-            // safety justifications [2]
-            let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
-            let mut string: Vec<u8> = vec![0; capacity as usize];
-            let mut output_size = 0;
-            let result = unsafe {
-                s2n_tls_sys::s2n_client_hello_get_fingerprint_string(
-                    handle,
-                    hash.into(),
-                    capacity,
-                    string.as_mut_ptr(),
-                    &mut output_size,
-                )
-                .into_result()
-            };
-
-            // if the fingerprint failed because the buffer was too small,
-            // double the buffer size and try again
-            if let Err(s2n_error) = result {
-                if s2n_error.kind() == ErrorType::UsageError {
-                    capacity *= 2;
-                } else {
-                    // get_fingerprint_hash is not expected to be fallible for
-                    // well structured input. A failure implies a more exotic,
-                    // non-recoverable error like OOM.
-                    panic!("{}", s2n_error);
-                }
-            } else {
-                string.truncate(output_size as usize);
-                // prefer "unwrap" over "from_utf8_unchecked" so that if we are
-                // wrong we get a nice error message.
-                return String::from_utf8(string).unwrap();
-            }
-        }
     }
 }
 
@@ -173,13 +193,6 @@ mod tests {
     };
 
     use super::*;
-
-    // makes sure that the get_fingerprint method properly catches the "too
-    // small" error and can resize the buffer
-    #[test]
-    fn resizing_fingerprint_test() {
-        todo!("implement a test with big fingerprint")
-    }
 
     // test that fingerprints can successfully be calculated from ClientHellos
     // returned from a connection
@@ -213,7 +226,7 @@ mod tests {
         let server_conn = pair.server.0.connection();
         let client_conn = pair.server.0.connection();
 
-        let check_client_hello = |conn: &Connection| {
+        let check_client_hello = |conn: &Connection| -> Result<(), Error> {
             let expected_hash = "3d80a90bdfa45a3cee62cccfda33c885";
             let expected_fingerprint = "771,4865-4866-4867-49195-49199-49\
                                               196-49200-52393-52392-49161-49171\
@@ -221,41 +234,50 @@ mod tests {
                                               7-255,43-10-51-13-11-23,29-23-24,0";
 
             let client_hello = conn.client_hello().unwrap();
-            assert_eq!(
-                hex::encode(client_hello.fingerprint_hash(FingerprintType::JA3)),
-                expected_hash
-            );
-            assert_eq!(
-                client_hello.fingerprint_string(FingerprintType::JA3),
-                expected_fingerprint
-            );
+            let (hash, string) = client_hello.fingerprint(FingerprintType::JA3)?;
+            assert_eq!(hex::encode(hash), expected_hash);
+            assert_eq!(string, expected_fingerprint);
+            Ok(())
         };
 
-        check_client_hello(server_conn);
-        check_client_hello(client_conn);
+        check_client_hello(server_conn)?;
+        check_client_hello(client_conn)?;
 
         Ok(())
-        //todo!("implement a test that uses a ClientHello from actual IO")
     }
 
     fn known_test_case(
         raw_client_hello: Vec<u8>,
-        expected_fingerprint: &str,
+        expected_string: &str,
         expected_hash_hex: &str,
-    ) {
+    ) -> Result<(), Error> {
         let expected_hash: Vec<u8> = hex::decode(expected_hash_hex).unwrap();
         crate::init::init();
         let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
+        let (hash, string) = client_hello.fingerprint(FingerprintType::JA3)?;
+        assert_eq!(hash, expected_hash);
+        assert_eq!(string, expected_string);
+
         let hash = client_hello.fingerprint_hash(FingerprintType::JA3);
         assert_eq!(hash, expected_hash);
 
-        let fingerprint = client_hello.fingerprint_string(FingerprintType::JA3);
-        assert_eq!(&fingerprint, expected_fingerprint);
+        // trying to calculate the fingerprint with too small a buffer results
+        // in a usage error.
+        let fingerprint_err = client_hello
+            .fingerprint_string_with_size(FingerprintType::JA3, expected_string.len() as u32 - 1)
+            .unwrap_err();
+        assert_eq!(fingerprint_err.kind(), ErrorType::UsageError);
+
+        let string = client_hello
+            .fingerprint_string_with_size(FingerprintType::JA3, expected_string.len() as u32)?;
+        assert_eq!(string, expected_string);
+        Ok(())
     }
 
     #[test]
     fn invalid_client_bytes() {
-        let raw_client_hello_bytes = "random_value_that_is_unlikely_to_be_valid_client_hello".as_bytes();
+        let raw_client_hello_bytes =
+            "random_value_that_is_unlikely_to_be_valid_client_hello".as_bytes();
         let result = ClientHello::parse_client_hello(raw_client_hello_bytes);
         assert!(result.is_err());
     }
@@ -287,6 +309,6 @@ mod tests {
                                     49162-49161-49171-49172-51-57-47-53-10,0-\
                                     23-65281-10-11-35-16-5-13-28,29-23-24-25,0";
         let expected_hash_hex = "839bbe3ed07fed922ded5aaf714d6842";
-        known_test_case(raw_client_hello, expected_fingerprint, expected_hash_hex);
+        known_test_case(raw_client_hello, expected_fingerprint, expected_hash_hex).unwrap();
     }
 }
