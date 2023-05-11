@@ -25,4 +25,8 @@ pin-project-lite = "0.2"
 bytes = { version = "1" }
 futures-test = "0.3"
 openssl = { version = "0.10" }
+<<<<<<< HEAD
 temp-env = { version = "0.3" }
+=======
+hex = "0.4"
+>>>>>>> fc3bc891 (clean up pair generation and add test case for io)

@@ -1,9 +1,9 @@
 use std::ops::Deref;
 use std::ops::DerefMut;
 
-use s2n_tls_sys::s2n_client_hello;
-use s2n_tls_sys::s2n_client_hello_parse_message;
+use s2n_tls_sys::*;
 
+use crate::error::ErrorType;
 use crate::error::Fallible;
 
 #[derive(Copy, Clone)]
@@ -28,13 +28,13 @@ impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
 ///
 /// This implementation is motivated by the different memory_management required
 /// for different s2n_client_hello pointers. `s2n_client_hello_parse_message`
-/// returns a *mut s2n_client_hello which owns it's own data. This neatly fits
-///  the "smart pointer" pattern and can be represented as a Box<T>.
+/// returns a `*mut s2n_client_hello` which owns it's own data. This neatly fits
+///  the "smart pointer" pattern and can be represented as a `Box<T>`.
 ///
-/// `s2n_connection_get_client_hello` returns a *mut s2n_client_hello which
+/// `s2n_connection_get_client_hello` returns a `*mut s2n_client_hello` which
 /// references memory owned by the connection, and therefore must not outlive
 /// the connection struct. This is best represented as a reference tied to the
-/// lifetime of the connection struct.
+/// lifetime of the `Connection` struct.
 
 pub struct ClientHello(s2n_client_hello);
 
@@ -62,11 +62,12 @@ impl DerefMut for ClientHello {
 }
 
 impl ClientHello {
-    // This is the initial "guess" at the fingerprint size. If someone only wants to calculate
-    // the actual fingerprint, we don't want to have to generate the JA3 fingerprint twice, so
-    // we make an educated guess at a size that will work for most values. This value was chosen
-    // by looking through the "known test cases" in s2n_fingerprint_jajajajajaj3333 whatever and
-    // picking a power of two that supported all of those cases.
+    // This is the initial "guess" at the fingerprint size. If someone only
+    // wants to calculate the actual fingerprint, we don't want to have to
+    // generate the JA3 fingerprint twice, so we make an educated guess at a
+    // size that will work for most values. This value was chosen by looking
+    //  through the "known test cases" in s2n_fingerprint_ja3_test and choosing
+    // a power of two that worked for the values there.
     const INITIAL_FINGERPRINT_CAPACITY: u32 = 256;
 
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
@@ -88,14 +89,14 @@ impl ClientHello {
         unsafe { &*(hello as *const s2n_client_hello as *const ClientHello) }
     }
 
-    pub fn get_hash(&self, hash: FingerprintType) -> Vec<u8> {
+    pub fn fingerprint_hash(&self, hash: FingerprintType) -> Vec<u8> {
         let mut hash_result = vec![0; MD5_HASH_SIZE as usize];
         // safety justifications [2]
         let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
         let mut hash_size: u32 = 0;
         let mut str_size: u32 = 0;
         unsafe {
-            s2n_tls_sys::s2n_client_hello_get_fingerprint_hash(
+            s2n_client_hello_get_fingerprint_hash(
                 handle,
                 hash.into(),
                 MD5_HASH_SIZE,
@@ -111,7 +112,7 @@ impl ClientHello {
         hash_result
     }
 
-    pub fn get_fingerprint_string(&self, hash: FingerprintType) -> String {
+    pub fn fingerprint_string(&self, hash: FingerprintType) -> String {
         let mut capacity = Self::INITIAL_FINGERPRINT_CAPACITY;
         loop {
             // safety justifications [2]
@@ -129,15 +130,15 @@ impl ClientHello {
                 .into_result()
             };
 
-            // if the fingerprint failed because the buffer was too small, double
-            // the buffer size and try again
+            // if the fingerprint failed because the buffer was too small,
+            // double the buffer size and try again
             if let Err(s2n_error) = result {
-                if s2n_error.name() == "TOO_BIG" {
+                if s2n_error.kind() == ErrorType::UsageError {
                     capacity *= 2;
                 } else {
-                    // get_fingerprint_hash is not expected to be fallible for well
-                    // structured input. A failure implies a more exotic, non-recoverable
-                    // error like OOM.
+                    // get_fingerprint_hash is not expected to be fallible for
+                    // well structured input. A failure implies a more exotic,
+                    // non-recoverable error like OOM.
                     panic!("{}", s2n_error);
                 }
             } else {
@@ -164,6 +165,13 @@ impl Drop for ClientHello {
 
 #[cfg(test)]
 mod tests {
+    use crate::{
+        connection::Connection,
+        error::Error,
+        security,
+        testing::{poll_tls_pair, s2n_tls::Harness, Pair},
+    };
+
     use super::*;
 
     // makes sure that the get_fingerprint method properly catches the "too
@@ -173,9 +181,61 @@ mod tests {
         todo!("implement a test with big fingerprint")
     }
 
+    // test that fingerprints can successfully be calculated from ClientHellos
+    // returned from a connection
     #[test]
-    fn io_fingerprint_test() {
-        todo!("implement a test that uses a ClientHello from actual IO")
+    fn io_fingerprint_test() -> Result<(), Error> {
+        let config = crate::testing::config_builder(&security::DEFAULT_TLS13)
+            .unwrap()
+            .build()?;
+
+        let server = {
+            // create and configure a server connection
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            // create a client connection
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        // client_hellos can not be accessed before the handshake
+        assert!(client.connection().client_hello().is_err());
+        assert!(server.connection().client_hello().is_err());
+
+        let pair = Pair::new(server, client);
+
+        let pair = poll_tls_pair(pair);
+        let server_conn = pair.server.0.connection();
+        let client_conn = pair.server.0.connection();
+
+        let check_client_hello = |conn: &Connection| {
+            let expected_hash = "3d80a90bdfa45a3cee62cccfda33c885";
+            let expected_fingerprint = "771,4865-4866-4867-49195-49199-49\
+                                              196-49200-52393-52392-49161-49171\
+                                              -49187-49191-49162-49172-156-60-4\
+                                              7-255,43-10-51-13-11-23,29-23-24,0";
+
+            let client_hello = conn.client_hello().unwrap();
+            assert_eq!(
+                hex::encode(client_hello.fingerprint_hash(FingerprintType::JA3)),
+                expected_hash
+            );
+            assert_eq!(
+                client_hello.fingerprint_string(FingerprintType::JA3),
+                expected_fingerprint
+            );
+        };
+
+        check_client_hello(server_conn);
+        check_client_hello(client_conn);
+
+        Ok(())
+        //todo!("implement a test that uses a ClientHello from actual IO")
     }
 
     fn known_test_case(
@@ -183,26 +243,24 @@ mod tests {
         expected_fingerprint: &str,
         expected_hash_hex: &str,
     ) {
-        let expected_hash: Vec<u8> = (0..expected_hash_hex.len())
-            .step_by(2)
-            .map(|i| u8::from_str_radix(&expected_hash_hex[i..i + 2], 16).unwrap())
-            .collect();
+        let expected_hash: Vec<u8> = hex::decode(expected_hash_hex).unwrap();
         crate::init::init();
         let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
-        let hash = client_hello.get_hash(FingerprintType::JA3);
+        let hash = client_hello.fingerprint_hash(FingerprintType::JA3);
         assert_eq!(hash, expected_hash);
 
-        let fingerprint = client_hello.get_fingerprint_string(FingerprintType::JA3);
+        let fingerprint = client_hello.fingerprint_string(FingerprintType::JA3);
         assert_eq!(&fingerprint, expected_fingerprint);
     }
 
     #[test]
     fn invalid_client_bytes() {
-        let some_bytes = vec![1, 5, 76, 2];
-        let result = ClientHello::parse_client_hello(&some_bytes);
+        let raw_client_hello_bytes = "random_value_that_is_unlikely_to_be_valid_client_hello".as_bytes();
+        let result = ClientHello::parse_client_hello(raw_client_hello_bytes);
         assert!(result.is_err());
     }
 
+    // known value test case copied from s2n_fingerprint_ja3_test.c
     #[test]
     fn valid_client_bytes() {
         let raw_client_hello = vec![
@@ -230,43 +288,5 @@ mod tests {
                                     23-65281-10-11-35-16-5-13-28,29-23-24-25,0";
         let expected_hash_hex = "839bbe3ed07fed922ded5aaf714d6842";
         known_test_case(raw_client_hello, expected_fingerprint, expected_hash_hex);
-    }
-
-    #[test]
-    fn bytes_512_2() {
-        let raw_client_hello = vec![
-            0x01, 0x00, 0x01, 0xFC, 0x03, 0x03, 0x40, 0xc7, 0x8a, 0xef, 0x5c, 0x7f, 0xed, 0x98,
-            0x4a, 0x19, 0x8a, 0x03, 0x0b, 0xc0, 0x2d, 0xc0, 0xd6, 0x8f, 0x0b, 0x14, 0x7d, 0x23,
-            0x3d, 0x90, 0xb4, 0x2b, 0x4b, 0x28, 0x2c, 0x44, 0x0c, 0x4d, 0x20, 0xf4, 0x73, 0x04,
-            0xed, 0x17, 0x42, 0xd6, 0xb5, 0x08, 0x2e, 0x73, 0x78, 0x71, 0x25, 0x52, 0x5c, 0xea,
-            0xe7, 0xd7, 0xe5, 0x7c, 0xfa, 0x27, 0xfe, 0xa3, 0x52, 0x63, 0x7a, 0x27, 0xc3, 0x5d,
-            0x58, 0x00, 0x3e, 0x13, 0x02, 0x13, 0x03, 0x13, 0x01, 0xc0, 0x2c, 0xc0, 0x30, 0x00,
-            0x9f, 0xcc, 0xa9, 0xcc, 0xa8, 0xcc, 0xaa, 0xc0, 0x2b, 0xc0, 0x2f, 0x00, 0x9e, 0xc0,
-            0x24, 0xc0, 0x28, 0x00, 0x6b, 0xc0, 0x23, 0xc0, 0x27, 0x00, 0x67, 0xc0, 0x0a, 0xc0,
-            0x14, 0x00, 0x39, 0xc0, 0x09, 0xc0, 0x13, 0x00, 0x33, 0x00, 0x9d, 0x00, 0x9c, 0x00,
-            0x3d, 0x00, 0x3c, 0x00, 0x35, 0x00, 0x2f, 0x00, 0xff, 0x01, 0x00, 0x01, 0x75, 0x00,
-            0x00, 0x00, 0x10, 0x00, 0x0e, 0x00, 0x00, 0x0b, 0x65, 0x78, 0x61, 0x6d, 0x70, 0x6c,
-            0x65, 0x2e, 0x63, 0x6f, 0x6d, 0x00, 0x0b, 0x00, 0x04, 0x03, 0x00, 0x01, 0x02, 0x00,
-            0x0a, 0x00, 0x0c, 0x00, 0x0a, 0x00, 0x1d, 0x00, 0x17, 0x00, 0x1e, 0x00, 0x19, 0x00,
-            0x18, 0x33, 0x74, 0x00, 0x00, 0x00, 0x10, 0x00, 0x0e, 0x00, 0x0c, 0x02, 0x68, 0x32,
-            0x08, 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e, 0x31, 0x00, 0x16, 0x00, 0x00, 0x00,
-            0x17, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x30, 0x00, 0x2e, 0x04, 0x03, 0x05, 0x03, 0x06,
-            0x03, 0x08, 0x07, 0x08, 0x08, 0x08, 0x09, 0x08, 0x0a, 0x08, 0x0b, 0x08, 0x04, 0x08,
-            0x05, 0x08, 0x06, 0x04, 0x01, 0x05, 0x01, 0x06, 0x01, 0x03, 0x03, 0x02, 0x03, 0x03,
-            0x01, 0x02, 0x01, 0x03, 0x02, 0x02, 0x02, 0x04, 0x02, 0x05, 0x02, 0x06, 0x02, 0x00,
-            0x2b, 0x00, 0x09, 0x08, 0x03, 0x04, 0x03, 0x03, 0x03, 0x02, 0x03, 0x01, 0x00, 0x2d,
-            0x00, 0x02, 0x01, 0x01, 0x00, 0x33, 0x00, 0x26, 0x00, 0x24, 0x00, 0x1d, 0x00, 0x20,
-            0x29, 0x90, 0xc2, 0xec, 0x21, 0x68, 0x2c, 0x5a, 0x7a, 0x5a, 0x46, 0x49, 0x59, 0x42,
-            0x54, 0x66, 0x02, 0x92, 0x0c, 0x08, 0x16, 0x59, 0xf6, 0xcc, 0x75, 0xb8, 0x16, 0x53,
-            0x20, 0x46, 0x79, 0x23, 0x00, 0x15, 0x00, 0xb6,
-        ];
-        crate::init::init();
-        let mut raw_client_512 = vec![0; 512];
-        for (i, v) in raw_client_hello.iter().enumerate() {
-            raw_client_512[i] = *v;
-        }
-        crate::init::init();
-        // why does this one fail
-        ClientHello::parse_client_hello(raw_client_512.as_slice()).unwrap();
     }
 }
