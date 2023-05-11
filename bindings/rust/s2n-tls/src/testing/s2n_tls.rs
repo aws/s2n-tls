@@ -535,7 +535,7 @@ mod tests {
     #[test]
     fn connection_level_verify_host_callback() -> Result<(), Error> {
         let reject_config = {
-            let mut keypair = CertKeyPair::default();
+            let keypair = CertKeyPair::default();
             let mut config = crate::config::Builder::new();
             // configure the config VerifyHostNameCallback to reject all certificates
             config.set_verify_host_callback(RejectAllCertificatesHandler {})?;
@@ -648,5 +648,62 @@ mod tests {
         }
 
         Ok(())
+    }
+
+    #[test]
+    fn system_certs_loaded_by_default() {
+        let keypair = CertKeyPair::default();
+
+        // Load the server certificate into the trust store by overriding the OpenSSL default
+        // certificate location.
+        temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
+            let mut builder = Builder::new();
+            builder
+                .load_pem(keypair.cert(), keypair.key())
+                .unwrap()
+                .set_security_policy(&security::DEFAULT_TLS13)
+                .unwrap()
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                .unwrap();
+
+            let config = builder.build().unwrap();
+            establish_connection(config);
+        });
+    }
+
+    #[test]
+    fn disable_loading_system_certs() {
+        let keypair = CertKeyPair::default();
+
+        // Load the server certificate into the trust store by overriding the OpenSSL default
+        // certificate location.
+        temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
+            let mut builder = Builder::new();
+            builder
+                .load_pem(keypair.cert(), keypair.key())
+                .unwrap()
+                .set_security_policy(&security::DEFAULT_TLS13)
+                .unwrap()
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                .unwrap();
+
+            // Disable loading system certificates
+            builder.with_system_certs(false).unwrap();
+
+            let config = builder.build().unwrap();
+            let mut config_with_system_certs = config.clone();
+
+            let mut pair = tls_pair(config);
+
+            // System certificates should not be loaded into the trust store. The handshake
+            // should fail since the certificate should not be trusted.
+            assert!(poll_tls_pair_result(&mut pair).is_err());
+
+            // The handshake should succeed after trusting the certificate.
+            unsafe {
+                s2n_tls_sys::s2n_config_load_system_certs(config_with_system_certs.as_mut_ptr());
+            }
+            establish_connection(config_with_system_certs);
+        });
     }
 }
