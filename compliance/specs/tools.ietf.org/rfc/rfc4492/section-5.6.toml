@@ -1,0 +1,106 @@
+target = "https://tools.ietf.org/rfc/rfc4492#section-5.6"
+
+# 5.6.  Client Certificate
+#
+# When this message is sent:
+# 
+# This message is sent in response to a CertificateRequest when a
+# client has a suitable certificate and has decided to proceed with
+# client authentication.  (Note that if the server has used a Supported
+# Point Formats Extension, a certificate can only be considered
+# suitable for use with the ECDSA_sign, RSA_fixed_ECDH, and
+# ECDSA_fixed_ECDH authentication methods if the public key point
+# specified in it respects the server's choice of point formats.  If no
+# Supported Point Formats Extension has been used, a certificate can
+# only be considered suitable for use with these authentication methods
+# if the point is represented in uncompressed point format.)
+# 
+# Meaning of this message:
+# 
+# This message is used to authentically convey the client's static
+# public key to the server.  The following table summarizes what client
+# certificate types are appropriate for the ECC-based client
+# authentication mechanisms described in Section 3.  ECC public keys
+# must be encoded in certificates as described in Section 5.9.
+# 
+# NOTE: The client's Certificate message is capable of carrying a chain
+# of certificates.  The restrictions mentioned in Table 4 apply only to
+# the client's certificate (first in the chain).
+# 
+#        Client
+#        Authentication Method   Client Certificate Type
+#        ---------------------   -----------------------
+# 
+#        ECDSA_sign              Certificate MUST contain an
+#                                ECDSA-capable public key and
+#                                be signed with ECDSA.
+# 
+#        ECDSA_fixed_ECDH        Certificate MUST contain an
+#                                ECDH-capable public key on the
+#                                same elliptic curve as the server's
+#                                long-term ECDH key.  This certificate
+#                                MUST be signed with ECDSA.
+# 
+#        RSA_fixed_ECDH          Certificate MUST contain an
+#                                ECDH-capable public key on the
+#                                same elliptic curve as the server's
+#                                long-term ECDH key.  This certificate
+#                                MUST be signed with RSA.
+# 
+#                   Table 4: Client Certificate Types
+# 
+# Structure of this message:
+# 
+# Identical to the TLS client Certificate format.
+# 
+# Actions of the sender:
+# 
+# The client constructs an appropriate certificate chain, and conveys
+# it to the server in the Certificate message.
+# 
+# Actions of the receiver:
+# 
+# The TLS server validates the certificate chain, extracts the client's
+# public key, and checks that the key type is appropriate for the
+# client authentication method.
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECDSA_sign              Certificate MUST contain an
+ECDSA-capable public key and
+be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECDSA_fixed_ECDH        Certificate MUST contain an
+ECDH-capable public key on the
+same elliptic curve as the server's
+long-term ECDH key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This certificate
+MUST be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+RSA_fixed_ECDH          Certificate MUST contain an
+ECDH-capable public key on the
+same elliptic curve as the server's
+long-term ECDH key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This certificate
+MUST be signed with RSA.
+'''
+
