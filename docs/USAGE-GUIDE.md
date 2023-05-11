@@ -602,6 +602,18 @@ to establish a TLS connection with the peer.
 To perform the handshake, call `s2n_negotiate()` until it either returns **S2N_SUCCESS**
 or returns **S2N_FAILURE** without a **S2N_ERR_T_BLOCKED** error.
 
+For example, to perform a basic handshake:
+```c
+s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+do {
+    int r = s2n_negotiate(conn, &blocked);
+    if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
+        break;
+    }
+} while (blocked != S2N_NOT_BLOCKED);
+```
+
 ### Application Data
 
 After the TLS handshake, an application can send and receive encrypted data.

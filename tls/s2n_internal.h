@@ -53,3 +53,14 @@ S2N_PRIVATE_API int s2n_connection_get_config(struct s2n_connection *conn, struc
  */
 S2N_PRIVATE_API int s2n_config_add_cert_chain(struct s2n_config *config,
         uint8_t *cert_chain_pem, uint32_t cert_chain_pem_size);
+
+/*
+ * Creates a new s2n_config without loading default system certificates into the trust store.
+ */
+S2N_PRIVATE_API struct s2n_config *s2n_config_new_minimal(void);
+
+/*
+ * Loads system default certificates into the trust store for configs created with
+ * `s2n_config_new_minimal`.
+ */
+S2N_PRIVATE_API int s2n_config_load_system_certs(struct s2n_config *config);

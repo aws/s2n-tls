@@ -25,3 +25,9 @@ extern "C" {
         cert_chain_pem_size: u32,
     ) -> ::libc::c_int;
 }
+extern "C" {
+    pub fn s2n_config_new_minimal() -> *mut s2n_config;
+}
+extern "C" {
+    pub fn s2n_config_load_system_certs(config: *mut s2n_config) -> ::libc::c_int;
+}

@@ -149,12 +149,15 @@ impl Drop for Config {
 }
 
 #[derive(Default)]
-pub struct Builder(Config);
+pub struct Builder {
+    config: Config,
+    load_system_certs: bool,
+}
 
 impl Builder {
     pub fn new() -> Self {
         crate::init::init();
-        let config = unsafe { s2n_config_new().into_result() }.unwrap();
+        let config = unsafe { s2n_config_new_minimal().into_result() }.unwrap();
 
         let context = Box::<Context>::default();
         let context = Box::into_raw(context) as *mut c_void;
@@ -175,7 +178,10 @@ impl Builder {
             .unwrap();
         }
 
-        Self(Config(config))
+        Self {
+            config: Config(config),
+            load_system_certs: true,
+        }
     }
 
     pub fn set_alert_behavior(&mut self, value: AlertBehavior) -> Result<&mut Self, Error> {
@@ -317,6 +323,15 @@ impl Builder {
         Ok(self)
     }
 
+    /// Sets whether or not default system certificates will be loaded into the trust store.
+    ///
+    /// Set to false for increased performance if system certificates are not needed during
+    /// certificate validation.
+    pub fn with_system_certs(&mut self, load_system_certs: bool) -> Result<&mut Self, Error> {
+        self.load_system_certs = load_system_certs;
+        Ok(self)
+    }
+
     pub fn wipe_trust_store(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_config_wipe_trust_store(self.as_mut_ptr()).into_result()? };
         Ok(self)
@@ -387,12 +402,12 @@ impl Builder {
             verify_host(host_name, host_name_len, handler)
         }
 
-        self.0.context_mut().verify_host_callback = Some(Box::new(handler));
+        self.config.context_mut().verify_host_callback = Some(Box::new(handler));
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),
                 Some(verify_host_cb_fn),
-                self.0.context_mut() as *mut Context as *mut c_void,
+                self.config.context_mut() as *mut Context as *mut c_void,
             )
             .into_result()?;
         }
@@ -441,7 +456,7 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.0.context_mut();
+        let context = self.config.context_mut();
         context.client_hello_callback = Some(handler);
 
         unsafe {
@@ -479,7 +494,7 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.0.context_mut();
+        let context = self.config.context_mut();
         context.private_key_callback = Some(handler);
 
         unsafe {
@@ -513,13 +528,13 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.0.context_mut();
+        let context = self.config.context_mut();
         context.wall_clock = Some(handler);
         unsafe {
             s2n_config_set_wall_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.0.context_mut() as *mut _ as *mut c_void,
+                self.config.context_mut() as *mut _ as *mut c_void,
             )
             .into_result()?;
         }
@@ -550,25 +565,31 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.0.context_mut();
+        let context = self.config.context_mut();
         context.monotonic_clock = Some(handler);
         unsafe {
             s2n_config_set_monotonic_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.0.context_mut() as *mut _ as *mut c_void,
+                self.config.context_mut() as *mut _ as *mut c_void,
             )
             .into_result()?;
         }
         Ok(self)
     }
 
-    pub fn build(self) -> Result<Config, Error> {
-        Ok(self.0)
+    pub fn build(mut self) -> Result<Config, Error> {
+        if self.load_system_certs {
+            unsafe {
+                s2n_config_load_system_certs(self.as_mut_ptr()).into_result()?;
+            }
+        }
+
+        Ok(self.config)
     }
 
     fn as_mut_ptr(&mut self) -> *mut s2n_config {
-        self.0.as_mut_ptr()
+        self.config.as_mut_ptr()
     }
 }
 
