@@ -147,7 +147,8 @@ impl Context for MemoryContext {
     }
 }
 
-struct CertKeyPair {
+pub struct CertKeyPair {
+    cert_path: &'static str,
     cert: &'static [u8],
     key: &'static [u8],
 }
@@ -155,6 +156,10 @@ struct CertKeyPair {
 impl Default for CertKeyPair {
     fn default() -> Self {
         CertKeyPair {
+            cert_path: concat!(
+                env!("CARGO_MANIFEST_DIR"),
+                "/../../../tests/pems/rsa_4096_sha512_client_cert.pem",
+            ),
             cert: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_cert.pem")[..],
             key: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_key.pem")[..],
         }
@@ -162,11 +167,15 @@ impl Default for CertKeyPair {
 }
 
 impl CertKeyPair {
-    fn cert(&mut self) -> &'static [u8] {
+    pub fn cert_path(&self) -> &'static str {
+        self.cert_path
+    }
+
+    pub fn cert(&self) -> &'static [u8] {
         self.cert
     }
 
-    fn key(&mut self) -> &'static [u8] {
+    pub fn key(&self) -> &'static [u8] {
         self.key
     }
 }
@@ -192,7 +201,7 @@ pub fn build_config(cipher_prefs: &security::Policy) -> Result<crate::config::Co
 
 pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::Builder, Error> {
     let mut builder = Builder::new();
-    let mut keypair = CertKeyPair::default();
+    let keypair = CertKeyPair::default();
     // Build a config
     builder
         .set_security_policy(cipher_prefs)
