@@ -1,0 +1,26 @@
+target = "https://tools.ietf.org/rfc/rfc4492#section-2.4"
+
+# 2.4.  ECDHE_RSA
+#
+# This key exchange algorithm is the same as ECDHE_ECDSA except that
+# the server's certificate MUST contain an RSA public key authorized
+# for signing, and that the signature in the ServerKeyExchange message
+# must be computed with the corresponding RSA private key.  The server
+# certificate MUST be signed with RSA.
+
+[[spec]]
+level = "MUST"
+quote = '''
+This key exchange algorithm is the same as ECDHE_ECDSA except that
+the server's certificate MUST contain an RSA public key authorized
+for signing, and that the signature in the ServerKeyExchange message
+must be computed with the corresponding RSA private key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server
+certificate MUST be signed with RSA.
+'''
+
