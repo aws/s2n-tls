@@ -241,8 +241,10 @@ S2N_API extern int s2n_init(void);
 S2N_API extern int s2n_cleanup(void);
 
 /**
- * Creates a new s2n_config object and initializes it with default system certificates. This object
- * can (and should) be associated with many connection objects.
+ * Creates a new s2n_config object. This object can (and should) be associated with many connection
+ * objects.
+ *
+ * The returned config will be initialized with default system certificates in its trust store.
  *
  * The returned config should be freed with `s2n_config_free()` after it's no longer in use by any
  * connection.
@@ -856,6 +858,7 @@ S2N_API extern int s2n_config_wipe_trust_store(struct s2n_config *config);
  *
  * @note This API will error if called on a config that has already loaded system certificates
  * into its trust store, which includes all configs created with `s2n_config_new()`.
+ *
  * @param config The configuration object being updated
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
