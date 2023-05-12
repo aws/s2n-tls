@@ -1,0 +1,26 @@
+target = "https://tools.ietf.org/rfc/rfc4492#section-3.3"
+
+# 3.3.  RSA_fixed_ECDH
+#
+# This authentication mechanism is identical to ECDSA_fixed_ECDH except
+# that the client's certificate MUST be signed with RSA.
+# 
+# Note that while the ECDSA_sign, ECDSA_fixed_ECDH, and RSA_fixed_ECDH
+# client authentication mechanisms require the client's certificate to
+# be signed with a particular signature scheme, this specification does
+# not impose restrictions on signature schemes used elsewhere in the
+# certificate chain.  (Often such restrictions will be useful, and it
+# is expected that this will be taken into account in certification
+# authorities' signing practices.  However, such restrictions are not
+# strictly required in general: Even if it is beyond the capabilities
+# of a server to completely validate a given chain, the server may be
+# able to validate the clients certificate by relying on a trust anchor
+# that appears as one of the intermediate certificates in the chain.)
+
+[[spec]]
+level = "MUST"
+quote = '''
+This authentication mechanism is identical to ECDSA_fixed_ECDH except
+that the client's certificate MUST be signed with RSA.
+'''
+
