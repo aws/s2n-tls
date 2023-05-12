@@ -28,6 +28,7 @@
 
 #include "api/s2n.h"
 #include "error/s2n_errno.h"
+#include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 uint8_t ticket_key_name[16] = "2016.07.26.15\0";
 
@@ -263,29 +264,40 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
     GUARD_EXIT_NULL(psk);
     GUARD_EXIT_NULL(params);
 
+    DEFER_CLEANUP(struct s2n_stuffer psk_params = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer token = { 0 }, s2n_stuffer_free);
+    POSIX_GUARD(s2n_stuffer_alloc_ro_from_string(&psk_params, params));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&token, 0));
     size_t token_idx = 0;
-    for (char *token = strtok(params, ","); token != NULL; token = strtok(NULL, ","), token_idx++) {
+
+    while (s2n_stuffer_read_token(&psk_params, &token, ',') == S2N_SUCCESS && s2n_stuffer_data_available(&token) ) {
+        uint16_t token_len = s2n_stuffer_data_available(&token);
+        uint8_t *token_ptr = s2n_stuffer_raw_read(&token, token_len);
+        POSIX_ENSURE_REF(token_ptr);
+
         switch (token_idx) {
             case 0:
-                GUARD_EXIT(s2n_psk_set_identity(*psk, (const uint8_t *) token, strlen(token)),
+                GUARD_EXIT(s2n_psk_set_identity(*psk, token_ptr, token_len),
                         "Error setting psk identity\n");
                 break;
             case 1: {
-                uint32_t max_secret_len = strlen(token) / 2;
+                uint32_t max_secret_len = token_len / 2;
                 uint8_t *secret = malloc(max_secret_len);
                 GUARD_EXIT_NULL(secret);
-                GUARD_EXIT(s2n_str_hex_to_bytes((const unsigned char *) token, secret, max_secret_len), "Error converting hex-encoded psk secret to bytes\n");
+
+                GUARD_EXIT(s2n_str_hex_to_bytes((const unsigned char *) token_ptr, secret, max_secret_len), "Error converting hex-encoded psk secret to bytes\n");
                 GUARD_EXIT(s2n_psk_set_secret(*psk, secret, max_secret_len), "Error setting psk secret\n");
                 free(secret);
             } break;
             case 2: {
                 s2n_psk_hmac psk_hmac_alg = 0;
-                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token), "Invalid psk hmac algorithm\n");
+                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token_ptr), "Invalid psk hmac algorithm\n");
                 GUARD_EXIT(s2n_psk_set_hmac(*psk, psk_hmac_alg), "Error setting psk hmac algorithm\n");
             } break;
             default:
                 break;
         }
+        token_idx++;
     }
 
     return S2N_SUCCESS;
