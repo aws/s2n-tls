@@ -270,7 +270,7 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
     POSIX_GUARD(s2n_stuffer_growable_alloc(&token, 0));
     size_t token_idx = 0;
 
-    while (s2n_stuffer_read_token(&psk_params, &token, ',') == S2N_SUCCESS && s2n_stuffer_data_available(&token) ) {
+    while (s2n_stuffer_read_token(&psk_params, &token, ',') == S2N_SUCCESS && s2n_stuffer_data_available(&token)) {
         uint16_t token_len = s2n_stuffer_data_available(&token);
         uint8_t *token_ptr = s2n_stuffer_raw_read(&token, token_len);
         POSIX_ENSURE_REF(token_ptr);
