@@ -291,7 +291,7 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
             } break;
             case 2: {
                 s2n_psk_hmac psk_hmac_alg = 0;
-                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, token_ptr), "Invalid psk hmac algorithm\n");
+                GUARD_EXIT(s2n_get_psk_hmac_alg(&psk_hmac_alg, (char *) token_ptr), "Invalid psk hmac algorithm\n");
                 GUARD_EXIT(s2n_psk_set_hmac(*psk, psk_hmac_alg), "Error setting psk hmac algorithm\n");
             } break;
             default:
