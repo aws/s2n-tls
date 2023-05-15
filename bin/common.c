@@ -280,7 +280,6 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
                 uint32_t max_secret_len = strlen(token) / 2;
                 uint8_t *secret = malloc(max_secret_len);
                 GUARD_EXIT_NULL(secret);
-
                 GUARD_EXIT(s2n_str_hex_to_bytes((const unsigned char *) token, secret, max_secret_len), "Error converting hex-encoded psk secret to bytes\n");
                 GUARD_EXIT(s2n_psk_set_secret(*psk, secret, max_secret_len), "Error setting psk secret\n");
                 free(secret);
