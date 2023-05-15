@@ -1,9 +1,26 @@
 # FAQ for s2n-tls
 
+### Why is my connection using TLS1.0?
+It is possible that your security policy allows TLS1.0 and your peer only
+supports TLS1.0. However, if you're reading the version "TLS1.0" from a packet
+capture, make sure that you're reading the right version field. The TLS protocol
+includes several legacy version fields that have ossified, making it difficult
+to understand what version was negotiated.
+
+For backwards compatibility reasons, the version field in the TLS record header
+is set to "TLS1.0" when sending the ClientHello message, and for later messages
+is still never set higher than "TLS1.2".
+The ClientHello message has its own version field, which will also never be set
+higher than "TLS1.2" for similar reasons.
+If the client does support TLS1.3, it will include that information in the ClientHello
+"supported_versions" extension instead of setting any of the legacy version fields.
+
+s2n-tls offers [methods](USAGE-GUIDE/#protocol-version) to retrieve accurate protocol versions.
+
 ### Why isn't my connection using TLS1.3?
 There are several possible reasons:
 * Are you using a security policy that supports TLS1.3? See [security policies](USAGE-GUIDE.md/#security-policies).
-* Are you verifying the connection version correctly? If you're examining the version in a packet capture, make sure that you're checking the right version field. The TLS protocol includes several legacy version fields that have ossified, making it more difficult to understand what version was negotiated. TLS1.3 sets the record version field to TLS1.1 or TLS1.2 and the ClientHello version field to TLS1.2 for backwards compatibility reasons. There is a separate ClientHello extension called "supported_versions" which lists the actual versions supported, included TLS1.3. See the [protocol version section](USAGE-GUIDE/#protocol-version) for methods to check the actual protocol version negotiated.
+* Are you verifying the connection version correctly? See [the previous question](FAQ.md#why-is-my-connection-using-tls10).
 * Are you using a libcrypto library that supports TLS1.3? Modern libcrypto libraries support the algorithms needed for TLS1.3, but older libraries like Openssl 1.0.2 do not. If s2n-tls is built with Openssl 1.0.2, TLS1.3 is unlikely to be negotiated. 
 * Does your peer support TLS1.3? If your peer does not support TLS1.3, TLS1.3 will not be negotiated.
 

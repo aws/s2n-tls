@@ -1,0 +1,26 @@
+[ ca ]
+default_ca = CA_default
+prompt = no
+
+[ CA_default ]
+dir               = config
+unique_subject    = no
+certificate       = ca_cert.pem
+private_key       = ca_key.pem
+# this is the database that the ocsp server reads in
+database          = certs_early_expire_index.txt
+serial            = $dir/serial
+default_md        = sha256
+name_opt          = ca_default
+cert_opt          = ca_default
+default_enddate   = 20360101010101Z
+preserve          = yes
+policy            = policy_strict
+
+[ policy_strict ]
+countryName             = supplied
+stateOrProvinceName     = supplied
+organizationName        = supplied
+organizationalUnitName  = optional
+commonName              = supplied
+emailAddress            = optional

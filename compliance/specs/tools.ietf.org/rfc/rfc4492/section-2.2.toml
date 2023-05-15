@@ -1,0 +1,34 @@
+target = "https://tools.ietf.org/rfc/rfc4492#section-2.2"
+
+# 2.2.  ECDHE_ECDSA
+#
+# In ECDHE_ECDSA, the server's certificate MUST contain an ECDSA-
+# capable public key and be signed with ECDSA.
+# 
+# The server sends its ephemeral ECDH public key and a specification of
+# the corresponding curve in the ServerKeyExchange message.  These
+# parameters MUST be signed with ECDSA using the private key
+# corresponding to the public key in the server's Certificate.
+# 
+# The client generates an ECDH key pair on the same curve as the
+# server's ephemeral ECDH key and sends its public key in the
+# ClientKeyExchange message.
+# 
+# Both client and server perform an ECDH operation (Section 5.10) and
+# use the resultant shared secret as the premaster secret.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In ECDHE_ECDSA, the server's certificate MUST contain an ECDSA-
+capable public key and be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+These
+parameters MUST be signed with ECDSA using the private key
+corresponding to the public key in the server's Certificate.
+'''
+
