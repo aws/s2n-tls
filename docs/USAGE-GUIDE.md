@@ -843,13 +843,13 @@ not require these default system certificates, they should be cleared with
 `s2n_config_wipe_trust_store()` before calling `s2n_config_set_verification_ca_location()` or
 `s2n_config_add_pem_to_trust_store()`.
 
-Note that if s2n-tls is operating as a server performing client authentication, the
-`s2n_verify_host_fn` callback must be implemented to validate the identity of all received
-certificates. If the identity of the received certificates are implicit (i.e. the certificates are
-self-signed, or signed by a privately owned CA), the `s2n_verify_host_fn` callback need not perform
-any additional validation. However, `s2n_config_wipe_trust_store()` should be called before adding
-certificates to the trust store in this case, in order to avoid implicitly trusting the identity of
-peers that may present certificates trusted via an unexpected default system certificate.
+Note that the `s2n_verify_host_fn` callback must be implemented to validate the identity of all
+received certificates. A client implementation is set by default. If the identity of the received
+certificates are implicit (i.e. the certificates are self-signed, or signed by a privately owned
+CA), the `s2n_verify_host_fn` callback need not perform any additional validation. However,
+`s2n_config_wipe_trust_store()` should be called before adding certificates to the trust store in
+this case, in order to avoid implicitly trusting the identity of peers that may present
+certificates trusted via an unexpected default system certificate.
 
 Configs created with `s2n_config_new_minimal()` are initialized with empty trust stores. To add
 default system certificates to these configs, call `s2n_config_load_system_certs()`.
