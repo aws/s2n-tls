@@ -219,6 +219,7 @@ static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s
     RESULT_GUARD_PTR(out_blob);
     RESULT_GUARD_PTR(drbg_state);
 
+    RESULT_ENSURE(!s2n_is_in_fips_mode(), S2N_ERR_DRBG);
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
     RESULT_GUARD(s2n_ensure_uniqueness());
 
@@ -372,10 +373,7 @@ int s2n_openssl_compat_rand(unsigned char *buf, int num)
     struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, buf, num));
 
-    /* Overriding a libcrypto RAND callback is not possible with a FIPS libcrypto. So, the custom
-     * random implementation should always be used.
-     */
-    if (s2n_result_is_error(s2n_get_custom_random_data(&out, &s2n_per_thread_rand_state.private_drbg))) {
+    if (s2n_result_is_error(s2n_get_private_random_data(&out))) {
         return 0;
     }
     return 1;
@@ -426,6 +424,10 @@ S2N_RESULT s2n_rand_init(void)
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    if (s2n_is_in_fips_mode()) {
+        return S2N_RESULT_OK;
+    }
+
     /* Create an engine */
     ENGINE *e = ENGINE_new();
 
