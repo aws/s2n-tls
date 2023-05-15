@@ -263,7 +263,7 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
     GUARD_EXIT_NULL(psk);
     GUARD_EXIT_NULL(params);
 
-    // duplicate params as strtok will modify the input string
+    /* duplicate params as strtok will modify the input string */
     char *params_dup = malloc(strlen(params) + 1);
     GUARD_EXIT_NULL(params_dup);
     strcpy(params_dup, params);
