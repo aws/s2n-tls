@@ -372,6 +372,9 @@ int s2n_openssl_compat_rand(unsigned char *buf, int num)
     struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, buf, num));
 
+    /* Overriding a libcrypto RAND callback is not possible with a FIPS libcrypto. So, the custom
+     * random implementation should always be used.
+     */
     if (s2n_result_is_error(s2n_get_custom_random_data(&out, &s2n_per_thread_rand_state.private_drbg))) {
         return 0;
     }
