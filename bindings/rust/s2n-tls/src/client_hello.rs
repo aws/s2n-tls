@@ -1,11 +1,11 @@
-use std::fmt;
-use std::ops::Deref;
-use std::ops::DerefMut;
+use std::{
+    fmt,
+    ops::{Deref, DerefMut},
+};
 
 use s2n_tls_sys::*;
 
-use crate::error::Error;
-use crate::error::Fallible;
+use crate::error::{Error, Fallible};
 
 #[derive(Copy, Clone)]
 pub enum FingerprintType {
