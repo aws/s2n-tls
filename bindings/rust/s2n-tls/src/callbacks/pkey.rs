@@ -128,7 +128,6 @@ mod tests {
     use futures_test::task::new_count_waker;
     use openssl::{ec::EcKey, ecdsa::EcdsaSig};
 
-    const MAX_POLLS: usize = 100;
     type Error = Box<dyn std::error::Error>;
 
     const KEY: &[u8] = include_bytes!(concat!(
@@ -171,7 +170,7 @@ mod tests {
             Harness::new(client)
         };
 
-        Ok(Pair::new(server, client, MAX_POLLS))
+        Ok(Pair::new(server, client))
     }
 
     fn ecdsa_sign(
