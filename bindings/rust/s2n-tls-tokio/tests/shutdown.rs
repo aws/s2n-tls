@@ -129,7 +129,7 @@ async fn shutdown_after_halfclose_split() -> Result<(), Box<dyn std::error::Erro
             // confirm that we can write even after receiving the shutdown from
             // the server
             client_writer
-                .write("random bytes".as_bytes())
+                .write_all("random bytes".as_bytes())
                 .await
                 .unwrap();
             // shutdown
