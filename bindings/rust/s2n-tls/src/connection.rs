@@ -695,10 +695,11 @@ impl Connection {
     /// ```
     #[cfg(feature = "fingerprint")]
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
-        let mut handle = unsafe {
-            s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()?
-        };
-        Ok(crate::client_hello::ClientHello::from_ptr(unsafe {handle.as_mut()}))
+        let mut handle =
+            unsafe { s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()? };
+        Ok(crate::client_hello::ClientHello::from_ptr(unsafe {
+            handle.as_mut()
+        }))
     }
 
     pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {

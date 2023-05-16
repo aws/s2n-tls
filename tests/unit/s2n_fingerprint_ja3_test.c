@@ -700,8 +700,8 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/chrome-grease-single.pcap
          */
         {
-            /* this client hello is 512 bytes long, but only explicitly specifies
-             * 302 of them. The remaining bytes are implicitly zero.
+            /* this client hello is 512 bytes long, but this array does not
+             * specify all the bytes. The remaining bytes are implicitly zero.
              */
             uint8_t raw_client_hello[512] = {
                 0x01, 0x00, 0x01, 0xFC,
@@ -765,8 +765,8 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/curl-ipv6.pcap
          */
         {
-            /* this client hello is 512 bytes long, but only explicitly specifies
-             * 302 of them. The remaining bytes are implicitly zero.
+            /* this client hello is 512 bytes long, but this array does not
+             * specify all the bytes. The remaining bytes are implicitly zero.
              */
             uint8_t raw_client_hello[512] = {
                 0x01, 0x00, 0x01, 0xFC,
@@ -887,8 +887,8 @@ int main(int argc, char **argv)
          * https://github.com/jabedude/ja3-rs/blob/4f2629b86ce3496b4614296f754954806c9c849c/tests/ncat-port-4450.pcap
          */
         {
-            /* this client hello is 512 bytes long, but only explicitly specifies
-             * 404 of them. The remaining bytes are implicitly zero.
+            /* this client hello is 512 bytes long, but this array does not
+             * specify all the bytes. The remaining bytes are implicitly zero.
              */
             uint8_t raw_client_hello[512] = {
                 0x01, 0x00, 0x01, 0xFC,

@@ -181,7 +181,13 @@ impl ClientHello {
         let mut session_id = vec![0; session_id_length as usize];
         let mut out_length = 0;
         unsafe {
-            s2n_client_hello_get_session_id(handle, session_id.as_mut_ptr(), &mut out_length, session_id_length).into_result()?;
+            s2n_client_hello_get_session_id(
+                handle,
+                session_id.as_mut_ptr(),
+                &mut out_length,
+                session_id_length,
+            )
+            .into_result()?;
         }
         Ok(session_id)
     }
@@ -190,23 +196,24 @@ impl ClientHello {
         // safety justifications [2]
         let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
 
-        let message_length = unsafe {
-            s2n_client_hello_get_raw_message_length(handle).into_result()?
-        };
+        let message_length =
+            unsafe { s2n_client_hello_get_raw_message_length(handle).into_result()? };
 
         let mut raw_message = vec![0; message_length];
         unsafe {
-            s2n_client_hello_get_raw_message(handle, raw_message.as_mut_ptr(), message_length as u32).into_result()?
+            s2n_client_hello_get_raw_message(
+                handle,
+                raw_message.as_mut_ptr(),
+                message_length as u32,
+            )
+            .into_result()?
         };
         Ok(raw_message)
-
-
     }
 }
 
 impl Drop for ClientHello {
     fn drop(&mut self) {
-        println!("doing a drop over here");
         let mut client_hello: *mut s2n_client_hello = self.deref_mut();
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.
@@ -221,7 +228,10 @@ impl fmt::Debug for ClientHello {
         let session_id = self.session_id().map_err(|_| fmt::Error)?;
         let session_id = hex::encode(session_id);
         let message_head = self.raw_message().map_err(|_| fmt::Error)?;
-        let fingerprint = self.fingerprint(FingerprintType::JA3).map_err(|_| fmt::Error)?.1;
+        let fingerprint = self
+            .fingerprint(FingerprintType::JA3)
+            .map_err(|_| fmt::Error)?
+            .1;
         f.debug_struct("ClientHello")
             .field("session_id", &session_id)
             .field("message_len", &(message_head.len()))
@@ -393,6 +403,5 @@ mod tests {
                                         .. \
                                     }";
         assert_eq!(client_hello_debug, expected_debug);
-
     }
 }
