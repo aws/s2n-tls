@@ -698,7 +698,7 @@ impl Connection {
         let mut handle = unsafe {
             s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()?
         };
-        Ok(ClientHello::from_ptr(unsafe {handle.as_mut()}))
+        Ok(crate::client_hello::ClientHello::from_ptr(unsafe {handle.as_mut()}))
     }
 
     pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {

@@ -1,3 +1,4 @@
+use std::fmt;
 use std::ops::Deref;
 use std::ops::DerefMut;
 
@@ -75,7 +76,7 @@ impl ClientHello {
     }
 
     // this accepts a mut ref instead of a pointer, so that lifetimes are nicely
-    // calculated for us. As is always the case, the reference must not be null
+    // calculated for us. As is always the case, the reference must not be null.
     // this is marked "pub(crate)" to expose it to the connection module but
     // prevent it from being used externally
     pub(crate) fn from_ptr(hello: &s2n_client_hello) -> &Self {
@@ -136,8 +137,8 @@ impl ClientHello {
             .map_err(|parse_error| Error::application(Box::new(parse_error)))?);
     }
 
-    /// `fingerprint` returns a Vector containing the raw bytes of the has and a
-    /// String containing the fingerprint string. This function will calculate
+    /// `fingerprint` returns a Vector containing the raw bytes of the hash and
+    /// a String containing the fingerprint string. This function will calculate
     /// the fingerprint twice. First it will calculate the hash and figure out
     /// how large the fingerprint string will be, then on the second pass it
     /// will allocate an appropriately sized buffer and calculate the
@@ -148,8 +149,8 @@ impl ClientHello {
         Ok((fingerprint_hash, fingerprint_string))
     }
 
-    pub fn fingerprint_hash(&self, hash: FingerprintType) -> Vec<u8> {
-        let mut hash_result = vec![0; MD5_HASH_SIZE as usize];
+    pub fn fingerprint_hash(&self, hash: FingerprintType) -> Result<Vec<u8>, Error> {
+        let mut fingerprint_hash = vec![0; MD5_HASH_SIZE as usize];
         // safety justifications [2]
         let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
         let mut hash_size: u32 = 0;
@@ -159,14 +160,47 @@ impl ClientHello {
                 handle,
                 hash.into(),
                 MD5_HASH_SIZE,
-                hash_result.as_mut_ptr(),
+                fingerprint_hash.as_mut_ptr(),
                 &mut hash_size,
                 &mut str_size,
             )
-            .into_result()
-            .unwrap()
+            .into_result()?;
+        }
+        Ok(fingerprint_hash)
+    }
+
+    fn session_id(&self) -> Result<Vec<u8>, Error> {
+        // safety justifications [2]
+        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
+
+        let mut session_id_length = 0;
+        unsafe {
+            s2n_client_hello_get_session_id_length(handle, &mut session_id_length).into_result()?;
+        }
+
+        let mut session_id = vec![0; session_id_length as usize];
+        let mut out_length = 0;
+        unsafe {
+            s2n_client_hello_get_session_id(handle, session_id.as_mut_ptr(), &mut out_length, session_id_length).into_result()?;
+        }
+        Ok(session_id)
+    }
+
+    fn raw_message(&self) -> Result<Vec<u8>, Error> {
+        // safety justifications [2]
+        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
+
+        let message_length = unsafe {
+            s2n_client_hello_get_raw_message_length(handle).into_result()?
         };
-        hash_result
+
+        let mut raw_message = vec![0; message_length];
+        unsafe {
+            s2n_client_hello_get_raw_message(handle, raw_message.as_mut_ptr(), message_length as u32).into_result()?
+        };
+        Ok(raw_message)
+
+
     }
 }
 
@@ -182,11 +216,25 @@ impl Drop for ClientHello {
     }
 }
 
+impl fmt::Debug for ClientHello {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let session_id = self.session_id().map_err(|_| fmt::Error)?;
+        let session_id = hex::encode(session_id);
+        let message_head = self.raw_message().map_err(|_| fmt::Error)?;
+        let fingerprint = self.fingerprint(FingerprintType::JA3).map_err(|_| fmt::Error)?.1;
+        f.debug_struct("ClientHello")
+            .field("session_id", &session_id)
+            .field("message_len", &(message_head.len()))
+            .field("ja3_fingerprint", &fingerprint)
+            .finish_non_exhaustive()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use crate::{
         connection::Connection,
-        error::Error,
+        error::{Error, ErrorType},
         security,
         testing::{poll_tls_pair, s2n_tls::Harness, Pair},
     };
@@ -253,11 +301,12 @@ mod tests {
         let expected_hash: Vec<u8> = hex::decode(expected_hash_hex).unwrap();
         crate::init::init();
         let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
+
         let (hash, string) = client_hello.fingerprint(FingerprintType::JA3)?;
         assert_eq!(hash, expected_hash);
         assert_eq!(string, expected_string);
 
-        let hash = client_hello.fingerprint_hash(FingerprintType::JA3);
+        let hash = client_hello.fingerprint_hash(FingerprintType::JA3)?;
         assert_eq!(hash, expected_hash);
 
         // trying to calculate the fingerprint with too small a buffer results
@@ -309,5 +358,41 @@ mod tests {
                                     23-65281-10-11-35-16-5-13-28,29-23-24-25,0";
         let expected_hash_hex = "839bbe3ed07fed922ded5aaf714d6842";
         known_test_case(raw_client_hello, expected_fingerprint, expected_hash_hex).unwrap();
+    }
+
+    // make sure that debug doesn't panic and seems reasonable
+    #[test]
+    fn debug() {
+        let raw_client_hello = vec![
+            0x01, 0x00, 0x00, 0xEC, 0x03, 0x03, 0x90, 0xe8, 0xcc, 0xee, 0xe5, 0x70, 0xa2, 0xa1,
+            0x2f, 0x6b, 0x69, 0xd2, 0x66, 0x96, 0x0f, 0xcf, 0x20, 0xd5, 0x32, 0x6e, 0xc4, 0xb2,
+            0x8c, 0xc7, 0xbd, 0x0a, 0x06, 0xc2, 0xa5, 0x14, 0xfc, 0x34, 0x20, 0xaf, 0x72, 0xbf,
+            0x39, 0x99, 0xfb, 0x20, 0x70, 0xc3, 0x10, 0x83, 0x0c, 0xee, 0xfb, 0xfa, 0x72, 0xcc,
+            0x5d, 0xa8, 0x99, 0xb4, 0xc5, 0x53, 0xd6, 0x3d, 0xa0, 0x53, 0x7a, 0x5c, 0xbc, 0xf5,
+            0x0b, 0x00, 0x1e, 0xc0, 0x2b, 0xc0, 0x2f, 0xcc, 0xa9, 0xcc, 0xa8, 0xc0, 0x2c, 0xc0,
+            0x30, 0xc0, 0x0a, 0xc0, 0x09, 0xc0, 0x13, 0xc0, 0x14, 0x00, 0x33, 0x00, 0x39, 0x00,
+            0x2f, 0x00, 0x35, 0x00, 0x0a, 0x01, 0x00, 0x00, 0x85, 0x00, 0x00, 0x00, 0x23, 0x00,
+            0x21, 0x00, 0x00, 0x1e, 0x69, 0x6e, 0x63, 0x6f, 0x6d, 0x69, 0x6e, 0x67, 0x2e, 0x74,
+            0x65, 0x6c, 0x65, 0x6d, 0x65, 0x74, 0x72, 0x79, 0x2e, 0x6d, 0x6f, 0x7a, 0x69, 0x6c,
+            0x6c, 0x61, 0x2e, 0x6f, 0x72, 0x67, 0x00, 0x17, 0x00, 0x00, 0xff, 0x01, 0x00, 0x01,
+            0x00, 0x00, 0x0a, 0x00, 0x0a, 0x00, 0x08, 0x00, 0x1d, 0x00, 0x17, 0x00, 0x18, 0x00,
+            0x19, 0x00, 0x0b, 0x00, 0x02, 0x01, 0x00, 0x00, 0x23, 0x00, 0x00, 0x00, 0x10, 0x00,
+            0x0e, 0x00, 0x0c, 0x02, 0x68, 0x32, 0x08, 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e,
+            0x31, 0x00, 0x05, 0x00, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x18,
+            0x00, 0x16, 0x04, 0x03, 0x05, 0x03, 0x06, 0x03, 0x08, 0x04, 0x08, 0x05, 0x08, 0x06,
+            0x04, 0x01, 0x05, 0x01, 0x06, 0x01, 0x02, 0x03, 0x02, 0x01, 0x00, 0x1c, 0x00, 0x02,
+            0x40, 0x00,
+        ];
+        crate::init::init();
+        let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
+        let client_hello_debug = format!("{:?}", client_hello);
+        let expected_debug = "ClientHello { \
+                                        session_id: \"af72bf3999fb2070c310830ceefbfa72cc5da899b4c553d63da0537a5cbcf50b\", \
+                                        message_len: 236, \
+                                        ja3_fingerprint: \"771,49195-49199-52393-52392-49196-49200-49162-49161-49171-49172-51-57-47-53-10,0-23-65281-10-11-35-16-5-13-28,29-23-24-25,0\", \
+                                        .. \
+                                    }";
+        assert_eq!(client_hello_debug, expected_debug);
+
     }
 }

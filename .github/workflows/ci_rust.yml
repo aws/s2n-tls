@@ -37,7 +37,7 @@ jobs:
 
       - name: Tests
         working-directory: ${{env.ROOT_PATH}}
-        run: cargo test
+        run: cargo test --all-features
 
       - name: Test external build
         if: ${{ matrix.os == 'ubuntu-latest' }}
