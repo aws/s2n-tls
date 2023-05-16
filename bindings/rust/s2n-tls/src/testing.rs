@@ -18,11 +18,6 @@ pub mod s2n_tls;
 type Error = Box<dyn std::error::Error>;
 type Result<T, E = Error> = core::result::Result<T, E>;
 
-/// The number of iterations that will be executed until the handshake exits with an error
-///
-/// This is to prevent endless looping without making progress on the connection.
-const SAMPLES: usize = 100;
-
 pub fn test_error(msg: &str) -> crate::error::Error {
     crate::error::Error::application(msg.into())
 }
@@ -74,11 +69,16 @@ pub struct Pair<Server: Connection, Client: Connection> {
 }
 
 impl<Server: Connection, Client: Connection> Pair<Server, Client> {
-    pub fn new(server: Server, client: Client, max_iterations: usize) -> Self {
+    /// The number of iterations that will be executed until the handshake exits with an error
+    ///
+    /// This is to prevent endless looping without making progress on the connection.
+    const DEFAULT_ITERATIONS: usize = 100;
+
+    pub fn new(server: Server, client: Client) -> Self {
         Self {
             server: (server, Default::default()),
             client: (client, Default::default()),
-            max_iterations,
+            max_iterations: Self::DEFAULT_ITERATIONS,
         }
     }
     pub fn poll(&mut self) -> Poll<Result<()>> {
@@ -239,7 +239,7 @@ pub fn tls_pair(config: crate::config::Config) -> Pair<Harness, Harness> {
         .expect("Unable to set client config");
     let client = Harness::new(client);
 
-    Pair::new(server, client, SAMPLES)
+    Pair::new(server, client)
 }
 
 pub fn establish_connection(config: crate::config::Config) {
@@ -257,7 +257,7 @@ pub fn establish_connection(config: crate::config::Config) {
         .expect("Unable to set client config");
     let client = Harness::new(client);
 
-    let pair = Pair::new(server, client, SAMPLES);
+    let pair = Pair::new(server, client);
     poll_tls_pair(pair);
 }
 
