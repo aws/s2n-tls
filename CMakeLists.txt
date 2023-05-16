@@ -284,7 +284,7 @@ endif ()
 if(BUILD_TESTING AND BUILD_SHARED_LIBS)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
-    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default -DS2N_EXPORTS)
 endif()
 
 if(S2N_LTO)

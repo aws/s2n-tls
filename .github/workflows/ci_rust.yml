@@ -43,7 +43,7 @@ jobs:
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off
-          cmake --build build
+          cmake --build build -j $(nproc)
 
           export S2N_TLS_LIB_DIR=`pwd`/build/lib
           export S2N_TLS_INCLUDE_DIR=`pwd`/api
