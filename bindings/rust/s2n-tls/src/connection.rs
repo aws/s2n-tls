@@ -691,7 +691,20 @@ impl Connection {
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
     /// drop(conn);
-    /// let hash = client_hello.get_hash(FingerprintType::JA3);
+    /// let hash = client_hello.fingerprint(FingerprintType::JA3);
+    /// ```
+    ///
+    /// The compilation could be failing for a variety of reasons, so make sure
+    /// that the test case is actually good.
+    /// ```no_run
+    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::connection::Connection;
+    /// use s2n_tls::enums::Mode;
+    ///
+    /// let mut conn = Connection::new(Mode::Server);
+    /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
+    /// let hash = client_hello.fingerprint(FingerprintType::JA3);
+    /// drop(conn);
     /// ```
     #[cfg(feature = "fingerprint")]
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
