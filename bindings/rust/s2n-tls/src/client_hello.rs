@@ -84,6 +84,11 @@ impl ClientHello {
         unsafe { &*(hello as *const s2n_client_hello as *const ClientHello) }
     }
 
+    // safety justifications [2]
+    fn deref_mut_ptr(&self) -> *mut s2n_client_hello {
+        self.deref() as *const s2n_client_hello as *mut s2n_client_hello
+    }
+
     /// internal function which calculates the hash, and also returns the size
     /// required for the full fingerprint. External customers should instead use
     /// `fingerprint_hash()` or `fingerprint()`.
@@ -92,13 +97,11 @@ impl ClientHello {
         hash: FingerprintType,
     ) -> Result<(Vec<u8>, u32), Error> {
         let mut hash_result = vec![0; MD5_HASH_SIZE as usize];
-        // safety justifications [2]
-        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
         let mut hash_size: u32 = 0;
         let mut str_size: u32 = 0;
         unsafe {
             s2n_client_hello_get_fingerprint_hash(
-                handle,
+                self.deref_mut_ptr(),
                 hash.into(),
                 MD5_HASH_SIZE,
                 hash_result.as_mut_ptr(),
@@ -119,13 +122,11 @@ impl ClientHello {
         hash: FingerprintType,
         capacity: u32,
     ) -> Result<String, Error> {
-        // safety justifications [2]
-        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
         let mut string: Vec<u8> = vec![0; capacity as usize];
         let mut output_size = 0;
         unsafe {
             s2n_tls_sys::s2n_client_hello_get_fingerprint_string(
-                handle,
+                self.deref_mut_ptr(),
                 hash.into(),
                 capacity,
                 string.as_mut_ptr(),
@@ -151,13 +152,11 @@ impl ClientHello {
 
     pub fn fingerprint_hash(&self, hash: FingerprintType) -> Result<Vec<u8>, Error> {
         let mut fingerprint_hash = vec![0; MD5_HASH_SIZE as usize];
-        // safety justifications [2]
-        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
         let mut hash_size: u32 = 0;
         let mut str_size: u32 = 0;
         unsafe {
             s2n_client_hello_get_fingerprint_hash(
-                handle,
+                self.deref_mut_ptr(),
                 hash.into(),
                 MD5_HASH_SIZE,
                 fingerprint_hash.as_mut_ptr(),
@@ -170,19 +169,17 @@ impl ClientHello {
     }
 
     fn session_id(&self) -> Result<Vec<u8>, Error> {
-        // safety justifications [2]
-        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
-
         let mut session_id_length = 0;
         unsafe {
-            s2n_client_hello_get_session_id_length(handle, &mut session_id_length).into_result()?;
+            s2n_client_hello_get_session_id_length(self.deref_mut_ptr(), &mut session_id_length)
+                .into_result()?;
         }
 
         let mut session_id = vec![0; session_id_length as usize];
         let mut out_length = 0;
         unsafe {
             s2n_client_hello_get_session_id(
-                handle,
+                self.deref_mut_ptr(),
                 session_id.as_mut_ptr(),
                 &mut out_length,
                 session_id_length,
@@ -193,16 +190,13 @@ impl ClientHello {
     }
 
     fn raw_message(&self) -> Result<Vec<u8>, Error> {
-        // safety justifications [2]
-        let handle = self.deref() as *const s2n_client_hello as *mut s2n_client_hello;
-
         let message_length =
-            unsafe { s2n_client_hello_get_raw_message_length(handle).into_result()? };
+            unsafe { s2n_client_hello_get_raw_message_length(self.deref_mut_ptr()).into_result()? };
 
         let mut raw_message = vec![0; message_length];
         unsafe {
             s2n_client_hello_get_raw_message(
-                handle,
+                self.deref_mut_ptr(),
                 raw_message.as_mut_ptr(),
                 message_length as u32,
             )
@@ -251,7 +245,7 @@ mod tests {
 
     use super::*;
 
-    // test that fingerprints can successfully be calculated from ClientHellos
+    // test that a fingerprint can successfully be calculated from ClientHellos
     // returned from a connection
     #[test]
     fn io_fingerprint_test() -> Result<(), Error> {
