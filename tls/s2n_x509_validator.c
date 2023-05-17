@@ -511,7 +511,8 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     uint64_t current_sys_time = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
     if (sizeof(time_t) == 4) {
-        RESULT_ENSURE_LTE(current_sys_time, MAX_32_TIMESTAMP_NANOS);
+        // cast value to uint64_t to prevent overflow errors
+        RESULT_ENSURE_LTE(current_sys_time, (uint64_t) MAX_32_TIMESTAMP_NANOS);
     }
 
     /* this wants seconds not nanoseconds */
@@ -693,7 +694,8 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     uint64_t current_sys_time_nanoseconds = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time_nanoseconds));
     if (sizeof(time_t) == 4) {
-        RESULT_ENSURE_LTE(current_sys_time_nanoseconds, MAX_32_TIMESTAMP_NANOS);
+        // cast value to uint64_t to prevent overflow errors
+        RESULT_ENSURE_LTE(current_sys_time_nanoseconds, (uint64_t) MAX_32_TIMESTAMP_NANOS);
     }
     /* convert the current_sys_time (which is in nanoseconds) to seconds */
     time_t current_sys_time_seconds = (time_t) (current_sys_time_nanoseconds / ONE_SEC_IN_NANOS);
