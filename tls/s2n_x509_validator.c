@@ -42,7 +42,7 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
 
 #define DEFAULT_MAX_CHAIN_DEPTH 7
 /* Time used by default for nextUpdate if none provided in OCSP: 1 hour since thisUpdate. */
-#define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600000000000
+#define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600
 
 /* s2n's internal clock uses epoch-nanoseconds and is stored in a uint64_t.
  * Occasionally there is a need to downcast this to a time_t, which represents
@@ -684,16 +684,6 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
 
-    /**
-     * It is fine to use ASN1_TIME functions with ASN1_GENERALIZEDTIME structures
-     * From openssl documentation:
-     * It is recommended that functions starting with ASN1_TIME be used instead
-     * of those starting with ASN1_UTCTIME or ASN1_GENERALIZEDTIME. The
-     * functions starting with ASN1_UTCTIME and ASN1_GENERALIZEDTIME act only on
-     * that specific time format. The functions starting with ASN1_TIME will
-     * operate on either format.
-     * https://www.openssl.org/docs/man1.1.1/man3/ASN1_TIME_to_generalizedtime.html
-     */
     ASN1_GENERALIZEDTIME *revtime, *thisupd, *nextupd;
     /* Actual verification of the response */
     const int ocsp_resp_find_status_res = OCSP_resp_find_status(basic_response, cert_id, &status, &reason, &revtime, &thisupd, &nextupd);
@@ -711,6 +701,19 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     DEFER_CLEANUP(ASN1_GENERALIZEDTIME *current_sys_time = ASN1_GENERALIZEDTIME_set(0, current_sys_time_seconds), s2n_openssl_asn1_time_free_pointer);
     RESULT_ENSURE_REF(current_sys_time);
 
+    /**
+     * It is fine to use ASN1_TIME functions with ASN1_GENERALIZEDTIME structures
+     * From openssl documentation:
+     * It is recommended that functions starting with ASN1_TIME be used instead
+     * of those starting with ASN1_UTCTIME or ASN1_GENERALIZEDTIME. The
+     * functions starting with ASN1_UTCTIME and ASN1_GENERALIZEDTIME act only on
+     * that specific time format. The functions starting with ASN1_TIME will
+     * operate on either format.
+     * https://www.openssl.org/docs/man1.1.1/man3/ASN1_TIME_to_generalizedtime.html
+     *
+     * ASN1_TIME_compare has a much nicer API, but is not available in Openssl
+     * 1.0.1, so we use ASN1_TIME_diff.
+     */
     int pday = 0;
     int psec = 0;
     RESULT_GUARD_OSSL(ASN1_TIME_diff(&pday, &psec, thisupd, current_sys_time), S2N_ERR_CERT_UNTRUSTED);
@@ -730,7 +733,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
          * current_sys_time to thisupd, so reuse those values
          */
         uint64_t seconds_after_thisupd = pday * (3600 * 24) + psec;
-        RESULT_ENSURE(seconds_after_thisupd < DEFAULT_OCSP_NEXT_UPDATE_PERIOD / ONE_SEC_IN_NANOS, S2N_ERR_CERT_EXPIRED);
+        RESULT_ENSURE(seconds_after_thisupd < DEFAULT_OCSP_NEXT_UPDATE_PERIOD, S2N_ERR_CERT_EXPIRED);
     }
 
     switch (status) {
