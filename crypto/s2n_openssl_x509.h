@@ -15,8 +15,8 @@
 
 #pragma once
 
-#include <openssl/x509.h>
 #include <openssl/asn1.h>
+#include <openssl/x509.h>
 #include <stdint.h>
 
 #include "utils/s2n_safety.h"

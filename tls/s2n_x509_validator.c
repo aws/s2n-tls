@@ -511,7 +511,7 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     uint64_t current_sys_time = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
     if (sizeof(time_t) == 4) {
-        // cast value to uint64_t to prevent overflow errors
+        /* cast value to uint64_t to prevent overflow errors */
         RESULT_ENSURE_LTE(current_sys_time, (uint64_t) MAX_32_TIMESTAMP_NANOS);
     }
 
