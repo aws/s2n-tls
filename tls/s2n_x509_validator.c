@@ -694,7 +694,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     uint64_t current_sys_time_nanoseconds = 0;
     RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time_nanoseconds));
     if (sizeof(time_t) == 4) {
-        // cast value to uint64_t to prevent overflow errors
+        /* cast value to uint64_t to prevent overflow errors */
         RESULT_ENSURE_LTE(current_sys_time_nanoseconds, (uint64_t) MAX_32_TIMESTAMP_NANOS);
     }
     /* convert the current_sys_time (which is in nanoseconds) to seconds */
