@@ -58,6 +58,30 @@ fn main() {
     .write_to_file(out_dir.join("src/internal.rs"))
     .unwrap();
 
+    write_unstable_api_bindings(
+        "fingerprint",
+        &out_dir,
+        functions.clone(),
+    );
+
+    write_unstable_api_bindings(
+        "crl",
+        &out_dir,
+        functions.clone(),
+    );
+
+    write_unstable_api_bindings(
+        "npn",
+        &out_dir,
+        functions.clone(),
+    );
+
+    write_unstable_api_bindings(
+        "renegotiate",
+        &out_dir,
+        functions.clone(),
+    );
+
     functions.tests(&out_dir.join("src/tests.rs")).unwrap();
 
     gen_files(&out_dir.join("lib"), &out_dir.join("files.rs")).unwrap();
@@ -74,32 +98,56 @@ const PRELUDE: &str = r#"
 use libc::{iovec, FILE};
 "#;
 
-fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bindgen::Builder {
+fn base_builder() -> bindgen::Builder {
     bindgen::Builder::default()
         .use_core()
         .layout_tests(true)
         .detect_include_paths(true)
         .size_t_is_usize(true)
-        .rustfmt_bindings(true)
-        .header_contents("s2n-sys.h", entry)
         .enable_function_attribute_detection()
         .default_enum_style(bindgen::EnumVariation::ModuleConsts)
         .rust_target(bindgen::RustTarget::Stable_1_40)
-        // only export s2n-related stuff
-        .blocklist_type("iovec")
-        .blocklist_type("FILE")
-        .blocklist_type("_IO_.*")
-        .blocklist_type("__.*")
-        .blocklist_type("fpos_t")
         // rust can't access thread-local variables
         // https://github.com/rust-lang/rust/issues/29594
         .blocklist_item("s2n_errno")
         .raw_line(COPYRIGHT)
         .raw_line(PRELUDE)
         .ctypes_prefix("::libc")
+        // manually include header contents
+        // .clang_arg(format!("-I{}/api", lib_path.display()))
+        // .clang_arg(format!("-I{}", lib_path.display()))
+}
+
+fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bindgen::Builder {
+    base_builder()
+        .header_contents("s2n-sys.h", entry)
+        // only export s2n-related stuff
+        .blocklist_type("iovec")
+        .blocklist_type("FILE")
+        .blocklist_type("_IO_.*")
+        .blocklist_type("__.*")
+        .blocklist_type("fpos_t")
         .parse_callbacks(Box::new(functions))
         .clang_arg(format!("-I{}/api", s2n_dir.display()))
         .clang_arg(format!("-I{}", s2n_dir.display()))
+}
+
+fn write_unstable_api_bindings(entry: &'static str, s2n_dir: &Path, functions: FunctionCallbacks) {
+    let header = format!("../../../api/unstable/{}.h", entry);
+    let lib_path = s2n_dir.join("lib");
+    base_builder()
+        .header(&header)
+        .parse_callbacks(Box::new(functions.with_feature(Some(entry))))
+        // manually include header contents
+        .clang_arg(format!("-I{}/api", lib_path.display()))
+        .clang_arg(format!("-I{}", lib_path.display()))
+        .allowlist_recursively(false)
+        .allowlist_file(&header)
+        .raw_line("use crate::api::*;\n")
+        .generate()
+        .unwrap()
+        .write_to_file(s2n_dir.join(format!("src/{}.rs", entry)))
+        .unwrap();
 }
 
 fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
@@ -188,6 +236,10 @@ impl FunctionCallbacks {
                 "s2n_session_ticket_fn",
                 "s2n_stacktrace",
                 "s2n_verify_host_fn",
+                "s2n_crl",
+                "s2n_crl_lookup",
+                "s2n_crl_lookup_callback",
+                "s2n_renegotiate_request_cb"
             ]
             .iter()
             .copied()

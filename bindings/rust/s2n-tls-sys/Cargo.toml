@@ -23,9 +23,13 @@ include = [
 
 [features]
 default = []
+crl = []
+fingerprint = []
+internal = []
+npn = []
 pq = ["cmake"] # the pq build logic is complicated so just use cmake instead
 quic = []
-internal = []
+renegotiate = []
 
 [dependencies]
 libc = "0.2"

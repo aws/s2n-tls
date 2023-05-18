@@ -6,19 +6,27 @@ mod api;
 
 pub use api::*;
 
-#[cfg(feature = "quic")]
-#[rustfmt::skip]
-mod quic;
+/// conditionally declare the module only if `feature` is enabled. If the
+/// feature is enabled, import all symbols into the main namespace.
+macro_rules! conditional_module {
+    ($mod_name:ident, $feature:literal) => {
+        #[cfg(feature = $feature)]
+        // bindgen will automatically rustfmt everything, but we use nightly rustfmt as
+        // the authoritiative rustfmt so that doesn't work for us
+        #[rustfmt::skip]
+        mod $mod_name;
 
-#[cfg(feature = "quic")]
-pub use quic::*;
+        #[cfg(feature = $feature)]
+        pub use $mod_name::*;
+    };
+}
 
-#[cfg(feature = "internal")]
-#[rustfmt::skip]
-mod internal;
-
-#[cfg(feature = "internal")]
-pub use internal::*;
+conditional_module!(crl, "crl");
+conditional_module!(fingerprint, "fingerprint");
+conditional_module!(internal, "internal");
+conditional_module!(npn, "npn");
+conditional_module!(quic, "quic");
+conditional_module!(renegotiate, "renegotiate");
 
 // Additional defines that don't get imported with bindgen
 

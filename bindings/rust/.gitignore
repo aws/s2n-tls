@@ -5,5 +5,10 @@ Cargo.lock
 s2n-tls-sys/files.rs
 s2n-tls-sys/lib
 s2n-tls-sys/src/api.rs
+s2n-tls-sys/src/crl.rs
+s2n-tls-sys/src/fingerprint.rs
+s2n-tls-sys/src/internal.rs
+s2n-tls-sys/src/npn.rs
 s2n-tls-sys/src/quic.rs
+s2n-tls-sys/src/renegotiate.rs
 s2n-tls-sys/src/tests.rs
