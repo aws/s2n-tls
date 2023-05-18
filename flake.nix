@@ -14,14 +14,15 @@
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
-        gnutls-3-7 = import nix/gnutls.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
-          # The openssl and gnutls imports above are imnplicitly included in mkShells.
+          # The openssls import above is imnplicitly included in mkShells.
           pythonEnv
           corretto-8
           pkgs.iproute2
           pkgs.apacheHttpd
+          # GnuTLS-cli and serv utilities needed for some integration tests.
+          pkgs.gnutls
 
           # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
           llvmPkgs.llvm
@@ -86,10 +87,9 @@
           packages = common_packages;
           S2N_LIBCRYPTO = "openssl-3.0";
           # Integ s_client/server tests expect openssl 1.1.1.
-          # GnuTLS-cli and serv utilities needed for some integration tests.
           shellHook = ''
             echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
-            export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
+            export PATH=${openssl_1_1_1}/bin:$PATH
             export PS1="[nix $S2N_LIBCRYPTO] $PS1"
             source ${writeScript ./nix/shell.sh}
           '';
@@ -102,7 +102,7 @@
             S2N_LIBCRYPTO = "openssl-1.1.1";
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
-              export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
+              export PATH=${openssl_1_1_1}/bin:$PATH
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
             '';
