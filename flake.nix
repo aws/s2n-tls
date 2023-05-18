@@ -11,6 +11,7 @@
         llvmPkgs = pkgs.llvmPackages_14;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
+        openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
@@ -100,6 +101,19 @@
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake openssl_1_1_1 ];
             S2N_LIBCRYPTO = "openssl-1.1.1";
+            shellHook = ''
+              echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
+              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+              source ${writeScript ./nix/shell.sh}
+            '';
+          });
+
+        devShells.openssl102 = devShells.default.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            # Re-include cmake to update the environment with a new libcrypto.
+            buildInputs = [ pkgs.cmake openssl_1_0_2 ];
+            S2N_LIBCRYPTO = "openssl-1.0.2";
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
