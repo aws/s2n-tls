@@ -263,8 +263,13 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
     GUARD_EXIT_NULL(psk);
     GUARD_EXIT_NULL(params);
 
+    /* duplicate params as strtok will modify the input string */
+    char *params_dup = malloc(strlen(params) + 1);
+    GUARD_EXIT_NULL(params_dup);
+    strcpy(params_dup, params);
+
     size_t token_idx = 0;
-    for (char *token = strtok(params, ","); token != NULL; token = strtok(NULL, ","), token_idx++) {
+    for (char *token = strtok(params_dup, ","); token != NULL; token = strtok(NULL, ","), token_idx++) {
         switch (token_idx) {
             case 0:
                 GUARD_EXIT(s2n_psk_set_identity(*psk, (const uint8_t *) token, strlen(token)),
@@ -288,6 +293,7 @@ static int s2n_setup_external_psk(struct s2n_psk **psk, char *params)
         }
     }
 
+    free(params_dup);
     return S2N_SUCCESS;
 }
 
