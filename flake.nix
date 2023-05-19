@@ -114,6 +114,8 @@
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake openssl_1_0_2 ];
             S2N_LIBCRYPTO = "openssl-1.0.2";
+            # Integ s_client/server tests expect openssl 1.1.1.
+            # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
