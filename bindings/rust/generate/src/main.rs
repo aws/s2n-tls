@@ -58,29 +58,10 @@ fn main() {
     .write_to_file(out_dir.join("src/internal.rs"))
     .unwrap();
 
-    write_unstable_api_bindings(
-        "fingerprint",
-        &out_dir,
-        functions.clone(),
-    );
-
-    write_unstable_api_bindings(
-        "crl",
-        &out_dir,
-        functions.clone(),
-    );
-
-    write_unstable_api_bindings(
-        "npn",
-        &out_dir,
-        functions.clone(),
-    );
-
-    write_unstable_api_bindings(
-        "renegotiate",
-        &out_dir,
-        functions.clone(),
-    );
+    write_unstable_api_bindings("fingerprint", out_dir, functions.clone());
+    write_unstable_api_bindings("crl", out_dir, functions.clone());
+    write_unstable_api_bindings("npn", out_dir, functions.clone());
+    write_unstable_api_bindings("renegotiate", out_dir, functions.clone());
 
     functions.tests(&out_dir.join("src/tests.rs")).unwrap();
 
@@ -113,9 +94,6 @@ fn base_builder() -> bindgen::Builder {
         .raw_line(COPYRIGHT)
         .raw_line(PRELUDE)
         .ctypes_prefix("::libc")
-        // manually include header contents
-        // .clang_arg(format!("-I{}/api", lib_path.display()))
-        // .clang_arg(format!("-I{}", lib_path.display()))
 }
 
 fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bindgen::Builder {
@@ -132,21 +110,23 @@ fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bi
         .clang_arg(format!("-I{}", s2n_dir.display()))
 }
 
-fn write_unstable_api_bindings(entry: &'static str, s2n_dir: &Path, functions: FunctionCallbacks) {
-    let header = format!("../../../api/unstable/{}.h", entry);
-    let lib_path = s2n_dir.join("lib");
+fn write_unstable_api_bindings(entry: &'static str, s2n_tls_sys_dir: &Path, functions: FunctionCallbacks) {
+    let header_path = s2n_tls_sys_dir.join(format!("lib/api/unstable/{}.h", entry));
+    let header_path_str = format!("{}", header_path.display());
+    println!("current dir {:?}", std::env::current_dir());
+    let lib_path = s2n_tls_sys_dir.join("lib");
     base_builder()
-        .header(&header)
+        .header(&header_path_str)
         .parse_callbacks(Box::new(functions.with_feature(Some(entry))))
         // manually include header contents
         .clang_arg(format!("-I{}/api", lib_path.display()))
         .clang_arg(format!("-I{}", lib_path.display()))
         .allowlist_recursively(false)
-        .allowlist_file(&header)
+        .allowlist_file(&header_path_str)
         .raw_line("use crate::api::*;\n")
         .generate()
         .unwrap()
-        .write_to_file(s2n_dir.join(format!("src/{}.rs", entry)))
+        .write_to_file(s2n_tls_sys_dir.join(format!("src/{}.rs", entry)))
         .unwrap();
 }
 
@@ -239,7 +219,7 @@ impl FunctionCallbacks {
                 "s2n_crl",
                 "s2n_crl_lookup",
                 "s2n_crl_lookup_callback",
-                "s2n_renegotiate_request_cb"
+                "s2n_renegotiate_request_cb",
             ]
             .iter()
             .copied()
