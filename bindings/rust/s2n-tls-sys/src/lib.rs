@@ -8,11 +8,14 @@ pub use api::*;
 
 /// conditionally declare the module only if `feature` is enabled. If the
 /// feature is enabled, import all symbols into the main namespace.
+/// Disable rustfmt because it wants the `mod` and `pub use` statement to be on
+/// different levels of indentation
+#[rustfmt::skip]
 macro_rules! conditional_module {
     ($mod_name:ident, $feature:literal) => {
-        #[cfg(feature = $feature)]
         // bindgen will automatically rustfmt everything, but we use nightly rustfmt as
         // the authoritiative rustfmt so that doesn't work for us
+        #[cfg(feature = $feature)]
         #[rustfmt::skip]
         mod $mod_name;
 

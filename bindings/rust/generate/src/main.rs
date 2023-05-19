@@ -106,7 +106,7 @@ fn base_builder() -> bindgen::Builder {
         .size_t_is_usize(true)
         .enable_function_attribute_detection()
         .default_enum_style(bindgen::EnumVariation::ModuleConsts)
-        .rust_target(bindgen::RustTarget::Stable_1_40)
+        .rust_target(bindgen::RustTarget::Stable_1_47)
         // rust can't access thread-local variables
         // https://github.com/rust-lang/rust/issues/29594
         .blocklist_item("s2n_errno")
