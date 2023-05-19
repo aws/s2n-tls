@@ -110,7 +110,11 @@ fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bi
         .clang_arg(format!("-I{}", s2n_dir.display()))
 }
 
-fn write_unstable_api_bindings(entry: &'static str, s2n_tls_sys_dir: &Path, functions: FunctionCallbacks) {
+fn write_unstable_api_bindings(
+    entry: &'static str,
+    s2n_tls_sys_dir: &Path,
+    functions: FunctionCallbacks,
+) {
     let header_path = s2n_tls_sys_dir.join(format!("lib/api/unstable/{}.h", entry));
     let header_path_str = format!("{}", header_path.display());
     println!("current dir {:?}", std::env::current_dir());
