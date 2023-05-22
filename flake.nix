@@ -16,7 +16,7 @@
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
-          # The openssls import above is imnplicitly included in mkShells.
+          # The openssl 1.1.1 import above is implicitly included in mkShells.
           pythonEnv
           corretto-8
           pkgs.iproute2
