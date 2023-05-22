@@ -728,10 +728,10 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
         RESULT_ENSURE(pday >= 0 && psec >= 0, S2N_ERR_CERT_EXPIRED);
     } else {
         /**
-         * if nextupd isn't present, assume that nextup is
+         * if nextupd isn't present, assume that nextupd is
          * DEFAULT_OCSP_NEXT_UPDATE_PERIOD after thisupd. This means that if the
-         * current time was more than 0 days and DEFAULT_OCSP_NEXT_UPDATE_PERIOD
-         * seconds ahead of nextup, we consider it invalid. We already compared
+         * current time is more than DEFAULT_OCSP_NEXT_UPDATE_PERIOD
+         * seconds ahead of thisupd, we consider it invalid. We already compared
          * current_sys_time to thisupd, so reuse those values
          */
         uint64_t seconds_after_thisupd = pday * (3600 * 24) + psec;
