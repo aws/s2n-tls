@@ -16,7 +16,8 @@
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
-          # The openssl 1.1.1 import above is implicitly included in mkShells.
+          # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
+          # It will be in the PATH of our devShell for use in tests.
           pythonEnv
           corretto-8
           pkgs.iproute2
