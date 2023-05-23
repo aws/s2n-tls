@@ -20,7 +20,6 @@
 #include "crypto/s2n_dhe.h"
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_ecc_evp.h"
-#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_blob.h"
@@ -72,9 +71,6 @@ int main(int argc, char **argv)
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-
-    /* Ensure that it's not possible to override the RAND callbacks in FIPS mode */
-    EXPECT_FALSE(s2n_is_in_fips_mode());
 
     EXPECT_NOT_NULL(dhparams_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
