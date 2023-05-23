@@ -44,10 +44,15 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
 /* Time used by default for nextUpdate if none provided in OCSP: 1 hour since thisUpdate. */
 #define DEFAULT_OCSP_NEXT_UPDATE_PERIOD 3600
 
-/* s2n's internal clock uses epoch-nanoseconds and is stored in a uint64_t.
- * Occasionally there is a need to downcast this to a time_t, which represents
- * epoch-seconds. This downcast is not safe because it might overflow the time_t
- * value on 32 bit platforms where the size of a time_t might be 4 bytes.
+/* s2n's internal clock measures epoch-nanoseconds stored with a uint64_t. The
+ * maximum representable timestamp is Sunday, July 21, 2554. time_t measures
+ * epoch-seconds in a int64_t or int32_t (platform dependent). If time_t is an
+ * int32_t, the maximum representable timestamp is January 19, 2038.
+ *
+ * This means that converting from the internal clock to a time_t is not safe,
+ * because the internal clock might hold a value that is too large to represent
+ * in a time_t. This constant represents the largest internal clock value that
+ * can be safely represented as a time_t.
  */
 #define MAX_32_TIMESTAMP_NANOS 2147483647 * ONE_SEC_IN_NANOS
 
@@ -685,6 +690,16 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
 
+    /**
+     *= https://datatracker.ietf.org/doc/html/rfc6960#section-2.4
+     *#
+     *# thisUpdate      The most recent time at which the status being
+     *#                 indicated is known by the responder to have been
+     *#                 correct.
+     *#
+     *# nextUpdate      The time at or before which newer information will be
+     *#                 available about the status of the certificate.
+     **/
     ASN1_GENERALIZEDTIME *revtime, *thisupd, *nextupd;
     /* Actual verification of the response */
     const int ocsp_resp_find_status_res = OCSP_resp_find_status(basic_response, cert_id, &status, &reason, &revtime, &thisupd, &nextupd);
