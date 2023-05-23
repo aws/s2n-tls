@@ -16,6 +16,7 @@
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
+        libressl = import ./nix/libressl.nix { pkgs = pkgs; };
         corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         gnutls-3-7 = import nix/gnutls.nix { pkgs = pkgs; };
         common_packages = [
@@ -103,6 +104,23 @@
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake openssl_1_1_1 ];
             S2N_LIBCRYPTO = "openssl-1.1.1";
+            # Integ s_client/server tests expect openssl 1.1.1.
+            # GnuTLS-cli and serv utilities needed for some integration tests.
+            shellHook = ''
+              echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
+              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+              source ${writeScript ./nix/shell.sh}
+            '';
+          });
+
+        devShells.libressl = devShells.default.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            # Re-include cmake to update the environment with a new libcrypto.
+            buildInputs = [ pkgs.cmake libressl ];
+            S2N_LIBCRYPTO = "libressl";
+            # Integ s_client/server tests expect openssl 1.1.1.
+            # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
               echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:${gnutls-3-7}/bin:$PATH
