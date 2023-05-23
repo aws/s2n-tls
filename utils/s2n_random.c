@@ -34,6 +34,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
+#include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_fork_detection.h"
@@ -206,9 +207,19 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
-        struct s2n_drbg *drbg_state)
+static S2N_RESULT s2n_get_libcrypto_random_data(struct s2n_blob *out_blob)
 {
+    RESULT_GUARD_PTR(out_blob);
+    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s2n_drbg *drbg_state)
+{
+    RESULT_GUARD_PTR(out_blob);
+    RESULT_GUARD_PTR(drbg_state);
+
+    RESULT_ENSURE(!s2n_is_in_fips_mode(), S2N_ERR_DRBG);
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
     RESULT_GUARD(s2n_ensure_uniqueness());
 
@@ -224,6 +235,22 @@ static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
         remaining -= slice.size;
         offset += slice.size;
     }
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_random_data(struct s2n_blob *blob, struct s2n_drbg *drbg_state)
+{
+    /* By default, s2n-tls uses a custom random implementation to generate random data for the TLS
+     * handshake. When operating in FIPS mode, the FIPS-validated libcrypto implementation is used
+     * instead.
+     */
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD(s2n_get_libcrypto_random_data(blob));
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_GUARD(s2n_get_custom_random_data(blob, drbg_state));
 
     return S2N_RESULT_OK;
 }
@@ -397,6 +424,10 @@ S2N_RESULT s2n_rand_init(void)
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    if (s2n_is_in_fips_mode()) {
+        return S2N_RESULT_OK;
+    }
+
     /* Create an engine */
     ENGINE *e = ENGINE_new();
 
