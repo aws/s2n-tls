@@ -127,8 +127,6 @@ fn base_builder() -> bindgen::Builder {
         .raw_line(COPYRIGHT)
         .raw_line(PRELUDE)
         .ctypes_prefix("::libc")
-        .opaque_type("s2n_connection")
-        .opaque_type("s2n_config")
 }
 
 fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bindgen::Builder {
@@ -143,30 +141,6 @@ fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bi
         .parse_callbacks(Box::new(functions))
         .clang_arg(format!("-I{}/api", s2n_dir.display()))
         .clang_arg(format!("-I{}", s2n_dir.display()))
-}
-
-/// NOOOOOO STOP IT
-fn write_unstable_api_bindings(entry: &str, s2n_tls_sys_dir: &Path, functions: FunctionCallbacks) {
-    let header_path = s2n_tls_sys_dir.join(format!("lib/api/unstable/{}.h", entry));
-    let header_path_str = format!("{}", header_path.display());
-    let lib_path = s2n_tls_sys_dir.join("lib");
-    base_builder()
-        .header(&header_path_str)
-        .parse_callbacks(Box::new(functions.with_feature(Some(entry.to_owned()))))
-        // manually include header contents
-        .clang_arg(format!("-I{}/api", lib_path.display()))
-        .clang_arg(format!("-I{}", lib_path.display()))
-        .allowlist_recursively(false)
-        .allowlist_file(&header_path_str)
-        .blocklist_type("s2n_connection")
-        .blocklist_type("s2n_config")
-        //.blocklist_item("s2n_connection")
-        //.blocklist_item("s2n_config")
-        .raw_line("use crate::api::*;\n")
-        .generate()
-        .unwrap()
-        .write_to_file(s2n_tls_sys_dir.join(format!("src/{}.rs", entry)))
-        .unwrap();
 }
 
 fn write_feature_bindings(
@@ -236,11 +210,6 @@ fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
 
 type SharedBTreeSet<T> = Arc<Mutex<BTreeSet<T>>>;
 
-/// `FunctionCallbacks` serves two purposes. The first is renaming enum variants
-/// to be more in line with rust style. This is done through the
-/// bindgen::callback::ParseCallbacks trait. The second is getting a list of all
-/// of the functions and required features, which allows us to autogenerate a
-/// test suite which can be found at s2n-tls-sys/src/tests.rs
 #[derive(Clone, Debug, Default)]
 struct FunctionCallbacks {
     /// the current feature that is having bindings generated
@@ -290,12 +259,10 @@ impl FunctionCallbacks {
 impl bindgen::callbacks::ParseCallbacks for FunctionCallbacks {
     fn enum_variant_name(
         &self,
-        name: Option<&str>,
+        _name: Option<&str>,
         variant_name: &str,
         _variant_value: bindgen::callbacks::EnumVariantValue,
     ) -> Option<String> {
-        let name = name.unwrap_or("");
-
         if !variant_name.starts_with("S2N_") {
             return None;
         }
@@ -327,10 +294,10 @@ impl bindgen::callbacks::ParseCallbacks for FunctionCallbacks {
     /// all the functions that we generate bindings for, which is used for test
     /// generation later in the process.
     fn generated_name_override(
-            &self,
-            item_info: bindgen::callbacks::ItemInfo<'_>,
-        ) -> Option<String> {
-        if ! item_info.name.starts_with("s2n_") {
+        &self,
+        item_info: bindgen::callbacks::ItemInfo<'_>,
+    ) -> Option<String> {
+        if !item_info.name.starts_with("s2n_") {
             return None;
         }
 
