@@ -117,7 +117,8 @@ function test_toolchain_counts {
       /openssl-3.0/{o3++}
       /openssl-1.1/{o1++}
       /aws-lc/{awslc++}
-      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o1,"\nAwlc:\t\t",awslc}'
+      /libressl/{libre++}
+      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o1,"\nAwlc:\t\t",awslc,"\nLibreSSL:\t", libre}'
     banner "Checking tooling counts (these should all be 1)"
     echo -e "\nOpenssl integ:\t $(openssl version|grep -c '1.1.1')"
     echo -e "Corretto:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto')"
