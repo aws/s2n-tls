@@ -15,6 +15,9 @@
 
 set -e
 
+# Test that all file descriptors are properly cleaned up when `exec`ing from
+# from an initialized s2n-tls process.
+
 source codebuild/bin/s2n_setup_env.sh
 source codebuild/bin/jobs.sh
 
@@ -60,9 +63,8 @@ EOF
 }
 
 # download libcrypto if its not available
-WHICH_LIBCRYPTO=$(echo "${S2N_LIBCRYPTO:-"openssl-1.1.1"}")
-TARGET_LIBCRYPTO="${WHICH_LIBCRYPTO//[-.]/_}"
-TARGET_LIBCRYPTO_PATH="${TEST_DEPS_DIR}/${WHICH_LIBCRYPTO}"
+TARGET_LIBCRYPTO="${S2N_LIBCRYPTO//[-.]/_}"
+TARGET_LIBCRYPTO_PATH="${TEST_DEPS_DIR}/${S2N_LIBCRYPTO}"
 if [ ! -f $TARGET_LIBCRYPTO_PATH/lib/libcrypto.a ]; then
     ./codebuild/bin/install_${TARGET_LIBCRYPTO}.sh $TARGET_LIBCRYPTO_PATH/src $TARGET_LIBCRYPTO_PATH linux
 fi
@@ -74,8 +76,8 @@ build build -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
 mkdir -p build/valgrind_log_dir
 write_exec_app
 write_exec_finish_app
-cc -fPIE -Iapi build/detect_exec_leak.c build/lib/libs2n.so -o build/bin/detect_exec_leak
-cc -fPIE -Iapi build/detect_exec_leak_finish.c build/lib/libs2n.so -o build/bin/detect_exec_leak_finish
+cc -Iapi build/detect_exec_leak.c build/lib/libs2n.so -o build/bin/detect_exec_leak
+cc -Iapi build/detect_exec_leak_finish.c build/lib/libs2n.so -o build/bin/detect_exec_leak_finish
 
 # run valgrind with track-fds enabled
 valgrind_log_dir=valgrind_log_dir
