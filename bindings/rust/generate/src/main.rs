@@ -9,6 +9,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use bindgen::callbacks::ItemKind;
 use regex::Regex;
 
 const FEATURE_TOKEN_PLACEHOLDER: &'static str = "<TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>";
@@ -126,6 +127,8 @@ fn base_builder() -> bindgen::Builder {
         .raw_line(COPYRIGHT)
         .raw_line(PRELUDE)
         .ctypes_prefix("::libc")
+        .opaque_type("s2n_connection")
+        .opaque_type("s2n_config")
 }
 
 fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bindgen::Builder {
@@ -242,7 +245,6 @@ type SharedBTreeSet<T> = Arc<Mutex<BTreeSet<T>>>;
 struct FunctionCallbacks {
     /// the current feature that is having bindings generated
     feature: Arc<Mutex<Option<String>>>,
-    types: SharedBTreeSet<String>,
     /// a list of all functions that have had bindings generated for them
     functions: SharedBTreeSet<(Option<String>, String)>,
 }
@@ -256,72 +258,12 @@ impl FunctionCallbacks {
     fn tests(&self, out: &Path) -> io::Result<()> {
         use io::Write;
         let functions = self.functions.lock().unwrap();
-        let mut types = self.types.lock().unwrap();
-
-        // bindgen doesn't have the ability to filter out type aliases
-        // so we'll need to have a list of them here for now
-        types.extend(
-            [
-                "s2n_async_pkey_fn",
-                "s2n_async_pkey_op",
-                "s2n_cache_delete_callback",
-                "s2n_cache_retrieve_callback",
-                "s2n_cache_store_callback",
-                "s2n_cert",
-                "s2n_cert_public_key",
-                "s2n_cert_chain_and_key",
-                "s2n_cert_private_key",
-                "s2n_cert_tiebreak_callback",
-                "s2n_client_hello",
-                "s2n_client_hello_fn",
-                "s2n_clock_time_nanoseconds",
-                "s2n_config",
-                "s2n_connection",
-                "s2n_early_data_cb",
-                "s2n_key_log_fn",
-                "s2n_mem_cleanup_callback",
-                "s2n_mem_free_callback",
-                "s2n_mem_init_callback",
-                "s2n_mem_malloc_callback",
-                "s2n_offered_early_data",
-                "s2n_offered_psk",
-                "s2n_offered_psk_list",
-                "s2n_offered_psk_new",
-                "s2n_pkey",
-                "s2n_psk",
-                "s2n_psk_selection_callback",
-                "s2n_rand_cleanup_callback",
-                "s2n_rand_init_callback",
-                "s2n_rand_mix_callback",
-                "s2n_rand_seed_callback",
-                "s2n_recv_fn",
-                "s2n_secret_cb",
-                "s2n_send_fn",
-                "s2n_session_ticket",
-                "s2n_session_ticket_fn",
-                "s2n_stacktrace",
-                "s2n_verify_host_fn",
-                "s2n_crl",
-                "s2n_crl_lookup",
-                "s2n_crl_lookup_callback",
-                "s2n_renegotiate_request_cb",
-            ]
-            .iter()
-            .copied()
-            .map(String::from),
-        );
-
         let mut tests = std::fs::File::create(out)?;
         let mut o = io::BufWriter::new(&mut tests);
 
         writeln!(o, "{}", COPYRIGHT)?;
         let iter = functions.iter();
         for (feature, function) in iter {
-            // don't generate tests for types
-            if types.contains(function) {
-                continue;
-            }
-
             // don't generate a test if it's enabled without a feature
             if feature.is_some() && functions.contains(&(None, function.to_string())) {
                 continue;
@@ -353,9 +295,6 @@ impl bindgen::callbacks::ParseCallbacks for FunctionCallbacks {
         _variant_value: bindgen::callbacks::EnumVariantValue,
     ) -> Option<String> {
         let name = name.unwrap_or("");
-        if name.starts_with("s2n_") {
-            self.types.lock().unwrap().insert(name.to_owned());
-        }
 
         if !variant_name.starts_with("S2N_") {
             return None;
@@ -387,13 +326,20 @@ impl bindgen::callbacks::ParseCallbacks for FunctionCallbacks {
     /// This doesn't actually rename anything, and is just used to get a list of
     /// all the functions that we generate bindings for, which is used for test
     /// generation later in the process.
-    fn item_name(&self, name: &str) -> Option<String> {
-        if name.starts_with("s2n_") {
+    fn generated_name_override(
+            &self,
+            item_info: bindgen::callbacks::ItemInfo<'_>,
+        ) -> Option<String> {
+        if ! item_info.name.starts_with("s2n_") {
+            return None;
+        }
+
+        if let ItemKind::Function = item_info.kind {
             let feature = self.feature.lock().unwrap().clone();
             self.functions
                 .lock()
                 .unwrap()
-                .insert((feature, name.to_owned()));
+                .insert((feature, item_info.name.to_owned()));
         }
         None
     }
