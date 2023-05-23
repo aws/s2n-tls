@@ -45,6 +45,10 @@
 #define OPT_PREFER_THROUGHPUT  1006
 #define OPT_BUFFERED_SEND      1007
 
+/*
+ * s2nc is an example client that uses many s2n-tls APIs.
+ * It is intended for testing purposes only, and should not be used in production.
+ */
 void usage()
 {
     /* clang-format off */
