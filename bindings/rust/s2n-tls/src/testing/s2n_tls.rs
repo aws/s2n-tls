@@ -706,4 +706,60 @@ mod tests {
             establish_connection(config_with_system_certs);
         });
     }
+
+    #[test]
+    fn set_check_stapled_ocsp_response_true() {
+        let keypair = CertKeyPair::default();
+
+        temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
+            let mut builder = Builder::new();
+            builder
+                .load_pem(keypair.cert(), keypair.key())
+                .unwrap()
+                .set_security_policy(&security::DEFAULT_TLS13)
+                .unwrap()
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                .unwrap();
+
+            // Enable OCSP and some OCSP data that will fail validation
+            builder.enable_ocsp().unwrap();
+            builder.set_ocsp_data(&[1, 2, 3]).unwrap();
+            // Enable OCSP validation (the default)
+            builder.set_check_stapled_ocsp_response(true).unwrap();
+
+            let config = builder.build().unwrap();
+
+            let mut pair = tls_pair(config);
+
+            // The handshake should fail
+            assert!(poll_tls_pair_result(&mut pair).is_err());
+        })
+    }
+
+    #[test]
+    fn set_check_stapled_ocsp_response_false() {
+        let keypair = CertKeyPair::default();
+
+        temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
+            let mut builder = Builder::new();
+            builder
+                .load_pem(keypair.cert(), keypair.key())
+                .unwrap()
+                .set_security_policy(&security::DEFAULT_TLS13)
+                .unwrap()
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                .unwrap();
+
+            // Enable OCSP and some OCSP data that will fail validation
+            builder.enable_ocsp().unwrap();
+            builder.set_ocsp_data(&[1, 2, 3]).unwrap();
+            // Disable OCSP validation
+            builder.set_check_stapled_ocsp_response(false).unwrap();
+
+            let config = builder.build().unwrap();
+
+            // The handshake should succeed since OCSP validation is disabled
+            establish_connection(config);
+        })
+    }
 }

@@ -380,6 +380,23 @@ impl Builder {
         self.enable_ocsp()
     }
 
+    /// Toggles whether or not to validate stapled OCSP responses.
+    ///
+    /// Setting `check_ocsp` to `true` means OCSP responses will be validated when they are encountered,
+    /// while `false` means this step will be skipped.
+    ///  
+    /// The default value is `true` if the underlying libCrypto implementation supports OCSP.
+    pub fn set_check_stapled_ocsp_response(
+        &mut self,
+        check_ocsp: bool,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_check_stapled_ocsp_response(self.as_mut_ptr(), check_ocsp as u8)
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
     /// trusted.
     ///
