@@ -130,7 +130,7 @@ jobs:
         run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls/Cargo.toml
 
       - name: Check MSRV of s2n-tls-sys
-        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-sys/Cargo.toml
+        run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-sys/templates/Cargo.template
 
       - name: Check MSRV of s2n-tokio
         run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-tokio/Cargo.toml
