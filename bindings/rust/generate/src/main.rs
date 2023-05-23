@@ -3,7 +3,7 @@
 
 use std::{
     collections::BTreeSet,
-    fs::read_to_string,
+    fs::{self, read_to_string},
     io,
     path::Path,
     sync::{Arc, Mutex},
@@ -53,7 +53,7 @@ fn main() {
 
     // get all of the files in the unstable folder
     let unstable_api = out_dir.join("lib/api/unstable");
-    let unstable_headers: Vec<(String, std::fs::DirEntry)> = std::fs::read_dir(unstable_api)
+    let unstable_headers: Vec<(String, fs::DirEntry)> = fs::read_dir(unstable_api)
         .expect("unable to iterate through files in unstable api folder")
         .into_iter()
         .map(|dir_entry| dir_entry.expect("failed to read header"))
@@ -81,7 +81,7 @@ fn main() {
     let cargo_template = out_dir.join("templates/Cargo.template");
     let cargo_template = read_to_string(cargo_template).expect("unable to read cargo template");
     let cargo_toml = cargo_template.replace(FEATURE_TOKEN_PLACEHOLDER, &features_definition_token);
-    std::fs::write(out_dir.join("Cargo.toml"), cargo_toml).unwrap();
+    fs::write(out_dir.join("Cargo.toml"), cargo_toml).unwrap();
 
     // generate a features.rs that includes the correct modules
     let features_module_token = unstable_headers
