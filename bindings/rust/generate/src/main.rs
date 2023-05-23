@@ -3,11 +3,19 @@
 
 use std::{
     collections::BTreeSet,
+    fs::read_to_string,
     io,
     path::Path,
     sync::{Arc, Mutex},
 };
 
+use regex::Regex;
+
+const FEATURE_TOKEN_PLACEHOLDER: &'static str = "<TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>";
+
+/// This binary is only expected to run in the context of the generate.sh script
+/// which handles certain behaviors such as copying header files to
+/// s2n-tls-sys/lib and other sundry actions.
 fn main() {
     let out_dir = std::env::args().nth(1).expect("missing sys dir");
     let out_dir = Path::new(&out_dir);
@@ -27,41 +35,65 @@ fn main() {
     .write_to_file(out_dir.join("src/api.rs"))
     .unwrap();
 
-    gen_bindings(
-        "#include \"tls/s2n_quic_support.h\"",
-        &out_dir.join("lib"),
-        functions.with_feature(Some("quic")),
-    )
-    .allowlist_function("s2n_.*quic.*")
-    .allowlist_function("s2n_.*secret_callback.*")
-    .allowlist_function("s2n_error_get_alert")
-    .blocklist_type("s2n_config")
-    .blocklist_type("s2n_connection")
-    .raw_line("use crate::api::*;\n")
-    .generate()
-    .unwrap()
-    .write_to_file(out_dir.join("src/quic.rs"))
-    .unwrap();
+    write_feature_bindings(
+        out_dir.join("lib/tls/s2n_internal.h"),
+        "internal",
+        out_dir,
+        out_dir.join("src/features/internal.rs"),
+        functions.clone(),
+    );
+    write_feature_bindings(
+        out_dir.join("lib/tls/s2n_quic_support.h"),
+        "quic",
+        out_dir,
+        out_dir.join("src/features/quic.rs"),
+        functions.clone(),
+    );
 
-    gen_bindings(
-        "#include \"tls/s2n_internal.h\"",
-        &out_dir.join("lib"),
-        functions.with_feature(Some("internal")),
-    )
-    // any new internal functions need to be added here
-    .allowlist_function("s2n_.*")
-    .blocklist_type("s2n_config")
-    .blocklist_type("s2n_connection")
-    .raw_line("use crate::api::*;\n")
-    .generate()
-    .unwrap()
-    .write_to_file(out_dir.join("src/internal.rs"))
-    .unwrap();
+    // get all of the files in the unstable folder
+    let unstable_api = out_dir.join("lib/api/unstable");
+    let unstable_headers: Vec<(String, std::fs::DirEntry)> = std::fs::read_dir(unstable_api)
+        .expect("unable to iterate through files in unstable api folder")
+        .into_iter()
+        .map(|dir_entry| dir_entry.expect("failed to read header"))
+        .map(|dir_entry| (header_name(dir_entry.path()), dir_entry))
+        .collect();
 
-    write_unstable_api_bindings("fingerprint", out_dir, functions.clone());
-    write_unstable_api_bindings("crl", out_dir, functions.clone());
-    write_unstable_api_bindings("npn", out_dir, functions.clone());
-    write_unstable_api_bindings("renegotiate", out_dir, functions.clone());
+    // write unstable bindings for them
+    for (header_name, header) in unstable_headers.iter() {
+        let feature_name = format!("unstable-{}", header_name);
+        write_feature_bindings(
+            header.path(),
+            &feature_name,
+            out_dir,
+            out_dir.join(format!("src/features/{}.rs", header_name)),
+            functions.clone(),
+        );
+    }
+
+    // generate a cargo.toml that defines the correct features
+    let features_definition_token = unstable_headers
+        .iter()
+        .map(|(header_name, _header)| format!("unstable-{header_name} = []"))
+        .collect::<Vec<String>>()
+        .join("\n");
+    let cargo_template = out_dir.join("templates/Cargo.template");
+    let cargo_template = read_to_string(cargo_template).expect("unable to read cargo template");
+    let cargo_toml = cargo_template.replace(FEATURE_TOKEN_PLACEHOLDER, &features_definition_token);
+    std::fs::write(out_dir.join("Cargo.toml"), cargo_toml).unwrap();
+
+    // generate a features.rs that includes the correct modules
+    let features_module_token = unstable_headers
+        .iter()
+        .map(|(header_name, _header)| {
+            format!("conditional_module!({header_name}, \"unstable-{header_name}\");")
+        })
+        .collect::<Vec<String>>()
+        .join("\n");
+    let features_template = out_dir.join("templates/features.template");
+    let features_template = read_to_string(features_template).expect("unable to features template");
+    let features_rs = features_template.replace(FEATURE_TOKEN_PLACEHOLDER, &features_module_token);
+    std::fs::write(out_dir.join("src/features.rs"), features_rs).unwrap();
 
     functions.tests(&out_dir.join("src/tests.rs")).unwrap();
 
@@ -110,28 +142,70 @@ fn gen_bindings(entry: &str, s2n_dir: &Path, functions: FunctionCallbacks) -> bi
         .clang_arg(format!("-I{}", s2n_dir.display()))
 }
 
-fn write_unstable_api_bindings(
-    entry: &'static str,
-    s2n_tls_sys_dir: &Path,
-    functions: FunctionCallbacks,
-) {
+/// NOOOOOO STOP IT
+fn write_unstable_api_bindings(entry: &str, s2n_tls_sys_dir: &Path, functions: FunctionCallbacks) {
     let header_path = s2n_tls_sys_dir.join(format!("lib/api/unstable/{}.h", entry));
     let header_path_str = format!("{}", header_path.display());
-    println!("current dir {:?}", std::env::current_dir());
     let lib_path = s2n_tls_sys_dir.join("lib");
     base_builder()
         .header(&header_path_str)
-        .parse_callbacks(Box::new(functions.with_feature(Some(entry))))
+        .parse_callbacks(Box::new(functions.with_feature(Some(entry.to_owned()))))
         // manually include header contents
         .clang_arg(format!("-I{}/api", lib_path.display()))
         .clang_arg(format!("-I{}", lib_path.display()))
         .allowlist_recursively(false)
         .allowlist_file(&header_path_str)
+        .blocklist_type("s2n_connection")
+        .blocklist_type("s2n_config")
+        //.blocklist_item("s2n_connection")
+        //.blocklist_item("s2n_config")
         .raw_line("use crate::api::*;\n")
         .generate()
         .unwrap()
         .write_to_file(s2n_tls_sys_dir.join(format!("src/{}.rs", entry)))
         .unwrap();
+}
+
+fn write_feature_bindings(
+    header_path: impl AsRef<Path>,
+    feature_flag: &str,
+    s2n_tls_sys_dir: &Path,
+    output_path: impl AsRef<Path>,
+    functions: FunctionCallbacks,
+) {
+    let header_path_str = format!("{}", header_path.as_ref().display());
+    let lib_path = s2n_tls_sys_dir.join("lib");
+    base_builder()
+        .header(&header_path_str)
+        .parse_callbacks(Box::new(
+            functions.with_feature(Some(feature_flag.to_owned())),
+        ))
+        // manually include header contents
+        .clang_arg(format!("-I{}/api", lib_path.display()))
+        .clang_arg(format!("-I{}", lib_path.display()))
+        .allowlist_recursively(false)
+        .allowlist_file(&header_path_str)
+        // s2n_internal.h defines opaque handles to these structs, but we want
+        // them to be imported from the main api module
+        .blocklist_type("s2n_connection")
+        .blocklist_type("s2n_config")
+        .raw_line("use crate::api::*;\n")
+        .generate()
+        .unwrap()
+        .write_to_file(output_path)
+        .unwrap();
+}
+
+fn header_name(header_path: impl AsRef<Path>) -> String {
+    let header_name_regex = Regex::new(r".*/(\w+)\.h").unwrap();
+    let header_path_str = format!("{}", header_path.as_ref().display());
+    header_name_regex
+        .captures(&header_path_str)
+        .expect("unable to parse header path")
+        .get(1)
+        .unwrap()
+        .as_str()
+        .to_owned()
 }
 
 fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
@@ -159,15 +233,22 @@ fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
 
 type SharedBTreeSet<T> = Arc<Mutex<BTreeSet<T>>>;
 
+/// `FunctionCallbacks` serves two purposes. The first is renaming enum variants
+/// to be more in line with rust style. This is done through the
+/// bindgen::callback::ParseCallbacks trait. The second is getting a list of all
+/// of the functions and required features, which allows us to autogenerate a
+/// test suite which can be found at s2n-tls-sys/src/tests.rs
 #[derive(Clone, Debug, Default)]
 struct FunctionCallbacks {
-    feature: Arc<Mutex<Option<&'static str>>>,
+    /// the current feature that is having bindings generated
+    feature: Arc<Mutex<Option<String>>>,
     types: SharedBTreeSet<String>,
-    functions: SharedBTreeSet<(Option<&'static str>, String)>,
+    /// a list of all functions that have had bindings generated for them
+    functions: SharedBTreeSet<(Option<String>, String)>,
 }
 
 impl FunctionCallbacks {
-    fn with_feature(&self, feature: Option<&'static str>) -> Self {
+    fn with_feature(&self, feature: Option<String>) -> Self {
         *self.feature.lock().unwrap() = feature;
         self.clone()
     }
@@ -303,9 +384,12 @@ impl bindgen::callbacks::ParseCallbacks for FunctionCallbacks {
         Some(variant_name.to_owned())
     }
 
+    /// This doesn't actually rename anything, and is just used to get a list of
+    /// all the functions that we generate bindings for, which is used for test
+    /// generation later in the process.
     fn item_name(&self, name: &str) -> Option<String> {
         if name.starts_with("s2n_") {
-            let feature = *self.feature.lock().unwrap();
+            let feature = self.feature.lock().unwrap().clone();
             self.functions
                 .lock()
                 .unwrap()

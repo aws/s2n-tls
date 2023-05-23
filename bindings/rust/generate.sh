@@ -11,6 +11,7 @@ pushd "$(dirname "${BASH_SOURCE[0]}")"
 rm -rf s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib/tests
+mkdir -p s2n-tls-sys/src/features
 
 # we copy the C sources into the `lib` directory so they get published in the
 # actual crate artifact.

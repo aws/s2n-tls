@@ -6,30 +6,8 @@ mod api;
 
 pub use api::*;
 
-/// conditionally declare the module only if `feature` is enabled. If the
-/// feature is enabled, import all symbols into the main namespace.
-/// Disable rustfmt because it wants the `mod` and `pub use` statement to be on
-/// different levels of indentation
-#[rustfmt::skip]
-macro_rules! conditional_module {
-    ($mod_name:ident, $feature:literal) => {
-        // bindgen will automatically rustfmt everything, but we use nightly rustfmt as
-        // the authoritiative rustfmt so that doesn't work for us
-        #[cfg(feature = $feature)]
-        #[rustfmt::skip]
-        mod $mod_name;
-
-        #[cfg(feature = $feature)]
-        pub use $mod_name::*;
-    };
-}
-
-conditional_module!(crl, "crl");
-conditional_module!(fingerprint, "fingerprint");
-conditional_module!(internal, "internal");
-conditional_module!(npn, "npn");
-conditional_module!(quic, "quic");
-conditional_module!(renegotiate, "renegotiate");
+mod features;
+pub use features::*;
 
 // Additional defines that don't get imported with bindgen
 
