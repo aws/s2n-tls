@@ -323,7 +323,7 @@ mod tests {
             Harness::new(client)
         };
 
-        let mut pair = Pair::new(server, client, SAMPLES);
+        let mut pair = Pair::new(server, client);
         loop {
             match pair.poll() {
                 Poll::Ready(result) => {
@@ -373,7 +373,7 @@ mod tests {
             Harness::new(client)
         };
 
-        let mut pair = Pair::new(server, client, SAMPLES);
+        let mut pair = Pair::new(server, client);
         loop {
             match pair.poll() {
                 Poll::Ready(result) => {
@@ -427,7 +427,7 @@ mod tests {
             Harness::new(client)
         };
 
-        let pair = Pair::new(server, client, SAMPLES);
+        let pair = Pair::new(server, client);
 
         poll_tls_pair(pair);
         // confirm that the callback returned Pending `require_pending_count` times
@@ -496,7 +496,7 @@ mod tests {
             Harness::new(client)
         };
 
-        let pair = Pair::new(server, client, SAMPLES);
+        let pair = Pair::new(server, client);
 
         assert_eq!(callback.count(), 0);
         poll_tls_pair(pair);
@@ -590,7 +590,7 @@ mod tests {
             Harness::new(client)
         };
 
-        let pair = Pair::new(server, client, SAMPLES);
+        let pair = Pair::new(server, client);
         let pair = poll_tls_pair(pair);
         let server = pair.server.0.connection;
         let client = pair.client.0.connection;
@@ -630,7 +630,7 @@ mod tests {
             Harness::new(client)
         };
 
-        let pair = Pair::new(server, client, SAMPLES);
+        let pair = Pair::new(server, client);
         let pair = poll_tls_pair(pair);
         let server = pair.server.0.connection;
         let client = pair.client.0.connection;
