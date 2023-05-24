@@ -80,14 +80,12 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 
 int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    int w;
-
     *blocked = S2N_BLOCKED_ON_WRITE;
 
     /* Write any data that's already pending */
     while (s2n_stuffer_data_available(&conn->out)) {
         errno = 0;
-        w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
+        int w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
         if (w < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
                 POSIX_BAIL(S2N_ERR_IO_BLOCKED);
