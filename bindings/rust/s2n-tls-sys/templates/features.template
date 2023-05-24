@@ -1,7 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-
 /// conditionally declare the module only if `feature` is enabled. If the
 /// feature is enabled, import all symbols into the main namespace.
 /// Disable rustfmt because it wants the `mod` and `pub use` statement to be on
