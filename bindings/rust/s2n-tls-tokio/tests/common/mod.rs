@@ -1,7 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use s2n_tls::{config, connection::Builder, error::Error, security::DEFAULT_TLS13};
+use s2n_tls::{
+    config,
+    connection::Builder,
+    error::Error,
+    security::{DEFAULT, DEFAULT_TLS13},
+};
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::time::Duration;
 use tokio::{
@@ -22,6 +27,14 @@ pub static CERT_PEM: &[u8] = include_bytes!(concat!(
 pub static KEY_PEM: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/examples/certs/key.pem"
+));
+pub static RSA_CERT_PEM: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/examples/certs/cert_rsa.pem"
+));
+pub static RSA_KEY_PEM: &[u8] = include_bytes!(concat!(
+    env!("CARGO_MANIFEST_DIR"),
+    "/examples/certs/key_rsa.pem"
 ));
 
 pub const MIN_BLINDING_SECS: Duration = Duration::from_secs(10);
@@ -47,6 +60,20 @@ pub fn server_config() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
     builder.set_security_policy(&DEFAULT_TLS13)?;
     builder.load_pem(CERT_PEM, KEY_PEM)?;
+    Ok(builder)
+}
+
+pub fn client_config_tls12() -> Result<config::Builder, Error> {
+    let mut builder = config::Config::builder();
+    builder.set_security_policy(&DEFAULT)?;
+    builder.trust_pem(RSA_CERT_PEM)?;
+    Ok(builder)
+}
+
+pub fn server_config_tls12() -> Result<config::Builder, Error> {
+    let mut builder = config::Config::builder();
+    builder.set_security_policy(&DEFAULT)?;
+    builder.load_pem(RSA_CERT_PEM, RSA_KEY_PEM)?;
     Ok(builder)
 }
 

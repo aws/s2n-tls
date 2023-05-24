@@ -444,7 +444,7 @@ int main(int argc, char **argv)
      * platforms where time_t is 4 bytes because representing dates past 2038 as
      * unix seconds overflows the time_t.
      */
-    if (s2n_supports_large_time_t()) {
+    {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -473,10 +473,21 @@ int main(int argc, char **argv)
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-        EXPECT_ERROR_WITH_ERRNO(
-                s2n_x509_validator_validate_cert_chain(&validator, connection,
-                        chain_data, chain_len, &pkey_type, &public_key_out),
-                S2N_ERR_CERT_EXPIRED);
+
+        if (s2n_supports_large_time_t()) {
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_x509_validator_validate_cert_chain(&validator, connection,
+                            chain_data, chain_len, &pkey_type, &public_key_out),
+                    S2N_ERR_CERT_EXPIRED);
+        } else {
+            /* fetch_expired_after_ocsp_timestamp is in 2200 which is not
+             * representable for 32 bit time_t's.
+             */
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_x509_validator_validate_cert_chain(&validator, connection,
+                            chain_data, chain_len, &pkey_type, &public_key_out),
+                    S2N_ERR_SAFETY);
+        }
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
@@ -1021,7 +1032,7 @@ int main(int argc, char **argv)
      * After the "Next Update" time in the OCSP response, the certificate should
      * fail as expired.
      */
-    if (s2n_supports_large_time_t()) {
+    {
         struct s2n_x509_trust_store trust_store;
         s2n_x509_trust_store_init_empty(&trust_store);
         EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store, S2N_OCSP_CA_CERT, NULL));
@@ -1054,9 +1065,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(read_file(&ocsp_data_stuffer, S2N_OCSP_RESPONSE_DER, S2N_MAX_TEST_PEM_SIZE));
         uint32_t ocsp_data_len = s2n_stuffer_data_available(&ocsp_data_stuffer);
         EXPECT_TRUE(ocsp_data_len > 0);
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
-                                        s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
-                S2N_ERR_CERT_EXPIRED);
+
+        if (s2n_supports_large_time_t()) {
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                            s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
+                    S2N_ERR_CERT_EXPIRED);
+        } else {
+            /* fetch_expired_after_ocsp_timestamp is in 2200 which is not
+             * representable for 32 bit time_t's.
+             */
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
+                                            s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
+                    S2N_ERR_SAFETY);
+        }
 
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
         s2n_stuffer_free(&ocsp_data_stuffer);
