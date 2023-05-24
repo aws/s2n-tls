@@ -62,7 +62,18 @@ fn main() {
         .expect("unable to iterate through files in unstable api folder")
         .into_iter()
         .map(|dir_entry| dir_entry.expect("failed to read header"))
-        .map(|dir_entry| (header_name(dir_entry.path()), dir_entry))
+        .map(|dir_entry| {
+            (
+                dir_entry
+                    .path()
+                    .file_stem()
+                    .unwrap()
+                    .to_str()
+                    .unwrap()
+                    .to_owned(),
+                dir_entry,
+            )
+        })
         .collect();
 
     // write unstable bindings for them
@@ -176,18 +187,6 @@ fn write_feature_bindings(
         .unwrap()
         .write_to_file(output_path)
         .unwrap();
-}
-
-fn header_name(header_path: impl AsRef<Path>) -> String {
-    let header_name_regex = Regex::new(r".*/(\w+)\.h").unwrap();
-    let header_path_str = format!("{}", header_path.as_ref().display());
-    header_name_regex
-        .captures(&header_path_str)
-        .expect("unable to parse header path")
-        .get(1)
-        .unwrap()
-        .as_str()
-        .to_owned()
 }
 
 fn gen_files(input: &Path, out: &Path) -> io::Result<()> {
