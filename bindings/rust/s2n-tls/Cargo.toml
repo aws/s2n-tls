@@ -9,7 +9,7 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [features]
-default = []
+default = ["fingerprint"]
 fingerprint = ["s2n-tls-sys/fingerprint"]
 quic = ["s2n-tls-sys/quic"]
 pq = ["s2n-tls-sys/pq"]
@@ -24,7 +24,8 @@ pin-project-lite = "0.2"
 hex = "0.4"
 
 [dev-dependencies]
-bytes = { version = "1" }
+bytes = "1"
 futures-test = "0.3"
-openssl = { version = "0.10" }
-temp-env = { version = "0.3" }
+openssl = "0.10"
+temp-env = "0.3"
+checkers = "0.6"

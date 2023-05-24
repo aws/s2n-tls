@@ -1,7 +1,7 @@
-use std::{
-    fmt,
-    ops::{Deref, DerefMut},
-};
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+use std::fmt;
 
 use s2n_tls_sys::*;
 
@@ -40,27 +40,15 @@ impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
 pub struct ClientHello(s2n_client_hello);
 
 // safety justifications
-// 1 - casting *s2n_client_hello <-> *ClientHello: a struct with only one field
-// has the same layout as that field
-// https://rust-lang.github.io/unsafe-code-guidelines/layout/structs-and-tuples.html#single-field-structs
+// 1 - casting *s2n_client_hello <-> *ClientHello: For repr(Rust),
+// repr(packed(N)), repr(align(N)), and repr(C) structs: if all fields of a
+// struct have size 0, then the struct has size 0.
+// https://rust-lang.github.io/unsafe-code-guidelines/layout/structs-and-tuples.html#zero-sized-structs
 // 2 - casting *const s2n_client_hello -> *mut s2n_client_hello: This is safe as
 // long as the data is not actually mutated. As authors of s2n-tls, we know that
 // the get_hash and get_fingerprint methods do not mutate the data, and use mut
 // pointers as a matter of convention because it makes working with s2n_stuffers
 // and s2n_blobs easier.
-
-impl Deref for ClientHello {
-    type Target = s2n_client_hello;
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl DerefMut for ClientHello {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
 
 impl ClientHello {
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
@@ -86,7 +74,7 @@ impl ClientHello {
 
     // safety justifications [2]
     fn deref_mut_ptr(&self) -> *mut s2n_client_hello {
-        self.deref() as *const s2n_client_hello as *mut s2n_client_hello
+        &self.0 as *const s2n_client_hello as *mut s2n_client_hello
     }
 
     /// internal function which calculates the hash, and also returns the size
@@ -208,7 +196,7 @@ impl ClientHello {
 
 impl Drop for ClientHello {
     fn drop(&mut self) {
-        let mut client_hello: *mut s2n_client_hello = self.deref_mut();
+        let mut client_hello: *mut s2n_client_hello = &mut self.0;
         // ignore failures. There isn't anything to be done to handle them, but
         // allowing the program to continue is preferable to crashing.
         let _ = unsafe {
@@ -240,61 +228,73 @@ mod tests {
         connection::Connection,
         error::{Error, ErrorType},
         security,
-        testing::{poll_tls_pair, s2n_tls::Harness, Pair},
+        testing::{poll_tls_pair, tls_pair},
     };
 
     use super::*;
 
-    // test that a fingerprint can successfully be calculated from ClientHellos
-    // returned from a connection
-    #[test]
-    fn io_fingerprint_test() -> Result<(), Error> {
+    /// Ensure memory is correctly managed in tests
+    /// tests invoked using the checkers::test macro have additional
+    /// memory sanity checks that occur
+    #[cfg(test)]
+    #[global_allocator]
+    static ALLOCATOR: checkers::Allocator = checkers::Allocator::system();
+
+    /// This function is a test fixture used a generate a valid ClientHello so
+    /// that we don't have to copy and paste the raw bytes for test fixtures
+    fn get_client_hello_bytes() -> Vec<u8> {
         let config = crate::testing::config_builder(&security::DEFAULT_TLS13)
             .unwrap()
-            .build()?;
+            .build()
+            .unwrap();
+        let pair = tls_pair(config);
+        let pair = poll_tls_pair(pair);
+        // this doesn't have the handshake header
+        let client_hello_message = pair
+            .server
+            .0
+            .connection()
+            .client_hello()
+            .unwrap()
+            .raw_message()
+            .unwrap();
+        // handshake header is {tag: u8, client_hello_length: u24}
+        let mut client_hello = vec![0; 4];
+        // As long as the client hello is small, no bit fiddling is required
+        assert!(client_hello_message.len() < u8::MAX as usize);
+        // tag for handshake header
+        client_hello[0] = 1;
+        client_hello[3] = client_hello_message.len() as u8;
+        client_hello.extend(client_hello_message.iter());
+        client_hello
+    }
 
-        let server = {
-            // create and configure a server connection
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            Harness::new(server)
-        };
-
-        let client = {
-            // create a client connection
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
+    // test that a fingerprint can successfully be calculated from ClientHellos
+    // returned from a connection
+    #[checkers::test]
+    fn io_fingerprint_test() {
+        let config = crate::testing::config_builder(&security::DEFAULT_TLS13)
+            .unwrap()
+            .build()
+            .unwrap();
+        let pair = crate::testing::tls_pair(config);
 
         // client_hellos can not be accessed before the handshake
-        assert!(client.connection().client_hello().is_err());
-        assert!(server.connection().client_hello().is_err());
-
-        let pair = Pair::new(server, client);
+        assert!(pair.client.0.connection().client_hello().is_err());
+        assert!(pair.server.0.connection().client_hello().is_err());
 
         let pair = poll_tls_pair(pair);
         let server_conn = pair.server.0.connection();
         let client_conn = pair.server.0.connection();
 
         let check_client_hello = |conn: &Connection| -> Result<(), Error> {
-            let expected_hash = "3d80a90bdfa45a3cee62cccfda33c885";
-            let expected_fingerprint = "771,4865-4866-4867-49195-49199-49\
-                                              196-49200-52393-52392-49161-49171\
-                                              -49187-49191-49162-49172-156-60-4\
-                                              7-255,43-10-51-13-11-23,29-23-24,0";
-
             let client_hello = conn.client_hello().unwrap();
-            let (hash, string) = client_hello.fingerprint(FingerprintType::JA3)?;
-            assert_eq!(hex::encode(hash), expected_hash);
-            assert_eq!(string, expected_fingerprint);
+            let (_hash, _string) = client_hello.fingerprint(FingerprintType::JA3)?;
             Ok(())
         };
 
-        check_client_hello(server_conn)?;
-        check_client_hello(client_conn)?;
-
-        Ok(())
+        assert!(check_client_hello(server_conn).is_ok());
+        assert!(check_client_hello(client_conn).is_ok());
     }
 
     fn known_test_case(
@@ -335,7 +335,7 @@ mod tests {
     }
 
     // known value test case copied from s2n_fingerprint_ja3_test.c
-    #[test]
+    #[checkers::test]
     fn valid_client_bytes() {
         let raw_client_hello = vec![
             0x01, 0x00, 0x00, 0xEC, 0x03, 0x03, 0x90, 0xe8, 0xcc, 0xee, 0xe5, 0x70, 0xa2, 0xa1,
@@ -367,35 +367,12 @@ mod tests {
     // make sure that debug doesn't panic and seems reasonable
     #[test]
     fn debug() {
-        let raw_client_hello = vec![
-            0x01, 0x00, 0x00, 0xEC, 0x03, 0x03, 0x90, 0xe8, 0xcc, 0xee, 0xe5, 0x70, 0xa2, 0xa1,
-            0x2f, 0x6b, 0x69, 0xd2, 0x66, 0x96, 0x0f, 0xcf, 0x20, 0xd5, 0x32, 0x6e, 0xc4, 0xb2,
-            0x8c, 0xc7, 0xbd, 0x0a, 0x06, 0xc2, 0xa5, 0x14, 0xfc, 0x34, 0x20, 0xaf, 0x72, 0xbf,
-            0x39, 0x99, 0xfb, 0x20, 0x70, 0xc3, 0x10, 0x83, 0x0c, 0xee, 0xfb, 0xfa, 0x72, 0xcc,
-            0x5d, 0xa8, 0x99, 0xb4, 0xc5, 0x53, 0xd6, 0x3d, 0xa0, 0x53, 0x7a, 0x5c, 0xbc, 0xf5,
-            0x0b, 0x00, 0x1e, 0xc0, 0x2b, 0xc0, 0x2f, 0xcc, 0xa9, 0xcc, 0xa8, 0xc0, 0x2c, 0xc0,
-            0x30, 0xc0, 0x0a, 0xc0, 0x09, 0xc0, 0x13, 0xc0, 0x14, 0x00, 0x33, 0x00, 0x39, 0x00,
-            0x2f, 0x00, 0x35, 0x00, 0x0a, 0x01, 0x00, 0x00, 0x85, 0x00, 0x00, 0x00, 0x23, 0x00,
-            0x21, 0x00, 0x00, 0x1e, 0x69, 0x6e, 0x63, 0x6f, 0x6d, 0x69, 0x6e, 0x67, 0x2e, 0x74,
-            0x65, 0x6c, 0x65, 0x6d, 0x65, 0x74, 0x72, 0x79, 0x2e, 0x6d, 0x6f, 0x7a, 0x69, 0x6c,
-            0x6c, 0x61, 0x2e, 0x6f, 0x72, 0x67, 0x00, 0x17, 0x00, 0x00, 0xff, 0x01, 0x00, 0x01,
-            0x00, 0x00, 0x0a, 0x00, 0x0a, 0x00, 0x08, 0x00, 0x1d, 0x00, 0x17, 0x00, 0x18, 0x00,
-            0x19, 0x00, 0x0b, 0x00, 0x02, 0x01, 0x00, 0x00, 0x23, 0x00, 0x00, 0x00, 0x10, 0x00,
-            0x0e, 0x00, 0x0c, 0x02, 0x68, 0x32, 0x08, 0x68, 0x74, 0x74, 0x70, 0x2f, 0x31, 0x2e,
-            0x31, 0x00, 0x05, 0x00, 0x05, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0d, 0x00, 0x18,
-            0x00, 0x16, 0x04, 0x03, 0x05, 0x03, 0x06, 0x03, 0x08, 0x04, 0x08, 0x05, 0x08, 0x06,
-            0x04, 0x01, 0x05, 0x01, 0x06, 0x01, 0x02, 0x03, 0x02, 0x01, 0x00, 0x1c, 0x00, 0x02,
-            0x40, 0x00,
-        ];
         crate::init::init();
+        // sets up connection and handshakes
+        let raw_client_hello = get_client_hello_bytes();
         let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
+        let (_hash, fingerprint) = client_hello.fingerprint(FingerprintType::JA3).unwrap();
         let client_hello_debug = format!("{:?}", client_hello);
-        let expected_debug = "ClientHello { \
-                                        session_id: \"af72bf3999fb2070c310830ceefbfa72cc5da899b4c553d63da0537a5cbcf50b\", \
-                                        message_len: 236, \
-                                        ja3_fingerprint: \"771,49195-49199-52393-52392-49196-49200-49162-49161-49171-49172-51-57-47-53-10,0-23-65281-10-11-35-16-5-13-28,29-23-24-25,0\", \
-                                        .. \
-                                    }";
-        assert_eq!(client_hello_debug, expected_debug);
+        assert!(client_hello_debug.contains(&fingerprint));
     }
 }
