@@ -447,6 +447,11 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      *     https://tools.ietf.org/rfc/rfc8446#section-9.1
      *     A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256)
      *     and SHOULD support key exchange with X25519 [RFC7748]
+     *
+     *= https://tools.ietf.org/rfc/rfc4492#section-4
+     *# A client that proposes ECC cipher suites may choose not to include these extensions.
+     *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.
+     *
      */
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));

@@ -556,6 +556,8 @@ typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
  * Allows the caller to override s2n-tls's entropy functions.
  * 
  * @warning This function must be called before s2n_init().
+ *
+ * @note The overriden random callbacks will not be used when s2n-tls is operating in FIPS mode.
  * 
  * @param rand_init_callback The s2n_rand_init_callback
  * @param rand_cleanup_callback The s2n_rand_cleanup_callback
