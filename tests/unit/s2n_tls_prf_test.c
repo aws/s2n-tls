@@ -23,6 +23,8 @@
 /* To gain access to handshake_read and handshake_write */
 #include "tls/s2n_handshake_io.c"
 
+#define TEST_BLOB_SIZE 64
+
 /*
  * Grabbed from gnutls-cli --insecure -d 9 www.example.com --ciphers AES --macs SHA --protocols TLS1.0
  *
@@ -309,6 +311,64 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
     };
+
+    /* s2n_prf tests */
+    {
+        s2n_stack_blob(secret, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+        s2n_stack_blob(label, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+        s2n_stack_blob(seed_a, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+        s2n_stack_blob(seed_b, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+        s2n_stack_blob(seed_c, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+        s2n_stack_blob(out, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(NULL, &secret, &label, &seed_a, &seed_b, &seed_c, &out), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, NULL, &label, &seed_a, &seed_b, &seed_c, &out), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, NULL, &seed_a, &seed_b, &seed_c, &out), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, &seed_c, NULL), S2N_ERR_NULL);
+
+            /* seed_a is required */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, NULL, &seed_b, &seed_c, &out), S2N_ERR_PRF_INVALID_SEED);
+
+            /* seed_b and seed_c are optional */
+            EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, NULL, NULL, &out));
+
+            /* seed_b is required if seed_c is provided */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, &seed_a, NULL, &seed_c, &out), S2N_ERR_PRF_INVALID_SEED);
+
+            /* seed_c is optional */
+            EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, NULL, &out));
+        }
+
+        /* The custom PRF implementation is used when s2n-tls is not operating in FIPS mode */
+        if (!s2n_is_in_fips_mode()) {
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+
+            uint8_t zeros[S2N_MAX_DIGEST_LEN] = { 0 };
+            EXPECT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+
+            EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, &seed_c, &out));
+
+            /* The custom PRF implementation should modify the digest fields in the prf_space */
+            EXPECT_NOT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+        }
+
+        /* The libcrypto PRF implementation is used when s2n-tls is linked with AWSLC-FIPS */
+        if (s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode()) {
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+
+            uint8_t zeros[S2N_MAX_DIGEST_LEN] = { 0 };
+            EXPECT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+
+            EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, &seed_c, &out));
+
+            /* The libcrypto PRF implementation will not modify the digest fields in the prf_space */
+            EXPECT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
+        }
+    }
 
     END_TEST();
 }
