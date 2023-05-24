@@ -132,6 +132,7 @@ async fn shutdown_after_halfclose_split() -> Result<(), Box<dyn std::error::Erro
                 .write_all("random bytes".as_bytes())
                 .await
                 .unwrap();
+            client_writer.flush().await.unwrap();
             // shutdown
             client_writer.shutdown().await.unwrap()
         }
