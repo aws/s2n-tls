@@ -690,8 +690,9 @@ impl Connection {
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
+    /// let mut hash = Vec::new();
     /// drop(conn);
-    /// let hash = client_hello.fingerprint(FingerprintType::JA3);
+    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
     /// ```
     ///
     /// The compilation could be failing for a variety of reasons, so make sure
@@ -703,10 +704,11 @@ impl Connection {
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-    /// let hash = client_hello.fingerprint(FingerprintType::JA3);
+    /// let mut hash = Vec::new();
+    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
     /// drop(conn);
     /// ```
-    #[cfg(feature = "fingerprint")]
+    #[cfg(feature = "unstable-fingerprint")]
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
         let mut handle =
             unsafe { s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()? };

@@ -9,8 +9,8 @@ repository = "https://github.com/aws/s2n-tls"
 license = "Apache-2.0"
 
 [features]
-default = ["fingerprint"]
-fingerprint = ["s2n-tls-sys/fingerprint"]
+default = []
+unstable-fingerprint = ["s2n-tls-sys/fingerprint"]
 quic = ["s2n-tls-sys/quic"]
 pq = ["s2n-tls-sys/pq"]
 testing = ["bytes"]

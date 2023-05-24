@@ -23,20 +23,37 @@ impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
     }
 }
 
-/// ClientHello is an opaque wrapper struct around `s2n_client_hello`. Note that
-/// the size of this type is not known, and as such it can only be used through
-/// references and pointers.
-///
-/// This implementation is motivated by the different memory_management required
-/// for different s2n_client_hello pointers. `s2n_client_hello_parse_message`
-/// returns a `*mut s2n_client_hello` which owns it's own data. This neatly fits
-///  the "smart pointer" pattern and can be represented as a `Box<T>`.
-///
-/// `s2n_connection_get_client_hello` returns a `*mut s2n_client_hello` which
-/// references memory owned by the connection, and therefore must not outlive
-/// the connection struct. This is best represented as a reference tied to the
-/// lifetime of the `Connection` struct.
+// ClientHello is an opaque wrapper struct around `s2n_client_hello`. Note that
+// the size of this type is not known, and as such it can only be used through
+// references and pointers.
+//
+// This implementation is motivated by the different memory_management required
+// for different s2n_client_hello pointers. `s2n_client_hello_parse_message`
+// returns a `*mut s2n_client_hello` which owns it's own data. This neatly fits
+//  the "smart pointer" pattern and can be represented as a `Box<T>`.
+//
+// `s2n_connection_get_client_hello` returns a `*mut s2n_client_hello` which
+// references memory owned by the connection, and therefore must not outlive
+// the connection struct. This is best represented as a reference tied to the
+// lifetime of the `Connection` struct.
 
+/// ```no_run
+/// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+/// use s2n_tls::connection::Connection;
+/// use s2n_tls::enums::Mode;
+///
+/// let mut conn = Connection::new(Mode::Server);
+/// // handshake happens
+/// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
+/// let mut hash = Vec::new();
+/// let string_size = client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash).unwrap();
+/// // hash has been resized so that it can store the fingerprint hash
+///
+/// let mut string = String::with_capacity(string_size as usize);
+/// // string will not be resized, and the method will fail with
+/// // ErrorType::UsageError if the string doesn't have enough capacity
+/// client_hello.fingerprint_string(FingerprintType::JA3, &mut string).unwrap();
+/// ```
 pub struct ClientHello(s2n_client_hello);
 
 // safety justifications
@@ -52,6 +69,7 @@ pub struct ClientHello(s2n_client_hello);
 
 impl ClientHello {
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
+        crate::init::init();
         let handle = unsafe {
             s2n_client_hello_parse_message(hello.as_ptr(), hello.len() as u32).into_result()?
         };
@@ -66,7 +84,7 @@ impl ClientHello {
     // this accepts a mut ref instead of a pointer, so that lifetimes are nicely
     // calculated for us. As is always the case, the reference must not be null.
     // this is marked "pub(crate)" to expose it to the connection module but
-    // prevent it from being used externally
+    // prevent it from being used externally.
     pub(crate) fn from_ptr(hello: &s2n_client_hello) -> &Self {
         // safety: see safety justifications [1]
         unsafe { &*(hello as *const s2n_client_hello as *const ClientHello) }
@@ -77,83 +95,62 @@ impl ClientHello {
         &self.0 as *const s2n_client_hello as *mut s2n_client_hello
     }
 
-    /// internal function which calculates the hash, and also returns the size
-    /// required for the full fingerprint. External customers should instead use
-    /// `fingerprint_hash()` or `fingerprint()`.
-    fn fingerprint_hash_and_size_hint(
+    /// `fingerprint_hash` calculates the hash, and also returns the size
+    /// required for the full fingerprint string. The return value can be used
+    /// to construct a string of appropriate capacity to call
+    /// `fingerprint_string`. `output` will be extended if necessary to store
+    /// the full hash.
+    pub fn fingerprint_hash(
         &self,
         hash: FingerprintType,
-    ) -> Result<(Vec<u8>, u32), Error> {
-        let mut hash_result = vec![0; MD5_HASH_SIZE as usize];
+        output: &mut Vec<u8>,
+    ) -> Result<u32, Error> {
         let mut hash_size: u32 = 0;
         let mut str_size: u32 = 0;
+        // make sure the vec has sufficient space for the hash
+        if output.capacity() < MD5_HASH_SIZE as usize {
+            output.reserve_exact(MD5_HASH_SIZE as usize - output.len());
+        }
         unsafe {
             s2n_client_hello_get_fingerprint_hash(
                 self.deref_mut_ptr(),
                 hash.into(),
                 MD5_HASH_SIZE,
-                hash_result.as_mut_ptr(),
+                output.as_mut_ptr(),
                 &mut hash_size,
                 &mut str_size,
             )
-            .into_result()?
+            .into_result()?;
+            // SAFETY: we wrote to the raw vec (using the mut pointer), and need
+            // to update the state of the vec to reflect the changes we made.
+            output.set_len(MD5_HASH_SIZE as usize);
         };
-        Ok((hash_result, str_size))
+        Ok(str_size)
     }
 
-    /// `fingerprint_string_with_size` will try to compute the fingerprint
-    /// string using a buffer of size `capacity`. This is useful for customers
-    /// who are very concerned with efficiency, since it allows the fingerprint
-    /// string to be calculated in a single pass.
-    pub fn fingerprint_string_with_size(
+    /// `fingerprint_string` will try to calculate the fingerprint and store the
+    /// resulting string in `output`. If `output` does not have sufficient
+    /// capacity an Error of `ErrorType::UsageError` will be returned. The
+    pub fn fingerprint_string(
         &self,
         hash: FingerprintType,
-        capacity: u32,
-    ) -> Result<String, Error> {
-        let mut string: Vec<u8> = vec![0; capacity as usize];
+        output: &mut String,
+    ) -> Result<(), Error> {
         let mut output_size = 0;
         unsafe {
             s2n_tls_sys::s2n_client_hello_get_fingerprint_string(
                 self.deref_mut_ptr(),
                 hash.into(),
-                capacity,
-                string.as_mut_ptr(),
+                output.capacity() as u32,
+                output.as_mut_ptr(),
                 &mut output_size,
             )
-            .into_result()?
-        };
-        return Ok(String::from_utf8(string)
-            .map_err(|parse_error| Error::application(Box::new(parse_error)))?);
-    }
-
-    /// `fingerprint` returns a Vector containing the raw bytes of the hash and
-    /// a String containing the fingerprint string. This function will calculate
-    /// the fingerprint twice. First it will calculate the hash and figure out
-    /// how large the fingerprint string will be, then on the second pass it
-    /// will allocate an appropriately sized buffer and calculate the
-    /// fingerprint string.
-    pub fn fingerprint(&self, hash: FingerprintType) -> Result<(Vec<u8>, String), Error> {
-        let (fingerprint_hash, string_size) = self.fingerprint_hash_and_size_hint(hash)?;
-        let fingerprint_string = self.fingerprint_string_with_size(hash, string_size)?;
-        Ok((fingerprint_hash, fingerprint_string))
-    }
-
-    pub fn fingerprint_hash(&self, hash: FingerprintType) -> Result<Vec<u8>, Error> {
-        let mut fingerprint_hash = vec![0; MD5_HASH_SIZE as usize];
-        let mut hash_size: u32 = 0;
-        let mut str_size: u32 = 0;
-        unsafe {
-            s2n_client_hello_get_fingerprint_hash(
-                self.deref_mut_ptr(),
-                hash.into(),
-                MD5_HASH_SIZE,
-                fingerprint_hash.as_mut_ptr(),
-                &mut hash_size,
-                &mut str_size,
-            )
             .into_result()?;
-        }
-        Ok(fingerprint_hash)
+            // SAFETY: update internal state of string to match the data we just
+            // wrote into it.
+            output.as_mut_vec().set_len(output_size as usize);
+        };
+        Ok(())
     }
 
     fn session_id(&self) -> Result<Vec<u8>, Error> {
@@ -210,35 +207,26 @@ impl fmt::Debug for ClientHello {
         let session_id = self.session_id().map_err(|_| fmt::Error)?;
         let session_id = hex::encode(session_id);
         let message_head = self.raw_message().map_err(|_| fmt::Error)?;
-        let fingerprint = self
-            .fingerprint(FingerprintType::JA3)
-            .map_err(|_| fmt::Error)?
-            .1;
+        let mut hash = Vec::new();
+        self.fingerprint_hash(FingerprintType::JA3, &mut hash)
+            .map_err(|_| fmt::Error)?;
         f.debug_struct("ClientHello")
             .field("session_id", &session_id)
             .field("message_len", &(message_head.len()))
-            .field("ja3_fingerprint", &fingerprint)
+            .field("ja3_fingerprint", &hex::encode(hash))
             .finish_non_exhaustive()
     }
 }
 
 #[cfg(test)]
 mod tests {
+    use super::*;
     use crate::{
         connection::Connection,
         error::{Error, ErrorType},
         security,
         testing::{poll_tls_pair, tls_pair},
     };
-
-    use super::*;
-
-    /// Ensure memory is correctly managed in tests
-    /// tests invoked using the checkers::test macro have additional
-    /// memory sanity checks that occur
-    #[cfg(test)]
-    #[global_allocator]
-    static ALLOCATOR: checkers::Allocator = checkers::Allocator::system();
 
     /// This function is a test fixture used a generate a valid ClientHello so
     /// that we don't have to copy and paste the raw bytes for test fixtures
@@ -269,6 +257,12 @@ mod tests {
         client_hello
     }
 
+    fn get_client_hello() -> Box<ClientHello> {
+        // sets up connection and handshakes
+        let raw_client_hello = get_client_hello_bytes();
+        ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap()
+    }
+
     // test that a fingerprint can successfully be calculated from ClientHellos
     // returned from a connection
     #[checkers::test]
@@ -289,7 +283,11 @@ mod tests {
 
         let check_client_hello = |conn: &Connection| -> Result<(), Error> {
             let client_hello = conn.client_hello().unwrap();
-            let (_hash, _string) = client_hello.fingerprint(FingerprintType::JA3)?;
+            let mut hash = Vec::new();
+            let fingerprint_size =
+                client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash)?;
+            let mut string = String::with_capacity(fingerprint_size as usize);
+            client_hello.fingerprint_string(FingerprintType::JA3, &mut string)?;
             Ok(())
         };
 
@@ -303,25 +301,18 @@ mod tests {
         expected_hash_hex: &str,
     ) -> Result<(), Error> {
         let expected_hash: Vec<u8> = hex::decode(expected_hash_hex).unwrap();
-        crate::init::init();
         let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
 
-        let (hash, string) = client_hello.fingerprint(FingerprintType::JA3)?;
+        let mut hash = Vec::new();
+        let string_size = client_hello
+            .fingerprint_hash(FingerprintType::JA3, &mut hash)
+            .unwrap();
         assert_eq!(hash, expected_hash);
-        assert_eq!(string, expected_string);
 
-        let hash = client_hello.fingerprint_hash(FingerprintType::JA3)?;
-        assert_eq!(hash, expected_hash);
-
-        // trying to calculate the fingerprint with too small a buffer results
-        // in a usage error.
-        let fingerprint_err = client_hello
-            .fingerprint_string_with_size(FingerprintType::JA3, expected_string.len() as u32 - 1)
-            .unwrap_err();
-        assert_eq!(fingerprint_err.kind(), ErrorType::UsageError);
-
-        let string = client_hello
-            .fingerprint_string_with_size(FingerprintType::JA3, expected_string.len() as u32)?;
+        let mut string = String::with_capacity(string_size as usize);
+        client_hello
+            .fingerprint_string(FingerprintType::JA3, &mut string)
+            .unwrap();
         assert_eq!(string, expected_string);
         Ok(())
     }
@@ -364,15 +355,38 @@ mod tests {
         known_test_case(raw_client_hello, expected_fingerprint, expected_hash_hex).unwrap();
     }
 
+    #[test]
+    fn hash_output_resizing() {
+        let client_hello = get_client_hello();
+        let hash_capacities = vec![0, MD5_HASH_SIZE, 1_000];
+        for initial_size in hash_capacities {
+            let mut hash = Vec::with_capacity(initial_size as usize);
+            client_hello
+                .fingerprint_hash(FingerprintType::JA3, &mut hash)
+                .unwrap();
+            assert_eq!(hash.len(), MD5_HASH_SIZE as usize);
+        }
+    }
+
+    #[test]
+    fn string_output_too_small() {
+        let client_hello = get_client_hello();
+        let mut fingerprint_string = String::with_capacity(0);
+        let fingerprint_err = client_hello
+            .fingerprint_string(FingerprintType::JA3, &mut fingerprint_string)
+            .unwrap_err();
+        assert_eq!(fingerprint_err.kind(), ErrorType::UsageError);
+    }
+
     // make sure that debug doesn't panic and seems reasonable
     #[test]
     fn debug() {
-        crate::init::init();
-        // sets up connection and handshakes
-        let raw_client_hello = get_client_hello_bytes();
-        let client_hello = ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap();
-        let (_hash, fingerprint) = client_hello.fingerprint(FingerprintType::JA3).unwrap();
+        let client_hello = get_client_hello();
+        let mut hash = Vec::new();
+        client_hello
+            .fingerprint_hash(FingerprintType::JA3, &mut hash)
+            .unwrap();
         let client_hello_debug = format!("{:?}", client_hello);
-        assert!(client_hello_debug.contains(&fingerprint));
+        assert!(client_hello_debug.contains(&hex::encode(hash)));
     }
 }
