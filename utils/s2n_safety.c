@@ -157,17 +157,29 @@ int s2n_constant_time_pkcs1_unpad_or_dont(uint8_t *dst, const uint8_t *src, uint
     return 0;
 }
 
-static bool s_s2n_in_unit_test = false;
+static bool s2n_in_unit_test_value = false;
+static bool s2n_in_integ_test_value = false;
+
+int s2n_in_unit_test_set(bool is_unit)
+{
+    s2n_in_unit_test_value = is_unit;
+    return S2N_SUCCESS;
+}
+
+int s2n_in_integ_test_set(bool is_integ)
+{
+    s2n_in_integ_test_value = is_integ;
+    return S2N_SUCCESS;
+}
 
 bool s2n_in_unit_test()
 {
-    return s_s2n_in_unit_test;
+    return s2n_in_unit_test_value;
 }
 
-int s2n_in_unit_test_set(bool newval)
+bool s2n_in_test()
 {
-    s_s2n_in_unit_test = newval;
-    return S2N_SUCCESS;
+    return s2n_in_unit_test_value || s2n_in_integ_test_value;
 }
 
 int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t *out)
