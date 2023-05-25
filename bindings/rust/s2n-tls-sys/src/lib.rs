@@ -9,13 +9,6 @@ pub use api::*;
 mod features;
 pub use features::*;
 
-#[cfg(feature = "fingerprint")]
-#[rustfmt::skip]
-mod fingerprint;
-
-#[cfg(feature = "fingerprint")]
-pub use fingerprint::*;
-
 // Additional defines that don't get imported with bindgen
 
 pub mod s2n_status_code {
