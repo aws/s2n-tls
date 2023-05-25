@@ -16,7 +16,7 @@
 # This script compiles s2n-tls as a shared library and compiles a test 
 # without linking to the library. This enables us to test behavior when 
 # s2n-tls is dynamically loaded.
-set -eo pipefail
+set -e
 
 WORK_DIR=$1
 
