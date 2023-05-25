@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.44-b71de53d</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.44-620ea247</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -316,6 +316,8 @@ Functions</h2></td></tr>
 <tr class="separator:a6bec40a852f3766f4e419684036e7550"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aae4a525b68ba7bd181a27de9ea2fcd1a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> struct s2n_config *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new</a> (void)</td></tr>
 <tr class="separator:aae4a525b68ba7bd181a27de9ea2fcd1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ab4ea3e214391965d7edb0efa6bf1e4cd"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> struct s2n_config *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ab4ea3e214391965d7edb0efa6bf1e4cd">s2n_config_new_minimal</a> (void)</td></tr>
+<tr class="separator:ab4ea3e214391965d7edb0efa6bf1e4cd"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a414a19458d8ce45e039dbd01e7dd67f4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a414a19458d8ce45e039dbd01e7dd67f4">s2n_config_free</a> (struct s2n_config *config)</td></tr>
 <tr class="separator:a414a19458d8ce45e039dbd01e7dd67f4"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5a04d9eaa39a0145f16dd819fe60fc0b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a5a04d9eaa39a0145f16dd819fe60fc0b">s2n_config_free_dhparams</a> (struct s2n_config *config)</td></tr>
@@ -388,6 +390,8 @@ Functions</h2></td></tr>
 <tr class="separator:a1de5c0b7a1029ee248947835d4e170bc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af7e2759066521827269d56d4da063f7b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#af7e2759066521827269d56d4da063f7b">s2n_config_wipe_trust_store</a> (struct s2n_config *config)</td></tr>
 <tr class="separator:af7e2759066521827269d56d4da063f7b"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a3f99ca29318603bee3d3e1fb713e4577"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a3f99ca29318603bee3d3e1fb713e4577">s2n_config_load_system_certs</a> (struct s2n_config *config)</td></tr>
+<tr class="separator:a3f99ca29318603bee3d3e1fb713e4577"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa0729c67323dbe0604e6b55f82afb6f6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aa0729c67323dbe0604e6b55f82afb6f6">s2n_config_set_verify_after_sign</a> (struct s2n_config *config, s2n_verify_after_sign mode)</td></tr>
 <tr class="separator:aa0729c67323dbe0604e6b55f82afb6f6"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a6de9d794c410474e9851880bd4914025"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a6de9d794c410474e9851880bd4914025">s2n_config_set_send_buffer_size</a> (struct s2n_config *config, uint32_t size)</td></tr>
@@ -3369,7 +3373,8 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Adds a PEM to the trust store. This will allocate memory, and load PEM into the Trust Store. Note that the trust store will be initialized with the common locations for the host operating system by default. To completely override those locations, call s2n_config_wipe_trust_store before calling this function.</p>
+<p >Adds a PEM to the trust store. This will allocate memory, and load <code>pem</code> into the trust store.</p>
+<p >When configs are created with <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code>, the trust store is initialized with default system certificates. To completely override these certificates, call <code><a class="el" href="s2n_8h.html#af7e2759066521827269d56d4da063f7b">s2n_config_wipe_trust_store()</a></code> before calling this function.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -3692,6 +3697,34 @@ Safety</h1>
 
 </div>
 </div>
+<a id="a3f99ca29318603bee3d3e1fb713e4577" name="a3f99ca29318603bee3d3e1fb713e4577"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a3f99ca29318603bee3d3e1fb713e4577">&#9670;&#160;</a></span>s2n_config_load_system_certs()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_load_system_certs </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *&#160;</td>
+          <td class="paramname"><em>config</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Loads default system certificates into the trust store.</p>
+<p ><code><a class="el" href="s2n_8h.html#ab4ea3e214391965d7edb0efa6bf1e4cd">s2n_config_new_minimal()</a></code> doesn't load default system certificates into the config's trust store by default. If <code>config</code> was created with <code>s2n_config_new_minimal</code>, this function can be used to load system certificates into the trust store.</p>
+<dl class="section note"><dt>Note</dt><dd>This API will error if called on a config that has already loaded system certificates into its trust store, which includes all configs created with <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code>.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
 <a id="aae4a525b68ba7bd181a27de9ea2fcd1a" name="aae4a525b68ba7bd181a27de9ea2fcd1a"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#aae4a525b68ba7bd181a27de9ea2fcd1a">&#9670;&#160;</a></span>s2n_config_new()</h2>
 
@@ -3707,8 +3740,32 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Create a new s2n_config object. This object can (and should) be associated with many connection objects.</p>
-<dl class="section return"><dt>Returns</dt><dd>returns a new configuration object suitable for associating certs and keys. </dd></dl>
+<p >Creates a new s2n_config object. This object can (and should) be associated with many connection objects.</p>
+<p >The returned config will be initialized with default system certificates in its trust store.</p>
+<p >The returned config should be freed with <code><a class="el" href="s2n_8h.html#a414a19458d8ce45e039dbd01e7dd67f4">s2n_config_free()</a></code> after it's no longer in use by any connection.</p>
+<dl class="section return"><dt>Returns</dt><dd>A new configuration object suitable for configuring connections and associating certs and keys. </dd></dl>
+
+</div>
+</div>
+<a id="ab4ea3e214391965d7edb0efa6bf1e4cd" name="ab4ea3e214391965d7edb0efa6bf1e4cd"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ab4ea3e214391965d7edb0efa6bf1e4cd">&#9670;&#160;</a></span>s2n_config_new_minimal()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> struct s2n_config * s2n_config_new_minimal </td>
+          <td>(</td>
+          <td class="paramtype">void&#160;</td>
+          <td class="paramname"></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Creates a new s2n_config object with minimal default options.</p>
+<p >This function has better performance than <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code> because it does not load default system certificates into the trust store by default. To add system certificates to this config, call <code><a class="el" href="s2n_8h.html#a3f99ca29318603bee3d3e1fb713e4577">s2n_config_load_system_certs()</a></code>.</p>
+<p >The returned config should be freed with <code><a class="el" href="s2n_8h.html#a414a19458d8ce45e039dbd01e7dd67f4">s2n_config_free()</a></code> after it's no longer in use by any connection.</p>
+<dl class="section return"><dt>Returns</dt><dd>A new configuration object suitable for configuring connections and associating certs and keys. </dd></dl>
 
 </div>
 </div>
@@ -5141,7 +5198,8 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Adds to the trust store from a CA file or directory containing trusted certificates. To completely override those locations, call <a class="el" href="s2n_8h.html#af7e2759066521827269d56d4da063f7b">s2n_config_wipe_trust_store()</a> before calling this function.</p>
+<p >Adds to the trust store from a CA file or directory containing trusted certificates.</p>
+<p >When configs are created with <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code>, the trust store is initialized with default system certificates. To completely override these certificates, call <code><a class="el" href="s2n_8h.html#af7e2759066521827269d56d4da063f7b">s2n_config_wipe_trust_store()</a></code> before calling this function.</p>
 <dl class="section note"><dt>Note</dt><dd>The trust store will be initialized with the common locations for the host operating system by default. </dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -5291,15 +5349,15 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Clear the trust store.</p>
-<p >Note that the trust store will be initialized with the common locations for the host operating system by default. To completely override those locations, call this before functions like <code><a class="el" href="s2n_8h.html#a85545629ce095ed44de580592eecf50e">s2n_config_set_verification_ca_location()</a></code> or <code><a class="el" href="s2n_8h.html#a1de5c0b7a1029ee248947835d4e170bc">s2n_config_add_pem_to_trust_store()</a></code></p>
+<p >Clears the trust store of all certificates.</p>
+<p >When configs are created with <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code>, the trust store is initialized with default system certificates. To completely override these certificates, call this function before functions like <code><a class="el" href="s2n_8h.html#a85545629ce095ed44de580592eecf50e">s2n_config_set_verification_ca_location()</a></code> or <code><a class="el" href="s2n_8h.html#a1de5c0b7a1029ee248947835d4e170bc">s2n_config_add_pem_to_trust_store()</a></code>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
-    <tr><td class="paramname">config</td><td>The configuration object being updated</td></tr>
+    <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
   </table>
   </dd>
 </dl>
-<dl class="section return"><dt>Returns</dt><dd>0 on success and -1 on error </dd></dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
 
 </div>
 </div>
@@ -9079,7 +9137,7 @@ Safety</h1>
 <div class="line">    bytes_read += r;</div>
 <div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
 <div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1783</div></div>
+<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1822</div></div>
 </div><!-- fragment --></dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
