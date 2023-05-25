@@ -20,9 +20,7 @@
 
 static void * s2n_load_dynamic_lib(void *ctx)
 {
-    const char *s2n_so_path = ctx;
-
-    void *s2n_so = dlopen(s2n_so_path, RTLD_NOW);
+    void *s2n_so = dlopen("../../lib/libs2n.so", RTLD_NOW);
     if (!s2n_so) {
         exit(1);
     }
@@ -39,7 +37,7 @@ static void * s2n_load_dynamic_lib(void *ctx)
         exit(1);
     }
 
-    if ((*s2n_init_dl)()) {
+    if((*s2n_init_dl)()) {
         exit(1);
     }
     if((*s2n_cleanup_dl)()) {
@@ -53,13 +51,8 @@ static void * s2n_load_dynamic_lib(void *ctx)
     return NULL;
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
-    if (argc != 2) {
-        printf("Usage: s2n_dynamic_load_test <path to s2n shared object>\n");
-        exit(1);
-    }
-
     /* s2n-tls library can be dynamically loaded and cleaned up safely 
      *
      * We can't use any s2n test macros because those would need to be linked from
@@ -67,7 +60,7 @@ int main(int argc, char *argv[])
      */
     {
         pthread_t thread_id = { 0 };
-        if(pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
+        if(pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, NULL)) {
             exit(1);
         }
         if(pthread_join(thread_id, NULL)) {

@@ -531,7 +531,7 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
     s2n_per_thread_rand_state.drbgs_initialized = false;
 
     /* Unset the thread-local destructor */
-    RESULT_ENSURE_EQ(pthread_setspecific(s2n_per_thread_rand_state_key, NULL), 0);
+    pthread_setspecific(s2n_per_thread_rand_state_key, NULL);
 
     return S2N_RESULT_OK;
 }
