@@ -60,7 +60,11 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    /** s2n-tls shared object can be dynamically loaded and cleaned up safely **/
+    /* s2n-tls library can be dynamically loaded and cleaned up safely 
+     *
+     * We can't use any s2n test macros because those would need to be linked from
+     * the s2n library, and we can't link to the library for this test.
+     */
     {
         pthread_t thread_id = { 0 };
         if(pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {

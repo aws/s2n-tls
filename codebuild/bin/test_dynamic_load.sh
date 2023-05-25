@@ -13,7 +13,7 @@
 # permissions and limitations under the License.
 #
 
-# This test compiles s2n-tls as a shared library and compiles a test 
+# This script compiles s2n-tls as a shared library and compiles a test 
 # without linking to the library. This enables us to test behavior when 
 # s2n-tls is dynamically loaded.
 set -eo pipefail
@@ -32,7 +32,7 @@ if [ ! -d $WORK_DIR/s2n-install-shared ]; then
 fi
 
 # Compile the dynamic load test without linking to libs2n.so
-gcc -o s2n_dynamic_load_test ~/s2n/tests/unit/s2n_dynamic_load_test.c -ldl -lpthread $WORK_DIR/s2n-install-shared/lib/libs2n.so
+gcc -o s2n_dynamic_load_test tests/unit/s2n_dynamic_load_test.c -ldl -lpthread -L$WORK_DIR/s2n-install-shared/lib -ls2n
 
 LDD_OUTPUT=$(ldd s2n_dynamic_load_test)
 
@@ -42,5 +42,5 @@ if echo "$LDD_OUTPUT" | grep -q libs2n; then
     exit 1
 fi
 
-# Run the test
+# Run the test with the path to libs2n
 ./s2n_dynamic_load_test $WORK_DIR/s2n-install-shared/lib/libs2n.so
