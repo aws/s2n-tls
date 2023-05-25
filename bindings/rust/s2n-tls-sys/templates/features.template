@@ -1,0 +1,25 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+/// conditionally declare the module only if `feature` is enabled. If the
+/// feature is enabled, import all symbols into the main namespace.
+/// Disable rustfmt because it wants the `mod` and `pub use` statement to be on
+/// different levels of indentation
+#[rustfmt::skip]
+macro_rules! conditional_module {
+    ($mod_name:ident, $feature_name:literal) => {
+        // bindgen will automatically rustfmt everything, but we use nightly rustfmt as
+        // the authoritiative rustfmt so that doesn't work for us
+        #[cfg(feature = $feature_name)]
+        #[rustfmt::skip]
+        mod $mod_name;
+
+        #[cfg(feature = $feature_name)]
+        pub use $mod_name::*;
+    };
+}
+
+conditional_module!(quic, "quic");
+conditional_module!(internal, "internal");
+<TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
+// conditional_module!(foo, "unstable-foo");
