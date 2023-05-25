@@ -111,25 +111,6 @@ fn main() {
     let features_rs = features_template.replace(FEATURE_TOKEN_PLACEHOLDER, &features_module_token);
     std::fs::write(out_dir.join("src/features.rs"), features_rs).unwrap();
 
-    gen_bindings(
-        "#include \"unstable/fingerprint.h\"",
-        &out_dir.join("lib"),
-        functions.with_feature(Some("fingerprint")),
-    )
-    .allowlist_type("s2n_fingerprint_type")
-    .allowlist_function("s2n_client_hello_get_fingerprint.*")
-    .allowlist_function("s2n_client_hello_parse_message")
-    .allowlist_function("s2n_client_hello_free")
-    // bindgen will try and generate an opaque s2n_client_hello handle
-    // but that isn't necessary because that is already included in the
-    // "use crate::api::*;"
-    .blocklist_type("s2n_client_hello")
-    .raw_line("use crate::api::*;\n")
-    .generate()
-    .unwrap()
-    .write_to_file(out_dir.join("src/fingerprint.rs"))
-    .unwrap();
-
     functions.tests(&out_dir.join("src/tests.rs")).unwrap();
 
     gen_files(&out_dir.join("lib"), &out_dir.join("files.rs")).unwrap();

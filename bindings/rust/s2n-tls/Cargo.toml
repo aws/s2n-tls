@@ -10,7 +10,7 @@ license = "Apache-2.0"
 
 [features]
 default = []
-unstable-fingerprint = ["s2n-tls-sys/fingerprint"]
+unstable-fingerprint = ["s2n-tls-sys/unstable-fingerprint"]
 quic = ["s2n-tls-sys/quic"]
 pq = ["s2n-tls-sys/pq"]
 testing = ["bytes"]
