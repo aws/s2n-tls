@@ -8,5 +8,5 @@ license = "Apache-2.0"
 publish = false
 
 [dependencies]
-bindgen = "0.58"
+bindgen = "0.65"
 glob = "0.3"
