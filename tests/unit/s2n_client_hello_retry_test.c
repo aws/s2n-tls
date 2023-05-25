@@ -800,6 +800,40 @@ int main(int argc, char **argv)
                     S2N_ERR_BAD_MESSAGE);
         };
 
+        /* Test: outside of testing, the server accepts an incorrectly updated ClientHello */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Force the HRR path */
+            client_conn->security_policy_override = &security_policy_test_tls13_retry;
+
+            /* Send ClientHello */
+            s2n_blocked_status blocked = 0;
+            EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
+
+            /* Change client random */
+            client_conn->handshake_params.client_random[0]++;
+
+            /* Expect success if we pretend that this isn't a unit test */
+            EXPECT_SUCCESS(s2n_in_unit_test_set(false));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_SUCCESS(s2n_in_unit_test_set(true));
+        }
+
         /* Test: The server rejects a second ClientHello with a changed extension */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),

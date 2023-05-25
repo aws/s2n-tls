@@ -222,6 +222,20 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
         return S2N_RESULT_OK;
     }
 
+    /* In the past, the s2n-tls client updated the client hello in ways not
+     * allowed by RFC8446: https://github.com/aws/s2n-tls/pull/3311
+     * Although the issue was addressed, its existence means that old versions
+     * of the s2n-tls client will fail this validation.
+     *
+     * RFC8446 doesn't explicitly require that servers enforce the
+     * client requirements. So to avoid breaking old s2n-tls clients, we do not
+     * enforce this validation outside of tests. We continue to enforce it during
+     * tests to avoid regressions.
+     */
+    if (!S2N_IN_TEST) {
+        return S2N_RESULT_OK;
+    }
+
     /*
      *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
      *# The client will also send a
