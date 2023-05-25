@@ -113,12 +113,13 @@ function test_toolchain_counts {
     # This is a starting point for a unit test of the devShell.
     # The choosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
-    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o1=0; o3=0;awslc=0}
+    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0}
       /openssl-3.0/{o3++}
-      /openssl-1.1/{o1++}
+      /openssl-1.1/{o11++}
+      /openssl-1.0/{o10++}
       /aws-lc/{awslc++}
       /libressl/{libre++}
-      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o1,"\nAwlc:\t\t",awslc,"\nLibreSSL:\t", libre}'
+      END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o11,"\nOpenssl1.0.2:\t",o10,"\nAwlc:\t\t",awslc,"\nLibreSSL:\t", libre}'
     banner "Checking tooling counts (these should all be 1)"
     echo -e "\nOpenssl integ:\t $(openssl version|grep -c '1.1.1')"
     echo -e "Corretto:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto')"
