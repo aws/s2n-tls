@@ -3,9 +3,9 @@
 
 extern crate alloc;
 
-/// Ensure memory is correctly managed in tests
-/// tests invoked using the checkers::test macro have additional
-/// memory sanity checks that occur
+// Ensure memory is correctly managed in tests
+// tests invoked using the checkers::test macro have additional
+// memory sanity checks that occur
 #[cfg(test)]
 #[global_allocator]
 static ALLOCATOR: checkers::Allocator = checkers::Allocator::system();

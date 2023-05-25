@@ -130,7 +130,7 @@ impl ClientHello {
 
     /// `fingerprint_string` will try to calculate the fingerprint and store the
     /// resulting string in `output`. If `output` does not have sufficient
-    /// capacity an Error of `ErrorType::UsageError` will be returned. The
+    /// capacity an Error of `ErrorType::UsageError` will be returned.
     pub fn fingerprint_string(
         &self,
         hash: FingerprintType,
@@ -146,8 +146,8 @@ impl ClientHello {
                 &mut output_size,
             )
             .into_result()?;
-            // SAFETY: update internal state of string to match the data we just
-            // wrote into it.
+            // SAFETY: update internal state of string to match the data written
+            // into it.
             output.as_mut_vec().set_len(output_size as usize);
         };
         Ok(())

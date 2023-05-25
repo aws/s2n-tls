@@ -678,11 +678,12 @@ impl Connection {
         unsafe { Ok(Some(std::slice::from_raw_parts(chain, len as usize))) }
     }
 
-    /// The memory backing the ClientHello is owned by the Connection, so we
-    /// tie the ClientHello to the lifetime of the Connection. This is validated
-    /// with a doc test that ensures the ClientHello is invalid once the
-    /// connection has gone out of scope.
-    ///
+    // The memory backing the ClientHello is owned by the Connection, so we
+    // tie the ClientHello to the lifetime of the Connection. This is validated
+    // with a doc test that ensures the ClientHello is invalid once the
+    // connection has gone out of scope.
+    //
+    /// Returns a reference to the ClientHello associated with the connection.
     /// ```compile_fail
     /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
     /// use s2n_tls::connection::Connection;
