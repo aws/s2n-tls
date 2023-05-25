@@ -612,7 +612,7 @@ For example, to perform a basic handshake:
 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 do {
     int r = s2n_negotiate(conn, &blocked);
-    if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -658,7 +658,7 @@ s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_written = 0;
 do {
     int w = s2n_send(conn, data + bytes_written, sizeof(data) - bytes_written, &blocked);
-    if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (w < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -685,7 +685,7 @@ s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_written = 0;
 do {
     int w = s2n_sendv_with_offset(conn, iov, 1, bytes_written, &blocked);
-    if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (w < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -722,7 +722,7 @@ s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_read = 0;
 do {
     int r = s2n_recv(conn, buffer + bytes_read, sizeof(buffer) - bytes_read, &blocked);
-    if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -747,7 +747,7 @@ while (true) {
         break;
     } else if (r > 0) {
         printf("Received: %.*s", r, buffer);
-    } else if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    } else if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
