@@ -31,6 +31,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
 
@@ -522,6 +523,39 @@ static S2N_RESULT s2n_basic_generate_tests(void)
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_random_implementation_test(void)
+{
+    uint8_t random_data[RANDOM_GENERATE_DATA_SIZE] = { 0 };
+    struct s2n_blob blob = { 0 };
+    EXPECT_SUCCESS(s2n_blob_init(&blob, random_data, sizeof(random_data)));
+
+    uint64_t previous_public_bytes_used = 0;
+    EXPECT_OK(s2n_get_public_random_bytes_used(&previous_public_bytes_used));
+    uint64_t previous_private_bytes_used = 0;
+    EXPECT_OK(s2n_get_private_random_bytes_used(&previous_private_bytes_used));
+
+    EXPECT_OK(s2n_get_public_random_data(&blob));
+    EXPECT_OK(s2n_get_private_random_data(&blob));
+
+    uint64_t public_bytes_used = 0;
+    EXPECT_OK(s2n_get_public_random_bytes_used(&public_bytes_used));
+    uint64_t private_bytes_used = 0;
+    EXPECT_OK(s2n_get_private_random_bytes_used(&private_bytes_used));
+
+    if (s2n_is_in_fips_mode()) {
+        /* The libcrypto random implementation should be used when operating in FIPS mode, so
+         * the bytes used in the custom DRBG state should not have changed.
+         */
+        EXPECT_EQUAL(public_bytes_used, previous_public_bytes_used);
+        EXPECT_EQUAL(private_bytes_used, previous_public_bytes_used);
+    } else {
+        EXPECT_TRUE(public_bytes_used > previous_public_bytes_used);
+        EXPECT_TRUE(private_bytes_used > previous_private_bytes_used);
+    }
+
+    return S2N_RESULT_OK;
+}
+
 /* A collection of tests executed for each test dimension */
 static int s2n_common_tests(struct random_test_case *test_case)
 {
@@ -570,6 +604,9 @@ static int s2n_common_tests(struct random_test_case *test_case)
 
     /* Basic tests generating randomness */
     EXPECT_OK(s2n_basic_generate_tests());
+
+    /* Test that the correct random implementation is used */
+    EXPECT_OK(s2n_random_implementation_test());
 
     /* Verify that there are no trivially observable patterns in the output */
     EXPECT_OK(s2n_basic_pattern_tests(s2n_get_public_random_data));

@@ -13,8 +13,35 @@
  * permissions and limitations under the License.
  */
 
+/*
+ * _XOPEN_SOURCE is needed for resolving the constant O_CLOEXEC in some
+ * environments. We use _XOPEN_SOURCE instead of _GNU_SOURCE because
+ * _GNU_SOURCE is not portable and breaks when attempting to build rust
+ * bindings on MacOS.
+ *
+ * https://man7.org/linux/man-pages/man2/open.2.html
+ * The O_CLOEXEC, O_DIRECTORY, and O_NOFOLLOW flags are not
+ * specified in POSIX.1-2001, but are specified in POSIX.1-2008.
+ * Since glibc 2.12, one can obtain their definitions by defining
+ * either _POSIX_C_SOURCE with a value greater than or equal to
+ * 200809L or _XOPEN_SOURCE with a value greater than or equal to
+ * 700.  In glibc 2.11 and earlier, one obtains the definitions by
+ * defining _GNU_SOURCE.
+ *
+ * # Relavent Links
+ *
+ * - POSIX.1-2017: https://pubs.opengroup.org/onlinepubs/9699919799
+ * - https://stackoverflow.com/a/5724485
+ * - https://stackoverflow.com/a/5583764
+ */
+#ifndef _XOPEN_SOURCE
+    #define _XOPEN_SOURCE 700
+    #include <fcntl.h>
+    #undef _XOPEN_SOURCE
+#else
+    #include <fcntl.h>
+#endif
 #include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <openssl/engine.h>
 #include <openssl/rand.h>
@@ -34,6 +61,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_drbg.h"
+#include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_fork_detection.h"
@@ -206,9 +234,19 @@ static S2N_RESULT s2n_ensure_uniqueness(void)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
-        struct s2n_drbg *drbg_state)
+static S2N_RESULT s2n_get_libcrypto_random_data(struct s2n_blob *out_blob)
 {
+    RESULT_GUARD_PTR(out_blob);
+    RESULT_GUARD_OSSL(RAND_bytes(out_blob->data, out_blob->size), S2N_ERR_DRBG);
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_custom_random_data(struct s2n_blob *out_blob, struct s2n_drbg *drbg_state)
+{
+    RESULT_GUARD_PTR(out_blob);
+    RESULT_GUARD_PTR(drbg_state);
+
+    RESULT_ENSURE(!s2n_is_in_fips_mode(), S2N_ERR_DRBG);
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
     RESULT_GUARD(s2n_ensure_uniqueness());
 
@@ -224,6 +262,22 @@ static S2N_RESULT s2n_get_random_data(struct s2n_blob *out_blob,
         remaining -= slice.size;
         offset += slice.size;
     }
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_get_random_data(struct s2n_blob *blob, struct s2n_drbg *drbg_state)
+{
+    /* By default, s2n-tls uses a custom random implementation to generate random data for the TLS
+     * handshake. When operating in FIPS mode, the FIPS-validated libcrypto implementation is used
+     * instead.
+     */
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD(s2n_get_libcrypto_random_data(blob));
+        return S2N_RESULT_OK;
+    }
+
+    RESULT_GUARD(s2n_get_custom_random_data(blob, drbg_state));
 
     return S2N_RESULT_OK;
 }
@@ -375,7 +429,7 @@ RAND_METHOD s2n_openssl_rand_method = {
 static int s2n_rand_init_impl(void)
 {
 OPEN:
-    entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
+    entropy_fd = open(ENTROPY_SOURCE, O_RDONLY | O_CLOEXEC);
     if (entropy_fd == -1) {
         if (errno == EINTR) {
             goto OPEN;
@@ -397,6 +451,10 @@ S2N_RESULT s2n_rand_init(void)
     RESULT_GUARD(s2n_ensure_initialized_drbgs());
 
 #if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+    if (s2n_is_in_fips_mode()) {
+        return S2N_RESULT_OK;
+    }
+
     /* Create an engine */
     ENGINE *e = ENGINE_new();
 

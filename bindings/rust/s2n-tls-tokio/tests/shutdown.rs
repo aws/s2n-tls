@@ -3,7 +3,7 @@
 
 use s2n_tls::error;
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
-use std::convert::TryFrom;
+use std::{convert::TryFrom, sync::Arc};
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
     join, time,
@@ -62,8 +62,40 @@ async fn server_initiated_shutdown() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+/// Reading and writing handles should both respond to a peer's "close notify"
+/// appropriately. The read handle should immediately exit and writing should
+/// fail with a "connection closed" error.
 #[tokio::test]
 async fn shutdown_after_split() -> Result<(), Box<dyn std::error::Error>> {
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let client = TlsConnector::new(common::client_config_tls12()?.build()?);
+    let server = TlsAcceptor::new(common::server_config_tls12()?.build()?);
+
+    let (client, mut server) =
+        common::run_negotiate(&client, client_stream, &server, server_stream).await?;
+
+    let (mut client_reader, mut client_writer) = tokio::io::split(client);
+
+    let mut received = [0; 1];
+
+    // All tasks must cleanly exit. try_join will return as soon as an error
+    // occurs, so if the result is any error then the test has failed.
+    tokio::try_join!(
+        server.shutdown(),
+        client_reader.read(&mut received),
+        write_until_shutdown(&mut client_writer),
+    )?;
+    Ok(())
+}
+
+/// Reading and writing handles should both respond to a peers "close notify"
+/// appropriately. TLS1.3 connections have "half close behavior". The read
+/// handle should immediately exit, but the write handle can continue to write
+/// until explicitly shutdown. After both client handles have shutdown, the
+/// server should cleanly exit.
+#[tokio::test]
+async fn shutdown_after_halfclose_split() -> Result<(), Box<dyn std::error::Error>> {
     let (server_stream, client_stream) = common::get_streams().await?;
 
     let client = TlsConnector::new(common::client_config()?.build()?);
@@ -74,15 +106,39 @@ async fn shutdown_after_split() -> Result<(), Box<dyn std::error::Error>> {
 
     let (mut client_reader, mut client_writer) = tokio::io::split(client);
 
+    let close_notify_recvd = Arc::new(tokio::sync::Notify::new());
+    let close_notify_recvd_clone = close_notify_recvd.clone();
+
     let mut received = [0; 1];
 
-    // ignore any shutdown errors in case things go wrong
-    let _ = tokio::try_join!(
+    // all tasks must complete, and must complete successfully
+    // the client tasks will panic if an error is encountered, so those don't
+    // need to be checked.
+    let (server, _, _) = tokio::join!(
         server.shutdown(),
-        client_reader.read(&mut received),
-        write_until_shutdown(&mut client_writer),
+        async {
+            let bytes_read = client_reader.read(&mut received).await.unwrap();
+            // 0 bytes read indicate that we returned because of close notify
+            assert_eq!(bytes_read, 0);
+            // signal the writer task that close notify received
+            close_notify_recvd.notify_one();
+        },
+        async {
+            // wait for the connection to receive "close notify" from peer
+            close_notify_recvd_clone.notified().await;
+            // confirm that we can write even after receiving the shutdown from
+            // the server
+            client_writer
+                .write_all("random bytes".as_bytes())
+                .await
+                .unwrap();
+            client_writer.flush().await.unwrap();
+            // shutdown
+            client_writer.shutdown().await.unwrap()
+        }
     );
-
+    // make sure the server shutdown cleanly
+    assert!(server.is_ok());
     Ok(())
 }
 
