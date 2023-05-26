@@ -20,7 +20,9 @@
 
 static void * s2n_load_dynamic_lib(void *ctx)
 {
-    void *s2n_so = dlopen("../../lib/libs2n.so", RTLD_NOW);
+    const char *s2n_so_path = ctx;
+
+    void *s2n_so = dlopen(s2n_so_path, RTLD_NOW);
     if (!s2n_so) {
         exit(1);
     }
@@ -51,16 +53,22 @@ static void * s2n_load_dynamic_lib(void *ctx)
     return NULL;
 }
 
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
+    /* We don't want this test to run with all the other unit tests, so we fail quietly
+     * if the shared library wasn't specified. */
+    if (argc != 2) {
+        return 0;
+    }
+
     /* s2n-tls library can be dynamically loaded and cleaned up safely 
      *
-     * We can't use any s2n test macros because those would need to be linked from
-     * the s2n library, and we can't link to the library for this test.
+     * We can't use any s2n test macros because then the compiler gets
+     * confused about whether or not to link the s2n functions.
      */
     {
         pthread_t thread_id = { 0 };
-        if(pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, NULL)) {
+        if(pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
             exit(1);
         }
         if(pthread_join(thread_id, NULL)) {
