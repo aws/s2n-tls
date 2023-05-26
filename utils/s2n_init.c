@@ -57,6 +57,11 @@ int s2n_init(void)
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
 
     main_thread = pthread_self();
+
+    if (getenv("S2N_INTEG_TEST")) {
+        POSIX_GUARD(s2n_in_integ_test_set(true));
+    }
+
     /* Should run before any init method that calls libcrypto methods
      * to ensure we don't try to call methods that don't exist.
      * It doesn't require any locks since it only deals with values that
