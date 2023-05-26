@@ -31,7 +31,7 @@ if [ ! -d $WORK_DIR/s2n-install-shared ]; then
 fi
 
 # Compile the dynamic load test without linking to libs2n.so
-gcc -o s2n_dynamic_load_test s2n_dynamic_load_test.c -ldl -lpthread -L$WORK_DIR/s2n-install-shared/lib -ls2n
+gcc -o s2n_dynamic_load_test codebuild/bin/s2n_dynamic_load_test.c -ldl -lpthread -L$WORK_DIR/s2n-install-shared/lib -ls2n
 
 LDD_OUTPUT=$(ldd s2n_dynamic_load_test)
 
