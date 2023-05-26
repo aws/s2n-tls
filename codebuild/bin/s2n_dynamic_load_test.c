@@ -55,10 +55,9 @@ static void *s2n_load_dynamic_lib(void *ctx)
 
 int main(int argc, char *argv[])
 {
-    /* We don't want this test to run with all the other unit tests, so we fail quietly
-     * if the shared library wasn't specified. */
     if (argc != 2) {
-        return 0;
+        printf("Usage: s2n_unload_single <path to s2n shared object>\n");
+        exit(1);
     }
 
     /* s2n-tls library can be dynamically loaded and cleaned up safely 
