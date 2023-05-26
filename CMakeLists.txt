@@ -476,6 +476,16 @@ if(PLATFORM_SUPPORTS_KTLS)
     target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_PLATFORM_SUPPORTS_KTLS)
 endif()
 
+try_compile(
+        LIBCRYPTO_SUPPORTS_TLS_PRF
+        ${CMAKE_BINARY_DIR}
+        SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/tls_prf.c"
+        LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
+)
+if(LIBCRYPTO_SUPPORTS_TLS_PRF)
+    target_compile_options(${PROJECT_NAME} PUBLIC -DS2N_LIBCRYPTO_SUPPORTS_TLS_PRF)
+endif()
+
 if (NOT DEFINED CMAKE_AR)
 	message(STATUS "CMAKE_AR undefined, setting to `ar` by default")
 	SET(CMAKE_AR ar)

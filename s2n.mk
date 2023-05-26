@@ -261,6 +261,12 @@ ifeq ($(TRY_COMPILE_KTLS), 0)
 	DEFAULT_CFLAGS += -DS2N_PLATFORM_SUPPORTS_KTLS
 endif
 
+# Determine if libcrypto PRF implementation is available
+TRY_COMPILE_TLS_PRF := $(call try_compile,$(S2N_ROOT)/tests/features/tls_prf.c)
+ifeq ($(TRY_COMPILE_TLS_PRF), 0)
+	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_TLS_PRF
+endif
+
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
 $(BITCODE_DIR)%.bc: %.c

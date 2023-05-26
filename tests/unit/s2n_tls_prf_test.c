@@ -325,19 +325,25 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(NULL, &secret, &label, &seed_a, &seed_b, &seed_c, &out), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, NULL, &label, &seed_a, &seed_b, &seed_c, &out), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, NULL, &seed_a, &seed_b, &seed_c, &out), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, &seed_c, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(NULL, &secret, &label, &seed_a, &seed_b, &seed_c, &out),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, NULL, &label, &seed_a, &seed_b, &seed_c, &out),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, NULL, &seed_a, &seed_b, &seed_c, &out),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, &seed_c, NULL),
+                    S2N_ERR_NULL);
 
             /* seed_a is required */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, NULL, &seed_b, &seed_c, &out), S2N_ERR_PRF_INVALID_SEED);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, NULL, &seed_b, &seed_c, &out),
+                    S2N_ERR_PRF_INVALID_SEED);
 
             /* seed_b and seed_c are optional */
             EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, NULL, NULL, &out));
 
             /* seed_b is required if seed_c is provided */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, &seed_a, NULL, &seed_c, &out), S2N_ERR_PRF_INVALID_SEED);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_prf(connection, &secret, &label, &seed_a, NULL, &seed_c, &out),
+                    S2N_ERR_PRF_INVALID_SEED);
 
             /* seed_c is optional */
             EXPECT_SUCCESS(s2n_prf(connection, &secret, &label, &seed_a, &seed_b, NULL, &out));
