@@ -18,7 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-static void * s2n_load_dynamic_lib(void *ctx)
+static void *s2n_load_dynamic_lib(void *ctx)
 {
     const char *s2n_so_path = ctx;
 
@@ -28,25 +28,25 @@ static void * s2n_load_dynamic_lib(void *ctx)
     }
 
     int (*s2n_init_dl)(void) = NULL;
-    *(void **)(&s2n_init_dl) = dlsym(s2n_so, "s2n_init");
-    if(dlerror()) {
+    *(void **) (&s2n_init_dl) = dlsym(s2n_so, "s2n_init");
+    if (dlerror()) {
         exit(1);
     }
 
     int (*s2n_cleanup_dl)(void) = NULL;
-    *(void **)(&s2n_cleanup_dl) = dlsym(s2n_so, "s2n_cleanup");
-    if(dlerror()) {
+    *(void **) (&s2n_cleanup_dl) = dlsym(s2n_so, "s2n_cleanup");
+    if (dlerror()) {
         exit(1);
     }
 
-    if((*s2n_init_dl)()) {
+    if ((*s2n_init_dl)()) {
         exit(1);
     }
-    if((*s2n_cleanup_dl)()) {
+    if ((*s2n_cleanup_dl)()) {
         exit(1);
     }
-    
-    if(dlclose(s2n_so)) {
+
+    if (dlclose(s2n_so)) {
         exit(1);
     }
 
@@ -68,10 +68,10 @@ int main(int argc, char *argv[])
      */
     {
         pthread_t thread_id = { 0 };
-        if(pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
+        if (pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
             exit(1);
         }
-        if(pthread_join(thread_id, NULL)) {
+        if (pthread_join(thread_id, NULL)) {
             exit(1);
         }
     }
