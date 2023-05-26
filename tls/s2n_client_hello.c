@@ -232,7 +232,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
      * enforce this validation outside of tests. We continue to enforce it during
      * tests to avoid regressions.
      */
-    if (!S2N_IN_TEST) {
+    if (!s2n_in_test()) {
         return S2N_RESULT_OK;
     }
 
