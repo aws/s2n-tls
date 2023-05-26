@@ -13,8 +13,35 @@
  * permissions and limitations under the License.
  */
 
+/*
+ * _XOPEN_SOURCE is needed for resolving the constant O_CLOEXEC in some
+ * environments. We use _XOPEN_SOURCE instead of _GNU_SOURCE because
+ * _GNU_SOURCE is not portable and breaks when attempting to build rust
+ * bindings on MacOS.
+ *
+ * https://man7.org/linux/man-pages/man2/open.2.html
+ * The O_CLOEXEC, O_DIRECTORY, and O_NOFOLLOW flags are not
+ * specified in POSIX.1-2001, but are specified in POSIX.1-2008.
+ * Since glibc 2.12, one can obtain their definitions by defining
+ * either _POSIX_C_SOURCE with a value greater than or equal to
+ * 200809L or _XOPEN_SOURCE with a value greater than or equal to
+ * 700.  In glibc 2.11 and earlier, one obtains the definitions by
+ * defining _GNU_SOURCE.
+ *
+ * # Relavent Links
+ *
+ * - POSIX.1-2017: https://pubs.opengroup.org/onlinepubs/9699919799
+ * - https://stackoverflow.com/a/5724485
+ * - https://stackoverflow.com/a/5583764
+ */
+#ifndef _XOPEN_SOURCE
+    #define _XOPEN_SOURCE 700
+    #include <fcntl.h>
+    #undef _XOPEN_SOURCE
+#else
+    #include <fcntl.h>
+#endif
 #include <errno.h>
-#include <fcntl.h>
 #include <limits.h>
 #include <openssl/engine.h>
 #include <openssl/rand.h>
@@ -402,7 +429,7 @@ RAND_METHOD s2n_openssl_rand_method = {
 static int s2n_rand_init_impl(void)
 {
 OPEN:
-    entropy_fd = open(ENTROPY_SOURCE, O_RDONLY);
+    entropy_fd = open(ENTROPY_SOURCE, O_RDONLY | O_CLOEXEC);
     if (entropy_fd == -1) {
         if (errno == EINTR) {
             goto OPEN;
