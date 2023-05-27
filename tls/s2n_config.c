@@ -16,6 +16,7 @@
 #include <strings.h>
 #include <time.h>
 
+#include "api/unstable/npn.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hkdf.h"
@@ -217,7 +218,7 @@ struct s2n_config *s2n_fetch_default_config(void)
 
 int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 {
-    S2N_ERROR_IF(!S2N_IN_TEST, S2N_ERR_NOT_IN_UNIT_TEST);
+    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
     config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 0;
     config->disable_x509_validation = 1;

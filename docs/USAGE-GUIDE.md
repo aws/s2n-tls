@@ -399,6 +399,11 @@ s2n-tls provides multiple different methods to get the TLS protocol version of t
 
 `s2n_config` objects are used to change the default settings of a s2n-tls connection. Use `s2n_config_new()` to create a new config object. To associate a config with a connection call `s2n_connection_set_config()`. A config should not be altered once it is associated with a connection as this will produce undefined behavior. It is not necessary to create a config object per connection; one config object should be used for many connections. Call `s2n_config_free()` to free the object when no longer needed. _Only_ free the config object when all connections using it have been freed.
 
+Calling `s2n_config_new()` can have a performance cost during config creation due to loading
+default system certificates into the trust store (see [Configuring the Trust Store](#configuring-the-trust-store)). 
+For increased performance, use `s2n_config_new_minimal()` when system certificates are not needed
+for certificate validation.
+
 Most commonly, a `s2n_config` object is used to set the certificate key pair for authentication and change the default security policy. See the sections for [certificates](#certificates-and-authentication) and [security policies](#security-policies) for more information on those settings.
 
 ### Overriding the Config
@@ -607,7 +612,7 @@ For example, to perform a basic handshake:
 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 do {
     int r = s2n_negotiate(conn, &blocked);
-    if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -653,7 +658,7 @@ s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_written = 0;
 do {
     int w = s2n_send(conn, data + bytes_written, sizeof(data) - bytes_written, &blocked);
-    if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (w < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -680,7 +685,7 @@ s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_written = 0;
 do {
     int w = s2n_sendv_with_offset(conn, iov, 1, bytes_written, &blocked);
-    if (w < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (w < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -717,7 +722,7 @@ s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 int bytes_read = 0;
 do {
     int r = s2n_recv(conn, buffer + bytes_read, sizeof(buffer) - bytes_read, &blocked);
-    if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -742,7 +747,7 @@ while (true) {
         break;
     } else if (r > 0) {
         printf("Received: %.*s", r, buffer);
-    } else if (r < 0 && s2n_error_get_type() != S2N_ERR_T_BLOCKED) {
+    } else if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
         printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
         break;
     }
@@ -828,9 +833,26 @@ Authentication is usually the most expensive part of the handshake. To avoid the
 
 ### Configuring the Trust Store
 
-To validate the peer’s certificate, the local “trust store” must contain a certificate that can authenticate the peer’s certificate.
+To validate the peer’s certificate, a config's local “trust store” must contain a certificate
+that can authenticate the peer’s certificate. To add certificates to the trust store, call
+`s2n_config_set_verification_ca_location()` or `s2n_config_add_pem_to_trust_store()`.
 
-By default, s2n-tls will be initialized with the common trust store locations for the host operating system. To completely override those locations, call `s2n_config_wipe_trust_store()`. To add certificates to the trust store, call `s2n_config_set_verification_ca_location()` or `s2n_config_add_pem_to_trust_store()`.
+`s2n_config_new()` initializes the trust store with the default system certificates, which may
+include public CAs or other unexpected certificates. If s2n-tls is verifying certificates and does
+not require these default system certificates, they should be cleared with
+`s2n_config_wipe_trust_store()` before calling `s2n_config_set_verification_ca_location()` or
+`s2n_config_add_pem_to_trust_store()`.
+
+Note that the `s2n_verify_host_fn` callback must be implemented to validate the identity of all
+received certificates. A client implementation is set by default. If the identity of the received
+certificates are implicit (i.e. the certificates are self-signed, or signed by a privately owned
+CA), the `s2n_verify_host_fn` callback need not perform any additional validation. However,
+`s2n_config_wipe_trust_store()` should be called before adding certificates to the trust store in
+this case, in order to avoid implicitly trusting the identity of peers that may present
+certificates trusted via an unexpected default system certificate.
+
+Configs created with `s2n_config_new_minimal()` are initialized with empty trust stores. To add
+default system certificates to these configs, call `s2n_config_load_system_certs()`.
 
 ### Server Authentication
 
