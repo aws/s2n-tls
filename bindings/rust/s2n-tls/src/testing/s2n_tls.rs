@@ -204,7 +204,7 @@ mod tests {
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
-    use futures_test::task::new_count_waker;
+    use futures_test::task::{new_count_waker, noop_waker};
     use std::{fs, path::Path, pin::Pin, sync::atomic::AtomicUsize};
 
     #[test]
@@ -532,6 +532,62 @@ mod tests {
         Ok(())
     }
 
+    /// `trust_location()` calls `s2n_config_set_verification_ca_location()`, which has the legacy behavior
+    /// of enabling OCSP on clients. Since we do not want to replicate that behavior in the Rust bindings,
+    /// this test verifies that `trust_location()` does not turn on OCSP. It also verifies that turning
+    /// on OCSP explicitly still works when `trust_location()` is called.
+    #[test]
+    fn trust_location_does_not_change_ocsp_status() -> Result<(), Error> {
+        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
+        let mut cert = pem_dir.to_path_buf();
+        cert.push("rsa_4096_sha512_client_cert.pem");
+        let mut key = pem_dir.to_path_buf();
+        key.push("rsa_4096_sha512_client_key.pem");
+
+        const OCSP_IANA_EXTENSION_ID: u16 = 5;
+
+        for enable_ocsp in [true, false] {
+            let config = {
+                let mut config = crate::config::Builder::new();
+
+                if enable_ocsp {
+                    config.enable_ocsp()?;
+                }
+
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+                config.set_client_hello_callback(HasExtensionClientHelloHandler {
+                    // This client hello handler will check for the OCSP extension
+                    extension_iana: OCSP_IANA_EXTENSION_ID,
+                    extension_expected: enable_ocsp,
+                })?;
+                config.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
+                config.trust_location(Some(&cert), None)?;
+                config.build()?
+            };
+
+            let server = {
+                // create and configure a server connection
+                let mut server = crate::connection::Connection::new_server();
+                server.set_config(config.clone())?;
+                server.set_waker(Some(&noop_waker()))?;
+                Harness::new(server)
+            };
+
+            let client = {
+                // create a client connection
+                let mut client = crate::connection::Connection::new_client();
+                client.set_config(config)?;
+                Harness::new(client)
+            };
+
+            let pair = Pair::new(server, client);
+
+            poll_tls_pair(pair);
+        }
+        Ok(())
+    }
+
     #[test]
     fn connection_level_verify_host_callback() -> Result<(), Error> {
         let reject_config = {
@@ -705,61 +761,5 @@ mod tests {
             }
             establish_connection(config_with_system_certs);
         });
-    }
-
-    #[test]
-    fn set_check_stapled_ocsp_response_true() {
-        let keypair = CertKeyPair::default();
-
-        temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
-            let mut builder = Builder::new();
-            builder
-                .load_pem(keypair.cert(), keypair.key())
-                .unwrap()
-                .set_security_policy(&security::DEFAULT_TLS13)
-                .unwrap()
-                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-                .unwrap();
-
-            // Enable OCSP and some OCSP data that will fail validation
-            builder.enable_ocsp().unwrap();
-            builder.set_ocsp_data(&[1, 2, 3]).unwrap();
-            // Enable OCSP validation (the default)
-            builder.set_check_stapled_ocsp_response(true).unwrap();
-
-            let config = builder.build().unwrap();
-
-            let mut pair = tls_pair(config);
-
-            // The handshake should fail
-            assert!(poll_tls_pair_result(&mut pair).is_err());
-        })
-    }
-
-    #[test]
-    fn set_check_stapled_ocsp_response_false() {
-        let keypair = CertKeyPair::default();
-
-        temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
-            let mut builder = Builder::new();
-            builder
-                .load_pem(keypair.cert(), keypair.key())
-                .unwrap()
-                .set_security_policy(&security::DEFAULT_TLS13)
-                .unwrap()
-                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-                .unwrap();
-
-            // Enable OCSP and some OCSP data that will fail validation
-            builder.enable_ocsp().unwrap();
-            builder.set_ocsp_data(&[1, 2, 3]).unwrap();
-            // Disable OCSP validation
-            builder.set_check_stapled_ocsp_response(false).unwrap();
-
-            let config = builder.build().unwrap();
-
-            // The handshake should succeed since OCSP validation is disabled
-            establish_connection(config);
-        })
     }
 }

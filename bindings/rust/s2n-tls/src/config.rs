@@ -152,6 +152,7 @@ impl Drop for Config {
 pub struct Builder {
     config: Config,
     load_system_certs: bool,
+    enable_ocsp: bool,
 }
 
 impl Builder {
@@ -181,6 +182,7 @@ impl Builder {
         Self {
             config: Config(config),
             load_system_certs: true,
+            enable_ocsp: false,
         }
     }
 
@@ -288,6 +290,10 @@ impl Builder {
         Ok(self)
     }
 
+    /// Adds to the trust store from a CA file or directory containing trusted certificates.
+    ///
+    /// NOTE: This function is equivalent to `s2n_config_set_verification_ca_location` except it does
+    /// not automatically enable the client to request OCSP stapling from the server.
     pub fn trust_location(
         &mut self,
         file: Option<&Path>,
@@ -353,6 +359,7 @@ impl Builder {
             s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::OCSP)
                 .into_result()
         }?;
+        self.enable_ocsp = true;
         Ok(self)
     }
 
@@ -378,23 +385,6 @@ impl Builder {
             .into_result()
         }?;
         self.enable_ocsp()
-    }
-
-    /// Toggles whether or not to validate stapled OCSP responses.
-    ///
-    /// Setting `check_ocsp` to `true` means OCSP responses will be validated when they are encountered,
-    /// while `false` means this step will be skipped.
-    ///  
-    /// The default value is `true` if the underlying libCrypto implementation supports OCSP.
-    pub fn set_check_stapled_ocsp_response(
-        &mut self,
-        check_ocsp: bool,
-    ) -> Result<&mut Self, Error> {
-        unsafe {
-            s2n_config_set_check_stapled_ocsp_response(self.as_mut_ptr(), check_ocsp as u8)
-                .into_result()
-        }?;
-        Ok(self)
     }
 
     /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
@@ -600,6 +590,15 @@ impl Builder {
             unsafe {
                 s2n_config_load_system_certs(self.as_mut_ptr()).into_result()?;
             }
+        }
+
+        // If OCSP has not been explicitly requested, turn off OCSP. This is to prevent the `trust_location()` function
+        // from automatically enabling `OCSP` due to the legacy behavior of `s2n_config_set_verification_ca_location`
+        if !self.enable_ocsp {
+            unsafe {
+                s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::NONE)
+                    .into_result()?
+            };
         }
 
         Ok(self.config)
