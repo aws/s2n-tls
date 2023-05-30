@@ -374,6 +374,38 @@ int main(int argc, char **argv)
             /* The libcrypto PRF implementation will not modify the digest fields in the prf_space */
             EXPECT_EQUAL(memcmp(connection->prf_space->digest0, zeros, S2N_MAX_DIGEST_LEN), 0);
         }
+
+        /* Ensure that the custom PRF implementation produces the same results as the libcrypto implementation */
+        if (s2n_libcrypto_supports_tls_prf()) {
+            for (int round = 0; round < 1000; round++) {
+                struct s2n_blob *seed_blobs[] = { &seed_a, &seed_b, &seed_c };
+                struct s2n_blob *seed_inputs[] = { NULL, NULL, NULL };
+
+                for (int seed = 0; seed < s2n_array_len(seed_blobs); seed++) {
+                    seed_inputs[seed] = seed_blobs[seed];
+                    EXPECT_OK(s2n_get_public_random_data(seed_inputs[seed]));
+
+                    DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER),
+                            s2n_connection_ptr_free);
+
+                    s2n_stack_blob(custom_output, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+                    EXPECT_OK(s2n_custom_prf(connection, &secret, &label, seed_inputs[0], seed_inputs[1],
+                            seed_inputs[2], &custom_output));
+
+                    s2n_stack_blob(libcrypto_output, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
+                    EXPECT_OK(s2n_libcrypto_prf(connection, &secret, &label, seed_inputs[0], seed_inputs[1],
+                            seed_inputs[2], &libcrypto_output));
+
+                    EXPECT_TRUE(s2n_constant_time_equals(custom_output.data, libcrypto_output.data, TEST_BLOB_SIZE));
+
+                    /* The results should not match with different inputs */
+                    seed_inputs[0]->data[0] += 1;
+                    EXPECT_OK(s2n_libcrypto_prf(connection, &secret, &label, seed_inputs[0], seed_inputs[1],
+                            seed_inputs[2], &libcrypto_output));
+                    EXPECT_FALSE(s2n_constant_time_equals(custom_output.data, libcrypto_output.data, TEST_BLOB_SIZE));
+                }
+            }
+        }
     }
 
     END_TEST();

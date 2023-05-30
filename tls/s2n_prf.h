@@ -64,3 +64,10 @@ S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_bl
 int s2n_prf_key_expansion(struct s2n_connection *conn);
 int s2n_prf_server_finished(struct s2n_connection *conn);
 int s2n_prf_client_finished(struct s2n_connection *conn);
+
+bool s2n_libcrypto_supports_tls_prf();
+
+S2N_RESULT s2n_custom_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+        struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out);
+S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+        struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out);

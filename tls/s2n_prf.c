@@ -461,7 +461,7 @@ S2N_RESULT s2n_prf_free(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-static bool s2n_libcrypto_supports_tls_prf()
+bool s2n_libcrypto_supports_tls_prf()
 {
 #ifdef S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
     return true;
@@ -470,7 +470,7 @@ static bool s2n_libcrypto_supports_tls_prf()
 #endif
 }
 
-static S2N_RESULT s2n_custom_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+S2N_RESULT s2n_custom_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     /* We zero the out blob because p_hash works by XOR'ing with the existing
@@ -508,7 +508,7 @@ int CRYPTO_tls1_prf(const EVP_MD *digest,
         const uint8_t *seed1, size_t seed1_len,
         const uint8_t *seed2, size_t seed2_len);
 
-static S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     const EVP_MD *digest = NULL;
@@ -556,7 +556,7 @@ static S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob
     return S2N_RESULT_OK;
 }
 #else
-static S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
     RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
