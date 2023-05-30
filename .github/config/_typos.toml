@@ -39,6 +39,7 @@ extend-exclude = [
     "*.kat",
     "*.pem",
     "*.patch",
+    "*.pdf",
     "*.png",
     "*.saw",
     "*.snap",
