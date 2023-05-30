@@ -6,7 +6,8 @@ check-filename = true
 alloced = "alloced"
 s2nd = "s2nd"
 nd = "nd"
-
+Inforce = "Inforce"
+ 
 # While we build up the extend-words list
 [type.cpp]
 check-file = false

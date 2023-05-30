@@ -24,7 +24,7 @@ The leaf cert/key. OCSP responses will be generated for this cert.
 ### Early Expiry Cert
 The `server_cert_early_expire.pem` is a certificate that expires in 2037. This certificate is used to validate correct behavior of expired dates for unit tests on 32 bit platforms. This is necessary because 32 bit `time_t` values can't represent dates past 2038, so our unit tests on 32 bit platforms can't test the expiry of very long lived certs.
 
-This cert and the corresponding ocsp response, `ocsp_response_early_expire.der` can be generated at any time by running the `./generate.sh` script. This will break the `Test OCSP validation at various offsets from update times` unit test, because the "This Update" timestamp of `ocsp_reponse_early_expire.der` will change.
+This cert and the corresponding ocsp response, `ocsp_response_early_expire.der` can be generated at any time by running the `./generate.sh` script. This will break the `Test OCSP validation at various offsets from update times` unit test, because the "This Update" timestamp of `ocsp_response_early_expire.der` will change.
 
 This is fixed by setting `this_update_timestamp_nanoseconds` in `Test OCSP validation at various offsets from update times` to the new "This Update" timestamp. This can be found with
 ```
