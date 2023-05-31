@@ -776,6 +776,8 @@ html.dark-mode iframe#MSearchResults {
 #side-nav {
     padding: 0 !important;
     background: var(--side-nav-background);
+    min-width: 8px;
+    max-width: 50vw;
 }
 
 @media screen and (max-width: 767px) {
@@ -863,8 +865,9 @@ html.dark-mode iframe#MSearchResults {
 }
 
 .ui-resizable-e {
-    background: var(--separator-color);
-    width: 1px;
+    width: 4px;
+    background: transparent;
+    box-shadow: inset -1px 0 0 0 var(--separator-color);
 }
 
 /*
@@ -2450,6 +2453,10 @@ h2:hover a.anchorlink, h1:hover a.anchorlink, h3:hover a.anchorlink, h4:hover a.
  Optional tab feature
 */
 
+.tabbed {
+    margin: var(--spacing-medium) auto;
+}
+
 .tabbed ul {
     padding-inline-start: 0px;
     margin: 0;
@@ -2487,6 +2494,7 @@ h2:hover a.anchorlink, h1:hover a.anchorlink, h3:hover a.anchorlink, h4:hover a.
     font-size: var(--page-font-size);
     cursor: pointer;
     box-shadow: 0 1px 0 0 var(--separator-color);
+    position: relative;
 }
 
 .tabs-overview button.tab-button .tab-title {
@@ -2501,22 +2509,22 @@ h2:hover a.anchorlink, h1:hover a.anchorlink, h3:hover a.anchorlink, h4:hover a.
 }
 
 .tabs-overview button.tab-button:hover .tab-title {
-    background: var(--primary-color);
-    color: var(--page-background-color);
+    background: var(--separator-color);
     box-shadow: none;
 }
 
 .tabs-overview button.tab-button.active {
     color: var(--primary-color);
-    box-shadow: 0 1px 0 0 var(--primary-color), inset 0 -1px 0 0 var(--primary-color);
 }
 
-@media (prefers-color-scheme: dark) {
-    html:not(.light-mode) .tabs-overview button.tab-button:hover .tab-title {
-        color: var(--page-foreground-color);
-    }
-}
-
-html.dark-mode .tabs-overview button.tab-button:hover .tab-title {
-    color: var(--page-foreground-color);
+.tabs-overview button.tab-button.active::after {
+    content: '';
+    display: block;
+    position: absolute;
+    left: 0px;
+    bottom: 0;
+    right: 0px;
+    height: 3px;
+    border-radius: var(--border-radius-small) var(--border-radius-small) 0 0;
+    background-color: var(--primary-color);
 }
