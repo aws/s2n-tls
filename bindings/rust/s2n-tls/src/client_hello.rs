@@ -75,7 +75,7 @@ impl ClientHello {
         };
         let client_hello = handle.as_ptr() as *mut ClientHello;
         // safety: s2n_client_hello_parse_message returns a pointer that "owns"
-        // it's memory. This memory must be cleaned up by the application. The
+        // its memory. This memory must be cleaned up by the application. The
         // Box<Self> will call Self::Drop when it goes out of scope so memory
         // will be automatically managed.
         unsafe { Ok(Box::from_raw(client_hello)) }
