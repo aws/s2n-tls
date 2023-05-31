@@ -43,7 +43,7 @@ fi
 
 # Run the test with the path to libs2n
 echo "Running s2n_dynamic_load_test"
-./s2n_dynamic_load_test $WORK_DIR/s2n-install-shared/lib/libs2n.so
+LD_LIBRARY_PATH=$LIBCRYPTO_ROOT/lib ./s2n_dynamic_load_test $WORK_DIR/s2n-install-shared/lib/libs2n.so
 returncode=$?
 if [ $returncode -ne 0 ]; then
     echo "test failure: s2n_dynamic_load_test did not succeed"
