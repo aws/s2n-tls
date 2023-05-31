@@ -1,6 +1,6 @@
 {
   "nodes": {
-    "aws-lc": {
+    "awslc": {
       "inputs": {
         "flake-utils": "flake-utils",
         "nix": "nix",
@@ -217,7 +217,7 @@
     },
     "root": {
       "inputs": {
-        "aws-lc": "aws-lc",
+        "awslc": "awslc",
         "flake-utils": "flake-utils_2",
         "nix": "nix_2",
         "nixpkgs": "nixpkgs_4"
