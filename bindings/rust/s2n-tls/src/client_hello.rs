@@ -56,12 +56,6 @@ impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
 /// ```
 pub struct ClientHello(s2n_client_hello);
 
-// safety justifications
-// 1 - casting *s2n_client_hello <-> *ClientHello: For repr(Rust),
-// repr(packed(N)), repr(align(N)), and repr(C) structs: if all fields of a
-// struct have size 0, then the struct has size 0.
-// https://rust-lang.github.io/unsafe-code-guidelines/layout/structs-and-tuples.html#zero-sized-structs
-
 impl ClientHello {
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
         crate::init::init();
