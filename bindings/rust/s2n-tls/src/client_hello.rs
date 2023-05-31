@@ -61,11 +61,6 @@ pub struct ClientHello(s2n_client_hello);
 // repr(packed(N)), repr(align(N)), and repr(C) structs: if all fields of a
 // struct have size 0, then the struct has size 0.
 // https://rust-lang.github.io/unsafe-code-guidelines/layout/structs-and-tuples.html#zero-sized-structs
-// 2 - casting *const s2n_client_hello -> *mut s2n_client_hello: This is safe as
-// long as the data is not actually mutated. As authors of s2n-tls, we know that
-// the get_hash and get_fingerprint methods do not mutate the data, and use mut
-// pointers as a matter of convention because it makes working with s2n_stuffers
-// and s2n_blobs easier.
 
 impl ClientHello {
     pub fn parse_client_hello(hello: &[u8]) -> Result<Box<Self>, crate::error::Error> {
@@ -86,11 +81,18 @@ impl ClientHello {
     // this is marked "pub(crate)" to expose it to the connection module but
     // prevent it from being used externally.
     pub(crate) fn from_ptr(hello: &s2n_client_hello) -> &Self {
-        // safety: see safety justifications [1]
+        // SAFETY: casting *s2n_client_hello <-> *ClientHello: For repr(Rust),
+        // repr(packed(N)), repr(align(N)), and repr(C) structs: if all fields of a
+        // struct have size 0, then the struct has size 0.
+        // https://rust-lang.github.io/unsafe-code-guidelines/layout/structs-and-tuples.html#zero-sized-structs
         unsafe { &*(hello as *const s2n_client_hello as *const ClientHello) }
     }
 
-    // safety justifications [2]
+    // SAFETY: casting *const s2n_client_hello -> *mut s2n_client_hello: This is
+    // safe as long as the data is not actually mutated. As authors of s2n-tls,
+    // we know that the get_hash and get_fingerprint methods do not mutate the
+    // data, and use mut pointers as a matter of convention because it makes
+    // working with s2n_stuffers and s2n_blobs easier.
     fn deref_mut_ptr(&self) -> *mut s2n_client_hello {
         &self.0 as *const s2n_client_hello as *mut s2n_client_hello
     }
@@ -123,7 +125,7 @@ impl ClientHello {
             .into_result()?;
             // SAFETY: we wrote to the raw vec (using the mut pointer), and need
             // to update the state of the vec to reflect the changes we made.
-            output.set_len(MD5_HASH_SIZE as usize);
+            output.set_len(hash_size as usize);
         };
         Ok(str_size)
     }
