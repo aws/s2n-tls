@@ -27,7 +27,7 @@ impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
 // the size of this type is not known, and as such it can only be used through
 // references and pointers.
 //
-// This implementation is motivated by the different memory_management required
+// This implementation is motivated by the different memory management required
 // for different s2n_client_hello pointers. `s2n_client_hello_parse_message`
 // returns a `*mut s2n_client_hello` which owns it's own data. This neatly fits
 //  the "smart pointer" pattern and can be represented as a `Box<T>`.
