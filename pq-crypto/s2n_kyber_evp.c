@@ -13,7 +13,7 @@
 * permissions and limitations under the License.
 */
 
-#include "s2n_kyber_512_evp.h"
+#include "s2n_kyber_evp.h"
 
 #include <openssl/evp.h>
 #include <stddef.h>
@@ -23,12 +23,13 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER512) && !defined(S2N_NO_PQ)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !defined(S2N_NO_PQ)
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 
-int s2n_kyber_512_evp_generate_keypair(uint8_t *public_key, uint8_t *secret_key) {
+int s2n_kyber_512_evp_generate_keypair(uint8_t *public_key, uint8_t *secret_key)
+{
     DEFER_CLEANUP(EVP_PKEY_CTX *kyber_pkey_ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_KEM, NULL), EVP_PKEY_CTX_free_pointer);
     POSIX_GUARD_PTR(kyber_pkey_ctx);
     POSIX_GUARD_OSSL(EVP_PKEY_CTX_kem_set_params(kyber_pkey_ctx, NID_KYBER512_R3), S2N_ERR_PQ_CRYPTO);
@@ -46,7 +47,8 @@ int s2n_kyber_512_evp_generate_keypair(uint8_t *public_key, uint8_t *secret_key)
 }
 
 int s2n_kyber_512_evp_encapsulate(uint8_t *ciphertext, uint8_t *shared_secret,
-                                  const uint8_t *public_key) {
+        const uint8_t *public_key)
+{
     size_t public_key_size = S2N_KYBER_512_R3_PUBLIC_KEY_BYTES;
     DEFER_CLEANUP(EVP_PKEY *kyber_pkey = EVP_PKEY_kem_new_raw_public_key(NID_KYBER512_R3, public_key, public_key_size), EVP_PKEY_free_pointer);
     POSIX_GUARD_PTR(kyber_pkey);
@@ -57,12 +59,14 @@ int s2n_kyber_512_evp_encapsulate(uint8_t *ciphertext, uint8_t *shared_secret,
     size_t cipher_text_size = S2N_KYBER_512_R3_CIPHERTEXT_BYTES;
     size_t shared_secret_size = S2N_KYBER_512_R3_SHARED_SECRET_BYTES;
     POSIX_GUARD_OSSL(EVP_PKEY_encapsulate(kyber_pkey_ctx, ciphertext, &cipher_text_size, shared_secret,
-                                      &shared_secret_size), S2N_ERR_PQ_CRYPTO);
+                             &shared_secret_size),
+            S2N_ERR_PQ_CRYPTO);
     return S2N_SUCCESS;
 }
 
 int s2n_kyber_512_evp_decapsulate(uint8_t *shared_secret, const uint8_t *ciphertext,
-                                  const uint8_t *secret_key) {
+        const uint8_t *secret_key)
+{
     size_t secret_key_size = S2N_KYBER_512_R3_SECRET_KEY_BYTES;
     DEFER_CLEANUP(EVP_PKEY *kyber_pkey = EVP_PKEY_kem_new_raw_secret_key(NID_KYBER512_R3, secret_key, secret_key_size), EVP_PKEY_free_pointer);
     POSIX_GUARD_PTR(kyber_pkey);
@@ -72,21 +76,25 @@ int s2n_kyber_512_evp_decapsulate(uint8_t *shared_secret, const uint8_t *ciphert
 
     size_t shared_secret_size = S2N_KYBER_512_R3_SHARED_SECRET_BYTES;
     POSIX_GUARD_OSSL(EVP_PKEY_decapsulate(kyber_pkey_ctx, shared_secret, &shared_secret_size, (uint8_t *) ciphertext,
-                                          S2N_KYBER_512_R3_CIPHERTEXT_BYTES), S2N_ERR_PQ_CRYPTO);
+                             S2N_KYBER_512_R3_CIPHERTEXT_BYTES),
+            S2N_ERR_PQ_CRYPTO);
     return S2N_SUCCESS;
 }
 #else
-int s2n_kyber_512_evp_generate_keypair(OUT uint8_t *public_key, OUT uint8_t *secret_key) {
+int s2n_kyber_512_evp_generate_keypair(OUT uint8_t *public_key, OUT uint8_t *secret_key)
+{
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 int s2n_kyber_512_evp_encapsulate(OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
-                                  IN const uint8_t *public_key) {
+        IN const uint8_t *public_key)
+{
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
 int s2n_kyber_512_evp_decapsulate(OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
-                                  IN const uint8_t *secret_key) {
+        IN const uint8_t *secret_key)
+{
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 #endif
