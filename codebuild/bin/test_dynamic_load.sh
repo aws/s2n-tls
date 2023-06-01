@@ -23,7 +23,7 @@ if [ ! -z "$NIX_STORE" ]; then
     OPENSSL=$(which openssl)
     LIBCRYPTO_ROOT=$(nix-store --query $OPENSSL)
 else
-  source codebuild/bin/s2n_setup_env.sh
+    source codebuild/bin/s2n_setup_env.sh
 fi
 
 S2N_BUILD_ARGS=(-H. -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT -DBUILD_TESTING=OFF)
