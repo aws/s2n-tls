@@ -56,7 +56,7 @@ static void *s2n_load_dynamic_lib(void *ctx)
 int main(int argc, char *argv[])
 {
     if (argc != 2) {
-        printf("Usage: s2n_unload_single <path to s2n shared object>\n");
+        printf("Usage: s2n_dynamic_load_test <path to s2n shared object>\n");
         exit(1);
     }
 
