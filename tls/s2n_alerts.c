@@ -228,15 +228,24 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
     return 0;
 }
 
+static S2N_RESULT s2n_queue_reader_alert(struct s2n_connection *conn, s2n_tls_alert_code code)
+{
+    RESULT_ENSURE_REF(conn);
+    if (!conn->reader_alert_out) {
+        conn->reader_alert_out = code;
+    }
+    return S2N_RESULT_OK;
+}
+
 int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
 {
-    conn->reader_alert_out = S2N_TLS_ALERT_PROTOCOL_VERSION;
+    POSIX_GUARD_RESULT(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_PROTOCOL_VERSION));
     return S2N_SUCCESS;
 }
 
 int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
 {
-    conn->reader_alert_out = S2N_TLS_ALERT_HANDSHAKE_FAILURE;
+    POSIX_GUARD_RESULT(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
     return S2N_SUCCESS;
 }
 
@@ -254,7 +263,9 @@ S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
         RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
     }
 
-    conn->reader_warning_out = S2N_TLS_ALERT_NO_RENEGOTIATION;
+    if (!conn->reader_warning_out) {
+        conn->reader_warning_out = S2N_TLS_ALERT_NO_RENEGOTIATION;
+    }
     return S2N_RESULT_OK;
 }
 

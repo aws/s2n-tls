@@ -398,6 +398,23 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
     };
 
+    /* Test: Do not send or await close_notify if supporting QUIC */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        /* Verify state after shutdown attempt */
+        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(conn->alert_sent);
+        EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+    };
+
     /* Test: s2n_shutdown_send */
     {
         /* Test: Safety */

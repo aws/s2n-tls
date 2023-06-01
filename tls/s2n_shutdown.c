@@ -60,6 +60,11 @@ static bool s2n_shutdown_expect_close_notify(struct s2n_connection *conn)
         return false;
     }
 
+    /* QUIC does not use TLS alerts */
+    if (conn->quic_enabled) {
+        return false;
+    }
+
     return true;
 }
 
