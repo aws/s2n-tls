@@ -187,6 +187,11 @@ FEATURES := $(notdir $(patsubst %.c,%,$(wildcard $(S2N_ROOT)/tests/features/*.c)
 SUPPORTED_FEATURES := $(foreach feature,$(FEATURES),$(call feature_probe,$(feature)))
 DEFAULT_CFLAGS += $(SUPPORTED_FEATURES)
 
+# only enable stacktraces if execinfo is available
+ifneq ("$(call feature_probe,S2N_EXECINFO_AVAILABLE)","")
+	DEFAULT_CFLAGS += -DS2N_STACKTRACE
+endif
+
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
 
 $(BITCODE_DIR)%.bc: %.c

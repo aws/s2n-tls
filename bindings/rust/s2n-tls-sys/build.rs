@@ -139,6 +139,12 @@ fn build_vendored() {
         eprintln!("{name}: {is_supported}");
         if is_supported {
             build.define(name, "1");
+
+            // stacktraces are only available if execinfo is
+            if name == "S2N_EXECINFO_AVAILABLE" && option_env("CARGO_FEATURE_STACKTRACE").is_some()
+            {
+                build.define("S2N_STACKTRACE", "1");
+            }
         }
     }
 

@@ -32,7 +32,8 @@ option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed 
 version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
-option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls." ON)
+option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
+only available on platforms that support execinfo." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
