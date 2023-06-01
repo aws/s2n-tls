@@ -131,3 +131,7 @@ function test_toolchain_counts {
     echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
 }
 
+function dynamic_load {
+    ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
+}
+
