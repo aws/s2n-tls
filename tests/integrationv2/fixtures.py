@@ -141,4 +141,4 @@ def custom_mtu():
 
     original_mtu = _swap_mtu("lo", 1500)
     yield
-    _swap_mtu("lo", original_mtu)
+    _swap_mtu('lo', original_mtu)
