@@ -35,9 +35,9 @@ function build {
 
 function unit {
     if [[ -z "$1" ]]; then
-        (cd $SRC_ROOT/build; ctest -L unit -j $(nproc) --verbose)
+        (cd $SRC_ROOT/build; ctest -L unit --output-junit "report_unit_all.xml" -j $(nproc) --verbose)
     else
-        (cd $SRC_ROOT/build; ctest -L unit -R $1 -j $(nproc) --verbose)
+        (cd $SRC_ROOT/build; ctest -L unit --output-junit "report_unit_$1.xml" -R $1 -j $(nproc) --verbose)
     fi
 }
 
@@ -56,7 +56,7 @@ function integ {
     fi
     if [[ -z "$1" ]]; then
         banner "Running all integ tests except cross_compatibility, renegotiate_apache."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
+        (cd $SRC_ROOT/build; ctest -L integrationv2 --output-junit report_integ_all.xml -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
     else
         banner "Warning: cross_compatibility & renegotiate_apache are not supported in nix for various reasons integ help for more info."
         for test in $@; do
