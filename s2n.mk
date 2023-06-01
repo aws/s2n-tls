@@ -185,11 +185,15 @@ feature_probe = $(shell $(CC) $(CFLAGS) $(shell cat $(S2N_ROOT)/tests/features/$
 
 FEATURES := $(notdir $(patsubst %.c,%,$(wildcard $(S2N_ROOT)/tests/features/*.c)))
 SUPPORTED_FEATURES := $(foreach feature,$(FEATURES),$(call feature_probe,$(feature)))
+CFLAGS += $(SUPPORTED_FEATURES)
 DEFAULT_CFLAGS += $(SUPPORTED_FEATURES)
+CPPCFLAGS += $(SUPPORTED_FEATURES)
 
 # only enable stacktraces if execinfo is available
 ifneq ("$(call feature_probe,S2N_EXECINFO_AVAILABLE)","")
+	CFLAGS += -DS2N_STACKTRACE
 	DEFAULT_CFLAGS += -DS2N_STACKTRACE
+	CPPCFLAGS += -DS2N_STACKTRACE
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1
