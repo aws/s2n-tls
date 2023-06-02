@@ -128,11 +128,10 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     } else {
         EXPECT_FAILURE(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv));
         EXPECT_FAILURE(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv));
     }
-
+    EXPECT_SUCCESS(s2n_connection_free(conn));
     END_TEST();
 }
