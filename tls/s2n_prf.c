@@ -463,7 +463,7 @@ S2N_RESULT s2n_prf_free(struct s2n_connection *conn)
 
 bool s2n_libcrypto_supports_tls_prf()
 {
-#ifdef S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
+#if S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
     return true;
 #else
     return false;
@@ -497,11 +497,11 @@ S2N_RESULT s2n_custom_prf(struct s2n_connection *conn, struct s2n_blob *secret, 
     return S2N_RESULT_OK;
 }
 
-#ifdef S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
+#if S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
 
 /* The AWSLC TLS PRF API is exported in all AWSLC versions. However, in the AWSLC FIPS branch, this
  * API is defined in a private header:
- * https://github.com/aws/aws-lc/blob/fips-2022-11-02/crypto/fipsmodule/tls/internal.h#L27
+ * https://github.com/aws/aws-lc/blob/d251b365b73a6e6acff6ee634aa8f077f23cdea4/crypto/fipsmodule/tls/internal.h#L27
  *
  * AWSLC has committed to this API definition, and the API has been added to a public header in the
  * main branch: https://github.com/aws/aws-lc/pull/1033. As such, this API is forward-declared in

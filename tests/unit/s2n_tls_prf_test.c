@@ -17,12 +17,12 @@
 #include <string.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_openssl.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
 /* To gain access to handshake_read and handshake_write */
 #include "tls/s2n_handshake_io.c"
-#include "crypto/s2n_openssl.h"
 
 #define TEST_BLOB_SIZE 64
 
@@ -313,17 +313,11 @@ int main(int argc, char **argv)
         };
     };
 
-    /* Ensure that the feature probe properly indicates support for the libcrypto TLS PRF API */
-    {
-        /* The libcrypto TLS PRF feature probe should succeed for all AWSLC versions */
-        if (s2n_libcrypto_is_awslc()) {
-            EXPECT_TRUE(s2n_libcrypto_supports_tls_prf());
-        }
-
-        /* The libcrypto TLS PRF feature probe should fail for non-AWSLC/BoringSSL libcryptos */
-        if (!s2n_libcrypto_is_awslc() && !s2n_libcrypto_is_boringssl()) {
-            EXPECT_FALSE(s2n_libcrypto_supports_tls_prf());
-        }
+    /* Ensure that the libcrypto TLS PRF API is only enabled for AWSLC */
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_TRUE(s2n_libcrypto_supports_tls_prf());
+    } else {
+        EXPECT_FALSE(s2n_libcrypto_supports_tls_prf());
     }
 
     /* s2n_prf tests */
