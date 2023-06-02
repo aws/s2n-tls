@@ -34,6 +34,15 @@
  * - https://stackoverflow.com/a/5724485
  * - https://stackoverflow.com/a/5583764
  */
+#if defined(S2N_ADDRESS_SANITIZER)
+    /**
+     * Marks that a function should be ignored for address sanitizer jobs
+     */
+    #define ASAN_IGNORE __attribute__((no_address_safety_analysis))
+#else
+    #define ASAN_IGNORE
+#endif /* defined(S2N_ADDRESS_SANITIZER) */
+
 #ifndef _XOPEN_SOURCE
     #define _XOPEN_SOURCE 700
     #include <fcntl.h>
@@ -565,8 +574,11 @@ S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 /*
  * volatile is important to prevent the compiler from
  * re-ordering or optimizing the use of RDRAND.
+ *
+ * This is marked with ASAN_IGNORE because address sanitizer is unable to deal
+ * with the inline assembly and emits false positives.
  */
-static int s2n_rand_rdrand_impl(void *data, uint32_t size)
+ASAN_IGNORE static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 {
 #if defined(__x86_64__) || defined(__i386__)
     struct s2n_blob out = { 0 };

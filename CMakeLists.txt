@@ -43,6 +43,7 @@ indicate danger points where you should verify with the S2N-TLS developers that 
 the library is not compromised. These warnings are currently failing for some builds; once the problems are fixed,
 they will be moved to UNSAFE_TREAT_WARNINGS_AS_ERRORS." OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
+option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -224,6 +225,12 @@ endif()
 if(TSAN)
     target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
+endif()
+
+if (ASAN)
+    # no-oimt-frame-pointer and no-optimize-sibling-calls provide better stack traces
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls -DS2N_ADDRESS_SANITIZER=1)
+    target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address,undefined -fno-omit-frame-pointer -fno-optimize-sibling-calls -DS2N_ADDRESS_SANITIZER=1)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
@@ -504,12 +511,15 @@ if (BUILD_TESTING)
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
+    if (TSAN OR ASAN)
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
+    endif()
+
     if(TSAN)
         set(TSAN_SUPPRESSIONS_FILE ${CMAKE_SOURCE_DIR}/tests/.tsan_suppressions)
         if(NOT EXISTS ${TSAN_SUPPRESSIONS_FILE})
             message(FATAL_ERROR "TSAN suppression file ${TSAN_SUPPRESSIONS_FILE} missing")
         endif()
-        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=suppressions=${TSAN_SUPPRESSIONS_FILE})
     endif()
     message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
