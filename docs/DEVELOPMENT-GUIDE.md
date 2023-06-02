@@ -418,14 +418,14 @@ uint8_t reader_alert_out;
 uint8_t writer_alert_out;
 ```
 
-this pattern means that both the reader thread and writer thread can create pending alert messages without needing any locks. If either the reader or writer generates an alert, it also sets the 'closed' states to 1.
+This pattern means that both the reader thread and writer thread can create pending alert messages without needing any locks. If either the reader or writer generates an alert, it also sets the 'closed' states to 1.
 
 ```c
 sig_atomic_t read_closed;
 sig_atomic_t write_closed;
 ```
 
-These fields are atomic, but even if they were not they can only be changed from 0 to 1, so an over-write is harmless.
+These fields are atomic. However because they are only ever changed from 0 to 1, an over-write would be harmless.
 
 s2n-tls only sends fatal alerts during `s2n_shutdown()` or `s2n_shutdown_send()`.
 Only one alert is sent, so writer alerts take priority if both are present.
