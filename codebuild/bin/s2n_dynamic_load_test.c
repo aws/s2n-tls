@@ -62,8 +62,8 @@ int main(int argc, char *argv[])
 
     /* s2n-tls library can be dynamically loaded and cleaned up safely 
      *
-     * We can't use any s2n test macros because then the compiler gets
-     * confused about whether or not to link the s2n functions.
+     * We can't use any s2n test macros because this test doesn't get linked to 
+     * s2n during compile-time.
      */
     {
         pthread_t thread_id = { 0 };
