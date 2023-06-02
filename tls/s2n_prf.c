@@ -498,8 +498,14 @@ S2N_RESULT s2n_custom_prf(struct s2n_connection *conn, struct s2n_blob *secret, 
 }
 
 #ifdef S2N_LIBCRYPTO_SUPPORTS_TLS_PRF
-/* BoringSSL and AWSLC define the CRYPTO_tls1_prf API in a private header. This function is
- * forward-declared to make it accessible.
+
+/* The AWSLC TLS PRF API is exported in all AWSLC versions. However, in the AWSLC FIPS branch, this
+ * API is defined in a private header:
+ * https://github.com/aws/aws-lc/blob/fips-2022-11-02/crypto/fipsmodule/tls/internal.h#L27
+ *
+ * AWSLC has committed to this API definition, and the API has been added to a public header in the
+ * main branch: https://github.com/aws/aws-lc/pull/1033. As such, this API is forward-declared in
+ * order to make it accessible to s2n-tls when linked to AWSLC-FIPS.
  */
 int CRYPTO_tls1_prf(const EVP_MD *digest,
         uint8_t *out, size_t out_len,
@@ -532,7 +538,7 @@ S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secre
         RESULT_GUARD_POSIX(s2n_stuffer_init_written(&seed_b_stuffer, &seed_b_blob));
 
         if (seed_c != NULL) {
-            /* The AWSLC/BoringSSL TLS PRF implementation only provides two seed arguments. If three seeds
+            /* The AWSLC TLS PRF implementation only provides two seed arguments. If three seeds
              * were provided, pass in the third seed by concatenating it with the second seed.
              */
             RESULT_GUARD_POSIX(s2n_stuffer_alloc(&seed_b_stuffer, seed_b->size + seed_c->size));

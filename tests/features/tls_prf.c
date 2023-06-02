@@ -4,9 +4,6 @@
 
 #define TEST_BUFFER_SIZE 64
 
-/* BoringSSL and AWSLC define the CRYPTO_tls1_prf API in a private header. This function is
- * forward-declared to make it accessible.
- */
 int CRYPTO_tls1_prf(const EVP_MD *digest,
         uint8_t *out, size_t out_len,
         const uint8_t *secret, size_t secret_len,
