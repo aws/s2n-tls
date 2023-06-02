@@ -17,6 +17,7 @@ include = [
   "lib/**/*.S",
   "lib/CMakeLists.txt",
   "lib/**/*.cmake",
+  "lib/**/*.flags", # for feature probes
   "src/**/*.rs",
   "tests/**/*.rs",
 ]
@@ -26,6 +27,7 @@ default = []
 quic = []
 pq = ["cmake"] # the pq build logic is complicated so just use cmake instead
 internal = []
+stacktrace = []
 <TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
 # e.g. something like
 # unstable-foo = []

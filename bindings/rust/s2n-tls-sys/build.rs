@@ -34,38 +34,46 @@ fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
 }
 
 struct FeatureDetector<'a> {
-    out_dir: &'a std::path::Path,
+    builder: cc::Build,
+    out_dir: &'a Path,
 }
 
 impl<'a> FeatureDetector<'a> {
     pub fn new(out_dir: &'a Path) -> Self {
-        Self { out_dir }
+        let builder = builder();
+        Self { builder, out_dir }
     }
 
     pub fn supports(&self, name: &str) -> bool {
-        let out = self.out_dir.join("features").join(name);
-        let out = out.to_str().unwrap();
+        let mut build = self.builder.get_compiler().to_command();
 
-        cc::Build::new()
-            .file(
-                std::path::Path::new("lib/tests/features")
-                    .join(name)
-                    .with_extension("c"),
-            )
-            // don't print anything
-            .cargo_metadata(false)
-            // make sure it doesn't warn
-            .warnings(true)
-            .debug(false)
-            // set the archiver to the `true` program, since we don't actually link anything
-            .archiver("true")
-            .try_compile(out)
-            .is_ok()
+        let base = std::path::Path::new("lib/tests/features").join(name);
+
+        let file = base.with_extension("c");
+        assert!(file.exists(), "missing feature file: {:?}", file.display());
+
+        let flags = base.with_extension("flags");
+        assert!(file.exists(), "missing flags file: {:?}", flags.display());
+
+        let flags = std::fs::read_to_string(flags).unwrap();
+        for flag in flags.trim().split(' ').filter(|f| !f.is_empty()) {
+            build.arg(flag);
+        }
+
+        build
+            // just compile the file and don't link
+            .arg("-c")
+            .arg("-o")
+            .arg(self.out_dir.join(name).with_extension("o"))
+            .arg(&file);
+
+        eprintln!("=== Testing feature {name} ===");
+        build.status().unwrap().success()
     }
 }
 
 fn build_vendored() {
-    let mut build = cc::Build::new();
+    let mut build = builder();
 
     let pq = option_env("CARGO_FEATURE_PQ").is_some();
 
@@ -85,21 +93,6 @@ fn build_vendored() {
 
         true
     }));
-
-    build
-        // pull the include path from the openssl-sys dependency
-        .include(env("DEP_OPENSSL_INCLUDE"))
-        .include("lib")
-        .include("lib/api")
-        .flag("-std=c11")
-        .flag("-fgnu89-inline")
-        // make sure the stack is non-executable
-        .flag_if_supported("-z relro")
-        .flag_if_supported("-z now")
-        .flag_if_supported("-z noexecstack")
-        // we use some deprecated libcrypto features so don't warn here
-        .flag_if_supported("-Wno-deprecated-declarations")
-        .define("_POSIX_C_SOURCE", "200112L");
 
     if env("PROFILE") == "release" {
         // fortify source is only available in release mode
@@ -122,36 +115,37 @@ fn build_vendored() {
 
     let features = FeatureDetector::new(&out_dir);
 
-    if features.supports("execinfo") {
-        build.define("S2N_HAVE_EXECINFO", "1");
-    }
+    let mut feature_names = std::fs::read_dir("lib/tests/features")
+        .expect("missing features directory")
+        .flatten()
+        .filter(|file| {
+            let file = file.path();
+            file.extension().map_or(false, |ext| ext == "c")
+        })
+        .map(|file| {
+            file.path()
+                .file_stem()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .to_string()
+        })
+        .collect::<Vec<_>>();
 
-    if features.supports("cpuid") {
-        build.define("S2N_CPUID_AVAILABLE", "1");
-    }
+    feature_names.sort();
 
-    if features.supports("features") {
-        build.define("S2N_FEATURES_AVAILABLE", "1");
-    }
+    for name in &feature_names {
+        let is_supported = features.supports(name);
+        eprintln!("{name}: {is_supported}");
+        if is_supported {
+            build.define(name, "1");
 
-    if features.supports("fallthrough") {
-        build.define("FALL_THROUGH_SUPPORTED", "1");
-    }
-
-    if features.supports("__restrict__") {
-        build.define("__RESTRICT__SUPPORTED", "1");
-    }
-
-    if features.supports("madvise") {
-        build.define("MADVISE_SUPPORTED", "1");
-    }
-
-    if features.supports("minherit") {
-        build.define("MINHERIT_SUPPORTED", "1");
-    }
-
-    if features.supports("clone") {
-        build.define("CLONE_SUPPORTED", "1");
+            // stacktraces are only available if execinfo is
+            if name == "S2N_EXECINFO_AVAILABLE" && option_env("CARGO_FEATURE_STACKTRACE").is_some()
+            {
+                build.define("S2N_STACKTRACE", "1");
+            }
+        }
     }
 
     // don't spit out a bunch of warnings to the end user, since they won't really be able
@@ -168,6 +162,27 @@ fn build_vendored() {
     std::fs::create_dir_all(&include_dir).unwrap();
     std::fs::copy("lib/api/s2n.h", include_dir.join("s2n.h")).unwrap();
     println!("cargo:include={}", include_dir.display());
+}
+
+fn builder() -> cc::Build {
+    let mut build = cc::Build::new();
+
+    build
+        // pull the include path from the openssl-sys dependency
+        .include(env("DEP_OPENSSL_INCLUDE"))
+        .include("lib")
+        .include("lib/api")
+        .flag("-std=c11")
+        .flag("-fgnu89-inline")
+        // make sure the stack is non-executable
+        .flag_if_supported("-z relro")
+        .flag_if_supported("-z now")
+        .flag_if_supported("-z noexecstack")
+        // we use some deprecated libcrypto features so don't warn here
+        .flag_if_supported("-Wno-deprecated-declarations")
+        .define("_POSIX_C_SOURCE", "200112L");
+
+    build
 }
 
 #[cfg(feature = "cmake")]
