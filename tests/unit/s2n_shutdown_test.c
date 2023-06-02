@@ -399,7 +399,7 @@ int main(int argc, char **argv)
     };
 
     /* Test: Do not send or await close_notify if supporting QUIC */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);

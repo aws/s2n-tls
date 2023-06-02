@@ -367,7 +367,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+            conn->quic_enabled = true;
             conn->writer_alert_out = expected_alert;
             conn->reader_alert_out = wrong_alert;
 
