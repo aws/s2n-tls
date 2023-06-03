@@ -20,6 +20,7 @@
 #include <sys/param.h>
 #include <time.h>
 
+#include "api/unstable/fingerprint.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_rsa_signing.h"
@@ -243,16 +244,26 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
                           verify_len),
             S2N_ERR_BAD_MESSAGE);
 
-    /*
-     * We need to verify the client random separately
-     * because we erase it from the client hello during parsing.
-     * Compare the old value to the current value.
+    /* In the past, the s2n-tls client updated the client hello in ways not
+     * allowed by RFC8446: https://github.com/aws/s2n-tls/pull/3311
+     * Although the issue was addressed, its existence means that old versions
+     * of the s2n-tls client will fail this validation.
+     *
+     * So to avoid breaking old s2n-tls clients, we do not enforce this validation
+     * outside of tests. We continue to enforce it during tests to avoid regressions.
      */
-    RESULT_ENSURE(s2n_constant_time_equals(
-                          previous_client_random,
-                          conn->handshake_params.client_random,
-                          S2N_TLS_RANDOM_DATA_LEN),
-            S2N_ERR_BAD_MESSAGE);
+    if (s2n_in_test()) {
+        /*
+         * We need to verify the client random separately
+         * because we erase it from the client hello during parsing.
+         * Compare the old value to the current value.
+         */
+        RESULT_ENSURE(s2n_constant_time_equals(
+                              previous_client_random,
+                              conn->handshake_params.client_random,
+                              S2N_TLS_RANDOM_DATA_LEN),
+                S2N_ERR_BAD_MESSAGE);
+    }
 
     /*
      * Now enforce that the extensions also exactly match,
@@ -447,6 +458,11 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      *     https://tools.ietf.org/rfc/rfc8446#section-9.1
      *     A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256)
      *     and SHOULD support key exchange with X25519 [RFC7748]
+     *
+     *= https://tools.ietf.org/rfc/rfc4492#section-4
+     *# A client that proposes ECC cipher suites may choose not to include these extensions.
+     *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.
+     *
      */
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));

@@ -28,10 +28,8 @@
 #include "utils/s2n_safety.h"
 
 static const float minimum_send_percent = 5.0;
-static const uint32_t max_client_run_time = 300;
 
-#define LESS_THAN_ELAPSED_SECONDS(start_time, max_time) ((start_time - time(0)) < max_time)
-#define MIN_PERCENT_COMPLETE(remaining, total)          ((((total - remaining) / (total * 1.0)) * 100.0) > minimum_send_percent)
+#define MIN_PERCENT_COMPLETE(remaining, total) ((((total - remaining) / (total * 1.0)) * 100.0) > minimum_send_percent)
 
 int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32_t size)
 {
@@ -45,8 +43,6 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
      * we'll want to have the child process die eventually, or certain
      * CI/CD pipelines might never complete */
     int should_block = 1;
-
-    time_t start_time = time(0);
 
     /* Give the server a chance to listen */
     sleep(1);
@@ -66,7 +62,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
 
     /* Receive 10MB of data */
     uint32_t remaining = size;
-    while (remaining && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time)) {
+    while (remaining) {
         int r = s2n_recv(client_conn, ptr, remaining, &blocked);
         if (r < 0) {
             return 1;
@@ -82,7 +78,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
     int shutdown_rc = -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while (shutdown_rc != 0 && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time));
+    } while (shutdown_rc != 0);
 
     for (size_t i = 0; i < size; i++) {
         if (buffer[i] != expected_data[i]) {
@@ -108,8 +104,6 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     int total_size = 0, i;
     int should_block = 1;
 
-    time_t start_time = time(0);
-
     for (i = 0; i < iov_size; i++) {
         total_size += iov[i].iov_len;
     }
@@ -133,7 +127,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     }
 
     uint32_t remaining = total_size;
-    while (remaining && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time)) {
+    while (remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
@@ -147,7 +141,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     }
 
     remaining = iov[0].iov_len;
-    while (remaining && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time)) {
+    while (remaining) {
         int r = s2n_recv(client_conn, &buffer[buffer_offs], remaining, &blocked);
         if (r < 0) {
             return 1;
@@ -159,7 +153,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
     int shutdown_rc = -1;
     do {
         shutdown_rc = s2n_shutdown(client_conn, &blocked);
-    } while (shutdown_rc != 0 && LESS_THAN_ELAPSED_SECONDS(start_time, max_client_run_time));
+    } while (shutdown_rc != 0);
 
     for (i = 0, buffer_offs = 0; i < iov_size; i++) {
         if (memcmp(iov[i].iov_base, &buffer[buffer_offs], iov[i].iov_len)) {

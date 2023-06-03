@@ -14,6 +14,7 @@
  */
 
 #include <errno.h>
+#include <inttypes.h>
 #include <netdb.h>
 #include <openssl/rsa.h>
 #include <openssl/x509.h>
@@ -212,7 +213,7 @@ int print_connection_info(struct s2n_connection *conn)
         uint8_t *identity = (uint8_t *) malloc(identity_length);
         GUARD_EXIT_NULL(identity);
         GUARD_EXIT(s2n_connection_get_negotiated_psk_identity(conn, identity, identity_length), "Error getting negotiated psk identity from the connection\n");
-        printf("Negotiated PSK identity: %s\n", identity);
+        printf("Negotiated PSK identity: %.*s\n", identity_length, identity);
         free(identity);
     }
 
@@ -249,6 +250,9 @@ int print_connection_info(struct s2n_connection *conn)
         }
         printf("\n");
     }
+
+    printf("Wire bytes in: %" PRIu64 "\n", s2n_connection_get_wire_bytes_in(conn));
+    printf("Wire bytes out: %" PRIu64 "\n", s2n_connection_get_wire_bytes_out(conn));
 
     return 0;
 }

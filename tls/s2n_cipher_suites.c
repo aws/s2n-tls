@@ -1051,7 +1051,6 @@ S2N_RESULT s2n_cipher_suites_cleanup(void)
         * cleanup in later versions */
 #endif
     }
-
     return S2N_RESULT_OK;
 }
 
@@ -1173,7 +1172,7 @@ bool s2n_cipher_suite_uses_chacha20_alg(struct s2n_cipher_suite *cipher_suite)
     return cipher_suite && cipher_suite->record_alg && cipher_suite->record_alg->cipher == &s2n_chacha20_poly1305;
 }
 
-/* Iff the server has enabled allow_chacha20_boosting and the client has a chacha20 cipher suite as its most 
+/* Iff the server has enabled allow_chacha20_boosting and the client has a chacha20 cipher suite as its most
  * preferred cipher suite, then we have mutual chacha20 boosting support.
  */
 static S2N_RESULT s2n_validate_chacha20_boosting(const struct s2n_cipher_preferences *cipher_preferences, const uint8_t *wire,
@@ -1248,7 +1247,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
      * other cipher suites.
      *
      * If no mutually supported cipher suites are found, we choose one with a version
-     * too high for the current connection (higher_vers_match). 
+     * too high for the current connection (higher_vers_match).
      */
     for (size_t i = 0; i < cipher_preferences->count; i++) {
         const uint8_t *ours = cipher_preferences->suites[i]->iana_value;
