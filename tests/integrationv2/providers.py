@@ -171,7 +171,7 @@ class S2N(Provider):
         # algorithms
         unsupported_configurations = {
             "CHACHA20": ["openssl-1.0.2", "libressl"],
-            "RC4"     : ["openssl-3"],
+            "RC4": ["openssl-3"],
         }
 
         for unsupported_cipher, unsupported_libcryptos in unsupported_configurations.items():
