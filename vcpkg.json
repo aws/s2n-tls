@@ -1,0 +1,8 @@
+{
+  "name": "s2n-tls",
+  "version-string": "0.11.7",
+  "dependencies": [
+    "openssl",
+    "pthreads"
+  ]
+}

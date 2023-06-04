@@ -116,6 +116,9 @@ else()
     find_package(Threads REQUIRED)
 endif()
 
+set(gcc_like "$<COMPILE_LANG_AND_ID:C,CXX,ARMClang,AppleClang,Clang,GNU,LCC>")
+set(msvc "$<COMPILE_LANG_AND_ID:C,CXX,MSVC>")
+
 if(S2N_NO_PQ_ASM)
     message(STATUS "S2N_NO_PQ_ASM flag was detected - disabling PQ crypto assembly code")
 else()
@@ -189,7 +192,9 @@ try_compile(
         FALL_THROUGH_SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/fallthrough.c"
-        COMPILE_DEFINITIONS "-Werror"
+        COMPILE_DEFINITIONS
+          "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+          "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
 # Determine if __restrict__ is available
@@ -197,7 +202,9 @@ try_compile(
         __RESTRICT__SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/__restrict__.c"
-        COMPILE_DEFINITIONS "-Werror"
+        COMPILE_DEFINITIONS
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
 # Determine if madvise() is available
@@ -205,7 +212,9 @@ try_compile(
         MADVISE_SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/madvise.c"
-        COMPILE_DEFINITIONS "-Werror"
+        COMPILE_DEFINITIONS
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
 # Determine if minherit() is available
@@ -213,7 +222,9 @@ try_compile(
         MINHERIT_SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/minherit.c"
-        COMPILE_DEFINITIONS "-Werror"
+        COMPILE_DEFINITIONS
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
 # Determine if clone() is available
@@ -221,7 +232,9 @@ try_compile(
         CLONE_SUPPORTED
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/clone.c"
-        COMPILE_DEFINITIONS "-Werror"
+        COMPILE_DEFINITIONS
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
 if(APPLE)
@@ -234,6 +247,9 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "OpenBSD")
     set(OS_LIBS Threads::Threads kvm)
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Android")
     set(OS_LIBS Threads::Threads dl)
+elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    find_package(PThreads4W REQUIRED)
+    set(OS_LIBS PThreads4W::PThreads4W)
 else()
     set(OS_LIBS Threads::Threads dl rt)
 endif()
@@ -283,7 +299,12 @@ if (EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS)
 endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
+    target_compile_options(
+            ${PROJECT_NAME}
+            PRIVATE
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+    )
 endif ()
 
 if(BUILD_TESTING AND BUILD_SHARED_LIBS)
@@ -409,6 +430,10 @@ endif()
 if (TARGET crypto)
     message(STATUS "S2N found target: crypto")
     set(LINK_LIB "crypto")
+elseif(DEFINED Z_VCPKG_EXECUTABLE)
+    find_package(OpenSSL REQUIRED)
+    message(STATUS "Using libcrypto from vcpkg")
+    set(LINK_LIB "OpenSSL::Crypto")
 else()
     find_package(crypto REQUIRED)
     message(STATUS "Using libcrypto from the cmake path")
@@ -463,7 +488,9 @@ try_compile(
         ${CMAKE_BINARY_DIR}
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/evp_kem_kyber_512.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
-        COMPILE_DEFINITIONS "-Werror"
+        COMPILE_DEFINITIONS
+            "$<${gcc_like}:$<BUILD_INTERFACE:-Werror>>"
+            "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
 )
 
 if(LIBCRYPTO_SUPPORTS_EVP_KEM_KYBER_512)
@@ -638,7 +665,9 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
-        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        if (NOT MSVC AND NOT CYGWIN AND NOT MSYS AND NOT MINGW)
+            target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        endif ()
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
@@ -700,10 +729,15 @@ if (BUILD_TESTING)
             target_link_libraries(${benchmark_name} PUBLIC ${PROJECT_NAME} testss2n benchmark::benchmark)
 
             # Based off the flags in tests/benchmark/Makefile
-            target_compile_options(${benchmark_name} PRIVATE -pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
-                    -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
-                    -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
-                    -Wno-unused-but-set-variable)
+            target_compile_options(
+                    ${benchmark_name}
+                    PRIVATE
+                    "$<${gcc_like}:$<BUILD_INTERFACE:-pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
+                        -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
+                        -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
+                        -Wno-unused-but-set-variable>>"
+                    "$<${msvc}:$<BUILD_INTERFACE:-W3;-WX;-Zi;-permissive->>"
+            )
         endforeach(benchmark)
     endif()
 
