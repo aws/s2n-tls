@@ -32,11 +32,13 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     POSIX_ENSURE(conn->actual_protocol_version >= S2N_TLS13, S2N_ERR_BAD_MESSAGE);
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_BAD_MESSAGE);
 
-    uint8_t key_update_request;
+    uint8_t key_update_request = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(request, &key_update_request));
-    S2N_ERROR_IF(key_update_request != S2N_KEY_UPDATE_NOT_REQUESTED && key_update_request != S2N_KEY_UPDATE_REQUESTED,
+    POSIX_ENSURE(key_update_request == S2N_KEY_UPDATE_NOT_REQUESTED || key_update_request == S2N_KEY_UPDATE_REQUESTED,
             S2N_ERR_BAD_MESSAGE);
-    conn->key_update_pending = key_update_request;
+    if (key_update_request == S2N_KEY_UPDATE_REQUESTED) {
+        conn->key_update_pending = 1;
+    }
 
     /* Update peer's key since a key_update was received */
     if (conn->mode == S2N_CLIENT) {
@@ -73,7 +75,9 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
          */
         POSIX_GUARD(s2n_flush(conn, blocked));
 
-        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
+        conn->key_update_pending = 0;
+
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE] = { 0 };
         struct s2n_blob key_update_blob = { 0 };
         POSIX_GUARD(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
 
@@ -85,7 +89,6 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
 
         /* Update encryption key */
         POSIX_GUARD(s2n_update_application_traffic_keys(conn, conn->mode, SENDING));
-        conn->key_update_pending = false;
 
         POSIX_GUARD(s2n_flush(conn, blocked));
     }
@@ -130,7 +133,7 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
      * This should always trigger on "==", but we use ">=" just in case.
      */
     if (next_seq_num >= conn->secure->cipher_suite->record_alg->encryption_limit) {
-        conn->key_update_pending = true;
+        conn->key_update_pending = 1;
     }
 
     return S2N_SUCCESS;
