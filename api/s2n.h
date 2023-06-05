@@ -241,11 +241,33 @@ S2N_API extern int s2n_init(void);
 S2N_API extern int s2n_cleanup(void);
 
 /**
- * Create a new s2n_config object. This object can (and should) be associated with many connection objects.
+ * Creates a new s2n_config object. This object can (and should) be associated with many connection
+ * objects.
  *
- * @returns returns a new configuration object suitable for associating certs and keys. 
+ * The returned config will be initialized with default system certificates in its trust store.
+ *
+ * The returned config should be freed with `s2n_config_free()` after it's no longer in use by any
+ * connection.
+ *
+ * @returns A new configuration object suitable for configuring connections and associating certs
+ * and keys.
  */
 S2N_API extern struct s2n_config *s2n_config_new(void);
+
+/**
+ * Creates a new s2n_config object with minimal default options.
+ *
+ * This function has better performance than `s2n_config_new()` because it does not load default
+ * system certificates into the trust store by default. To add system certificates to this config,
+ * call `s2n_config_load_system_certs()`.
+ *
+ * The returned config should be freed with `s2n_config_free()` after it's no longer in use by any
+ * connection.
+ *
+ * @returns A new configuration object suitable for configuring connections and associating certs
+ * and keys.
+ */
+S2N_API extern struct s2n_config *s2n_config_new_minimal(void);
 
 /**
  * Frees the memory associated with an `s2n_config` object.
@@ -534,6 +556,8 @@ typedef int (*s2n_rand_mix_callback)(void *data, uint32_t size);
  * Allows the caller to override s2n-tls's entropy functions.
  * 
  * @warning This function must be called before s2n_init().
+ *
+ * @note The overriden random callbacks will not be used when s2n-tls is operating in FIPS mode.
  * 
  * @param rand_init_callback The s2n_rand_init_callback
  * @param rand_cleanup_callback The s2n_rand_cleanup_callback
@@ -787,8 +811,10 @@ S2N_API extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config 
 
 /**
  * Adds to the trust store from a CA file or directory containing trusted certificates.
- * To completely override those locations, call s2n_config_wipe_trust_store() before calling
- * this function. 
+ *
+ * When configs are created with `s2n_config_new()`, the trust store is initialized with default
+ * system certificates. To completely override these certificates, call
+ * `s2n_config_wipe_trust_store()` before calling this function.
  *
  * @note The trust store will be initialized with the common locations for the host
  * operating system by default.
@@ -800,10 +826,11 @@ S2N_API extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config 
 S2N_API extern int s2n_config_set_verification_ca_location(struct s2n_config *config, const char *ca_pem_filename, const char *ca_dir);
 
 /**
- * Adds a PEM to the trust store. This will allocate memory, and load PEM into the
- * Trust Store. Note that the trust store will be initialized with the common locations
- * for the host operating system by default. To completely override those locations,
- * call s2n_config_wipe_trust_store before calling this function.
+ * Adds a PEM to the trust store. This will allocate memory, and load `pem` into the trust store.
+ *
+ * When configs are created with `s2n_config_new()`, the trust store is initialized with default
+ * system certificates. To completely override these certificates, call
+ * `s2n_config_wipe_trust_store()` before calling this function.
  *
  * @param config The configuration object being updated
  * @param pem The string value of the PEM certificate.
@@ -812,18 +839,32 @@ S2N_API extern int s2n_config_set_verification_ca_location(struct s2n_config *co
 S2N_API extern int s2n_config_add_pem_to_trust_store(struct s2n_config *config, const char *pem);
 
 /**
- * Clear the trust store.
+ * Clears the trust store of all certificates.
  *
- * Note that the trust store will be initialized with the common locations for
- * the host operating system by default. To completely override those locations,
- * call this before functions like `s2n_config_set_verification_ca_location()`
- * or `s2n_config_add_pem_to_trust_store()`
+ * When configs are created with `s2n_config_new()`, the trust store is initialized with default
+ * system certificates. To completely override these certificates, call this function before
+ * functions like `s2n_config_set_verification_ca_location()` or
+ * `s2n_config_add_pem_to_trust_store()`.
  *
  * @param config The configuration object being updated
- *
- * @returns 0 on success and -1 on error
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_config_wipe_trust_store(struct s2n_config *config);
+
+/**
+ * Loads default system certificates into the trust store.
+ *
+ * `s2n_config_new_minimal()` doesn't load default system certificates into the config's trust
+ * store by default. If `config` was created with `s2n_config_new_minimal`, this function can be
+ * used to load system certificates into the trust store.
+ *
+ * @note This API will error if called on a config that has already loaded system certificates
+ * into its trust store, which includes all configs created with `s2n_config_new()`.
+ *
+ * @param config The configuration object being updated
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_load_system_certs(struct s2n_config *config);
 
 typedef enum {
     S2N_VERIFY_AFTER_SIGN_DISABLED,

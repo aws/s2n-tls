@@ -6,19 +6,8 @@ mod api;
 
 pub use api::*;
 
-#[cfg(feature = "quic")]
-#[rustfmt::skip]
-mod quic;
-
-#[cfg(feature = "quic")]
-pub use quic::*;
-
-#[cfg(feature = "internal")]
-#[rustfmt::skip]
-mod internal;
-
-#[cfg(feature = "internal")]
-pub use internal::*;
+mod features;
+pub use features::*;
 
 // Additional defines that don't get imported with bindgen
 

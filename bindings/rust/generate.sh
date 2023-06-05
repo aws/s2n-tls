@@ -11,6 +11,7 @@ pushd "$(dirname "${BASH_SOURCE[0]}")"
 rm -rf s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib
 mkdir -p s2n-tls-sys/lib/tests
+mkdir -p s2n-tls-sys/src/features
 
 # we copy the C sources into the `lib` directory so they get published in the
 # actual crate artifact.
@@ -36,16 +37,14 @@ cp -r \
 # generate the bindings modules from the copied sources
 pushd generate
 cargo run -- ../s2n-tls-sys
-popd 
+popd
 
 # make sure everything builds and passes sanity checks
 pushd s2n-tls-sys
 cargo test
-cargo test --features pq
-cargo test --features quic
-cargo test --features internal
+cargo test --all-features
 cargo test --release
-cargo publish --dry-run --allow-dirty 
+cargo publish --dry-run --allow-dirty
 cargo publish --dry-run --allow-dirty --all-features
 popd
 
