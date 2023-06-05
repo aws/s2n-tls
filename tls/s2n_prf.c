@@ -576,7 +576,6 @@ int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blo
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->secure->cipher_suite);
     POSIX_ENSURE_REF(conn->prf_space);
-    POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(secret);
     POSIX_ENSURE_REF(label);
     POSIX_ENSURE_REF(out);
