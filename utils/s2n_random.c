@@ -169,6 +169,12 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
+/* Deletes pthread key at process-exit */
+static void __attribute__((destructor)) s2n_drbg_rand_state_key_cleanup(void)
+{
+    (void) pthread_key_delete(s2n_per_thread_rand_state_key);
+}
+
 static void s2n_drbg_destructor(void *_unused_argument)
 {
     (void) _unused_argument;
@@ -178,7 +184,7 @@ static void s2n_drbg_destructor(void *_unused_argument)
 
 static void s2n_drbg_make_rand_state_key(void)
 {
-    (void) pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
+    RESULT_ENSURE(pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor) == 0, S2N_ERR_DRBG);
 }
 
 static S2N_RESULT s2n_init_drbgs(void)
