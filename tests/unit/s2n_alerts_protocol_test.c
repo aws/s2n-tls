@@ -294,10 +294,9 @@ int main(int argc, char **argv)
             /* Remove any blinding so that we can immediately call shutdown */
             failed_conn->delay = 0;
 
-            /* In most cases, the alert will not be sent until we attempt to shutdown */
+            /* The alert will not be sent until we attempt to shutdown */
             EXPECT_SUCCESS(s2n_shutdown_send(failed_conn, &blocked));
-            EXPECT_EQUAL(expected_alert == S2N_TLS_ALERT_CLOSE_NOTIFY,
-                    failed_conn->close_notify_queued);
+            EXPECT_TRUE(failed_conn->alert_sent);
 
             /**
              *= https://tools.ietf.org/rfc/rfc8446#section-6.2
