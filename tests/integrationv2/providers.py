@@ -167,7 +167,7 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        # Disable chacha20 and RC4 tests in lc's that don't support those
+        # Disable chacha20 and RC4 tests in libcryptos that don't support those
         # algorithms
         unsupported_configurations = {
             "CHACHA20": ["openssl-1.0.2", "libressl"],
