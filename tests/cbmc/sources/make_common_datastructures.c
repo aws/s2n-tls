@@ -784,8 +784,6 @@ void cbmc_populate_s2n_connection(struct s2n_connection *s2n_connection)
     cbmc_populate_s2n_stuffer(&(s2n_connection->in));
     cbmc_populate_s2n_stuffer(&(s2n_connection->out));
     cbmc_populate_s2n_stuffer(&(s2n_connection->alert_in));
-    cbmc_populate_s2n_stuffer(&(s2n_connection->reader_alert_out));
-    cbmc_populate_s2n_stuffer(&(s2n_connection->writer_alert_out));
     cbmc_populate_s2n_handshake(&(s2n_connection->handshake));
     cbmc_populate_s2n_blob(&(s2n_connection->status_response));
     cbmc_populate_s2n_blob(&(s2n_connection->ct_response));

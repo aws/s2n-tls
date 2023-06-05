@@ -80,14 +80,6 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->alert_in, &blob));
 
     blob = (struct s2n_blob){ 0 };
-    PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->reader_alert_out_data, S2N_ALERT_LENGTH));
-    PTR_GUARD_POSIX(s2n_stuffer_init(&conn->reader_alert_out, &blob));
-
-    blob = (struct s2n_blob){ 0 };
-    PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->writer_alert_out_data, S2N_ALERT_LENGTH));
-    PTR_GUARD_POSIX(s2n_stuffer_init(&conn->writer_alert_out, &blob));
-
-    blob = (struct s2n_blob){ 0 };
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->ticket_ext_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->client_ticket_to_decrypt, &blob));
 
@@ -456,8 +448,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
     struct s2n_stuffer alert_in = { 0 };
-    struct s2n_stuffer reader_alert_out = { 0 };
-    struct s2n_stuffer writer_alert_out = { 0 };
     struct s2n_stuffer client_ticket_to_decrypt = { 0 };
     struct s2n_stuffer handshake_io = { 0 };
     struct s2n_stuffer header_in = { 0 };
@@ -493,8 +483,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     /* Wipe all of the sensitive stuff */
     POSIX_GUARD(s2n_connection_wipe_keys(conn));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->alert_in));
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->reader_alert_out));
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->writer_alert_out));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->client_ticket_to_decrypt));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->post_handshake.in));
@@ -542,8 +530,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     #pragma GCC diagnostic ignored "-Waddress"
 #endif
     POSIX_CHECKED_MEMCPY(&alert_in, &conn->alert_in, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&reader_alert_out, &conn->reader_alert_out, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&writer_alert_out, &conn->writer_alert_out, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&client_ticket_to_decrypt, &conn->client_ticket_to_decrypt, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&handshake_io, &conn->handshake.io, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
@@ -556,8 +542,6 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_connection_zero(conn, mode, config));
 
     POSIX_CHECKED_MEMCPY(&conn->alert_in, &alert_in, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&conn->reader_alert_out, &reader_alert_out, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&conn->writer_alert_out, &writer_alert_out, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->client_ticket_to_decrypt, &client_ticket_to_decrypt, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->handshake.io, &handshake_io, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->header_in, &header_in, sizeof(struct s2n_stuffer));

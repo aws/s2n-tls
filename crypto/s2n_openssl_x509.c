@@ -25,7 +25,7 @@ S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
     return S2N_RESULT_OK;
 }
 
-S2N_CLEANUP_RESULT s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **time)
+S2N_CLEANUP_RESULT s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **time_ptr)
 {
     /* The ANS1_*TIME structs are just typedef wrappers around ASN1_STRING
      *
@@ -34,8 +34,8 @@ S2N_CLEANUP_RESULT s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **tim
      * ASN1_STRING_free().
      * https://www.openssl.org/docs/man1.1.1/man3/ASN1_TIME_to_tm.html
      */
-    RESULT_ENSURE_REF(*time);
-    ASN1_STRING_free((ASN1_STRING *) *time);
-    *time = NULL;
+    RESULT_ENSURE_REF(*time_ptr);
+    ASN1_STRING_free((ASN1_STRING *) *time_ptr);
+    *time_ptr = NULL;
     return S2N_RESULT_OK;
 }
