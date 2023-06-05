@@ -10,7 +10,7 @@ In the context of s2n-tls, we're using it to ease the setup of development envir
 
 - `sudo bash -c “mkdir /nix && chmod 755 /nix && chown -R $USERNAME /nix”`
 - Run the single-user command from `https://nixos.org/download.html#nix-install-linux`
-- Enable flakes: `mkdir ~/.config/nix; echo "experimental-features = nix-command flakes" > ~/.config/nix.conf`
+- Enable flakes: `mkdir ~/.config/nix; echo "experimental-features = nix-command flakes" > ~/.config/nix/nix.conf`
 - `cd s2n-tls`
 
 #### What is this doing?
@@ -39,7 +39,7 @@ The first time this is run, it might take a while to build everything.
 From inside the devShell after configuring and build finish, run `unit <test name>`, or with no test name for all of the tests.
 For example, to run the stuffer_test use: `unit stuffer_test`, or `unit stuffer` to run all of tests with stuffer in the name.
 
-The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;unit" `.
+The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environment --command bash -c "source ./nix/shell.sh; configure;build;unit" `.
 
 What is this doing?
 
@@ -66,7 +66,7 @@ In its simplest form, the `nix copy` command can be used to stash a specific pac
 
 By using inputDerivation, we can create a meta-package that contains all the packages in our devShell.
 
-As an exmample, this copy will stash the s2n-tls devShell:
+As an example, this copy will stash the s2n-tls devShell:
 
 ```
 nix copy --to 's3://my-nix-chache-bucket?region=us-west-2' .#devShell

@@ -131,3 +131,8 @@ function test_toolchain_counts {
     echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
 }
 
+function test_nonstandard_compilation {
+    # Any script that needs to compile s2n in a non-standard way can run here
+    ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
+}
+
