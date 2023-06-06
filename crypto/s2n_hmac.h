@@ -77,3 +77,5 @@ int s2n_hmac_reset(struct s2n_hmac_state *state);
 int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from);
 int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
 int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
+
+S2N_RESULT s2n_hmac_md_from_alg(s2n_hmac_algorithm alg, const EVP_MD **md);
