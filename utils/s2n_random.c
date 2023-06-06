@@ -182,9 +182,11 @@ static void s2n_drbg_destructor(void *_unused_argument)
     s2n_result_ignore(s2n_rand_cleanup_thread());
 }
 
-static S2N_RESULT s2n_drbg_make_rand_state_key(void)
+static void s2n_drbg_make_rand_state_key(void)
 {
-    RESULT_ENSURE(pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor) == 0, S2N_ERR_DRBG);
+    /* We can't error check the output of pthread_key_create since s2n_drbg_make_rand_state_key
+     * isn't allowed to return a value due to the parameter constraints of pthread_once. */
+    (void) pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
 }
 
 static S2N_RESULT s2n_init_drbgs(void)
