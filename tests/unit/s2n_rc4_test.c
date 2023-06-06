@@ -20,6 +20,7 @@
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_openssl.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
@@ -31,6 +32,16 @@
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
+
+    /* Test Openssl-3.0 does not support RC4 */
+    if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
+        EXPECT_FALSE(s2n_rc4.is_available());
+    }
+
+    /* Test FIPS does not support RC4 */
+    if (s2n_is_in_fips_mode()) {
+        EXPECT_FALSE(s2n_rc4.is_available());
+    }
 
     struct s2n_connection *conn;
     uint8_t mac_key[] = "sample mac key";
@@ -54,17 +65,6 @@ int main(int argc, char **argv)
     /* Peer and we are in sync */
     conn->server = conn->secure;
     conn->client = conn->secure;
-
-    /* Make sure that RC4 is available when expected */
-#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_RC4)
-    if (s2n_is_in_fips_mode()) {
-        EXPECT_FALSE(s2n_rc4.is_available());
-    } else {
-        EXPECT_TRUE(s2n_rc4.is_available());
-    }
-#else
-    EXPECT_FALSE(s2n_rc4.is_available());
-#endif
 
     /* test the RC4 cipher with a SHA1 hash */
     conn->secure->cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
@@ -128,11 +128,10 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     } else {
-        EXPECT_FAILURE_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
-        EXPECT_FAILURE_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv), S2N_ERR_UNIMPLEMENTED);
+        EXPECT_FAILURE(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv));
+        EXPECT_FAILURE(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv));
     }
-
+    EXPECT_SUCCESS(s2n_connection_free(conn));
     END_TEST();
 }
