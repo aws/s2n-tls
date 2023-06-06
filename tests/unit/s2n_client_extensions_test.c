@@ -386,7 +386,7 @@ int main(int argc, char **argv)
         EXPECT_BYTEARRAY_EQUAL(received_server_name, sent_server_name, strlen(received_server_name));
 
         EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
-        EXPECT_EQUAL(server_conn->close_notify_queued, 1);
+        EXPECT_TRUE(server_conn->alert_sent);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 
@@ -621,7 +621,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->secure_renegotiation, 1);
 
         EXPECT_SUCCESS(s2n_shutdown(server_conn, &server_blocked));
-        EXPECT_EQUAL(server_conn->close_notify_queued, 1);
+        EXPECT_TRUE(server_conn->alert_sent);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
 

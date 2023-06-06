@@ -15,7 +15,7 @@ files that take part in this test.
   2. spec/HMAC.cry
   3. spec/HMAC.saw
 
-all_llvm.bc contains linked llvm bitcode definitions for the entirity
+all_llvm.bc contains linked llvm bitcode definitions for the entirety
 of s2n/crypto. This bitcode is not currently linked with code from the
 other directories in s2n, because so far, those directories have not
 contained code necessary for verification.

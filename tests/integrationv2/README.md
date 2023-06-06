@@ -189,6 +189,6 @@ The resulting reports are viewable via `tests/integrationv2/target/criterion/rep
 
 ## Troubleshooting CriterionS2N
 
-The most direct trouble-shooting is done using the [interactive troubleshooting CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/session-manager.html#ssm-pause-build) `codebuild-break` line in the buildspec. Put the break right before the main build step and run interactivly.
+The most direct trouble-shooting is done using the [interactive troubleshooting CodeBuild](https://docs.aws.amazon.com/codebuild/latest/userguide/session-manager.html#ssm-pause-build) `codebuild-break` line in the buildspec. Put the break right before the main build step and run interactively.
 
 As mentioned above, in order to get more output from the tests, set the `-n` or `XDIST_WORKER` environment variable to 0 and add a -v to the pytest command line in tox.ini.

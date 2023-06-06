@@ -69,7 +69,7 @@ By using inputDerivation, we can create a meta-package that contains all the pac
 As an example, this copy will stash the s2n-tls devShell:
 
 ```
-nix copy --to 's3://my-nix-chache-bucket?region=us-west-2' .#devShell
+nix copy --to 's3://my-nix-cache-bucket?region=us-west-2' .#devShell
 ```
 
 To retrieve these:

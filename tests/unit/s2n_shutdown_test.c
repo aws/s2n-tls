@@ -35,8 +35,8 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     const uint8_t close_notify_alert[] = {
-        2 /* AlertLevel = fatal */,
-        0 /* AlertDescription = close_notify */
+        S2N_TLS_ALERT_LEVEL_WARNING,
+        S2N_TLS_ALERT_CLOSE_NOTIFY
     };
 
     const uint8_t alert_record_header[] = {
@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 
     const uint8_t alert_record_size = sizeof(alert_record_header) + S2N_ALERT_LENGTH;
 
-    /* Test: Do not send or await close_notify if reader alert already sent */
+    /* Test: Do not send or await close_notify if reader alert already queued */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -67,12 +67,11 @@ int main(int argc, char **argv)
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
         /* Queue reader alert */
         EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
-        EXPECT_FALSE(conn->write_closing);
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
@@ -80,48 +79,19 @@ int main(int argc, char **argv)
         /* Verify state after shutdown attempt */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
-        EXPECT_TRUE(conn->write_closing);
+        EXPECT_TRUE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
         /* Verify only one alert sent */
         EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
-    };
 
-    /* Test: Do not send or await close_notify if writer alert already sent */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_skip_handshake(conn));
-
-        /* Setup output, but no input. We expect no reads. */
-        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-        EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
-
-        /* Verify state prior to alert */
-        EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
-        EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
-
-        /* Queue writer alert */
-        EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
-        EXPECT_FALSE(conn->write_closing);
-
-        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-
-        /* Verify state after shutdown attempt */
-        EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
-        EXPECT_TRUE(conn->write_closing);
-        EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-
-        /* Verify only one alert sent */
-        EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
+        /* Verify that the single alert is a fatal error, not a close_notify */
+        uint8_t level = 0, code = 0;
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&output, sizeof(alert_record_header)));
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &level));
+        EXPECT_EQUAL(level, S2N_TLS_ALERT_LEVEL_FATAL);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output, &code));
+        EXPECT_EQUAL(code, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
     };
 
     /* Test: Send and await close_notify if a warning alert was sent */
@@ -140,7 +110,7 @@ int main(int argc, char **argv)
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
         /* Queue reader warning */
@@ -154,7 +124,7 @@ int main(int argc, char **argv)
         /* Verify state after shutdown attempt */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_TRUE(conn->close_notify_queued);
+        EXPECT_TRUE(conn->alert_sent);
         EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
 
         /* Verify two alerts sent: the warning + the close_notify */
@@ -177,13 +147,13 @@ int main(int argc, char **argv)
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
         /* Queue input alert */
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, alert_record_header,
                 sizeof(alert_record_header)));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, 2));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_TLS_ALERT_LEVEL_FATAL));
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_TLS_ALERT_INTERNAL_ERROR));
 
         /* Receive alert */
@@ -204,7 +174,7 @@ int main(int argc, char **argv)
         /* Verify state after shutdown attempt */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
         /* Verify no alerts sent */
@@ -226,16 +196,16 @@ int main(int argc, char **argv)
         /* Verify state prior to alert */
         EXPECT_FALSE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_FALSE(conn->close_notify_queued);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
 
-        /* Verify state after shutdown attempt */
+        /* Verify state after shutdown */
         EXPECT_FALSE(s2n_handshake_is_complete(conn));
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_TRUE(conn->close_notify_queued);
+        EXPECT_TRUE(conn->alert_sent);
 
         /* Fully closed: we don't worry about truncating data */
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
@@ -256,6 +226,7 @@ int main(int argc, char **argv)
 
         /* Verify state prior to alert */
         EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
@@ -264,6 +235,7 @@ int main(int argc, char **argv)
 
         /* Verify state after shutdown attempt */
         EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_TRUE(conn->alert_sent);
 
         /* Half-close: only write closed */
         EXPECT_EQUAL(s2n_connection_get_protocol_version(conn), S2N_TLS13);
@@ -286,6 +258,7 @@ int main(int argc, char **argv)
 
         /* Verify state prior to alert */
         EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
         /* Write and process the alert */
@@ -294,6 +267,7 @@ int main(int argc, char **argv)
 
         /* Verify state after alert */
         EXPECT_TRUE(conn->close_notify_received);
+        EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
         EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
 
@@ -303,6 +277,7 @@ int main(int argc, char **argv)
 
         /* Verify state after shutdown attempt */
         EXPECT_TRUE(conn->close_notify_received);
+        EXPECT_TRUE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
     };
 
@@ -323,6 +298,7 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+        EXPECT_TRUE(conn->alert_sent);
 
         /* Queue an input error alert */
         EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, alert_record_header, sizeof(alert_record_header)));
@@ -334,7 +310,7 @@ int main(int argc, char **argv)
 
         /* Verify state after shutdown attempt */
         EXPECT_FALSE(conn->close_notify_received);
-        EXPECT_TRUE(conn->close_notify_queued);
+        EXPECT_TRUE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
         EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
 
@@ -342,6 +318,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < 5; i++) {
             EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
             EXPECT_FALSE(conn->close_notify_received);
+            EXPECT_TRUE(conn->alert_sent);
         }
     };
 
@@ -361,6 +338,7 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_IO_BLOCKED);
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+        EXPECT_TRUE(conn->alert_sent);
 
         /* Receive a non-alert record */
         uint8_t record_bytes[] = {
@@ -420,6 +398,23 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
     };
 
+    /* Test: Do not send or await close_notify if supporting QUIC */
+    if (s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+        /* Verify state after shutdown attempt */
+        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(conn->alert_sent);
+        EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+    };
+
     /* Test: s2n_shutdown_send */
     {
         /* Test: Safety */
@@ -438,6 +433,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
+
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
             /* Only setup write IO.
@@ -460,6 +456,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
+            EXPECT_TRUE(conn->alert_sent);
         };
 
         /* Test: Handles blocking IO */
@@ -467,6 +464,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
+
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
             /* Do not initially allocate any memory for the output stuffer.
@@ -494,6 +492,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
+            EXPECT_TRUE(conn->alert_sent);
         };
 
         /* Test: No-op on wipe */
@@ -507,6 +506,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
+            EXPECT_FALSE(conn->alert_sent);
         };
 
         /* Test: Full close after half close */
@@ -533,6 +533,7 @@ int main(int argc, char **argv)
                 EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
                 EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
                 EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
+                EXPECT_TRUE(conn->alert_sent);
             }
 
             /* Full close blocks on input */
@@ -555,7 +556,72 @@ int main(int argc, char **argv)
                 EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
                 EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
                 EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
+                EXPECT_TRUE(conn->alert_sent);
             }
+        };
+
+        /* Test: Half close, local alert, then full close */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_skip_handshake(conn));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+
+            /* Successful half-close */
+            EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(conn->alert_sent);
+
+            /* Queue a local fatal alert */
+            EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
+
+            /* Full close is no-op */
+            EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+            EXPECT_FALSE(conn->close_notify_received);
+        };
+
+        /* Test: Half close, peer alert, then full close */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_skip_handshake(conn));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+
+            /* Successful half-close */
+            EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(conn->alert_sent);
+
+            /* Receive alert */
+            uint8_t buffer[1] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, alert_record_header,
+                    sizeof(alert_record_header)));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_TLS_ALERT_LEVEL_FATAL));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_TLS_ALERT_INTERNAL_ERROR));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv(conn, buffer, sizeof(buffer), &blocked),
+                    S2N_ERR_ALERT);
+
+            /* Full close is no-op */
+            EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
+            EXPECT_FALSE(conn->close_notify_received);
         };
     }
 
