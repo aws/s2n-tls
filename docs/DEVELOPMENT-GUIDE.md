@@ -180,7 +180,7 @@ GUARD(s2n_baz());
 
 This pattern leads to a linear control flow, where the main body of a function describes everything that happens in a regular, "*happy*" case. Any deviation is usually a fatal error and we exit the function. This is safe because s2n-tls rarely allocates resources, and so has nothing to clean up on error.
 
-This pattern also leads to extremely few "else" clauses in the s2n-tls code base. Within s2n-tls, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is necessary, we try to ensure that the first if block is the most likely case. This aids readability, and also results in a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any mis-ordering).
+This pattern also leads to extremely few "else" clauses in the s2n-tls code base. Within s2n-tls, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is necessary, we try to ensure that the first if block is the most likely case. This aids readability, and also results in a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any misordering).
 
 For branches on small enumerated types, s2n-tls generally favors switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a "default:" block is mandatory.
 
@@ -411,21 +411,25 @@ struct s2n_stuffer alert_in;
 
 'header_in' is a small 5-byte stuffer, which is used to read in a record header. Once that stuffer is full, and the size of the next record is determined (from that header), inward data is directed to the 'in' stuffer.  The 'out' stuffer is for data that we are writing out; like an encrypted TLS record. 'alert_in' is for any TLS alert message that s2n-tls receives from its peer. s2n-tls treats all alerts as fatal, but we buffer the full alert message so that reason can be logged.
 
-When past the handshake phase, s2n-tls supports full-duplex I/O. Separate threads or event handlers are free to call s2n_send and s2n_recv on the same connection. Because either a read or a write may cause a connection to be closed, there are two additional stuffers for storing outbound alert messages:
+When past the handshake phase, s2n-tls supports full-duplex I/O. Separate threads or event handlers are free to call s2n_send and s2n_recv on the same connection. Because either a read or a write may cause a connection to be closed, there are two additional fields for storing outbound alert messages:
 
 ```c
-struct s2n_stuffer reader_alert_out;
-struct s2n_stuffer writer_alert_out;
+uint8_t reader_alert_out;
+uint8_t writer_alert_out;
 ```
 
-this pattern means that both the reader thread and writer thread can create pending alert messages without needing any locks. If either the reader or writer generates an alert, it also sets the 'closing' state to 1.
+This pattern means that both the reader thread and writer thread can create pending alert messages without needing any locks. If either the reader or writer generates an alert, it also sets the 'closed' states to 1.
 
 ```c
-sig_atomic_t closing;
-sig_atomic_t closed;
+sig_atomic_t read_closed;
+sig_atomic_t write_closed;
 ```
 
-'closing' is an atomic, but even if it were not it can only be changed from 0 to 1, so an over-write is harmless. Every time a TLS record is fully-written, s2n_send() checks to see if closing is set to 1. If it is then the reader or writer alert message will be sent (writer takes priority, if both are present) and the connection will be closed. Once the closed is 1, no more I/O may be sent or received on the connection.
+These fields are atomic. However because they are only ever changed from 0 to 1, an over-write would be harmless.
+
+s2n-tls only sends fatal alerts during `s2n_shutdown()` or `s2n_shutdown_send()`.
+Only one alert is sent, so writer alerts take priority if both are present.
+If no alerts are present, then a generic close_notify will be sent instead.
 
 ## s2n-tls and entropy
 

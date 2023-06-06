@@ -29,13 +29,6 @@
 #define PROTOCOL_VERSION_ALERT                     70
 #define GREASED_SUPPORTED_VERSION_EXTENSION_VALUES 0x0A0A, 0x1A1A, 0x2A2A, 0x3A3A, 0x4A4A, 0x5A5A, 0x6A6A, 0x7A7A, 0x8A8A, 0x9A9A, 0xAAAA, 0xBABA, 0xCACA, 0xDADA, 0xEAEA, 0xFAFA
 
-int get_alert(struct s2n_connection *conn)
-{
-    uint8_t error[2];
-    POSIX_GUARD(s2n_stuffer_read_bytes(&conn->reader_alert_out, error, 2));
-    return error[1];
-}
-
 int write_test_supported_versions_list(struct s2n_stuffer *list, uint8_t *supported_versions, uint8_t length)
 {
     POSIX_GUARD(s2n_stuffer_write_uint8(list, length * S2N_TLS_PROTOCOL_VERSION_LEN));
@@ -296,7 +289,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension),
                 S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+        EXPECT_EQUAL(server_conn->reader_alert_out, PROTOCOL_VERSION_ALERT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
@@ -315,7 +308,7 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension),
                 S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
-        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+        EXPECT_EQUAL(server_conn->reader_alert_out, PROTOCOL_VERSION_ALERT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
@@ -333,7 +326,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 13));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
-        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+        EXPECT_EQUAL(server_conn->reader_alert_out, PROTOCOL_VERSION_ALERT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
@@ -353,7 +346,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension, 0x0303));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
-        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+        EXPECT_EQUAL(server_conn->reader_alert_out, PROTOCOL_VERSION_ALERT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));
@@ -373,7 +366,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0x03));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_client_supported_versions_extension.recv(server_conn, &extension), S2N_ERR_BAD_MESSAGE);
-        EXPECT_EQUAL(get_alert(server_conn), PROTOCOL_VERSION_ALERT);
+        EXPECT_EQUAL(server_conn->reader_alert_out, PROTOCOL_VERSION_ALERT);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&extension));

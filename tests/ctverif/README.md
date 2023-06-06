@@ -79,7 +79,7 @@ take a look at the ci scripts in this repo.
   - Export its base directory as $CTVERIF_DIR
 - SMACK and all its dependencies
   - The easiest way to get these is to use the build.sh in smack/bin
-  - Ensure that all of the installed depencies are on the $PATH
+  - Ensure that all of the installed dependencies are on the $PATH
   - source the smack.environment that the smack build script creates
 
 ### Move the code you want to test into place 

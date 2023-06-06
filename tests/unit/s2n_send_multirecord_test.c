@@ -478,7 +478,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(min_send_buffer_size <= buffer_size);
 
         /* Queue the alert */
-        EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
+        EXPECT_OK(s2n_queue_reader_no_renegotiation_alert(conn));
 
         /* Send the Application Data and Alert */
         s2n_blocked_status blocked = 0;
