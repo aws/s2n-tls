@@ -53,6 +53,10 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
 
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
+
     struct s2n_blob sequence_number = { 0 };
     if (conn->mode == S2N_CLIENT) {
         POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
