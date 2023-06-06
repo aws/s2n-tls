@@ -113,7 +113,7 @@ function test_toolchain_counts {
     # This is a starting point for a unit test of the devShell.
     # The choosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
-    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0}
+    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0;libre=0}
       /openssl-3.0/{o3++}
       /openssl-1.1/{o11++}
       /openssl-1.0/{o10++}
