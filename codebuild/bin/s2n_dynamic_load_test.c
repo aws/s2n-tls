@@ -62,7 +62,7 @@ int main(int argc, char *argv[])
 
     /* s2n-tls library can be dynamically loaded and cleaned up safely 
      *
-     * We can't use any s2n test macros because this test doesn't get linked to
+     * We can't use any s2n test macros because this test doesn't get linked to 
      * s2n during compile-time.
      */
     {
