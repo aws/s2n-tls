@@ -180,7 +180,7 @@ GUARD(s2n_baz());
 
 This pattern leads to a linear control flow, where the main body of a function describes everything that happens in a regular, "*happy*" case. Any deviation is usually a fatal error and we exit the function. This is safe because s2n-tls rarely allocates resources, and so has nothing to clean up on error.
 
-This pattern also leads to extremely few "else" clauses in the s2n-tls code base. Within s2n-tls, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is necessary, we try to ensure that the first if block is the most likely case. This aids readability, and also results in a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any mis-ordering).
+This pattern also leads to extremely few "else" clauses in the s2n-tls code base. Within s2n-tls, else clauses should be treated with suspicion and examined for potential eradication. Where an else clause is necessary, we try to ensure that the first if block is the most likely case. This aids readability, and also results in a more efficient compiled instruction pipeline (although good CPU branch prediction will rapidly correct any misordering).
 
 For branches on small enumerated types, s2n-tls generally favors switch statements: though switch statements taking up more than about 25 lines of code are discouraged, and a "default:" block is mandatory.
 

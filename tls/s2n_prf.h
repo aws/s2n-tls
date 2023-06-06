@@ -25,6 +25,12 @@
 /* Enough to support TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384, 2*SHA384_DIGEST_LEN + 2*AES256_KEY_SIZE */
 #define S2N_MAX_KEY_BLOCK_LEN 160
 
+#if defined(OPENSSL_IS_AWSLC)
+    #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 1
+#else
+    #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 0
+#endif
+
 union p_hash_state {
     struct s2n_hmac_state s2n_hmac;
     struct s2n_evp_hmac_state evp_hmac;
@@ -54,6 +60,8 @@ S2N_RESULT s2n_prf_new(struct s2n_connection *conn);
 S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn);
 S2N_RESULT s2n_prf_free(struct s2n_connection *conn);
 
+int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label, struct s2n_blob *seed_a,
+        struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out);
 int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
@@ -62,3 +70,10 @@ S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_bl
 int s2n_prf_key_expansion(struct s2n_connection *conn);
 int s2n_prf_server_finished(struct s2n_connection *conn);
 int s2n_prf_client_finished(struct s2n_connection *conn);
+
+bool s2n_libcrypto_supports_tls_prf();
+
+S2N_RESULT s2n_custom_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+        struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out);
+S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *label,
+        struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out);

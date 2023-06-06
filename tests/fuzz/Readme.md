@@ -54,7 +54,7 @@ Each Fuzz test will have up to two `LD_PRELOAD` function override files used:
 
 # American Fuzzy Lop (AFL)
 
-To use AFL set the environment variable `AFL_FUZZ` to true, in additon to `FUZZ_TIMEOUT_SEC`.
+To use AFL set the environment variable `AFL_FUZZ` to true, in addition to `FUZZ_TIMEOUT_SEC`.
 The runFuzzTest.sh script will terminate afl when it reaches `FUZZ_TIMEOUT_SEC`.  AFL  reports will be created under `tests/fuzz/results/TEST_NAME/fuzzer_stats`.
 
 Note that afl runs as a single process. [Parallelization](https://github.com/google/AFL/blob/master/docs/parallel_fuzzing.txt) has not been scripted yet for this project.

@@ -179,6 +179,12 @@ cd ../../ # root of project
 make
 ```
 
+### Available algorithms
+Not all algorithms are available from all versions of Openssl:
+* ChaChaPoly is not supported before Openssl-1.1.1
+* RSA-PSS is not supported before Openssl-1.1.1
+* RC4 is not supported with Openssl-3.0 or later.
+
 ## Building s2n-tls with LibreSSL
 
 To build s2n-tls with LibreSSL, do the following:
@@ -1290,7 +1296,7 @@ while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
 **s2n-tls does not include anti-replay protection automatically.** Effective anti-replay protection for a multi-server application requires an external state shared by all servers. Without shared state, an attacker can capture early data originally sent to server A and successfully replay it against server B.
 
 The TLS1.3 specification suggests two possible anti-replay solutions that a user can implement:
-1. Single-Use Tickets (https://tools.ietf.org/rfc/rfc8446#section-8.1): Valid tickets are stored in a shared database and deleted after use. **s2n_connection_get_negotiated_psk_identity_length** and **s2n_connection_get_negotiated_psk_identity** can be used to get the ticket identifer, or "pre-shared key identity", associated with offered early data.
+1. Single-Use Tickets (https://tools.ietf.org/rfc/rfc8446#section-8.1): Valid tickets are stored in a shared database and deleted after use. **s2n_connection_get_negotiated_psk_identity_length** and **s2n_connection_get_negotiated_psk_identity** can be used to get the ticket identifier, or "pre-shared key identity", associated with offered early data.
 2. Client Hello Recording (https://tools.ietf.org/rfc/rfc8446#section-8.2): Instead of recording outstanding valid tickets, unique values from recent ClientHellos can be stored. The client hello message can be retrieved with **s2n_connection_get_client_hello** and the pre-shared key identity can be retrieved with **s2n_connection_get_negotiated_psk_identity_length** and **s2n_connection_get_negotiated_psk_identity**, but s2n-tls does not currently provide methods to retrieve the validated binders or the ClientHello.random.
 
 The **s2n_early_data_cb** can be used to hook an anti-replay solution into s2n-tls. The callback can be configured by using **s2n_config_set_early_data_cb**. Using the **s2n_offered_early_data** pointer offered by the callback, **s2n_offered_early_data_reject** or **s2n_offered_early_data_accept** can accept or reject the client request to use early data.
