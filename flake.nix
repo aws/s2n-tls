@@ -7,10 +7,11 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
-        # TODO: We have parts of our CI that rely on clang-format-15, but that is only avalible on github:nixos/nixpkgs/nixos-unstable
+        # TODO: We have parts of our CI that rely on clang-format-15, but that is only available on github:nixos/nixpkgs/nixos-unstable
         llvmPkgs = pkgs.llvmPackages_14;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
         # Note: we're rebuilding, not importing from nixpkgs for the mkShells.
+        openssl_1_0_2 = import ./nix/openssl_1_0_2.nix { pkgs = pkgs; };
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
@@ -79,7 +80,7 @@
           propagatedBuildInputs = [ pkgs.openssl_3 ];
         };
         devShells.default = pkgs.mkShell {
-          # This is a development enviroment shell which should be able to:
+          # This is a development environment shell which should be able to:
           #  - build s2n-tls
           #  - run unit tests
           #  - run integ tests
@@ -90,7 +91,7 @@
           S2N_LIBCRYPTO = "openssl-3.0";
           # Integ s_client/server tests expect openssl 1.1.1.
           shellHook = ''
-            echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
+            echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
             export PATH=${openssl_1_1_1}/bin:$PATH
             export PS1="[nix $S2N_LIBCRYPTO] $PS1"
             source ${writeScript ./nix/shell.sh}
@@ -105,7 +106,7 @@
             # Integ s_client/server tests expect openssl 1.1.1.
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
-              echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
+              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:$PATH
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}
@@ -117,6 +118,21 @@
             # Re-include cmake to update the environment with a new libcrypto.
             buildInputs = [ pkgs.cmake libressl ];
             S2N_LIBCRYPTO = "libressl";
+            # Integ s_client/server tests expect openssl 1.1.1.
+            # GnuTLS-cli and serv utilities needed for some integration tests.
+            shellHook = ''
+              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
+              export PATH=${openssl_1_1_1}/bin:$PATH
+              export PS1="[nix $S2N_LIBCRYPTO] $PS1"
+              source ${writeScript ./nix/shell.sh}
+            '';
+          });
+
+        devShells.openssl102 = devShells.default.overrideAttrs
+          (finalAttrs: previousAttrs: {
+            # Re-include cmake to update the environment with a new libcrypto.
+            buildInputs = [ pkgs.cmake openssl_1_0_2 ];
+            S2N_LIBCRYPTO = "openssl-1.0.2";
             # Integ s_client/server tests expect openssl 1.1.1.
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''

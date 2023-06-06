@@ -274,110 +274,106 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test s2n_queue_writer_close_alert_warning */
+    /* Test s2n_queue_reader_alert */
     {
-        /* Safety check */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_queue_writer_close_alert_warning(NULL), S2N_ERR_NULL);
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_queue_reader_unsupported_protocol_version_alert(NULL),
+                S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_queue_reader_handshake_failure_alert(NULL),
+                S2N_ERR_NULL);
 
-        /* Does not send alert if alerts not supported */
-        if (s2n_is_tls13_fully_supported()) {
-            struct s2n_config *config;
-            EXPECT_NOT_NULL(config = s2n_config_new());
-
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->writer_alert_out), 0);
-
-            /* Writes alert by default */
-            EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->writer_alert_out), ALERT_LEN);
-
-            /* Wipe error */
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->writer_alert_out));
-
-            /* Does not write alert when alerts not supported (when QUIC mode enabled) */
-            EXPECT_SUCCESS(s2n_config_enable_quic(config));
-            EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->writer_alert_out), 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
-
-    /* Test s2n_queue_reader_alert
-     *      Since s2n_queue_reader_alert is static, we'll test it indirectly via s2n_queue_reader_handshake_failure_alert */
-    {
-        /* Safety check */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_queue_reader_handshake_failure_alert(NULL), S2N_ERR_NULL);
-
-        /* Does not send alert if alerts not supported */
-        if (s2n_is_tls13_fully_supported()) {
-            struct s2n_config *config;
-            EXPECT_NOT_NULL(config = s2n_config_new());
-
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->reader_alert_out), 0);
-
-            /* Writes alert by default */
-            EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->reader_alert_out), ALERT_LEN);
-
-            /* Wipe error */
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->reader_alert_out));
-
-            /* Does not write alert when alerts not supported (when QUIC mode enabled) */
-            EXPECT_SUCCESS(s2n_config_enable_quic(config));
-            EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->reader_alert_out), 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_config_free(config));
-        }
-    }
-
-    /* Test s2n_alerts_close_if_fatal */
-    {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
-        EXPECT_OK(s2n_connection_set_secrets(conn));
 
-        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
+        /* Alert queued */
+        EXPECT_SUCCESS(s2n_queue_reader_unsupported_protocol_version_alert(conn));
+        EXPECT_EQUAL(conn->reader_alert_out, S2N_TLS_ALERT_PROTOCOL_VERSION);
 
-        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-
-        /* Sanity check: s2n_flush doesn't close the connection */
-        conn->write_closing = false;
-        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_FALSE(conn->write_closing);
-
-        /* Test: a fatal reader alert closes the connection */
-        conn->write_closing = false;
+        /* New alert not queued if alert already set */
         EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
-        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_TRUE(conn->write_closing);
+        EXPECT_EQUAL(conn->reader_alert_out, S2N_TLS_ALERT_PROTOCOL_VERSION);
 
-        /* Test: a close_notify alert closes the connection
-         * This is our only writer alert, and technically it's a warning.
-         */
-        conn->write_closing = false;
-        EXPECT_SUCCESS(s2n_queue_writer_close_alert_warning(conn));
-        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_TRUE(conn->write_closing);
+        /* New alert queued if old alert cleared */
+        conn->reader_alert_out = 0;
+        EXPECT_SUCCESS(s2n_queue_reader_handshake_failure_alert(conn));
+        EXPECT_EQUAL(conn->reader_alert_out, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+    };
 
-        /* Test: a no_renegotiation alert does not close the connection */
-        conn->write_closing = false;
-        EXPECT_OK(s2n_queue_reader_no_renegotiation_alert(conn));
-        EXPECT_SUCCESS(s2n_flush(conn, &blocked));
-        EXPECT_FALSE(conn->write_closing);
+    /* Test s2n_alerts_write_error_or_close_notify */
+    {
+        const uint8_t expected_alert = S2N_TLS_ALERT_INTERNAL_ERROR;
+        const uint8_t wrong_alert = S2N_TLS_ALERT_CERTIFICATE_UNKNOWN;
+
+        /* Test: if no alerts set, close_notify sent */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            EXPECT_OK(s2n_alerts_write_error_or_close_notify(conn));
+
+            /* Verify record written */
+            uint8_t level = 0, code = 0;
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->out, &level));
+            EXPECT_EQUAL(level, S2N_TLS_ALERT_LEVEL_WARNING);
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->out, &code));
+            EXPECT_EQUAL(code, S2N_TLS_ALERT_CLOSE_NOTIFY);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
+        };
+
+        /* Test: if only reader alert set, reader alert sent */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->reader_alert_out = expected_alert;
+
+            EXPECT_OK(s2n_alerts_write_error_or_close_notify(conn));
+
+            /* Verify record written */
+            uint8_t level = 0, code = 0;
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->out, &level));
+            EXPECT_EQUAL(level, S2N_TLS_ALERT_LEVEL_FATAL);
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->out, &code));
+            EXPECT_EQUAL(code, expected_alert);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
+        };
+
+        /* Test: if both alerts set, writer alert sent */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->writer_alert_out = expected_alert;
+            conn->reader_alert_out = wrong_alert;
+
+            EXPECT_OK(s2n_alerts_write_error_or_close_notify(conn));
+
+            /* Verify record written */
+            uint8_t level = 0, code = 0;
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->out, S2N_TLS_RECORD_HEADER_LENGTH));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->out, &level));
+            EXPECT_EQUAL(level, S2N_TLS_ALERT_LEVEL_FATAL);
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->out, &code));
+            EXPECT_EQUAL(code, expected_alert);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
+        };
+
+        /* If alerts not supported, no alerts sent */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->quic_enabled = true;
+            conn->writer_alert_out = expected_alert;
+            conn->reader_alert_out = wrong_alert;
+
+            EXPECT_OK(s2n_alerts_write_error_or_close_notify(conn));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
+        };
     }
 
     END_TEST();

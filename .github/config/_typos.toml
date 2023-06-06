@@ -1,0 +1,50 @@
+[default]
+binary = false
+check-filename = true
+
+[default.extend-words]
+alloced = "alloced"
+s2nd = "s2nd"
+nd = "nd"
+Inforce = "Inforce"
+ 
+# While we build up the extend-words list
+[type.cpp]
+check-file = false
+
+[type.c]
+check-file = false
+
+[type.py]
+check-file = false
+
+[type.make]
+check-file = false
+
+[type.cmake]
+check-file = false
+
+[type.rust]
+check-file = false
+
+[type.sh]
+check-file = false
+
+[files]
+extend-exclude = [
+    "*.bin",
+    "**/corpus/*",
+    "*.cry",
+    "*.der",
+    "*.h",
+    "*.kat",
+    "*.pem",
+    "*.patch",
+    "*.pdf",
+    "*.png",
+    "*.saw",
+    "*.snap",
+    "*.suppressions",
+    "**/specs/**/*",
+
+]

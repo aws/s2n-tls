@@ -72,6 +72,12 @@
 
 #define ENTROPY_SOURCE "/dev/urandom"
 
+#if defined(O_CLOEXEC)
+    #define ENTROPY_FLAGS O_RDONLY | O_CLOEXEC
+#else
+    #define ENTROPY_FLAGS O_RDONLY
+#endif
+
 /* See https://en.wikipedia.org/wiki/CPUID */
 #define RDRAND_ECX_FLAG 0x40000000
 
@@ -429,7 +435,7 @@ RAND_METHOD s2n_openssl_rand_method = {
 static int s2n_rand_init_impl(void)
 {
 OPEN:
-    entropy_fd = open(ENTROPY_SOURCE, O_RDONLY | O_CLOEXEC);
+    entropy_fd = open(ENTROPY_SOURCE, ENTROPY_FLAGS);
     if (entropy_fd == -1) {
         if (errno == EINTR) {
             goto OPEN;
@@ -523,6 +529,9 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
     RESULT_GUARD(s2n_drbg_wipe(&s2n_per_thread_rand_state.public_drbg));
 
     s2n_per_thread_rand_state.drbgs_initialized = false;
+
+    /* Unset the thread-local destructor */
+    pthread_setspecific(s2n_per_thread_rand_state_key, NULL);
 
     return S2N_RESULT_OK;
 }
