@@ -158,6 +158,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
