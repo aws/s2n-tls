@@ -119,7 +119,7 @@ static int s2n_libcrypto_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algo
 
     size_t pseudo_rand_key_len = (size_t) pseudo_rand_key->size;
     POSIX_GUARD_OSSL(HKDF_extract(pseudo_rand_key->data, &pseudo_rand_key_len, digest, key->data, key->size,
-                              salt->data, salt->size),
+                             salt->data, salt->size),
             S2N_ERR_HKDF_EXTRACT);
 
     /* HKDF_extract updates the PRK length argument based on the digest size. Update the blob's size based on this. */
@@ -138,7 +138,7 @@ static int s2n_libcrypto_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algor
     POSIX_GUARD_RESULT(s2n_hmac_md_from_alg(alg, &digest));
 
     POSIX_GUARD_OSSL(HKDF_expand(output->data, output->size, digest, pseudo_rand_key->data, pseudo_rand_key->size,
-                              info->data, info->size),
+                             info->data, info->size),
             S2N_ERR_HKDF);
 
     return S2N_SUCCESS;
@@ -153,7 +153,7 @@ static int s2n_libcrypto_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm al
     POSIX_GUARD_RESULT(s2n_hmac_md_from_alg(alg, &digest));
 
     POSIX_GUARD_OSSL(HKDF(output->data, output->size, digest, key->data, key->size, salt->data, salt->size,
-                              info->data, info->size),
+                             info->data, info->size),
             S2N_ERR_HKDF);
 
     return S2N_SUCCESS;
