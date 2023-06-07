@@ -282,7 +282,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_write_uint64(record_limit, conn->secure->client_sequence_number));
 
             s2n_blocked_status blocked = 0;
-            EXPECT_SUCCESS(s2n_key_update_send(conn, &blocked));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_SAFETY);
 
             /* Sequence number not reset and no KeyUpdate sent */
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secure->client_sequence_number,
