@@ -209,6 +209,8 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
         };
 
         /* No messages sent if <TLS1.3 */
@@ -224,6 +226,7 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
 
+            EXPECT_TRUE(conn->key_update_pending);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
         };
     };
