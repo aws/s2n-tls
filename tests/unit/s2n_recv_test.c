@@ -134,7 +134,7 @@ int main(int argc, char **argv)
         };
 
         /* s2n_peek doesn't report bytes belonging to post-handshake messages */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             s2n_blocked_status blocked = 0;
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
