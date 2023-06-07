@@ -120,7 +120,7 @@ static int s2n_libcrypto_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algo
     size_t pseudo_rand_key_len = (size_t) pseudo_rand_key->size;
     POSIX_GUARD_OSSL(HKDF_extract(pseudo_rand_key->data, &pseudo_rand_key_len, digest, key->data, key->size,
                              salt->data, salt->size),
-            S2N_ERR_HKDF_EXTRACT);
+            S2N_ERR_HKDF);
 
     /* HKDF_extract updates the PRK length argument based on the digest size. Update the blob's size based on this. */
     POSIX_ENSURE_LTE(pseudo_rand_key_len, pseudo_rand_key->size);
