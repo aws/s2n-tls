@@ -23,7 +23,7 @@ pkgs.stdenv.mkDerivation rec {
       sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
     };
   }.${pkgs.stdenv.hostPlatform.system} or (throw
-    "Unsupported system: ${pkgs.stdenv.hostPlatform.system}");
+    "No build profile setup for this platform: ${pkgs.stdenv.hostPlatform.system}");
 
   # See: https://github.com/NixOS/patchelf/issues/10
   dontStrip = 1;
