@@ -21,6 +21,14 @@ pkgs.stdenv.mkDerivation rec {
     aarch64-linux = ''
       ./config ${default_options}
     '';
+    x86_64-darwin = ''
+      # TODO: validation in future PR - nix checks fail without a definition.
+      ./config -d ${default_options}
+    '';
+    aarch64-darwin = ''
+      # TODO: validation in future PR - nix checks fail without a definition.
+      ./config ${default_options}
+    '';
   }.${pkgs.stdenv.hostPlatform.system};
 
   buildPhase = ''
