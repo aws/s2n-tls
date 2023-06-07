@@ -100,6 +100,8 @@ struct s2n_rand_state {
 static pthread_key_t s2n_per_thread_rand_state_key;
 /* Needed to ensure key is initialized only once */
 static pthread_once_t s2n_per_thread_rand_state_key_once = PTHREAD_ONCE_INIT;
+/* Tracks if call to pthread_key_create failed */
+static int pthread_key_create_result;
 
 static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .cached_fork_generation_number = 0,
@@ -184,9 +186,9 @@ static void s2n_drbg_destructor(void *_unused_argument)
 
 static void s2n_drbg_make_rand_state_key(void)
 {
-    /* We can't error check the output of pthread_key_create since s2n_drbg_make_rand_state_key
-     * isn't allowed to return a value due to the parameter constraints of pthread_once. */
-    (void) pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
+    /* We can't return the output of pthread_key_create due to the parameter constraints of pthread_once.
+     * Here we store the result in a global variable that will be error checked later. */
+    pthread_key_create_result = pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
 }
 
 static S2N_RESULT s2n_init_drbgs(void)
@@ -199,6 +201,7 @@ static S2N_RESULT s2n_init_drbgs(void)
     RESULT_GUARD_POSIX(s2n_blob_init(&private, s2n_private_drbg, sizeof(s2n_private_drbg)));
 
     RESULT_ENSURE(pthread_once(&s2n_per_thread_rand_state_key_once, s2n_drbg_make_rand_state_key) == 0, S2N_ERR_DRBG);
+    RESULT_ENSURE_EQ(pthread_key_create_result, 0);
 
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
