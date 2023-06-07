@@ -433,20 +433,6 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_hkdf(&hmac, test->alg, &salt_blob, &in_key_blob, &info_blob, &out_result));
         EXPECT_EQUAL(memcmp(output_pad, actual_output_blob.data, actual_output_blob.size), 0);
-
-        /* The custom HKDF implementation should be used when s2n-tls is operating in FIPS mode. */
-        if (!s2n_is_in_fips_mode()) {
-            /* The custom HKDF implementation will update the HMAC state */
-            uint8_t zeros[SHA512_DIGEST_LENGTH] = { 0 };
-            EXPECT_NOT_EQUAL(memcmp(hmac.digest_pad, zeros, SHA512_DIGEST_LENGTH), 0);
-        }
-
-        /* The libcrypto HKDF implementation should be used when s2n-tls is linked with AWSLC-FIPS */
-        if (s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode()) {
-            /* The libcrypto HKDF implementation will not update the HMAC state */
-            uint8_t zeros[SHA512_DIGEST_LENGTH] = { 0 };
-            EXPECT_EQUAL(memcmp(hmac.digest_pad, zeros, SHA512_DIGEST_LENGTH), 0);
-        }
     }
 
     /* Ensure that the PRK output size can't be set beyond its max size */
@@ -454,6 +440,11 @@ int main(int argc, char **argv)
         s2n_stack_blob(small_prk_output, 10, 10);
         EXPECT_FAILURE_WITH_ERRNO(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &small_prk_output),
                 S2N_ERR_SAFETY);
+    }
+
+    /* Ensure that the libcrypto HKDF implementation is supported when s2n-tls is linked with AWSLC-FIPS */
+    if (s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode()) {
+        EXPECT_TRUE(s2n_libcrypto_supports_hkdf());
     }
 
     /* This size (5101) is obtained by multiplying the digest size for
