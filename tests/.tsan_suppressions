@@ -1,0 +1,2 @@
+# We don't care about the thread safety of our test count
+race:test_count
