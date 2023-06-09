@@ -181,84 +181,19 @@ bindir ?= $(exec_prefix)/bin
 libdir ?= $(exec_prefix)/lib64
 includedir ?= $(exec_prefix)/include
 
-try_compile = $(shell $(CC) $(CFLAGS) -c -o tmp.o $(1) > /dev/null 2>&1; echo $$?; rm tmp.o > /dev/null 2>&1)
+feature_probe = $(shell $(CC) $(CFLAGS) $(shell cat $(S2N_ROOT)/tests/features/$(1).flags) -c -o tmp.o $(S2N_ROOT)/tests/features/$(1).c > /dev/null 2>&1 && echo "-D$(1)"; rm tmp.o > /dev/null 2>&1)
 
-# Determine if execinfo.h is available
-TRY_COMPILE_EXECINFO := $(call try_compile,$(S2N_ROOT)/tests/features/execinfo.c)
-ifeq ($(TRY_COMPILE_EXECINFO), 0)
+FEATURES := $(notdir $(patsubst %.c,%,$(wildcard $(S2N_ROOT)/tests/features/*.c)))
+SUPPORTED_FEATURES := $(foreach feature,$(FEATURES),$(call feature_probe,$(feature)))
+CFLAGS += $(SUPPORTED_FEATURES)
+DEFAULT_CFLAGS += $(SUPPORTED_FEATURES)
+CPPCFLAGS += $(SUPPORTED_FEATURES)
+
+# only enable stacktraces if execinfo is available
+ifneq ("$(call feature_probe,S2N_EXECINFO_AVAILABLE)","")
+	CFLAGS += -DS2N_STACKTRACE
 	DEFAULT_CFLAGS += -DS2N_STACKTRACE
-endif
-
-# Determine if cpuid.h is available
-TRY_COMPILE_CPUID := $(call try_compile,$(S2N_ROOT)/tests/features/cpuid.c)
-ifeq ($(TRY_COMPILE_CPUID), 0)
-	DEFAULT_CFLAGS += -DS2N_CPUID_AVAILABLE
-endif
-
-# Determine if features.h is availabe
-TRY_COMPILE_FEATURES := $(call try_compile,$(S2N_ROOT)/tests/features/features.c)
-ifeq ($(TRY_COMPILE_FEATURES), 0)
-	DEFAULT_CFLAGS += -DS2N_FEATURES_AVAILABLE
-endif
-
-# Determine if __attribute__((fallthrough)) is available
-TRY_COMPILE_FALL_THROUGH := $(call try_compile,$(S2N_ROOT)/tests/features/fallthrough.c)
-ifeq ($(TRY_COMPILE_FALL_THROUGH), 0)
-	DEFAULT_CFLAGS += -DS2N_FALL_THROUGH_SUPPORTED
-endif
-
-# Determine if __restrict__ is available
-TRY_COMPILE__RESTRICT__ := $(call try_compile,$(S2N_ROOT)/tests/features/__restrict__.c)
-ifeq ($(TRY_COMPILE__RESTRICT__), 0)
-	DEFAULT_CFLAGS += -DS2N___RESTRICT__SUPPORTED
-endif
-
-# Determine if EVP_md5_sha1 is available
-TRY_EVP_MD5_SHA1_HASH := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md5_sha1.c)
-ifeq ($(TRY_EVP_MD5_SHA1_HASH), 0)
-	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD5_SHA1_HASH
-endif
-
-# Determine if EVP_RC4 is available
-TRY_EVP_RC4 := $(call try_compile,$(S2N_ROOT)/tests/features/evp_rc4.c)
-ifeq ($(TRY_EVP_RC4), 0)
-	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_RC4
-endif
-
-# Determine if EVP_MD_CTX_set_pkey_ctx is available
-TRY_EVP_MD_CTX_SET_PKEY_CTX := $(call try_compile,$(S2N_ROOT)/tests/features/evp_md_ctx_set_pkey_ctx.c)
-ifeq ($(TRY_EVP_MD_CTX_SET_PKEY_CTX), 0)
-	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_EVP_MD_CTX_SET_PKEY_CTX
-endif
-
-# Determine if the Kyber 512 KEM API is available in libcrypto
-TRY_LIBCRYPTO_SUPPORTS_KYBER512 := $(call try_compile,$(S2N_ROOT)/tests/features/evp_kem_kyber_512.c)
-ifeq ($(TRY_LIBCRYPTO_SUPPORTS_KYBER512), 0)
-	DEFAULT_CFLAGS += -DS2N_LIBCRYPTO_SUPPORTS_KYBER512
-endif
-
-# Determine if madvise() is available
-TRY_COMPILE_MADVISE := $(call try_compile,$(S2N_ROOT)/tests/features/madvise.c)
-ifeq ($(TRY_COMPILE_MADVISE), 0)
-	DEFAULT_CFLAGS += -DS2N_MADVISE_SUPPORTED
-endif
-
-# Determine if minherit() is available
-TRY_COMPILE_MINHERIT:= $(call try_compile,$(S2N_ROOT)/tests/features/minherit.c)
-ifeq ($(TRY_COMPILE_MINHERIT), 0)
-	DEFAULT_CFLAGS += -DS2N_MINHERIT_SUPPORTED
-endif
-
-# Determine if clone() is available
-TRY_COMPILE_CLONE := $(call try_compile,$(S2N_ROOT)/tests/features/clone.c)
-ifeq ($(TRY_COMPILE_CLONE), 0)
-	DEFAULT_CFLAGS += -DS2N_CLONE_SUPPORTED
-endif
-
-# Determine if kTLS is available
-TRY_COMPILE_KTLS := $(call try_compile,$(S2N_ROOT)/tests/features/ktls.c)
-ifeq ($(TRY_COMPILE_KTLS), 0)
-	DEFAULT_CFLAGS += -DS2N_PLATFORM_SUPPORTS_KTLS
+	CPPCFLAGS += -DS2N_STACKTRACE
 endif
 
 CFLAGS_LLVM = ${DEFAULT_CFLAGS} -emit-llvm -c -g -O1

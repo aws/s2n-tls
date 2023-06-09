@@ -224,7 +224,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
             EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
             EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_FULL_DUPLEX));
-            EXPECT_FALSE(client_conn->write_closing);
         }
     };
 
@@ -513,6 +512,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_with_reneg_cb));
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "test_all"));
         EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config_with_reneg_cb, s2n_test_reneg_req_cb, &ctx));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -524,6 +524,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
+        uint8_t buffer[1] = { 0 };
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
         /* Force an SSLv3 handshake */
         client_conn->client_protocol_version = S2N_SSLv3;
         client_conn->actual_protocol_version = S2N_SSLv3;
@@ -534,12 +537,20 @@ int main(int argc, char **argv)
         /* Send the hello request message. */
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
-        /* handshake_failure alert sent and received */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(client_conn, server_conn), S2N_ERR_ALERT);
-        EXPECT_EQUAL(s2n_connection_get_alert(server_conn), S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+        /* handshake_failure alert queued */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, buffer, sizeof(buffer), &blocked), S2N_ERR_BAD_MESSAGE);
         EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_CLOSED));
+
+        /* handshake_failure alert send.
+         * Skip blinding. */
+        EXPECT_TRUE(client_conn->delay > 0);
+        client_conn->delay = 0;
+        EXPECT_SUCCESS(s2n_shutdown_send(client_conn, &blocked));
+
+        /* handshake_failure alert received */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, buffer, sizeof(buffer), &blocked), S2N_ERR_ALERT);
         EXPECT_TRUE(s2n_connection_check_io_status(server_conn, S2N_IO_CLOSED));
+        EXPECT_EQUAL(s2n_connection_get_alert(server_conn), S2N_TLS_ALERT_HANDSHAKE_FAILURE);
 
         /* Callback triggered */
         EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
