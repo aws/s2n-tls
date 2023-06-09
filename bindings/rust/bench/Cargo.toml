@@ -1,0 +1,15 @@
+[package]
+name = "bench"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+s2n-tls = { version = "=0.0.32", path = "../s2n-tls", features = [ "testing" ] }
+rustls = "0.21.1"
+rustls-pemfile = "1.0.2"
+bytes = "1.4.0"
+openssl = { version = "0.10.54", features = [ "vendored" ] }
+errno = "0.3.1"
+libc = "0.2"
