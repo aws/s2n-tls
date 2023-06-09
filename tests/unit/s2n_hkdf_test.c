@@ -405,7 +405,13 @@ int main(int argc, char **argv)
     uint8_t prk_pad[MAX_PSEUDO_RAND_KEY_SIZE] = { 0 };
     uint8_t output_pad[MAX_OUTPUT_SIZE] = { 0 };
 
-    struct s2n_blob in_key_blob, salt_blob, info_blob, actual_prk_blob, actual_output_blob, prk_result, out_result = { 0 };
+    struct s2n_blob in_key_blob = { 0 };
+    struct s2n_blob salt_blob = { 0 };
+    struct s2n_blob info_blob = { 0 };
+    struct s2n_blob actual_prk_blob = { 0 };
+    struct s2n_blob actual_output_blob = { 0 };
+    struct s2n_blob prk_result = { 0 };
+    struct s2n_blob out_result = { 0 };
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -440,6 +446,10 @@ int main(int argc, char **argv)
         s2n_stack_blob(small_prk_output, 10, 10);
         EXPECT_FAILURE_WITH_ERRNO(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &small_prk_output),
                 S2N_ERR_SAFETY);
+
+        /* s2n_hkdf_extract succeeds with the correct output size */
+        s2n_stack_blob(large_prk_output, SHA512_DIGEST_LENGTH, SHA512_DIGEST_LENGTH);
+        EXPECT_SUCCESS(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &large_prk_output));
     }
 
     /* Ensure that the libcrypto HKDF implementation is supported when s2n-tls is linked with AWSLC-FIPS */

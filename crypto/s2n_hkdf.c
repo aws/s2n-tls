@@ -32,6 +32,15 @@
 
 /* Reference: RFC 5869 */
 
+struct s2n_hkdf_impl {
+    int (*hkdf)(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
+            const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output);
+    int (*hkdf_extract)(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
+            const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key);
+    int (*hkdf_expand)(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *pseudo_rand_key,
+            const struct s2n_blob *info, struct s2n_blob *output);
+};
+
 static int s2n_custom_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
         const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key)
 {

@@ -20,15 +20,6 @@
 #include "crypto/s2n_hmac.h"
 #include "utils/s2n_blob.h"
 
-struct s2n_hkdf_impl {
-    int (*hkdf)(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
-            const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output);
-    int (*hkdf_extract)(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
-            const struct s2n_blob *key, struct s2n_blob *pseudo_rand_key);
-    int (*hkdf_expand)(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *pseudo_rand_key,
-            const struct s2n_blob *info, struct s2n_blob *output);
-};
-
 int s2n_hkdf(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, const struct s2n_blob *salt,
         const struct s2n_blob *key, const struct s2n_blob *info, struct s2n_blob *output);
 
