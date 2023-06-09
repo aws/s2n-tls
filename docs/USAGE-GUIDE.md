@@ -613,7 +613,7 @@ to establish a TLS connection with the peer.
 To perform the handshake, call `s2n_negotiate()` until it either returns **S2N_SUCCESS**
 or returns **S2N_FAILURE** without a **S2N_ERR_T_BLOCKED** error.
 
-For an example of how to perform a basic handshake, see [s2n_negotiate_example.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate_example.c)
+For an example of how to perform a basic handshake, see [examples/s2n_negotiate.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c)
 
 ### Application Data
 
@@ -656,7 +656,7 @@ are updated to account for a partial write. Therefore `s2n_sendv_with_offset()`
 is preferred.
 
 For examples of how to send `data` of length `data_size` with `s2n_send()`
-or `s2n_sendv_with_offset()`, see [s2n_send_example.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send_example.c)
+or `s2n_sendv_with_offset()`, see [examples/s2n_send.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c)
 
 #### Receiving Application Data
 
@@ -675,10 +675,10 @@ Unlike OpenSSL, repeated calls to `s2n_recv()` should not duplicate the original
 but should update the inputs per the indication of size read.
 
 For an example of how to read all the data sent by the peer into one buffer,
-see `s2n_recv_basic_example()` in [s2n_recv_example.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv_example.c)
+see `s2n_example_recv()` in [examples/s2n_recv.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c)
 
 For an example of how to echo any data sent by the peer,
-see `s2n_recv_echo_example()` in [s2n_recv_example.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv_example.c)
+see `s2n_example_recv_echo()` in [examples/s2n_recv.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c)
 
 `s2n_peek()` can be used to check if more application data may be returned
 from `s2n_recv()` without performing another read from the file descriptor.

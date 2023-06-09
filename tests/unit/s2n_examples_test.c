@@ -45,7 +45,7 @@ static void *s2n_run_io_fn(void *arg)
     return NULL;
 }
 
-static S2N_RESULT s2n_shutdown_basic(struct s2n_connection *conn)
+static S2N_RESULT s2n_test_shutdown(struct s2n_connection *conn)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     int r = 0;
@@ -57,7 +57,7 @@ static S2N_RESULT s2n_shutdown_basic(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_shutdown_send_basic(struct s2n_connection *conn)
+static S2N_RESULT s2n_test_shutdown_send(struct s2n_connection *conn)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     int r = 0;
@@ -69,25 +69,25 @@ static S2N_RESULT s2n_shutdown_send_basic(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_negotiate_basic_example(struct s2n_connection *conn,
+static S2N_RESULT s2n_test_example_negotiate(struct s2n_connection *conn,
         struct s2n_blob *input)
 {
-    RESULT_GUARD_POSIX(s2n_negotiate_basic_example(conn));
-    RESULT_GUARD(s2n_shutdown_basic(conn));
+    RESULT_GUARD_POSIX(s2n_example_negotiate(conn));
+    RESULT_GUARD(s2n_test_shutdown(conn));
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_send_and_recv_basic_examples(struct s2n_connection *conn,
+static S2N_RESULT s2n_test_example_send_and_recv(struct s2n_connection *conn,
         struct s2n_blob *input)
 {
-    RESULT_GUARD_POSIX(s2n_negotiate_basic_example(conn));
+    RESULT_GUARD_POSIX(s2n_example_negotiate(conn));
 
     DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&output, input->size));
 
     pthread_t reader = 0;
     struct s2n_test_thread_input reader_input = {
-        .fn = s2n_recv_basic_example,
+        .fn = s2n_example_recv,
         .conn = conn,
         .mem = &output,
     };
@@ -95,7 +95,7 @@ static S2N_RESULT s2n_test_send_and_recv_basic_examples(struct s2n_connection *c
 
     pthread_t writer = 0;
     struct s2n_test_thread_input writer_input = {
-        .fn = s2n_send_basic_example,
+        .fn = s2n_example_send,
         .conn = conn,
         .mem = input,
     };
@@ -111,21 +111,21 @@ static S2N_RESULT s2n_test_send_and_recv_basic_examples(struct s2n_connection *c
 
     RESULT_ENSURE_EQ(memcmp(output.data, input->data, input->size), 0);
 
-    RESULT_GUARD(s2n_shutdown_basic(conn));
+    RESULT_GUARD(s2n_test_shutdown(conn));
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_sendv_basic_example(struct s2n_connection *conn,
+static S2N_RESULT s2n_test_example_sendv(struct s2n_connection *conn,
         struct s2n_blob *input)
 {
-    RESULT_GUARD_POSIX(s2n_negotiate_basic_example(conn));
+    RESULT_GUARD_POSIX(s2n_example_negotiate(conn));
 
     DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
     RESULT_GUARD_POSIX(s2n_alloc(&output, input->size));
 
     pthread_t reader = 0;
     struct s2n_test_thread_input reader_input = {
-        .fn = s2n_recv_basic_example,
+        .fn = s2n_example_recv,
         .conn = conn,
         .mem = &output,
     };
@@ -133,7 +133,7 @@ static S2N_RESULT s2n_test_sendv_basic_example(struct s2n_connection *conn,
 
     pthread_t writer = 0;
     struct s2n_test_thread_input writer_input = {
-        .fn = s2n_sendv_basic_example,
+        .fn = s2n_example_sendv,
         .conn = conn,
         .mem = input,
     };
@@ -149,14 +149,14 @@ static S2N_RESULT s2n_test_sendv_basic_example(struct s2n_connection *conn,
 
     RESULT_ENSURE_EQ(memcmp(output.data, input->data, input->size), 0);
 
-    RESULT_GUARD(s2n_shutdown_basic(conn));
+    RESULT_GUARD(s2n_test_shutdown(conn));
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_test_recv_echo_example(struct s2n_connection *conn,
+static S2N_RESULT s2n_test_example_recv_echo(struct s2n_connection *conn,
         struct s2n_blob *input)
 {
-    RESULT_GUARD_POSIX(s2n_negotiate_basic_example(conn));
+    RESULT_GUARD_POSIX(s2n_example_negotiate(conn));
 
     /* We need to send a close_notify to stop the reader thread, which will cause
      * a full connection shutdown without TLS1.3's half-close behavior.
@@ -171,7 +171,7 @@ static S2N_RESULT s2n_test_recv_echo_example(struct s2n_connection *conn,
 
     pthread_t reader = 0;
     struct s2n_test_thread_input reader_input = {
-        .fn = s2n_recv_echo_example,
+        .fn = s2n_example_recv_echo,
         .conn = conn,
         .mem = &output,
     };
@@ -179,7 +179,7 @@ static S2N_RESULT s2n_test_recv_echo_example(struct s2n_connection *conn,
 
     pthread_t writer = 0;
     struct s2n_test_thread_input writer_input = {
-        .fn = s2n_send_basic_example,
+        .fn = s2n_example_send,
         .conn = conn,
         .mem = input,
     };
@@ -189,7 +189,7 @@ static S2N_RESULT s2n_test_recv_echo_example(struct s2n_connection *conn,
     RESULT_ENSURE_EQ(pthread_join(writer, &writer_return), 0);
     RESULT_ENSURE_REF(writer_return);
 
-    RESULT_GUARD(s2n_shutdown_send_basic(conn));
+    RESULT_GUARD(s2n_test_shutdown_send(conn));
 
     void *reader_return = NULL;
     RESULT_ENSURE_EQ(pthread_join(reader, &reader_return), 0);
@@ -206,7 +206,7 @@ static S2N_RESULT s2n_test_recv_echo_example(struct s2n_connection *conn,
     RESULT_ENSURE_GTE(conn->secure->server_sequence_number[S2N_TEST_LAST_SEQ_NUM_BYTE],
             S2N_TEST_RECORD_COUNT);
 
-    RESULT_GUARD(s2n_shutdown_basic(conn));
+    RESULT_GUARD(s2n_test_shutdown(conn));
     return S2N_RESULT_OK;
 }
 
@@ -295,11 +295,11 @@ static S2N_RESULT s2n_run_failure_tests()
         fclose(stdout);
         fclose(stderr);
 
-        EXPECT_EQUAL(s2n_negotiate_basic_example(conn), S2N_FAILURE);
-        EXPECT_EQUAL(s2n_send_basic_example(conn, buffer, buffer_size), S2N_FAILURE);
-        EXPECT_EQUAL(s2n_sendv_basic_example(conn, buffer, buffer_size), S2N_FAILURE);
-        EXPECT_EQUAL(s2n_recv_basic_example(conn, buffer, buffer_size), S2N_FAILURE);
-        EXPECT_EQUAL(s2n_recv_echo_example(conn, buffer, buffer_size), S2N_FAILURE);
+        EXPECT_EQUAL(s2n_example_negotiate(conn), S2N_FAILURE);
+        EXPECT_EQUAL(s2n_example_send(conn, buffer, buffer_size), S2N_FAILURE);
+        EXPECT_EQUAL(s2n_example_sendv(conn, buffer, buffer_size), S2N_FAILURE);
+        EXPECT_EQUAL(s2n_example_recv(conn, buffer, buffer_size), S2N_FAILURE);
+        EXPECT_EQUAL(s2n_example_recv_echo(conn, buffer, buffer_size), S2N_FAILURE);
 
         exit(EXIT_SUCCESS);
     }
@@ -319,10 +319,10 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(fflush(stdout), 0);
 
     EXPECT_OK(s2n_run_failure_tests());
-    EXPECT_OK(s2n_run_self_talk_test(s2n_test_negotiate_basic_example));
-    EXPECT_OK(s2n_run_self_talk_test(s2n_test_send_and_recv_basic_examples));
-    EXPECT_OK(s2n_run_self_talk_test(s2n_test_sendv_basic_example));
-    EXPECT_OK(s2n_run_self_talk_test(s2n_test_recv_echo_example));
+    EXPECT_OK(s2n_run_self_talk_test(s2n_test_example_negotiate));
+    EXPECT_OK(s2n_run_self_talk_test(s2n_test_example_send_and_recv));
+    EXPECT_OK(s2n_run_self_talk_test(s2n_test_example_sendv));
+    EXPECT_OK(s2n_run_self_talk_test(s2n_test_example_recv_echo));
     END_TEST();
 
     END_TEST();

@@ -15,7 +15,7 @@
 
 #include "s2n.h"
 
-int s2n_negotiate_basic_example(struct s2n_connection *conn)
+int s2n_example_negotiate(struct s2n_connection *conn)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {

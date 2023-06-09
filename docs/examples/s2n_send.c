@@ -15,38 +15,38 @@
 
 #include "s2n.h"
 
-int s2n_recv_basic_example(struct s2n_connection *conn, uint8_t *buffer, size_t buffer_size)
+int s2n_example_send(struct s2n_connection *conn, uint8_t *data, size_t data_size)
 {
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    int bytes_read = 0;
-    while (bytes_read < buffer_size) {
-        int r = s2n_recv(conn, buffer + bytes_read, buffer_size - bytes_read, &blocked);
-        if (r == 0) {
-            break;
-        } else if (r > 0) {
-            bytes_read += r;
+    int bytes_written = 0;
+    while (bytes_written < data_size) {
+        int w = s2n_send(conn, data + bytes_written, data_size - bytes_written, &blocked);
+        if (w >= 0) {
+            bytes_written += w;
         } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Error: %s. %s\n", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
             return -1;
         }
     }
-    fprintf(stdout, "Received: %.*s\n", bytes_read, buffer);
     return 0;
 }
 
-int s2n_recv_echo_example(struct s2n_connection *conn, uint8_t *buffer, size_t buffer_size)
+int s2n_example_sendv(struct s2n_connection *conn, uint8_t *data, size_t data_size)
 {
+    struct iovec iov[1] = { 0 };
+    iov[0].iov_base = data;
+    iov[0].iov_len = data_size;
+
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    while (true) {
-        int r = s2n_recv(conn, buffer, buffer_size, &blocked);
-        if (r == 0) {
-            fprintf(stdout, "End of data.\n");
-            return 0;
-        } else if (r > 0) {
-            fprintf(stdout, "Received: %.*s\n", r, buffer);
-        } else if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+    int bytes_written = 0;
+    while (bytes_written < data_size) {
+        int w = s2n_sendv_with_offset(conn, iov, 1, bytes_written, &blocked);
+        if (w >= 0) {
+            bytes_written += w;
+        } else if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Error: %s. %s\n", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
             return -1;
         }
     }
+    return 0;
 }
