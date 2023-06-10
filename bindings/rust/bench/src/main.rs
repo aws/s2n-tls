@@ -5,7 +5,9 @@ use bench::{Rustls, S2nTls, TlsImpl};
 // TODO: understand cert generate script/customize
 fn main() {
     println!("----- rustls handshake -----");
-    Rustls::handshake();
+    let mut rustls = Rustls::new();
+    rustls.handshake();
     println!("\n----- s2n-tls handshake -----");
-    S2nTls::handshake();
+    let mut s2n = S2nTls::new();
+    s2n.handshake();
 }
