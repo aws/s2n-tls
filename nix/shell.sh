@@ -58,7 +58,13 @@ function integ {
         (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
     else
         banner "Warning: cross_compatibility & renegotiate_apache are not supported in nix for various reasons integ help for more info."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 -R "$1" --verbose)
+        for test in $@; do
+            ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
+            if [ "$?" -ne 0 ]; then
+               echo "Test failed, stopping execution"
+               exit 1
+            fi
+        done
     fi
 }
 

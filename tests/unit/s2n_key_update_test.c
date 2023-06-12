@@ -263,6 +263,33 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         };
 
+        /* Key update never sent for <TLS1.3, even if requested / required */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->actual_protocol_version = S2N_TLS12;
+            conn->secure->cipher_suite = cipher_suite_with_limit;
+            POSIX_CHECKED_MEMCPY(conn->secrets.version.tls13.client_app_secret,
+                    application_secret.data, application_secret.size);
+
+            /* Setup io */
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Key update both pending and required by record limit */
+            conn->key_update_pending = true;
+            EXPECT_OK(s2n_write_uint64(record_limit, conn->secure->client_sequence_number));
+
+            s2n_blocked_status blocked = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_SAFETY);
+
+            /* Sequence number not reset and no KeyUpdate sent */
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secure->client_sequence_number,
+                    zeroed_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+        };
+
         /* Key update is not triggered */
         {
             struct s2n_connection *client_conn;
@@ -478,6 +505,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_OK(s2n_connection_set_secrets(conn));
+            conn->actual_protocol_version = S2N_TLS13;
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
