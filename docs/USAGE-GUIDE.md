@@ -613,17 +613,7 @@ to establish a TLS connection with the peer.
 To perform the handshake, call `s2n_negotiate()` until it either returns **S2N_SUCCESS**
 or returns **S2N_FAILURE** without a **S2N_ERR_T_BLOCKED** error.
 
-For example, to perform a basic handshake:
-```c
-s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-do {
-    int r = s2n_negotiate(conn, &blocked);
-    if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
-        break;
-    }
-} while (blocked != S2N_NOT_BLOCKED);
-```
+For an example of how to perform a basic handshake, see [examples/s2n_negotiate.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c)
 
 ### Application Data
 
@@ -657,52 +647,16 @@ until the return values across all calls have added up to the length of the data
 Unlike OpenSSL, repeated calls to `s2n_send()` should not duplicate the original
 parameters, but should update the inputs per the indication of size written.
 
-For example, to send the message "hello world":
-```c
-char data[] = "hello world";
-s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-int bytes_written = 0;
-do {
-    int w = s2n_send(conn, data + bytes_written, sizeof(data) - bytes_written, &blocked);
-    if (w < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
-        break;
-    }
-    bytes_written += w;
-} while (blocked != S2N_NOT_BLOCKED);
-```
-Or alternatively, the loop condition can be:
-```c
-} while (bytes_written < sizeof(data));
-```
-
 `s2n_sendv_with_offset()` behaves like `s2n_send()`, but supports vectorized buffers.
 The offset input should be updated between calls to reflect the data already written.
-
-For example, to send the message "hello world":
-```c
-char data[] = "hello world";
-
-struct iovec iov[1] = { 0 };
-iov[0].iov_base = data;
-iov[0].iov_len = sizeof(data);
-
-s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-int bytes_written = 0;
-do {
-    int w = s2n_sendv_with_offset(conn, iov, 1, bytes_written, &blocked);
-    if (w < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
-        break;
-    }
-    bytes_written += w;
-} while (blocked != S2N_NOT_BLOCKED);
-```
 
 `s2n_sendv()` also supports vectorized buffers, but assumes an offset of 0.
 Because of this assumption, a caller would have to make sure that the input vectors
 are updated to account for a partial write. Therefore `s2n_sendv_with_offset()`
 is preferred.
+
+For examples of how to send `data` of length `data_size` with `s2n_send()`
+or `s2n_sendv_with_offset()`, see [examples/s2n_send.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c)
 
 #### Receiving Application Data
 
@@ -720,45 +674,11 @@ TLS records until the provided output buffer is full.
 Unlike OpenSSL, repeated calls to `s2n_recv()` should not duplicate the original parameters,
 but should update the inputs per the indication of size read.
 
-For example, to read all data sent by the peer into one buffer:
-```c
-char buffer[MAX_BUFFER_SIZE] = { 0 };
+For an example of how to read all the data sent by the peer into one buffer,
+see `s2n_example_recv()` in [examples/s2n_recv.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c)
 
-s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-int bytes_read = 0;
-do {
-    int r = s2n_recv(conn, buffer + bytes_read, sizeof(buffer) - bytes_read, &blocked);
-    if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
-        break;
-    }
-    bytes_read += r;
-} while (blocked != S2N_NOT_BLOCKED);
-printf("Received: %.*s", bytes_read, buffer);
-```
-
-Careful: `bytes_read < sizeof(buffer)` is not a valid loop condition here.
-If the peer indicates end-of-data, `s2n_recv()` will begin returning 0 and you
-may enter an infinite loop.
-
-As another example, to echo any data sent by the peer:
-```c
-char buffer[MAX_BUFFER_SIZE] = { 0 };
-
-s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-while (true) {
-    int r = s2n_recv(conn, buffer, sizeof(buffer), &blocked);
-    if (r == 0) {
-        printf("End of data.");
-        break;
-    } else if (r > 0) {
-        printf("Received: %.*s", r, buffer);
-    } else if (r < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-        printf("Error: %s. %s", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
-        break;
-    }
-}
-```
+For an example of how to echo any data sent by the peer,
+see `s2n_example_recv_echo()` in [examples/s2n_recv.c](https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c)
 
 `s2n_peek()` can be used to check if more application data may be returned
 from `s2n_recv()` without performing another read from the file descriptor.
