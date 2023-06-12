@@ -36,34 +36,32 @@ pkgs.stdenv.mkDerivation rec {
 
   buildInputs = with pkgs; [
     cpio
-    file
-    which
-    zip
-    perl
-    zlib
     cups
-    freetype
-    harfbuzz
-    libjpeg
-    giflib
-    libpng
-    zlib
-    lcms2
+    file
     fontconfig
+    freetype
+    gdk-pixbuf
+    giflib
     glib
+    gtk2-x11
+    harfbuzz
+    lcms2
+    libjpeg
+    libpng
+    perl
+    which
     xorg.libX11
-    xorg.libXrender
+    xorg.libXcursor
     xorg.libXext
-    xorg.libXtst
-    xorg.libXt
-    xorg.libXtst
     xorg.libXi
     xorg.libXinerama
-    xorg.libXcursor
     xorg.libXrandr
-    gtk2-x11
-    gdk-pixbuf
+    xorg.libXrender
+    xorg.libXt
+    xorg.libXtst
     xorg.libXxf86vm
+    zip
+    zlib
   ];
 
   buildPhase = ''
