@@ -42,6 +42,26 @@ static int s2n_write_named_curve(struct s2n_stuffer *out, const struct s2n_ecc_n
 static int s2n_write_key_share(struct s2n_stuffer *out, uint16_t iana_value, uint16_t share_size,
         const struct s2n_ecc_named_curve *existing_curve);
 
+S2N_RESULT s2n_extensions_client_key_share_size(struct s2n_connection *conn, uint32_t *size)
+{
+    RESULT_ENSURE_REF(conn);
+
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    RESULT_ENSURE_REF(ecc_pref);
+
+    uint32_t s2n_client_key_share_extension_size = S2N_SIZE_OF_EXTENSION_TYPE
+            + S2N_SIZE_OF_EXTENSION_DATA_SIZE
+            + S2N_SIZE_OF_CLIENT_SHARES_SIZE;
+
+    s2n_client_key_share_extension_size += S2N_SIZE_OF_KEY_SHARE_SIZE + S2N_SIZE_OF_NAMED_GROUP;
+    s2n_client_key_share_extension_size += ecc_pref->ecc_curves[0]->share_size;
+
+    *size = s2n_client_key_share_extension_size;
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -53,12 +73,12 @@ int main(int argc, char **argv)
         struct s2n_connection *conn;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
-        int key_share_size;
-        EXPECT_SUCCESS(key_share_size = s2n_extensions_client_key_share_size(conn));
+        uint32_t key_share_size = 0;
+        EXPECT_OK(s2n_extensions_client_key_share_size(conn, &key_share_size));
 
         /* should produce the same result if called twice */
-        int key_share_size_again;
-        EXPECT_SUCCESS(key_share_size_again = s2n_extensions_client_key_share_size(conn));
+        uint32_t key_share_size_again = 0;
+        EXPECT_OK(s2n_extensions_client_key_share_size(conn, &key_share_size_again));
         EXPECT_EQUAL(key_share_size, key_share_size_again);
 
         /* should equal the size of the data written on send */
