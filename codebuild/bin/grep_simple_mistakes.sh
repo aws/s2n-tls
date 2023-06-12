@@ -70,7 +70,7 @@ done
 # To indicate failure, functions should use the S2N_ERROR* macros defined
 # in s2n_errno.h.
 #############################################
-S2N_FILES_ASSERT_RETURN=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/tests/*")
+S2N_FILES_ASSERT_RETURN=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/tests/*" -not -path "*/docs/examples/*")
 for file in $S2N_FILES_ASSERT_RETURN; do
   RESULT_NEGATIVE_ONE=`grep -rn 'return -1;' $file`
   RESULT_S2N_ERR=`grep -rn 'return S2N_ERR*' $file`

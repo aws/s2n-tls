@@ -476,9 +476,10 @@ if (BUILD_TESTING)
     enable_testing()
 
     file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+    file(GLOB EXAMPLES_SRC "docs/examples/*.c")
     file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
-    add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+    add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC} ${EXAMPLES_SRC})
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
