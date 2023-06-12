@@ -32,7 +32,10 @@ int signed_fun()
     MACRO_CHECK;
 }
 
-/* this function is here to ensure the compiler properly pops the previous diagnostic */
+/* This function is here to ensure the compiler properly pops the previous diagnostic.
+ *
+ * GCC 4 and lower don't correctly pop diagnostics so this will fail on those systems.
+ **/
 uint8_t unsigned_fun()
 {
     return -1;

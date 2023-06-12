@@ -15,19 +15,30 @@
 
 #include <stdint.h>
 
+/* make sure we can call `_Pragma` in macros */
 #define MACRO_CHECK \
     do { \
         _Pragma("GCC diagnostic push") \
-        _Pragma("GCC diagnostic error \"-Wconversion\"") \
+        _Pragma("GCC diagnostic ignored \"-Wsign-conversion\"") \
         return -1; \
-        _Pragma("GCC diagnostic pop") \
     } while (0)
+
+uint8_t unsigned_fun()
+{
+    MACRO_CHECK;
+}
 
 int main()
 {
+    const int value = 0;
+    const int *value_ptr = &value;
+
+    unsigned_fun();
+
+    /* make sure we can also push diagnostics via `#pragma` */
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-qual"
-    #pragma GCC diagnostic pop
+    int *value_ptr_mut = (int*)value_ptr;
 
-    MACRO_CHECK;
+    return *value_ptr_mut;
 }

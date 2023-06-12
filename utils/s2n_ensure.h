@@ -79,7 +79,7 @@
         }                                        \
     } while (0)
 
-#if defined(S2N_DIAGNOSTICS_POP_SUPPORTED)
+#if defined(S2N_DIAGNOSTICS_PUSH_SUPPORTED) && defined(S2N_DIAGNOSTICS_POP_SUPPORTED)
     #define __S2N_ENSURE_CHECKED_RETURN(v)                                     \
         do {                                                                   \
             _Pragma("GCC diagnostic push")                                     \

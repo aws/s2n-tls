@@ -524,7 +524,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     /* Clone the stuffers */
     /* ignore address warnings because dest is allocated on the stack */
-#ifdef S2N_DIAGNOSTICS_SUPPORTED
+#ifdef S2N_DIAGNOSTICS_PUSH_SUPPORTED
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Waddress"
 #endif
@@ -534,7 +534,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&in, &conn->in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&out, &conn->out, sizeof(struct s2n_stuffer));
-#ifdef S2N_DIAGNOSTICS_SUPPORTED
+#ifdef S2N_DIAGNOSTICS_POP_SUPPORTED
     #pragma GCC diagnostic pop
 #endif
 
