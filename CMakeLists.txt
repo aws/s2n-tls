@@ -511,6 +511,7 @@ if (BUILD_TESTING)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=suppressions=${TSAN_SUPPRESSIONS_FILE})
     endif()
+    message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
 
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
