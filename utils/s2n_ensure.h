@@ -79,6 +79,17 @@
         }                                        \
     } while (0)
 
+#if defined(S2N_DIAGNOSTICS_PUSH_SUPPORTED) && defined(S2N_DIAGNOSTICS_POP_SUPPORTED)
+    #define __S2N_ENSURE_CHECKED_RETURN(v)                                     \
+        do {                                                                   \
+            _Pragma("GCC diagnostic push")                                     \
+                    _Pragma("GCC diagnostic error \"-Wconversion\"") return v; \
+            _Pragma("GCC diagnostic pop")                                      \
+        } while (0)
+#else
+    #define __S2N_ENSURE_CHECKED_RETURN(v) return v
+#endif
+
 /**
  * `restrict` is a part of the c99 standard and will work with any C compiler. If you're trying to
  * compile with a C++ compiler `restrict` is invalid. However some C++ compilers support the behavior

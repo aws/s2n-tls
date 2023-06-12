@@ -43,6 +43,7 @@ void *s2n_sidetrail_memset(void * ptr, int value, size_t num);
     }                                                      \
   } while(0)
 
+#define __S2N_ENSURE_CHECKED_RETURN(v)                     do { return v; } while(0)
 
 /**
  * The C runtime does not give a way to check these properties,
