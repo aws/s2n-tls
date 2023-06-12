@@ -26,9 +26,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_TLS_ALERT_LEVEL_WARNING 1
-#define S2N_TLS_ALERT_LEVEL_FATAL   2
-
 #define S2N_ALERT_CASE(error, alert_code) \
     case (error):                         \
         *alert = (alert_code);            \
@@ -158,20 +155,6 @@ static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, u
     return type == S2N_TLS_ALERT_USER_CANCELED;
 }
 
-S2N_RESULT s2n_alerts_close_if_fatal(struct s2n_connection *conn, struct s2n_blob *alert)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(alert);
-    RESULT_ENSURE_EQ(alert->size, S2N_ALERT_LENGTH);
-    /* Only one alert should currently be treated as a warning */
-    if (alert->data[1] == S2N_TLS_ALERT_NO_RENEGOTIATION) {
-        RESULT_ENSURE_EQ(alert->data[0], S2N_TLS_ALERT_LEVEL_WARNING);
-        return S2N_RESULT_OK;
-    }
-    conn->write_closing = 1;
-    return S2N_RESULT_OK;
-}
-
 int s2n_error_get_alert(int error, uint8_t *alert)
 {
     int error_type = s2n_error_get_type(error);
@@ -245,64 +228,25 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
     return 0;
 }
 
-int s2n_queue_writer_close_alert_warning(struct s2n_connection *conn)
+static S2N_RESULT s2n_queue_reader_alert(struct s2n_connection *conn, s2n_tls_alert_code code)
 {
-    POSIX_ENSURE_REF(conn);
-
-    uint8_t alert[2];
-    alert[0] = S2N_TLS_ALERT_LEVEL_WARNING;
-    alert[1] = S2N_TLS_ALERT_CLOSE_NOTIFY;
-
-    struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, alert, sizeof(alert)));
-
-    /* If there is an alert pending, do nothing */
-    if (s2n_stuffer_data_available(&conn->writer_alert_out)) {
-        return S2N_SUCCESS;
+    RESULT_ENSURE_REF(conn);
+    if (!conn->reader_alert_out) {
+        conn->reader_alert_out = code;
     }
-
-    if (!s2n_alerts_supported(conn)) {
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD(s2n_stuffer_write(&conn->writer_alert_out, &out));
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_queue_reader_alert(struct s2n_connection *conn, uint8_t level, uint8_t error_code)
-{
-    POSIX_ENSURE_REF(conn);
-
-    uint8_t alert[2];
-    alert[0] = level;
-    alert[1] = error_code;
-
-    struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, alert, sizeof(alert)));
-
-    /* If there is an alert pending, do nothing */
-    if (s2n_stuffer_data_available(&conn->reader_alert_out)) {
-        return S2N_SUCCESS;
-    }
-
-    if (!s2n_alerts_supported(conn)) {
-        return S2N_SUCCESS;
-    }
-
-    POSIX_GUARD(s2n_stuffer_write(&conn->reader_alert_out, &out));
-
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 int s2n_queue_reader_unsupported_protocol_version_alert(struct s2n_connection *conn)
 {
-    return s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_PROTOCOL_VERSION);
+    POSIX_GUARD_RESULT(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_PROTOCOL_VERSION));
+    return S2N_SUCCESS;
 }
 
 int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
 {
-    return s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+    POSIX_GUARD_RESULT(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
+    return S2N_SUCCESS;
 }
 
 S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
@@ -315,10 +259,62 @@ S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
      *# handshake_failure alert.
      **/
     if (s2n_connection_get_protocol_version(conn) == S2N_SSLv3) {
-        RESULT_GUARD_POSIX(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_FATAL, S2N_TLS_ALERT_HANDSHAKE_FAILURE));
+        RESULT_GUARD_POSIX(s2n_queue_reader_handshake_failure_alert(conn));
+        RESULT_BAIL(S2N_ERR_BAD_MESSAGE);
+    }
+
+    if (!conn->reader_warning_out) {
+        conn->reader_warning_out = S2N_TLS_ALERT_NO_RENEGOTIATION;
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn)
+{
+    if (!s2n_alerts_supported(conn)) {
         return S2N_RESULT_OK;
     }
 
-    RESULT_GUARD_POSIX(s2n_queue_reader_alert(conn, S2N_TLS_ALERT_LEVEL_WARNING, S2N_TLS_ALERT_NO_RENEGOTIATION));
+    /* By default, s2n-tls sends a generic close_notify alert, even in
+     * response to fatal errors.
+     */
+    uint8_t code = S2N_TLS_ALERT_CLOSE_NOTIFY;
+    uint8_t level = S2N_TLS_ALERT_LEVEL_WARNING;
+
+    /* s2n-tls sends a very small subset of more specific error alerts.
+     * Since either the reader or the writer can produce one of these alerts,
+     * but only a single alert can be reported, we prioritize writer alerts.
+     */
+    if (conn->writer_alert_out) {
+        code = conn->writer_alert_out;
+        level = S2N_TLS_ALERT_LEVEL_FATAL;
+    } else if (conn->reader_alert_out) {
+        code = conn->reader_alert_out;
+        level = S2N_TLS_ALERT_LEVEL_FATAL;
+    }
+
+    struct s2n_blob alert = { 0 };
+    uint8_t alert_bytes[] = { level, code };
+    RESULT_GUARD_POSIX(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
+
+    RESULT_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
+    conn->alert_sent = true;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_alerts_write_warning(struct s2n_connection *conn)
+{
+    if (!s2n_alerts_supported(conn)) {
+        return S2N_RESULT_OK;
+    }
+
+    uint8_t code = conn->reader_warning_out;
+    uint8_t level = S2N_TLS_ALERT_LEVEL_WARNING;
+
+    struct s2n_blob alert = { 0 };
+    uint8_t alert_bytes[] = { level, code };
+    RESULT_GUARD_POSIX(s2n_blob_init(&alert, alert_bytes, sizeof(alert_bytes)));
+
+    RESULT_GUARD(s2n_record_write(conn, TLS_ALERT, &alert));
     return S2N_RESULT_OK;
 }

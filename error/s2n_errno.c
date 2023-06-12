@@ -138,6 +138,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_HASH_INVALID_ALGORITHM, "invalid hash algorithm") \
     ERR_ENTRY(S2N_ERR_PRF_INVALID_ALGORITHM, "invalid prf hash algorithm") \
     ERR_ENTRY(S2N_ERR_PRF_INVALID_SEED, "invalid prf seeds provided") \
+    ERR_ENTRY(S2N_ERR_PRF_DERIVE, "error deriving a secret from the PRF") \
     ERR_ENTRY(S2N_ERR_P_HASH_INVALID_ALGORITHM, "invalid p_hash algorithm") \
     ERR_ENTRY(S2N_ERR_P_HASH_INIT_FAILED, "error initializing p_hash") \
     ERR_ENTRY(S2N_ERR_P_HASH_UPDATE_FAILED, "error updating p_hash") \
@@ -145,6 +146,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_P_HASH_WIPE_FAILED, "error wiping p_hash") \
     ERR_ENTRY(S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm") \
     ERR_ENTRY(S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size") \
+    ERR_ENTRY(S2N_ERR_HKDF, "error generating HKDF output") \
     ERR_ENTRY(S2N_ERR_ALERT_PRESENT, "TLS alert is already pending") \
     ERR_ENTRY(S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered") \
     ERR_ENTRY(S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused") \

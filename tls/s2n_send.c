@@ -80,15 +80,12 @@ bool s2n_should_flush(struct s2n_connection *conn, ssize_t total_message_size)
 
 int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
-    int w;
-
     *blocked = S2N_BLOCKED_ON_WRITE;
 
     /* Write any data that's already pending */
-WRITE:
     while (s2n_stuffer_data_available(&conn->out)) {
         errno = 0;
-        w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
+        int w = s2n_connection_send_stuffer(&conn->out, conn, s2n_stuffer_data_available(&conn->out));
         if (w < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
                 POSIX_BAIL(S2N_ERR_IO_BLOCKED);
@@ -97,40 +94,15 @@ WRITE:
         }
         conn->wire_bytes_out += w;
     }
-
-    if (conn->write_closing) {
-        conn->write_closed = 1;
-    }
     POSIX_GUARD(s2n_stuffer_rewrite(&conn->out));
 
-    /* If there's an alert pending out, send that */
-    if (s2n_stuffer_data_available(&conn->reader_alert_out) == 2) {
-        struct s2n_blob alert = { 0 };
-        alert.data = conn->reader_alert_out.blob.data;
-        alert.size = 2;
-        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
-        POSIX_GUARD(s2n_stuffer_rewrite(&conn->reader_alert_out));
-        POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
-
-        /* Actually write it ... */
-        goto WRITE;
-    }
-
-    /* Do the same for writer driven alerts */
-    if (s2n_stuffer_data_available(&conn->writer_alert_out) == 2) {
-        struct s2n_blob alert = { 0 };
-        alert.data = conn->writer_alert_out.blob.data;
-        alert.size = 2;
-        POSIX_GUARD_RESULT(s2n_record_write(conn, TLS_ALERT, &alert));
-        POSIX_GUARD(s2n_stuffer_rewrite(&conn->writer_alert_out));
-        POSIX_GUARD_RESULT(s2n_alerts_close_if_fatal(conn, &alert));
-
-        /* Actually write it ... */
-        goto WRITE;
+    if (conn->reader_warning_out) {
+        POSIX_GUARD_RESULT(s2n_alerts_write_warning(conn));
+        conn->reader_warning_out = 0;
+        POSIX_GUARD(s2n_flush(conn, blocked));
     }
 
     *blocked = S2N_NOT_BLOCKED;
-
     return 0;
 }
 

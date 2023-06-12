@@ -2,7 +2,7 @@ diff --git a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.c b/tests/sidetrail
 index 3405781..3beeacf 100644
 --- a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.c
 +++ b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.c
-@@ -26,6 +26,9 @@
+@@ -28,6 +28,9 @@
  #include "utils/s2n_blob.h"
  #include "utils/s2n_mem.h"
 
@@ -12,7 +12,7 @@ index 3405781..3beeacf 100644
  #include <stdint.h>
 
  int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
-@@ -268,7 +271,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
+@@ -270,7 +273,7 @@ int s2n_hmac_update(struct s2n_hmac_state *state, const void *in, uint32_t size)
       */
      const uint32_t HIGHEST_32_BIT = 4294949760;
      POSIX_ENSURE(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
@@ -21,18 +21,18 @@ index 3405781..3beeacf 100644
      POSIX_GUARD(s2n_add_overflow(state->currently_in_hash_block, value, &state->currently_in_hash_block));
      state->currently_in_hash_block %= state->hash_block_size;
 
-@@ -361,8 +364,8 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -363,8 +366,8 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
      POSIX_GUARD(s2n_hash_copy(&to->outer_just_key, &from->outer_just_key));
 
 
 -    POSIX_CHECKED_MEMCPY(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
 -    POSIX_CHECKED_MEMCPY(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
-+    //memcpy_check(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
-+    //memcpy_check(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
++    //POSIX_CHECKED_MEMCPY(to->xor_pad, from->xor_pad, sizeof(to->xor_pad));
++    //POSIX_CHECKED_MEMCPY(to->digest_pad, from->digest_pad, sizeof(to->digest_pad));
      POSIX_POSTCONDITION(s2n_hmac_state_validate(to));
      POSIX_POSTCONDITION(s2n_hmac_state_validate(from));
      return S2N_SUCCESS;
-@@ -372,25 +375,25 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -374,28 +377,28 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
  /* Preserve the handlers for hmac state pointers to avoid re-allocation
   * Only valid if the HMAC is in EVP mode
   */
@@ -80,11 +80,14 @@ index 3405781..3beeacf 100644
 +//     POSIX_POSTCONDITION(s2n_hmac_state_validate(hmac));
 +//     return S2N_SUCCESS;
 +// }
+
+ S2N_RESULT s2n_hmac_md_from_alg(s2n_hmac_algorithm alg, const EVP_MD **md)
+ {
 diff --git a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h
 index 7af7e61..e6382ce 100644
 --- a/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h
 +++ b/tests/sidetrail/working/s2n-cbc/crypto/s2n_hmac.h
-@@ -52,12 +52,12 @@ struct s2n_hmac_state {
+@@ -53,12 +53,12 @@ struct s2n_hmac_state {
      uint8_t digest_pad[SHA512_DIGEST_LENGTH];
  };
 
@@ -103,7 +106,7 @@ index 7af7e61..e6382ce 100644
 
  int s2n_hmac_digest_size(s2n_hmac_algorithm alg, uint8_t *out);
  bool s2n_hmac_is_available(s2n_hmac_algorithm alg);
-@@ -72,5 +72,5 @@ int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);
+@@ -75,7 +75,7 @@ int s2n_hmac_digest_verify(const void *a, const void *b, uint32_t len);
  int s2n_hmac_free(struct s2n_hmac_state *state);
  int s2n_hmac_reset(struct s2n_hmac_state *state);
  int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from);
@@ -111,3 +114,5 @@ index 7af7e61..e6382ce 100644
 -int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
 +//int s2n_hmac_save_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
 +//int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s2n_hmac_state* hmac);
+
+ S2N_RESULT s2n_hmac_md_from_alg(s2n_hmac_algorithm alg, const EVP_MD **md);

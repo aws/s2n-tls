@@ -167,16 +167,22 @@ class S2N(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        # Disable chacha20 tests in unsupported libcryptos
-        if any([
-            libcrypto in get_flag(S2N_PROVIDER_VERSION)
-            for libcrypto in [
-                "openssl-1.0.2",
-                "libressl"
-            ]
-        ]) and "CHACHA20" in cipher.name:
-            return False
+        # Disable chacha20 and RC4 tests in libcryptos that don't support those
+        # algorithms
+        unsupported_configurations = {
+            "CHACHA20": ["openssl-1.0.2", "libressl"],
+            "RC4": ["openssl-3"],
+        }
 
+        for unsupported_cipher, unsupported_libcryptos in unsupported_configurations.items():
+            # the queried cipher has some libcrypto's that don't support it
+            # e.g. "RC4" in "TLS_ECDHE_RSA_WITH_RC4_128_SHA"
+            if unsupported_cipher in cipher.name:
+                current_libcrypto = get_flag(S2N_PROVIDER_VERSION)
+                for lc in unsupported_libcryptos:
+                    # e.g. "openssl-3" in "openssl-3.0.7"
+                    if lc in current_libcrypto:
+                        return False
         return True
 
     @classmethod
