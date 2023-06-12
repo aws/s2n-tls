@@ -187,6 +187,11 @@ int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blo
 {
     POSIX_ENSURE_REF(conn);
 
+    /* Currently, we only support TLS1.3 post-handshake messages. */
+    if (conn->actual_protocol_version < S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
+
     POSIX_GUARD_RESULT(s2n_post_handshake_write_records(conn, blocked));
 
     POSIX_GUARD(s2n_key_update_send(conn, blocked));

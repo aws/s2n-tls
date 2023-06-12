@@ -24,8 +24,11 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_handshake.h"
+
+int s2n_key_update_write(struct s2n_blob *out);
 
 static int s2n_test_init_encryption(struct s2n_connection *conn)
 {
@@ -136,6 +139,7 @@ int main(int argc, char **argv)
         struct s2n_connection *server_conn;
         struct s2n_config *server_config;
         struct s2n_cert_chain_and_key *chain_and_key;
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
         struct s2n_config *client_config;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -165,16 +169,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* Force Client to send a TLS 1.3 KeyUpdate Message over TLS 1.2 connection */
-        client_conn->key_update_pending = 1;
-        s2n_blocked_status blocked = 0;
-        EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
-
-        /* Next message sent will trigger key update message */
-        char client_message[] = "client message";
-        EXPECT_SUCCESS(s2n_send(client_conn, client_message, sizeof(client_message), &blocked));
+        uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE] = { 0 };
+        struct s2n_blob key_update_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+        EXPECT_SUCCESS(s2n_key_update_write(&key_update_blob));
+        EXPECT_OK(s2n_record_write(client_conn, TLS_HANDSHAKE, &key_update_blob));
+        EXPECT_SUCCESS(s2n_flush(client_conn, &blocked));
 
         /* Attempt to recv on Server conn, see KeyUpdate Message, and confirm connection is closed. */
         uint8_t server_message[128];
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, server_message, sizeof(server_message), &blocked), S2N_ERR_BAD_MESSAGE);
 
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

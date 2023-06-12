@@ -96,37 +96,6 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
     return 0;
 }
 
-static S2N_RESULT s2n_md_from_hmac_alg(s2n_hmac_algorithm alg, const EVP_MD **md)
-{
-    RESULT_ENSURE_REF(md);
-
-    switch (alg) {
-        case S2N_HMAC_SSLv3_MD5:
-        case S2N_HMAC_MD5:
-            *md = EVP_md5();
-            break;
-        case S2N_HMAC_SSLv3_SHA1:
-        case S2N_HMAC_SHA1:
-            *md = EVP_sha1();
-            break;
-        case S2N_HMAC_SHA224:
-            *md = EVP_sha224();
-            break;
-        case S2N_HMAC_SHA256:
-            *md = EVP_sha256();
-            break;
-        case S2N_HMAC_SHA384:
-            *md = EVP_sha384();
-            break;
-        case S2N_HMAC_SHA512:
-            *md = EVP_sha512();
-            break;
-        default:
-            RESULT_BAIL(S2N_ERR_P_HASH_INVALID_ALGORITHM);
-    }
-    return S2N_RESULT_OK;
-}
-
 #if !defined(OPENSSL_IS_BORINGSSL) && !defined(OPENSSL_IS_AWSLC)
 static int s2n_evp_pkey_p_hash_alloc(struct s2n_prf_working_space *ws)
 {
@@ -154,7 +123,7 @@ static int s2n_evp_pkey_p_hash_digest_init(struct s2n_prf_working_space *ws)
 static int s2n_evp_pkey_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
 {
     /* Initialize the message digest */
-    POSIX_GUARD_RESULT(s2n_md_from_hmac_alg(alg, &ws->p_hash.evp_hmac.evp_digest.md));
+    POSIX_GUARD_RESULT(s2n_hmac_md_from_alg(alg, &ws->p_hash.evp_hmac.evp_digest.md));
 
     /* Initialize the mac key using the provided secret */
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.evp_pkey = EVP_PKEY_new_mac_key(EVP_PKEY_HMAC, NULL, secret->data, secret->size));
@@ -242,7 +211,7 @@ static int s2n_evp_hmac_p_hash_alloc(struct s2n_prf_working_space *ws)
 static int s2n_evp_hmac_p_hash_init(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret)
 {
     /* Figure out the correct EVP_MD from s2n_hmac_algorithm  */
-    POSIX_GUARD_RESULT(s2n_md_from_hmac_alg(alg, &ws->p_hash.evp_hmac.evp_digest.md));
+    POSIX_GUARD_RESULT(s2n_hmac_md_from_alg(alg, &ws->p_hash.evp_hmac.evp_digest.md));
 
     /* Initialize the mac and digest */
     POSIX_GUARD_OSSL(HMAC_Init_ex(ws->p_hash.evp_hmac.ctx.hmac_ctx, secret->data, secret->size, ws->p_hash.evp_hmac.evp_digest.md, NULL), S2N_ERR_P_HASH_INIT_FAILED);
@@ -524,7 +493,7 @@ S2N_RESULT s2n_libcrypto_prf(struct s2n_connection *conn, struct s2n_blob *secre
          */
         digest = EVP_md5_sha1();
     } else {
-        RESULT_GUARD(s2n_md_from_hmac_alg(conn->secure->cipher_suite->prf_alg, &digest));
+        RESULT_GUARD(s2n_hmac_md_from_alg(conn->secure->cipher_suite->prf_alg, &digest));
     }
     RESULT_ENSURE_REF(digest);
 

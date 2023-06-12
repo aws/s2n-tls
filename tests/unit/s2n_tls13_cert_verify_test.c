@@ -80,6 +80,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         sending_conn->handshake_params.conn_sig_scheme = sig_scheme;
         sending_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
         sending_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        sending_conn->actual_protocol_version = S2N_TLS13;
 
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
@@ -301,6 +302,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
         verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+        verifying_conn->actual_protocol_version = S2N_TLS13;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
