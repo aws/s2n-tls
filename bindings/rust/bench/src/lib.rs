@@ -1,8 +1,22 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 pub mod harness;
 pub mod s2n_tls;
-pub use crate::{harness::TlsImpl, s2n_tls::S2nTls};
-pub use harness::read_to_bytes;
+pub use crate::{harness::TlsBenchHarness, s2n_tls::S2nTls};
 
-const SERVER_KEY_PATH: &str = "src/certs/server-key.pem";
-const SERVER_CERT_CHAIN_PATH: &str = "src/certs/fullchain.pem";
-const CA_CERT_PATH: &str = "src/certs/ca-cert.pem";
+const SERVER_KEY_PATH: &str = "certs/server-key.pem";
+const SERVER_CERT_CHAIN_PATH: &str = "certs/fullchain.pem";
+const CA_CERT_PATH: &str = "certs/ca-cert.pem";
+
+#[cfg(test)]
+mod tests {
+    use std::path::Path;
+
+    #[test]
+    fn cert_paths_valid() {
+        assert!(Path::new(crate::SERVER_KEY_PATH).exists());
+        assert!(Path::new(crate::SERVER_CERT_CHAIN_PATH).exists());
+        assert!(Path::new(crate::CA_CERT_PATH).exists());
+    }
+}

@@ -1,8 +1,11 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::{
-    harness::{Buffer, Mode, TlsImpl},
-    read_to_bytes, CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    harness::{read_to_bytes, Mode, TlsBenchHarness},
+    CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
-use log::info;
+use log::debug;
 use s2n_tls::{
     callbacks::VerifyHostNameCallback,
     config::{Builder, Config},
@@ -11,6 +14,7 @@ use s2n_tls::{
     security::DEFAULT_TLS13,
 };
 use std::{
+    collections::VecDeque,
     ffi::c_void,
     io::{Read, Write},
     os::raw::c_int,
@@ -19,47 +23,46 @@ use std::{
 };
 
 pub struct S2nTls {
-    c_to_s_buf: Pin<Box<Buffer>>, // need Pin to make sure C pointer to Buffer doesn't move
-    s_to_c_buf: Pin<Box<Buffer>>, // Buffer used in custom IO as context
-    c_config: Config,
-    s_config: Config,
-    c_conn: Connection,
-    s_conn: Connection,
-    c_handshaked: bool,
-    s_handshaked: bool,
+    client_to_server_buf: Pin<Box<VecDeque<u8>>>, // Pinned pointer to a VecDeque to pass as C pointer for custom IO
+    server_to_client_buf: Pin<Box<VecDeque<u8>>>,
+    client_config: Config,
+    server_config: Config,
+    client_conn: Connection,
+    server_conn: Connection,
+    client_handshaked: bool,
+    server_handshaked: bool,
 }
 
 /// Custom callback for verifying hostnames, need it to use s2n-tls safely
 struct HostNameHandler<'a> {
-    hostname: &'a str,
+    expected_server_name: &'a str,
 }
 impl VerifyHostNameCallback for HostNameHandler<'_> {
     fn verify_host_name(&self, hostname: &str) -> bool {
-        self.hostname == hostname
+        self.expected_server_name == hostname
     }
 }
 
 impl S2nTls {
     /// Unsafe callback for custom IO C API
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut Buffer);
+        let context = &mut *(context as *mut VecDeque<u8>);
         let data = core::slice::from_raw_parts(data, len as _);
-        let ans = context.write(data).unwrap() as _;
-        ans
+        context.write(data).unwrap() as _
     }
 
     /// Unsafe callback for custom IO C API
     unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut Buffer);
-        let mut data = core::slice::from_raw_parts_mut(data, len as _);
+        let context = &mut *(context as *mut VecDeque<u8>);
+        let data = core::slice::from_raw_parts_mut(data, len as _);
         context.flush().unwrap();
-        let len = context.read(&mut data).unwrap();
+        let len = context.read(data).unwrap();
         if len == 0 {
-            info!("\t[blocking]");
+            debug!("\t[blocking]");
             errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
             -1
         } else {
-            info!("\t- received {len}");
+            debug!("\t- received {len}");
             len as _
         }
     }
@@ -79,7 +82,7 @@ impl S2nTls {
                 .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())
                 .unwrap()
                 .set_verify_host_callback(HostNameHandler {
-                    hostname: "localhost",
+                    expected_server_name: "localhost",
                 })
                 .unwrap(),
         };
@@ -88,40 +91,38 @@ impl S2nTls {
     }
 
     /// Set up connections with config and custom IO
-    fn init_conn(&mut self, mode: Mode) {
-        let c_to_s_ptr = &mut self.c_to_s_buf as &mut Buffer as *mut Buffer as *mut c_void;
-        let s_to_c_ptr = &mut self.s_to_c_buf as &mut Buffer as *mut Buffer as *mut c_void;
+    fn init_conn(&mut self, mode: Mode) -> Result<(), s2n_tls::error::Error> {
+        let client_to_server_ptr =
+            &mut self.client_to_server_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
+        let server_to_client_ptr =
+            &mut self.server_to_client_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
         let (read_ptr, write_ptr, config, conn);
 
         match mode {
             Mode::Client => {
-                read_ptr = s_to_c_ptr;
-                write_ptr = c_to_s_ptr;
-                config = &self.c_config;
-                conn = &mut self.c_conn;
+                read_ptr = server_to_client_ptr;
+                write_ptr = client_to_server_ptr;
+                config = &self.client_config;
+                conn = &mut self.client_conn;
             }
             Mode::Server => {
-                read_ptr = c_to_s_ptr;
-                write_ptr = s_to_c_ptr;
-                config = &self.s_config;
-                conn = &mut self.s_conn;
+                read_ptr = client_to_server_ptr;
+                write_ptr = server_to_client_ptr;
+                config = &self.server_config;
+                conn = &mut self.server_conn;
             }
         }
 
-        conn.set_blinding(Blinding::SelfService) // no blinding so benchmark time is accurate
-            .unwrap()
-            .set_config(config.clone())
-            .unwrap()
-            .set_send_callback(Some(Self::send_cb))
-            .unwrap()
-            .set_receive_callback(Some(Self::recv_cb))
-            .unwrap();
+        conn.set_blinding(Blinding::SelfService)?
+            .set_config(config.clone())?
+            .set_send_callback(Some(Self::send_cb))?
+            .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
-            conn.set_send_context(write_ptr)
-                .unwrap()
-                .set_receive_context(read_ptr)
-                .unwrap();
+            conn.set_send_context(write_ptr)?
+                .set_receive_context(read_ptr)?;
         }
+
+        Ok(())
     }
 
     /// Handshake step for one connection
@@ -129,14 +130,14 @@ impl S2nTls {
         let (conn, handshaked);
         match mode {
             Mode::Client => {
-                info!("Client: ");
-                conn = &mut self.c_conn;
-                handshaked = &mut self.c_handshaked;
+                debug!("Client: ");
+                conn = &mut self.client_conn;
+                handshaked = &mut self.client_handshaked;
             }
             Mode::Server => {
-                info!("Server: ");
-                conn = &mut self.s_conn;
-                handshaked = &mut self.s_handshaked;
+                debug!("Server: ");
+                conn = &mut self.server_conn;
+                handshaked = &mut self.server_handshaked;
             }
         }
         if let Ready(res) = conn.poll_negotiate() {
@@ -148,37 +149,58 @@ impl S2nTls {
     }
 }
 
-impl TlsImpl for S2nTls {
+impl TlsBenchHarness for S2nTls {
     fn new() -> Self {
+        debug!("----- s2n-tls -----");
         let mut new_struct = S2nTls {
-            c_to_s_buf: Box::pin(Buffer::new()),
-            s_to_c_buf: Box::pin(Buffer::new()),
-            c_config: Self::create_config(Mode::Client),
-            s_config: Self::create_config(Mode::Server),
-            c_conn: Connection::new_client(),
-            s_conn: Connection::new_server(),
-            c_handshaked: false,
-            s_handshaked: false,
+            client_to_server_buf: Box::pin(VecDeque::new()),
+            server_to_client_buf: Box::pin(VecDeque::new()),
+            client_config: Self::create_config(Mode::Client),
+            server_config: Self::create_config(Mode::Server),
+            client_conn: Connection::new_client(),
+            server_conn: Connection::new_server(),
+            client_handshaked: false,
+            server_handshaked: false,
         };
-        new_struct.init_conn(Mode::Client);
-        new_struct.init_conn(Mode::Server);
+        new_struct.init_conn(Mode::Client).unwrap();
+        new_struct.init_conn(Mode::Server).unwrap();
         new_struct
     }
 
-
-
     fn handshake(&mut self) {
-        // set limit on round trips
-        let mut iter_remaining = 10;
-        while !self.has_handshaked() && iter_remaining > 0 {
+        if self.has_handshaked() {
+            return;
+        }
+        debug!("HANDSHAKE");
+        let mut round_trips = 2; // expect two round trips, second for server to see Finished message
+        while !self.has_handshaked() && round_trips > 0 {
             self.handshake_conn(Mode::Client);
             self.handshake_conn(Mode::Server);
-            iter_remaining -= 1;
+            round_trips -= 1;
         }
+        debug!("HANDSHAKE DONE\n");
     }
 
-
     fn has_handshaked(&self) -> bool {
-        self.c_handshaked && self.s_handshaked
+        self.client_handshaked && self.server_handshaked
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::TlsBenchHarness;
+
+    #[test]
+    fn s2n_tls_create_object() {
+        super::S2nTls::new();
+    }
+
+    #[test]
+    fn s2n_tls_handshake_successful() {
+        let mut s2n_tls_harness = super::S2nTls::new();
+        assert!(!s2n_tls_harness.has_handshaked());
+        s2n_tls_harness.handshake();
+        assert!(s2n_tls_harness.has_handshaked());
+        s2n_tls_harness.handshake(); // make sure doesn't panic
     }
 }

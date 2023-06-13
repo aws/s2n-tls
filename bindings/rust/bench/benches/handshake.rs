@@ -1,10 +1,11 @@
-use bench::{S2nTls, TlsImpl};
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+use bench::{S2nTls, TlsBenchHarness};
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("handshake");
-
-    // SmallInput: inputs of `TlsImpl::new()` are sufficiently small to pregenerate and store in memory
 
     group.bench_function("s2n-tls", |b| {
         b.iter_batched_ref(
@@ -12,7 +13,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
             |s2n_tls| {
                 s2n_tls.handshake();
             },
-            BatchSize::SmallInput,
+            BatchSize::SmallInput, // pregenerates batch of inputs to pass to function being benchmarked
         )
     });
 }

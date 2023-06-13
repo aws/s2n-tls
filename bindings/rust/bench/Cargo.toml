@@ -6,12 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-s2n-tls = { version = "=0.0.32", path = "../s2n-tls", features = [ "testing" ] }
-errno = "0.3.1"
+s2n-tls = { path = "../s2n-tls" }
+errno = "0.3"
 libc = "0.2"
 criterion = "0.3"
-log = { version = "0.4.19", features = [ "release_max_level_off", "max_level_info" ] }
-simple_logger = "4.2.0"
+log = { version = "0.4", features = [ "release_max_level_off", "max_level_info" ] }
 
 [[bench]]
 name = "handshake"
