@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             /* Send a KeyUpdate message */
-            client_conn->key_update_pending = true;
+            client_conn->key_update_pending = 1;
             EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
             EXPECT_FALSE(client_conn->key_update_pending);
 

@@ -223,7 +223,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
-            client_conn->key_update_pending = true;
+            client_conn->key_update_pending = 1;
 
             s2n_blocked_status blocked = 0;
             EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Key update both pending and required by record limit */
-            conn->key_update_pending = true;
+            conn->key_update_pending = 1;
             EXPECT_OK(s2n_write_uint64(record_limit, conn->secure->client_sequence_number));
 
             s2n_blocked_status blocked = 0;
@@ -514,7 +514,7 @@ int main(int argc, char **argv)
             /* Sanity check: send buffer just large enough for KeyUpdate record */
             config->send_buffer_size_override = key_update_record_size;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            conn->key_update_pending = true;
+            conn->key_update_pending = 1;
             EXPECT_SUCCESS(s2n_key_update_send(conn, &blocked));
 
             EXPECT_SUCCESS(s2n_connection_release_buffers(conn));
@@ -522,7 +522,7 @@ int main(int argc, char **argv)
             /* Test: send buffer too small for KeyUpdate record */
             config->send_buffer_size_override = key_update_record_size - 1;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            conn->key_update_pending = true;
+            conn->key_update_pending = 1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_send(conn, &blocked), S2N_ERR_FRAGMENT_LENGTH_TOO_LARGE);
         };
     };

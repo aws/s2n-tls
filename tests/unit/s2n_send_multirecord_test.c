@@ -402,7 +402,7 @@ int main(int argc, char **argv)
             struct s2n_send_context context = context_all_ok;
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-            conn->key_update_pending = true;
+            conn->key_update_pending = 1;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
             EXPECT_FALSE(conn->key_update_pending);
             key_update_size = context.bytes_sent;
@@ -512,7 +512,7 @@ int main(int argc, char **argv)
             struct s2n_send_context context = context_all_ok;
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-            conn->key_update_pending = true;
+            conn->key_update_pending = 1;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
             EXPECT_FALSE(conn->key_update_pending);
             key_update_size = context.bytes_sent;

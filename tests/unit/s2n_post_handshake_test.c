@@ -189,7 +189,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
 
             conn->actual_protocol_version = S2N_TLS13;
-            conn->key_update_pending = true;
+            conn->key_update_pending = 1;
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_set_secrets(conn));
 
             conn->actual_protocol_version = S2N_TLS12;
-            conn->key_update_pending = true;
+            conn->key_update_pending = 1;
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
