@@ -38,6 +38,6 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
-      - LLVM_PROFILE_FILE="ut_%p.profraw" CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test ARGS="--output-on-failure -L unit"
+      - LLVM_PROFILE_FILE="ut_%p.profraw" CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test ARGS="-L unit"
       - $CB_BIN_DIR/coverage_report.sh
       - $CB_BIN_DIR/coverage_upload.sh

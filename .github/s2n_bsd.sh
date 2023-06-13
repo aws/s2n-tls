@@ -13,7 +13,6 @@
 # permissions and limitations under the License.
 #
 set -eu
-export CTEST_OUTPUT_ON_FAILURE=1
 
 # FreeBSD and OpenBSD have different ways of getting CPU count
 # see https://serverfault.com/questions/203207/how-do-i-count-the-number-of-processors-on-an-openbsd-system

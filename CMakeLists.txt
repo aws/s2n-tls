@@ -535,7 +535,8 @@ if (BUILD_TESTING)
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
-        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> --output-on-failure
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
         set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
         set_property(TEST ${test_case_name} PROPERTY ENVIRONMENT ${UNIT_TEST_ENVS})
 

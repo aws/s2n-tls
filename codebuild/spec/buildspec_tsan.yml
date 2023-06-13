@@ -22,4 +22,4 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
-      - CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
+      - CTEST_PARALLEL_LEVEL=$(nproc) make -C build test

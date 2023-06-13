@@ -106,8 +106,8 @@ run_integration_v2_tests() {
     cd ./build/
     for test_name in $TOX_TEST_NAME; do
       test="${test_name//test_/}"
-      echo "Running... ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$"
-      ctest --no-tests=error --output-on-failure --verbose -R ^integrationv2_${test}$
+      echo "Running... ctest --no-tests=error --verbose -R ^integrationv2_${test}$"
+      ctest --no-tests=error --verbose -R ^integrationv2_${test}$
     done
 }
 
@@ -120,7 +120,7 @@ run_unit_tests() {
             -DEXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS=on
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc
-    cmake --build build/ --target test -- ARGS="-L unit --output-on-failure -j $(nproc)"
+    cmake --build build/ --target test -- ARGS="-L unit -j $(nproc)"
 }
 
 # Run Multiple tests on one flag.
