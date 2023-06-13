@@ -16,9 +16,8 @@ version: 0.2
 # This buildspec runs on an Ubuntu22 image. That configuration is a property of
 # the codebuild job itself.
 
-# codebuild's matrix jobs have non-differentiated names, and codebuild has a
-# limited story around rate-limiting, so use batch-list (which runs
-# sequentially) instead.
+# Codebuild's matrix jobs have non-differentiated names so use batch-list
+# instead.
 batch:
   build-list:
     # awslc is the happy path libcrypto for s2n-tls
