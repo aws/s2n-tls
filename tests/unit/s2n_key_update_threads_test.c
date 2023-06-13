@@ -13,22 +13,21 @@
  * permissions and limitations under the License.
  */
 
-#include "testlib/s2n_examples.h"
-
 #include <pthread.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 
 #include "crypto/s2n_sequence.h"
 #include "s2n_test.h"
+#include "testlib/s2n_examples.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
 
-#define S2N_TEST_BUFFER_SIZE       1000
-#define S2N_TEST_ENCRYPTION_LIMIT  3
-#define S2N_TEST_KEY_UPDATE_COUNT  10
-#define S2N_TEST_RECORD_COUNT      (S2N_TEST_ENCRYPTION_LIMIT * S2N_TEST_KEY_UPDATE_COUNT)
-#define S2N_TEST_BYTES_TO_SEND     (S2N_DEFAULT_FRAGMENT_LENGTH * S2N_TEST_RECORD_COUNT)
+#define S2N_TEST_BUFFER_SIZE      1000
+#define S2N_TEST_ENCRYPTION_LIMIT 3
+#define S2N_TEST_KEY_UPDATE_COUNT 10
+#define S2N_TEST_RECORD_COUNT     (S2N_TEST_ENCRYPTION_LIMIT * S2N_TEST_KEY_UPDATE_COUNT)
+#define S2N_TEST_BYTES_TO_SEND    (S2N_DEFAULT_FRAGMENT_LENGTH * S2N_TEST_RECORD_COUNT)
 
 static void *s2n_send_random_data(void *arg)
 {
@@ -38,7 +37,7 @@ static void *s2n_send_random_data(void *arg)
 
     size_t bytes_to_send = S2N_TEST_BYTES_TO_SEND;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    while(bytes_to_send) {
+    while (bytes_to_send) {
         int r = s2n_send(conn, buffer, MIN(sizeof(buffer), bytes_to_send), &blocked);
         if (r >= 0) {
             bytes_to_send -= r;
@@ -58,7 +57,7 @@ static void *s2n_recv_random_data(void *arg)
 
     size_t bytes_to_read = S2N_TEST_BYTES_TO_SEND;
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    while(bytes_to_read) {
+    while (bytes_to_read) {
         int r = s2n_recv(conn, buffer, MIN(sizeof(buffer), bytes_to_read), &blocked);
         if (r >= 0) {
             bytes_to_read -= r;
