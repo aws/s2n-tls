@@ -14,25 +14,14 @@
  */
 
 #include "s2n_test.h"
-#include "testlib/s2n_testlib.h"
-#include "tls/s2n_ktls.h"
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
-    /* Default connection kTLS mode */
-    {
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(conn);
-        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(conn, &io_pair));
-
-        EXPECT_FALSE(conn->ktls_recv_enabled);
-        EXPECT_FALSE(conn->ktls_send_enabled);
-    };
-
+    fprintf(stderr, "\n>>> Output! <<<\n");
+    fprintf(stderr, "\n>>> Output! <<<\n");
+    fprintf(stderr, "\n>>> Output! <<<\n");
+    fprintf(stderr, "\n>>> Output! <<<\n");
+    FAIL_MSG("Test failed: should print this");
     END_TEST();
 }

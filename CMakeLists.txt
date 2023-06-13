@@ -504,6 +504,7 @@ if (BUILD_TESTING)
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
+    set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} CTEST_OUTPUT_ON_FAILURE=1)
     if(TSAN)
         set(TSAN_SUPPRESSIONS_FILE ${CMAKE_SOURCE_DIR}/tests/.tsan_suppressions)
         if(NOT EXISTS ${TSAN_SUPPRESSIONS_FILE})
@@ -535,8 +536,7 @@ if (BUILD_TESTING)
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
-        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> --output-on-failure
-            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> --output-on-failure WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
         set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
         set_property(TEST ${test_case_name} PROPERTY ENVIRONMENT ${UNIT_TEST_ENVS})
 
