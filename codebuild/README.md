@@ -28,7 +28,7 @@ Packages installed from the `apt` package manager can generally be found in `/us
 
 When the docker image is available locally, the structure can be easily examined by attaching an interactive terminal to the container with the following command
 ```
-docker -it SOMETHING
+docker run --entrypoint /bin/bash -it --privileged <image id>
 ```
 
 Then the `find` command can be used to look at the various artifacts that are available.
