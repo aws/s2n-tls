@@ -1,8 +1,6 @@
 pub mod harness;
-pub mod openssl;
-pub mod rustls;
 pub mod s2n_tls;
-pub use crate::{harness::TlsImpl, openssl::OpenSsl, rustls::Rustls, s2n_tls::S2nTls};
+pub use crate::{harness::TlsImpl, s2n_tls::S2nTls};
 pub use harness::read_to_bytes;
 
 const SERVER_KEY_PATH: &str = "src/certs/server-key.pem";

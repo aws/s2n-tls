@@ -87,6 +87,7 @@ impl S2nTls {
         builder.build().unwrap()
     }
 
+    /// Set up connections with config and custom IO
     fn init_conn(&mut self, mode: Mode) {
         let c_to_s_ptr = &mut self.c_to_s_buf as &mut Buffer as *mut Buffer as *mut c_void;
         let s_to_c_ptr = &mut self.s_to_c_buf as &mut Buffer as *mut Buffer as *mut c_void;
@@ -122,34 +123,8 @@ impl S2nTls {
                 .unwrap();
         }
     }
-}
 
-impl TlsImpl for S2nTls {
-    fn new() -> Self {
-        let mut new_struct = S2nTls {
-            c_to_s_buf: Box::pin(Buffer::new()),
-            s_to_c_buf: Box::pin(Buffer::new()),
-            c_config: Self::create_config(Mode::Client),
-            s_config: Self::create_config(Mode::Server),
-            c_conn: Connection::new_client(),
-            s_conn: Connection::new_server(),
-            c_handshaked: false,
-            s_handshaked: false,
-        };
-        new_struct.init_conn(Mode::Client);
-        new_struct.init_conn(Mode::Server);
-        new_struct
-    }
-
-    fn reinit(&mut self) {
-        self.c_to_s_buf.clear();
-        self.s_to_c_buf.clear();
-        self.c_conn = Connection::new_client();
-        self.s_conn = Connection::new_server();
-        self.init_conn(Mode::Client);
-        self.init_conn(Mode::Server);
-    }
-
+    /// Handshake step for one connection
     fn handshake_conn(&mut self, mode: Mode) {
         let (conn, handshaked);
         match mode {
@@ -171,39 +146,39 @@ impl TlsImpl for S2nTls {
             *handshaked = false;
         }
     }
+}
+
+impl TlsImpl for S2nTls {
+    fn new() -> Self {
+        let mut new_struct = S2nTls {
+            c_to_s_buf: Box::pin(Buffer::new()),
+            s_to_c_buf: Box::pin(Buffer::new()),
+            c_config: Self::create_config(Mode::Client),
+            s_config: Self::create_config(Mode::Server),
+            c_conn: Connection::new_client(),
+            s_conn: Connection::new_server(),
+            c_handshaked: false,
+            s_handshaked: false,
+        };
+        new_struct.init_conn(Mode::Client);
+        new_struct.init_conn(Mode::Server);
+        new_struct
+    }
+
+
+
+    fn handshake(&mut self) {
+        // set limit on round trips
+        let mut iter_remaining = 10;
+        while !self.has_handshaked() && iter_remaining > 0 {
+            self.handshake_conn(Mode::Client);
+            self.handshake_conn(Mode::Server);
+            iter_remaining -= 1;
+        }
+    }
+
 
     fn has_handshaked(&self) -> bool {
         self.c_handshaked && self.s_handshaked
-    }
-
-    fn bulk_transfer(&mut self, data: &mut [u8]) {
-        if !self.has_handshaked() {
-            self.handshake();
-        }
-        let mut offset = 0;
-        while offset < data.len() {
-            info!("Client:");
-            match self.c_conn.poll_send(&data[offset..]) {
-                Ready(Ok(write_len)) => {
-                    offset += write_len;
-                }
-                _ => {
-                    panic!("bad");
-                }
-            }
-        }
-
-        let mut offset = 0;
-        info!("Server:");
-        while offset < data.len() {
-            match self.s_conn.poll_recv(data) {
-                Ready(Ok(read_len)) => {
-                    offset += read_len;
-                }
-                _ => {
-                    panic!("bad");
-                }
-            }
-        }
     }
 }
