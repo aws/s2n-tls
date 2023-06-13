@@ -16,7 +16,6 @@
 set -eu
 source codebuild/bin/s2n_setup_env.sh
 
-export CTEST_OUTPUT_ON_FAILURE=1
 BREWINSTLLPATH=$(brew --prefix openssl@1.1)
 OPENSSL_1_1_1_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@1.1/1.1.1?"}"
 
