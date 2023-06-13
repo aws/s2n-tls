@@ -13,12 +13,16 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "s2n.h"
 
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
-
-extern const s2n_extension_type s2n_client_key_share_extension;
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_example_negotiate(struct s2n_connection *conn)
+{
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
+        if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+            fprintf(stderr, "Error: %s. %s\n", s2n_strerror(s2n_errno, NULL), s2n_strerror_debug(s2n_errno, NULL));
+            return -1;
+        }
+    }
+    return 0;
+}

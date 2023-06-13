@@ -107,7 +107,7 @@ def cmp_check(op):
 MACROS = {
     'BAIL(error)': dict(
         doc  = 'Sets the global `s2n_errno` to `error` and returns with an `{error}`',
-        impl = 'do {{ _S2N_ERROR((error)); return {error}; }} while (0)',
+        impl = 'do {{ _S2N_ERROR((error)); __S2N_ENSURE_CHECKED_RETURN({error}); }} while (0)',
         harness = '''
         static {ret} {bail}_harness()
         {{
@@ -588,7 +588,7 @@ MACROS = {
     ),
     'GUARD(result)': dict(
         doc  = 'Ensures `{is_ok}`, otherwise the function will return `{error}`',
-        impl = '__S2N_ENSURE({is_ok}, return {error})',
+        impl = '__S2N_ENSURE({is_ok}, __S2N_ENSURE_CHECKED_RETURN({error}))',
         harness = '''
         static {ret} {prefix}GUARD_harness({ret} result)
         {{
@@ -714,7 +714,7 @@ for context in CONTEXTS:
             if other == context:
                 continue;
 
-            impl = '__S2N_ENSURE({is_ok}, return {error})'
+            impl = '__S2N_ENSURE({is_ok}, __S2N_ENSURE_CHECKED_RETURN({error}))'
             args = {
                 'prefix': context['prefix'],
                 'suffix': other['suffix'],

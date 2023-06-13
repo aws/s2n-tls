@@ -396,3 +396,34 @@ int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s
     POSIX_POSTCONDITION(s2n_hmac_state_validate(hmac));
     return S2N_SUCCESS;
 }
+
+S2N_RESULT s2n_hmac_md_from_alg(s2n_hmac_algorithm alg, const EVP_MD **md)
+{
+    RESULT_ENSURE_REF(md);
+
+    switch (alg) {
+        case S2N_HMAC_SSLv3_MD5:
+        case S2N_HMAC_MD5:
+            *md = EVP_md5();
+            break;
+        case S2N_HMAC_SSLv3_SHA1:
+        case S2N_HMAC_SHA1:
+            *md = EVP_sha1();
+            break;
+        case S2N_HMAC_SHA224:
+            *md = EVP_sha224();
+            break;
+        case S2N_HMAC_SHA256:
+            *md = EVP_sha256();
+            break;
+        case S2N_HMAC_SHA384:
+            *md = EVP_sha384();
+            break;
+        case S2N_HMAC_SHA512:
+            *md = EVP_sha512();
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_P_HASH_INVALID_ALGORITHM);
+    }
+    return S2N_RESULT_OK;
+}
