@@ -30,6 +30,6 @@ cat server-cert.pem ca-cert.pem > fullchain.pem
 echo "cleaning up temporary files"
 rm server.csr
 rm client.csr
-# rm ca-key.pem
+rm ca-key.pem
 
 popd

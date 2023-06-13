@@ -10,6 +10,13 @@ s2n-tls = { version = "=0.0.32", path = "../s2n-tls", features = [ "testing" ] }
 rustls = "0.21.1"
 rustls-pemfile = "1.0.2"
 bytes = "1.4.0"
-openssl = { version = "0.10.54", features = [ "vendored" ] }
+openssl = { version = "0.10.54" }
 errno = "0.3.1"
 libc = "0.2"
+criterion = "0.3"
+log = { version = "0.4.19", features = [ "release_max_level_off", "max_level_info" ] }
+simple_logger = "4.2.0"
+
+[[bench]]
+name = "handshake"
+harness = false

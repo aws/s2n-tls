@@ -1,10 +1,13 @@
-use crate::TlsImpl;
-use crate::harness::Buffer;
+use crate::{
+    harness::{Buffer, Mode, TlsImpl},
+    read_to_bytes, CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+};
+use log::info;
 use s2n_tls::{
     callbacks::VerifyHostNameCallback,
     config::{Builder, Config},
     connection::Connection,
-    enums::{Blinding, Mode},
+    enums::Blinding,
     security::DEFAULT_TLS13,
 };
 use std::{
@@ -15,23 +18,19 @@ use std::{
     task::Poll::Ready,
 };
 
-// TODO: test if &mut [u8] autoimplements Read+Write
 pub struct S2nTls {
-    c_to_s_buf: Pin<Box<Buffer>>,
-    s_to_c_buf: Pin<Box<Buffer>>,
+    c_to_s_buf: Pin<Box<Buffer>>, // need Pin to make sure C pointer to Buffer doesn't move
+    s_to_c_buf: Pin<Box<Buffer>>, // Buffer used in custom IO as context
     c_config: Config,
     s_config: Config,
     c_conn: Connection,
-    s_conn: Connection
+    s_conn: Connection,
+    c_handshaked: bool,
+    s_handshaked: bool,
 }
 
-// TODO: use something other than Vec<u8> (BytesMut? VecDeque<Bytes>?)
-// TODO: change visibilities of functions
-// TODO: refactor to have common harness
-// TODO: add comments
-
-/// Custom callback for verifying hostnames, mandatory to use s2n-tls
-pub struct HostNameHandler<'a> {
+/// Custom callback for verifying hostnames, need it to use s2n-tls safely
+struct HostNameHandler<'a> {
     hostname: &'a str,
 }
 impl VerifyHostNameCallback for HostNameHandler<'_> {
@@ -40,55 +39,44 @@ impl VerifyHostNameCallback for HostNameHandler<'_> {
     }
 }
 
-impl S2nTls  {
+impl S2nTls {
+    /// Unsafe callback for custom IO C API
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
         let context = &mut *(context as *mut Buffer);
         let data = core::slice::from_raw_parts(data, len as _);
         let ans = context.write(data).unwrap() as _;
-        println!("sent {ans}");
         ans
     }
 
+    /// Unsafe callback for custom IO C API
     unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
         let context = &mut *(context as *mut Buffer);
         let mut data = core::slice::from_raw_parts_mut(data, len as _);
         context.flush().unwrap();
-        let ans = context.read(&mut data).unwrap() as _;
-        println!("received {ans}");
-        if ans == 0 {
+        let len = context.read(&mut data).unwrap();
+        if len == 0 {
+            info!("\t[blocking]");
             errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
             -1
         } else {
-            ans
+            info!("\t- received {len}");
+            len as _
         }
     }
 
-    fn get_root_cert() -> &'static [u8] {
-        include_bytes!("certs-quic/certs/ca-cert.pem")
-    }
-
-    fn get_cert_chain() -> &'static [u8] {
-        include_bytes!("certs-quic/certs/fullchain.pem")
-    }
-
-    fn get_server_key() -> &'static [u8] {
-        include_bytes!("certs-quic/certs/server-key.pem")
-    }
-
-    fn get_ptr(mc: &mut Buffer) -> *mut c_void {
-        mc as *mut Buffer as *mut c_void
-    }
-    
     fn create_config(mode: Mode) -> Config {
         let mut builder = Builder::new();
         builder.set_security_policy(&DEFAULT_TLS13).unwrap();
 
         match mode {
             Mode::Server => builder
-                .load_pem(Self::get_cert_chain(), Self::get_server_key())
+                .load_pem(
+                    read_to_bytes(SERVER_CERT_CHAIN_PATH).as_slice(),
+                    read_to_bytes(SERVER_KEY_PATH).as_slice(),
+                )
                 .unwrap(),
             Mode::Client => builder
-                .trust_pem(Self::get_root_cert())
+                .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())
                 .unwrap()
                 .set_verify_host_callback(HostNameHandler {
                     hostname: "localhost",
@@ -100,10 +88,10 @@ impl S2nTls  {
     }
 
     fn init_conn(&mut self, mode: Mode) {
-        let teset = &mut self.c_to_s_buf;
-        let c_to_s_ptr = Self::get_ptr(&mut self.c_to_s_buf);
-        let s_to_c_ptr = Self::get_ptr(&mut self.s_to_c_buf);
+        let c_to_s_ptr = &mut self.c_to_s_buf as &mut Buffer as *mut Buffer as *mut c_void;
+        let s_to_c_ptr = &mut self.s_to_c_buf as &mut Buffer as *mut Buffer as *mut c_void;
         let (read_ptr, write_ptr, config, conn);
+
         match mode {
             Mode::Client => {
                 read_ptr = s_to_c_ptr;
@@ -119,7 +107,7 @@ impl S2nTls  {
             }
         }
 
-        conn.set_blinding(Blinding::SelfService)
+        conn.set_blinding(Blinding::SelfService) // no blinding so benchmark time is accurate
             .unwrap()
             .set_config(config.clone())
             .unwrap()
@@ -145,33 +133,77 @@ impl TlsImpl for S2nTls {
             s_config: Self::create_config(Mode::Server),
             c_conn: Connection::new_client(),
             s_conn: Connection::new_server(),
+            c_handshaked: false,
+            s_handshaked: false,
         };
         new_struct.init_conn(Mode::Client);
         new_struct.init_conn(Mode::Server);
         new_struct
     }
 
-    fn handshake(&mut self) -> &mut Self {
-        let mut max_iter = 100;
-        let mut pending = true;
-        while max_iter > 0 && pending {
-            pending = false;
-            println!("Client:");
-            let client_res = self.s_conn.poll_negotiate();
-            if let Ready(res) = client_res {
-                res.unwrap();
-            } else {
-                pending = true;
+    fn reinit(&mut self) {
+        self.c_to_s_buf.clear();
+        self.s_to_c_buf.clear();
+        self.c_conn = Connection::new_client();
+        self.s_conn = Connection::new_server();
+        self.init_conn(Mode::Client);
+        self.init_conn(Mode::Server);
+    }
+
+    fn handshake_conn(&mut self, mode: Mode) {
+        let (conn, handshaked);
+        match mode {
+            Mode::Client => {
+                info!("Client: ");
+                conn = &mut self.c_conn;
+                handshaked = &mut self.c_handshaked;
             }
-            println!("Server:");
-            let server_res = self.c_conn.poll_negotiate();
-            if let Ready(res) = server_res {
-                res.unwrap();
-            } else {
-                pending = true;
+            Mode::Server => {
+                info!("Server: ");
+                conn = &mut self.s_conn;
+                handshaked = &mut self.s_handshaked;
             }
-            max_iter -= 1;
         }
-        self
+        if let Ready(res) = conn.poll_negotiate() {
+            res.unwrap();
+            *handshaked = true;
+        } else {
+            *handshaked = false;
+        }
+    }
+
+    fn has_handshaked(&self) -> bool {
+        self.c_handshaked && self.s_handshaked
+    }
+
+    fn bulk_transfer(&mut self, data: &mut [u8]) {
+        if !self.has_handshaked() {
+            self.handshake();
+        }
+        let mut offset = 0;
+        while offset < data.len() {
+            info!("Client:");
+            match self.c_conn.poll_send(&data[offset..]) {
+                Ready(Ok(write_len)) => {
+                    offset += write_len;
+                }
+                _ => {
+                    panic!("bad");
+                }
+            }
+        }
+
+        let mut offset = 0;
+        info!("Server:");
+        while offset < data.len() {
+            match self.s_conn.poll_recv(data) {
+                Ready(Ok(read_len)) => {
+                    offset += read_len;
+                }
+                _ => {
+                    panic!("bad");
+                }
+            }
+        }
     }
 }
