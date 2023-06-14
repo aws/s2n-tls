@@ -795,14 +795,6 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(NULL, S2N_IO_CLOSED));
             EXPECT_FALSE(s2n_connection_check_io_status(NULL, 10));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, 10));
-
-            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
-            conn->write_closed = 10;
-            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
-
-            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
-            conn->read_closed = 10;
-            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
         }
 
         /* TLS1.2 */
@@ -819,24 +811,24 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
             /* Close write */
-            conn->write_closed = 1;
+            s2n_atomic_store(&conn->write_closed, true);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->write_closed = 0;
+            s2n_atomic_store(&conn->write_closed, false);
 
             /* Close read */
-            conn->read_closed = 1;
+            s2n_atomic_store(&conn->read_closed, true);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->read_closed = 0;
+            s2n_atomic_store(&conn->read_closed, false);
 
             /* Close both */
-            conn->read_closed = 1;
-            conn->write_closed = 1;
+            s2n_atomic_store(&conn->read_closed, true);
+            s2n_atomic_store(&conn->write_closed, true);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
@@ -857,24 +849,24 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
             /* Close write */
-            conn->write_closed = 1;
+            s2n_atomic_store(&conn->write_closed, true);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->write_closed = 0;
+            s2n_atomic_store(&conn->write_closed, false);
 
             /* Close read */
-            conn->read_closed = 1;
+            s2n_atomic_store(&conn->read_closed, true);
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->read_closed = 0;
+            s2n_atomic_store(&conn->read_closed, false);
 
             /* Close both */
-            conn->read_closed = 1;
-            conn->write_closed = 1;
+            s2n_atomic_store(&conn->read_closed, true);
+            s2n_atomic_store(&conn->write_closed, true);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));

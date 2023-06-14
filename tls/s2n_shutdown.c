@@ -23,7 +23,7 @@
 static bool s2n_shutdown_expect_close_notify(struct s2n_connection *conn)
 {
     /* No close_notify expected if we already received an error instead */
-    if (s2n_atomic_check(&conn->error_alert_received)) {
+    if (s2n_atomic_load(&conn->error_alert_received)) {
         return false;
     }
 
@@ -67,11 +67,11 @@ int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
 
     /* Flush any outstanding data */
-    s2n_atomic_set(&conn->write_closed);
+    s2n_atomic_store(&conn->write_closed, true);
     POSIX_GUARD(s2n_flush(conn, blocked));
 
     /* For a connection closed due to receiving an alert, we don't send anything. */
-    if (s2n_atomic_check(&conn->error_alert_received)) {
+    if (s2n_atomic_load(&conn->error_alert_received)) {
         return S2N_SUCCESS;
     }
 
@@ -120,7 +120,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     uint8_t record_type = 0;
     int isSSLv2 = false;
     *blocked = S2N_BLOCKED_ON_READ;
-    while (!s2n_atomic_check(&conn->close_notify_received)) {
+    while (!s2n_atomic_load(&conn->close_notify_received)) {
         POSIX_GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
         POSIX_ENSURE(!isSSLv2, S2N_ERR_BAD_MESSAGE);
         if (record_type == TLS_ALERT) {

@@ -15,44 +15,35 @@
 
 #include "utils/s2n_atomic.h"
 
-#include "utils/s2n_safety.h"
+#include <signal.h>
 
-const s2n_atomic set_val = 1;
-const s2n_atomic clear_val = 0;
+#include "utils/s2n_safety.h"
 
 S2N_RESULT s2n_atomic_init()
 {
 #if S2N_ATOMIC_ENABLED
-    RESULT_ENSURE(__atomic_always_lock_free(sizeof(s2n_atomic), NULL), S2N_ERR_ATOMIC);
+    RESULT_ENSURE(__atomic_always_lock_free(sizeof(s2n_atomic_bool), NULL), S2N_ERR_ATOMIC);
 #endif
     return S2N_RESULT_OK;
 }
 
-void s2n_atomic_set(s2n_atomic *var)
+void s2n_atomic_store(s2n_atomic_bool *var, bool val)
 {
 #if S2N_ATOMIC_ENABLED
-    __atomic_store(var, &set_val, __ATOMIC_RELAXED);
+    sig_atomic_t input = val;
+    __atomic_store(&var->val, &input, __ATOMIC_RELAXED);
 #else
-    *var = 1;
+    var->val = val;
 #endif
 }
 
-void s2n_atomic_clear(s2n_atomic *var)
+bool s2n_atomic_load(s2n_atomic_bool *var)
 {
 #if S2N_ATOMIC_ENABLED
-    __atomic_store(var, &clear_val, __ATOMIC_RELAXED);
-#else
-    *var = 0;
-#endif
-}
-
-bool s2n_atomic_check(s2n_atomic *var)
-{
-#if S2N_ATOMIC_ENABLED
-    s2n_atomic result = 0;
-    __atomic_load(var, &result, __ATOMIC_RELAXED);
+    sig_atomic_t result = 0;
+    __atomic_load(&var->val, &result, __ATOMIC_RELAXED);
     return result;
 #else
-    return *var;
+    return var->val;
 #endif
 }

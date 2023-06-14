@@ -271,8 +271,8 @@ struct s2n_connection {
     bool alert_sent;
 
     /* Receiving error or close_notify alerts changes the behavior of s2n_shutdown_send */
-    s2n_atomic error_alert_received;
-    s2n_atomic close_notify_received;
+    s2n_atomic_bool error_alert_received;
+    s2n_atomic_bool close_notify_received;
 
     /* Our handshake state machine */
     struct s2n_handshake handshake;
@@ -313,8 +313,8 @@ struct s2n_connection {
     /* Either the reader or the writer can trigger both sides of the connection
      * to close in response to a fatal error.
      */
-    s2n_atomic read_closed;
-    s2n_atomic write_closed;
+    s2n_atomic_bool read_closed;
+    s2n_atomic_bool write_closed;
 
     /* TLS extension data */
     char server_name[S2N_MAX_SERVER_NAME + 1];

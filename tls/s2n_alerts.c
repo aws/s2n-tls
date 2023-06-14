@@ -204,8 +204,8 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
-                s2n_atomic_set(&conn->read_closed);
-                s2n_atomic_set(&conn->close_notify_received);
+                s2n_atomic_store(&conn->read_closed, true);
+                s2n_atomic_store(&conn->close_notify_received, true);
                 return 0;
             }
 
@@ -222,7 +222,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /* All other alerts are treated as fatal errors */
             POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
-            s2n_atomic_set(&conn->error_alert_received);
+            s2n_atomic_store(&conn->error_alert_received, true);
             POSIX_BAIL(S2N_ERR_ALERT);
         }
     }

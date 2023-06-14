@@ -1169,8 +1169,8 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
 S2N_RESULT s2n_connection_set_closed(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    s2n_atomic_set(&conn->read_closed);
-    s2n_atomic_set(&conn->write_closed);
+    s2n_atomic_store(&conn->read_closed, true);
+    s2n_atomic_store(&conn->write_closed, true);
     return S2N_RESULT_OK;
 }
 
@@ -1548,8 +1548,8 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
         return false;
     }
 
-    bool read_closed = s2n_atomic_check(&conn->read_closed);
-    bool write_closed = s2n_atomic_check(&conn->write_closed);
+    bool read_closed = s2n_atomic_load(&conn->read_closed);
+    bool write_closed = s2n_atomic_load(&conn->write_closed);
     bool full_duplex = !read_closed && !write_closed;
 
     /*
