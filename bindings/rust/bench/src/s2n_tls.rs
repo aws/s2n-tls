@@ -22,7 +22,7 @@ use std::{
     task::Poll::Ready,
 };
 
-pub struct S2nTls {
+pub struct SignalToNoise {
     client_to_server_buf: UnsafeCell<VecDeque<u8>>, // connections need to share *mut buffers for custom IO
     server_to_client_buf: UnsafeCell<VecDeque<u8>>,
     client_config: Config,
@@ -43,7 +43,7 @@ impl VerifyHostNameCallback for HostNameHandler<'_> {
     }
 }
 
-impl S2nTls {
+impl SignalToNoise {
     /// Unsafe callback for custom IO C API
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
         let context = &mut *(context as *mut VecDeque<u8>);
@@ -149,10 +149,10 @@ impl S2nTls {
     }
 }
 
-impl TlsBenchHarness for S2nTls {
+impl TlsBenchHarness for SignalToNoise {
     fn new() -> Self {
         debug!("----- constructing new s2n-tls harness -----");
-        let mut new_harness = S2nTls {
+        let mut new_harness = SignalToNoise {
             client_to_server_buf: UnsafeCell::new(VecDeque::new()),
             server_to_client_buf: UnsafeCell::new(VecDeque::new()),
             client_config: Self::create_config(Mode::Client),
@@ -193,12 +193,12 @@ mod tests {
 
     #[test]
     fn s2n_tls_create_object() {
-        S2nTls::new();
+        SignalToNoise::new();
     }
 
     #[test]
     fn s2n_tls_handshake_successful() {
-        let mut s2n_tls_harness = S2nTls::new();
+        let mut s2n_tls_harness = SignalToNoise::new();
         assert!(!s2n_tls_harness.handshake_completed());
         assert!(s2n_tls_harness.handshake().is_ok());
         assert!(s2n_tls_harness.handshake_completed());

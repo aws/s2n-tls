@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::{S2nTls, TlsBenchHarness};
+use bench::{SignalToNoise, TlsBenchHarness};
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 pub fn criterion_benchmark(c: &mut Criterion) {
@@ -10,7 +10,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     group.bench_function("s2n-tls", |b| {
         // generate all inputs (S2nTls objects) before benchmarking handshakes
         b.iter_batched_ref(
-            || S2nTls::new(),
+            || SignalToNoise::new(),
             |s2n_tls| {
                 s2n_tls.handshake().unwrap();
             },
