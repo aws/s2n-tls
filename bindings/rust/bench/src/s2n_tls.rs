@@ -14,23 +14,23 @@ use s2n_tls::{
     security::DEFAULT_TLS13,
 };
 use std::{
+    cell::UnsafeCell,
     collections::VecDeque,
     ffi::c_void,
     io::{Read, Write},
     os::raw::c_int,
-    pin::Pin,
     task::Poll::Ready,
 };
 
 pub struct S2nTls {
-    client_to_server_buf: Pin<Box<VecDeque<u8>>>, // Pinned pointer to a VecDeque to pass as C pointer for custom IO
-    server_to_client_buf: Pin<Box<VecDeque<u8>>>,
+    client_to_server_buf: UnsafeCell<VecDeque<u8>>, // connections need to share *mut buffers for custom IO
+    server_to_client_buf: UnsafeCell<VecDeque<u8>>,
     client_config: Config,
     server_config: Config,
     client_conn: Connection,
     server_conn: Connection,
-    client_handshaked: bool,
-    server_handshaked: bool,
+    client_handshake_completed: bool,
+    server_handshake_completed: bool,
 }
 
 /// Custom callback for verifying hostnames, need it to use s2n-tls safely
@@ -92,10 +92,10 @@ impl S2nTls {
 
     /// Set up connections with config and custom IO
     fn init_conn(&mut self, mode: Mode) -> Result<(), s2n_tls::error::Error> {
-        let client_to_server_ptr =
-            &mut self.client_to_server_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
-        let server_to_client_ptr =
-            &mut self.server_to_client_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
+        let client_to_server_ptr = self.client_to_server_buf.get() as *mut c_void;
+        // &mut self.client_to_server_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
+        let server_to_client_ptr = self.server_to_client_buf.get() as *mut c_void;
+        //&mut self.server_to_client_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
         let (read_ptr, write_ptr, config, conn);
 
         match mode {
@@ -132,12 +132,12 @@ impl S2nTls {
             Mode::Client => {
                 debug!("Client: ");
                 conn = &mut self.client_conn;
-                handshaked = &mut self.client_handshaked;
+                handshaked = &mut self.client_handshake_completed;
             }
             Mode::Server => {
                 debug!("Server: ");
                 conn = &mut self.server_conn;
-                handshaked = &mut self.server_handshaked;
+                handshaked = &mut self.server_handshake_completed;
             }
         }
         if let Ready(res) = conn.poll_negotiate() {
@@ -151,56 +151,57 @@ impl S2nTls {
 
 impl TlsBenchHarness for S2nTls {
     fn new() -> Self {
-        debug!("----- s2n-tls -----");
-        let mut new_struct = S2nTls {
-            client_to_server_buf: Box::pin(VecDeque::new()),
-            server_to_client_buf: Box::pin(VecDeque::new()),
+        debug!("----- constructing new s2n-tls harness -----");
+        let mut new_harness = S2nTls {
+            client_to_server_buf: UnsafeCell::new(VecDeque::new()),
+            server_to_client_buf: UnsafeCell::new(VecDeque::new()),
             client_config: Self::create_config(Mode::Client),
             server_config: Self::create_config(Mode::Server),
             client_conn: Connection::new_client(),
             server_conn: Connection::new_server(),
-            client_handshaked: false,
-            server_handshaked: false,
+            client_handshake_completed: false,
+            server_handshake_completed: false,
         };
-        new_struct.init_conn(Mode::Client).unwrap();
-        new_struct.init_conn(Mode::Server).unwrap();
-        new_struct
+        new_harness.init_conn(Mode::Client).unwrap();
+        new_harness.init_conn(Mode::Server).unwrap();
+        new_harness
     }
 
-    fn handshake(&mut self) {
-        if self.has_handshaked() {
-            return;
+    fn handshake(&mut self) -> Result<(), &str> {
+        if self.handshake_completed() {
+            return Err("Already completed handshake");
         }
         debug!("HANDSHAKE");
         let mut round_trips = 2; // expect two round trips, second for server to see Finished message
-        while !self.has_handshaked() && round_trips > 0 {
+        while !self.handshake_completed() && round_trips > 0 {
             self.handshake_conn(Mode::Client);
             self.handshake_conn(Mode::Server);
             round_trips -= 1;
         }
         debug!("HANDSHAKE DONE\n");
+        Ok(())
     }
 
-    fn has_handshaked(&self) -> bool {
-        self.client_handshaked && self.server_handshaked
+    fn handshake_completed(&self) -> bool {
+        self.client_handshake_completed && self.server_handshake_completed
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::TlsBenchHarness;
+    use super::*;
 
     #[test]
     fn s2n_tls_create_object() {
-        super::S2nTls::new();
+        S2nTls::new();
     }
 
     #[test]
     fn s2n_tls_handshake_successful() {
-        let mut s2n_tls_harness = super::S2nTls::new();
-        assert!(!s2n_tls_harness.has_handshaked());
-        s2n_tls_harness.handshake();
-        assert!(s2n_tls_harness.has_handshaked());
-        s2n_tls_harness.handshake(); // make sure doesn't panic
+        let mut s2n_tls_harness = S2nTls::new();
+        assert!(!s2n_tls_harness.handshake_completed());
+        assert!(s2n_tls_harness.handshake().is_ok());
+        assert!(s2n_tls_harness.handshake_completed());
+        assert!(s2n_tls_harness.handshake().is_err()); // make sure doesn't panic
     }
 }

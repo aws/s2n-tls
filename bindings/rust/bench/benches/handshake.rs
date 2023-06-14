@@ -8,12 +8,13 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("handshake");
 
     group.bench_function("s2n-tls", |b| {
+        // generate all inputs (S2nTls objects) before benchmarking handshakes
         b.iter_batched_ref(
             || S2nTls::new(),
             |s2n_tls| {
-                s2n_tls.handshake();
+                s2n_tls.handshake().unwrap();
             },
-            BatchSize::SmallInput, // pregenerates batch of inputs to pass to function being benchmarked
+            BatchSize::SmallInput,
         )
     });
 }

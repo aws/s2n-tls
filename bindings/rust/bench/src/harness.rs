@@ -13,12 +13,13 @@ pub enum Mode {
 }
 
 pub trait TlsBenchHarness {
-    /// Initialize buffers, configs, and connections (unhandshaked)
+    /// Initialize buffers, configs, and connections (pre-handshake)
     fn new() -> Self;
 
     /// Run handshake on initialized connection
-    fn handshake(&mut self);
+    /// Returns error if handshake already happened
+    fn handshake(&mut self) -> Result<(), &str>;
 
     /// Checks if handshake is finished for both client and server
-    fn has_handshaked(&self) -> bool;
+    fn handshake_completed(&self) -> bool;
 }

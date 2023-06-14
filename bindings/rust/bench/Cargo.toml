@@ -10,7 +10,7 @@ s2n-tls = { path = "../s2n-tls" }
 errno = "0.3"
 libc = "0.2"
 criterion = "0.3"
-log = { version = "0.4", features = [ "release_max_level_off", "max_level_info" ] }
+log = { version = "0.4", features = [ "release_max_level_off", "max_level_debug" ] }
 
 [[bench]]
 name = "handshake"
