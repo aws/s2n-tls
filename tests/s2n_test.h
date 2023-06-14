@@ -107,9 +107,9 @@ int test_count;
                         } while(0)
 
 #define FAIL_MSG_PRINT( msg ) do { \
-                          s2n_print_stacktrace(stderr); \
-                          /* isatty will overwrite errno on failure */ \
+                          /* isatty and s2n_print_stacktrace will overwrite errno on failure */ \
                           int real_errno = errno; \
+                          s2n_print_stacktrace(stderr); \
                           if (isatty(fileno(stderr))) { \
                             errno = real_errno; \
                             fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_debug_str, strerror(errno), errno); \

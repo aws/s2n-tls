@@ -15,10 +15,10 @@
 
 #pragma once
 
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
+#include "s2n.h"
 
-extern const s2n_extension_type s2n_client_key_share_extension;
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+int s2n_example_negotiate(struct s2n_connection *conn);
+int s2n_example_recv(struct s2n_connection *conn, uint8_t *buffer, size_t buffer_size);
+int s2n_example_recv_echo(struct s2n_connection *conn, uint8_t *buffer, size_t buffer_size);
+int s2n_example_send(struct s2n_connection *conn, uint8_t *data, size_t data_size);
+int s2n_example_sendv(struct s2n_connection *conn, uint8_t *data, size_t data_size);

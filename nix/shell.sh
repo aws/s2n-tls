@@ -58,7 +58,13 @@ function integ {
         (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
     else
         banner "Warning: cross_compatibility & renegotiate_apache are not supported in nix for various reasons integ help for more info."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 -R "$1" --verbose)
+        for test in $@; do
+            ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
+            if [ "$?" -ne 0 ]; then
+               echo "Test failed, stopping execution"
+               exit 1
+            fi
+        done
     fi
 }
 
@@ -113,7 +119,7 @@ function test_toolchain_counts {
     # This is a starting point for a unit test of the devShell.
     # The choosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
-    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0}
+    echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0;libre=0}
       /openssl-3.0/{o3++}
       /openssl-1.1/{o11++}
       /openssl-1.0/{o10++}

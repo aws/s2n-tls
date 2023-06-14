@@ -177,18 +177,57 @@ int main(int argc, char **argv)
 
     /* post_handshake_send */
     {
-        /* Post handshake message can be sent */
+        /* Post handshake messages can be sent */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            EXPECT_SUCCESS(s2n_connection_set_send_io_stuffer(&output, conn));
+
             conn->actual_protocol_version = S2N_TLS13;
-            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
-            s2n_blocked_status blocked;
+            conn->key_update_pending = true;
 
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
-            EXPECT_TRUE(s2n_stuffer_data_available(&conn->out) == 0);
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_TRUE(s2n_stuffer_data_available(&output) > 0);
+        };
+
+        /* No messages sent if no post-handshake messages required */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->key_update_pending = false;
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
+        };
+
+        /* No messages sent if <TLS1.3 */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_connection_set_secrets(conn));
+
+            conn->actual_protocol_version = S2N_TLS12;
+            conn->key_update_pending = true;
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
+
+            EXPECT_TRUE(conn->key_update_pending);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), 0);
         };
     };
 
