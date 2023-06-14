@@ -45,6 +45,9 @@ impl VerifyHostNameCallback for HostNameHandler<'_> {
 
 impl SignalToNoise {
     /// Unsafe callback for custom IO C API
+    ///
+    /// s2n-tls IO is usually with file descriptors, but we want to decrease
+    /// overhead with a local buffer. This also skips the networking stack.
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
         let context = &mut *(context as *mut VecDeque<u8>);
         let data = core::slice::from_raw_parts(data, len as _);
