@@ -43,6 +43,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
 #include "utils/s2n_mem.h"
@@ -1168,8 +1169,8 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
 S2N_RESULT s2n_connection_set_closed(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    conn->read_closed = 1;
-    conn->write_closed = 1;
+    s2n_atomic_set(&conn->read_closed);
+    s2n_atomic_set(&conn->write_closed);
     return S2N_RESULT_OK;
 }
 
@@ -1547,7 +1548,9 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
         return false;
     }
 
-    const bool is_full_duplex = !conn->read_closed && !conn->write_closed;
+    bool read_closed = s2n_atomic_check(&conn->read_closed);
+    bool write_closed = s2n_atomic_check(&conn->write_closed);
+    bool full_duplex = !read_closed && !write_closed;
 
     /*
      *= https://tools.ietf.org/rfc/rfc8446#section-6.1
@@ -1561,21 +1564,21 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
             case S2N_IO_WRITABLE:
             case S2N_IO_READABLE:
             case S2N_IO_FULL_DUPLEX:
-                return is_full_duplex;
+                return full_duplex;
             case S2N_IO_CLOSED:
-                return !is_full_duplex;
+                return !full_duplex;
         }
     }
 
     switch (status) {
         case S2N_IO_WRITABLE:
-            return !conn->write_closed;
+            return !write_closed;
         case S2N_IO_READABLE:
-            return !conn->read_closed;
+            return !read_closed;
         case S2N_IO_FULL_DUPLEX:
-            return is_full_duplex;
+            return full_duplex;
         case S2N_IO_CLOSED:
-            return conn->read_closed && conn->write_closed;
+            return read_closed && write_closed;
     }
 
     return false;
