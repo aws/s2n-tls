@@ -171,7 +171,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
         let data = core::slice::from_raw_parts_mut(data, len as _);
         match context.on_read(data) {
             0 => {
-                // https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md#s2n_connection_set_send_cb
+                // https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a4b73b9a8fa03500d5bc609d09035cd45
                 // s2n-tls wants us to set the global errno to signal blocked
                 errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
                 -1
