@@ -17,29 +17,13 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls.h"
+#include "utils/s2n_atomic.h"
 #include "utils/s2n_safety.h"
-
-static bool s2n_error_alert_received(struct s2n_connection *conn)
-{
-    /* We don't check s2n_connection_get_alert() or s2n_stuffer_data_available()
-     * because of https://github.com/aws/s2n-tls/issues/3933.
-     * We need to check if the stuffer contains an alert, regardless of its
-     * read state.
-     */
-    if (conn->alert_in.write_cursor == 0) {
-        return false;
-    }
-    /* Verify that the stuffer doesn't just contain a close_notify alert */
-    if (conn->close_notify_received) {
-        return false;
-    }
-    return true;
-}
 
 static bool s2n_shutdown_expect_close_notify(struct s2n_connection *conn)
 {
     /* No close_notify expected if we already received an error instead */
-    if (s2n_error_alert_received(conn)) {
+    if (s2n_atomic_flag_test(&conn->error_alert_received)) {
         return false;
     }
 
@@ -83,11 +67,11 @@ int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
     }
 
     /* Flush any outstanding data */
-    conn->write_closed = 1;
+    s2n_atomic_flag_set(&conn->write_closed);
     POSIX_GUARD(s2n_flush(conn, blocked));
 
     /* For a connection closed due to receiving an alert, we don't send anything. */
-    if (s2n_error_alert_received(conn)) {
+    if (s2n_atomic_flag_test(&conn->error_alert_received)) {
         return S2N_SUCCESS;
     }
 
@@ -136,7 +120,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     uint8_t record_type = 0;
     int isSSLv2 = false;
     *blocked = S2N_BLOCKED_ON_READ;
-    while (!conn->close_notify_received) {
+    while (!s2n_atomic_flag_test(&conn->close_notify_received)) {
         POSIX_GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
         POSIX_ENSURE(!isSSLv2, S2N_ERR_BAD_MESSAGE);
         if (record_type == TLS_ALERT) {
