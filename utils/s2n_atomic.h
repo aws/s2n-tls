@@ -31,11 +31,12 @@ typedef struct {
      * atomicity for interrupts.
      */
     sig_atomic_t val;
-} s2n_atomic_bool;
+} s2n_atomic_flag;
 
 /* These methods use compiler atomic built-ins if available and lock-free, but otherwise
  * rely on setting / clearing a small value generally being atomic in practice.
  */
 S2N_RESULT s2n_atomic_init();
-void s2n_atomic_store(s2n_atomic_bool *var, bool value);
-bool s2n_atomic_load(s2n_atomic_bool *var);
+void s2n_atomic_flag_set(s2n_atomic_flag *var);
+void s2n_atomic_flag_clear(s2n_atomic_flag *var);
+bool s2n_atomic_flag_test(s2n_atomic_flag *var);
