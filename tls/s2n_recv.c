@@ -42,7 +42,7 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
         errno = 0;
         int r = s2n_connection_recv_stuffer(output, conn, remaining);
         if (r == 0) {
-            conn->read_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
             RESULT_BAIL(S2N_ERR_CLOSED);
         } else if (r < 0) {
             if (errno == EWOULDBLOCK || errno == EAGAIN) {
@@ -127,7 +127,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size, s2n_
          *# closed, the TLS implementation MUST receive a "close_notify" alert
          *# before indicating end-of-data to the application layer.
          */
-        POSIX_ENSURE(conn->close_notify_received, S2N_ERR_CLOSED);
+        POSIX_ENSURE(s2n_atomic_flag_test(&conn->close_notify_received), S2N_ERR_CLOSED);
         *blocked = S2N_NOT_BLOCKED;
         return 0;
     }
