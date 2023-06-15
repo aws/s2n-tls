@@ -1,11 +1,9 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::fmt;
-
-use s2n_tls_sys::*;
-
 use crate::error::{Error, Fallible};
+use s2n_tls_sys::*;
+use std::fmt;
 
 #[derive(Copy, Clone)]
 pub enum FingerprintType {
