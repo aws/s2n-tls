@@ -3,7 +3,7 @@
 
 pub mod harness;
 pub mod s2n_tls;
-pub use crate::{harness::TlsBenchHarness, s2n_tls::SignalToNoise};
+pub use crate::{harness::TlsBenchHarness, s2n_tls::S2NHarness};
 
 const SERVER_KEY_PATH: &str = "certs/server-key.pem";
 const SERVER_CERT_CHAIN_PATH: &str = "certs/fullchain.pem";

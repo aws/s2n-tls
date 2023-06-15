@@ -23,7 +23,7 @@ use std::{
     task::Poll::Ready,
 };
 
-pub struct SignalToNoise {
+pub struct S2NHarness {
     // UnsafeCell is needed b/c client and server share *mut to IO buffers
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
     client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
@@ -46,7 +46,7 @@ impl VerifyHostNameCallback for HostNameHandler<'_> {
     }
 }
 
-impl SignalToNoise {
+impl S2NHarness {
     /// Unsafe callback for custom IO C API
     ///
     /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
@@ -149,10 +149,10 @@ impl SignalToNoise {
     }
 }
 
-impl TlsBenchHarness for SignalToNoise {
+impl TlsBenchHarness for S2NHarness {
     fn new() -> Self {
         debug!("----- constructing new s2n-tls harness -----");
-        let mut harness = SignalToNoise {
+        let mut harness = S2NHarness {
             client_to_server_buf: Box::pin(UnsafeCell::new(VecDeque::new())),
             server_to_client_buf: Box::pin(UnsafeCell::new(VecDeque::new())),
             client_config: Self::create_config(Mode::Client),
@@ -193,12 +193,12 @@ mod tests {
 
     #[test]
     fn s2n_tls_create_object() {
-        SignalToNoise::new();
+        S2NHarness::new();
     }
 
     #[test]
     fn s2n_tls_handshake_successful() {
-        let mut s2n_tls_harness = SignalToNoise::new();
+        let mut s2n_tls_harness = S2NHarness::new();
         assert!(!s2n_tls_harness.handshake_completed());
         assert!(s2n_tls_harness.handshake().is_ok());
         assert!(s2n_tls_harness.handshake_completed());
