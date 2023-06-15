@@ -24,8 +24,8 @@ use std::{
 };
 
 pub struct SignalToNoise {
-    // connections need to share *mut buffers for custom IO so we use UnsafeCell
-    // to make the UnsafeCell not move around in memory, we wrap it in Pin<Box<T>>
+    // UnsafeCell is needed b/c client and server share *mut to IO buffers
+    // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
     client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
     server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
     client_config: Config,
@@ -49,8 +49,8 @@ impl VerifyHostNameCallback for HostNameHandler<'_> {
 impl SignalToNoise {
     /// Unsafe callback for custom IO C API
     ///
-    /// s2n-tls IO is usually with file descriptors, but we want to decrease
-    /// overhead with a local buffer. This also skips the networking stack.
+    /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
+    /// reduce overhead and outside noise with a local buffer for benchmarking
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
         let context = &mut *(context as *mut VecDeque<u8>);
         let data = core::slice::from_raw_parts(data, len as _);
@@ -99,25 +99,21 @@ impl SignalToNoise {
     /// Set up connections with config and custom IO
     fn init_conn(&mut self, mode: Mode) -> Result<(), s2n_tls::error::Error> {
         let client_to_server_ptr = self.client_to_server_buf.get() as *mut c_void;
-        // &mut self.client_to_server_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
         let server_to_client_ptr = self.server_to_client_buf.get() as *mut c_void;
-        //&mut self.server_to_client_buf as &mut VecDeque<u8> as *mut VecDeque<u8> as *mut c_void;
-        let (read_ptr, write_ptr, config, conn);
-
-        match mode {
-            Mode::Client => {
-                read_ptr = server_to_client_ptr;
-                write_ptr = client_to_server_ptr;
-                config = &self.client_config;
-                conn = &mut self.client_conn;
-            }
-            Mode::Server => {
-                read_ptr = client_to_server_ptr;
-                write_ptr = server_to_client_ptr;
-                config = &self.server_config;
-                conn = &mut self.server_conn;
-            }
-        }
+        let (read_ptr, write_ptr, config, conn) = match mode {
+            Mode::Client => (
+                server_to_client_ptr,
+                client_to_server_ptr,
+                &self.client_config,
+                &mut self.client_conn,
+            ),
+            Mode::Server => (
+                client_to_server_ptr,
+                server_to_client_ptr,
+                &self.server_config,
+                &mut self.server_conn,
+            ),
+        };
 
         conn.set_blinding(Blinding::SelfService)?
             .set_config(config.clone())?
@@ -133,24 +129,22 @@ impl SignalToNoise {
 
     /// Handshake step for one connection
     fn handshake_conn(&mut self, mode: Mode) {
-        let (conn, handshaked);
-        match mode {
+        let (conn, handshake_completed) = match mode {
             Mode::Client => {
                 debug!("Client: ");
-                conn = &mut self.client_conn;
-                handshaked = &mut self.client_handshake_completed;
+                (&mut self.client_conn, &mut self.client_handshake_completed)
             }
             Mode::Server => {
                 debug!("Server: ");
-                conn = &mut self.server_conn;
-                handshaked = &mut self.server_handshake_completed;
+                (&mut self.server_conn, &mut self.server_handshake_completed)
             }
-        }
+        };
+
         if let Ready(res) = conn.poll_negotiate() {
             res.unwrap();
-            *handshaked = true;
+            *handshake_completed = true;
         } else {
-            *handshaked = false;
+            *handshake_completed = false;
         }
     }
 }
@@ -158,7 +152,7 @@ impl SignalToNoise {
 impl TlsBenchHarness for SignalToNoise {
     fn new() -> Self {
         debug!("----- constructing new s2n-tls harness -----");
-        let mut new_harness = SignalToNoise {
+        let mut harness = SignalToNoise {
             client_to_server_buf: Box::pin(UnsafeCell::new(VecDeque::new())),
             server_to_client_buf: Box::pin(UnsafeCell::new(VecDeque::new())),
             client_config: Self::create_config(Mode::Client),
@@ -168,9 +162,9 @@ impl TlsBenchHarness for SignalToNoise {
             client_handshake_completed: false,
             server_handshake_completed: false,
         };
-        new_harness.init_conn(Mode::Client).unwrap();
-        new_harness.init_conn(Mode::Server).unwrap();
-        new_harness
+        harness.init_conn(Mode::Client).unwrap();
+        harness.init_conn(Mode::Server).unwrap();
+        harness
     }
 
     fn handshake(&mut self) -> Result<(), &str> {
@@ -179,7 +173,7 @@ impl TlsBenchHarness for SignalToNoise {
         }
         debug!("HANDSHAKE");
         let mut round_trips = 2; // expect two round trips, second for server to see Finished message
-        while !self.handshake_completed() && round_trips > 0 {
+        while round_trips > 0 {
             self.handshake_conn(Mode::Client);
             self.handshake_conn(Mode::Server);
             round_trips -= 1;

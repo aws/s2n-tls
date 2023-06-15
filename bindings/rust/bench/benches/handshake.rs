@@ -8,7 +8,7 @@ pub fn criterion_benchmark(c: &mut Criterion) {
     let mut group = c.benchmark_group("handshake");
 
     group.bench_function("s2n-tls", |b| {
-        // generate all inputs (S2nTls objects) before benchmarking handshakes
+        // generate all inputs (s2n-tls objects) before benchmarking handshakes
         b.iter_batched_ref(
             || SignalToNoise::new(),
             |s2n_tls| {
