@@ -637,7 +637,8 @@ class JavaSSL(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
-        if protocol is Protocols.TLS10:
+        # https://aws.amazon.com/blogs/opensource/tls-1-0-1-1-changes-in-openjdk-and-amazon-corretto/
+        if protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
             return False
 
         return True

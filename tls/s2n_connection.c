@@ -523,9 +523,8 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     conn->data_for_verify_host = NULL;
 
     /* Clone the stuffers */
-    /* ignore gcc 4.7 address warnings because dest is allocated on the stack */
-    /* pragma gcc diagnostic was added in gcc 4.6 */
-#if S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+    /* ignore address warnings because dest is allocated on the stack */
+#ifdef S2N_DIAGNOSTICS_PUSH_SUPPORTED
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Waddress"
 #endif
@@ -535,7 +534,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&in, &conn->in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&out, &conn->out, sizeof(struct s2n_stuffer));
-#if S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+#ifdef S2N_DIAGNOSTICS_POP_SUPPORTED
     #pragma GCC diagnostic pop
 #endif
 
@@ -1060,21 +1059,37 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
 #define ONE_S INT64_C(1000000000)
 #define TEN_S INT64_C(10000000000)
 
-uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
+static S2N_RESULT s2n_connection_get_delay_impl(struct s2n_connection *conn, uint64_t *delay)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(delay);
+
     if (!conn->delay) {
-        return 0;
+        *delay = 0;
+        return S2N_RESULT_OK;
     }
 
-    uint64_t elapsed;
-    /* This will cast -1 to max uint64_t */
-    POSIX_GUARD_RESULT(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
+    uint64_t elapsed = 0;
+    RESULT_GUARD(s2n_timer_elapsed(conn->config, &conn->write_timer, &elapsed));
 
     if (elapsed > conn->delay) {
-        return 0;
+        *delay = 0;
+        return S2N_RESULT_OK;
     }
 
-    return conn->delay - elapsed;
+    *delay = conn->delay - elapsed;
+
+    return S2N_RESULT_OK;
+}
+
+uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
+{
+    uint64_t delay = 0;
+    if (s2n_result_is_ok(s2n_connection_get_delay_impl(conn, &delay))) {
+        return delay;
+    } else {
+        return UINT64_MAX;
+    }
 }
 
 static S2N_RESULT s2n_connection_kill(struct s2n_connection *conn)
