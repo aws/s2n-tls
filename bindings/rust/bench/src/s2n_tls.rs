@@ -19,12 +19,15 @@ use std::{
     ffi::c_void,
     io::{Read, Write},
     os::raw::c_int,
+    pin::Pin,
     task::Poll::Ready,
 };
 
 pub struct SignalToNoise {
-    client_to_server_buf: UnsafeCell<VecDeque<u8>>, // connections need to share *mut buffers for custom IO
-    server_to_client_buf: UnsafeCell<VecDeque<u8>>,
+    // connections need to share *mut buffers for custom IO so we use UnsafeCell
+    // to make the UnsafeCell not move around in memory, we wrap it in Pin<Box<T>>
+    client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
+    server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
     client_config: Config,
     server_config: Config,
     client_conn: Connection,
@@ -156,8 +159,8 @@ impl TlsBenchHarness for SignalToNoise {
     fn new() -> Self {
         debug!("----- constructing new s2n-tls harness -----");
         let mut new_harness = SignalToNoise {
-            client_to_server_buf: UnsafeCell::new(VecDeque::new()),
-            server_to_client_buf: UnsafeCell::new(VecDeque::new()),
+            client_to_server_buf: Box::pin(UnsafeCell::new(VecDeque::new())),
+            server_to_client_buf: Box::pin(UnsafeCell::new(VecDeque::new())),
             client_config: Self::create_config(Mode::Client),
             server_config: Self::create_config(Mode::Server),
             client_conn: Connection::new_client(),
