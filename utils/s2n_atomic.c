@@ -21,7 +21,7 @@
 
 S2N_RESULT s2n_atomic_init()
 {
-#if S2N_ATOMIC_ENABLED
+#if S2N_ATOMIC_SUPPORTED && S2N_THREAD_SANITIZER
     RESULT_ENSURE(__atomic_always_lock_free(sizeof(s2n_atomic_bool), NULL), S2N_ERR_ATOMIC);
 #endif
     return S2N_RESULT_OK;
@@ -29,7 +29,7 @@ S2N_RESULT s2n_atomic_init()
 
 void s2n_atomic_store(s2n_atomic_bool *var, bool val)
 {
-#if S2N_ATOMIC_ENABLED
+#if S2N_ATOMIC_SUPPORTED && S2N_THREAD_SANITIZER
     sig_atomic_t input = val;
     __atomic_store(&var->val, &input, __ATOMIC_RELAXED);
 #else
@@ -39,7 +39,7 @@ void s2n_atomic_store(s2n_atomic_bool *var, bool val)
 
 bool s2n_atomic_load(s2n_atomic_bool *var)
 {
-#if S2N_ATOMIC_ENABLED
+#if S2N_ATOMIC_SUPPORTED && S2N_THREAD_SANITIZER
     sig_atomic_t result = 0;
     __atomic_load(&var->val, &result, __ATOMIC_RELAXED);
     return result;

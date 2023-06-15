@@ -221,6 +221,11 @@ if(S2N_UNSAFE_FUZZING_MODE)
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1)
 endif()
 
+if(TSAN)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread -DS2N_THREAD_SANITIZER=1)
+    target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
+endif()
+
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
 if (NOT $ENV{S2N_LIBCRYPTO} MATCHES "awslc")
@@ -351,13 +356,6 @@ if (NOT S2N_EXECINFO_AVAILABLE)
     set(S2N_STACKTRACE FALSE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
-
-if(TSAN)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
-    target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
-    # For now, only enable real atomics for TSAN
-    feature_probe_result(S2N_ATOMIC_ENABLED ${S2N_ATOMIC_SUPPORTED})
-endif()
 
 set(S2N_KYBER512R3_AVX2_BMI2 FALSE)
 if(NOT S2N_NO_PQ_ASM)
