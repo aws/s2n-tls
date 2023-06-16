@@ -1,0 +1,16 @@
+[package]
+name = "bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+s2n-tls = { path = "../s2n-tls" }
+errno = "0.3"
+libc = "0.2"
+criterion = "0.3"
+# release_max_level_off feature removes logging statements in the release build
+log = { version = "0.4", features = [ "release_max_level_off", "max_level_debug" ] }
+
+[[bench]]
+name = "handshake"
+harness = false
