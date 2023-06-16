@@ -1,23 +1,36 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::{S2NHarness, TlsBenchHarness};
+use bench::{S2NHarness, TlsBenchHarness, RustlsHarness, CryptoConfig, CipherSuite, ECGroup};
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
-pub fn criterion_benchmark(c: &mut Criterion) {
+pub fn bench_handshake(c: &mut Criterion) {
     let mut group = c.benchmark_group("handshake");
 
-    group.bench_function("s2n-tls", |b| {
-        // generate all inputs (s2n-tls objects) before benchmarking handshakes
-        b.iter_batched_ref(
-            || S2NHarness::new(),
-            |s2n_tls| {
-                s2n_tls.handshake().unwrap();
-            },
-            BatchSize::SmallInput,
-        )
-    });
+    macro_rules! bench_handshake_for_libraries {
+        ($(($lib_name:expr, $lib_type:ty),)*) => {
+        $(
+            // generate all inputs (s2n-tls objects) before benchmarking handshakes
+            group.bench_function($lib_name, |b| {
+                b.iter_batched_ref(
+                    || <$lib_type>::default().unwrap(),
+                    |harness| {
+                        harness.handshake().unwrap();
+                    },
+                    BatchSize::SmallInput,
+                )
+            });
+        )*
+        }
+    }
+
+    bench_handshake_for_libraries! {
+        ("s2n-tls", S2NHarness),
+        ("rustls", RustlsHarness),
+    }
+
+    group.finish();
 }
 
-criterion_group!(benches, criterion_benchmark);
+criterion_group!(benches, bench_handshake);
 criterion_main!(benches);
