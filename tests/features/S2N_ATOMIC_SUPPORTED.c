@@ -13,12 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include <signal.h>
+#include <stddef.h>
 
-#include "stuffer/s2n_stuffer.h"
-#include "tls/s2n_connection.h"
+int main() {
+    /* Atomic builtins are supported by gcc 4.7.3 and later. */
+    sig_atomic_t atomic = 0, value = 1;
+    __atomic_store(&atomic, &value, __ATOMIC_RELAXED);
+    __atomic_load(&atomic, &value, __ATOMIC_RELAXED);
 
-extern const s2n_extension_type s2n_client_key_share_extension;
-
-/* Old-style extension functions -- remove after extensions refactor is complete */
-int s2n_extensions_client_key_share_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
+    /* _Static_assert is supported for C99 by gcc 4.6 and later,
+     * so using it here shouldn't limit use of the atomic builtins. */
+    _Static_assert(__atomic_always_lock_free(sizeof(sig_atomic_t), NULL),
+            "Atomic operations in this environment would require locking");
+    return 0;
+}

@@ -146,6 +146,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_P_HASH_WIPE_FAILED, "error wiping p_hash") \
     ERR_ENTRY(S2N_ERR_HMAC_INVALID_ALGORITHM, "invalid HMAC algorithm") \
     ERR_ENTRY(S2N_ERR_HKDF_OUTPUT_SIZE, "invalid HKDF output size") \
+    ERR_ENTRY(S2N_ERR_HKDF, "error generating HKDF output") \
     ERR_ENTRY(S2N_ERR_ALERT_PRESENT, "TLS alert is already pending") \
     ERR_ENTRY(S2N_ERR_HANDSHAKE_STATE, "Invalid handshake state encountered") \
     ERR_ENTRY(S2N_ERR_SHUTDOWN_PAUSED, "s2n_shutdown() called while paused") \
@@ -289,6 +290,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API") \
     ERR_ENTRY(S2N_ERR_NO_RENEGOTIATION, "Only secure, server-initiated renegotiation is supported") \
     ERR_ENTRY(S2N_ERR_APP_DATA_BLOCKED, "Blocked on application data during handshake") \
+    ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

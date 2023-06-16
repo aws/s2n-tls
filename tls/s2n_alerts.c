@@ -23,6 +23,7 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
@@ -203,8 +204,8 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
         if (s2n_stuffer_data_available(&conn->alert_in) == 2) {
             /* Close notifications are handled as shutdowns */
             if (conn->alert_in_data[1] == S2N_TLS_ALERT_CLOSE_NOTIFY) {
-                conn->read_closed = 1;
-                conn->close_notify_received = true;
+                s2n_atomic_flag_set(&conn->read_closed);
+                s2n_atomic_flag_set(&conn->close_notify_received);
                 return 0;
             }
 
@@ -221,6 +222,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /* All other alerts are treated as fatal errors */
             POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+            s2n_atomic_flag_set(&conn->error_alert_received);
             POSIX_BAIL(S2N_ERR_ALERT);
         }
     }
