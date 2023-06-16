@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{read_to_bytes, Mode, TlsBenchHarness, CryptoConfig, ECGroup, CipherSuite},
+    harness::{read_to_bytes, CipherSuite, CryptoConfig, ECGroup, Mode, TlsBenchHarness},
     CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
 use s2n_tls::{
@@ -15,11 +15,12 @@ use s2n_tls::{
 use std::{
     cell::UnsafeCell,
     collections::VecDeque,
+    error::Error,
     ffi::c_void,
     io::{Read, Write},
     os::raw::c_int,
     pin::Pin,
-    task::Poll::Ready, error::Error,
+    task::Poll::Ready,
 };
 
 pub struct S2NHarness {
@@ -74,12 +75,8 @@ impl S2NHarness {
     /// Handshake step for one connection
     fn handshake_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
         let (conn, handshake_completed) = match mode {
-            Mode::Client => {
-                (&mut self.client_conn, &mut self.client_handshake_completed)
-            }
-            Mode::Server => {
-                (&mut self.server_conn, &mut self.server_handshake_completed)
-            }
+            Mode::Client => (&mut self.client_conn, &mut self.client_handshake_completed),
+            Mode::Server => (&mut self.server_conn, &mut self.server_handshake_completed),
         };
 
         if let Ready(res) = conn.poll_negotiate() {

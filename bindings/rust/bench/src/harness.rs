@@ -1,7 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{fs::read_to_string, error::Error, rc::Rc, cell::RefCell, collections::VecDeque, io::{ErrorKind, Read, Write}};
+use std::{
+    cell::RefCell,
+    collections::VecDeque,
+    error::Error,
+    fs::read_to_string,
+    io::{ErrorKind, Read, Write},
+    rc::Rc,
+};
 
 pub fn read_to_bytes(path: &str) -> Vec<u8> {
     read_to_string(path).unwrap().into_bytes()
@@ -40,7 +47,7 @@ pub trait TlsBenchHarness: Sized {
             ec_group: ECGroup::SECP256R1,
         })
     }
-    
+
     /// Initialize buffers, configs, and connections (pre-handshake)
     fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>>;
 

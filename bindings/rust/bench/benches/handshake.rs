@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::{S2NHarness, TlsBenchHarness, RustlsHarness, CryptoConfig, CipherSuite, ECGroup};
+use bench::{CipherSuite, CryptoConfig, ECGroup, RustlsHarness, S2NHarness, TlsBenchHarness};
 use criterion::{criterion_group, criterion_main, BatchSize, Criterion};
 
 pub fn bench_handshake(c: &mut Criterion) {

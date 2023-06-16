@@ -2,7 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{read_to_bytes, CipherSuite, CryptoConfig, ECGroup, TlsBenchHarness, ConnectedBuffer, Mode},
+    harness::{
+        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness,
+    },
     CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
 use rustls::{
