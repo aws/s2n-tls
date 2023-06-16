@@ -70,7 +70,7 @@ impl RustlsHarness {
 impl TlsBenchHarness for RustlsHarness {
     fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>> {
         let client_buf = ConnectedBuffer::new();
-        let server_buf = client_buf.mirror();
+        let server_buf = client_buf.clone_inverse();
 
         let cipher_suite = match crypto_config.cipher_suite {
             CipherSuite::AES_128_GCM_SHA256 => TLS13_AES_128_GCM_SHA256,

@@ -85,9 +85,9 @@ impl ConnectedBuffer {
             send: Rc::new(RefCell::new(VecDeque::new())),
         }
     }
-    /// Make a new object that shares mirrored internal buffers, ex.
-    /// `write()` writes to the buffer that the mirror `read()`s from
-    pub fn mirror(&self) -> Self {
+    /// Make a new object that shares internal buffers but swapped, ex.
+    /// `write()` writes to the buffer that the inverse `read()`s from
+    pub fn clone_inverse(&self) -> Self {
         ConnectedBuffer {
             recv: self.send.clone(),
             send: self.recv.clone(),
