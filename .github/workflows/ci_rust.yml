@@ -37,7 +37,7 @@ jobs:
 
       - name: Tests
         working-directory: ${{env.ROOT_PATH}}
-        run: cargo test
+        run: cargo test --all-features
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
