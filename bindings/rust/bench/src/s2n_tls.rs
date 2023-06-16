@@ -36,7 +36,8 @@ pub struct S2NHarness {
     server_handshake_completed: bool,
 }
 
-/// Custom callback for verifying hostnames, need it to use s2n-tls safely
+/// Custom callback for verifying hostnames. Rustls requires checking hostnames,
+/// so this is to make a fair comparison
 struct HostNameHandler<'a> {
     expected_server_name: &'a str,
 }
