@@ -116,7 +116,6 @@ static S2N_RESULT s2n_sanity_check_key_updates_sent(struct s2n_connection *conn)
 
     uint64_t seq_num = 0;
     RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num_blob, &seq_num));
-    RESULT_ENSURE_GTE(seq_num, 0);
     RESULT_ENSURE_LTE(seq_num, conn->secure->cipher_suite->record_alg->encryption_limit);
 
     /* Verify that if no KeyUpdate was sent and seq_num therefore represents the
@@ -131,20 +130,25 @@ static S2N_RESULT s2n_sanity_check_key_updates_sent(struct s2n_connection *conn)
 static S2N_RESULT s2n_test_encryption_limits(struct s2n_connection *conn)
 {
     RESULT_GUARD_POSIX(s2n_example_negotiate(conn));
-    S2N_CIPHER_SUITE_WITH_LIMIT(key_limit_suite, conn->secure->cipher_suite, S2N_TEST_ENCRYPTION_LIMIT);
+
+    struct s2n_cipher_suite *original_suite = conn->secure->cipher_suite;
+    S2N_CIPHER_SUITE_WITH_LIMIT(key_limit_suite, original_suite, S2N_TEST_ENCRYPTION_LIMIT);
 
     conn->secure->cipher_suite = &key_limit_suite;
 
     RESULT_GUARD(s2n_send_and_recv_random_data(conn));
     RESULT_GUARD(s2n_sanity_check_key_updates_sent(conn));
 
+    conn->secure->cipher_suite = original_suite;
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_test_peer_requests(struct s2n_connection *conn)
 {
     RESULT_GUARD_POSIX(s2n_example_negotiate(conn));
-    S2N_CIPHER_SUITE_WITH_LIMIT(key_limit_suite, conn->secure->cipher_suite, S2N_TEST_ENCRYPTION_LIMIT);
+
+    struct s2n_cipher_suite *original_suite = conn->secure->cipher_suite;
+    S2N_CIPHER_SUITE_WITH_LIMIT(key_limit_suite, original_suite, S2N_TEST_ENCRYPTION_LIMIT);
 
     conn->secure->cipher_suite = &key_limit_suite;
     if (conn->mode == S2N_CLIENT) {
@@ -154,6 +158,7 @@ static S2N_RESULT s2n_test_peer_requests(struct s2n_connection *conn)
     RESULT_GUARD(s2n_send_and_recv_random_data(conn));
     RESULT_GUARD(s2n_sanity_check_key_updates_sent(conn));
 
+    conn->secure->cipher_suite = original_suite;
     return S2N_RESULT_OK;
 }
 
@@ -181,8 +186,8 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
          */
         fclose(stdout);
 
-        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
+        struct s2n_connection *client = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client);
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
@@ -190,6 +195,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
 
         EXPECT_OK(scenario_fn(client));
 
+        EXPECT_SUCCESS(s2n_connection_free(client));
         exit(EXIT_SUCCESS);
     }
 
@@ -200,8 +206,8 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
          */
         fclose(stdout);
 
-        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
+        struct s2n_connection *server = s2n_connection_new(S2N_SERVER);
+        EXPECT_NOT_NULL(server);
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
@@ -209,6 +215,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
 
         EXPECT_OK(scenario_fn(server));
 
+        EXPECT_SUCCESS(s2n_connection_free(server));
         exit(EXIT_SUCCESS);
     }
 
