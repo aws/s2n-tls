@@ -42,6 +42,7 @@ option(EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS "Additional compiler warnings are t
 indicate danger points where you should verify with the S2N-TLS developers that the security of
 the library is not compromised. These warnings are currently failing for some builds; once the problems are fixed,
 they will be moved to UNSAFE_TREAT_WARNINGS_AS_ERRORS." OFF)
+option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -218,6 +219,11 @@ endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1)
+endif()
+
+if(TSAN)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread -DS2N_THREAD_SANITIZER=1)
+    target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
@@ -476,9 +482,10 @@ if (BUILD_TESTING)
     enable_testing()
 
     file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+    file(GLOB EXAMPLES_SRC "docs/examples/*.c")
     file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
-    add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+    add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC} ${EXAMPLES_SRC})
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
@@ -495,6 +502,21 @@ if (BUILD_TESTING)
     #run unit tests
     file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
+
+    set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
+    if(TSAN)
+        set(TSAN_SUPPRESSIONS_FILE ${CMAKE_SOURCE_DIR}/tests/.tsan_suppressions)
+        if(NOT EXISTS ${TSAN_SUPPRESSIONS_FILE})
+            message(FATAL_ERROR "TSAN suppression file ${TSAN_SUPPRESSIONS_FILE} missing")
+        endif()
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
+        set(TSAN_OPTIONS suppressions=${TSAN_SUPPRESSIONS_FILE})
+        if(DEFINED ENV{TSAN_OPTIONS})
+            set(TSAN_OPTIONS "${TSAN_OPTIONS} $ENV{TSAN_OPTIONS}")
+        endif()
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=${TSAN_OPTIONS})
+    endif()
+    message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
 
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
@@ -519,18 +541,7 @@ if (BUILD_TESTING)
         endif()
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
         set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
-
-        set_property(
-        TEST
-            ${test_case_name}
-        PROPERTY
-            ENVIRONMENT LD_PRELOAD=$<TARGET_FILE:allocator_overrides>)
-
-        set_property(
-        TEST
-            ${test_case_name}
-        PROPERTY
-            ENVIRONMENT S2N_DONT_MLOCK=1)
+        set_property(TEST ${test_case_name} PROPERTY ENVIRONMENT ${UNIT_TEST_ENVS})
 
     endforeach(test_case)
 

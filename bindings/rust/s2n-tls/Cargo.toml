@@ -10,6 +10,7 @@ license = "Apache-2.0"
 
 [features]
 default = []
+unstable-fingerprint = ["s2n-tls-sys/unstable-fingerprint"]
 quic = ["s2n-tls-sys/quic"]
 pq = ["s2n-tls-sys/pq"]
 testing = ["bytes"]
@@ -20,9 +21,11 @@ errno = { version = "0.3" }
 libc = "0.2"
 s2n-tls-sys = { version = "=0.0.32", path = "../s2n-tls-sys", features = ["internal"] }
 pin-project-lite = "0.2"
+hex = "0.4"
 
 [dev-dependencies]
-bytes = { version = "1" }
+bytes = "1"
 futures-test = "0.3"
-openssl = { version = "0.10" }
-temp-env = { version = "0.3" }
+openssl = "0.10"
+temp-env = "0.3"
+checkers = "0.6"

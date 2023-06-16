@@ -28,6 +28,10 @@ impl Harness {
             handshake_done: false,
         }
     }
+
+    pub fn connection(&self) -> &Connection {
+        &self.connection
+    }
 }
 
 impl super::Connection for Harness {

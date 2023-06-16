@@ -36,13 +36,12 @@ RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key)
 {
     PTR_ENSURE_REF(rsa_key);
 
-    /* pragma gcc diagnostic was added in gcc 4.6 */
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+#ifdef S2N_DIAGNOSTICS_PUSH_SUPPORTED
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
     RSA *out_rsa_key = (RSA *) rsa_key->rsa;
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+#ifdef S2N_DIAGNOSTICS_POP_SUPPORTED
     #pragma GCC diagnostic pop
 #endif
 
