@@ -7,7 +7,7 @@ use crate::{
 };
 use s2n_tls::{
     callbacks::VerifyHostNameCallback,
-    config::{Builder, Config},
+    config::Builder,
     connection::Connection,
     enums::{Blinding, Version},
     security::Policy,
@@ -26,10 +26,8 @@ use std::{
 pub struct S2NHarness {
     // UnsafeCell is needed b/c client and server share *mut to IO buffers
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
-    client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
-    server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
-    client_config: Config,
-    server_config: Config,
+    _client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
+    _server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
     client_conn: Connection,
     server_conn: Connection,
     client_handshake_completed: bool,
@@ -120,7 +118,7 @@ impl TlsBenchHarness for S2NHarness {
         let mut client_conn = Connection::new_client();
         client_conn
             .set_blinding(Blinding::SelfService)?
-            .set_config(client_config.clone())?
+            .set_config(client_config)?
             .set_send_callback(Some(Self::send_cb))?
             .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
@@ -132,7 +130,7 @@ impl TlsBenchHarness for S2NHarness {
         let mut server_conn = Connection::new_server();
         server_conn
             .set_blinding(Blinding::SelfService)?
-            .set_config(server_config.clone())?
+            .set_config(server_config)?
             .set_send_callback(Some(Self::send_cb))?
             .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
@@ -142,10 +140,8 @@ impl TlsBenchHarness for S2NHarness {
         }
 
         Ok(Self {
-            client_to_server_buf,
-            server_to_client_buf,
-            client_config,
-            server_config,
+            _client_to_server_buf: client_to_server_buf,
+            _server_to_client_buf: server_to_client_buf,
             client_conn,
             server_conn,
             client_handshake_completed: false,

@@ -21,8 +21,6 @@ use std::{error::Error, io::BufReader, sync::Arc};
 pub struct RustlsHarness {
     client_buf: ConnectedBuffer,
     server_buf: ConnectedBuffer,
-    client_config: Arc<ClientConfig>,
-    server_config: Arc<ServerConfig>,
     client_conn: ClientConnection,
     server_conn: ServerConnection,
 }
@@ -101,15 +99,12 @@ impl TlsBenchHarness for RustlsHarness {
                 .with_single_cert(Self::get_cert_chain()?, Self::get_server_key()?)?,
         );
 
-        let client_conn =
-            ClientConnection::new(client_config.clone(), ServerName::try_from("localhost")?)?;
-        let server_conn = ServerConnection::new(server_config.clone())?;
+        let client_conn = ClientConnection::new(client_config, ServerName::try_from("localhost")?)?;
+        let server_conn = ServerConnection::new(server_config)?;
 
         Ok(Self {
             client_buf,
             server_buf,
-            client_config,
-            server_config,
             client_conn,
             server_conn,
         })
