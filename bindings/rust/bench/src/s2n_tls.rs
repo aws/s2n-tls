@@ -26,8 +26,8 @@ use std::{
 pub struct S2NHarness {
     // UnsafeCell is needed b/c client and server share *mut to IO buffers
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
-    _client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
-    _server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
+    client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
+    server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
     client_config: Config,
     server_config: Config,
     client_conn: Connection,
@@ -100,8 +100,8 @@ impl S2NHarness {
 
     /// Set up connections with config and custom IO
     fn init_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
-        let client_to_server_ptr = self._client_to_server_buf.get() as *mut c_void;
-        let server_to_client_ptr = self._server_to_client_buf.get() as *mut c_void;
+        let client_to_server_ptr = self.client_to_server_buf.get() as *mut c_void;
+        let server_to_client_ptr = self.server_to_client_buf.get() as *mut c_void;
         let (read_ptr, write_ptr, config, conn) = match mode {
             Mode::Client => (
                 server_to_client_ptr,
@@ -155,8 +155,8 @@ impl TlsBenchHarness for S2NHarness {
         let server_config = Self::create_config(Mode::Server, crypto_config)?;
 
         let mut harness = Self {
-            _client_to_server_buf: client_to_server_buf,
-            _server_to_client_buf: server_to_client_buf,
+            client_to_server_buf,
+            server_to_client_buf,
             client_config,
             server_config,
             client_conn: Connection::new_client(),
