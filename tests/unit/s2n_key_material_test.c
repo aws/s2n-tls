@@ -15,6 +15,7 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_prf.h"
 
 S2N_RESULT helper_generate_test_data(struct s2n_blob *test_data)
 {
@@ -32,6 +33,7 @@ S2N_RESULT helper_validate_key_material(struct s2n_key_material *key_material, s
     /* confirm that the data is copied to key_material */
     RESULT_ENSURE_EQ(memcmp(test_data_blob->data, key_material->key_block, test_data_blob->size), 0);
 
+    /* test that its possible to access data from s2n_key_material */
     uint8_t *test_ptr = test_data_blob->data;
     RESULT_ENSURE_REF(test_ptr);
     /* client MAC */
@@ -56,7 +58,6 @@ S2N_RESULT helper_validate_key_material(struct s2n_key_material *key_material, s
     RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->client_iv.data, iv_size), 0);
     test_ptr += iv_size;
     RESULT_ENSURE_REF(test_ptr);
-
     /* server IV */
     RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->server_iv.data, iv_size), 0);
 
@@ -82,9 +83,9 @@ int main(int argc, char **argv)
 
                     DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                             s2n_connection_ptr_free);
-                    conn->actual_protocol_version = S2N_TLS10;
 
                     /* test varying size of mac, key and iv */
+                    conn->actual_protocol_version = S2N_TLS10;
                     struct s2n_cipher temp_cipher = {
                         .type = S2N_COMPOSITE,
                         .key_material_size = key_size,
@@ -103,7 +104,7 @@ int main(int argc, char **argv)
                     };
                     conn->secure->cipher_suite = &temp_cipher_suite;
 
-                    /* set the record_alg on connection and init key_material */
+                    /* init s2n_key_material */
                     struct s2n_key_material key_material = { 0 };
                     EXPECT_OK(s2n_key_material_init(&key_material, conn));
 
@@ -115,7 +116,7 @@ int main(int argc, char **argv)
                     EXPECT_EQUAL(key_material.server_key.size, key_size);
                     EXPECT_EQUAL(key_material.server_iv.size, iv_size);
 
-                    /* copy data into key_material and validate key_material matches test_data */
+                    /* copy data into key_material and validate accessing key_material is sound */
                     POSIX_CHECKED_MEMCPY(key_material.key_block, test_data, s2n_array_len(key_material.key_block));
                     EXPECT_OK(helper_validate_key_material(&key_material, &test_data_blob, mac_size, key_size, iv_size));
                 }
@@ -124,7 +125,7 @@ int main(int argc, char **argv)
     }
 
     /* AEAD cipher
-     * assert same IV size regardless of protocol version
+     * IV size should be the same regardless of protocol version
      */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -138,7 +139,7 @@ int main(int argc, char **argv)
         uint32_t key = S2N_TLS_AES_128_GCM_KEY_LEN;
         uint32_t iv = S2N_TLS13_FIXED_IV_LEN;
 
-        /* assert IV of size == 0 if protocol version > S2N_TLS10 */
+        /* initialize s2n_key_material */
         conn->actual_protocol_version = S2N_TLS10;
         EXPECT_OK(s2n_key_material_init(&key_material, conn));
 
@@ -149,7 +150,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(key_material.server_key.size, key);
         EXPECT_EQUAL(key_material.server_iv.size, iv);
 
-        /* assert IV of size == 0 if protocol version > S2N_TLS10 */
+        /* re-initialize s2n_key_material */
         conn->actual_protocol_version = S2N_TLS11;
         EXPECT_OK(s2n_key_material_init(&key_material, conn));
         /* assert same IV size regardless of protocol version */
@@ -180,10 +181,10 @@ int main(int argc, char **argv)
         uint32_t key = S2N_TLS_AES_128_GCM_KEY_LEN;
         uint32_t iv = 16;
 
-        /* assert IV of non 0 if protocol version <= S2N_TLS10 */
+        /* initialize s2n_key_material */
         conn->actual_protocol_version = S2N_TLS10;
         EXPECT_OK(s2n_key_material_init(&key_material, conn));
-
+        /* assert IV of non 0 if protocol version <= S2N_TLS10 */
         EXPECT_EQUAL(key_material.client_mac.size, mac);
         EXPECT_EQUAL(key_material.client_key.size, key);
         EXPECT_EQUAL(key_material.client_iv.size, iv);
@@ -191,11 +192,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(key_material.server_key.size, key);
         EXPECT_EQUAL(key_material.server_iv.size, iv);
 
-        /* assert IV of size == 0 if protocol version > S2N_TLS10 */
+        /* re-initialize s2n_key_material */
         conn->actual_protocol_version = S2N_TLS11;
         EXPECT_OK(s2n_key_material_init(&key_material, conn));
+        /* assert IV of size == 0 if protocol version > S2N_TLS10 */
         iv = 0;
-
         EXPECT_EQUAL(key_material.client_mac.size, mac);
         EXPECT_EQUAL(key_material.client_key.size, key);
         EXPECT_EQUAL(key_material.client_iv.size, iv);
