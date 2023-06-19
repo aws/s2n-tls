@@ -9,7 +9,7 @@ use crate::{
 };
 use rustls::{
     cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
-    kx_group::SECP256R1,
+    kx_group::{SECP256R1, X25519},
     version::TLS13,
     Certificate, ClientConfig, ClientConnection, PrivateKey,
     ProtocolVersion::TLSv1_3,
@@ -79,6 +79,7 @@ impl TlsBenchHarness for RustlsHarness {
 
         let kx_group = match crypto_config.ec_group {
             ECGroup::SECP256R1 => &SECP256R1,
+            ECGroup::X25519 => &X25519,
         };
 
         let client_config = Arc::new(

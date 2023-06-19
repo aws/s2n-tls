@@ -7,7 +7,7 @@ use crate::{
 };
 use s2n_tls::{
     callbacks::VerifyHostNameCallback,
-    config::Builder,
+    config::{Builder, Config},
     connection::Connection,
     enums::{Blinding, Version},
     security::Policy,
@@ -28,6 +28,8 @@ pub struct S2NHarness {
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
     _client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
     _server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
+    client_config: Config,
+    server_config: Config,
     client_conn: Connection,
     server_conn: Connection,
     client_handshake_completed: bool,
@@ -70,6 +72,63 @@ impl S2NHarness {
         }
     }
 
+    fn create_config(mode: Mode, crypto_config: &CryptoConfig) -> Result<Config, Box<dyn Error>> {
+        let security_policy = match (&crypto_config.cipher_suite, &crypto_config.ec_group) {
+            (CipherSuite::AES_128_GCM_SHA256, ECGroup::SECP256R1) => "20230317",
+            (CipherSuite::AES_256_GCM_SHA384, ECGroup::SECP256R1) => "20190802",
+            (CipherSuite::AES_128_GCM_SHA256, ECGroup::X25519) => "default_tls13",
+            (CipherSuite::AES_256_GCM_SHA384, ECGroup::X25519) => "20190801",
+        };
+
+        let mut builder = Builder::new();
+        builder.set_security_policy(&Policy::from_version(security_policy)?)?;
+
+        match mode {
+            Mode::Server => builder.load_pem(
+                read_to_bytes(SERVER_CERT_CHAIN_PATH).as_slice(),
+                read_to_bytes(SERVER_KEY_PATH).as_slice(),
+            )?,
+            Mode::Client => builder
+                .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
+                .set_verify_host_callback(HostNameHandler {
+                    expected_server_name: "localhost",
+                })?,
+        };
+
+        Ok(builder.build()?)
+    }
+
+    /// Set up connections with config and custom IO
+    fn init_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
+        let client_to_server_ptr = self._client_to_server_buf.get() as *mut c_void;
+        let server_to_client_ptr = self._server_to_client_buf.get() as *mut c_void;
+        let (read_ptr, write_ptr, config, conn) = match mode {
+            Mode::Client => (
+                server_to_client_ptr,
+                client_to_server_ptr,
+                &self.client_config,
+                &mut self.client_conn,
+            ),
+            Mode::Server => (
+                client_to_server_ptr,
+                server_to_client_ptr,
+                &self.server_config,
+                &mut self.server_conn,
+            ),
+        };
+
+        conn.set_blinding(Blinding::SelfService)?
+            .set_config(config.clone())?
+            .set_send_callback(Some(Self::send_cb))?
+            .set_receive_callback(Some(Self::recv_cb))?;
+        unsafe {
+            conn.set_send_context(write_ptr)?
+                .set_receive_context(read_ptr)?;
+        }
+
+        Ok(())
+    }
+
     /// Handshake step for one connection
     fn handshake_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
         let (conn, handshake_completed) = match mode {
@@ -92,61 +151,24 @@ impl TlsBenchHarness for S2NHarness {
         let client_to_server_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
         let server_to_client_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
 
-        let security_policy = match (&crypto_config.cipher_suite, &crypto_config.ec_group) {
-            (CipherSuite::AES_128_GCM_SHA256, ECGroup::SECP256R1) => "20230317",
-            (CipherSuite::AES_256_GCM_SHA384, ECGroup::SECP256R1) => "20190802",
-        };
+        let client_config = Self::create_config(Mode::Client, crypto_config)?;
+        let server_config = Self::create_config(Mode::Server, crypto_config)?;
 
-        let mut client_builder = Builder::new();
-        client_builder
-            .set_security_policy(&Policy::from_version(security_policy)?)?
-            .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
-            .set_verify_host_callback(HostNameHandler {
-                expected_server_name: "localhost",
-            })?;
-        let client_config = client_builder.build()?;
-
-        let mut server_builder = Builder::new();
-        server_builder
-            .set_security_policy(&Policy::from_version(security_policy)?)?
-            .load_pem(
-                read_to_bytes(SERVER_CERT_CHAIN_PATH).as_slice(),
-                read_to_bytes(SERVER_KEY_PATH).as_slice(),
-            )?;
-        let server_config = server_builder.build()?;
-
-        let mut client_conn = Connection::new_client();
-        client_conn
-            .set_blinding(Blinding::SelfService)?
-            .set_config(client_config)?
-            .set_send_callback(Some(Self::send_cb))?
-            .set_receive_callback(Some(Self::recv_cb))?;
-        unsafe {
-            client_conn
-                .set_send_context(client_to_server_buf.get() as *mut c_void)?
-                .set_receive_context(server_to_client_buf.get() as *mut c_void)?;
-        }
-
-        let mut server_conn = Connection::new_server();
-        server_conn
-            .set_blinding(Blinding::SelfService)?
-            .set_config(server_config)?
-            .set_send_callback(Some(Self::send_cb))?
-            .set_receive_callback(Some(Self::recv_cb))?;
-        unsafe {
-            server_conn
-                .set_send_context(server_to_client_buf.get() as *mut c_void)?
-                .set_receive_context(client_to_server_buf.get() as *mut c_void)?;
-        }
-
-        Ok(Self {
+        let mut harness = Self {
             _client_to_server_buf: client_to_server_buf,
             _server_to_client_buf: server_to_client_buf,
-            client_conn,
-            server_conn,
+            client_config,
+            server_config,
+            client_conn: Connection::new_client(),
+            server_conn: Connection::new_server(),
             client_handshake_completed: false,
             server_handshake_completed: false,
-        })
+        };
+
+        harness.init_conn(Mode::Client)?;
+        harness.init_conn(Mode::Server)?;
+
+        Ok(harness)
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {

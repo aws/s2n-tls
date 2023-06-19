@@ -31,6 +31,7 @@ pub enum CipherSuite {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ECGroup {
     SECP256R1,
+    X25519,
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -138,7 +139,7 @@ macro_rules! test_tls_bench_harnesses {
 
                 let (mut harness, mut crypto_config);
                 for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384].iter() {
-                    for ec_group in [SECP256R1].iter() {
+                    for ec_group in [SECP256R1, X25519].iter() {
                         crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
                         harness = <$harness_type>::new(&crypto_config).unwrap();
                         harness.handshake().unwrap();
