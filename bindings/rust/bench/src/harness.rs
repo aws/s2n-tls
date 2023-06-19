@@ -60,14 +60,10 @@ pub trait TlsBenchHarness: Sized {
     fn handshake_completed(&self) -> bool;
 
     /// Get negotiated cipher suite
-    ///
-    /// Returns `Err` if handshake has not completed
-    fn get_negotiated_cipher_suite(&self) -> Result<CipherSuite, Box<dyn Error>>;
+    fn get_negotiated_cipher_suite(&self) -> CipherSuite;
 
     /// Get whether or negotiated version is TLS1.3
-    ///
-    /// Retuns `Err` if handshake has not completed
-    fn negotiated_tls13(&self) -> Result<bool, Box<dyn Error>>;
+    fn negotiated_tls13(&self) -> bool;
 }
 
 /// Wrapper of two shared buffers to pass as stream
@@ -129,7 +125,7 @@ macro_rules! test_tls_bench_harnesses {
                 assert!(!harness.handshake_completed());
                 harness.handshake().unwrap();
                 assert!(harness.handshake_completed());
-                assert!(harness.negotiated_tls13().unwrap());
+                assert!(harness.negotiated_tls13());
             }
 
             #[test]
@@ -143,7 +139,7 @@ macro_rules! test_tls_bench_harnesses {
                         crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
                         harness = <$harness_type>::new(&crypto_config).unwrap();
                         harness.handshake().unwrap();
-                        assert_eq!(cipher_suite, &harness.get_negotiated_cipher_suite().unwrap());
+                        assert_eq!(cipher_suite, &harness.get_negotiated_cipher_suite());
                     }
                 }
             }

@@ -183,15 +183,15 @@ impl TlsBenchHarness for S2NHarness {
         self.client_handshake_completed && self.server_handshake_completed
     }
 
-    fn get_negotiated_cipher_suite(&self) -> Result<CipherSuite, Box<dyn Error>> {
-        match self.client_conn.cipher_suite()? {
-            "TLS_AES_128_GCM_SHA256" => Ok(CipherSuite::AES_128_GCM_SHA256),
-            "TLS_AES_256_GCM_SHA384" => Ok(CipherSuite::AES_256_GCM_SHA384),
-            _ => Err("Unknown cipher suite".into()),
+    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+        match self.client_conn.cipher_suite().unwrap() {
+            "TLS_AES_128_GCM_SHA256" => CipherSuite::AES_128_GCM_SHA256,
+            "TLS_AES_256_GCM_SHA384" => CipherSuite::AES_256_GCM_SHA384,
+            _ => panic!("Unknown cipher suite"),
         }
     }
 
-    fn negotiated_tls13(&self) -> Result<bool, Box<dyn Error>> {
-        Ok(self.client_conn.actual_protocol_version()? == Version::TLS13)
+    fn negotiated_tls13(&self) -> bool {
+        self.client_conn.actual_protocol_version().unwrap() == Version::TLS13
     }
 }

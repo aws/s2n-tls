@@ -123,26 +123,18 @@ impl TlsBenchHarness for RustlsHarness {
         !self.client_conn.is_handshaking() && !self.server_conn.is_handshaking()
     }
 
-    fn get_negotiated_cipher_suite(&self) -> Result<CipherSuite, Box<dyn Error>> {
-        match self.client_conn.negotiated_cipher_suite() {
-            None => Err("Handshake not completed".into()),
-            Some(suite) => match suite.suite() {
-                rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => {
-                    Ok(CipherSuite::AES_128_GCM_SHA256)
-                }
-                rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => {
-                    Ok(CipherSuite::AES_256_GCM_SHA384)
-                }
-                _ => Err("Unknown cipher suite".into()),
-            },
+    fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+        match self.client_conn.negotiated_cipher_suite().unwrap().suite() {
+            rustls::CipherSuite::TLS13_AES_128_GCM_SHA256 => CipherSuite::AES_128_GCM_SHA256,
+            rustls::CipherSuite::TLS13_AES_256_GCM_SHA384 => CipherSuite::AES_256_GCM_SHA384,
+            _ => panic!("Unknown cipher suite"),
         }
     }
 
-    fn negotiated_tls13(&self) -> Result<bool, Box<dyn Error>> {
-        Ok(self
-            .client_conn
+    fn negotiated_tls13(&self) -> bool {
+        self.client_conn
             .protocol_version()
-            .ok_or("Handshake not completed")?
-            == TLSv1_3)
+            .expect("Handshake not completed")
+            == TLSv1_3
     }
 }
