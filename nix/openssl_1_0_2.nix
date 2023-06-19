@@ -18,6 +18,9 @@ pkgs.stdenv.mkDerivation rec {
     x86_64-linux = ''
       ./config -d ${default_options}
     '';
+    # The Openssl102 Configure script appears to have a bug and won't recognize
+    # aarch64 as a supported platform when passed the '-d' flag.
+    # See the PR for more detail: https://github.com/aws/s2n-tls/pull/4045 
     aarch64-linux = ''
       ./config ${default_options}
     '';
