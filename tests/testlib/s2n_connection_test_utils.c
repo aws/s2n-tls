@@ -332,3 +332,12 @@ S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn)
 
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn)
+{
+    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
+    while (!s2n_handshake_is_complete(conn)) {
+        conn->handshake.message_number++;
+    }
+    return S2N_RESULT_OK;
+}
