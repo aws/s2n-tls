@@ -1,0 +1,24 @@
+[req]
+distinguished_name = client_distinguished_name
+prompt = no
+
+# these fields are used to force x509 to v3 certificates
+# rustls will complain otherwise
+x509_extensions = v3_req
+req_extensions = req_ext
+
+[client_distinguished_name]
+countryName = US
+stateOrProvinceName = Washington
+localityName = Seattle
+organizationName = client
+commonName = client.localhost
+
+[v3_req]
+subjectAltName = @alt_names
+
+[req_ext]
+subjectAltName = @alt_names
+
+[alt_names]
+DNS = localhost
