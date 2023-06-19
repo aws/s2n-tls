@@ -10,7 +10,8 @@ pub fn bench_handshake(c: &mut Criterion) {
     macro_rules! bench_handshake_for_libraries {
         ($(($lib_name:expr, $lib_type:ty),)*) => {
         $(
-            // generate all inputs (s2n-tls objects) before benchmarking handshakes
+            // generate all inputs (TlsBenchHarness structs) before benchmarking handshakes
+            // timing only includes negotiation, not config/connection initialization
             group.bench_function($lib_name, |b| {
                 b.iter_batched_ref(
                     || <$lib_type>::default().unwrap(),

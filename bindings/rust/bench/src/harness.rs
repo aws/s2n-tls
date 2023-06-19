@@ -78,19 +78,19 @@ pub struct ConnectedBuffer {
 }
 
 impl ConnectedBuffer {
-    /// Make a new object with new internal buffers
+    /// Make a new struct with new internal buffers
     pub fn new() -> Self {
         ConnectedBuffer {
             recv: Rc::new(RefCell::new(VecDeque::new())),
             send: Rc::new(RefCell::new(VecDeque::new())),
         }
     }
-    /// Make a new object that shares internal buffers but swapped, ex.
+    /// Make a new struct that shares internal buffers but swapped, ex.
     /// `write()` writes to the buffer that the inverse `read()`s from
     pub fn clone_inverse(&self) -> Self {
         ConnectedBuffer {
-            recv: self.send.clone(),
-            send: self.recv.clone(),
+            recv: Rc::clone(&self.send),
+            send: Rc::clone(&self.recv),
         }
     }
 }
@@ -98,6 +98,7 @@ impl ConnectedBuffer {
 impl Read for ConnectedBuffer {
     fn read(&mut self, dest: &mut [u8]) -> Result<usize, std::io::Error> {
         match self.recv.borrow_mut().read(dest) {
+            // rustls expects WouldBlock on read of length 0
             Ok(0) => Err(std::io::Error::new(ErrorKind::WouldBlock, "blocking")),
             Ok(len) => Ok(len),
             Err(err) => Err(err),
