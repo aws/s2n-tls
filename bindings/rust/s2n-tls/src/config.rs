@@ -326,6 +326,16 @@ impl Builder {
             s2n_config_set_verification_ca_location(self.as_mut_ptr(), file_ptr, dir_ptr)
                 .into_result()
         }?;
+
+        // If OCSP has not been explicitly requested, turn off OCSP. This is to prevent this function from
+        // automatically enabling `OCSP` due to the legacy behavior of `s2n_config_set_verification_ca_location`
+        if !self.enable_ocsp {
+            unsafe {
+                s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::NONE)
+                    .into_result()?
+            };
+        }
+
         Ok(self)
     }
 
@@ -590,15 +600,6 @@ impl Builder {
             unsafe {
                 s2n_config_load_system_certs(self.as_mut_ptr()).into_result()?;
             }
-        }
-
-        // If OCSP has not been explicitly requested, turn off OCSP. This is to prevent the `trust_location()` function
-        // from automatically enabling `OCSP` due to the legacy behavior of `s2n_config_set_verification_ca_location`
-        if !self.enable_ocsp {
-            unsafe {
-                s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::NONE)
-                    .into_result()?
-            };
         }
 
         Ok(self.config)
