@@ -445,7 +445,7 @@ int main(int argc, char **argv)
     {
         s2n_stack_blob(small_prk_output, 10, 10);
         EXPECT_FAILURE_WITH_ERRNO(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &small_prk_output),
-                S2N_ERR_SAFETY);
+                S2N_ERR_HKDF_OUTPUT_SIZE);
 
         /* s2n_hkdf_extract succeeds with the correct output size */
         s2n_stack_blob(large_prk_output, SHA512_DIGEST_LENGTH, SHA512_DIGEST_LENGTH);
