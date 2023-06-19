@@ -32,6 +32,10 @@ impl Harness {
     pub fn connection(&self) -> &Connection {
         &self.connection
     }
+
+    pub fn connection_mut(&mut self) -> &mut Connection {
+        &mut self.connection
+    }
 }
 
 impl super::Connection for Harness {
@@ -570,22 +574,11 @@ mod tests {
                 config.build()?
             };
 
-            let server = {
-                // create and configure a server connection
-                let mut server = crate::connection::Connection::new_server();
-                server.set_config(config.clone())?;
-                server.set_waker(Some(&noop_waker()))?;
-                Harness::new(server)
-            };
-
-            let client = {
-                // create a client connection
-                let mut client = crate::connection::Connection::new_client();
-                client.set_config(config)?;
-                Harness::new(client)
-            };
-
-            let pair = Pair::new(server, client);
+            let mut pair = tls_pair(config);
+            pair.server
+                .0
+                .connection_mut()
+                .set_waker(Some(&noop_waker()))?;
 
             poll_tls_pair(pair);
         }
