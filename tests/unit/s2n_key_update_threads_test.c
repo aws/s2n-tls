@@ -118,11 +118,28 @@ static S2N_RESULT s2n_sanity_check_key_updates_sent(struct s2n_connection *conn)
     RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num_blob, &seq_num));
     RESULT_ENSURE_LTE(seq_num, conn->secure->cipher_suite->record_alg->encryption_limit);
 
-    /* Verify that if no KeyUpdate was sent and seq_num therefore represents the
-     * total number of records sent, we cannot account for all of wire-bytes_out.
-     * This proves that at least one KeyUpdate was sent.
+    /* s2n-tls doesn't keep a running count of KeyUpdates, so to sanity check that
+     * at least one KeyUpdate occurred we have to rely on some math.
+     *
+     * wire_bytes_out represents the total bytes sent, and should therefore be
+     * less than or equal to (number of records sent) * (maximum size of a record).
+     *
+     * (maximum size of a record) can be calculated based on max_outgoing_fragment_length.
+     * We will call it max_record_size.
+     *
+     * (number of records sent) is seq_num, if no KeyUpdates were sent. seq_num
+     * starts at 0, is incremented by one for every record, and is reset to 0 by
+     * a KeyUpdate. So if no KeyUpdate occurs, seq_num represents the total number
+     * of records sent.
+     *
+     * If seq_num represents the total number of records sent, then wire_bytes_out
+     * must be less than or equal to (seq_num) * (max_record_size).
+     * If wire_bytes_out is instead greater than (seq_num) * (max_record_size),
+     * then more records were sent than seq_num accounts for. That means that seq_num
+     * must have been reset, which means that at least one KeyUpdate was sent.
      */
-    RESULT_ENSURE_GT(conn->wire_bytes_out, S2N_DEFAULT_RECORD_LENGTH * seq_num);
+    size_t max_record_size = S2N_TLS13_MAX_RECORD_LEN_FOR(conn->max_outgoing_fragment_length);
+    RESULT_ENSURE_GT(conn->wire_bytes_out, max_record_size * seq_num);
 
     return S2N_RESULT_OK;
 }
