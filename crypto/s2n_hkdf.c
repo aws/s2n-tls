@@ -46,7 +46,7 @@ static int s2n_custom_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algorit
 {
     uint8_t hmac_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(alg, &hmac_size));
-    POSIX_ENSURE_LTE(hmac_size, pseudo_rand_key->size);
+    POSIX_ENSURE(hmac_size <= pseudo_rand_key->size, S2N_ERR_HKDF_OUTPUT_SIZE);
     pseudo_rand_key->size = hmac_size;
 
     POSIX_GUARD(s2n_hmac_init(hmac, alg, salt->data, salt->size));
@@ -126,14 +126,22 @@ static int s2n_libcrypto_hkdf_extract(struct s2n_hmac_state *hmac, s2n_hmac_algo
     const EVP_MD *digest = NULL;
     POSIX_GUARD_RESULT(s2n_hmac_md_from_alg(alg, &digest));
 
-    size_t pseudo_rand_key_len = (size_t) pseudo_rand_key->size;
-    POSIX_GUARD_OSSL(HKDF_extract(pseudo_rand_key->data, &pseudo_rand_key_len, digest, key->data, key->size,
+    /* The out_len argument of HKDF_extract is set to the number of bytes written to out_key, and
+     * is not used to ensure that out_key is large enough to contain the PRK. Ensure that the PRK
+     * output will fit in the blob.
+     */
+    uint8_t hmac_size = 0;
+    POSIX_GUARD(s2n_hmac_digest_size(alg, &hmac_size));
+    POSIX_ENSURE(hmac_size <= pseudo_rand_key->size, S2N_ERR_HKDF_OUTPUT_SIZE);
+
+    size_t bytes_written = 0;
+    POSIX_GUARD_OSSL(HKDF_extract(pseudo_rand_key->data, &bytes_written, digest, key->data, key->size,
                              salt->data, salt->size),
             S2N_ERR_HKDF);
 
-    /* HKDF_extract updates the PRK length argument based on the digest size. Update the blob's size based on this. */
-    POSIX_ENSURE_LTE(pseudo_rand_key_len, pseudo_rand_key->size);
-    pseudo_rand_key->size = pseudo_rand_key_len;
+    /* HKDF_extract updates the out_len argument based on the digest size. Update the blob's size based on this. */
+    POSIX_ENSURE_LTE(bytes_written, pseudo_rand_key->size);
+    pseudo_rand_key->size = bytes_written;
 
     return S2N_SUCCESS;
 }
