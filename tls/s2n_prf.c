@@ -1004,16 +1004,14 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
     POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
-    struct s2n_blob label, out;
+    struct s2n_blob label = { 0 };
     uint8_t key_expansion_label[] = "key expansion";
-    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
-
     label.data = key_expansion_label;
     label.size = sizeof(key_expansion_label) - 1;
-    POSIX_GUARD(s2n_blob_init(&out, key_block, sizeof(key_block)));
 
     struct s2n_key_material key_material = { 0 };
     POSIX_GUARD_RESULT(s2n_key_material_init(&key_material, conn));
+    struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, key_material.key_block, sizeof(key_material.key_block)));
     POSIX_GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &out));
 
