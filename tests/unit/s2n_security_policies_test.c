@@ -580,6 +580,8 @@ int main(int argc, char **argv)
             "PQ-TLS-1-2-2023-04-08",
             "PQ-TLS-1-2-2023-04-09",
             "PQ-TLS-1-2-2023-04-10",
+            /* KMS TLS */
+            "KMS-TLS-1-2-2023-06",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
