@@ -385,6 +385,14 @@ const struct s2n_security_policy security_policy_kms_tls_1_0_2021_08 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+const struct s2n_security_policy security_policy_kms_tls_1_2_2023_06 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_kms_tls_1_0_2021_08,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 const struct s2n_security_policy security_policy_kms_pq_tls_1_0_2019_06 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_kms_pq_tls_1_0_2019_06,
@@ -873,6 +881,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     /* KMS TLS Policies*/
     { .version = "KMS-TLS-1-0-2018-10", .security_policy = &security_policy_kms_tls_1_0_2018_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-TLS-1-0-2021-08", .security_policy = &security_policy_kms_tls_1_0_2021_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "KMS-TLS-1-2-2023-06", .security_policy = &security_policy_kms_tls_1_2_2023_06, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-FIPS-TLS-1-2-2018-10", .security_policy = &security_policy_kms_fips_tls_1_2_2018_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-FIPS-TLS-1-2-2021-08", .security_policy = &security_policy_kms_fips_tls_1_2_2021_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "KMS-PQ-TLS-1-0-2019-06", .security_policy = &security_policy_kms_pq_tls_1_0_2019_06, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
