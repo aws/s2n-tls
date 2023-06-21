@@ -1,0 +1,13 @@
+[ req ]
+prompt = no
+distinguished_name = ca_distinguished_name
+
+[ ca_distinguished_name ]
+# country name
+C = JP
+# state or province
+ST = Chiba
+L = Chiba City
+O = Tessier-Ashpool
+CN = develop.localca
+emailAddress = ca@develop.localca
