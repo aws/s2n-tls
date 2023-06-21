@@ -17,7 +17,7 @@
 
 bool s2n_ktls_is_supported_on_platform()
 {
-#ifdef S2N_PLATFORM_SUPPORTS_KTLS
+#if defined(__linux__)
     return true;
 #else
     return false;
