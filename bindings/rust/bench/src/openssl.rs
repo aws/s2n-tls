@@ -6,7 +6,8 @@ use crate::{
     CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslAcceptor, SslConnector, SslFiletype, SslMethod, SslStream, SslVersion,
+    ErrorCode, Ssl, SslAcceptor, SslConnector, SslContextBuilder, SslFiletype, SslMethod,
+    SslStream, SslVersion,
 };
 use std::error::Error;
 
@@ -16,6 +17,16 @@ pub struct OpenSslHarness {
 }
 
 impl OpenSslHarness {
+    fn common_config(
+        builder: &mut SslContextBuilder,
+        cipher_suite: &str,
+        ec_key: &str,
+    ) -> Result<(), Box<dyn Error>> {
+        builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
+        builder.set_ciphersuites(cipher_suite)?;
+        builder.set_groups_list(ec_key)?;
+        Ok(())
+    }
     /// Process handshake for one connection, treating blocking errors as `Ok`
     fn handshake_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
         match match mode {
@@ -51,16 +62,14 @@ impl TlsBenchHarness for OpenSslHarness {
 
         let mut client_builder = SslConnector::builder(SslMethod::tls())?;
         client_builder.set_ca_file(CA_CERT_PATH)?;
-        client_builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
-        client_builder.set_ciphersuites(cipher_suite)?;
-        client_builder.set_groups_list(ec_key)?;
+        Self::common_config(&mut client_builder, cipher_suite, ec_key)?;
 
+        // SslAcceptorBuilder has to have set of safe defaults
+        // Arbitrarily chose mozilla_modern_v5(), override defaults
         let mut server_builder = SslAcceptor::mozilla_modern_v5(SslMethod::tls())?;
         server_builder.set_certificate_chain_file(SERVER_CERT_CHAIN_PATH)?;
         server_builder.set_private_key_file(SERVER_KEY_PATH, SslFiletype::PEM)?;
-        server_builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
-        server_builder.set_ciphersuites(cipher_suite)?;
-        server_builder.set_groups_list(ec_key)?;
+        Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
 
         let client_config = client_builder.build().into_context();
         let server_config = server_builder.build().into_context();

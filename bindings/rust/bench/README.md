@@ -36,8 +36,8 @@ All certs are stores in `certs/` and can be regenerated using `certs/generate_ce
 
 ### Cipher suites
 
-The only cipher suites common to all 3 libraries are AES-128/GCM/SHA-256 and AES-256/GCM/SHA-384, so these are the only ones being tested.
+The only cipher suites benchmarked are AES-128/GCM/SHA-256 and AES-256/GCM/SHA-384, as these are the most readily usable for all 3 libraries.
 
 ### Key exchange algorithms
 
-The only key exchange method supported by all 3 libraries is ECDHE with secp256r1.
+The only key exchange methods benchmarked are ECDHE with secp256r1 and with x25519, as these are the most readily usable for all 3 libraries.
