@@ -559,6 +559,7 @@ int main(int argc, char **argv)
             "test_all_tls13",
             "20190801",
             "20190802",
+            "KMS-TLS-1-2-2023-06",
             /* CloudFront viewer facing */
             "CloudFront-SSL-v-3",
             "CloudFront-TLS-1-0-2014",

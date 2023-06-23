@@ -152,6 +152,7 @@ impl Drop for Config {
 pub struct Builder {
     config: Config,
     load_system_certs: bool,
+    enable_ocsp: bool,
 }
 
 impl Builder {
@@ -181,6 +182,7 @@ impl Builder {
         Self {
             config: Config(config),
             load_system_certs: true,
+            enable_ocsp: false,
         }
     }
 
@@ -288,6 +290,10 @@ impl Builder {
         Ok(self)
     }
 
+    /// Adds to the trust store from a CA file or directory containing trusted certificates.
+    ///
+    /// NOTE: This function is equivalent to `s2n_config_set_verification_ca_location` except it does
+    /// not automatically enable the client to request OCSP stapling from the server.
     pub fn trust_location(
         &mut self,
         file: Option<&Path>,
@@ -320,6 +326,16 @@ impl Builder {
             s2n_config_set_verification_ca_location(self.as_mut_ptr(), file_ptr, dir_ptr)
                 .into_result()
         }?;
+
+        // If OCSP has not been explicitly requested, turn off OCSP. This is to prevent this function from
+        // automatically enabling `OCSP` due to the legacy behavior of `s2n_config_set_verification_ca_location`
+        if !self.enable_ocsp {
+            unsafe {
+                s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::NONE)
+                    .into_result()?
+            };
+        }
+
         Ok(self)
     }
 
@@ -353,6 +369,7 @@ impl Builder {
             s2n_config_set_status_request_type(self.as_mut_ptr(), s2n_status_request_type::OCSP)
                 .into_result()
         }?;
+        self.enable_ocsp = true;
         Ok(self)
     }
 
