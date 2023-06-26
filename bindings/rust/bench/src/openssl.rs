@@ -2,8 +2,9 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
+    get_cert_path,
     harness::{CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness},
-    CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    PemType::*,
 };
 use openssl::ssl::{
     ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream, SslVersion,
@@ -61,13 +62,17 @@ impl TlsBenchHarness for OpenSslHarness {
         };
 
         let mut client_builder = SslContext::builder(SslMethod::tls_client())?;
-        client_builder.set_ca_file(CA_CERT_PATH)?;
         Self::common_config(&mut client_builder, cipher_suite, ec_key)?;
+        client_builder.set_ca_file(get_cert_path(&CACert, &crypto_config.sig_type))?;
 
         let mut server_builder = SslContext::builder(SslMethod::tls_server())?;
-        server_builder.set_certificate_chain_file(SERVER_CERT_CHAIN_PATH)?;
-        server_builder.set_private_key_file(SERVER_KEY_PATH, SslFiletype::PEM)?;
         Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
+        server_builder
+            .set_certificate_chain_file(get_cert_path(&ServerCertChain, &crypto_config.sig_type))?;
+        server_builder.set_private_key_file(
+            get_cert_path(&ServerKey, &crypto_config.sig_type),
+            SslFiletype::PEM,
+        )?;
 
         let client_config = client_builder.build();
         let server_config = server_builder.build();

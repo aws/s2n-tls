@@ -5,7 +5,8 @@ use crate::{
     harness::{
         read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness,
     },
-    CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    PemType::{self, *},
+    SigType,
 };
 use rustls::{
     cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
@@ -26,25 +27,28 @@ pub struct RustlsHarness {
 }
 
 impl RustlsHarness {
-    fn get_root_cert_store() -> Result<RootCertStore, Box<dyn Error>> {
+    fn get_root_cert_store(sig_type: &SigType) -> Result<RootCertStore, Box<dyn Error>> {
         let root_cert =
-            Certificate(certs(&mut BufReader::new(&*read_to_bytes(CA_CERT_PATH)))?.remove(0));
+            Certificate(certs(&mut BufReader::new(&*read_to_bytes(&CACert, sig_type)))?.remove(0));
         let mut root_certs = RootCertStore::empty();
         root_certs.add(&root_cert)?;
         Ok(root_certs)
     }
 
-    fn get_cert_chain() -> Result<Vec<Certificate>, Box<dyn Error>> {
-        let chain = certs(&mut BufReader::new(&*read_to_bytes(SERVER_CERT_CHAIN_PATH)))?;
+    fn get_cert_chain(
+        pem_type: &PemType,
+        sig_type: &SigType,
+    ) -> Result<Vec<Certificate>, Box<dyn Error>> {
+        let chain = certs(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?;
         Ok(chain
             .iter()
             .map(|bytes| Certificate(bytes.to_vec()))
             .collect())
     }
 
-    fn get_server_key() -> Result<PrivateKey, Box<dyn Error>> {
+    fn get_key(pem_type: &PemType, sig_type: &SigType) -> Result<PrivateKey, Box<dyn Error>> {
         Ok(PrivateKey(
-            pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(SERVER_KEY_PATH)))?.remove(0),
+            pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?.remove(0),
         ))
     }
 
@@ -87,7 +91,7 @@ impl TlsBenchHarness for RustlsHarness {
                 .with_cipher_suites(&[cipher_suite])
                 .with_kx_groups(&[kx_group])
                 .with_protocol_versions(&[&TLS13])?
-                .with_root_certificates(Self::get_root_cert_store()?)
+                .with_root_certificates(Self::get_root_cert_store(&crypto_config.sig_type)?)
                 .with_no_client_auth(),
         );
 
@@ -97,7 +101,10 @@ impl TlsBenchHarness for RustlsHarness {
                 .with_kx_groups(&[kx_group])
                 .with_protocol_versions(&[&TLS13])?
                 .with_no_client_auth()
-                .with_single_cert(Self::get_cert_chain()?, Self::get_server_key()?)?,
+                .with_single_cert(
+                    Self::get_cert_chain(&ServerCertChain, &crypto_config.sig_type)?,
+                    Self::get_key(&ServerKey, &crypto_config.sig_type)?,
+                )?,
         );
 
         let client_conn = ClientConnection::new(client_config, ServerName::try_from("localhost")?)?;

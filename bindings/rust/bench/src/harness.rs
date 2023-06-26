@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::{get_cert_path, PemType};
 use std::{
     cell::RefCell,
     collections::VecDeque,
@@ -10,8 +11,10 @@ use std::{
     rc::Rc,
 };
 
-pub fn read_to_bytes(path: &str) -> Vec<u8> {
-    read_to_string(path).unwrap().into_bytes()
+pub fn read_to_bytes(pem_type: &PemType, sig_type: &SigType) -> Vec<u8> {
+    read_to_string(get_cert_path(pem_type, sig_type))
+        .unwrap()
+        .into_bytes()
 }
 
 pub enum Mode {
@@ -22,31 +25,49 @@ pub enum Mode {
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum CipherSuite {
+    #[default]
     AES_128_GCM_SHA256,
     AES_256_GCM_SHA384,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub enum ECGroup {
     SECP256R1,
+    #[default]
     X25519,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub enum SigType {
+    Rsa2048,
+    Rsa4096,
+    #[default]
+    Ec384,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct CryptoConfig {
     pub cipher_suite: CipherSuite,
     pub ec_group: ECGroup,
+    pub sig_type: SigType,
+}
+
+impl CryptoConfig {
+    pub fn new(cipher_suite: &CipherSuite, ec_group: &ECGroup, sig_type: &SigType) -> Self {
+        Self {
+            cipher_suite: *cipher_suite,
+            ec_group: *ec_group,
+            sig_type: *sig_type,
+        }
+    }
 }
 
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(&CryptoConfig {
-            cipher_suite: CipherSuite::AES_128_GCM_SHA256,
-            ec_group: ECGroup::X25519,
-        })
+        Self::new(&Default::default())
     }
 
     /// Initialize buffers, configs, and connections (pre-handshake)
@@ -118,28 +139,26 @@ macro_rules! test_tls_bench_harnesses {
     $(
         mod $lib_name {
             use super::*;
+            use CipherSuite::*;
+            use ECGroup::*;
+            use SigType::*;
 
             #[test]
-            fn test_handshake() {
-                let mut harness = <$harness_type>::default().unwrap();
-                assert!(!harness.handshake_completed());
-                harness.handshake().unwrap();
-                assert!(harness.handshake_completed());
-                assert!(harness.negotiated_tls13());
-            }
-
-            #[test]
-            fn test_different_crypto_config() {
-                use CipherSuite::*;
-                use ECGroup::*;
-
+            fn test_handshake_config() {
                 let (mut harness, mut crypto_config);
-                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384].iter() {
-                    for ec_group in [SECP256R1, X25519].iter() {
-                        crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
-                        harness = <$harness_type>::new(&crypto_config).unwrap();
-                        harness.handshake().unwrap();
-                        assert_eq!(cipher_suite, &harness.get_negotiated_cipher_suite());
+                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
+                    for ec_group in [SECP256R1, X25519] {
+                        for sig_type in [Ec384, Rsa2048, Rsa4096] {
+                            crypto_config = CryptoConfig::new(&cipher_suite, &ec_group, &sig_type);
+                            harness = <$harness_type>::new(&crypto_config).unwrap();
+
+                            assert!(!harness.handshake_completed());
+                            harness.handshake().unwrap();
+                            assert!(harness.handshake_completed());
+
+                            assert!(harness.negotiated_tls13());
+                            assert_eq!(cipher_suite, harness.get_negotiated_cipher_suite());
+                        }
                     }
                 }
             }

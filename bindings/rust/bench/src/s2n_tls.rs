@@ -3,7 +3,8 @@
 
 use crate::{
     harness::{read_to_bytes, CipherSuite, CryptoConfig, ECGroup, Mode, TlsBenchHarness},
-    CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    PemType::*,
+    SigType,
 };
 use s2n_tls::{
     callbacks::VerifyHostNameCallback,
@@ -72,7 +73,11 @@ impl S2NHarness {
         }
     }
 
-    fn create_config(mode: Mode, crypto_config: &CryptoConfig) -> Result<Config, Box<dyn Error>> {
+    fn create_config(
+        mode: Mode,
+        crypto_config: &CryptoConfig,
+        sig_type: &SigType,
+    ) -> Result<Config, Box<dyn Error>> {
         let security_policy = match (&crypto_config.cipher_suite, &crypto_config.ec_group) {
             (CipherSuite::AES_128_GCM_SHA256, ECGroup::SECP256R1) => "20230317",
             (CipherSuite::AES_256_GCM_SHA384, ECGroup::SECP256R1) => "20190802",
@@ -85,11 +90,11 @@ impl S2NHarness {
 
         match mode {
             Mode::Server => builder.load_pem(
-                read_to_bytes(SERVER_CERT_CHAIN_PATH).as_slice(),
-                read_to_bytes(SERVER_KEY_PATH).as_slice(),
+                read_to_bytes(&ServerCertChain, sig_type).as_slice(),
+                read_to_bytes(&ServerKey, sig_type).as_slice(),
             )?,
             Mode::Client => builder
-                .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
+                .trust_pem(read_to_bytes(&CACert, sig_type).as_slice())?
                 .set_verify_host_callback(HostNameHandler {
                     expected_server_name: "localhost",
                 })?,
@@ -151,8 +156,10 @@ impl TlsBenchHarness for S2NHarness {
         let client_to_server_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
         let server_to_client_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
 
-        let client_config = Self::create_config(Mode::Client, crypto_config)?;
-        let server_config = Self::create_config(Mode::Server, crypto_config)?;
+        let client_config =
+            Self::create_config(Mode::Client, crypto_config, &crypto_config.sig_type)?;
+        let server_config =
+            Self::create_config(Mode::Server, crypto_config, &crypto_config.sig_type)?;
 
         let mut harness = Self {
             client_to_server_buf,
