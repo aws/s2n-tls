@@ -94,9 +94,6 @@ struct s2n_connection {
     unsigned managed_send_io : 1;
     unsigned managed_recv_io : 1;
 
-    /* Key update data */
-    unsigned key_update_pending : 1;
-
     /* Early data supported by caller.
      * If a caller does not use any APIs that support early data,
      * do not negotiate early data.
@@ -382,6 +379,10 @@ struct s2n_connection {
     uint32_t server_keying_material_lifetime;
 
     struct s2n_post_handshake post_handshake;
+    /* Both the reader and writer can set key_update_pending.
+     * The writer clears it after a KeyUpdate is sent.
+     */
+    s2n_atomic_flag key_update_pending;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
