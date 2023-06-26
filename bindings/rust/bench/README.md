@@ -31,8 +31,8 @@ Because s2n-tls Rust bindings only allows the use of a `*mut c_void` context poi
 
 ### Certificate generation
 
-All certs are stores in `certs/` and can be regenerated using `certs/generate_certs.sh`. There is one root cert that directly signs the server and client certs that are used in benchmarking. Currently, we use ECDSA with secp384r1.
+All certs are stored in `certs/` and can be regenerated using `certs/generate_certs.sh`. There is one root cert that directly signs the server and client certs that are used in benchmarking. Currently, we use ECDSA with `secp384r1`.
 
 ### Negotiation parameters
 
-The current cipher suites benchmarked are TLS_AES_128_GCM_SHA256 and TLS_AES_256_GCM_SHA384, and the current key exchange methods benchmarked are ECDHE with secp256r1 and with x25519. These were the most readily usable parameters common to all three libraries tested.
+The cipher suites benchmarked are `TLS_AES_128_GCM_SHA256` and `TLS_AES_256_GCM_SHA384`, and the key exchange methods benchmarked are ECDHE with `secp256r1` and with `x25519`. 

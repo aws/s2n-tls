@@ -29,10 +29,11 @@ impl OpenSslHarness {
     }
     /// Process handshake for one connection, treating blocking errors as `Ok`
     fn handshake_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
-        match match mode {
+        let result = match mode {
             Mode::Client => self.client_conn.connect(),
             Mode::Server => self.server_conn.accept(),
-        } {
+        };
+        match result {
             Ok(_) => Ok(()),
             Err(err) => {
                 if err.code() != ErrorCode::WANT_READ {
@@ -96,13 +97,13 @@ impl TlsBenchHarness for OpenSslHarness {
     }
 
     fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        match self
+        let cipher_suite = self
             .client_conn
             .ssl()
             .current_cipher()
             .expect("Handshake not completed")
-            .name()
-        {
+            .name();
+        match cipher_suite {
             "TLS_AES_128_GCM_SHA256" => CipherSuite::AES_128_GCM_SHA256,
             "TLS_AES_256_GCM_SHA384" => CipherSuite::AES_256_GCM_SHA384,
             _ => panic!("Unknown cipher suite"),
@@ -112,7 +113,7 @@ impl TlsBenchHarness for OpenSslHarness {
     fn negotiated_tls13(&self) -> bool {
         self.client_conn
             .ssl()
-            .version2()
+            .version2() // version() -> &str is deprecated, version2() returns an enum instead
             .expect("Handshake not completed")
             == SslVersion::TLS1_3
     }

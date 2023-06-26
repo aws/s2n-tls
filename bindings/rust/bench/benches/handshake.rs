@@ -10,9 +10,7 @@ use bench::{
     OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness,
 };
 use criterion::{
-    criterion_group, criterion_main,
-    measurement::{Measurement, WallTime},
-    BatchSize, BenchmarkGroup, Criterion,
+    criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 
 pub fn bench_handshake_key_exchange(c: &mut Criterion) {
