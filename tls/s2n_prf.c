@@ -45,7 +45,8 @@ S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s
     RESULT_ENSURE_REF(cipher);
 
     uint8_t mac_size = 0;
-    uint32_t key_size, iv_size = 0;
+    uint32_t key_size = 0;
+    uint32_t iv_size = 0;
 
     /* MAC size */
     if (cipher->type == S2N_COMPOSITE) {
@@ -1006,8 +1007,7 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
     struct s2n_blob label = { 0 };
     uint8_t key_expansion_label[] = "key expansion";
-    label.data = key_expansion_label;
-    label.size = sizeof(key_expansion_label) - 1;
+    POSIX_GUARD(s2n_blob_init(&label, key_expansion_label, sizeof(key_expansion_label) - 1));
 
     struct s2n_key_material key_material = { 0 };
     POSIX_GUARD_RESULT(s2n_key_material_init(&key_material, conn));

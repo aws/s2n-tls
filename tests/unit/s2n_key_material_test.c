@@ -20,8 +20,8 @@
 S2N_RESULT helper_generate_test_data(struct s2n_blob *test_data)
 {
     struct s2n_stuffer test_data_stuffer = { 0 };
-    EXPECT_SUCCESS(s2n_stuffer_init(&test_data_stuffer, test_data));
-    for (int i = 0; i < S2N_MAX_KEY_BLOCK_LEN; i++) {
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&test_data_stuffer, test_data));
+    for (size_t i = 0; i < S2N_MAX_KEY_BLOCK_LEN; i++) {
         RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&test_data_stuffer, i));
     }
     return S2N_RESULT_OK;
@@ -31,6 +31,7 @@ S2N_RESULT helper_validate_key_material(struct s2n_key_material *key_material, s
         uint8_t mac_size, uint8_t key_size, uint8_t iv_size)
 {
     /* confirm that the data is copied to key_material */
+    RESULT_ENSURE_EQ(test_data_blob->size, sizeof(key_material->key_block));
     RESULT_ENSURE_EQ(memcmp(test_data_blob->data, key_material->key_block, test_data_blob->size), 0);
 
     /* test that its possible to access data from s2n_key_material */
@@ -117,7 +118,7 @@ int main(int argc, char **argv)
                     EXPECT_EQUAL(key_material.server_iv.size, iv_size);
 
                     /* copy data into key_material and validate accessing key_material is sound */
-                    POSIX_CHECKED_MEMCPY(key_material.key_block, test_data, s2n_array_len(key_material.key_block));
+                    POSIX_CHECKED_MEMCPY(key_material.key_block, test_data, sizeof(key_material.key_block));
                     EXPECT_OK(helper_validate_key_material(&key_material, &test_data_blob, mac_size, key_size, iv_size));
                 }
             }
@@ -172,8 +173,7 @@ int main(int argc, char **argv)
         conn->secure->cipher_suite = &s2n_rsa_with_aes_128_cbc_sha256;
         const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
         /* assert that the cipher chosen is non AEAD */
-        EXPECT_TRUE(
-                cipher->type == S2N_COMPOSITE || cipher->type == S2N_CBC);
+        EXPECT_TRUE(cipher->type == S2N_COMPOSITE || cipher->type == S2N_CBC);
 
         struct s2n_key_material key_material = { 0 };
 
