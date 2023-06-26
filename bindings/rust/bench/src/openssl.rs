@@ -8,7 +8,10 @@ use crate::{
 use openssl::ssl::{
     ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream, SslVersion,
 };
-use std::error::Error;
+use std::{
+    error::Error,
+    io::{Read, Write},
+};
 
 pub struct OpenSslHarness {
     client_conn: SslStream<ConnectedBuffer>,
@@ -113,5 +116,27 @@ impl TlsBenchHarness for OpenSslHarness {
             .version2() // version() -> &str is deprecated, version2() returns an enum instead
             .expect("Handshake not completed")
             == SslVersion::TLS1_3
+    }
+
+    fn transfer(&mut self, sender: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let (send_conn, recv_conn) = match sender {
+            Mode::Client => (&mut self.client_conn, &mut self.server_conn),
+            Mode::Server => (&mut self.server_conn, &mut self.client_conn),
+        };
+
+        let data_len = data.len();
+
+        let mut write_offset = 0;
+        while write_offset < data_len {
+            write_offset += send_conn.write(&data[write_offset..data_len])?;
+            send_conn.flush()?;
+        }
+
+        let mut read_offset = 0;
+        while read_offset < data_len {
+            read_offset += recv_conn.read(data)?
+        }
+
+        Ok(())
     }
 }

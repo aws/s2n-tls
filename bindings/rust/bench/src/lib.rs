@@ -6,7 +6,7 @@ pub mod openssl;
 pub mod rustls;
 pub mod s2n_tls;
 pub use crate::{
-    harness::{CipherSuite, CryptoConfig, ECGroup, TlsBenchHarness},
+    harness::{CipherSuite, CryptoConfig, ECGroup, Mode, TlsBenchHarness},
     openssl::OpenSslHarness,
     rustls::RustlsHarness,
     s2n_tls::S2NHarness,

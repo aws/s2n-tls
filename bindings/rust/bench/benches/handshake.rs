@@ -1,8 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::any::type_name;
-
 use bench::{
     CipherSuite::*,
     CryptoConfig,
@@ -12,6 +10,7 @@ use bench::{
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
+use std::any::type_name;
 
 pub fn bench_handshake_key_exchange(c: &mut Criterion) {
     fn bench_handshake_for_library<T: TlsBenchHarness>(
