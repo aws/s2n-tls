@@ -27,8 +27,6 @@ We use Rust bindings for s2n-tls and OpenSSL. All of our benchmarks are run in R
 
 To remove external factors, we use custom IO with our benchmarks, bypassing the networking layer and having the client and server connections transfer data to each other via a local buffer. 
 
-Because s2n-tls Rust bindings only allows the use of a `*mut c_void` context pointer and callbacks to handle IO, we use a `Pin<Box<UnsafeCell<VecDeque<u8>>>>` for our local buffers, getting the pointer to the context `VecDeque` using `UnsafeCell::get()`. We use `Pin<Box<T>>` to ensure the context pointer passed to s2n-tls is constant and remains valid. We use `UnsafeCell` to wrap the context pointer, and the single-threaded nature of the benchmarks ensures only one connection is mutating the context at once.
-
 ### Certificate generation
 
 All certs are stored in `certs/` and can be regenerated using `certs/generate_certs.sh`. There is one root cert that directly signs the server and client certs that are used in benchmarking. Currently, we use ECDSA with `secp384r1`.
