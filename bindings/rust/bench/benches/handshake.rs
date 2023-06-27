@@ -16,9 +16,10 @@ use criterion::{
 pub fn bench_handshake_key_exchange(c: &mut Criterion) {
     fn bench_handshake_for_library<T: TlsBenchHarness>(
         bench_group: &mut BenchmarkGroup<WallTime>,
+        name: &str,
         ec_group: &ECGroup,
     ) {
-        bench_group.bench_function(type_name::<T>(), |b| {
+        bench_group.bench_function(name, |b| {
             b.iter_batched_ref(
                 || {
                     T::new(&CryptoConfig {
@@ -37,9 +38,9 @@ pub fn bench_handshake_key_exchange(c: &mut Criterion) {
 
     for ec_group in [SECP256R1, X25519] {
         let mut bench_group = c.benchmark_group(format!("handshake-{:?}", ec_group));
-        bench_handshake_for_library::<S2NHarness>(&mut bench_group, &ec_group);
-        bench_handshake_for_library::<RustlsHarness>(&mut bench_group, &ec_group);
-        bench_handshake_for_library::<OpenSslHarness>(&mut bench_group, &ec_group);
+        bench_handshake_for_library::<S2NHarness>(&mut bench_group, "s2n-tls", &ec_group);
+        bench_handshake_for_library::<RustlsHarness>(&mut bench_group, "rustls", &ec_group);
+        bench_handshake_for_library::<OpenSslHarness>(&mut bench_group, "openssl", &ec_group);
     }
 }
 

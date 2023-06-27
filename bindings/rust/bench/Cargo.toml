@@ -10,6 +10,9 @@ rustls-pemfile = "1.0"
 openssl = "0.10"
 errno = "0.3"
 libc = "0.2"
+serde_json = "1.0"
+csv = "1.2"
+plotters = "0.3.3"
 
 [dev-dependencies]
 criterion = "0.3"
