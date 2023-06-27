@@ -57,10 +57,9 @@ struct s2n_p_hash_hmac {
 /* TLS key expansion results in an array of contiguous data which is then
  * interpreted as the MAC, KEY and IV for the client and server.
  *
- * The following is the memory layout of the key material; where 'C' represents
- * Client and 'S' represents Server.
+ * The following is the memory layout of the key material:
  *
- *     [ C_MAC, S_MAC, C_KEY, S_KEY, C_IV, S_IV ]
+ *     [ CLIENT_MAC, SERVER_MAC, CLIENT_KEY, SERVER_KEY, CLIENT_IV, SERVER_IV ]
  */
 struct s2n_key_material {
     /* key material data resulting from key expansion */

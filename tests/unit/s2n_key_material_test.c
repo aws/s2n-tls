@@ -16,50 +16,51 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_prf.h"
+#include "utils/s2n_random.h"
 
-S2N_RESULT helper_generate_test_data(struct s2n_blob *test_data)
-{
-    struct s2n_stuffer test_data_stuffer = { 0 };
-    RESULT_GUARD_POSIX(s2n_stuffer_init(&test_data_stuffer, test_data));
-    for (size_t i = 0; i < S2N_MAX_KEY_BLOCK_LEN; i++) {
-        RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&test_data_stuffer, i));
-    }
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT helper_validate_key_material(struct s2n_key_material *key_material, struct s2n_blob *test_data_blob,
-        uint8_t mac_size, uint8_t key_size, uint8_t iv_size)
+static S2N_RESULT s2n_test_validate_key_material(struct s2n_key_material *key_material,
+        struct s2n_blob *test_data_blob, uint8_t mac_size, uint8_t key_size, uint8_t iv_size)
 {
     /* confirm that the data is copied to key_material */
     RESULT_ENSURE_EQ(test_data_blob->size, sizeof(key_material->key_block));
     RESULT_ENSURE_EQ(memcmp(test_data_blob->data, key_material->key_block, test_data_blob->size), 0);
 
+    struct s2n_stuffer test_data_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&test_data_stuffer, test_data_blob));
+
+    RESULT_ENSURE_EQ(key_material->client_mac.size, mac_size);
+    RESULT_ENSURE_EQ(key_material->client_key.size, key_size);
+    RESULT_ENSURE_EQ(key_material->client_iv.size, iv_size);
+    RESULT_ENSURE_EQ(key_material->server_mac.size, mac_size);
+    RESULT_ENSURE_EQ(key_material->server_key.size, key_size);
+    RESULT_ENSURE_EQ(key_material->server_iv.size, iv_size);
+
     /* test that its possible to access data from s2n_key_material */
-    uint8_t *test_ptr = test_data_blob->data;
-    RESULT_ENSURE_REF(test_ptr);
     /* client MAC */
+    uint8_t *test_ptr = s2n_stuffer_raw_read(&test_data_stuffer, mac_size);
+    RESULT_ENSURE_REF(test_ptr);
     RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->client_mac.data, mac_size), 0);
-    test_ptr += mac_size;
-    RESULT_ENSURE_REF(test_ptr);
     /* server MAC */
-    RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->server_mac.data, mac_size), 0);
-    test_ptr += mac_size;
+    test_ptr = s2n_stuffer_raw_read(&test_data_stuffer, mac_size);
     RESULT_ENSURE_REF(test_ptr);
+    RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->server_mac.data, mac_size), 0);
 
     /* client KEY */
+    test_ptr = s2n_stuffer_raw_read(&test_data_stuffer, key_size);
+    RESULT_ENSURE_REF(test_ptr);
     RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->client_key.data, key_size), 0);
-    test_ptr += key_size;
-    RESULT_ENSURE_REF(test_ptr);
     /* server KEY */
-    RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->server_key.data, key_size), 0);
-    test_ptr += key_size;
+    test_ptr = s2n_stuffer_raw_read(&test_data_stuffer, key_size);
     RESULT_ENSURE_REF(test_ptr);
+    RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->server_key.data, key_size), 0);
 
     /* client IV */
-    RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->client_iv.data, iv_size), 0);
-    test_ptr += iv_size;
+    test_ptr = s2n_stuffer_raw_read(&test_data_stuffer, iv_size);
     RESULT_ENSURE_REF(test_ptr);
+    RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->client_iv.data, iv_size), 0);
     /* server IV */
+    test_ptr = s2n_stuffer_raw_read(&test_data_stuffer, iv_size);
+    RESULT_ENSURE_REF(test_ptr);
     RESULT_ENSURE_EQ(memcmp(test_ptr, key_material->server_iv.data, iv_size), 0);
 
     return S2N_RESULT_OK;
@@ -73,13 +74,13 @@ int main(int argc, char **argv)
     uint8_t test_data[S2N_MAX_KEY_BLOCK_LEN] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
-    EXPECT_OK(helper_generate_test_data(&test_data_blob));
+    EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
 
     /* fuzz s2n_key_material_init with different mac, key, iv sizes */
     {
-        for (uint8_t mac_size = 0; mac_size < 16; mac_size++) {
-            for (uint8_t key_size = 0; key_size < 32; key_size++) {
-                for (uint8_t iv_size = 0; iv_size < 32; iv_size++) {
+        for (uint8_t mac_size = 0; mac_size < SHA256_DIGEST_LENGTH; mac_size++) {
+            for (uint8_t key_size = 0; key_size < S2N_TLS_AES_256_GCM_KEY_LEN; key_size++) {
+                for (uint8_t iv_size = 0; iv_size < S2N_TLS_MAX_IV_LEN; iv_size++) {
                     EXPECT_TRUE((mac_size * 2 + key_size * 2 + iv_size * 2 <= S2N_MAX_KEY_BLOCK_LEN));
 
                     DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -118,8 +119,9 @@ int main(int argc, char **argv)
                     EXPECT_EQUAL(key_material.server_iv.size, iv_size);
 
                     /* copy data into key_material and validate accessing key_material is sound */
+                    EXPECT_EQUAL(sizeof(key_material.key_block), sizeof(test_data));
                     POSIX_CHECKED_MEMCPY(key_material.key_block, test_data, sizeof(key_material.key_block));
-                    EXPECT_OK(helper_validate_key_material(&key_material, &test_data_blob, mac_size, key_size, iv_size));
+                    EXPECT_OK(s2n_test_validate_key_material(&key_material, &test_data_blob, mac_size, key_size, iv_size));
                 }
             }
         }
