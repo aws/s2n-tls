@@ -576,6 +576,11 @@ int main(int argc, char **argv)
             "AWS-CRT-SDK-TLSv1.1",
             "AWS-CRT-SDK-TLSv1.2",
             "AWS-CRT-SDK-TLSv1.3",
+            "AWS-CRT-SDK-SSLv3.0-2023",
+            "AWS-CRT-SDK-TLSv1.0-2023",
+            "AWS-CRT-SDK-TLSv1.1-2023",
+            "AWS-CRT-SDK-TLSv1.2-2023",
+            "AWS-CRT-SDK-TLSv1.3-2023",
             /* PQ TLS */
             "PQ-TLS-1-2-2023-04-07",
             "PQ-TLS-1-2-2023-04-08",
