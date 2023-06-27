@@ -92,7 +92,6 @@ jobs:
           tar -xzvf openssl-1.0.2u.tar.gz
 
           pushd openssl-1.0.2u
-          mkdir install
           ./config --prefix="${install_dir}" --openssldir="${install_dir}"/openssl
           make
           make install

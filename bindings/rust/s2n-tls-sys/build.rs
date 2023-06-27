@@ -47,21 +47,29 @@ impl<'a> FeatureDetector<'a> {
     pub fn supports(&self, name: &str) -> bool {
         let mut build = self.builder.get_compiler().to_command();
 
-        let base = std::path::Path::new("lib/tests/features").join(name);
-
-        let file = base.with_extension("c");
-        assert!(file.exists(), "missing feature file: {:?}", file.display());
-
         let global_flags = std::path::Path::new("lib/tests/features/GLOBAL.flags");
-        assert!(global_flags.exists(), "missing flags file: {:?}", global_flags.display());
+        assert!(
+            global_flags.exists(),
+            "missing flags file: {:?}",
+            global_flags.display()
+        );
 
         let global_flags = std::fs::read_to_string(global_flags).unwrap();
         for flag in global_flags.trim().split(' ').filter(|f| !f.is_empty()) {
             build.arg(flag);
         }
 
+        let base = std::path::Path::new("lib/tests/features").join(name);
+
+        let file = base.with_extension("c");
+        assert!(file.exists(), "missing feature file: {:?}", file.display());
+
         let probe_flags = base.with_extension("flags");
-        assert!(probe_flags.exists(), "missing flags file: {:?}", probe_flags.display());
+        assert!(
+            probe_flags.exists(),
+            "missing flags file: {:?}",
+            probe_flags.display()
+        );
 
         let probe_flags = std::fs::read_to_string(probe_flags).unwrap();
         for flag in probe_flags.trim().split(' ').filter(|f| !f.is_empty()) {
