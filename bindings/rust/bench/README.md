@@ -8,16 +8,7 @@ Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tl
 
 ## Running benchmarks
 
-The benchmarks can be run with the `cargo bench` command. Critierion will auto-generate an HTML report in `target/criterion/`. 
-
-## Future features
-
-For these libraries, in the future we plan to benchmark:
-- bulk throughput with different cipher suites
-- handshakes with client authentication (mTLS)
-- handshakes with different certificate signature algorithms
-- memory taken up by a TLS connection
-- and the historical performance of s2n-tls.
+The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
 ## Implementation details
 
