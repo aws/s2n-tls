@@ -35,7 +35,7 @@ let
     };
 in pkgs.python310.withPackages (ps:
   [
-    ps.pep8
+    ps.autopep8
     ps.pytest
     ps.pytest-xdist
     ps.pytest-rerunfailures

@@ -4,6 +4,10 @@ import subprocess
 import pytest
 
 
+ALL_LCS = ["openssl-3.0", "openssl-1.1.1",
+           "openssl-1.0.2", "libressl", "aws-lc"]
+
+
 def translate_lc(lc: str):
     # awslc for S2N_LIBCRYPTO is special.
     if "awslc" in lc:
@@ -15,24 +19,23 @@ def translate_lc(lc: str):
 @pytest.mark.parametrize("lc", [os.getenv("S2N_LIBCRYPTO")])
 def test_s2n_libcrypto(lc):
     # Validate S2N_LIBCRYPTO is in the CMAKE_INCLUDE_PATH
+    assert lc is not None
     libcrypto = translate_lc(lc)
     include_path = os.getenv("CMAKE_INCLUDE_PATH")
-    assert libcrypto is not None
     assert include_path is not None
+    assert libcrypto in ALL_LCS
     assert libcrypto in include_path
 
 
 @pytest.mark.parametrize("lc", [os.getenv("S2N_LIBCRYPTO")])
 def test_s2n_libcrypto_uniq(lc):
     # Make certain we only have the preferred libcrypto in CMAKE_INCLUDE_PATH.
+    assert lc is not None
     libcrypto = translate_lc(lc)
     include_path = os.getenv("CMAKE_INCLUDE_PATH")
-    assert libcrypto is not None
     assert include_path is not None
-    all_lcs = ["openssl-3.0", "openssl-1.1.1",
-               "openssl-1.0.2", "libressl", "aws-lc"]
-    all_lcs.remove(libcrypto)
-    for library in all_lcs:
+    ALL_LCS.remove(libcrypto)
+    for library in ALL_LCS:
         assert library not in include_path
 
 
