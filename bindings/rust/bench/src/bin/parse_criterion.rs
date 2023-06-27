@@ -19,16 +19,15 @@ fn process_group(path: &Path) -> (f64, f64) {
 }
 
 fn main() {
-    const CSV_OUT_PATH: &str = "perf.csv";
-
     let tag_name = env::args().nth(1).expect("need tag name");
-    let csv_exists = Path::new(CSV_OUT_PATH).is_file();
+    let csv_out_path = env::args().nth(2).expect("need csv out path");
+    let csv_exists = Path::new(&csv_out_path).is_file();
 
     let file = OpenOptions::new()
         .create(true)
         .write(true)
         .append(true)
-        .open(CSV_OUT_PATH)
+        .open(csv_out_path)
         .unwrap();
     let mut csv_writer = Writer::from_writer(file);
 

@@ -7,7 +7,7 @@ use plotters::{
 };
 
 fn main() -> Result<(), Box<dyn Error>> {
-    let mut csv_reader = Reader::from_path("perf.csv")?;
+    let mut csv_reader = Reader::from_path("historical-perf/perf.csv")?;
     let mut map: HashMap<&str, Vec<(usize, f64, f64)>> = HashMap::new();
     let headers = csv_reader.headers()?.clone();
     let headers: Vec<&str> = headers
@@ -20,7 +20,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         map.insert(header, Vec::new());
     }
 
-    let num_entries = Reader::from_path("perf.csv")?.records().count();
+    let num_entries = Reader::from_path("historical-perf/perf.csv")?.records().count();
 
     for (i, record_res) in csv_reader.records().enumerate() {
         let record = record_res?;
@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    let drawing_area = SVGBackend::new("historical-perf.svg", (400, 250)).into_drawing_area();
+    let drawing_area = SVGBackend::new("historical-perf/historical-perf.svg", (400, 250)).into_drawing_area();
     let mut ctx = ChartBuilder::on(&drawing_area)
         .build_cartesian_2d(0..num_entries + 1, 0..7000000)
         .unwrap();
@@ -55,8 +55,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             .unwrap();
         anno.label(*bench_name);
     }
-
-    println!("{map:?}");
 
     Ok(())
 }
