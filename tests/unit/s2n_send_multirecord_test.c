@@ -402,9 +402,9 @@ int main(int argc, char **argv)
             struct s2n_send_context context = context_all_ok;
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-            conn->key_update_pending = true;
+            s2n_atomic_flag_set(&conn->key_update_pending);
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
             key_update_size = context.bytes_sent;
         };
         EXPECT_TRUE(key_update_size > 0);
@@ -433,7 +433,7 @@ int main(int argc, char **argv)
         uint64_t initial_seq_num = limit - 1;
         EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
         EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
-        EXPECT_FALSE(conn->key_update_pending);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
         /* Send */
         EXPECT_EQUAL(s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked), sizeof(large_test_data));
@@ -512,9 +512,9 @@ int main(int argc, char **argv)
             struct s2n_send_context context = context_all_ok;
             EXPECT_SUCCESS(s2n_connection_set_send_ctx(conn, (void *) &context));
 
-            conn->key_update_pending = true;
+            s2n_atomic_flag_set(&conn->key_update_pending);
             EXPECT_SUCCESS(s2n_post_handshake_send(conn, &blocked));
-            EXPECT_FALSE(conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
             key_update_size = context.bytes_sent;
         }
         EXPECT_TRUE(key_update_size > 0);
@@ -551,7 +551,7 @@ int main(int argc, char **argv)
         uint64_t initial_seq_num = limit - 1;
         EXPECT_SUCCESS(s2n_stuffer_write_uint64(&seq_num_stuffer, initial_seq_num));
         EXPECT_SUCCESS(s2n_check_record_limit(conn, &seq_num_blob));
-        EXPECT_FALSE(conn->key_update_pending);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
 
         /* Send until all data written */
         size_t total = 0;
