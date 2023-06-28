@@ -6,8 +6,7 @@ use crate::{
     CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslAcceptor, SslConnector, SslContextBuilder, SslFiletype, SslMethod,
-    SslStream, SslVersion, SslContext,
+    ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream, SslVersion,
 };
 use std::error::Error;
 
