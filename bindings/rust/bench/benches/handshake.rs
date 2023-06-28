@@ -1,8 +1,6 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use std::any::type_name;
-
 use bench::{
     CipherSuite::*,
     CryptoConfig,
@@ -26,21 +24,25 @@ pub fn bench_handshake_key_exchange(c: &mut Criterion) {
                         cipher_suite: AES_128_GCM_SHA256,
                         ec_group: *ec_group,
                     })
-                    .unwrap()
                 },
                 |harness| {
-                    harness.handshake().unwrap();
+                    if let Ok(harness) = harness {
+                        let _ = harness.handshake();
+                    }
                 },
                 BatchSize::SmallInput,
             )
         });
     }
 
-    for ec_group in [SECP256R1, X25519] {
+    for ec_group in &[SECP256R1, X25519] {
         let mut bench_group = c.benchmark_group(format!("handshake-{:?}", ec_group));
-        bench_handshake_for_library::<S2NHarness>(&mut bench_group, "s2n-tls", &ec_group);
-        bench_handshake_for_library::<RustlsHarness>(&mut bench_group, "rustls", &ec_group);
-        bench_handshake_for_library::<OpenSslHarness>(&mut bench_group, "openssl", &ec_group);
+        bench_handshake_for_library::<S2NHarness>(&mut bench_group, "s2n-tls", ec_group);
+        #[cfg(not(feature = "s2n-only"))]
+        {
+            bench_handshake_for_library::<RustlsHarness>(&mut bench_group, "rustls", ec_group);
+            bench_handshake_for_library::<OpenSslHarness>(&mut bench_group, "openssl", ec_group);
+        }
     }
 }
 

@@ -13,9 +13,13 @@ libc = "0.2"
 serde_json = "1.0"
 csv = "1.2"
 plotters = "0.3.3"
+semver = "1.0"
 
 [dev-dependencies]
 criterion = "0.3"
+
+[features]
+s2n-only = []
 
 [[bench]]
 name = "handshake"
