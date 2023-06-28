@@ -7,7 +7,7 @@ use crate::{
 };
 use openssl::ssl::{
     ErrorCode, Ssl, SslAcceptor, SslConnector, SslContextBuilder, SslFiletype, SslMethod,
-    SslStream, SslVersion,
+    SslStream, SslVersion, SslContext,
 };
 use std::error::Error;
 
@@ -61,19 +61,17 @@ impl TlsBenchHarness for OpenSslHarness {
             ECGroup::X25519 => "X25519",
         };
 
-        let mut client_builder = SslConnector::builder(SslMethod::tls())?;
+        let mut client_builder = SslContext::builder(SslMethod::tls_client())?;
         client_builder.set_ca_file(CA_CERT_PATH)?;
         Self::common_config(&mut client_builder, cipher_suite, ec_key)?;
 
-        // SslAcceptorBuilder has to have set of safe defaults
-        // Arbitrarily chose mozilla_modern_v5(), override defaults
-        let mut server_builder = SslAcceptor::mozilla_modern_v5(SslMethod::tls())?;
+        let mut server_builder = SslContext::builder(SslMethod::tls_server())?;
         server_builder.set_certificate_chain_file(SERVER_CERT_CHAIN_PATH)?;
         server_builder.set_private_key_file(SERVER_KEY_PATH, SslFiletype::PEM)?;
         Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
 
-        let client_config = client_builder.build().into_context();
-        let server_config = server_builder.build().into_context();
+        let client_config = client_builder.build();
+        let server_config = server_builder.build();
 
         let client_conn = SslStream::new(Ssl::new(&client_config)?, client_buf)?;
         let server_conn = SslStream::new(Ssl::new(&server_config)?, server_buf)?;
