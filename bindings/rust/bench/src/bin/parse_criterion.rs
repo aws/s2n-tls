@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use csv::Writer;
 use serde_json::Value;
 use std::{
@@ -40,14 +43,14 @@ fn main() {
 
         // first header is tag-name
         headers.push("tag-name".to_string());
-        
+
         // go through each directory in target/criterion/ to get benchmark names
         for dir_entry in read_dir("target/criterion").unwrap() {
             let dir_path = dir_entry.unwrap().path();
-            let dir_name = dir_path.file_name().unwrap().clone();
+            let dir_name = dir_path.file_name().unwrap();
 
             // ignore Criterion's report directory
-            if dir_name != "report" { 
+            if dir_name != "report" {
                 // for each bench dir, need to have both mean and stderr headers
                 headers.push(dir_name.to_str().unwrap().to_string());
                 headers.push(format!("{}-stderr", dir_name.to_str().unwrap()));

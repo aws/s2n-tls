@@ -1,7 +1,6 @@
-use std::{
-    collections::HashMap,
-    error::Error,
-};
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use csv::Reader;
 use plotters::{
     prelude::{
@@ -12,6 +11,7 @@ use plotters::{
     style::{AsRelative, Color, IntoFont, Palette, Palette99, RGBAColor, BLACK, WHITE},
 };
 use semver::Version;
+use std::{collections::HashMap, error::Error};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let mut csv_reader = Reader::from_path("historical-perf/perf.csv")?;
@@ -26,8 +26,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .skip(1) // skip first header "tag"
         .step_by(2) // skip stderr headers
         .map(|s| s.to_string())
-        .collect::<Vec<String>>()
-        .clone();
+        .collect::<Vec<String>>();
 
     // initialize data vectors
     for header in headers.iter() {
@@ -43,7 +42,7 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // fill in missing versions (1.3.15, 1.3.30-1.3.37)
     tag_names.push(Version::new(1, 3, 15));
-    tag_names.extend((30..38).into_iter().map(|p| Version::new(1, 3, p)));
+    tag_names.extend((30..38).map(|p| Version::new(1, 3, p)));
     tag_names.sort();
 
     // get the indices of all of the tags for plotting
@@ -69,14 +68,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         for header in headers.iter() {
             let (y, y_stderr) = (
                 record_iter.next().unwrap().parse()?,
-                record_iter.next().unwrap().parse::<f64>()?, 
+                record_iter.next().unwrap().parse::<f64>()?,
             );
             if y > y_max {
                 y_max = y;
             }
             map.get_mut(header.as_str())
                 .unwrap()
-                .push((tag.clone(), y, y_stderr*1.96)); // 1.96 is stderr coefficient for 95% confidence interval
+                .push((tag.clone(), y, y_stderr * 1.96)); // 1.96 is stderr coefficient for 95% confidence interval
         }
     }
 
@@ -84,7 +83,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let drawing_area =
         SVGBackend::new("historical-perf/historical-perf.svg", (1000, 500)).into_drawing_area();
     drawing_area.fill(&WHITE)?;
-    
+
     let mut ctx = ChartBuilder::on(&drawing_area)
         .caption(
             "Handshake performance over versions since Jun 2022",
@@ -103,7 +102,8 @@ fn main() -> Result<(), Box<dyn Error>> {
         .x_desc("Version") // axes labels
         .y_desc("Time (ms)")
         .x_labels(num_tags)
-        .x_label_formatter(&|x| { // change x coord (index of tag in tag_names) to string
+        .x_label_formatter(&|x| {
+            // change x coord (index of tag in tag_names) to string
             if let Some(tag_name) = tag_names.get(*x) {
                 tag_name.to_string()
             } else {
@@ -119,7 +119,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // remove data that returned error while benching
         // heuristic: times < 1% of y_max are invalid/had error
         let filtered_data = data
-            .into_iter()
+            .iter()
             .filter(|(_, y, _)| *y > 0.01 * y_max)
             .collect::<Vec<_>>();
 
@@ -137,7 +137,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                 3,
             )
         }))?;
-        
+
         // draw lines
         ctx.draw_series(LineSeries::new(
             filtered_data
@@ -151,8 +151,8 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     // enable legend
     ctx.configure_series_labels()
-        .border_style(&BLACK)
-        .background_style(&WHITE)
+        .border_style(BLACK)
+        .background_style(WHITE)
         .draw()?;
 
     Ok(())
