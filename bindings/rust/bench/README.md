@@ -20,7 +20,7 @@ To remove external factors, we use custom IO with our benchmarks, bypassing the 
 
 ### Certificate generation
 
-All certs are stored in `certs/` and can be regenerated using `certs/generate_certs.sh`. There is one root cert that directly signs the server and client certs that are used in benchmarking. Currently, we use ECDSA with `secp384r1`.
+All certs are stored in `certs/` and can be regenerated using `certs/generate_certs.sh`. There is one root cert that directly signs the server and client certs that are used in benchmarking. We currently bench `P-384`, `RSA-2048`, and `RSA-4096` certs.
 
 ### Negotiation parameters
 
