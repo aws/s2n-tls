@@ -5,7 +5,7 @@
 
 # Use Valgrind and Massif to heap profile the memory taken by different TLS libraries
 # Uses Valgrind monitor commands to take snapshots of heap size while making connections
-#
+
 # Snapshots get stored in target memory/[library-name]/ as [number].snapshot
 
 set -e
