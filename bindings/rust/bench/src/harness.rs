@@ -43,16 +43,19 @@ pub struct CryptoConfig {
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(&CryptoConfig {
-            cipher_suite: CipherSuite::AES_128_GCM_SHA256,
-            ec_group: ECGroup::X25519,
-        })
+        Self::new(
+            &CryptoConfig {
+                cipher_suite: CipherSuite::AES_128_GCM_SHA256,
+                ec_group: ECGroup::X25519,
+            },
+            Default::default(),
+        )
     }
 
-    /// Initialize buffers, configs, and connections (pre-handshake)
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>>;
+    /// Initialize connections (pre-handshake)
+    fn new(crypto_config: &CryptoConfig, buffer: ConnectedBuffer) -> Result<Self, Box<dyn Error>>;
 
-    /// Run handshake on initialized connection
+    /// Run handshake on initialized connections
     /// Returns error if handshake has already completed
     fn handshake(&mut self) -> Result<(), Box<dyn Error>>;
 
@@ -77,10 +80,14 @@ pub struct ConnectedBuffer {
 impl ConnectedBuffer {
     /// Make a new struct with new internal buffers
     pub fn new() -> Self {
-        ConnectedBuffer {
-            recv: Rc::new(RefCell::new(VecDeque::new())),
-            send: Rc::new(RefCell::new(VecDeque::new())),
-        }
+        let recv = Rc::new(RefCell::new(VecDeque::new()));
+        let send = Rc::new(RefCell::new(VecDeque::new()));
+
+        // prevent resizing of buffers, useful for memory bench
+        recv.borrow_mut().reserve(10000);
+        send.borrow_mut().reserve(10000);
+
+        ConnectedBuffer { recv, send }
     }
     /// Make a new struct that shares internal buffers but swapped, ex.
     /// `write()` writes to the buffer that the inverse `read()`s from
@@ -94,7 +101,8 @@ impl ConnectedBuffer {
 
 impl Read for ConnectedBuffer {
     fn read(&mut self, dest: &mut [u8]) -> Result<usize, std::io::Error> {
-        match self.recv.borrow_mut().read(dest) {
+        let res = self.recv.borrow_mut().read(dest);
+        match res {
             // rustls expects WouldBlock on read of length 0
             Ok(0) => Err(std::io::Error::new(ErrorKind::WouldBlock, "blocking")),
             Ok(len) => Ok(len),
@@ -109,6 +117,12 @@ impl Write for ConnectedBuffer {
     }
     fn flush(&mut self) -> Result<(), std::io::Error> {
         Ok(()) // data already available to destination
+    }
+}
+
+impl Default for ConnectedBuffer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -137,7 +151,7 @@ macro_rules! test_tls_bench_harnesses {
                 for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384].iter() {
                     for ec_group in [SECP256R1, X25519].iter() {
                         crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
-                        harness = <$harness_type>::new(&crypto_config).unwrap();
+                        harness = <$harness_type>::new(&crypto_config, Default::default()).unwrap();
                         harness.handshake().unwrap();
                         assert_eq!(cipher_suite, &harness.get_negotiated_cipher_suite());
                     }

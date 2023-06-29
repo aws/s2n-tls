@@ -68,8 +68,8 @@ impl RustlsHarness {
 }
 
 impl TlsBenchHarness for RustlsHarness {
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>> {
-        let client_buf = ConnectedBuffer::new();
+    fn new(crypto_config: &CryptoConfig, buffer: ConnectedBuffer) -> Result<Self, Box<dyn Error>> {
+        let client_buf = buffer;
         let server_buf = client_buf.clone_inverse();
 
         let cipher_suite = match crypto_config.cipher_suite {

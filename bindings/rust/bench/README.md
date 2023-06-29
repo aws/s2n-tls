@@ -4,11 +4,13 @@ We use to Criterion.rs to benchmark s2n-tls against two commonly used TLS librar
 
 ## Setup 
 
-Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tls using `bindings/rust/generate.sh`.
+Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tls using `bindings/rust/generate.sh`. To bench with AWS-LC, Amazon's custom libcrypto implementation, run `use-awslc.sh`, which builds s2n-tls with AWS-LC, generates Rust bindings for it, and runs benchmarks.
 
 ## Running benchmarks
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
+
+To run memory benchmarks, run `memory-bench.sh` first to generate the benchmark data, and then run `cargo bench` to parse and analyze the data.
 
 ## Implementation details
 
