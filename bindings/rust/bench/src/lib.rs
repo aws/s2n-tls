@@ -2,10 +2,12 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod harness;
+pub mod openssl;
 pub mod rustls;
 pub mod s2n_tls;
 pub use crate::{
     harness::{CipherSuite, CryptoConfig, ECGroup, TlsBenchHarness},
+    openssl::OpenSslHarness,
     rustls::RustlsHarness,
     s2n_tls::S2NHarness,
 };

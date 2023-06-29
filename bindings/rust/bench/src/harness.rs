@@ -22,13 +22,13 @@ pub enum Mode {
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CipherSuite {
     AES_128_GCM_SHA256,
     AES_256_GCM_SHA384,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ECGroup {
     SECP256R1,
     X25519,
@@ -45,7 +45,7 @@ pub trait TlsBenchHarness: Sized {
     fn default() -> Result<Self, Box<dyn Error>> {
         Self::new(&CryptoConfig {
             cipher_suite: CipherSuite::AES_128_GCM_SHA256,
-            ec_group: ECGroup::SECP256R1,
+            ec_group: ECGroup::X25519,
         })
     }
 
@@ -151,10 +151,11 @@ macro_rules! test_tls_bench_harnesses {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{RustlsHarness, S2NHarness, TlsBenchHarness};
+    use crate::{OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness};
 
     test_tls_bench_harnesses! {
         s2n_tls: S2NHarness,
         rustls: RustlsHarness,
+        openssl: OpenSslHarness,
     }
 }
