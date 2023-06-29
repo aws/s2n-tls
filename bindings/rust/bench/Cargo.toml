@@ -7,6 +7,7 @@ edition = "2021"
 s2n-tls = { path = "../s2n-tls" }
 rustls = "0.21"
 rustls-pemfile = "1.0"
+openssl = "0.10"
 errno = "0.3"
 libc = "0.2"
 
