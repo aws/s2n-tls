@@ -15,17 +15,21 @@ pub fn bench_handshake_key_exchange(c: &mut Criterion) {
     fn bench_handshake_for_library<T: TlsBenchHarness>(
         bench_group: &mut BenchmarkGroup<WallTime>,
         name: &str,
-        ec_group: &ECGroup,
+        ec_group: ECGroup,
     ) {
+        // generate all inputs (TlsBenchHarness structs) before benchmarking handshakes
+        // timing only includes negotiation, not config/connection initialization
         bench_group.bench_function(name, |b| {
             b.iter_batched_ref(
                 || {
                     T::new(&CryptoConfig {
                         cipher_suite: AES_128_GCM_SHA256,
-                        ec_group: *ec_group,
+                        ec_group,
                     })
                 },
                 |harness| {
+                    // if harness invalid, do nothing but don't panic
+                    // useful for historical performance bench
                     if let Ok(harness) = harness {
                         let _ = harness.handshake();
                     }
@@ -35,7 +39,7 @@ pub fn bench_handshake_key_exchange(c: &mut Criterion) {
         });
     }
 
-    for ec_group in &[SECP256R1, X25519] {
+    for ec_group in [SECP256R1, X25519] {
         let mut bench_group = c.benchmark_group(format!("handshake-{:?}", ec_group));
         bench_handshake_for_library::<S2NHarness>(&mut bench_group, "s2n-tls", ec_group);
         #[cfg(not(feature = "s2n-only"))]

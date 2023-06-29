@@ -2,7 +2,6 @@ use std::{
     collections::HashMap,
     error::Error,
 };
-
 use csv::Reader;
 use plotters::{
     prelude::{
@@ -101,7 +100,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     ctx.configure_mesh()
         .light_line_style(RGBAColor(235, 235, 235, 1.0)) // change gridline color
         .bold_line_style(RGBAColor(225, 225, 225, 1.0))
-        .x_desc("version") // axes labels
+        .x_desc("Version") // axes labels
         .y_desc("Time (ms)")
         .x_labels(num_tags)
         .x_label_formatter(&|x| { // change x coord (index of tag in tag_names) to string
@@ -121,7 +120,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         // heuristic: times < 1% of y_max are invalid/had error
         let filtered_data = data
             .into_iter()
-            .filter(|(_, y, _)| *y > y_max / 100.0)
+            .filter(|(_, y, _)| *y > 0.01 * y_max)
             .collect::<Vec<_>>();
 
         let color = Palette99::pick(i);
