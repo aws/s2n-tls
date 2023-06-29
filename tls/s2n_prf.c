@@ -1055,10 +1055,9 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
         POSIX_GUARD(cipher->io.comp.set_mac_write_key(&conn->secure->server_key, key_material.server_mac.data, key_material.server_mac.size));
     }
 
-    /* set IV if the size is non 0 */
+    /* set IV */
     POSIX_ENSURE_EQ(key_material.client_iv.size, key_material.server_iv.size);
     POSIX_ENSURE_LTE(key_material.client_iv.size, S2N_TLS_MAX_IV_LEN);
-    POSIX_ENSURE_LTE(key_material.server_iv.size, S2N_TLS_MAX_IV_LEN);
     POSIX_CHECKED_MEMCPY(conn->secure->client_implicit_iv, key_material.client_iv.data, key_material.client_iv.size);
     POSIX_CHECKED_MEMCPY(conn->secure->server_implicit_iv, key_material.server_iv.data, key_material.server_iv.size);
 

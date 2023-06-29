@@ -28,13 +28,6 @@ static S2N_RESULT s2n_test_validate_key_material(struct s2n_key_material *key_ma
     struct s2n_stuffer test_data_stuffer = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&test_data_stuffer, test_data_blob));
 
-    RESULT_ENSURE_EQ(key_material->client_mac.size, mac_size);
-    RESULT_ENSURE_EQ(key_material->client_key.size, key_size);
-    RESULT_ENSURE_EQ(key_material->client_iv.size, iv_size);
-    RESULT_ENSURE_EQ(key_material->server_mac.size, mac_size);
-    RESULT_ENSURE_EQ(key_material->server_key.size, key_size);
-    RESULT_ENSURE_EQ(key_material->server_iv.size, iv_size);
-
     /* test that its possible to access data from s2n_key_material */
     /* client MAC */
     uint8_t *test_ptr = s2n_stuffer_raw_read(&test_data_stuffer, mac_size);
@@ -78,7 +71,7 @@ int main(int argc, char **argv)
 
     /* fuzz s2n_key_material_init with different mac, key, iv sizes */
     {
-        for (uint8_t mac_size = 0; mac_size < SHA256_DIGEST_LENGTH; mac_size++) {
+        for (uint8_t mac_size = 0; mac_size < SHA512_DIGEST_LENGTH; mac_size++) {
             for (uint8_t key_size = 0; key_size < S2N_TLS_AES_256_GCM_KEY_LEN; key_size++) {
                 for (uint8_t iv_size = 0; iv_size < S2N_TLS_MAX_IV_LEN; iv_size++) {
                     EXPECT_TRUE((mac_size * 2 + key_size * 2 + iv_size * 2 <= S2N_MAX_KEY_BLOCK_LEN));
@@ -124,6 +117,30 @@ int main(int argc, char **argv)
                     EXPECT_OK(s2n_test_validate_key_material(&key_material, &test_data_blob, mac_size, key_size, iv_size));
                 }
             }
+        }
+    }
+
+    /* confirm that s2n_key_material can correctly handle all cipher suites */
+    {
+        for (size_t i = 0; i < cipher_preferences_test_all.count; i++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->secure->cipher_suite = cipher_preferences_test_all.suites[i];
+
+            /* init s2n_key_material */
+            struct s2n_key_material key_material = { 0 };
+            EXPECT_OK(s2n_key_material_init(&key_material, conn));
+
+            /* copy data into key_material and validate accessing key_material is sound */
+            EXPECT_EQUAL(sizeof(key_material.key_block), sizeof(test_data));
+            POSIX_CHECKED_MEMCPY(key_material.key_block, test_data, sizeof(key_material.key_block));
+            /* test that its possible to access mac, key and iv correctly from s2n_key_material */
+            EXPECT_OK(s2n_test_validate_key_material(
+                    &key_material,
+                    &test_data_blob,
+                    key_material.client_mac.size,
+                    key_material.client_key.size,
+                    key_material.client_iv.size));
         }
     }
 
