@@ -123,12 +123,11 @@ static bool s2n_supports_large_time_t()
  */
 static bool s2n_libcrypto_supports_2050()
 {
-    if (!s2n_supports_large_time_t()) {
-        return false;
-    }
     ASN1_TIME *utc_time = ASN1_UTCTIME_set(NULL, 0);
     time_t time_2050 = 2524608000;
-    return (X509_cmp_time(utc_time, &time_2050) != 0);
+    int result = X509_cmp_time(utc_time, &time_2050);
+    ASN1_STRING_free(utc_time);
+    return (result != 0);
 }
 
 int main(int argc, char **argv)
