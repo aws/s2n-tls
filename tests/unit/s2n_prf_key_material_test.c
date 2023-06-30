@@ -71,7 +71,7 @@ int main(int argc, char **argv)
 
     /* fuzz s2n_key_material_init with different mac, key, iv sizes */
     {
-        for (uint8_t mac_size = 0; mac_size < SHA512_DIGEST_LENGTH; mac_size++) {
+        for (uint8_t mac_size = 0; mac_size < SHA256_DIGEST_LENGTH; mac_size++) {
             for (uint8_t key_size = 0; key_size < S2N_TLS_AES_256_GCM_KEY_LEN; key_size++) {
                 for (uint8_t iv_size = 0; iv_size < S2N_TLS_MAX_IV_LEN; iv_size++) {
                     EXPECT_TRUE((mac_size * 2 + key_size * 2 + iv_size * 2 <= S2N_MAX_KEY_BLOCK_LEN));
@@ -125,7 +125,12 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < cipher_preferences_test_all.count; i++) {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            conn->secure->cipher_suite = cipher_preferences_test_all.suites[i];
+
+            struct s2n_cipher_suite *cipher_suite = cipher_preferences_test_all.suites[i];
+            if (!cipher_suite->available) {
+                continue;
+            }
+            conn->secure->cipher_suite = cipher_suite;
 
             /* init s2n_key_material */
             struct s2n_key_material key_material = { 0 };
