@@ -118,7 +118,7 @@ static bool s2n_supports_large_time_t()
  * and therefore reject any date with a year after 2050.
  * This is an issue because RFC5280 requires that dates in certificates be in
  * UTCTime format for years before 2050.
- * We disable affected tests where necessary.
+ * Affected tests are modified to account for this bug.
  * See https://github.com/openssl/openssl/blob/OpenSSL_1_0_2k/crypto/x509/x509_vfy.c#L2027C1-L2027C26
  */
 static bool s2n_libcrypto_supports_2050()
