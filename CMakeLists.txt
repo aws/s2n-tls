@@ -313,6 +313,10 @@ endfunction()
 
 # Tries to compile a feature probe and initializes the corresponding flags
 function(feature_probe PROBE_NAME)
+    # Load the global probe flags
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/tests/features/GLOBAL.flags" GLOBAL_FILE)
+    string(REPLACE "\n" "" GLOBAL_FLAGS "${GLOBAL_FILE}")
+
     # Load the probe's flags
     file(READ "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.flags" PROBE_FILE)
     string(REPLACE "\n" "" PROBE_FLAGS "${PROBE_FILE}")
@@ -324,7 +328,7 @@ function(feature_probe PROBE_NAME)
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
-        COMPILE_DEFINITIONS -c ${PROBE_FLAGS}
+        COMPILE_DEFINITIONS -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
     )
 
@@ -593,6 +597,12 @@ if (BUILD_TESTING)
                 # For Nix and environments where LD_LIBRARY_PATH is already correct.
                 # We're also dropping tox and calling pytest directly, because
                 # Nix is already handling all of the python setup.
+                if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND ${test_target} STREQUAL "integrationv2_sslyze" )
+                  # sslyze/nassl is not available on aarch64.
+                  message(WARNING "Skipping ${test_target} due to missing tools on ${CMAKE_SYSTEM_PROCESSOR}")
+                  continue()
+                endif()
+                message(STATUS "Adding integ test ${test_target}")
                 add_test(NAME ${test_target}
                         COMMAND
                         pytest

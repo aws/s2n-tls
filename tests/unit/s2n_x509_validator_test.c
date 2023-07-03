@@ -112,10 +112,33 @@ static bool s2n_supports_large_time_t()
     return sizeof(time_t) == 8;
 }
 
+/* Early versions of Openssl (Openssl-1.0.2k confirmed) included a bug where UTCTime
+ * formatted dates in certificates could not be compared to dates after the year 2050,
+ * because Openssl would assume that the validation date was also UTCTime formatted
+ * and therefore reject any date with a year after 2050.
+ * This is an issue because RFC5280 requires that dates in certificates be in
+ * UTCTime format for years before 2050.
+ * Affected tests are modified to account for this bug.
+ * See https://github.com/openssl/openssl/blob/OpenSSL_1_0_2k/crypto/x509/x509_vfy.c#L2027C1-L2027C26
+ */
+static bool s2n_libcrypto_supports_2050()
+{
+    ASN1_TIME *utc_time = ASN1_UTCTIME_set(NULL, 0);
+    time_t time_2050 = 2524608000;
+    int result = X509_cmp_time(utc_time, &time_2050);
+    ASN1_STRING_free(utc_time);
+    return (result != 0);
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    /* The issues with 2050 only affected openssl-1.0.2 */
+    if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)) {
+        EXPECT_TRUE(s2n_libcrypto_supports_2050());
+    }
 
     /* test empty trust store */
     {
@@ -474,20 +497,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
-        if (s2n_supports_large_time_t()) {
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_x509_validator_validate_cert_chain(&validator, connection,
-                            chain_data, chain_len, &pkey_type, &public_key_out),
-                    S2N_ERR_CERT_EXPIRED);
-        } else {
-            /* fetch_expired_after_ocsp_timestamp is in 2200 which is not
-             * representable for 32 bit time_t's.
-             */
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_x509_validator_validate_cert_chain(&validator, connection,
-                            chain_data, chain_len, &pkey_type, &public_key_out),
-                    S2N_ERR_SAFETY);
+        int expected_errno = S2N_ERR_CERT_EXPIRED;
+        /* In some cases validation may fail with a less specific error due to
+         * issues with large dates, but validation does always fail. */
+        if (!s2n_supports_large_time_t()) {
+            expected_errno = S2N_ERR_SAFETY;
+        } else if (!s2n_libcrypto_supports_2050()) {
+            expected_errno = S2N_ERR_CERT_UNTRUSTED;
         }
+        EXPECT_ERROR_WITH_ERRNO(
+                s2n_x509_validator_validate_cert_chain(&validator, connection,
+                        chain_data, chain_len, &pkey_type, &public_key_out),
+                expected_errno);
 
         EXPECT_EQUAL(1, verify_data.callback_invoked);
         s2n_config_set_wall_clock(connection->config, old_clock, NULL);
