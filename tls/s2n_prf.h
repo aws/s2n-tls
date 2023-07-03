@@ -54,6 +54,28 @@ struct s2n_p_hash_hmac {
     int (*free)(struct s2n_prf_working_space *ws);
 };
 
+/* TLS key expansion results in an array of contiguous data which is then
+ * interpreted as the MAC, KEY and IV for the client and server.
+ *
+ * The following is the memory layout of the key material:
+ *
+ *     [ CLIENT_MAC, SERVER_MAC, CLIENT_KEY, SERVER_KEY, CLIENT_IV, SERVER_IV ]
+ */
+struct s2n_key_material {
+    /* key material data resulting from key expansion */
+    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
+
+    /* pointers into data representing specific key information */
+    struct s2n_blob client_mac;
+    struct s2n_blob server_mac;
+    struct s2n_blob client_key;
+    struct s2n_blob server_key;
+    struct s2n_blob client_iv;
+    struct s2n_blob server_iv;
+};
+
+S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s2n_connection *conn);
+
 #include "tls/s2n_connection.h"
 
 S2N_RESULT s2n_prf_new(struct s2n_connection *conn);
