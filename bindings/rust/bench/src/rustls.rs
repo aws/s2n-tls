@@ -99,7 +99,7 @@ impl TlsBenchHarness for RustlsHarness {
             .with_protocol_versions(&[&TLS13])?;
 
         let (client_builder, server_builder) = match handshake_type {
-            HandshakeType::mTLS => (
+            HandshakeType::ClientAuth => (
                 client_builder.with_single_cert(
                     Self::get_cert_chain(CLIENT_CERT_CHAIN_PATH)?,
                     Self::get_key(CLIENT_KEY_PATH)?,
@@ -108,7 +108,7 @@ impl TlsBenchHarness for RustlsHarness {
                     AllowAnyAuthenticatedClient::new(Self::get_root_cert_store()?),
                 )),
             ),
-            HandshakeType::Full => (
+            HandshakeType::NoClientAuth => (
                 client_builder.with_no_client_auth(),
                 server_builder.with_no_client_auth(),
             ),

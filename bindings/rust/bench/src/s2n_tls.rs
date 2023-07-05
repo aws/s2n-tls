@@ -74,11 +74,10 @@ impl S2NHarness {
         }
     }
 
-    fn create_config(
-        mode: Mode,
+    fn create_common_config_builder(
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
-    ) -> Result<Config, Box<dyn Error>> {
+    ) -> Result<Builder, Box<dyn Error>> {
         let security_policy = match (crypto_config.cipher_suite, crypto_config.ec_group) {
             (CipherSuite::AES_128_GCM_SHA256, ECGroup::SECP256R1) => "20230317",
             (CipherSuite::AES_256_GCM_SHA384, ECGroup::SECP256R1) => "20190802",
@@ -91,29 +90,50 @@ impl S2NHarness {
             .set_security_policy(&Policy::from_version(security_policy)?)?
             .wipe_trust_store()?
             .set_client_auth_type(match handshake_type {
-                HandshakeType::Full => ClientAuthType::None,
-                HandshakeType::mTLS => ClientAuthType::Required,
+                HandshakeType::NoClientAuth => ClientAuthType::None,
+                HandshakeType::ClientAuth => ClientAuthType::Required,
             })?;
 
-        // add CA cert if needed
-        if handshake_type == HandshakeType::mTLS || mode == Mode::Client {
+        Ok(builder)
+    }
+
+    fn create_client_config(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Config, Box<dyn Error>> {
+        let mut builder = Self::create_common_config_builder(crypto_config, handshake_type)?;
+        builder
+            .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
+            .set_verify_host_callback(HostNameHandler {
+                expected_server_name: "localhost",
+            })?;
+
+        if handshake_type == HandshakeType::ClientAuth {
+            builder.load_pem(
+                read_to_bytes(CLIENT_CERT_CHAIN_PATH).as_slice(),
+                read_to_bytes(CLIENT_KEY_PATH).as_slice(),
+            )?;
+        }
+
+        Ok(builder.build()?)
+    }
+
+    fn create_server_config(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Config, Box<dyn Error>> {
+        let mut builder = Self::create_common_config_builder(crypto_config, handshake_type)?;
+        builder.load_pem(
+            read_to_bytes(SERVER_CERT_CHAIN_PATH).as_slice(),
+            read_to_bytes(SERVER_KEY_PATH).as_slice(),
+        )?;
+
+        if handshake_type == HandshakeType::ClientAuth {
             builder
                 .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
                 .set_verify_host_callback(HostNameHandler {
                     expected_server_name: "localhost",
                 })?;
-        }
-
-        // add auth certs if needed
-        if mode == Mode::Server || handshake_type == HandshakeType::mTLS {
-            let (cert_chain_path, key_path) = match mode {
-                Mode::Server => (SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH),
-                Mode::Client => (CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH),
-            };
-            builder.load_pem(
-                read_to_bytes(cert_chain_path).as_slice(),
-                read_to_bytes(key_path).as_slice(),
-            )?;
         }
 
         Ok(builder.build()?)
@@ -175,8 +195,8 @@ impl TlsBenchHarness for S2NHarness {
         let client_to_server_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
         let server_to_client_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
 
-        let client_config = Self::create_config(Mode::Client, crypto_config, handshake_type)?;
-        let server_config = Self::create_config(Mode::Server, crypto_config, handshake_type)?;
+        let client_config = Self::create_client_config(crypto_config, handshake_type)?;
+        let server_config = Self::create_server_config(crypto_config, handshake_type)?;
 
         let mut harness = Self {
             client_to_server_buf,

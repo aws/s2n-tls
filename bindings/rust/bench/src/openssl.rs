@@ -75,7 +75,7 @@ impl TlsBenchHarness for OpenSslHarness {
         server_builder.set_private_key_file(SERVER_KEY_PATH, SslFiletype::PEM)?;
         Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
 
-        if handshake_type == HandshakeType::mTLS {
+        if handshake_type == HandshakeType::ClientAuth {
             client_builder.set_certificate_chain_file(CLIENT_CERT_CHAIN_PATH)?;
             client_builder.set_private_key_file(CLIENT_KEY_PATH, SslFiletype::PEM)?;
             server_builder.set_ca_file(CA_CERT_PATH)?;
