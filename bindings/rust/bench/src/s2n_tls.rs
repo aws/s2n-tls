@@ -195,14 +195,24 @@ impl TlsBenchHarness for S2NHarness {
         self.client_conn.actual_protocol_version().unwrap() == Version::TLS13
     }
 
-    fn transfer(&mut self, sender: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let (send_conn, recv_conn) = match sender {
-            Mode::Client => (&mut self.client_conn, &mut self.server_conn),
-            Mode::Server => (&mut self.server_conn, &mut self.client_conn),
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let send_conn = match sender {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
         };
 
         assert!(send_conn.poll_send(data).is_ready());
         assert!(send_conn.poll_flush().is_ready());
+
+        Ok(())
+    }
+
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let recv_conn = match receiver {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
         assert!(recv_conn.poll_recv(data).is_ready());
         Ok(())
     }

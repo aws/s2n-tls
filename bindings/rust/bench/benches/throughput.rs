@@ -5,7 +5,7 @@ use bench::{
     CipherSuite::{self, *},
     CryptoConfig,
     ECGroup::X25519,
-    Mode, OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness,
+    OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness,
 };
 use criterion::{
     black_box, criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup,
@@ -32,14 +32,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
                     harness.handshake().unwrap();
                     harness
                 },
-                |harness| {
-                    harness
-                        .transfer(Mode::Client, black_box(shared_buf))
-                        .unwrap();
-                    harness
-                        .transfer(Mode::Server, black_box(shared_buf))
-                        .unwrap();
-                },
+                |harness| harness.round_trip_transfer(black_box(shared_buf)).unwrap(),
                 BatchSize::SmallInput,
             )
         });

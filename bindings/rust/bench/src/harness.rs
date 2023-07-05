@@ -65,8 +65,24 @@ pub trait TlsBenchHarness: Sized {
     /// Get whether or negotiated version is TLS1.3
     fn negotiated_tls13(&self) -> bool;
 
-    /// Transfer given data one-way between connections
-    fn transfer(&mut self, sender: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
+    /// Send data from one connection
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>>;
+
+    /// Receive data sent to a connection
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
+
+    /// Transfer data one round trip between connections
+    fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        // send data from client to server
+        self.send(Mode::Client, data)?;
+        self.recv(Mode::Server, data)?;
+
+        // send data from server to client
+        self.send(Mode::Server, data)?;
+        self.recv(Mode::Client, data)?;
+
+        Ok(())
+    }
 }
 
 /// Wrapper of two shared buffers to pass as stream
@@ -156,8 +172,7 @@ macro_rules! test_tls_bench_harnesses {
                         crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
                         harness = <$harness_type>::new(&crypto_config).unwrap();
                         harness.handshake().unwrap();
-                        harness.transfer(Mode::Client, &mut buf).unwrap();
-                        harness.transfer(Mode::Server, &mut buf).unwrap();
+                        harness.round_trip_transfer(&mut buf).unwrap();
                     }
                 }
             }

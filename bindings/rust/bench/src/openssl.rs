@@ -118,22 +118,29 @@ impl TlsBenchHarness for OpenSslHarness {
             == SslVersion::TLS1_3
     }
 
-    fn transfer(&mut self, sender: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let (send_conn, recv_conn) = match sender {
-            Mode::Client => (&mut self.client_conn, &mut self.server_conn),
-            Mode::Server => (&mut self.server_conn, &mut self.client_conn),
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let send_conn = match sender {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
         };
 
-        let data_len = data.len();
-
         let mut write_offset = 0;
-        while write_offset < data_len {
-            write_offset += send_conn.write(&data[write_offset..data_len])?;
+        while write_offset < data.len() {
+            write_offset += send_conn.write(&data[write_offset..data.len()])?;
             send_conn.flush()?;
         }
 
+        Ok(())
+    }
+
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let recv_conn = match receiver {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
         let mut read_offset = 0;
-        while read_offset < data_len {
+        while read_offset < data.len() {
             read_offset += recv_conn.read(data)?
         }
 

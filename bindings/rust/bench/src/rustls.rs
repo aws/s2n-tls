@@ -140,33 +140,31 @@ impl TlsBenchHarness for RustlsHarness {
             == TLSv1_3
     }
 
-    fn transfer(&mut self, sender: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let (send_conn, send_buf, recv_conn, recv_buf) = match sender {
-            Mode::Client => (
-                &mut self.client_conn,
-                &mut self.client_buf,
-                &mut self.server_conn,
-                &mut self.server_buf,
-            ),
-            Mode::Server => (
-                &mut self.server_conn,
-                &mut self.server_buf,
-                &mut self.client_conn,
-                &mut self.client_buf,
-            ),
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let (send_conn, send_buf) = match sender {
+            Mode::Client => (&mut self.client_conn, &mut self.client_buf),
+            Mode::Server => (&mut self.server_conn, &mut self.server_buf),
         };
 
-        let data_len = data.len();
-
         let mut write_offset = 0;
-        while write_offset < data_len {
-            write_offset += send_conn.writer().write(&data[write_offset..data_len])?;
+        while write_offset < data.len() {
+            write_offset += send_conn.writer().write(&data[write_offset..data.len()])?;
             send_conn.writer().flush()?;
             send_conn.complete_io(send_buf)?;
         }
 
+        Ok(())
+    }
+
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let (recv_conn, recv_buf) = match receiver {
+            Mode::Client => (&mut self.client_conn, &mut self.client_buf),
+            Mode::Server => (&mut self.server_conn, &mut self.server_buf),
+        };
+
+        let data_len = data.len();
         let mut read_offset = 0;
-        while read_offset < data_len {
+        while read_offset < data.len() {
             recv_conn.complete_io(recv_buf)?;
             read_offset +=
                 Self::ignore_block(recv_conn.reader().read(&mut data[read_offset..data_len]))?;
