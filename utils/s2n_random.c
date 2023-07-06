@@ -175,7 +175,7 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
 /* Deletes pthread key at process-exit */
 static void __attribute__((destructor)) s2n_drbg_rand_state_key_cleanup(void)
 {
-    if (s2n_is_init()) {
+    if (s2n_is_initialized()) {
         pthread_key_delete(s2n_per_thread_rand_state_key);
     }
 }
