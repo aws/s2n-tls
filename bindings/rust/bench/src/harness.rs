@@ -134,12 +134,11 @@ macro_rules! test_tls_bench_harnesses {
 
             #[test]
             fn test_handshake_config() {
-                let (mut harness, mut crypto_config);
                 for handshake_type in [NoClientAuth, ClientAuth] {
                     for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
                         for ec_group in [SECP256R1, X25519] {
-                            crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
-                            harness = <$harness_type>::new(crypto_config, handshake_type).unwrap();
+                            let crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
+                            let mut harness = <$harness_type>::new(crypto_config, handshake_type).unwrap();
 
                             assert!(!harness.handshake_completed());
                             harness.handshake().unwrap();
