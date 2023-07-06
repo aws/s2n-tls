@@ -127,7 +127,7 @@ impl TlsBenchHarness for OpenSslHarness {
         let mut write_offset = 0;
         while write_offset < data.len() {
             write_offset += send_conn.write(&data[write_offset..data.len()])?;
-            send_conn.flush()?;
+            send_conn.flush()?; // make sure internal buffers don't fill up
         }
 
         Ok(())

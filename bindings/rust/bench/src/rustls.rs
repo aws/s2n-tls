@@ -54,7 +54,7 @@ impl RustlsHarness {
         ))
     }
 
-    /// Treat `WouldBlock` as an `Ok` value
+    /// Treat `WouldBlock` as `Ok` for when blocking is expected
     fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
         match res {
             Ok(t) => Ok(t),

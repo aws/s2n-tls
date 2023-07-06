@@ -14,6 +14,7 @@ use criterion::{
 use std::any::type_name;
 
 pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
+    // arbitrarily large to cut across TLS record boundaries
     let mut shared_buf = [0u8; 100000];
 
     fn bench_throughput_for_library<T: TlsBenchHarness>(

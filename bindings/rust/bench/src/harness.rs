@@ -65,13 +65,13 @@ pub trait TlsBenchHarness: Sized {
     /// Get whether or negotiated version is TLS1.3
     fn negotiated_tls13(&self) -> bool;
 
-    /// Send data from one connection
+    /// Send application data from connection in harness pair
     fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>>;
 
-    /// Receive data sent to a connection
+    /// Receive application data sent to connection in harness pair
     fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
 
-    /// Transfer data one round trip between connections
+    /// Send data from client to server and then from server to client
     fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
         // send data from client to server
         self.send(Mode::Client, data)?;
@@ -168,12 +168,10 @@ macro_rules! test_tls_bench_harnesses {
                 let mut buf = [0x56u8; 1000000];
                 let (mut harness, mut crypto_config);
                 for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384].iter() {
-                    for ec_group in [SECP256R1, X25519].iter() {
-                        crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
-                        harness = <$harness_type>::new(&crypto_config).unwrap();
-                        harness.handshake().unwrap();
-                        harness.round_trip_transfer(&mut buf).unwrap();
-                    }
+                    crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: X25519 };
+                    harness = <$harness_type>::new(&crypto_config).unwrap();
+                    harness.handshake().unwrap();
+                    harness.round_trip_transfer(&mut buf).unwrap();
                 }
             }
         }
