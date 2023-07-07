@@ -38,12 +38,12 @@ fn main() -> Result<(), Box<dyn Error>> {
         .records()
         .map(|record_res| Version::parse(&record_res.unwrap()[0][1..]).unwrap())
         .collect::<Vec<_>>();
-    let num_tags = tag_names.len();
 
     // fill in missing versions (1.3.15, 1.3.30-1.3.37)
     tag_names.push(Version::new(1, 3, 15));
     tag_names.extend((30..38).map(|p| Version::new(1, 3, p)));
     tag_names.sort();
+    let num_tags = tag_names.len();
 
     // get the indices of all of the tags for plotting
     let tag_names_to_index = tag_names
@@ -92,7 +92,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .set_label_area_size(LabelAreaPosition::Left, (10).percent()) // axes padding
         .set_label_area_size(LabelAreaPosition::Bottom, (8).percent())
         .build_cartesian_2d(
-            (0..num_tags + 1).with_key_points((1..num_tags).step_by(2).collect()), // put labels on every other tag
+            (0..num_tags).with_key_points((1..num_tags).step_by(2).collect()), // put labels on every other tag
             0.0..(1.3 * y_max), // upper y bound on plot is 1.3 * y_max
         )?;
 
@@ -102,14 +102,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .x_desc("Version") // axes labels
         .y_desc("Time (ms)")
         .x_labels(num_tags)
-        .x_label_formatter(&|x| {
-            // change x coord (index of tag in tag_names) to string
-            if let Some(tag_name) = tag_names.get(*x) {
-                tag_name.to_string()
-            } else {
-                "hi".to_string()
-            }
-        })
+        .x_label_formatter(&|x| tag_names.get(*x).unwrap().to_string()) // change x coord (index of tag in tag_names) to version string
         .y_labels(5) // max 5 labels on y axis
         .y_label_formatter(&|y| format!("{} ms", y / 1000000.0))
         .draw()?;

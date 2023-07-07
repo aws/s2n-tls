@@ -15,6 +15,10 @@ set -e
 bench_path=`pwd`/`dirname "$0"`/../
 pushd $bench_path
 
+# make Cargo.toml point s2n-tls to the cloned old version
+original_s2n_dep="$(grep 's2n-tls =' Cargo.toml)"
+sed -i "s|s2n-tls = .*|s2n-tls = { path = \"target/s2n-tls/bindings/rust/s2n-tls\" }|" Cargo.toml 
+
 # clone copy of repo to target/s2n-tls
 echo "cloning repo" >&2
 mkdir -p target
@@ -37,23 +41,26 @@ do
         # go to s2n-tls/bindings/rust/ inside copied repo
         cd $copied_bindings_path
 
-        echo "checkout out tag $tag" >&2
-        git checkout -f $tag --quiet
-
-        # copy over benching code
-        rm -rf bench && mkdir bench && cd bench
-        mkdir -p benches/ certs/ historical-perf/ src/ 
-        cp -r $bench_path/{benches/,certs/,historical-perf/,src/,Cargo.toml,rust-toolchain} ./
-        cp $bench_path/../Cargo.toml ../Cargo.toml
+        echo "checkout tag $tag" >&2
+        git checkout $tag --quiet
 
         echo "generating rust bindings" >&2
         # if generate.sh fails, exit out of block
-        ../generate.sh || exit 1
+        ./generate.sh || exit 1
 
-        echo "running cargo bench" >&2
-        cargo bench --features "s2n-only"
-        cargo run --release --bin parse_criterion $tag $bench_path/historical-perf/perf.csv
+        cd $bench_path
+        echo "running cargo bench and saving results" >&2
+        cargo bench --features "s2n-only" --no-fail-fast
+        cargo run --release --bin parse_criterion $tag historical-perf/perf.csv
     ) || echo "failed, trying next tag"
+    echo
 done
+
+# reset Cargo.toml
+cd $bench_path
+sed -i "s|s2n-tls = .*|$original_s2n_dep|" Cargo.toml
+
+# graph results
+cargo run --release --bin graph_perf
 
 popd

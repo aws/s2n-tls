@@ -23,13 +23,14 @@ pub fn bench_handshake_key_exchange(c: &mut Criterion) {
             b.iter_batched_ref(
                 || {
                     T::new(&CryptoConfig {
-                        cipher_suite: AES_128_GCM_SHA256,
+                        cipher_suite: AES_256_GCM_SHA384,
                         ec_group,
                     })
                 },
                 |harness| {
                     // if harness invalid, do nothing but don't panic
-                    // useful for historical performance bench
+                    // useful for historical performance bench to ignore configs
+                    // invalid only for past versions of s2n-tls
                     if let Ok(harness) = harness {
                         let _ = harness.handshake();
                     }
