@@ -90,8 +90,8 @@ impl S2NHarness {
             .set_security_policy(&Policy::from_version(security_policy)?)?
             .wipe_trust_store()?
             .set_client_auth_type(match handshake_type {
-                HandshakeType::NoClientAuth => ClientAuthType::None,
-                HandshakeType::ClientAuth => ClientAuthType::Required,
+                HandshakeType::ServerAuth => ClientAuthType::None,
+                HandshakeType::MutualAuth => ClientAuthType::Required,
             })?;
 
         Ok(builder)
@@ -108,7 +108,7 @@ impl S2NHarness {
                 expected_server_name: "localhost",
             })?;
 
-        if handshake_type == HandshakeType::ClientAuth {
+        if handshake_type == HandshakeType::MutualAuth {
             builder.load_pem(
                 read_to_bytes(CLIENT_CERT_CHAIN_PATH).as_slice(),
                 read_to_bytes(CLIENT_KEY_PATH).as_slice(),
@@ -128,7 +128,7 @@ impl S2NHarness {
             read_to_bytes(SERVER_KEY_PATH).as_slice(),
         )?;
 
-        if handshake_type == HandshakeType::ClientAuth {
+        if handshake_type == HandshakeType::MutualAuth {
             builder
                 .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
                 .set_verify_host_callback(HostNameHandler {

@@ -39,7 +39,7 @@ pub fn bench_handshake_params(c: &mut Criterion) {
         });
     }
 
-    for handshake_type in [NoClientAuth, ClientAuth] {
+    for handshake_type in [ServerAuth, MutualAuth] {
         for ec_group in [SECP256R1, X25519] {
             let mut bench_group =
                 c.benchmark_group(format!("handshake-{:?}-{:?}", handshake_type, ec_group));

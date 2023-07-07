@@ -23,8 +23,8 @@ pub enum Mode {
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum HandshakeType {
     #[default]
-    NoClientAuth,
-    ClientAuth,
+    ServerAuth,
+    MutualAuth,
 }
 
 // these parameters were the only ones readily usable for all three libaries:
@@ -134,7 +134,7 @@ macro_rules! test_tls_bench_harnesses {
 
             #[test]
             fn test_handshake_config() {
-                for handshake_type in [NoClientAuth, ClientAuth] {
+                for handshake_type in [ServerAuth, MutualAuth] {
                     for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
                         for ec_group in [SECP256R1, X25519] {
                             let crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
