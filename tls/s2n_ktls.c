@@ -42,7 +42,7 @@ S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mod
 
     /* kTLS enable should only be called once the handshake has completed. */
     if (!is_handshake_complete(conn)) {
-        RESULT_BAIL(S2N_ERR_KTLS_HANDSHAKE_NOT_COMPLETE);
+        RESULT_BAIL(S2N_ERR_HANDSHAKE_NOT_COMPLETE);
     }
 
     /* TODO support TLS 1.3
@@ -77,6 +77,9 @@ S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mod
             RESULT_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
 
             break;
+        default:
+            RESULT_BAIL(S2N_ERR_SAFETY);
+            break;
     }
 
     return S2N_RESULT_OK;
@@ -88,15 +91,9 @@ S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_kt
     RESULT_ENSURE_REF(fd);
 
     if (ktls_mode == S2N_KTLS_MODE_RECV) {
-        /* retrieve the receive fd */
-        RESULT_ENSURE_REF(conn->recv_io_context);
-        const struct s2n_socket_read_io_context *peer_socket_ctx = conn->recv_io_context;
-        *fd = peer_socket_ctx->fd;
+        RESULT_GUARD_POSIX(s2n_connection_get_read_fd(conn, fd));
     } else if (ktls_mode == S2N_KTLS_MODE_SEND) {
-        /* retrieve the send fd */
-        RESULT_ENSURE_REF(conn->send_io_context);
-        const struct s2n_socket_write_io_context *peer_socket_ctx = conn->send_io_context;
-        *fd = peer_socket_ctx->fd;
+        RESULT_GUARD_POSIX(s2n_connection_get_write_fd(conn, fd));
     }
 
     return S2N_RESULT_OK;
@@ -124,14 +121,11 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
     int ret = setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
 
     if (ret != 0) {
-        /* EEXIST: https://man7.org/linux/man-pages/man3/errno.3.html
-         *
-         * TCP_ULP has already been enabled on the socket so the operation is a noop.
-         * Since its possible to call this twice, once for TX and once for RX, consider
-         * the noop a success. */
-        if (errno != EEXIST) {
-            RESULT_BAIL(S2N_ERR_KTLS_ULP);
-        }
+        /* https://man7.org/linux/man-pages/man3/errno.3.html
+         * EEXIST indicates that TCP_ULP has already been enabled on the socket.
+         * This is a noop and therefore safe to ignore.
+         */
+        RESULT_ENSURE(errno == EEXIST, S2N_ERR_KTLS_ULP);
     }
 
     return S2N_RESULT_OK;
@@ -154,8 +148,12 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_SEND));
-
-    POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND));
+    s2n_result res = s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND);
+    if (s2n_errno == S2N_ERR_KTLS_ALREADY_ENABLED) {
+        return S2N_SUCCESS;
+    } else {
+        POSIX_GUARD_RESULT(res);
+    }
 
     return S2N_SUCCESS;
 }
@@ -169,8 +167,12 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_RECV));
-
-    POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV));
+    s2n_result res = s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV);
+    if (s2n_errno == S2N_ERR_KTLS_ALREADY_ENABLED) {
+        return S2N_SUCCESS;
+    } else {
+        POSIX_GUARD_RESULT(res);
+    }
 
     return S2N_SUCCESS;
 }

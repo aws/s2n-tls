@@ -18,11 +18,11 @@
 #include "tls/s2n_config.h"
 
 /* Define headers needed to enable and use kTLS.
- *  *
- *   * The inline header definitions are required to compile kTLS specific code.
- *    * kTLS has been tested on linux. For all other platforms, kTLS is marked as
- *     * unsuppored, and will return an un-supported error.
- *      */
+ *
+ * The inline header definitions are required to compile kTLS specific code.
+ * kTLS has been tested on linux. For all other platforms, kTLS is marked as
+ * unsupported, and will return an unsupported error.
+ */
 #if defined(__linux__)
     #define S2N_KTLS_SUPPORTED true
     #include "tls/s2n_ktls_linux.h"

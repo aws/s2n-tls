@@ -94,8 +94,8 @@ int main(int argc, char **argv)
             int fd = 1;
             EXPECT_OK(s2n_test_configure_mock_ktls_connection(server_conn, fd, false));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_HANDSHAKE_NOT_COMPLETE);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_HANDSHAKE_NOT_COMPLETE);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
         };
 
         /* s2n_connection_ktls_enable */
@@ -110,7 +110,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
         };
 
-        /* ktls already enabled */
+        /* ktls already enabled is a noop and returns success */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -118,10 +118,10 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_configure_mock_ktls_connection(server_conn, fd, true));
 
             server_conn->ktls_send_enabled = true;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_ALREADY_ENABLED);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
 
             server_conn->ktls_recv_enabled = true;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_ALREADY_ENABLED);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
         };
 
         /* unsupported protocols */
