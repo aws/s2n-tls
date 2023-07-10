@@ -273,7 +273,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
 
-        /* The "all" security policy contains both TLS 1.2 KEM extension and TLS 1.3 KEM SupportedGroup entries */
+        /* The "all" security policy contains both TLS 1.2 KEM extension and TLS 1.3 KEM SupportedGroup entries*/
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("test_all", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
