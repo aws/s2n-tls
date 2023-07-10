@@ -14,27 +14,37 @@ pub fn read_to_bytes(path: &str) -> Vec<u8> {
     read_to_string(path).unwrap().into_bytes()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Client,
     Server,
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum HandshakeType {
+    #[default]
+    ServerAuth,
+    MutualAuth,
+}
+
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum CipherSuite {
+    #[default]
     AES_128_GCM_SHA256,
     AES_256_GCM_SHA384,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub enum ECGroup {
     SECP256R1,
+    #[default]
     X25519,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
 pub struct CryptoConfig {
     pub cipher_suite: CipherSuite,
     pub ec_group: ECGroup,
@@ -43,14 +53,14 @@ pub struct CryptoConfig {
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(&CryptoConfig {
-            cipher_suite: CipherSuite::AES_128_GCM_SHA256,
-            ec_group: ECGroup::X25519,
-        })
+        Self::new(Default::default(), Default::default())
     }
 
     /// Initialize buffers, configs, and connections (pre-handshake)
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>>;
+    fn new(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Self, Box<dyn Error>>;
 
     /// Run handshake on initialized connection
     /// Returns error if handshake has already completed
@@ -139,25 +149,23 @@ macro_rules! test_tls_bench_harnesses {
             use super::*;
             use CipherSuite::*;
             use ECGroup::*;
+            use HandshakeType::*;
 
             #[test]
-            fn test_handshake() {
-                let mut harness = <$harness_type>::default().unwrap();
-                assert!(!harness.handshake_completed());
-                harness.handshake().unwrap();
-                assert!(harness.handshake_completed());
-                assert!(harness.negotiated_tls13());
-            }
+            fn test_handshake_config() {
+                for handshake_type in [ServerAuth, MutualAuth] {
+                    for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
+                        for ec_group in [SECP256R1, X25519] {
+                            let crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
+                            let mut harness = <$harness_type>::new(crypto_config, handshake_type).unwrap();
 
-            #[test]
-            fn test_different_crypto_config() {
-                let (mut harness, mut crypto_config);
-                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384].iter() {
-                    for ec_group in [SECP256R1, X25519].iter() {
-                        crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
-                        harness = <$harness_type>::new(&crypto_config).unwrap();
-                        harness.handshake().unwrap();
-                        assert_eq!(cipher_suite, &harness.get_negotiated_cipher_suite());
+                            assert!(!harness.handshake_completed());
+                            harness.handshake().unwrap();
+                            assert!(harness.handshake_completed());
+
+                            assert!(harness.negotiated_tls13());
+                            assert_eq!(cipher_suite, harness.get_negotiated_cipher_suite());
+                        }
                     }
                 }
             }
@@ -167,9 +175,9 @@ macro_rules! test_tls_bench_harnesses {
                 // use a large buffer to test across TLS record boundaries
                 let mut buf = [0x56u8; 1000000];
                 let (mut harness, mut crypto_config);
-                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384].iter() {
-                    crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: X25519 };
-                    harness = <$harness_type>::new(&crypto_config).unwrap();
+                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
+                    crypto_config = CryptoConfig { cipher_suite: cipher_suite, ec_group: Default::default() };
+                    harness = <$harness_type>::new(crypto_config, Default::default()).unwrap();
                     harness.handshake().unwrap();
                     harness.round_trip_transfer(&mut buf).unwrap();
                 }

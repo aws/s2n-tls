@@ -3,13 +3,15 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness,
+        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
+        TlsBenchHarness,
     },
-    CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    CA_CERT_PATH, CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
 use rustls::{
     cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
     kx_group::{SECP256R1, X25519},
+    server::AllowAnyAuthenticatedClient,
     version::TLS13,
     Certificate, ClientConfig, ClientConnection, Connection,
     Connection::{Client, Server},
@@ -40,17 +42,17 @@ impl RustlsHarness {
         Ok(root_certs)
     }
 
-    fn get_cert_chain() -> Result<Vec<Certificate>, Box<dyn Error>> {
-        let chain = certs(&mut BufReader::new(&*read_to_bytes(SERVER_CERT_CHAIN_PATH)))?;
+    fn get_cert_chain(path: &str) -> Result<Vec<Certificate>, Box<dyn Error>> {
+        let chain = certs(&mut BufReader::new(&*read_to_bytes(path)))?;
         Ok(chain
             .iter()
             .map(|bytes| Certificate(bytes.to_vec()))
             .collect())
     }
 
-    fn get_server_key() -> Result<PrivateKey, Box<dyn Error>> {
+    fn get_key(path: &str) -> Result<PrivateKey, Box<dyn Error>> {
         Ok(PrivateKey(
-            pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(SERVER_KEY_PATH)))?.remove(0),
+            pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(path)))?.remove(0),
         ))
     }
 
@@ -67,7 +69,10 @@ impl RustlsHarness {
 }
 
 impl TlsBenchHarness for RustlsHarness {
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>> {
+    fn new(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Self, Box<dyn Error>> {
         let client_buf = ConnectedBuffer::new();
         let server_buf = client_buf.clone_inverse();
 
@@ -81,23 +86,38 @@ impl TlsBenchHarness for RustlsHarness {
             ECGroup::X25519 => &X25519,
         };
 
-        let client_config = Arc::new(
-            ClientConfig::builder()
-                .with_cipher_suites(&[cipher_suite])
-                .with_kx_groups(&[kx_group])
-                .with_protocol_versions(&[&TLS13])?
-                .with_root_certificates(Self::get_root_cert_store()?)
-                .with_no_client_auth(),
-        );
+        let client_builder = ClientConfig::builder()
+            .with_cipher_suites(&[cipher_suite])
+            .with_kx_groups(&[kx_group])
+            .with_protocol_versions(&[&TLS13])?
+            .with_root_certificates(Self::get_root_cert_store()?);
 
-        let server_config = Arc::new(
-            ServerConfig::builder()
-                .with_cipher_suites(&[cipher_suite])
-                .with_kx_groups(&[kx_group])
-                .with_protocol_versions(&[&TLS13])?
-                .with_no_client_auth()
-                .with_single_cert(Self::get_cert_chain()?, Self::get_server_key()?)?,
-        );
+        let server_builder = ServerConfig::builder()
+            .with_cipher_suites(&[cipher_suite])
+            .with_kx_groups(&[kx_group])
+            .with_protocol_versions(&[&TLS13])?;
+
+        let (client_builder, server_builder) = match handshake_type {
+            HandshakeType::MutualAuth => (
+                client_builder.with_client_auth_cert(
+                    Self::get_cert_chain(CLIENT_CERT_CHAIN_PATH)?,
+                    Self::get_key(CLIENT_KEY_PATH)?,
+                )?,
+                server_builder.with_client_cert_verifier(Arc::new(
+                    AllowAnyAuthenticatedClient::new(Self::get_root_cert_store()?),
+                )),
+            ),
+            HandshakeType::ServerAuth => (
+                client_builder.with_no_client_auth(),
+                server_builder.with_no_client_auth(),
+            ),
+        };
+
+        let client_config = Arc::new(client_builder);
+        let server_config = Arc::new(server_builder.with_single_cert(
+            Self::get_cert_chain(SERVER_CERT_CHAIN_PATH)?,
+            Self::get_key(SERVER_KEY_PATH)?,
+        )?);
 
         let client_conn = Client(ClientConnection::new(
             client_config,

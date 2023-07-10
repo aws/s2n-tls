@@ -2,11 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness},
-    CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    harness::{
+        CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode, TlsBenchHarness,
+    },
+    CA_CERT_PATH, CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream, SslVersion,
+    ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream,
+    SslVerifyMode, SslVersion,
 };
 use std::{
     error::Error,
@@ -49,7 +52,10 @@ impl OpenSslHarness {
 }
 
 impl TlsBenchHarness for OpenSslHarness {
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>> {
+    fn new(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Self, Box<dyn Error>> {
         let client_buf = ConnectedBuffer::new();
         let server_buf = client_buf.clone_inverse();
 
@@ -71,6 +77,13 @@ impl TlsBenchHarness for OpenSslHarness {
         server_builder.set_certificate_chain_file(SERVER_CERT_CHAIN_PATH)?;
         server_builder.set_private_key_file(SERVER_KEY_PATH, SslFiletype::PEM)?;
         Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
+
+        if handshake_type == HandshakeType::MutualAuth {
+            client_builder.set_certificate_chain_file(CLIENT_CERT_CHAIN_PATH)?;
+            client_builder.set_private_key_file(CLIENT_KEY_PATH, SslFiletype::PEM)?;
+            server_builder.set_ca_file(CA_CERT_PATH)?;
+            server_builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
+        }
 
         let client_config = client_builder.build();
         let server_config = server_builder.build();
