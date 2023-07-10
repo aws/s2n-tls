@@ -1,3 +1,8 @@
+#!/bin/bash
+
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+
 # immediately bail if any command fails
 set -e
 
@@ -25,7 +30,8 @@ echo "verifying generated certificates"
 openssl verify -CAfile ca-cert.pem server-cert.pem
 openssl verify -CAfile ca-cert.pem client-cert.pem
 
-cat server-cert.pem ca-cert.pem > fullchain.pem
+cat server-cert.pem ca-cert.pem > server-fullchain.pem
+cat client-cert.pem ca-cert.pem > client-fullchain.pem
 
 echo "cleaning up temporary files"
 rm server.csr
