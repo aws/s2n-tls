@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-s2n-tls = { path = "../s2n-tls" }
+s2n-tls = { path = ../s2n-tls }
 rustls = "0.21"
 rustls-pemfile = "1.0"
 openssl = "0.10"

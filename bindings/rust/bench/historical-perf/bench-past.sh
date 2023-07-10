@@ -19,6 +19,9 @@ pushd $bench_path
 original_s2n_dep="$(grep 's2n-tls =' Cargo.toml)"
 sed -i "s|s2n-tls = .*|s2n-tls = { path = \"target/s2n-tls/bindings/rust/s2n-tls\" }|" Cargo.toml 
 
+# ensure Cargo.toml gets changed back on exit; retains original exit status
+trap "{ status=$?; sed -i \"s|s2n-tls = .*|$original_s2n_dep|\" $bench_path/Cargo.toml; exit $status; }" EXIT
+
 # clone copy of repo to target/s2n-tls
 echo "cloning repo" >&2
 mkdir -p target
@@ -48,17 +51,14 @@ do
         # if generate.sh fails, exit out of block
         ./generate.sh || exit 1
 
-        cd $bench_path
         echo "running cargo bench and saving results" >&2
+        cd $bench_path
+        rm -rf target/criterion
         cargo bench --features "s2n-only" --no-fail-fast
         cargo run --release --bin parse_criterion $tag historical-perf/perf.csv
     ) || echo "failed, trying next tag"
     echo
 done
-
-# reset Cargo.toml
-cd $bench_path
-sed -i "s|s2n-tls = .*|$original_s2n_dep|" Cargo.toml
 
 # graph results
 cargo run --release --bin graph_perf
