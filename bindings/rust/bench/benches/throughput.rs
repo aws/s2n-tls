@@ -33,7 +33,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
                     harness.handshake().unwrap();
                     harness
                 },
-                |harness| harness.round_trip_transfer(black_box(shared_buf)).unwrap(),
+                |harness| harness.round_trip_transfer(shared_buf).unwrap(),
                 BatchSize::SmallInput,
             )
         });
