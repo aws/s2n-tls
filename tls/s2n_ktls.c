@@ -21,14 +21,10 @@
 
 bool s2n_ktls_is_supported_on_platform()
 {
-#if S2N_KTLS_SUPPORTED
-    return true;
-#else
-    return false;
-#endif
+    return S2N_KTLS_SUPPORTED;
 }
 
-S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);
