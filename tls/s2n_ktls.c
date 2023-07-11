@@ -37,15 +37,15 @@ S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mod
     const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
     RESULT_ENSURE_REF(cipher);
 
+    RESULT_ENSURE(s2n_ktls_is_supported_on_platform(), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+
     /* kTLS enable should only be called once the handshake has completed. */
-    if (!is_handshake_complete(conn)) {
-        RESULT_BAIL(S2N_ERR_HANDSHAKE_NOT_COMPLETE);
-    }
+    RESULT_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
     /* TODO support TLS 1.3
      *
      * TLS 1.3 support requires sending the KeyUpdate message when the cryptographic
-     * KeyLimits are met. However, this is currently only possible by applying a
+     * key usage limits are met. However, this is currently only possible by applying a
      * kernel patch to support this functionality.
      */
     RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
@@ -94,14 +94,6 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
 {
     RESULT_ENSURE_REF(conn);
 
-    /* If already enabled then return success */
-    if (ktls_mode == S2N_KTLS_MODE_SEND && conn->ktls_send_enabled) {
-        RESULT_BAIL(S2N_ERR_KTLS_ALREADY_ENABLED);
-    }
-    if (ktls_mode == S2N_KTLS_MODE_RECV && conn->ktls_recv_enabled) {
-        RESULT_BAIL(S2N_ERR_KTLS_ALREADY_ENABLED);
-    }
-
     int fd = 0;
     RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
 
@@ -134,19 +126,14 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-
-    if (!s2n_ktls_is_supported_on_platform()) {
-        POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-    }
-
     POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_SEND));
-    s2n_result res = s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND);
-    if (s2n_errno == S2N_ERR_KTLS_ALREADY_ENABLED) {
+
+    /* If already enabled then return success */
+    if (conn->ktls_send_enabled) {
         return S2N_SUCCESS;
-    } else {
-        POSIX_GUARD_RESULT(res);
     }
 
+    POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND));
     conn->ktls_send_enabled = true;
 
     return S2N_SUCCESS;
@@ -155,19 +142,14 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
-
-    if (!s2n_ktls_is_supported_on_platform()) {
-        POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-    }
-
     POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_RECV));
-    s2n_result res = s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV);
-    if (s2n_errno == S2N_ERR_KTLS_ALREADY_ENABLED) {
+
+    /* If already enabled then return success */
+    if (conn->ktls_recv_enabled) {
         return S2N_SUCCESS;
-    } else {
-        POSIX_GUARD_RESULT(res);
     }
 
+    POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV));
     conn->ktls_recv_enabled = true;
 
     return S2N_SUCCESS;
