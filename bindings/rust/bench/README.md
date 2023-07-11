@@ -10,7 +10,7 @@ Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tl
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
-To run memory benchmarks, run `memory-bench.sh` first to generate the benchmark data, and then run `cargo bench` to parse and analyze the data.
+To run memory benchmarks, run `memory-bench.sh` first to generate the benchmark data, and then run `cargo bench` as you would normally.
 
 ## Implementation details
 

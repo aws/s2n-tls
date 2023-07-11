@@ -32,6 +32,7 @@ fn memory_bench<T: TlsBenchHarness>(dir_name: &str) {
     crabgrind::monitor_command(format!("snapshot target/memory/{dir_name}/0.snapshot")).unwrap();
 
     // make and handshake 100 harness
+    // memory usage stabilizes after first few handshakes
     for i in 1..101 {
         // put new harness directly into harness vec
         harnesses.push(

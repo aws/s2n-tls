@@ -41,7 +41,8 @@ fn read_library(group: &mut BenchmarkGroup<'_, Bytes>, name: &str) {
         b.iter_custom(|iters| {
             let mut sum = 0;
             for _ in 0..iters {
-                sum += get_bytes_diff(name, i) + normal.sample(&mut thread_rng()) as i32; // add jitter for plotting
+                // add jitter to show up on Criterion plots
+                sum += get_bytes_diff(name, i) + normal.sample(&mut thread_rng()) as i32; 
                 i = (i + 1) % 100; // read in snapshots again if ran out
             }
             sum / 2 // TlsBenchHarness has two conns, half to get memory of one conn
@@ -49,7 +50,7 @@ fn read_library(group: &mut BenchmarkGroup<'_, Bytes>, name: &str) {
     });
 }
 
-/// This function only reads the output files from memory/valgrind.sh and doesn't
+/// This function only reads the output files from memory-bench.sh and doesn't
 /// run benchmarks itself. Running a Valgrind benchmark in Rust/Criterion takes
 /// much longer (10x) than running it in a separate shell script.
 pub fn read_memory_bench(c: &mut Criterion<Bytes>) {
