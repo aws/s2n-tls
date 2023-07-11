@@ -29,10 +29,91 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_crypto_constants.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
+
+S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(key_material);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
+    RESULT_ENSURE_REF(cipher);
+
+    uint8_t mac_size = 0;
+    uint32_t key_size = 0;
+    uint32_t iv_size = 0;
+
+    /* MAC size */
+    if (cipher->type == S2N_COMPOSITE) {
+        mac_size = cipher->io.comp.mac_key_size;
+    } else {
+        RESULT_GUARD_POSIX(s2n_hmac_digest_size(conn->secure->cipher_suite->record_alg->hmac_alg, &mac_size));
+    }
+
+    /* KEY size */
+    key_size = cipher->key_material_size;
+
+    /* Only AEAD ciphers have implicit IVs for TLS >= 1.1 */
+    if (conn->actual_protocol_version <= S2N_TLS10 || cipher->type == S2N_AEAD) {
+        /* IV size */
+        switch (cipher->type) {
+            case S2N_AEAD:
+                iv_size = cipher->io.aead.fixed_iv_size;
+                break;
+            case S2N_CBC:
+                iv_size = cipher->io.cbc.block_size;
+                break;
+            case S2N_COMPOSITE:
+                iv_size = cipher->io.comp.block_size;
+                break;
+            /* No-op for stream ciphers */
+            default:
+                break;
+        }
+    }
+
+    struct s2n_stuffer key_material_stuffer = { 0 };
+    struct s2n_blob key_material_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&key_material_blob, key_material->key_block, sizeof(key_material->key_block)));
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&key_material_stuffer, &key_material_blob));
+
+    /* initialize key_material blobs; incrementing ptr to point to the next slice of memory */
+    uint8_t *ptr = NULL;
+    /* MAC */
+    ptr = s2n_stuffer_raw_read(&key_material_stuffer, mac_size);
+    RESULT_ENSURE_REF(ptr);
+    RESULT_GUARD_POSIX(s2n_blob_init(&key_material->client_mac, ptr, mac_size));
+
+    ptr = s2n_stuffer_raw_read(&key_material_stuffer, mac_size);
+    RESULT_ENSURE_REF(ptr);
+    RESULT_GUARD_POSIX(s2n_blob_init(&key_material->server_mac, ptr, mac_size));
+
+    /* KEY */
+    ptr = s2n_stuffer_raw_read(&key_material_stuffer, key_size);
+    RESULT_ENSURE_REF(ptr);
+    RESULT_GUARD_POSIX(s2n_blob_init(&key_material->client_key, ptr, key_size));
+
+    ptr = s2n_stuffer_raw_read(&key_material_stuffer, key_size);
+    RESULT_ENSURE_REF(ptr);
+    RESULT_GUARD_POSIX(s2n_blob_init(&key_material->server_key, ptr, key_size));
+
+    /* IV */
+    ptr = s2n_stuffer_raw_read(&key_material_stuffer, iv_size);
+    RESULT_ENSURE_REF(ptr);
+    RESULT_GUARD_POSIX(s2n_blob_init(&key_material->client_iv, ptr, iv_size));
+
+    ptr = s2n_stuffer_raw_read(&key_material_stuffer, iv_size);
+    RESULT_ENSURE_REF(ptr);
+    RESULT_GUARD_POSIX(s2n_blob_init(&key_material->server_iv, ptr, iv_size));
+
+    return S2N_RESULT_OK;
+}
 
 static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blob *seed_a,
         struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
@@ -874,39 +955,41 @@ int s2n_prf_server_finished(struct s2n_connection *conn)
     return s2n_prf(conn, &master_secret, &label, &md5, &sha, NULL, &server_finished);
 }
 
-static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
+static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_key_material *key_material)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
-
-    struct s2n_blob client_key = { 0 };
-    client_key.size = conn->secure->cipher_suite->record_alg->cipher->key_material_size;
-    client_key.data = s2n_stuffer_raw_read(key_material, client_key.size);
-    POSIX_ENSURE_REF(client_key.data);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
+    POSIX_ENSURE_REF(cipher);
+    POSIX_ENSURE_REF(cipher->set_encryption_key);
+    POSIX_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->client_key, &client_key));
+        POSIX_GUARD(cipher->set_encryption_key(&conn->secure->client_key, &key_material->client_key));
     } else {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &client_key));
+        POSIX_GUARD(cipher->set_decryption_key(&conn->secure->client_key, &key_material->client_key));
     }
 
     return 0;
 }
 
-static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_stuffer *key_material)
+static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_key_material *key_material)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
-
-    struct s2n_blob server_key = { 0 };
-    server_key.size = conn->secure->cipher_suite->record_alg->cipher->key_material_size;
-    server_key.data = s2n_stuffer_raw_read(key_material, server_key.size);
-    POSIX_ENSURE_REF(server_key.data);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
+    POSIX_ENSURE_REF(cipher);
+    POSIX_ENSURE_REF(cipher->set_encryption_key);
+    POSIX_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_SERVER) {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &server_key));
+        POSIX_GUARD(cipher->set_encryption_key(&conn->secure->server_key, &key_material->server_key));
     } else {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->server_key, &server_key));
+        POSIX_GUARD(cipher->set_decryption_key(&conn->secure->server_key, &key_material->server_key));
     }
 
     return 0;
@@ -916,6 +999,11 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
+    struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
+    POSIX_ENSURE_REF(cipher_suite);
+    POSIX_ENSURE_REF(cipher_suite->record_alg);
+    const struct s2n_cipher *cipher = cipher_suite->record_alg->cipher;
+    POSIX_ENSURE_REF(cipher);
 
     struct s2n_blob client_random = { 0 };
     POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, sizeof(conn->handshake_params.client_random)));
@@ -923,42 +1011,35 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
     struct s2n_blob master_secret = { 0 };
     POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
-    struct s2n_blob label, out;
+    struct s2n_blob label = { 0 };
     uint8_t key_expansion_label[] = "key expansion";
-    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
+    POSIX_GUARD(s2n_blob_init(&label, key_expansion_label, sizeof(key_expansion_label) - 1));
 
-    label.data = key_expansion_label;
-    label.size = sizeof(key_expansion_label) - 1;
-    POSIX_GUARD(s2n_blob_init(&out, key_block, sizeof(key_block)));
+    struct s2n_key_material key_material = { 0 };
+    POSIX_GUARD_RESULT(s2n_key_material_init(&key_material, conn));
+    struct s2n_blob prf_out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&prf_out, key_material.key_block, sizeof(key_material.key_block)));
+    POSIX_GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &prf_out));
 
-    struct s2n_stuffer key_material = { 0 };
-    POSIX_GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &out));
-    POSIX_GUARD(s2n_stuffer_init(&key_material, &out));
-    POSIX_GUARD(s2n_stuffer_write(&key_material, &out));
-
-    POSIX_ENSURE(conn->secure->cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
-    POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
-    POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
-
-    /* Check that we have a valid MAC and key size */
-    uint8_t mac_size;
-    if (conn->secure->cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        mac_size = conn->secure->cipher_suite->record_alg->cipher->io.comp.mac_key_size;
-    } else {
-        POSIX_GUARD(s2n_hmac_digest_size(conn->secure->cipher_suite->record_alg->hmac_alg, &mac_size));
-    }
+    POSIX_ENSURE(cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
+    POSIX_GUARD(cipher->init(&conn->secure->client_key));
+    POSIX_GUARD(cipher->init(&conn->secure->server_key));
 
     /* Seed the client MAC */
-    uint8_t *client_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
-    POSIX_ENSURE_REF(client_mac_write_key);
     POSIX_GUARD(s2n_hmac_reset(&conn->secure->client_record_mac));
-    POSIX_GUARD(s2n_hmac_init(&conn->secure->client_record_mac, conn->secure->cipher_suite->record_alg->hmac_alg, client_mac_write_key, mac_size));
+    POSIX_GUARD(s2n_hmac_init(
+            &conn->secure->client_record_mac,
+            cipher_suite->record_alg->hmac_alg,
+            key_material.client_mac.data,
+            key_material.client_mac.size));
 
     /* Seed the server MAC */
-    uint8_t *server_mac_write_key = s2n_stuffer_raw_read(&key_material, mac_size);
-    POSIX_ENSURE_REF(server_mac_write_key);
     POSIX_GUARD(s2n_hmac_reset(&conn->secure->server_record_mac));
-    POSIX_GUARD(s2n_hmac_init(&conn->secure->server_record_mac, conn->secure->cipher_suite->record_alg->hmac_alg, server_mac_write_key, mac_size));
+    POSIX_GUARD(s2n_hmac_init(
+            &conn->secure->server_record_mac,
+            conn->secure->cipher_suite->record_alg->hmac_alg,
+            key_material.server_mac.data,
+            key_material.server_mac.size));
 
     /* Make the client key */
     POSIX_GUARD(s2n_prf_make_client_key(conn, &key_material));
@@ -966,41 +1047,19 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     /* Make the server key */
     POSIX_GUARD(s2n_prf_make_server_key(conn, &key_material));
 
-    /* Composite CBC does MAC inside the cipher, pass it the MAC key. 
+    /* Composite CBC does MAC inside the cipher, pass it the MAC key.
      * Must happen after setting encryption/decryption keys.
      */
-    if (conn->secure->cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->secure->server_key, server_mac_write_key, mac_size));
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->secure->client_key, client_mac_write_key, mac_size));
+    if (cipher->type == S2N_COMPOSITE) {
+        POSIX_GUARD(cipher->io.comp.set_mac_write_key(&conn->secure->client_key, key_material.client_mac.data, key_material.client_mac.size));
+        POSIX_GUARD(cipher->io.comp.set_mac_write_key(&conn->secure->server_key, key_material.server_mac.data, key_material.server_mac.size));
     }
 
-    /* TLS >= 1.1 has no implicit IVs for non AEAD ciphers */
-    if (conn->actual_protocol_version > S2N_TLS10 && conn->secure->cipher_suite->record_alg->cipher->type != S2N_AEAD) {
-        return 0;
-    }
-
-    uint32_t implicit_iv_size = 0;
-    switch (conn->secure->cipher_suite->record_alg->cipher->type) {
-        case S2N_AEAD:
-            implicit_iv_size = conn->secure->cipher_suite->record_alg->cipher->io.aead.fixed_iv_size;
-            break;
-        case S2N_CBC:
-            implicit_iv_size = conn->secure->cipher_suite->record_alg->cipher->io.cbc.block_size;
-            break;
-        case S2N_COMPOSITE:
-            implicit_iv_size = conn->secure->cipher_suite->record_alg->cipher->io.comp.block_size;
-            break;
-        /* No-op for stream ciphers */
-        default:
-            break;
-    }
-
-    struct s2n_blob client_implicit_iv = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_implicit_iv, conn->secure->client_implicit_iv, implicit_iv_size));
-    struct s2n_blob server_implicit_iv = { 0 };
-    POSIX_GUARD(s2n_blob_init(&server_implicit_iv, conn->secure->server_implicit_iv, implicit_iv_size));
-    POSIX_GUARD(s2n_stuffer_read(&key_material, &client_implicit_iv));
-    POSIX_GUARD(s2n_stuffer_read(&key_material, &server_implicit_iv));
+    /* set IV */
+    POSIX_ENSURE_EQ(key_material.client_iv.size, key_material.server_iv.size);
+    POSIX_ENSURE_LTE(key_material.client_iv.size, S2N_TLS_MAX_IV_LEN);
+    POSIX_CHECKED_MEMCPY(conn->secure->client_implicit_iv, key_material.client_iv.data, key_material.client_iv.size);
+    POSIX_CHECKED_MEMCPY(conn->secure->server_implicit_iv, key_material.server_iv.data, key_material.server_iv.size);
 
     return 0;
 }
