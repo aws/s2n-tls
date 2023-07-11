@@ -19,7 +19,6 @@
 #include "testlib/s2n_testlib.h"
 
 S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
-S2N_RESULT s2n_disable_ktls_socket_config_for_testing(void);
 
 /* set kTLS supported cipher */
 struct s2n_cipher ktls_temp_supported_cipher = {
@@ -57,8 +56,6 @@ S2N_RESULT s2n_test_configure_mock_ktls_connection(struct s2n_connection *conn, 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-
-    EXPECT_OK(s2n_disable_ktls_socket_config_for_testing());
 
     /* ktls_supported ciphers */
     {
@@ -105,9 +102,10 @@ int main(int argc, char **argv)
             int fd = 1;
             EXPECT_OK(s2n_test_configure_mock_ktls_connection(server_conn, fd, true));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
-
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
+            EXPECT_TRUE(server_conn->ktls_send_enabled);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
+            EXPECT_TRUE(server_conn->ktls_recv_enabled);
         };
 
         /* ktls already enabled is a noop and returns success */
@@ -140,7 +138,7 @@ int main(int argc, char **argv)
 
         /* unsupported ciphers */
         {
-            /* set kTLS un-supported cipher */
+            /* set kTLS unsupported cipher */
             struct s2n_cipher ktls_temp_unsupported_cipher = {
                 .ktls_supported = false,
             };
@@ -156,12 +154,9 @@ int main(int argc, char **argv)
             int fd = 1;
             EXPECT_OK(s2n_test_configure_mock_ktls_connection(server_conn, fd, true));
 
-            /* base case */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
-
-            server_conn->ktls_send_enabled = false; /* reset ktls enable connection */
             server_conn->secure->cipher_suite = &ktls_temp_unsupported_cipher_suite;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_UNSUPPORTED_CONN);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_UNSUPPORTED_CONN);
         };
 
         /* drain buffer prior to enabling kTLS */
@@ -171,25 +166,21 @@ int main(int argc, char **argv)
             int fd = 1;
             EXPECT_OK(s2n_test_configure_mock_ktls_connection(server_conn, fd, true));
 
-            /* base case */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
-
             uint8_t write_byte = 8;
             uint8_t read_byte = 0;
             /* write to conn->out buffer and assert error */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->out, &write_byte, 1));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
-            /* drain conn->out buffer and assert base case */
+            /* drain conn->out buffer and assert success case */
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&server_conn->out, &read_byte, 1));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
 
             /* write to conn->in buffer and assert error */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->in, &write_byte, 1));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
-            /* drain conn->in buffer and assert base case */
+            /* drain conn->in buffer and assert success case */
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&server_conn->in, &read_byte, 1));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
         };
 
         /* managed_send_io */
@@ -199,18 +190,13 @@ int main(int argc, char **argv)
             int fd = 1;
             EXPECT_OK(s2n_test_configure_mock_ktls_connection(server_conn, fd, true));
 
-            /* base case */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
-
-            server_conn->ktls_send_enabled = false; /* reset ktls enable connection */
             /* expect failure if connection is using custom IO */
             server_conn->managed_send_io = false;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_MANAGED_IO);
 
-            server_conn->ktls_send_enabled = false; /* reset ktls enable connection */
             /* expect success if connection is NOT using custom IO */
             server_conn->managed_send_io = true;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
         };
 
         /* managed_recv_io */
@@ -220,18 +206,13 @@ int main(int argc, char **argv)
             int fd = 1;
             EXPECT_OK(s2n_test_configure_mock_ktls_connection(server_conn, fd, true));
 
-            /* base case */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
-
-            server_conn->ktls_recv_enabled = false; /* reset ktls enable connection */
             /* recv managed io */
             server_conn->managed_recv_io = false;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_MANAGED_IO);
 
-            server_conn->ktls_recv_enabled = false; /* reset ktls enable connection */
             /* expect success if connection is NOT using custom IO */
             server_conn->managed_recv_io = true;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_DISABLED_FOR_TEST);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
         };
 
         /* s2n_ktls_retrieve_file_descriptor */

@@ -296,7 +296,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM, "kTLS is unsupported on this platform") \
     ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_CONN, "kTLS is unsupported for this connection") \
     ERR_ENTRY(S2N_ERR_KTLS_ULP, "An error occurred when attempting to configure the socket for kTLS. Ensure the 'tls' kernel module is enabled.")  \
-    ERR_ENTRY(S2N_ERR_KTLS_DISABLED_FOR_TEST, "Some kTLS operations have been disabled for testing")  \
     ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
     /* clang-format on */
 

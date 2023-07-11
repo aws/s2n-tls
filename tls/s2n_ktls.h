@@ -42,5 +42,7 @@ typedef enum {
 } s2n_ktls_mode;
 
 bool s2n_ktls_is_supported_on_platform();
+
+/* These functions will be moved to api/s2n.h when the kTLS feature is released. */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);

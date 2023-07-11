@@ -19,9 +19,6 @@
 
 #include "utils/s2n_socket.h"
 
-/* These variables are used to disable ktls mechanisms during testing. */
-static bool disable_ktls_socket_config_for_testing = false;
-
 bool s2n_ktls_is_supported_on_platform()
 {
 #if S2N_KTLS_SUPPORTED
@@ -62,20 +59,14 @@ S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mod
      */
     switch (ktls_mode) {
         case S2N_KTLS_MODE_SEND:
-            RESULT_ENSURE_REF(conn->send_io_context);
             RESULT_ENSURE(conn->managed_send_io, S2N_ERR_KTLS_MANAGED_IO);
-
             /* The output stuffer should be empty before enabling kTLS. */
             RESULT_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
-
             break;
         case S2N_KTLS_MODE_RECV:
-            RESULT_ENSURE_REF(conn->recv_io_context);
             RESULT_ENSURE(conn->managed_recv_io, S2N_ERR_KTLS_MANAGED_IO);
-
             /* The input stuffer should be empty before enabling kTLS. */
             RESULT_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
-
             break;
         default:
             RESULT_BAIL(S2N_ERR_SAFETY);
@@ -115,7 +106,9 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
     RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
 
     /* Calls to setsockopt require a real socket, which is not used in unit tests. */
-    RESULT_ENSURE(!disable_ktls_socket_config_for_testing, S2N_ERR_KTLS_DISABLED_FOR_TEST);
+    if (s2n_in_unit_test()) {
+        return S2N_RESULT_OK;
+    }
 
     /* Enable 'tls' ULP for the socket. https://lwn.net/Articles/730207 */
     int ret = setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
@@ -133,8 +126,7 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
 
 /*
  * Since kTLS is an optimization, it is possible to continue operation
- * by using userspace TLS if kTLS is not supported. Upon successfully
- * enabling kTLS, we set connection->ktls_send_enabled (and recv) to true.
+ * by using userspace TLS if kTLS is not supported.
  *
  * kTLS configuration errors are recoverable since calls to setsockopt are
  * non-destructive and its possible to fallback to userspace.
@@ -155,6 +147,8 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
         POSIX_GUARD_RESULT(res);
     }
 
+    conn->ktls_send_enabled = true;
+
     return S2N_SUCCESS;
 }
 
@@ -174,19 +168,7 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
         POSIX_GUARD_RESULT(res);
     }
 
+    conn->ktls_recv_enabled = true;
+
     return S2N_SUCCESS;
-}
-
-/* Use for testing only.
- *
- * This function disables the setsockopt call to enable ULP. Calls to setsockopt
- * require a real socket, which is not used in unit tests.
- */
-S2N_RESULT s2n_disable_ktls_socket_config_for_testing(void)
-{
-    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-
-    disable_ktls_socket_config_for_testing = true;
-
-    return S2N_RESULT_OK;
 }
