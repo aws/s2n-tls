@@ -16,11 +16,10 @@ bench_path=`pwd`/`dirname "$0"`/../
 pushd $bench_path
 
 # make Cargo.toml point s2n-tls to the cloned old version
-original_s2n_dep="$(grep 's2n-tls =' Cargo.toml)"
 sed -i "s|s2n-tls = .*|s2n-tls = { path = \"target/s2n-tls/bindings/rust/s2n-tls\" }|" Cargo.toml 
 
 # ensure Cargo.toml gets changed back on exit; retains original exit status
-trap "{ status=$?; sed -i \"s|s2n-tls = .*|$original_s2n_dep|\" $bench_path/Cargo.toml; exit $status; }" EXIT
+trap "{ status=$?; sed -i 's|s2n-tls = .*|s2n-tls = { path = \"../s2n-tls\" }|' $bench_path/Cargo.toml; exit $status; }" EXIT
 
 # clone copy of repo to target/s2n-tls
 echo "cloning repo" >&2
