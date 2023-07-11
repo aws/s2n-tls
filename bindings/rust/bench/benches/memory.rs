@@ -42,7 +42,7 @@ fn read_library(group: &mut BenchmarkGroup<'_, Bytes>, name: &str) {
             let mut sum = 0;
             for _ in 0..iters {
                 // add jitter to show up on Criterion plots
-                sum += get_bytes_diff(name, i) + normal.sample(&mut thread_rng()) as i32; 
+                sum += get_bytes_diff(name, i) + normal.sample(&mut thread_rng()) as i32;
                 i = (i + 1) % 100; // read in snapshots again if ran out
             }
             sum / 2 // TlsBenchHarness has two conns, half to get memory of one conn

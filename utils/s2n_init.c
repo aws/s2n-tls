@@ -133,3 +133,8 @@ static void s2n_cleanup_atexit(void)
 {
     (void) s2n_cleanup_atexit_impl();
 }
+
+bool s2n_is_initialized(void)
+{
+    return initialized;
+}

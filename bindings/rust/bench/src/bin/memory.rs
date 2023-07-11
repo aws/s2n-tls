@@ -1,10 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::{
-    harness::ConnectedBuffer, CipherSuite, CryptoConfig, ECGroup, OpenSslHarness, RustlsHarness,
-    S2NHarness, TlsBenchHarness,
-};
+use bench::{harness::ConnectedBuffer, OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness};
 use std::{fs::create_dir_all, path::Path};
 
 fn memory_bench<T: TlsBenchHarness>(dir_name: &str) {
@@ -37,10 +34,8 @@ fn memory_bench<T: TlsBenchHarness>(dir_name: &str) {
         // put new harness directly into harness vec
         harnesses.push(
             T::new(
-                &CryptoConfig {
-                    cipher_suite: CipherSuite::AES_128_GCM_SHA256,
-                    ec_group: ECGroup::X25519,
-                },
+                Default::default(),
+                Default::default(),
                 buffers.pop().unwrap(), // take ownership of buffer
             )
             .unwrap(),
