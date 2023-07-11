@@ -11,7 +11,10 @@ use openssl::ssl::{
     ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream,
     SslVerifyMode, SslVersion,
 };
-use std::error::Error;
+use std::{
+    error::Error,
+    io::{Read, Write},
+};
 
 pub struct OpenSslHarness {
     client_conn: SslStream<ConnectedBuffer>,
@@ -126,5 +129,34 @@ impl TlsBenchHarness for OpenSslHarness {
             .version2() // version() -> &str is deprecated, version2() returns an enum instead
             .expect("Handshake not completed")
             == SslVersion::TLS1_3
+    }
+
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let send_conn = match sender {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            write_offset += send_conn.write(&data[write_offset..data.len()])?;
+            send_conn.flush()?; // make sure internal buffers don't fill up
+        }
+
+        Ok(())
+    }
+
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let recv_conn = match receiver {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
+        let mut read_offset = 0;
+        while read_offset < data.len() {
+            read_offset += recv_conn.read(data)?
+        }
+
+        Ok(())
     }
 }
