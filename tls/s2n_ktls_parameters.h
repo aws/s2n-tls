@@ -24,8 +24,21 @@
  * - https://elixir.bootlin.com/linux/v6.3.8/A/ident/SOL_TCP
  */
 
-/* socket definitions */
 #define S2N_TLS_ULP_NAME      "tls"
 #define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
-#define S2N_TCP_ULP           31 /* Attach a ULP to a TCP connection.  */
-#define S2N_SOL_TCP           6  /* TCP level */
+
+#if defined(__linux__)
+    #define S2N_KTLS_SUPPORTED true
+
+    /* socket definitions */
+    #define S2N_TCP_ULP 31 /* Attach a ULP to a TCP connection.  */
+    #define S2N_SOL_TCP 6  /* TCP level */
+
+#else
+    /* For unsupported platforms 0-init all values. */
+    #define S2N_KTLS_SUPPORTED false
+
+    /* socket definitions */
+    #define S2N_TCP_ULP        0
+    #define S2N_SOL_TCP        0
+#endif

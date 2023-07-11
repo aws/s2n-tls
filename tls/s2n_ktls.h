@@ -23,13 +23,7 @@
  * kTLS has been tested on linux. For all other platforms, kTLS is marked as
  * unsupported, and will return an unsupported error.
  */
-#if defined(__linux__)
-    #define S2N_KTLS_SUPPORTED true
-    #include "tls/s2n_ktls_linux.h"
-#else
-    #define S2N_KTLS_SUPPORTED false
-    #include "tls/s2n_ktls_unsupported.h"
-#endif
+#include "tls/s2n_ktls_parameters.h"
 
 /* A set of kTLS configurations representing the combination of sending
  * and receiving.

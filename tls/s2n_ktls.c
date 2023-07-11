@@ -102,7 +102,12 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
         return S2N_RESULT_OK;
     }
 
-    /* Enable 'tls' ULP for the socket. https://lwn.net/Articles/730207 */
+    /* Enable 'tls' ULP for the socket. https://lwn.net/Articles/730207
+     *
+     * Its not possible to detect kTLS support at compile time. We need rely on
+     * the call to setsockopt(..TCP_ULP...) to determine if kTLS is supported.
+     * This is a safe and non destructive operation on Linux.
+     */
     int ret = setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
 
     if (ret != 0) {
