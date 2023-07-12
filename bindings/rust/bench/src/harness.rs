@@ -17,13 +17,13 @@ pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
         .into_bytes()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Mode {
     Client,
     Server,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum HandshakeType {
     #[default]
     ServerAuth,
@@ -33,14 +33,14 @@ pub enum HandshakeType {
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CipherSuite {
     #[default]
     AES_128_GCM_SHA256,
     AES_256_GCM_SHA384,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ECGroup {
     SECP256R1,
     #[default]
@@ -55,7 +55,7 @@ pub enum SigType {
     Ec384,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct CryptoConfig {
     pub cipher_suite: CipherSuite,
     pub ec_group: ECGroup,
