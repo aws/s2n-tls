@@ -96,6 +96,25 @@ pub trait TlsBenchHarness: Sized {
 
     /// Get whether or negotiated version is TLS1.3
     fn negotiated_tls13(&self) -> bool;
+
+    /// Send application data from connection in harness pair
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>>;
+
+    /// Receive application data sent to connection in harness pair
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
+
+    /// Send data from client to server and then from server to client
+    fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        // send data from client to server
+        self.send(Mode::Client, data)?;
+        self.recv(Mode::Server, data)?;
+
+        // send data from server to client
+        self.send(Mode::Server, data)?;
+        self.recv(Mode::Client, data)?;
+
+        Ok(())
+    }
 }
 
 /// Wrapper of two shared buffers to pass as stream
@@ -109,7 +128,7 @@ pub struct ConnectedBuffer {
 impl ConnectedBuffer {
     /// Make a new struct with new internal buffers
     pub fn new() -> Self {
-        ConnectedBuffer {
+        Self {
             recv: Rc::new(RefCell::new(VecDeque::new())),
             send: Rc::new(RefCell::new(VecDeque::new())),
         }
@@ -117,7 +136,7 @@ impl ConnectedBuffer {
     /// Make a new struct that shares internal buffers but swapped, ex.
     /// `write()` writes to the buffer that the inverse `read()`s from
     pub fn clone_inverse(&self) -> Self {
-        ConnectedBuffer {
+        Self {
             recv: Rc::clone(&self.send),
             send: Rc::clone(&self.recv),
         }
@@ -173,6 +192,18 @@ macro_rules! test_tls_bench_harnesses {
                             }
                         }
                     }
+                }
+            }
+
+            #[test]
+            fn test_transfer() {
+                // use a large buffer to test across TLS record boundaries
+                let mut buf = [0x56u8; 1000000];
+                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
+                    let crypto_config = CryptoConfig::new(cipher_suite, Default::default(), Default::default());
+                    let mut harness = <$harness_type>::new(crypto_config, Default::default()).unwrap();
+                    harness.handshake().unwrap();
+                    harness.round_trip_transfer(&mut buf).unwrap();
                 }
             }
         }
