@@ -995,6 +995,30 @@ static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_key_m
     return 0;
 }
 
+S2N_RESULT s2n_prf_generate_key_material(struct s2n_connection *conn, struct s2n_key_material *key_material)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(key_material);
+
+    struct s2n_blob client_random = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->handshake_params.client_random, sizeof(conn->handshake_params.client_random)));
+    struct s2n_blob server_random = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
+    struct s2n_blob master_secret = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
+
+    struct s2n_blob label = { 0 };
+    uint8_t key_expansion_label[] = "key expansion";
+    RESULT_GUARD_POSIX(s2n_blob_init(&label, key_expansion_label, sizeof(key_expansion_label) - 1));
+
+    RESULT_GUARD(s2n_key_material_init(key_material, conn));
+    struct s2n_blob prf_out = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&prf_out, key_material->key_block, sizeof(key_material->key_block)));
+    RESULT_GUARD_POSIX(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &prf_out));
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_prf_key_expansion(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
@@ -1005,21 +1029,8 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     const struct s2n_cipher *cipher = cipher_suite->record_alg->cipher;
     POSIX_ENSURE_REF(cipher);
 
-    struct s2n_blob client_random = { 0 };
-    POSIX_GUARD(s2n_blob_init(&client_random, conn->handshake_params.client_random, sizeof(conn->handshake_params.client_random)));
-    struct s2n_blob server_random = { 0 };
-    POSIX_GUARD(s2n_blob_init(&server_random, conn->handshake_params.server_random, sizeof(conn->handshake_params.server_random)));
-    struct s2n_blob master_secret = { 0 };
-    POSIX_GUARD(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret, sizeof(conn->secrets.version.tls12.master_secret)));
-    struct s2n_blob label = { 0 };
-    uint8_t key_expansion_label[] = "key expansion";
-    POSIX_GUARD(s2n_blob_init(&label, key_expansion_label, sizeof(key_expansion_label) - 1));
-
     struct s2n_key_material key_material = { 0 };
-    POSIX_GUARD_RESULT(s2n_key_material_init(&key_material, conn));
-    struct s2n_blob prf_out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&prf_out, key_material.key_block, sizeof(key_material.key_block)));
-    POSIX_GUARD(s2n_prf(conn, &master_secret, &label, &server_random, &client_random, NULL, &prf_out));
+    POSIX_GUARD_RESULT(s2n_prf_generate_key_material(conn, &key_material));
 
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
     POSIX_GUARD(cipher->init(&conn->secure->client_key));

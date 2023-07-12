@@ -17,6 +17,7 @@
 
 #include <sys/socket.h>
 
+#include "tls/s2n_prf.h"
 #include "utils/s2n_socket.h"
 
 bool s2n_ktls_is_supported_on_platform()
@@ -86,9 +87,95 @@ S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_kt
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+        struct s2n_key_material *key_material, struct s2n_tls12_crypto_info_aes_gcm_128 *crypto_info, int *tls_tx_rx_mode)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->client);
+    RESULT_ENSURE_REF(conn->server);
+    RESULT_ENSURE_REF(key_material);
+    RESULT_ENSURE_REF(crypto_info);
+    RESULT_ENSURE_REF(tls_tx_rx_mode);
+    RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
+
+    /* TODO once other ciphers and protocols are supported, check the
+     * negotiated cipher (AES_128_GCM). This would involve adding a unique
+     * identifier to s2n_cipher.
+     */
+
+    /* set tls mode */
+    if (ktls_mode == S2N_KTLS_MODE_SEND) { /* TX */
+        *tls_tx_rx_mode = S2N_TLS_TX;
+    } else { /* RX */
+        *tls_tx_rx_mode = S2N_TLS_RX;
+    }
+
+    /* set values based on mode of operation */
+    uint8_t *implicit_iv = NULL;
+    uint8_t *sequence_number = NULL;
+    struct s2n_blob *key = NULL;
+
+    if ((conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND)        /* server sending */
+            || (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV) /* client receiving */
+    ) {
+        /* if server is sending or client is receiving then use server key material */
+        key = &key_material->server_key;
+        implicit_iv = conn->server->server_implicit_iv;
+        sequence_number = conn->server->server_sequence_number;
+    } else {
+        key = &key_material->client_key;
+        implicit_iv = conn->client->client_implicit_iv;
+        sequence_number = conn->client->client_sequence_number;
+    }
+
+    RESULT_GUARD(s2n_blob_validate(key));
+    RESULT_ENSURE_EQ(key->size, S2N_TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+
+    /* set values on crypto_info */
+    crypto_info->info.cipher_type = S2N_TLS_CIPHER_AES_GCM_128;
+    crypto_info->info.version = S2N_TLS_1_2_VERSION;
+    RESULT_CHECKED_MEMCPY(crypto_info->salt, implicit_iv, S2N_TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, sequence_number, S2N_TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
+    RESULT_CHECKED_MEMCPY(crypto_info->key, key->data, S2N_TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+    RESULT_CHECKED_MEMCPY(crypto_info->iv, implicit_iv, S2N_TLS_CIPHER_AES_GCM_128_IV_SIZE);
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+        struct s2n_key_material *key_material)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(key_material);
+    RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
+
+    int fd;
+    RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
+
+    /* Only AES_128_GCM for TLS 1.2 is supported at the moment. */
+    struct s2n_tls12_crypto_info_aes_gcm_128 crypto_info = { 0 };
+    int tls_tx_rx_mode = 0;
+    RESULT_GUARD(s2n_ktls_init_aes128_gcm_crypto_info(conn, ktls_mode, key_material, &crypto_info, &tls_tx_rx_mode));
+
+    /* Calls to setsockopt require a real socket, which is not used in unit tests. */
+    if (s2n_in_unit_test()) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Set crypto_info on the socket; enabling kTLS and offloading the TLS
+     * protocol to the kernel. */
+    int ret = setsockopt(fd, S2N_SOL_TLS, tls_tx_rx_mode, &crypto_info, sizeof(crypto_info));
+    if (ret < 0) {
+        RESULT_BAIL(S2N_ERR_KTLS_ENABLE_CRYPTO);
+    }
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
 
     int fd = 0;
     RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
@@ -105,14 +192,25 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
      * This is a safe and non destructive operation on Linux.
      */
     int ret = setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
-
-    if (ret != 0) {
+    if (ret < 0) {
         /* https://man7.org/linux/man-pages/man3/errno.3.html
          * EEXIST indicates that TCP_ULP has already been enabled on the socket.
          * This is a noop and therefore safe to ignore.
          */
         RESULT_ENSURE(errno == EEXIST, S2N_ERR_KTLS_ULP);
     }
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_ktls_configure_crypto(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
+
+    struct s2n_key_material key_material = { 0 };
+    RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
+    RESULT_GUARD(s2n_ktls_set_keys(conn, ktls_mode, &key_material));
 
     return S2N_RESULT_OK;
 }
@@ -126,6 +224,9 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
  */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
 {
+    /* gate this feature only to tests until it is ready for release */
+    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
+
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_SEND));
 
@@ -135,13 +236,20 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND));
+    POSIX_GUARD_RESULT(s2n_ktls_configure_crypto(conn, S2N_KTLS_MODE_SEND));
+
     conn->ktls_send_enabled = true;
+    /* kTLS now handles I/O for the connection */
+    conn->send = NULL;
 
     return S2N_SUCCESS;
 }
 
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
 {
+    /* gate this feature only to tests until it is ready for release */
+    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
+
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_RECV));
 
@@ -151,7 +259,11 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV));
+    POSIX_GUARD_RESULT(s2n_ktls_configure_crypto(conn, S2N_KTLS_MODE_RECV));
+
     conn->ktls_recv_enabled = true;
+    /* kTLS now handles I/O for the connection */
+    conn->recv = NULL;
 
     return S2N_SUCCESS;
 }
