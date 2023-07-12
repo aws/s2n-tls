@@ -13,6 +13,7 @@ libc = "0.2"
 crabgrind = "0.1"
 rand = "0.8"
 rand_distr = "0.4"
+plotters = "0.3"
 
 [dev-dependencies]
 criterion = "0.3"

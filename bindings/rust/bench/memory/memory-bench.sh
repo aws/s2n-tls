@@ -10,13 +10,13 @@
 
 set -e
 
-pushd "$(dirname "$0")"
+pushd "$(dirname "$0")"/.. > /dev/null
 
 cargo build --release --bin memory
 
 valgrind --tool=massif --depth=1 --massif-out-file="target/memory/massif.out" --time-unit=ms "$@" target/release/memory
 rm target/memory/massif.out
 
-echo "interpret results with \"cargo bench\""
+cargo run --release --bin graph_memory
 
-popd
+popd > /dev/null
