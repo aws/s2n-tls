@@ -1,1 +1,1 @@
--Werror=implicit-function-declaration
+-Werror-implicit-function-declaration
