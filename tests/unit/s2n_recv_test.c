@@ -155,9 +155,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
             /* Send a KeyUpdate message */
-            client_conn->key_update_pending = true;
+            s2n_atomic_flag_set(&client_conn->key_update_pending);
             EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
-            EXPECT_FALSE(client_conn->key_update_pending);
+            EXPECT_FALSE(s2n_atomic_flag_test(&client_conn->key_update_pending));
 
             /* Drop some of the data */
             EXPECT_SUCCESS(s2n_stuffer_wipe_n(&server_in, 10));

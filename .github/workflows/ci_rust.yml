@@ -37,7 +37,7 @@ jobs:
 
       - name: Tests
         working-directory: ${{env.ROOT_PATH}}
-        run: cargo test
+        run: cargo test --all-features
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
@@ -58,6 +58,53 @@ jobs:
           cd ${{env.ROOT_PATH}}
           ./generate.sh
           ldd target/debug/integration | grep libs2n.so
+
+  generate-openssl-102:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        id: toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Cache OpenSSL 1.0.2
+        id: cache-openssl
+        uses: actions/cache@v3
+        with:
+          path: ~/openssl-102/install
+          key: ${{ runner.os }}-openssl-102
+
+      - if: ${{ steps.cache-openssl.outputs.cache-hit != 'true' }}
+        name: Install OpenSSL 1.0.2
+        run: |
+          mkdir ~/openssl-102
+          pushd ~/openssl-102
+
+          mkdir install
+          install_dir="$(pwd)"/install
+
+          wget https://www.openssl.org/source/old/1.0.2/openssl-1.0.2u.tar.gz
+          tar -xzvf openssl-1.0.2u.tar.gz
+
+          pushd openssl-1.0.2u
+          ./config --prefix="${install_dir}" --openssldir="${install_dir}"/openssl
+          make
+          make install
+          popd
+
+          popd
+
+      - name: Generate
+        run: OPENSSL_DIR=~/openssl-102/install ${{env.ROOT_PATH}}/generate.sh
+
+      - name: Tests
+        working-directory: ${{env.ROOT_PATH}}
+        run: cargo test --all-features
 
   rustfmt:
     runs-on: ubuntu-latest

@@ -28,6 +28,14 @@ impl Harness {
             handshake_done: false,
         }
     }
+
+    pub fn connection(&self) -> &Connection {
+        &self.connection
+    }
+
+    pub fn connection_mut(&mut self) -> &mut Connection {
+        &mut self.connection
+    }
 }
 
 impl super::Connection for Harness {
@@ -171,7 +179,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
         let data = core::slice::from_raw_parts_mut(data, len as _);
         match context.on_read(data) {
             0 => {
-                // https://github.com/awslabs/s2n/blob/main/docs/USAGE-GUIDE.md#s2n_connection_set_send_cb
+                // https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a699fd9e05a8e8163811db6cab01af973
                 // s2n-tls wants us to set the global errno to signal blocked
                 errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
                 -1
@@ -204,7 +212,7 @@ mod tests {
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
-    use futures_test::task::new_count_waker;
+    use futures_test::task::{new_count_waker, noop_waker};
     use std::{fs, path::Path, pin::Pin, sync::atomic::AtomicUsize};
 
     #[test]
@@ -529,6 +537,51 @@ mod tests {
         builder.trust_location(Some(&cert), None)?;
 
         establish_connection(builder.build()?);
+        Ok(())
+    }
+
+    /// `trust_location()` calls `s2n_config_set_verification_ca_location()`, which has the legacy behavior
+    /// of enabling OCSP on clients. Since we do not want to replicate that behavior in the Rust bindings,
+    /// this test verifies that `trust_location()` does not turn on OCSP. It also verifies that turning
+    /// on OCSP explicitly still works when `trust_location()` is called.
+    #[test]
+    fn trust_location_does_not_change_ocsp_status() -> Result<(), Error> {
+        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
+        let mut cert = pem_dir.to_path_buf();
+        cert.push("rsa_4096_sha512_client_cert.pem");
+        let mut key = pem_dir.to_path_buf();
+        key.push("rsa_4096_sha512_client_key.pem");
+
+        const OCSP_IANA_EXTENSION_ID: u16 = 5;
+
+        for enable_ocsp in [true, false] {
+            let config = {
+                let mut config = crate::config::Builder::new();
+
+                if enable_ocsp {
+                    config.enable_ocsp()?;
+                }
+
+                config.set_security_policy(&security::DEFAULT_TLS13)?;
+                config.set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+                config.set_client_hello_callback(HasExtensionClientHelloHandler {
+                    // This client hello handler will check for the OCSP extension
+                    extension_iana: OCSP_IANA_EXTENSION_ID,
+                    extension_expected: enable_ocsp,
+                })?;
+                config.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
+                config.trust_location(Some(&cert), None)?;
+                config.build()?
+            };
+
+            let mut pair = tls_pair(config);
+            pair.server
+                .0
+                .connection_mut()
+                .set_waker(Some(&noop_waker()))?;
+
+            poll_tls_pair(pair);
+        }
         Ok(())
     }
 
