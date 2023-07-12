@@ -24,6 +24,7 @@ use std::{
     task::Poll::Ready,
 };
 
+#[allow(dead_code)]
 pub struct S2NHarness {
     // UnsafeCell is needed b/c client and server share *mut to IO buffers
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
@@ -227,5 +228,27 @@ impl TlsBenchHarness for S2NHarness {
 
     fn negotiated_tls13(&self) -> bool {
         self.client_conn.actual_protocol_version().unwrap() == Version::TLS13
+    }
+
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let send_conn = match sender {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
+        assert!(send_conn.poll_send(data).is_ready());
+        assert!(send_conn.poll_flush().is_ready());
+
+        Ok(())
+    }
+
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let recv_conn = match receiver {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
+        assert!(recv_conn.poll_recv(data).is_ready());
+        Ok(())
     }
 }

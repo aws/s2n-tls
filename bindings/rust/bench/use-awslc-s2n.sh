@@ -51,4 +51,7 @@ echo "[env]
 S2N_TLS_LIB_DIR = \"$repo_dir/build/lib\"
 LD_LIBRARY_PATH = \"$repo_dir/build/lib\"" >> .cargo/config.toml
 
+# force rebuild of s2n-tls-sys and benches
+rm -rf ../target/release target/release
+
 popd > /dev/null

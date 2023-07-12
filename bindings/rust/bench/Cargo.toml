@@ -23,5 +23,5 @@ name = "handshake"
 harness = false
 
 [[bench]]
-name = "memory"
+name = "throughput"
 harness = false

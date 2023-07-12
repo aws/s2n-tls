@@ -1,9 +1,12 @@
-use std::{fs::{read_to_string, read_dir}, collections::HashMap, error::Error};
-
+use std::{
+    collections::HashMap,
+    error::Error,
+    fs::{read_dir, read_to_string},
+};
 use plotters::{
     prelude::{
-        ChartBuilder, IntoDrawingArea, LabelAreaPosition, Rectangle,
-        SVGBackend, IntoSegmentedCoord, SegmentValue,
+        ChartBuilder, IntoDrawingArea, IntoSegmentedCoord, LabelAreaPosition, Rectangle,
+        SVGBackend, SegmentValue,
     },
     style::{AsRelative, Color, IntoFont, Palette, Palette99, RGBAColor, WHITE},
 };
@@ -36,8 +39,6 @@ fn get_memory_data(name: &str) -> (f64, f64) {
     (mean, stderr)
 }
 
-/// Get the difference in bytes
-
 fn main() -> Result<(), Box<dyn Error>> {
     // get data from each directory in target/memory
     let mut stats: HashMap<String, (f64, f64)> = Default::default();
@@ -49,54 +50,64 @@ fn main() -> Result<(), Box<dyn Error>> {
             stats.insert(dir_name.clone(), get_memory_data(&dir_name));
         }
     }
+
     let num_bars = stats.len();
     let x_labels: Vec<String> = stats.iter().map(|kv| kv.0.clone()).collect();
-    let max_mem = stats.iter().max_by(|a, b| f64::total_cmp(&a.1.0, &b.1.0)).unwrap().1.0;
+    let max_mem = stats
+        .iter()
+        .max_by(|a, b| f64::total_cmp(&a.1 .0, &b.1 .0))
+        .unwrap()
+        .1
+         .0;
 
-    let drawing_area =
-        SVGBackend::new("memory/memory.svg", (1000, 500)).into_drawing_area();
+    let drawing_area = SVGBackend::new("memory/memory.svg", (1000, 500)).into_drawing_area();
     drawing_area.fill(&WHITE)?;
 
     let mut ctx = ChartBuilder::on(&drawing_area)
         .caption(
-            "Memory usage of a connection pair by library",
+            "Memory usage of a connection pair",
             ("sans-serif", 30).into_font(),
         )
         .set_label_area_size(LabelAreaPosition::Left, (12).percent()) // axes padding
         .set_label_area_size(LabelAreaPosition::Bottom, (5).percent())
         .build_cartesian_2d(
-            (0..num_bars-1).into_segmented(),
-            0.0..(1.1*max_mem), // upper y bound on plot is 1.1 * y_max
+            (0..num_bars - 1).into_segmented(),
+            0.0..(1.1 * max_mem), // upper y bound on plot is 1.1 * y_max
         )?;
 
     ctx.configure_mesh()
         .light_line_style(RGBAColor(235, 235, 235, 1.0)) // change gridline color
         .bold_line_style(RGBAColor(225, 225, 225, 1.0))
-        .y_desc("Memory (kB)") // axis label
+        .y_desc("Memory (kB)")
         .x_labels(num_bars)
         .x_label_formatter(&|x| {
+            // change axis labels to name of bar
             let x = match *x {
                 SegmentValue::CenterOf(x) => x,
                 _ => 0,
             };
-            println!("{x}");
             x_labels.get(x).unwrap().to_string()
-        }) // change x coord (index of tag in tag_names) to version string
-        .y_labels(10) // max num labels on y axis
+        })
+        .y_labels(10) // max number of labels on y axis
         .y_label_formatter(&|y| format!("{} kB", y / 1000.0))
         .draw()?;
 
     // draw bars
-    // x coord is index of bench name x_labels
-    ctx.draw_series(stats.iter().enumerate().map(|(i, (_name, (mean, _stderr)))| {
-        let x0 = SegmentValue::Exact(i);
-        let x1 = SegmentValue::Exact(i + 1);
-        let color = Palette99::pick(i).filled();
-        let mut bar = Rectangle::new([(x0, 0.0), (x1, *mean)], color);
-        bar.set_margin(0, 0, 100, 100);
-        bar
-    }))?;
+    // x coord is index of bench name in x_labels
+    ctx.draw_series(
+        stats
+            .iter()
+            .enumerate()
+            .map(|(i, (_name, (mean, _stderr)))| {
+                // define each bar as a Rectangle
+                let x0 = SegmentValue::Exact(i);
+                let x1 = SegmentValue::Exact(i + 1);
+                let color = Palette99::pick(i).filled();
+                let mut bar = Rectangle::new([(x0, 0.0), (x1, *mean)], color);
+                bar.set_margin(0, 0, 100, 100); // spacing between bars
+                bar
+            }),
+    )?;
 
     Ok(())
-    
 }
