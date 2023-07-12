@@ -65,6 +65,7 @@
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_fork_detection.h"
+#include "utils/s2n_init.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
@@ -174,7 +175,9 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
 /* Deletes pthread key at process-exit */
 static void __attribute__((destructor)) s2n_drbg_rand_state_key_cleanup(void)
 {
-    (void) pthread_key_delete(s2n_per_thread_rand_state_key);
+    if (s2n_is_initialized()) {
+        pthread_key_delete(s2n_per_thread_rand_state_key);
+    }
 }
 
 static void s2n_drbg_destructor(void *_unused_argument)

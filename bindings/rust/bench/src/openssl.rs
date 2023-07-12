@@ -3,11 +3,14 @@
 
 use crate::{
     get_cert_path,
-    harness::{CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness},
+    harness::{
+        CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode, TlsBenchHarness,
+    },
     PemType::*,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream, SslVersion,
+    ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream,
+    SslVerifyMode, SslVersion,
 };
 use std::error::Error;
 
@@ -47,7 +50,10 @@ impl OpenSslHarness {
 }
 
 impl TlsBenchHarness for OpenSslHarness {
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>> {
+    fn new(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Self, Box<dyn Error>> {
         let client_buf = ConnectedBuffer::new();
         let server_buf = client_buf.clone_inverse();
 
@@ -63,16 +69,29 @@ impl TlsBenchHarness for OpenSslHarness {
 
         let mut client_builder = SslContext::builder(SslMethod::tls_client())?;
         Self::common_config(&mut client_builder, cipher_suite, ec_key)?;
-        client_builder.set_ca_file(get_cert_path(&CACert, &crypto_config.sig_type))?;
+        client_builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
 
         let mut server_builder = SslContext::builder(SslMethod::tls_server())?;
         Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
         server_builder
-            .set_certificate_chain_file(get_cert_path(&ServerCertChain, &crypto_config.sig_type))?;
+            .set_certificate_chain_file(get_cert_path(ServerCertChain, crypto_config.sig_type))?;
         server_builder.set_private_key_file(
-            get_cert_path(&ServerKey, &crypto_config.sig_type),
+            get_cert_path(ServerKey, crypto_config.sig_type),
             SslFiletype::PEM,
         )?;
+
+        if handshake_type == HandshakeType::MutualAuth {
+            client_builder.set_certificate_chain_file(get_cert_path(
+                ClientCertChain,
+                crypto_config.sig_type,
+            ))?;
+            client_builder.set_private_key_file(
+                get_cert_path(ClientKey, crypto_config.sig_type),
+                SslFiletype::PEM,
+            )?;
+            server_builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
+            server_builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
+        }
 
         let client_config = client_builder.build();
         let server_config = server_builder.build();

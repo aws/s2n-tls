@@ -11,35 +11,43 @@ use std::{
     rc::Rc,
 };
 
-pub fn read_to_bytes(pem_type: &PemType, sig_type: &SigType) -> Vec<u8> {
+pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
     read_to_string(get_cert_path(pem_type, sig_type))
         .unwrap()
         .into_bytes()
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
     Client,
     Server,
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+pub enum HandshakeType {
+    #[default]
+    ServerAuth,
+    MutualAuth,
+}
+
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum CipherSuite {
     #[default]
     AES_128_GCM_SHA256,
     AES_256_GCM_SHA384,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum ECGroup {
     SECP256R1,
     #[default]
     X25519,
 }
 
-#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SigType {
     Rsa2048,
     Rsa4096,
@@ -47,7 +55,7 @@ pub enum SigType {
     Ec384,
 }
 
-#[derive(Clone, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct CryptoConfig {
     pub cipher_suite: CipherSuite,
     pub ec_group: ECGroup,
@@ -55,11 +63,11 @@ pub struct CryptoConfig {
 }
 
 impl CryptoConfig {
-    pub fn new(cipher_suite: &CipherSuite, ec_group: &ECGroup, sig_type: &SigType) -> Self {
+    pub fn new(cipher_suite: CipherSuite, ec_group: ECGroup, sig_type: SigType) -> Self {
         Self {
-            cipher_suite: *cipher_suite,
-            ec_group: *ec_group,
-            sig_type: *sig_type,
+            cipher_suite,
+            ec_group,
+            sig_type,
         }
     }
 }
@@ -67,11 +75,14 @@ impl CryptoConfig {
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(&Default::default())
+        Self::new(Default::default(), Default::default())
     }
 
     /// Initialize buffers, configs, and connections (pre-handshake)
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>>;
+    fn new(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Self, Box<dyn Error>>;
 
     /// Run handshake on initialized connection
     /// Returns error if handshake has already completed
@@ -141,23 +152,25 @@ macro_rules! test_tls_bench_harnesses {
             use super::*;
             use CipherSuite::*;
             use ECGroup::*;
+            use HandshakeType::*;
             use SigType::*;
 
             #[test]
             fn test_handshake_config() {
-                let (mut harness, mut crypto_config);
-                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
-                    for ec_group in [SECP256R1, X25519] {
-                        for sig_type in [Ec384, Rsa2048, Rsa4096] {
-                            crypto_config = CryptoConfig::new(&cipher_suite, &ec_group, &sig_type);
-                            harness = <$harness_type>::new(&crypto_config).unwrap();
+                for handshake_type in [ServerAuth, MutualAuth] {
+                    for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
+                        for ec_group in [SECP256R1, X25519] {
+                            for sig_type in [Ec384, Rsa2048, Rsa4096] {
+                                let crypto_config = CryptoConfig::new(cipher_suite, ec_group, sig_type);
+                                let mut harness = <$harness_type>::new(crypto_config, handshake_type).unwrap();
 
-                            assert!(!harness.handshake_completed());
-                            harness.handshake().unwrap();
-                            assert!(harness.handshake_completed());
+                                assert!(!harness.handshake_completed());
+                                harness.handshake().unwrap();
+                                assert!(harness.handshake_completed());
 
-                            assert!(harness.negotiated_tls13());
-                            assert_eq!(cipher_suite, harness.get_negotiated_cipher_suite());
+                                assert!(harness.negotiated_tls13());
+                                assert_eq!(cipher_suite, harness.get_negotiated_cipher_suite());
+                            }
                         }
                     }
                 }

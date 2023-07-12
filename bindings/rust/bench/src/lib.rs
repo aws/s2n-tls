@@ -6,12 +6,13 @@ pub mod openssl;
 pub mod rustls;
 pub mod s2n_tls;
 pub use crate::{
-    harness::{CipherSuite, CryptoConfig, ECGroup, SigType, TlsBenchHarness},
+    harness::{CipherSuite, CryptoConfig, ECGroup, HandshakeType, SigType, TlsBenchHarness},
     openssl::OpenSslHarness,
     rustls::RustlsHarness,
     s2n_tls::S2NHarness,
 };
 
+#[derive(Clone, Copy)]
 pub enum PemType {
     ServerKey,
     ServerCertChain,
@@ -23,7 +24,7 @@ pub enum PemType {
 use PemType::*;
 use SigType::*;
 
-fn get_cert_path(pem_type: &PemType, sig_type: &SigType) -> String {
+fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
     let filename = match pem_type {
         ServerKey => "server-key.pem",
         ServerCertChain => "server-fullchain.pem",
@@ -56,7 +57,7 @@ mod tests {
             CACert,
         ] {
             for sig_type in [Rsa2048, Rsa4096, Ec384] {
-                assert!(Path::new(&get_cert_path(&pem_type, &sig_type)).exists());
+                assert!(Path::new(&get_cert_path(pem_type, sig_type)).exists());
             }
         }
     }

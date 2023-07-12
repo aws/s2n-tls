@@ -3,7 +3,8 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness,
+        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
+        TlsBenchHarness,
     },
     PemType::{self, *},
     SigType,
@@ -11,6 +12,7 @@ use crate::{
 use rustls::{
     cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
     kx_group::{SECP256R1, X25519},
+    server::AllowAnyAuthenticatedClient,
     version::TLS13,
     Certificate, ClientConfig, ClientConnection, PrivateKey,
     ProtocolVersion::TLSv1_3,
@@ -27,17 +29,17 @@ pub struct RustlsHarness {
 }
 
 impl RustlsHarness {
-    fn get_root_cert_store(sig_type: &SigType) -> Result<RootCertStore, Box<dyn Error>> {
+    fn get_root_cert_store(sig_type: SigType) -> Result<RootCertStore, Box<dyn Error>> {
         let root_cert =
-            Certificate(certs(&mut BufReader::new(&*read_to_bytes(&CACert, sig_type)))?.remove(0));
+            Certificate(certs(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))?.remove(0));
         let mut root_certs = RootCertStore::empty();
         root_certs.add(&root_cert)?;
         Ok(root_certs)
     }
 
     fn get_cert_chain(
-        pem_type: &PemType,
-        sig_type: &SigType,
+        pem_type: PemType,
+        sig_type: SigType,
     ) -> Result<Vec<Certificate>, Box<dyn Error>> {
         let chain = certs(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?;
         Ok(chain
@@ -46,7 +48,7 @@ impl RustlsHarness {
             .collect())
     }
 
-    fn get_key(pem_type: &PemType, sig_type: &SigType) -> Result<PrivateKey, Box<dyn Error>> {
+    fn get_key(pem_type: PemType, sig_type: SigType) -> Result<PrivateKey, Box<dyn Error>> {
         Ok(PrivateKey(
             pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?.remove(0),
         ))
@@ -72,7 +74,10 @@ impl RustlsHarness {
 }
 
 impl TlsBenchHarness for RustlsHarness {
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>> {
+    fn new(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Self, Box<dyn Error>> {
         let client_buf = ConnectedBuffer::new();
         let server_buf = client_buf.clone_inverse();
 
@@ -86,26 +91,40 @@ impl TlsBenchHarness for RustlsHarness {
             ECGroup::X25519 => &X25519,
         };
 
-        let client_config = Arc::new(
-            ClientConfig::builder()
-                .with_cipher_suites(&[cipher_suite])
-                .with_kx_groups(&[kx_group])
-                .with_protocol_versions(&[&TLS13])?
-                .with_root_certificates(Self::get_root_cert_store(&crypto_config.sig_type)?)
-                .with_no_client_auth(),
-        );
+        let client_builder = ClientConfig::builder()
+            .with_cipher_suites(&[cipher_suite])
+            .with_kx_groups(&[kx_group])
+            .with_protocol_versions(&[&TLS13])?
+            .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type)?);
 
-        let server_config = Arc::new(
-            ServerConfig::builder()
-                .with_cipher_suites(&[cipher_suite])
-                .with_kx_groups(&[kx_group])
-                .with_protocol_versions(&[&TLS13])?
-                .with_no_client_auth()
-                .with_single_cert(
-                    Self::get_cert_chain(&ServerCertChain, &crypto_config.sig_type)?,
-                    Self::get_key(&ServerKey, &crypto_config.sig_type)?,
+        let server_builder = ServerConfig::builder()
+            .with_cipher_suites(&[cipher_suite])
+            .with_kx_groups(&[kx_group])
+            .with_protocol_versions(&[&TLS13])?;
+
+        let (client_builder, server_builder) = match handshake_type {
+            HandshakeType::MutualAuth => (
+                client_builder.with_client_auth_cert(
+                    Self::get_cert_chain(ClientCertChain, crypto_config.sig_type)?,
+                    Self::get_key(ClientKey, crypto_config.sig_type)?,
                 )?,
-        );
+                server_builder.with_client_cert_verifier(Arc::new(
+                    AllowAnyAuthenticatedClient::new(Self::get_root_cert_store(
+                        crypto_config.sig_type,
+                    )?),
+                )),
+            ),
+            HandshakeType::ServerAuth => (
+                client_builder.with_no_client_auth(),
+                server_builder.with_no_client_auth(),
+            ),
+        };
+
+        let client_config = Arc::new(client_builder);
+        let server_config = Arc::new(server_builder.with_single_cert(
+            Self::get_cert_chain(ServerCertChain, crypto_config.sig_type)?,
+            Self::get_key(ServerKey, crypto_config.sig_type)?,
+        )?);
 
         let client_conn = ClientConnection::new(client_config, ServerName::try_from("localhost")?)?;
         let server_conn = ServerConnection::new(server_config)?;
