@@ -35,3 +35,16 @@ All certs are stored in `certs/` and can be regenerated using `certs/generate_ce
 ### Negotiation parameters
 
 The cipher suites benchmarked are `TLS_AES_128_GCM_SHA256` and `TLS_AES_256_GCM_SHA384`, and the key exchange methods benchmarked are ECDHE with `secp256r1` and with `x25519`. We also test connections with and without client authentication (mTLS).
+
+## Sample output
+
+### Historical performance:
+
+Notes: 
+- Two sets of parameters for the handshake couldn't be benched before 1.3.40, since security policies that negotiated those policies as their top choice did not exist before then.
+- The spike at 1.3.45 was likely due to noise on the EC2 instance that the benching was run on; you might see similar variations in performance if run on a noisy machine.
+
+
+![historical-perf-handshake](https://github.com/tinzh/s2n-tls/assets/76919968/8a0dbfe2-798a-4869-8b4f-7d52c013fa8e)
+
+![historical-perf-throughput](https://github.com/tinzh/s2n-tls/assets/76919968/126c4106-6400-410e-b080-e4db04cb73ee)
