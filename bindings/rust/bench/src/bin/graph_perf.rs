@@ -28,10 +28,13 @@ fn process_single_json(path: &Path) -> (f64, f64) {
     )
 }
 
+/// Vec of (version, mean, stderr) sorted by version for a given bench group
+type BenchGroupData = Vec<(Version, f64, f64)>;
+
 /// Get data from folder of Criterion json outputs, given directory of jsons
 /// Outputs a Vec of (version, mean, stderr) sorted by version
-fn process_bench_group(path: &Path) -> Vec<(Version, f64, f64)> {
-    let mut data: Vec<(Version, f64, f64)> = read_dir(path)
+fn process_bench_group(path: &Path) -> BenchGroupData {
+    let mut data: BenchGroupData = read_dir(path)
         .unwrap()
         .map(|dir_entry_res| {
             let path = dir_entry_res.unwrap().path();
@@ -46,11 +49,17 @@ fn process_bench_group(path: &Path) -> Vec<(Version, f64, f64)> {
 }
 
 /// Gets data from all bench groups given a prefix (ex. "handshake") for the bench group names
-fn process_bench_groups(prefix: &str) -> Vec<(String, Vec<(Version, f64, f64)>)> {
+fn process_bench_groups(prefix: &str) -> Vec<(String, BenchGroupData)> {
     read_dir("target/historical-perf")
         .unwrap()
         .map(|dir_entry_res| dir_entry_res.unwrap().path())
-        .filter(|path| path.file_name().unwrap().to_str().unwrap().starts_with(prefix))
+        .filter(|path| {
+            path.file_name()
+                .unwrap()
+                .to_str()
+                .unwrap()
+                .starts_with(prefix)
+        })
         .map(|path| {
             (
                 path.file_name().unwrap().to_string_lossy().into_owned(),
@@ -74,10 +83,10 @@ fn plot_bench_groups(prefix: &str) {
     versions.insert(Version::new(1, 3, 15));
     versions.extend((30..38).map(|p| Version::new(1, 3, p)));
 
-    // get tag_names as Vec to index into it
+    // get `versions` as Vec to index into it
     let versions = versions.into_iter().collect::<Vec<Version>>();
 
-    // get the indices of all of the tags for plotting
+    // get the indices of all of the versions for plotting
     let version_to_index = versions
         .iter()
         .enumerate()
@@ -85,7 +94,7 @@ fn plot_bench_groups(prefix: &str) {
         .collect::<HashMap<_, _>>();
     let num_versions = versions.len();
 
-    // keep track of ymax for plotting range
+    // get ymax for plotting range
     let y_max = *all_data
         .iter()
         .flat_map(|(_, data)| data.iter().map(|(_, mean, _)| mean))
@@ -99,14 +108,14 @@ fn plot_bench_groups(prefix: &str) {
 
     let mut ctx = ChartBuilder::on(&drawing_area)
         .caption(
-            format!("Performance of {prefix} over versions since Jun 2022"),
+            format!("Performance of {prefix} by version since Jun 2022"),
             ("sans-serif", 30).into_font(),
         )
         .set_label_area_size(LabelAreaPosition::Left, (10).percent()) // axes padding
         .set_label_area_size(LabelAreaPosition::Bottom, (8).percent())
         .build_cartesian_2d(
-            (0..num_versions).with_key_points((1..num_versions).step_by(2).collect()), // put labels on every other tag
-            0.0..y_max, // upper y bound on plot is y_max
+            (0..num_versions).with_key_points((1..num_versions).step_by(2).collect()), // put labels on every other version
+            0.0..(1.2 * y_max), // upper y bound on plot is 1.2 * y_max
         )
         .unwrap();
 
@@ -116,7 +125,7 @@ fn plot_bench_groups(prefix: &str) {
         .x_desc("Version") // axes labels
         .y_desc("Time (ms)")
         .x_labels(num_versions)
-        .x_label_formatter(&|x| versions.get(*x).unwrap().to_string()) // change x coord (index of tag in tag_names) to version string
+        .x_label_formatter(&|x| versions.get(*x).unwrap().to_string()) // change x coord (index of version in `versions`) to version string
         .y_labels(5) // max 5 labels on y axis
         .y_label_formatter(&|y| format!("{} ms", y / 1000000.0))
         .draw()
@@ -134,7 +143,7 @@ fn plot_bench_groups(prefix: &str) {
         let color = Palette99::pick(i);
 
         // draw error bars
-        // x coord is index of tag name in list of tag names
+        // x coord is index of version in `versions`
         ctx.draw_series(filtered_data.iter().map(|(version, mean, stderr)| {
             ErrorBar::new_vertical(
                 version_to_index[version],
@@ -171,4 +180,5 @@ fn plot_bench_groups(prefix: &str) {
 
 fn main() {
     plot_bench_groups("handshake");
+    plot_bench_groups("throughput");
 }

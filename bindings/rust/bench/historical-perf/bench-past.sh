@@ -12,8 +12,8 @@ export CARGO_TERM_QUIET=true
 export RUSTFLAGS=-Awarnings
 
 # go to s2n-tls/bindings/rust/bench/
-bench_path="$(pwd)"/"$(dirname "$0")"/../
-pushd $bench_path
+pushd "$(dirname "$0")"/../
+bench_path="$(pwd)"
 
 # delete past runs
 rm -rf target/historical-perf
