@@ -18,8 +18,8 @@ pub fn bench_handshake_params(c: &mut Criterion) {
         handshake_type: HandshakeType,
         ec_group: ECGroup,
     ) {
-        // generate all inputs (TlsBenchHarness structs) before benchmarking handshakes
-        // timing only includes negotiation, not config/connection initialization
+        // generate all harnesses (TlsBenchHarness structs) beforehand so that benchmarks
+        // only include negotiation and not config/connection initialization
         bench_group.bench_function(name, |b| {
             b.iter_batched_ref(
                 || {
@@ -32,9 +32,9 @@ pub fn bench_handshake_params(c: &mut Criterion) {
                     )
                 },
                 |harness| {
-                    // if harness invalid, do nothing but don't panic
-                    // useful for historical performance bench to ignore configs
-                    // invalid only for past versions of s2n-tls
+                    // harnesses with certain parameters fail to initialize for
+                    // some past versions of s2n-tls, but missing data can be
+                    // visually interpolated in the historical performance graph
                     if let Ok(harness) = harness {
                         let _ = harness.handshake();
                     }
@@ -48,13 +48,14 @@ pub fn bench_handshake_params(c: &mut Criterion) {
         for ec_group in [SECP256R1, X25519] {
             let mut bench_group =
                 c.benchmark_group(format!("handshake-{:?}-{:?}", handshake_type, ec_group));
+
             bench_handshake_for_library::<S2NHarness>(
                 &mut bench_group,
                 "s2n-tls",
                 handshake_type,
                 ec_group,
             );
-            #[cfg(not(feature = "s2n-only"))]
+            #[cfg(not(feature = "historical-perf"))]
             {
                 bench_handshake_for_library::<RustlsHarness>(
                     &mut bench_group,

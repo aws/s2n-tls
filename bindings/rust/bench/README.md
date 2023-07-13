@@ -12,7 +12,7 @@ The benchmarks can be run with the `cargo bench` command. Criterion will auto-ge
 
 ## Historical benchmarks
 
-To do historical benchmarks, run `historical-perf/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those. 
+To do historical benchmarks, run `historical-perf/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
 
 ### Caveats
 

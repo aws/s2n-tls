@@ -3,17 +3,20 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-# suppress stdout
+# immediately bail if any command fails
+set -e
+
+# suppress stdout and most cargo warnings
 exec >/dev/null
 export CARGO_TERM_QUIET=true
 export RUSTFLAGS=-Awarnings
 
-# immediately bail if any command fails
-set -e
-
 # go to s2n-tls/bindings/rust/bench/
-bench_path=`pwd`/`dirname "$0"`/../
+bench_path="$(pwd)"/"$(dirname "$0")"/../
 pushd $bench_path
+
+# delete past runs
+rm -rf target/historical-perf
 
 # make Cargo.toml point s2n-tls to the cloned old version
 sed -i "s|s2n-tls = .*|s2n-tls = { path = \"target/s2n-tls/bindings/rust/s2n-tls\" }|" Cargo.toml 
@@ -28,16 +31,16 @@ cd target
 rm -rf s2n-tls
 git clone --quiet https://github.com/aws/s2n-tls
 cd s2n-tls/bindings/rust/
-copied_bindings_path=`pwd`
+copied_bindings_path="$(pwd)"
 
 # last tag we want is v1.3.16, get all tags from then
 # `git tag -l | sort -rV` gets list of sorted tags newest to oldest
 
 # get the line number of v1.3.16
-line_num_last_tag=`git tag -l | sort -rV | grep "v1.3.16" --line-number | head -n 1 | cut -d":" -f1`
+line_num_last_tag=$(git tag -l | sort -rV | grep "v1.3.16" --line-number | head -n 1 | cut -d":" -f1)
 
 # loop through all tags in order up to v1.3.16
-for tag in `git tag -l | sort -rV | head -$line_num_last_tag`
+for tag in $(git tag -l | sort -rV | head -$line_num_last_tag)
 do
     (
         # go to s2n-tls/bindings/rust/ inside copied repo
@@ -53,13 +56,20 @@ do
         echo "running cargo bench and saving results" >&2
         cd $bench_path
         rm -rf target/criterion
-        cargo bench --features "s2n-only" --no-fail-fast
-        cargo run --release --bin parse_criterion $tag historical-perf/perf.csv
+        cargo bench --features historical-perf --no-fail-fast
+
+        # cache criterion outputs from this bench into target/historical-perf
+        for bench_group in $(ls target/criterion | grep -v "report")
+        do
+            mkdir -p target/historical-perf/$bench_group/
+            cp target/criterion/$bench_group/s2n-tls/new/estimates.json target/historical-perf/$bench_group/$tag.json
+        done
     ) || echo "failed, trying next tag"
     echo
 done
 
 # graph results
+cd $bench_path
 cargo run --release --bin graph_perf
 
 popd
