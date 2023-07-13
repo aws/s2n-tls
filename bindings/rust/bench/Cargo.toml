@@ -23,3 +23,7 @@ criterion = "0.3"
 [[bench]]
 name = "handshake"
 harness = false
+
+[[bench]]
+name = "throughput"
+harness = false

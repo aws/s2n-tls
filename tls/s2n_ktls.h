@@ -17,19 +17,26 @@
 
 #include "tls/s2n_config.h"
 
+/* Define headers needed to enable and use kTLS.
+ *
+ * The inline header definitions are required to compile kTLS specific code.
+ * kTLS has been tested on linux. For all other platforms, kTLS is marked as
+ * unsupported, and will return an unsupported error.
+ */
+#include "tls/s2n_ktls_parameters.h"
+
 /* A set of kTLS configurations representing the combination of sending
  * and receiving.
  */
 typedef enum {
-    /* Disable kTLS. */
-    S2N_KTLS_MODE_DISABLED,
     /* Enable kTLS for the send socket. */
     S2N_KTLS_MODE_SEND,
     /* Enable kTLS for the receive socket. */
     S2N_KTLS_MODE_RECV,
-    /* Enable kTLS for both receive and send sockets. */
-    S2N_KTLS_MODE_DUPLEX,
 } s2n_ktls_mode;
 
-int s2n_config_set_ktls_mode(struct s2n_config *config, s2n_ktls_mode ktls_mode);
 bool s2n_ktls_is_supported_on_platform();
+
+/* These functions will be part of the public API. */
+int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
+int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
