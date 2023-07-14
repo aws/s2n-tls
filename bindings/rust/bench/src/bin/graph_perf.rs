@@ -33,7 +33,7 @@ type BenchGroupData = Vec<(Version, f64, f64)>;
 
 /// Get data from folder of Criterion json outputs, given directory of jsons
 /// Outputs a Vec of (version, mean, stderr) sorted by version
-fn process_bench_group(path: &Path) -> BenchGroupData {
+fn parse_bench_group_data(path: &Path) -> BenchGroupData {
     let mut data: BenchGroupData = read_dir(path)
         .unwrap()
         .map(|dir_entry_res| {
@@ -49,7 +49,7 @@ fn process_bench_group(path: &Path) -> BenchGroupData {
 }
 
 /// Gets data from all bench groups given a prefix (ex. "handshake") for the bench group names
-fn process_bench_groups(prefix: &str) -> Vec<(String, BenchGroupData)> {
+fn get_all_data(prefix: &str) -> Vec<(String, BenchGroupData)> {
     read_dir("target/historical-perf")
         .unwrap()
         .map(|dir_entry_res| dir_entry_res.unwrap().path())
@@ -63,18 +63,21 @@ fn process_bench_groups(prefix: &str) -> Vec<(String, BenchGroupData)> {
         .map(|path| {
             (
                 path.file_name().unwrap().to_string_lossy().into_owned(),
-                process_bench_group(&path),
+                parse_bench_group_data(&path),
             )
         })
         .collect()
 }
 
-/// Plots all data with a given bench group prefix
-fn plot_bench_groups(prefix: &str) {
-    let all_data = process_bench_groups(prefix);
-
+/// Plots given data with given chart parameters
+fn plot_bench_groups<F: Fn(&f64) -> String>(
+    data: Vec<(String, BenchGroupData)>,
+    bench_name: &str,
+    y_label: &str,
+    y_label_formatter: F,
+) {
     // get all versions present in data
-    let mut versions = all_data
+    let mut versions = data
         .iter()
         .flat_map(|(_, data)| data.iter().map(|(version, _, _)| version.clone()))
         .collect::<BTreeSet<Version>>();
@@ -95,44 +98,48 @@ fn plot_bench_groups(prefix: &str) {
     let num_versions = versions.len();
 
     // get ymax for plotting range
-    let y_max = *all_data
+    let y_max = *data
         .iter()
         .flat_map(|(_, data)| data.iter().map(|(_, mean, _)| mean))
         .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap();
 
     // setup plotting
-    let path = format!("historical-perf/historical-perf-{prefix}.svg");
+    let path = format!("historical-perf/historical-perf-{bench_name}.svg");
     let drawing_area = SVGBackend::new(&path, (1000, 500)).into_drawing_area();
     drawing_area.fill(&WHITE).unwrap();
 
     let mut ctx = ChartBuilder::on(&drawing_area)
         .caption(
-            format!("Performance of {prefix} by version since Jun 2022"),
+            format!("Performance of {bench_name} by version since Jun 2022"),
             ("sans-serif", 30).into_font(),
         )
-        .set_label_area_size(LabelAreaPosition::Left, (10).percent()) // axes padding
-        .set_label_area_size(LabelAreaPosition::Bottom, (8).percent())
+        .set_label_area_size(LabelAreaPosition::Left, (15).percent()) // axes padding
+        .set_label_area_size(LabelAreaPosition::Bottom, (11).percent())
         .build_cartesian_2d(
-            (0..num_versions).with_key_points((1..num_versions).step_by(2).collect()), // put labels on every other version
+            (0..num_versions).with_key_points((1..num_versions).step_by(2).collect()), // labels on every other version
             0.0..(1.2 * y_max), // upper y bound on plot is 1.2 * y_max
         )
         .unwrap();
 
+    let axis_label_style = ("sans-serif", 18).into_font();
+
     ctx.configure_mesh()
         .light_line_style(RGBAColor(235, 235, 235, 1.0)) // change gridline color
         .bold_line_style(RGBAColor(225, 225, 225, 1.0))
-        .x_desc("Version") // axes labels
-        .y_desc("Time (ms)")
+        .x_desc("Version") // axis labels
         .x_labels(num_versions)
+        .x_label_style(axis_label_style.clone())
         .x_label_formatter(&|x| versions.get(*x).unwrap().to_string()) // change x coord (index of version in `versions`) to version string
+        .y_desc(y_label)
         .y_labels(5) // max 5 labels on y axis
-        .y_label_formatter(&|y| format!("{} ms", y / 1000000.0))
+        .y_label_formatter(&y_label_formatter)
+        .y_label_style(axis_label_style)
         .draw()
         .unwrap();
 
     // go through each bench group and plot them
-    for (i, (group_name, data)) in all_data.iter().enumerate() {
+    for (i, (group_name, data)) in data.iter().enumerate() {
         // remove data that returned error while benching
         // heuristic: times < 1% of y_max are invalid/had error
         let filtered_data = data
@@ -179,6 +186,33 @@ fn plot_bench_groups(prefix: &str) {
 }
 
 fn main() {
-    plot_bench_groups("handshake");
-    plot_bench_groups("throughput");
+    let handshake_data = get_all_data("handshake");
+    let mut throughput_data = get_all_data("throughput");
+
+    // convert data from ms for transfer of x amount of data -> bytes/s throughput
+    throughput_data = throughput_data
+        .into_iter()
+        .map(|(group_name, data)| {
+            const TRANSFER_SIZE: f64 = 1e5;
+            const NANO_SIZE: f64 = 1e-9;
+            (
+                group_name,
+                data.into_iter()
+                    .map(|(version, mean, stderr)| {
+                        let mean_throughput = TRANSFER_SIZE / (mean * NANO_SIZE);
+                        let stderr_throughput =
+                            mean_throughput - TRANSFER_SIZE / ((mean + stderr) * NANO_SIZE);
+                        (version, mean_throughput, stderr_throughput) // change
+                    })
+                    .collect(),
+            )
+        })
+        .collect();
+
+    plot_bench_groups(handshake_data, "handshake", "Time", |y| {
+        format!("{} ms", y / 1e6)
+    });
+    plot_bench_groups(throughput_data, "throughput", "Throughput", |y| {
+        format!("{} GB/s", y / 1e9)
+    });
 }
