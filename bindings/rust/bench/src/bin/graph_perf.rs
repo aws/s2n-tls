@@ -114,7 +114,7 @@ fn plot_bench_groups<F: Fn(&f64) -> String>(
             format!("Performance of {bench_name} by version since Jun 2022"),
             ("sans-serif", 30).into_font(),
         )
-        .set_label_area_size(LabelAreaPosition::Left, (15).percent()) // axes padding
+        .set_label_area_size(LabelAreaPosition::Left, (17).percent()) // axes padding
         .set_label_area_size(LabelAreaPosition::Bottom, (11).percent())
         .build_cartesian_2d(
             (0..num_versions).with_key_points((1..num_versions).step_by(2).collect()), // labels on every other version
