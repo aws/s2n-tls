@@ -33,12 +33,22 @@
     /* socket definitions */
     #define S2N_TCP_ULP 31 /* Attach a ULP to a TCP connection.  */
     #define S2N_SOL_TCP 6  /* TCP level */
+    #define S2N_SOL_TLS 282
+
+    /* cmsg */
+    #define S2N_TLS_SET_RECORD_TYPE 1
+    #define S2N_TLS_GET_RECORD_TYPE 2
 
 #else
     /* For unsupported platforms 0-init all values. */
-    #define S2N_KTLS_SUPPORTED false
+    #define S2N_KTLS_SUPPORTED      false
 
     /* socket definitions */
-    #define S2N_TCP_ULP        0
-    #define S2N_SOL_TCP        0
+    #define S2N_TCP_ULP             0
+    #define S2N_SOL_TCP             0
+    #define S2N_SOL_TLS             0
+
+    /* cmsg */
+    #define S2N_TLS_SET_RECORD_TYPE 0
+    #define S2N_TLS_GET_RECORD_TYPE 0
 #endif
