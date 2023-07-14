@@ -26,14 +26,6 @@ struct s2n_evp_digest {
     EVP_MD_CTX *ctx;
 };
 
-struct s2n_evp_hmac_state {
-    struct s2n_evp_digest evp_digest;
-    union {
-        HMAC_CTX *hmac_ctx;
-        EVP_PKEY *evp_pkey;
-    } ctx;
-};
-
 /* Define API's that change based on the OpenSSL Major Version. */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0) && !defined(LIBRESSL_VERSION_NUMBER)
     #define S2N_EVP_MD_CTX_NEW()         (EVP_MD_CTX_new())

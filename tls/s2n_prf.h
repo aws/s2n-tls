@@ -31,13 +31,8 @@
     #define S2N_LIBCRYPTO_SUPPORTS_TLS_PRF 0
 #endif
 
-union p_hash_state {
-    struct s2n_hmac_state s2n_hmac;
-    struct s2n_evp_hmac_state evp_hmac;
-};
-
 struct s2n_prf_working_space {
-    union p_hash_state p_hash;
+    struct s2n_hmac_state hmac;
     uint8_t digest0[S2N_MAX_DIGEST_LEN];
     uint8_t digest1[S2N_MAX_DIGEST_LEN];
 };
