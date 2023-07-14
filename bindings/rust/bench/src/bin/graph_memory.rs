@@ -68,17 +68,18 @@ fn main() -> Result<(), Box<dyn Error>> {
             "Memory usage of a connection pair",
             ("sans-serif", 30).into_font(),
         )
-        .set_label_area_size(LabelAreaPosition::Left, (12).percent()) // axes padding
-        .set_label_area_size(LabelAreaPosition::Bottom, (5).percent())
+        .set_label_area_size(LabelAreaPosition::Left, (15).percent()) // axes padding
+        .set_label_area_size(LabelAreaPosition::Bottom, (6).percent())
         .build_cartesian_2d(
             (0..num_bars - 1).into_segmented(),
             0.0..(1.1 * max_mem), // upper y bound on plot is 1.1 * y_max
         )?;
 
+    let axis_label_style = ("sans-serif", 18).into_font();
+
     ctx.configure_mesh()
         .light_line_style(RGBAColor(235, 235, 235, 1.0)) // change gridline color
         .bold_line_style(RGBAColor(225, 225, 225, 1.0))
-        .y_desc("Memory (kB)")
         .x_labels(num_bars)
         .x_label_formatter(&|x| {
             // change axis labels to name of bar
@@ -88,8 +89,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             };
             x_labels.get(x).unwrap().to_string()
         })
+        .x_label_style(axis_label_style.clone())
+        .y_desc("Memory (kB)")
         .y_labels(10) // max number of labels on y axis
         .y_label_formatter(&|y| format!("{} kB", y / 1000.0))
+        .y_label_style(axis_label_style)
         .draw()?;
 
     // draw bars
