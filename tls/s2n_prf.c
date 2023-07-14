@@ -185,6 +185,11 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
 
     struct s2n_hmac_state *hmac = &ws->hmac;
 
+    /* Ignore the MD5 check when in FIPS mode */
+    if (s2n_is_in_fips_mode()) {
+        POSIX_GUARD(s2n_hmac_allow_md5_for_fips(hmac));
+    }
+
     /* First compute hmac(secret + A(0)) */
     POSIX_GUARD(s2n_hmac_init(hmac, alg, secret->data, secret->size));
     POSIX_GUARD(s2n_hmac_update(hmac, label->data, label->size));

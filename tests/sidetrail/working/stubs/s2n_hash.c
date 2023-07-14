@@ -49,6 +49,11 @@ S2N_RESULT s2n_hash_state_validate(struct s2n_hash_state *state)
     return S2N_RESULT_OK;
 }
 
+int s2n_hash_allow_md5_for_fips(struct s2n_hash_state *state)
+{
+    return SUCCESS;
+}
+
 int s2n_hash_init(struct s2n_hash_state *state, s2n_hash_algorithm alg)
 {
   __VERIFIER_ASSUME_LEAKAGE(0);
