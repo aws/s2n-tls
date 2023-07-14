@@ -13,18 +13,24 @@ use rustls::{
     kx_group::{SECP256R1, X25519},
     server::AllowAnyAuthenticatedClient,
     version::TLS13,
-    Certificate, ClientConfig, ClientConnection, PrivateKey,
+    Certificate, ClientConfig, ClientConnection, Connection,
+    Connection::{Client, Server},
+    PrivateKey,
     ProtocolVersion::TLSv1_3,
     RootCertStore, ServerConfig, ServerConnection, ServerName,
 };
 use rustls_pemfile::{certs, pkcs8_private_keys};
-use std::{error::Error, io::BufReader, sync::Arc};
+use std::{
+    error::Error,
+    io::{BufReader, Read, Write},
+    sync::Arc,
+};
 
 pub struct RustlsHarness {
     client_buf: ConnectedBuffer,
     server_buf: ConnectedBuffer,
-    client_conn: ClientConnection,
-    server_conn: ServerConnection,
+    client_conn: Connection,
+    server_conn: Connection,
 }
 
 impl RustlsHarness {
@@ -50,21 +56,14 @@ impl RustlsHarness {
         ))
     }
 
-    /// Read all incoming data, process it, and write it out
-    /// Works for handshaking and data transfer
-    fn process_conn(&mut self, mode: Mode) -> Result<(), std::io::Error> {
-        match match mode {
-            Mode::Client => self.client_conn.complete_io(&mut self.client_buf),
-            Mode::Server => self.server_conn.complete_io(&mut self.server_buf),
-        } {
-            Ok(_) => Ok(()),
-            Err(err) => {
-                if err.kind() == std::io::ErrorKind::WouldBlock {
-                    Ok(())
-                } else {
-                    Err(err)
-                }
-            }
+    /// Treat `WouldBlock` as `Ok` for when blocking is expected
+    fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
+        match res {
+            Ok(t) => Ok(t),
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::WouldBlock => Ok(T::default()),
+                _ => Err(err),
+            },
         }
     }
 }
@@ -100,7 +99,7 @@ impl TlsBenchHarness for RustlsHarness {
 
         let (client_builder, server_builder) = match handshake_type {
             HandshakeType::MutualAuth => (
-                client_builder.with_single_cert(
+                client_builder.with_client_auth_cert(
                     Self::get_cert_chain(CLIENT_CERT_CHAIN_PATH)?,
                     Self::get_key(CLIENT_KEY_PATH)?,
                 )?,
@@ -120,8 +119,11 @@ impl TlsBenchHarness for RustlsHarness {
             Self::get_key(SERVER_KEY_PATH)?,
         )?);
 
-        let client_conn = ClientConnection::new(client_config, ServerName::try_from("localhost")?)?;
-        let server_conn = ServerConnection::new(server_config)?;
+        let client_conn = Client(ClientConnection::new(
+            client_config,
+            ServerName::try_from("localhost")?,
+        )?);
+        let server_conn = Server(ServerConnection::new(server_config)?);
 
         Ok(Self {
             client_buf,
@@ -133,8 +135,8 @@ impl TlsBenchHarness for RustlsHarness {
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
         for _ in 0..2 {
-            self.process_conn(Mode::Client)?;
-            self.process_conn(Mode::Server)?;
+            Self::ignore_block(self.client_conn.complete_io(&mut self.client_buf))?;
+            Self::ignore_block(self.server_conn.complete_io(&mut self.server_buf))?;
         }
         Ok(())
     }
@@ -156,5 +158,38 @@ impl TlsBenchHarness for RustlsHarness {
             .protocol_version()
             .expect("Handshake not completed")
             == TLSv1_3
+    }
+
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let (send_conn, send_buf) = match sender {
+            Mode::Client => (&mut self.client_conn, &mut self.client_buf),
+            Mode::Server => (&mut self.server_conn, &mut self.server_buf),
+        };
+
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            write_offset += send_conn.writer().write(&data[write_offset..data.len()])?;
+            send_conn.writer().flush()?;
+            send_conn.complete_io(send_buf)?;
+        }
+
+        Ok(())
+    }
+
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let (recv_conn, recv_buf) = match receiver {
+            Mode::Client => (&mut self.client_conn, &mut self.client_buf),
+            Mode::Server => (&mut self.server_conn, &mut self.server_buf),
+        };
+
+        let data_len = data.len();
+        let mut read_offset = 0;
+        while read_offset < data.len() {
+            recv_conn.complete_io(recv_buf)?;
+            read_offset +=
+                Self::ignore_block(recv_conn.reader().read(&mut data[read_offset..data_len]))?;
+        }
+
+        Ok(())
     }
 }

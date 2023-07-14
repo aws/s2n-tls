@@ -290,6 +290,11 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR, "An internal error has occurred in the libcrypto API") \
     ERR_ENTRY(S2N_ERR_NO_RENEGOTIATION, "Only secure, server-initiated renegotiation is supported") \
     ERR_ENTRY(S2N_ERR_APP_DATA_BLOCKED, "Blocked on application data during handshake") \
+    ERR_ENTRY(S2N_ERR_KTLS_MANAGED_IO, "kTLS cannot be enabled while custom I/O is configured for the connection")  \
+    ERR_ENTRY(S2N_ERR_HANDSHAKE_NOT_COMPLETE, "Operation is only allowed after the handshake is complete") \
+    ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM, "kTLS is unsupported on this platform") \
+    ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_CONN, "kTLS is unsupported for this connection") \
+    ERR_ENTRY(S2N_ERR_KTLS_ULP, "An error occurred when attempting to configure the socket for kTLS. Ensure the 'tls' kernel module is enabled.")  \
     ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
     /* clang-format on */
 
