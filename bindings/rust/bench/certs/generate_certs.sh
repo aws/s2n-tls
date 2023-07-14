@@ -61,6 +61,7 @@ cert-gen () {
 
 cert-gen ec 384
 cert-gen rsa 2048
+cert-gen rsa 3072
 cert-gen rsa 4096
 
 popd

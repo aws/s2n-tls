@@ -35,6 +35,7 @@ fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
 
     let dir = match sig_type {
         Rsa2048 => "rsa2048",
+        Rsa3072 => "rsa3072",
         Rsa4096 => "rsa4096",
         Ec384 => "ec384",
     };
@@ -56,7 +57,7 @@ mod tests {
             ClientCertChain,
             CACert,
         ] {
-            for sig_type in [Rsa2048, Rsa4096, Ec384] {
+            for sig_type in [Rsa2048, Rsa3072, Rsa4096, Ec384] {
                 assert!(Path::new(&get_cert_path(pem_type, sig_type)).exists());
             }
         }

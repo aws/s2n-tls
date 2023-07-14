@@ -40,7 +40,7 @@ pub fn bench_handshake_params(c: &mut Criterion) {
 
     for handshake_type in [ServerAuth, MutualAuth] {
         for ec_group in [SECP256R1, X25519] {
-            for sig_type in [Rsa2048, Rsa4096, Ec384] {
+            for sig_type in [Rsa2048, Rsa3072, Rsa4096, Ec384] {
                 let mut bench_group = c.benchmark_group(format!(
                     "handshake-{:?}-{:?}-{:?}",
                     handshake_type, ec_group, sig_type

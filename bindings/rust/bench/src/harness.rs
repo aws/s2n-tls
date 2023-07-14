@@ -50,6 +50,7 @@ pub enum ECGroup {
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum SigType {
     Rsa2048,
+    Rsa3072,
     Rsa4096,
     #[default]
     Ec384,
@@ -179,7 +180,7 @@ macro_rules! test_tls_bench_harnesses {
                 for handshake_type in [ServerAuth, MutualAuth] {
                     for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
                         for ec_group in [SECP256R1, X25519] {
-                            for sig_type in [Ec384, Rsa2048, Rsa4096] {
+                            for sig_type in [Ec384, Rsa2048, Rsa3072, Rsa4096] {
                                 let crypto_config = CryptoConfig::new(cipher_suite, ec_group, sig_type);
                                 let mut harness = <$harness_type>::new(crypto_config, handshake_type).unwrap();
 
