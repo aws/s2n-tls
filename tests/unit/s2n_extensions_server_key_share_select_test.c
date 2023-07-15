@@ -25,8 +25,8 @@ int main()
 {
     BEGIN_TEST();
 
-/* Need at least two KEM's to test fallback */
-#if (S2N_SUPPORTED_KEM_GROUPS_COUNT > 1)
+/* TODO [childw] Need at least two KEM's available to test fallback, add guard here */
+#if (S2N_KEM_GROUPS_COUNT > 1)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 

@@ -538,7 +538,7 @@ int main(int argc, char **argv)
         const struct s2n_kem_preferences test_all_supported_kem_prefs = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
+            .tls13_kem_group_count = S2N_KEM_GROUPS_COUNT,
             .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
             .tls13_pq_hybrid_draft_revision = 0
         };
@@ -841,7 +841,7 @@ int main(int argc, char **argv)
         /* Test s2n_server_key_share_extension.send sends key share success (PQ) */
         if (s2n_pq_is_enabled()) {
             for (int len_prefixed = 0; len_prefixed < 2; len_prefixed++) {
-                for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
+                for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
                     struct s2n_connection *conn = NULL;
                     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                     conn->security_policy_override = &test_all_supported_kems_security_policy;

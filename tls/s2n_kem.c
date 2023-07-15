@@ -157,63 +157,55 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
  * || ECC key share (variable bytes)
  * || size of PQ key share (2 bytes)
  * || PQ key share (variable bytes) */
-const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
+struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .name = "secp256r1_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_512_r3,
 };
 
-const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
+struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
     .name = "SecP256r1Kyber768Draft00",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_768_r3,
 };
 
-const struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
+struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
     .name = "secp384r1_kyber-768-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp384r1,
     .kem = &s2n_kyber_768_r3,
 };
 
-const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
+struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
     .name = "secp521r1_kyber-1024-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3,
     .curve = &s2n_ecc_curve_secp521r1,
     .kem = &s2n_kyber_1024_r3,
 };
 
-const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
+struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
     .name = "x25519_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_512_r3,
 };
 
-const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
+struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
     .name = "X25519Kyber768Draft00",
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_768_r3,
 };
 
-const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT] = {
+struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT] = {
     &s2n_secp256r1_kyber_512_r3,
-/* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
-#if EVP_APIS_SUPPORTED
     &s2n_x25519_kyber_512_r3,
-#endif
-/* Kyber 768+ is only available from libcrypto */
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     &s2n_secp256r1_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
     &s2n_secp521r1_kyber_1024_r3,
-#endif
-#if EVP_APIS_SUPPORTED && defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     &s2n_x25519_kyber_768_r3,
-#endif
 };
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
@@ -495,4 +487,14 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_GUARD_RESULT(s2n_kem_decapsulate(kem_params, &ciphertext));
 
     return S2N_SUCCESS;
+}
+
+void s2n_kem_init()
+{
+    for (size_t i = 0; i < s2n_array_len(ALL_SUPPORTED_KEM_GROUPS); i++) {
+        struct s2n_kem_group *group = ALL_SUPPORTED_KEM_GROUPS[i];
+        group->available &= s2n_pq_is_enabled();
+        group->available &= (strcmp(group->kem->name, "kyber512r3") != 0 && s2n_libcrypto_supports_kyber());
+        group->available &= (strcmp(group->curve->name, "x25519") == 0 && s2n_is_evp_apis_supported());
+    };
 }

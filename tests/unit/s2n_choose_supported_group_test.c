@@ -242,8 +242,7 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
-/* Need at least two KEM's to test fallback */
-#if (S2N_SUPPORTED_KEM_GROUPS_COUNT > 1)
+        /* TODO [childw] Need at least two available KEM's to test fallback, add guard here */
         /* If server has one mutually supported KEM group and multiple mutually supported ECC, the KEM
          * group should be chosen. */
         {
@@ -282,7 +281,6 @@ int main()
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         }
-#endif
         /* If there are no mutually supported KEM groups or ECC curves, chosen group should be set to null */
         {
             struct s2n_connection *server_conn = NULL;

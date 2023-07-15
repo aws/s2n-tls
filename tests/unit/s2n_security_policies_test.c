@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    EXPECT_TRUE(s2n_array_len(ALL_SUPPORTED_KEM_GROUPS) == S2N_SUPPORTED_KEM_GROUPS_COUNT);
+    EXPECT_TRUE(s2n_array_len(ALL_SUPPORTED_KEM_GROUPS) == S2N_KEM_GROUPS_COUNT);
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
@@ -81,14 +81,14 @@ int main(int argc, char **argv)
         /* TLS 1.3 + PQ checks */
         if (security_policy->kem_preferences->tls13_kem_group_count > 0) {
             /* Ensure that no TLS 1.3 KEM group preference lists go over max supported limit */
-            EXPECT_TRUE(security_policy->kem_preferences->tls13_kem_group_count <= S2N_SUPPORTED_KEM_GROUPS_COUNT);
+            EXPECT_TRUE(security_policy->kem_preferences->tls13_kem_group_count <= S2N_KEM_GROUPS_COUNT);
 
             /* Ensure all TLS 1.3 KEM groups in all policies are in the global list of all supported KEM groups */
             for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
                 const struct s2n_kem_group *kem_group = security_policy->kem_preferences->tls13_kem_groups[i];
 
                 bool kem_group_is_supported = false;
-                for (size_t j = 0; j < S2N_SUPPORTED_KEM_GROUPS_COUNT; j++) {
+                for (size_t j = 0; j < S2N_KEM_GROUPS_COUNT; j++) {
                     if (kem_group->iana_id == ALL_SUPPORTED_KEM_GROUPS[j]->iana_id) {
                         kem_group_is_supported = true;
                         break;

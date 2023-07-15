@@ -20,14 +20,14 @@ const struct s2n_kem *pq_kems_r3_2021_05[] = {
     &s2n_kyber_512_r3,
 };
 
-const struct s2n_kem_group *pq_kem_groups_r3_2021_05[] = {
+struct s2n_kem_group *pq_kem_groups_r3_2021_05[] = {
 #if EVP_APIS_SUPPORTED
     &s2n_x25519_kyber_512_r3,
 #endif
     &s2n_secp256r1_kyber_512_r3,
 };
 
-const struct s2n_kem_group *pq_kem_groups_r3_2023_06[] = {
+struct s2n_kem_group *pq_kem_groups_r3_2023_06[] = {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     &s2n_secp256r1_kyber_768_r3,
     #if EVP_APIS_SUPPORTED
