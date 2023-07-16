@@ -19,9 +19,12 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
 
-S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
+#if defined(S2N_KTLS_SUPPORTED)
 S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
-        struct s2n_key_material *key_material, struct s2n_tls12_crypto_info_aes_gcm_128 *crypto_info, int *tls_mode);
+        struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info);
+#endif
+S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
+S2N_RESULT s2n_ktls_retrieve_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_mode);
 
 S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn)
 {
@@ -128,18 +131,19 @@ int main(int argc, char **argv)
             /* negotiate */
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
-            EXPECT_NOT_NULL(server_conn->send);
-            EXPECT_NOT_NULL(server_conn->recv);
+
+            uint8_t io_ctx = 0;
+            uint8_t io_buf[3] = { 0 };
 
             /* enable kTLS send */
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
             EXPECT_TRUE(server_conn->ktls_send_enabled);
-            EXPECT_NULL(server_conn->send);
+            EXPECT_FAILURE_WITH_ERRNO(server_conn->send(&io_ctx, io_buf, 0), S2N_ERR_IO);
 
             /* enable kTLS recv */
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
             EXPECT_TRUE(server_conn->ktls_recv_enabled);
-            EXPECT_NULL(server_conn->recv);
+            EXPECT_FAILURE_WITH_ERRNO(server_conn->recv(&io_ctx, io_buf, 0), S2N_ERR_IO);
 
             EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         }
@@ -149,16 +153,12 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
-            EXPECT_NOT_NULL(server_conn->send);
-            EXPECT_NOT_NULL(server_conn->recv);
 
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
             EXPECT_TRUE(server_conn->ktls_send_enabled);
-            EXPECT_NULL(server_conn->send);
 
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
             EXPECT_TRUE(server_conn->ktls_recv_enabled);
-            EXPECT_NULL(server_conn->recv);
         };
 
         /* Noop if kTLS is already enabled */
@@ -311,31 +311,39 @@ int main(int argc, char **argv)
         POSIX_ENSURE_EQ(key_material.client_key.size, S2N_TLS_AES_128_GCM_KEY_LEN);
         POSIX_ENSURE_EQ(key_material.server_key.size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-        int tls_tx_rx_mode = 0;
-        struct s2n_tls12_crypto_info_aes_gcm_128 crypto_info = { 0 };
+#if defined(S2N_KTLS_SUPPORTED)
+        struct tls12_crypto_info_aes_gcm_128 crypto_info = { 0 };
 
         int ktls_mode = S2N_KTLS_MODE_SEND;
         /* server should send with its own keys */
-        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info, &tls_tx_rx_mode));
+        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info));
         EXPECT_EQUAL(memcmp(key_material.server_key.data, crypto_info.key, key_material.server_key.size), 0);
-        EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_TX);
         /* client should send with its own keys */
-        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(client_conn, ktls_mode, &key_material, &crypto_info, &tls_tx_rx_mode));
-        EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_TX);
+        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(client_conn, ktls_mode, &key_material, &crypto_info));
         EXPECT_EQUAL(memcmp(key_material.client_key.data, crypto_info.key, key_material.client_key.size), 0);
 
         ktls_mode = S2N_KTLS_MODE_RECV;
         /* server should recv with its peers keys */
-        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info, &tls_tx_rx_mode));
-        EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_RX);
+        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info));
         EXPECT_EQUAL(memcmp(key_material.client_key.data, crypto_info.key, key_material.client_key.size), 0);
         /* client should recv with its peers keys */
-        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(client_conn, ktls_mode, &key_material, &crypto_info, &tls_tx_rx_mode));
-        EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_RX);
+        EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(client_conn, ktls_mode, &key_material, &crypto_info));
         EXPECT_EQUAL(memcmp(key_material.server_key.data, crypto_info.key, key_material.server_key.size), 0);
+#endif
 
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     };
+
+    /* Test s2n_ktls_retrieve_io_mode */
+    {
+        int tls_tx_rx_mode = 0;
+
+        EXPECT_OK(s2n_ktls_retrieve_io_mode(S2N_KTLS_MODE_SEND, &tls_tx_rx_mode));
+        EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_TX);
+
+        EXPECT_OK(s2n_ktls_retrieve_io_mode(S2N_KTLS_MODE_RECV, &tls_tx_rx_mode));
+        EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_RX);
+    }
 
     END_TEST();
 }
