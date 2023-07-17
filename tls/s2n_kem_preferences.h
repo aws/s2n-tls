@@ -43,11 +43,13 @@ extern const struct s2n_kem *pq_kems_r3_2021_05[];
 
 extern struct s2n_kem_group *pq_kem_groups_r3_2021_05[];
 extern struct s2n_kem_group *pq_kem_groups_r3_2023_06[];
+extern struct s2n_kem_group *pq_kem_groups_all[];
 
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2023_01;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_06;
 extern const struct s2n_kem_preferences kem_preferences_all;
+extern const struct s2n_kem_preferences kem_preferences_tls13_test_all ;
 extern const struct s2n_kem_preferences kem_preferences_null;
 
 bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,

@@ -58,7 +58,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    EXPECT_TRUE(s2n_array_len(ALL_SUPPORTED_KEM_GROUPS) == S2N_KEM_GROUPS_COUNT);
+    EXPECT_TRUE(s2n_array_len(kem_preferences_tls13_test_all.tls13_kem_groups) == kem_preferences_tls13_test_all.tls13_kem_group_count);
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
@@ -88,8 +88,8 @@ int main(int argc, char **argv)
                 const struct s2n_kem_group *kem_group = security_policy->kem_preferences->tls13_kem_groups[i];
 
                 bool kem_group_is_supported = false;
-                for (size_t j = 0; j < S2N_KEM_GROUPS_COUNT; j++) {
-                    if (kem_group->iana_id == ALL_SUPPORTED_KEM_GROUPS[j]->iana_id) {
+                for (size_t j = 0; j < kem_preferences_tls13_test_all.tls13_kem_group_count; j++) {
+                    if (kem_group->iana_id == kem_preferences_tls13_test_all.tls13_kem_groups[j]->iana_id) {
                         kem_group_is_supported = true;
                         break;
                     }
@@ -980,7 +980,7 @@ int main(int argc, char **argv)
                     .kem_count = 0,
                     .kems = NULL,
                     .tls13_kem_group_count = 0,
-                    .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
+                    .tls13_kem_groups = kem_preferences_tls13_test_all.tls13_kem_groups,
             },
         };
 

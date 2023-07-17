@@ -75,6 +75,14 @@ const struct s2n_kem_preferences kem_preferences_all = {
     .tls13_pq_hybrid_draft_revision = 5
 };
 
+const struct s2n_kem_preferences kem_preferences_tls13_test_all = {
+    .kem_count = 0,
+    .kems = NULL,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2023_06),
+    .tls13_kem_groups = pq_kem_groups_r3_2023_06,
+    .tls13_pq_hybrid_draft_revision = 5
+};
+
 const struct s2n_kem_preferences kem_preferences_null = {
     .kem_count = 0,
     .kems = NULL,

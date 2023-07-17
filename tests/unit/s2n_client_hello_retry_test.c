@@ -168,24 +168,10 @@ int main(int argc, char **argv)
         };
 
         {
-            const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_kyber_512_r3,
-#if EVP_APIS_SUPPORTED
-                &s2n_x25519_kyber_512_r3,
-#endif
-            };
-
-            const struct s2n_kem_preferences test_kem_prefs = {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(test_kem_groups),
-                .tls13_kem_groups = test_kem_groups,
-            };
-
             const struct s2n_security_policy test_security_policy = {
                 .minimum_protocol_version = S2N_SSLv3,
                 .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &test_kem_prefs,
+                .kem_preferences = &kem_preferences_tls13_test_all,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
             };

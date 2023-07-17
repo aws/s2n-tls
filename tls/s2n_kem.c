@@ -199,7 +199,7 @@ struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
     .kem = &s2n_kyber_768_r3,
 };
 
-struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT] = {
+struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_secp256r1_kyber_512_r3,
     &s2n_x25519_kyber_512_r3,
     &s2n_secp256r1_kyber_768_r3,
@@ -491,10 +491,20 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 
 void s2n_kem_init()
 {
+    uint8_t supported_count = 0;
     for (size_t i = 0; i < s2n_array_len(ALL_SUPPORTED_KEM_GROUPS); i++) {
         struct s2n_kem_group *group = ALL_SUPPORTED_KEM_GROUPS[i];
-        group->available &= s2n_pq_is_enabled();
-        group->available &= (strcmp(group->kem->name, "kyber512r3") != 0 && s2n_libcrypto_supports_kyber());
-        group->available &= (strcmp(group->curve->name, "x25519") == 0 && s2n_is_evp_apis_supported());
+        group->available = s2n_pq_is_enabled();
+        /* Kyber758+ requires S2N_LIBCRYPTO_SUPPORTS_KYBER */
+        if (strcmp(group->kem->name, "kyber512r3") != 0) {
+            group->available &= s2n_libcrypto_supports_kyber();
+        }
+        /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
+        if (strcmp(group->curve->name, "x25519") == 0) {
+            group->available &= s2n_is_evp_apis_supported();
+        }
+        if (group->available) {
+            supported_count++;
+        }
     };
 }

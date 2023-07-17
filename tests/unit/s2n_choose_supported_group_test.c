@@ -141,22 +141,11 @@ int main()
 
     /* Test for PQ */
     {
-        const struct s2n_kem_group *test_kem_groups[] = {
-            &s2n_secp256r1_kyber_512_r3,
-#if EVP_APIS_SUPPORTED
-            &s2n_x25519_kyber_512_r3,
-#endif
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
-            &s2n_secp384r1_kyber_768_r3,
-            &s2n_secp521r1_kyber_1024_r3,
-#endif
-        };
-
         const struct s2n_kem_preferences test_kem_prefs = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(test_kem_groups),
-            .tls13_kem_groups = test_kem_groups,
+            .tls13_kem_group_count = kem_preferences_tls13_test_all.tls13_kem_group_count,
+            .tls13_kem_groups = kem_preferences_tls13_test_all.tls13_kem_groups,
         };
 
         const struct s2n_security_policy test_pq_security_policy = {

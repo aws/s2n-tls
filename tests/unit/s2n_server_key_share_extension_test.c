@@ -538,8 +538,8 @@ int main(int argc, char **argv)
         const struct s2n_kem_preferences test_all_supported_kem_prefs = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = S2N_KEM_GROUPS_COUNT,
-            .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
+            .tls13_kem_group_count = kem_preferences_tls13_test_all.tls13_kem_group_count,
+            .tls13_kem_groups = kem_preferences_tls13_test_all.tls13_kem_groups,
             .tls13_pq_hybrid_draft_revision = 0
         };
 
