@@ -46,8 +46,8 @@ int main()
         const struct s2n_kem_preferences kem_prefs_all = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = kem_preferences_tls13_test_all.tls13_kem_groups,
-            .tls13_kem_groups = kem_preferences_tls13_test_all.tls13_kem_groups,
+            .tls13_kem_group_count = kem_preferences_all.tls13_kem_group_count,
+            .tls13_kem_groups = kem_preferences_all.tls13_kem_groups,
             .tls13_pq_hybrid_draft_revision = draft_revision
         };
 

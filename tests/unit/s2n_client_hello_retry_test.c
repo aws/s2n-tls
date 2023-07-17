@@ -171,7 +171,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy test_security_policy = {
                 .minimum_protocol_version = S2N_SSLv3,
                 .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &kem_preferences_tls13_test_all,
+                .kem_preferences = &kem_preferences_all,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
             };

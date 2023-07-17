@@ -42,6 +42,7 @@ struct s2n_kem_group *pq_kem_groups_r3_2023_06[] = {
 #endif
 };
 
+
 const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05 = {
     .kem_count = s2n_array_len(pq_kems_r3_2021_05),
     .kems = pq_kems_r3_2021_05,
@@ -75,14 +76,6 @@ const struct s2n_kem_preferences kem_preferences_all = {
     .tls13_pq_hybrid_draft_revision = 5
 };
 
-const struct s2n_kem_preferences kem_preferences_tls13_test_all = {
-    .kem_count = 0,
-    .kems = NULL,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2023_06),
-    .tls13_kem_groups = pq_kem_groups_r3_2023_06,
-    .tls13_pq_hybrid_draft_revision = 5
-};
-
 const struct s2n_kem_preferences kem_preferences_null = {
     .kem_count = 0,
     .kems = NULL,
@@ -91,7 +84,7 @@ const struct s2n_kem_preferences kem_preferences_null = {
     .tls13_pq_hybrid_draft_revision = 0
 };
 
-/* Determines if query_iana_id corresponds to a tls13_kem_group for these KEM preferences. */
+/* Determines if query_iana_id corresponds to an available tls13_kem_group for these KEM preferences. */
 bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,
         uint16_t query_iana_id)
 {
@@ -100,7 +93,7 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
     }
 
     for (size_t i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
-        if (query_iana_id == kem_preferences->tls13_kem_groups[i]->iana_id) {
+        if (query_iana_id == kem_preferences->tls13_kem_groups[i]->iana_id && kem_preferences->tls13_kem_groups[i]->available) {
             return true;
         }
     }

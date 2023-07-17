@@ -82,14 +82,11 @@ int main()
         /* Define various PQ security policies to test different configurations */
 
         /* Kyber */
-        const struct s2n_kem_group *test_kem_groups_kyber[] = {
-            &s2n_secp256r1_kyber_512_r3,
-        };
         const struct s2n_kem_preferences test_kem_prefs_kyber = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(test_kem_groups_kyber),
-            .tls13_kem_groups = test_kem_groups_kyber,
+            .tls13_kem_group_count = kem_preferences_all.tls13_kem_group_count,
+            .tls13_kem_groups = kem_preferences_all.tls13_kem_groups,
         };
         const struct s2n_security_policy test_pq_security_policy_kyber = {
             .minimum_protocol_version = S2N_SSLv3,
@@ -188,9 +185,12 @@ int main()
 
             };
             /* Expected KEM group to be negotiated - corresponds to test_policy_overrides array */
-            const struct s2n_kem_group *expected_negotiated_kem_group[NUM_PQ_TEST_POLICY_OVERRIDES] = {
+            struct s2n_kem_group *expected_negotiated_kem_group[NUM_PQ_TEST_POLICY_OVERRIDES] = {
                 &s2n_secp256r1_kyber_512_r3,
             };
+            if (s2n_libcrypto_supports_kyber()) {
+                expected_negotiated_kem_group[0] = &s2n_secp256r1_kyber_768_r3;
+            }
 
             for (size_t i = 0; i < NUM_PQ_TEST_POLICY_OVERRIDES; i++) {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
