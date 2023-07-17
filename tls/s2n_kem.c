@@ -491,7 +491,6 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 
 void s2n_kem_init()
 {
-    uint8_t supported_count = 0;
     for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
         struct s2n_kem_group *group = ALL_SUPPORTED_KEM_GROUPS[i];
         group->available = s2n_pq_is_enabled();
@@ -505,9 +504,6 @@ void s2n_kem_init()
         /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
         if (group->curve && group->curve->name && strcmp(group->curve->name, "x25519") == 0) {
             group->available &= s2n_is_evp_apis_supported();
-        }
-        if (group->available) {
-            supported_count++;
         }
     };
 }

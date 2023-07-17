@@ -232,7 +232,7 @@ int main()
      * array, the supported_groups extension won't get sent and the handshake won't complete as expected. */
 
     /* Kyber */
-    const struct s2n_kem_group *kyber_test_groups[] = {
+    struct s2n_kem_group *kyber_test_groups[] = {
 #if EVP_APIS_SUPPORTED
         &s2n_x25519_kyber_512_r3,
 #endif

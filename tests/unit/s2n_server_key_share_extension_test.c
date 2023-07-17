@@ -512,7 +512,7 @@ int main(int argc, char **argv)
 
     {
         /* KEM groups with Test Vectors defined in /tests/unit/kats/tls13_server_hybrid_key_share_recv.kat */
-        const struct s2n_kem_group *test_kem_groups[] = {
+        struct s2n_kem_group *test_kem_groups[] = {
             &s2n_secp256r1_kyber_512_r3,
 #if EVP_APIS_SUPPORTED
             &s2n_x25519_kyber_512_r3,
@@ -547,26 +547,6 @@ int main(int argc, char **argv)
             .minimum_protocol_version = S2N_SSLv3,
             .cipher_preferences = &cipher_preferences_test_all_tls13,
             .kem_preferences = &test_all_supported_kem_prefs,
-            .signature_preferences = &s2n_signature_preferences_20200207,
-            .ecc_preferences = &s2n_ecc_preferences_20200310,
-        };
-
-        const struct s2n_kem_group *kem_groups_kyber[] = {
-            &s2n_secp256r1_kyber_512_r3,
-        };
-
-        const struct s2n_kem_preferences kem_prefs_kyber = {
-            .kem_count = 0,
-            .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(kem_groups_kyber),
-            .tls13_kem_groups = kem_groups_kyber,
-            .tls13_pq_hybrid_draft_revision = 0
-        };
-
-        const struct s2n_security_policy security_policy_kyber = {
-            .minimum_protocol_version = S2N_SSLv3,
-            .cipher_preferences = &cipher_preferences_test_all_tls13,
-            .kem_preferences = &kem_prefs_kyber,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
@@ -802,7 +782,7 @@ int main(int argc, char **argv)
             }
 
             if (s2n_pq_is_enabled()) {
-                conn->security_policy_override = &security_policy_kyber;
+                conn->security_policy_override = &test_all_supported_kems_security_policy;
 
                 EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
                 conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r3;
