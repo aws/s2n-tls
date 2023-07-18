@@ -45,10 +45,10 @@ Because these benches take a longer time to generate (>30 min), we include the r
 Notes: 
 - Two sets of parameters for the handshake couldn't be benched before 1.3.40, since security policies that negotiated those policies as their top choice did not exist before then.
 - There is no data from 1.3.30 to 1.3.37 because those versions have a dependency issue that cause the Rust bindings not to build. However, there is data before and after that period, so the performance for those versions can be inferred via interpolation.
-- The improvement in the throughput in 1.3.28 was most likely caused by the addition of building the Rust bindings with LTO by default. 
+- The improvement in throughput in 1.3.28 was most likely caused by the addition of LTO to the default Rust bindings build. 
 - Since the benches are run over a long time, noise on the machine can cause variability, as seen in the throughput graph.
-  - The variability can be seen with throughput especially because it is calculated as the inverse of time taken.
+- The variability can be seen with throughput especially because it is calculated as the inverse of time taken.
 
-![historical-perf-handshake](https://github.com/tinzh/s2n-tls/assets/76919968/cf8bd2c1-3988-4762-8b24-5eb063faff29)
+![historical-perf-handshake](https://github.com/tinzh/s2n-tls/assets/76919968/b6448634-e6d1-4724-ab91-7efc26485274)
 
-![historical-perf-throughput](https://github.com/tinzh/s2n-tls/assets/76919968/baebb094-a7de-43f8-8088-c7b1adab11cd)
+![historical-perf-throughput](https://github.com/tinzh/s2n-tls/assets/76919968/3bc069f6-abe8-46e6-97a6-1bf28ac59f28)
