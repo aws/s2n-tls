@@ -502,8 +502,12 @@ void s2n_kem_init()
             group->available &= s2n_libcrypto_supports_kyber();
         }
         /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
-        if (group->curve && group->curve->name && strcmp(group->curve->name, "x25519") == 0) {
+        if (group->curve == NULL || group->curve->name == NULL) {
+            group->available = false;
+        } else if (strcmp(group->curve->name, "x25519") == 0) {
             group->available &= s2n_is_evp_apis_supported();
         }
-    };
+        /*printf("BOOFAR\t%s\t%s\n", group->name, group->curve ? group->curve->name : "NO CURVE PTR!");*/
+    }
+    /*printf("---\n");*/
 }

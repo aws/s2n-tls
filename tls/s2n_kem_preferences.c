@@ -119,6 +119,10 @@ int s2n_kem_groups_available_count(const struct s2n_kem_preferences *kem_prefere
         if (kem_preferences->tls13_kem_groups[i]->available) {
             count++;
         }
+        /*printf("FOOBAR\t%d\t%s\t%s\n",*/
+                /*kem_preferences->tls13_kem_groups[i]->available ? 1 : 0,*/
+                /*kem_preferences->tls13_kem_groups[i]->name, "");*/
     }
+        /*printf("---\n");*/
     return count;
 }
