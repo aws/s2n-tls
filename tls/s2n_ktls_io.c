@@ -87,13 +87,7 @@ S2N_RESULT s2n_ktls_send_msg(
     RESULT_ENSURE_REF(blocked);
     RESULT_ENSURE_REF(send_len);
 
-    /* Init msghdr
-     *
-     * The control message buffer must be zero-initialized in order for the
-     * CMSG_NXTHDR() macro to work correctly. However since we dont use
-     * CMSG_NXTHDR for kTLS and this code path is performance sensitive we skip
-     * this step.
-     */
+    /* Init msghdr */
     struct msghdr msg = { 0 };
 
 #if S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
@@ -105,7 +99,6 @@ S2N_RESULT s2n_ktls_send_msg(
         char buf[CMSG_SPACE(sizeof(uint8_t))];
         struct cmsghdr _align;
     } control_msg = { 0 };
-
     msg.msg_control = control_msg.buf;
     msg.msg_controllen = sizeof(control_msg.buf);
 #endif
@@ -203,14 +196,6 @@ S2N_RESULT s2n_ktls_recv_msg(struct s2n_connection *conn, int sock, uint8_t *buf
         char buf[CMSG_SPACE(sizeof(uint8_t)) * 4];
         struct cmsghdr _align;
     } control_msg = { 0 };
-
-    /* The control message buffer must be zero-initialized in order for the
-     * CMSG_NXTHDR() macro to work correctly.
-     *
-     * https://man7.org/tlpi/code/online/dist/sockets/scm_cred_send.c.html
-     */
-    RESULT_CHECKED_MEMSET(&control_msg.buf, 0, sizeof(control_msg.buf));
-
     msg.msg_control = control_msg.buf;
     msg.msg_controllen = sizeof(control_msg.buf);
 #endif

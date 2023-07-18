@@ -66,25 +66,35 @@ int main(int argc, char **argv)
             /* init send msg */
             struct msghdr send_msg = { 0 };
             struct iovec send_msg_iov = { 0 };
-            send_msg_iov.iov_base = (void *) (uintptr_t) test_data;
-            send_msg_iov.iov_len = to_send;
+
+            /* send msg */
+            ssize_t total_sent_len = 0;
+            while (total_sent_len < to_send) {
+                send_msg_iov.iov_base = (void *) (uintptr_t) test_data + total_sent_len;
+                send_msg_iov.iov_len = to_send - total_sent_len;
+                ssize_t sent_len = 0;
+                EXPECT_OK(s2n_ktls_send_msg_impl(io_pair.client, &send_msg, &send_msg_iov, 1, &blocked, &sent_len));
+                total_sent_len += sent_len;
+            }
+            EXPECT_EQUAL(total_sent_len, to_send);
+
             /* init rev msg */
             uint8_t recv_buffer[TEST_MAX_DATA_LEN] = { 0 };
             struct msghdr recv_msg = { 0 };
             struct iovec recv_msg_iov = { 0 };
-            recv_msg_iov.iov_base = recv_buffer;
-            recv_msg_iov.iov_len = to_send;
-
-            /* send msg */
-            ssize_t sent_len = 0;
-            EXPECT_OK(s2n_ktls_send_msg_impl(io_pair.client, &send_msg, &send_msg_iov, 1, &blocked, &sent_len));
-            EXPECT_EQUAL(sent_len, to_send);
 
             /* recv msg */
-            ssize_t recv_len = 0;
-            EXPECT_OK(s2n_ktls_recv_msg_impl(conn, io_pair.server, &recv_msg, &recv_msg_iov, &blocked, &recv_len));
-            EXPECT_EQUAL(recv_len, to_send);
-            EXPECT_EQUAL(memcmp(test_data, recv_buffer, recv_len), 0);
+            ssize_t total_recv_len = 0;
+            while (total_recv_len < to_send) {
+                recv_msg_iov.iov_base = recv_buffer + total_recv_len;
+                recv_msg_iov.iov_len = to_send - total_recv_len;
+                ssize_t recv_len = 0;
+                EXPECT_OK(s2n_ktls_recv_msg_impl(conn, io_pair.server, &recv_msg, &recv_msg_iov, &blocked, &recv_len));
+                EXPECT_EQUAL(recv_len, to_send);
+                total_recv_len += recv_len;
+            }
+
+            EXPECT_EQUAL(memcmp(test_data, recv_buffer, total_recv_len), 0);
         }
 
         /* partial reads */
