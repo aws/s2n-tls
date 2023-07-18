@@ -66,7 +66,7 @@ struct s2n_kem_group {
     uint16_t iana_id;
     const struct s2n_ecc_named_curve *curve;
     const struct s2n_kem *kem;
-    bool available : true;
+    bool available; /* defaults to false per C99 spec */
 };
 
 struct s2n_kem_group_params {
@@ -80,7 +80,7 @@ extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
 
 #define S2N_KEM_GROUPS_COUNT 6
-extern struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
+extern struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[];
 
 /* NIST curve KEM Groups */
 extern struct s2n_kem_group s2n_secp256r1_kyber_512_r3;

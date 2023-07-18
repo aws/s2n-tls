@@ -839,6 +839,9 @@ int main(int argc, char **argv)
 
                     struct s2n_kem_group_params *server_params = &conn->kex_params.server_kem_group_params;
                     const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
+                    if (!kem_group->available) {
+                        continue;
+                    }
                     server_params->kem_group = kem_group;
                     server_params->kem_params.kem = kem_group->kem;
                     server_params->ecc_params.negotiated_curve = kem_group->curve;

@@ -25,8 +25,10 @@ int main()
 {
     BEGIN_TEST();
 
-/* TODO [childw] Need at least two KEM's available to test fallback, add guard here */
-#if (S2N_KEM_GROUPS_COUNT > 1)
+    /* Need at least two KEM's available to test fallback */
+    if (s2n_kem_groups_available_count(&kem_preferences_all) < 2) {
+        return;
+    }
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
@@ -428,7 +430,6 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
     };
-#endif
     END_TEST();
     return 0;
 }

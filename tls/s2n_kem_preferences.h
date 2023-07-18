@@ -54,3 +54,5 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
         uint16_t query_iana_id);
 
 bool s2n_tls13_client_must_use_hybrid_kem_length_prefix(const struct s2n_kem_preferences *kem_pref);
+
+int s2n_kem_groups_available_count(const struct s2n_kem_preferences *kem_preferences);

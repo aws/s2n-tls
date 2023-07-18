@@ -223,7 +223,7 @@ int main()
 
                     /* Test sending key share in response to HRR */
                     /* Need at least two KEM's to test ClientHelloRetry fallback */
-                    if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
+                    if (s2n_kem_groups_available_count(test_security_policy.kem_preferences) >= 2) {
                         struct s2n_connection *conn;
                         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                         conn->security_policy_override = &test_security_policy;

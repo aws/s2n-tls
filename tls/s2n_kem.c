@@ -491,7 +491,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 
 void s2n_kem_init()
 {
-    for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
+    for (size_t i = 0; i < s2n_array_len(ALL_SUPPORTED_KEM_GROUPS); i++) {
         struct s2n_kem_group *group = ALL_SUPPORTED_KEM_GROUPS[i];
         group->available = s2n_pq_is_enabled();
         if (!group->available) {
