@@ -27,7 +27,10 @@ sed -i 's|ring = .*|ring = { package = "aws-lc-rs" }|' Cargo.toml
 # tell Cargo to use custom rustls
 cd $bench_dir
 mkdir -p .cargo
+# if .cargo/config.toml doesn't already have an [patch.crates-io] header, add it
+if [[ ! -f .cargo/config.toml || "$(cat .cargo/config.toml)" != *"[patch.crates-io]"* ]]; then
 echo "[patch.crates-io]
 rustls = { path = \"$rustls_dir\" }" >> .cargo/config.toml
+fi
 
 popd > /dev/null
