@@ -3,8 +3,8 @@
 
 use plotters::{
     prelude::{
-        ChartBuilder, ErrorBar, IntoDrawingArea, LabelAreaPosition, Rectangle, SVGBackend,
-        SeriesLabelPosition,
+        BindKeyPoints, ChartBuilder, ErrorBar, IntoDrawingArea, LabelAreaPosition, Rectangle,
+        SVGBackend, SeriesLabelPosition,
     },
     series::LineSeries,
     style::{AsRelative, Color, IntoFont, Palette, Palette99, RGBAColor, BLACK, WHITE},
@@ -167,7 +167,8 @@ fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
         .set_label_area_size(LabelAreaPosition::Bottom, (11).percent())
         .build_cartesian_2d(
             // bounds for plot
-            0..(x_max + 1),
+            // plot every other x coord starting from 1 (not 0 which is default)
+            (0..(x_max + 1)).with_key_points((1..(x_max + 1)).step_by(2).collect()),
             0.0..(1.2 * y_max),
         )
         .unwrap();
@@ -221,7 +222,7 @@ fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
             color.stroke_width(2),
         ))
         .unwrap()
-        .label(bench_name)
+        .label(&data_series.name)
         .legend(move |(x, y)| Rectangle::new([(x, y - 5), (x + 10, y + 5)], color.filled()));
     }
 
