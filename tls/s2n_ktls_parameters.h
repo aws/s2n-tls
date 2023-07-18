@@ -32,9 +32,10 @@
     #define S2N_SOL_TCP 6  /* TCP level */
     #define S2N_SOL_TLS 282
 
-    /* Only TLS_TX is defined in the first version of kTLS. Calling setsockopt
-     * with TLS_RX is a noop and non destructive. Define both TX and RX to keep
-     * the definitions in the same place and avoid extra ifdefs.
+    /* We typically only define values not available in the linux uapi. However,
+     * only TLS_TX is defined in the first version of kTLS. Since calling setsockopt
+     * with TLS_RX fails and is non destructive, define both TX and RX to keep the
+     * definitions co-located and avoid extra ifdefs.
      * https://github.com/torvalds/linux/blob/3c4d7559159bfe1e3b94df3a657b2cda3a34e218/include/uapi/linux/tls.h#L43
      */
     #define S2N_TLS_TX 1

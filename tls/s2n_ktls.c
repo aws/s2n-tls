@@ -29,12 +29,12 @@ bool s2n_ktls_is_supported_on_platform()
 #endif
 }
 
-int s2n_err_read(void *io_context, uint8_t *buf, uint32_t len)
+int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     POSIX_BAIL(S2N_ERR_IO);
 }
 
-int s2n_err_write(void *io_context, const uint8_t *buf, uint32_t len)
+int s2n_ktls_disabled_write(void *io_context, const uint8_t *buf, uint32_t len)
 {
     POSIX_BAIL(S2N_ERR_IO);
 }
@@ -87,7 +87,7 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd)
+S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(fd);
@@ -101,7 +101,7 @@ S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_kt
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_retrieve_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_mode)
+S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_mode)
 {
     RESULT_ENSURE_REF(tls_tx_rx_mode);
 
@@ -124,15 +124,16 @@ S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n
     RESULT_ENSURE_REF(key_material);
     RESULT_ENSURE_REF(crypto_info);
 
-    /* Only AES_128_GCM for TLS 1.2 is supported at the moment.
-     *
-     * TODO once other ciphers and protocols are supported, check the
-     * negotiated cipher (AES_128_GCM). This would involve adding a unique
-     * identifier to s2n_cipher.
-     */
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
+    RESULT_ENSURE_REF(cipher);
+
+    RESULT_ENSURE(cipher == &s2n_aes128_gcm, S2N_ERR_KTLS_UNSUPPORTED_CONN);
     RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
-    crypto_info->info.version = TLS_1_2_VERSION;
     crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_128;
+    crypto_info->info.version = TLS_1_2_VERSION;
 
     /* set values based on mode of operation */
     struct s2n_blob *key = NULL;
@@ -176,18 +177,12 @@ static S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, s2n_ktls_mode k
     RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
 
     int fd = 0;
-    RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
+    RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, ktls_mode, &fd));
 
-    /* Only AES_128_GCM for TLS 1.2 is supported at the moment.
-     *
-     * TODO once other ciphers and protocols are supported, check the
-     * negotiated cipher (AES_128_GCM). This would involve adding a unique
-     * identifier to s2n_cipher.
-     */
-    RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
     int tls_tx_rx_mode = 0;
-    RESULT_GUARD(s2n_ktls_retrieve_io_mode(ktls_mode, &tls_tx_rx_mode));
+    RESULT_GUARD(s2n_ktls_get_io_mode(ktls_mode, &tls_tx_rx_mode));
 #if defined(S2N_KTLS_SUPPORTED)
+    /* Only AES_128_GCM for TLS 1.2 is supported at the moment. */
     struct tls12_crypto_info_aes_gcm_128 crypto_info = { 0 };
     RESULT_GUARD(s2n_ktls_init_aes128_gcm_crypto_info(conn, ktls_mode, key_material, &crypto_info));
 
@@ -213,7 +208,7 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
     RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
 
     int fd = 0;
-    RESULT_GUARD(s2n_ktls_retrieve_file_descriptor(conn, ktls_mode, &fd));
+    RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, ktls_mode, &fd));
 
     /* Calls to setsockopt require a real socket, which is not used in unit tests. */
     if (s2n_in_unit_test()) {
@@ -275,7 +270,7 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
 
     conn->ktls_send_enabled = true;
     /* kTLS now handles I/O for the connection */
-    conn->send = s2n_err_write;
+    conn->send = s2n_ktls_disabled_write;
 
     return S2N_SUCCESS;
 }
@@ -298,7 +293,7 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
 
     conn->ktls_recv_enabled = true;
     /* kTLS now handles I/O for the connection */
-    conn->recv = s2n_err_read;
+    conn->recv = s2n_ktls_disabled_read;
 
     return S2N_SUCCESS;
 }

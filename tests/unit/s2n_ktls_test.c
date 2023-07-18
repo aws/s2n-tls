@@ -23,8 +23,8 @@
 S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info);
 #endif
-S2N_RESULT s2n_ktls_retrieve_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
-S2N_RESULT s2n_ktls_retrieve_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_mode);
+S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
+S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_mode);
 
 S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn)
 {
@@ -93,11 +93,11 @@ int main(int argc, char **argv)
         int fd_ret = 0;
 
         EXPECT_SUCCESS(s2n_connection_set_write_fd(server_conn, write_fd_orig));
-        EXPECT_OK(s2n_ktls_retrieve_file_descriptor(server_conn, S2N_KTLS_MODE_SEND, &fd_ret));
+        EXPECT_OK(s2n_ktls_get_file_descriptor(server_conn, S2N_KTLS_MODE_SEND, &fd_ret));
         EXPECT_EQUAL(write_fd_orig, fd_ret);
 
         EXPECT_SUCCESS(s2n_connection_set_read_fd(server_conn, read_fd_orig));
-        EXPECT_OK(s2n_ktls_retrieve_file_descriptor(server_conn, S2N_KTLS_MODE_RECV, &fd_ret));
+        EXPECT_OK(s2n_ktls_get_file_descriptor(server_conn, S2N_KTLS_MODE_RECV, &fd_ret));
         EXPECT_EQUAL(read_fd_orig, fd_ret);
     };
 
@@ -338,10 +338,10 @@ int main(int argc, char **argv)
     {
         int tls_tx_rx_mode = 0;
 
-        EXPECT_OK(s2n_ktls_retrieve_io_mode(S2N_KTLS_MODE_SEND, &tls_tx_rx_mode));
+        EXPECT_OK(s2n_ktls_get_io_mode(S2N_KTLS_MODE_SEND, &tls_tx_rx_mode));
         EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_TX);
 
-        EXPECT_OK(s2n_ktls_retrieve_io_mode(S2N_KTLS_MODE_RECV, &tls_tx_rx_mode));
+        EXPECT_OK(s2n_ktls_get_io_mode(S2N_KTLS_MODE_RECV, &tls_tx_rx_mode));
         EXPECT_EQUAL(tls_tx_rx_mode, S2N_TLS_RX);
     }
 
