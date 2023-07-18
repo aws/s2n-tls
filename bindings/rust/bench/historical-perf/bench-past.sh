@@ -33,14 +33,14 @@ git clone --quiet https://github.com/aws/s2n-tls
 cd s2n-tls/bindings/rust/
 copied_bindings_path="$(pwd)"
 
-# last tag we want is v1.3.16, get all tags from then
-# `git tag -l | sort -rV` gets list of sorted tags newest to oldest
+# get list of tags sorted newest to oldest
+sorted_tags="$(git tag -l | sort -rV)"
 
-# get the line number of v1.3.16
-line_num_last_tag=$(git tag -l | sort -rV | grep "v1.3.16" --line-number | head -n 1 | cut -d":" -f1)
+# last tag we want is v1.3.16, get line number of v1.3.16 in sorted_tags
+line_num_last_tag=$(echo "$sorted_tags" | grep "v1.3.16" --line-number | head -n 1 | cut -d":" -f1)
 
 # loop through all tags in order up to v1.3.16
-for tag in $(git tag -l | sort -rV | head -$line_num_last_tag)
+for tag in $(echo "$sorted_tags" | head -$line_num_last_tag)
 do
     (
         # go to s2n-tls/bindings/rust/ inside copied repo

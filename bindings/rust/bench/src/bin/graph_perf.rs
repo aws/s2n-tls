@@ -3,8 +3,8 @@
 
 use plotters::{
     prelude::{
-        BindKeyPoints, ChartBuilder, ErrorBar, IntoDrawingArea, LabelAreaPosition, Rectangle,
-        SVGBackend, SeriesLabelPosition,
+        ChartBuilder, ErrorBar, IntoDrawingArea, LabelAreaPosition, Rectangle, SVGBackend,
+        SeriesLabelPosition,
     },
     series::LineSeries,
     style::{AsRelative, Color, IntoFont, Palette, Palette99, RGBAColor, BLACK, WHITE},
@@ -17,43 +17,72 @@ use std::{
     path::Path,
 };
 
-/// Return (f64, f64) of (mean, standard error) from Criterion result JSON
-fn process_single_json(path: &Path) -> (f64, f64) {
-    let json_str = read_to_string(path).unwrap();
-    let json_value: Value = serde_json::from_str(json_str.as_str()).unwrap();
-    let means = json_value.get("mean").unwrap();
-    (
-        means.get("point_estimate").unwrap().as_f64().unwrap(),
-        means.get("standard_error").unwrap().as_f64().unwrap(),
-    )
+struct Stats {
+    mean: f64,
+    stderr: f64,
 }
 
-/// Vec of (version, mean, stderr) sorted by version for a given bench group
-type BenchGroupData = Vec<(Version, f64, f64)>;
+struct VersionDataPoint {
+    version: Version, // x coordinate
+    mean: f64,        // y coordinate
+    stderr: f64,      // y error bar
+}
 
-/// Get data from folder of Criterion json outputs, given directory of jsons
+struct VersionDataSeries {
+    name: String, // ex. throughput-AES_128_GCM_SHA256
+    data: Vec<VersionDataPoint>,
+}
+
+struct DataPoint {
+    x: i32,
+    y: f64,
+    y_bar: f64,
+}
+
+struct DataSeries {
+    name: String,
+    data: Vec<DataPoint>,
+}
+
+/// Get the relevant stats in a given JSON bench output
+fn process_single_json(path: &Path) -> Stats {
+    let json_str = read_to_string(path).unwrap();
+    let json_value: Value = serde_json::from_str(json_str.as_str()).unwrap();
+    let stats = json_value.get("mean").unwrap();
+    Stats {
+        mean: stats.get("point_estimate").unwrap().as_f64().unwrap(),
+        stderr: stats.get("standard_error").unwrap().as_f64().unwrap(),
+    }
+}
+
+/// Get data from directory of Criterion json outputs, given directory path
 /// Outputs a Vec of (version, mean, stderr) sorted by version
-fn parse_bench_group_data(path: &Path) -> BenchGroupData {
-    let mut data: BenchGroupData = read_dir(path)
+fn parse_bench_group_data(path: &Path) -> Vec<VersionDataPoint> {
+    let mut data: Vec<VersionDataPoint> = read_dir(path)
         .unwrap()
         .map(|dir_entry_res| {
             let path = dir_entry_res.unwrap().path();
-            let data = process_single_json(&path);
+            let stats = process_single_json(&path);
             let tag = path.file_stem().unwrap().to_str().unwrap();
             let version = Version::parse(&tag[1..]).unwrap();
-            (version, data.0, data.1)
+            VersionDataPoint {
+                version,
+                mean: stats.mean,
+                stderr: stats.stderr,
+            }
         })
         .collect();
-    data.sort_by(|(version1, _, _), (version2, _, _)| version1.cmp(version2));
+    data.sort_by(|data_point_1, data_point_2| data_point_1.version.cmp(&data_point_2.version));
     data
 }
 
 /// Gets data from all bench groups given a prefix (ex. "handshake") for the bench group names
-fn get_all_data(prefix: &str) -> Vec<(String, BenchGroupData)> {
+fn get_all_data(prefix: &str) -> Vec<VersionDataSeries> {
     read_dir("target/historical-perf")
         .unwrap()
         .map(|dir_entry_res| dir_entry_res.unwrap().path())
         .filter(|path| {
+            // get all paths starting with prefix
             path.file_name()
                 .unwrap()
                 .to_str()
@@ -61,46 +90,66 @@ fn get_all_data(prefix: &str) -> Vec<(String, BenchGroupData)> {
                 .starts_with(prefix)
         })
         .map(|path| {
-            (
-                path.file_name().unwrap().to_string_lossy().into_owned(),
-                parse_bench_group_data(&path),
-            )
+            // get data in each directory
+            VersionDataSeries {
+                name: path.file_name().unwrap().to_string_lossy().into_owned(),
+                data: parse_bench_group_data(&path),
+            }
         })
         .collect()
 }
 
-/// Plots given data with given chart parameters
-fn plot_bench_groups<F: Fn(&f64) -> String>(
-    data: Vec<(String, BenchGroupData)>,
+fn get_unique_versions(data: &[VersionDataSeries]) -> BTreeSet<Version> {
+    data.iter()
+        .flat_map(|data_series| {
+            data_series
+                .data
+                .iter()
+                .map(|version_data_point| version_data_point.version.clone())
+        })
+        .collect()
+}
+
+/// Converts all VersionDataSeries in version_data to DataSeries
+fn convert_to_data_series(
+    version_data: Vec<VersionDataSeries>,
+    version_to_x: &HashMap<&Version, i32>,
+) -> Vec<DataSeries> {
+    version_data
+        .into_iter()
+        .map(|version_data_series| DataSeries {
+            name: version_data_series.name,
+            data: version_data_series
+                .data
+                .into_iter()
+                .map(|version_data_point| DataPoint {
+                    // map VersionDataPoints to DataPoints
+                    x: version_to_x[&&version_data_point.version],
+                    y: version_data_point.mean,
+                    y_bar: version_data_point.stderr * 1.96,
+                })
+                .collect(),
+        })
+        .collect()
+}
+
+/// Plots given DataSeries with given chart parameters
+fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
+    data: &[DataSeries],
     bench_name: &str,
+    x_label_formatter: &F,
     y_label: &str,
-    y_label_formatter: F,
+    y_label_formatter: &G,
 ) {
-    // get all versions present in data
-    let mut versions = data
+    // get x_max and y_max for plotting range
+    let x_max = data
         .iter()
-        .flat_map(|(_, data)| data.iter().map(|(version, _, _)| version.clone()))
-        .collect::<BTreeSet<Version>>();
-
-    // fill in missing versions (1.3.15, 1.3.30-1.3.37)
-    versions.insert(Version::new(1, 3, 15));
-    versions.extend((30..38).map(|p| Version::new(1, 3, p)));
-
-    // get `versions` as Vec to index into it
-    let versions = versions.into_iter().collect::<Vec<Version>>();
-
-    // get the indices of all of the versions for plotting
-    let version_to_index = versions
+        .flat_map(|data_series| data_series.data.iter().map(|data_point| data_point.x))
+        .max_by(|a, b| a.partial_cmp(b).unwrap())
+        .unwrap();
+    let y_max = data
         .iter()
-        .enumerate()
-        .map(|(i, version)| (version, i))
-        .collect::<HashMap<_, _>>();
-    let num_versions = versions.len();
-
-    // get ymax for plotting range
-    let y_max = *data
-        .iter()
-        .flat_map(|(_, data)| data.iter().map(|(_, mean, _)| mean))
+        .flat_map(|data_series| data_series.data.iter().map(|data_point| data_point.y))
         .max_by(|a, b| a.partial_cmp(b).unwrap())
         .unwrap();
 
@@ -117,61 +166,62 @@ fn plot_bench_groups<F: Fn(&f64) -> String>(
         .set_label_area_size(LabelAreaPosition::Left, (17).percent()) // axes padding
         .set_label_area_size(LabelAreaPosition::Bottom, (11).percent())
         .build_cartesian_2d(
-            (0..num_versions).with_key_points((1..num_versions).step_by(2).collect()), // labels on every other version
-            0.0..(1.2 * y_max), // upper y bound on plot is 1.2 * y_max
+            // bounds for plot
+            0..(x_max + 1),
+            0.0..(1.2 * y_max),
         )
         .unwrap();
 
     let axis_label_style = ("sans-serif", 18).into_font();
 
     ctx.configure_mesh()
-        .light_line_style(RGBAColor(235, 235, 235, 1.0)) // change gridline color
+        .light_line_style(RGBAColor(235, 235, 235, 1.0)) // gridline color
         .bold_line_style(RGBAColor(225, 225, 225, 1.0))
         .x_desc("Version") // axis labels
-        .x_labels(num_versions)
+        .x_labels(20) // max number of labels
         .x_label_style(axis_label_style.clone())
-        .x_label_formatter(&|x| versions.get(*x).unwrap().to_string()) // change x coord (index of version in `versions`) to version string
+        .x_label_formatter(x_label_formatter)
         .y_desc(y_label)
-        .y_labels(5) // max 5 labels on y axis
-        .y_label_formatter(&y_label_formatter)
+        .y_labels(5)
+        .y_label_formatter(y_label_formatter)
         .y_label_style(axis_label_style)
         .draw()
         .unwrap();
 
-    // go through each bench group and plot them
-    for (i, (group_name, data)) in data.iter().enumerate() {
+    // go through each DataSeries and plot them
+    for (i, data_series) in data.iter().enumerate() {
         // remove data that returned error while benching
         // heuristic: times < 1% of y_max are invalid/had error
-        let filtered_data = data
+        let filtered_data = data_series
+            .data
             .iter()
-            .filter(|(_, y, _)| *y > 0.01 * y_max)
+            .filter(|data_point| data_point.y > 0.01 * y_max)
             .collect::<Vec<_>>();
 
         let color = Palette99::pick(i);
 
         // draw error bars
-        // x coord is index of version in `versions`
-        ctx.draw_series(filtered_data.iter().map(|(version, mean, stderr)| {
+        ctx.draw_series(filtered_data.iter().map(|data_point| {
             ErrorBar::new_vertical(
-                version_to_index[version],
-                *mean - *stderr,
-                *mean,
-                *mean + *stderr,
+                data_point.x,
+                data_point.y - data_point.y_bar,
+                data_point.y,
+                data_point.y + data_point.y_bar,
                 &color,
                 3,
             )
         }))
         .unwrap();
 
-        // draw lines
+        // draw lines with legend entry
         ctx.draw_series(LineSeries::new(
             filtered_data
                 .iter()
-                .map(|(version, mean, _stderr)| (version_to_index[version], *mean)),
+                .map(|data_point| (data_point.x, data_point.y)),
             color.stroke_width(2),
         ))
         .unwrap()
-        .label(group_name)
+        .label(bench_name)
         .legend(move |(x, y)| Rectangle::new([(x, y - 5), (x + 10, y + 5)], color.filled()));
     }
 
@@ -187,32 +237,69 @@ fn plot_bench_groups<F: Fn(&f64) -> String>(
 
 fn main() {
     let handshake_data = get_all_data("handshake");
-    let mut throughput_data = get_all_data("throughput");
+    let throughput_data = get_all_data("throughput");
 
-    // convert data from ms for transfer of x amount of data -> bytes/s throughput
+    // combine all versions present in handshake and throughput data
+    // also fill in missing version v1.3.15 and v1.3.30-v1.3.37
+    let versions = get_unique_versions(&handshake_data)
+        .into_iter()
+        .chain(get_unique_versions(&throughput_data).into_iter())
+        .chain((15..16).chain(30..38).map(|p| Version::new(1, 3, p)))
+        .collect::<BTreeSet<Version>>()
+        .into_iter()
+        .collect::<Vec<Version>>();
+
+    // map versions to x coordinates
+    let version_to_x = versions
+        .iter()
+        .enumerate()
+        .map(|(i, version)| (version, i as i32))
+        .collect::<HashMap<&Version, i32>>();
+
+    // convert from Vec<VersionDataSeries> to Vec<DataSeries> for plotting
+    let handshake_data: Vec<DataSeries> = convert_to_data_series(handshake_data, &version_to_x);
+    let mut throughput_data = convert_to_data_series(throughput_data, &version_to_x);
+
+    // convert data from ns to transfer of 100KB of data -> bytes/s throughput
     throughput_data = throughput_data
         .into_iter()
-        .map(|(group_name, data)| {
+        .map(|data_series| {
             const TRANSFER_SIZE: f64 = 1e5;
             const NANO_SIZE: f64 = 1e-9;
-            (
-                group_name,
-                data.into_iter()
-                    .map(|(version, mean, stderr)| {
-                        let mean_throughput = TRANSFER_SIZE / (mean * NANO_SIZE);
-                        let stderr_throughput =
-                            mean_throughput - TRANSFER_SIZE / ((mean + stderr) * NANO_SIZE);
-                        (version, mean_throughput, stderr_throughput) // change
+            DataSeries {
+                name: data_series.name,
+                data: data_series
+                    .data
+                    .into_iter()
+                    .map(|data_point| {
+                        let mean_throughput = TRANSFER_SIZE / (data_point.y * NANO_SIZE);
+                        let stderr_throughput = mean_throughput
+                            - TRANSFER_SIZE / ((data_point.y + data_point.y_bar) * NANO_SIZE);
+                        DataPoint {
+                            x: data_point.x,
+                            y: mean_throughput,
+                            y_bar: stderr_throughput,
+                        }
                     })
                     .collect(),
-            )
+            }
         })
         .collect();
 
-    plot_bench_groups(handshake_data, "handshake", "Time", |y| {
-        format!("{} ms", y / 1e6)
-    });
-    plot_bench_groups(throughput_data, "throughput", "Throughput", |y| {
-        format!("{} GB/s", y / 1e9)
-    });
+    let x_label_formatter = |x: &i32| format!("{}", versions[*x as usize]);
+
+    plot_data(
+        &handshake_data,
+        "handshake",
+        &x_label_formatter,
+        "Time",
+        &|y| format!("{} ms", y / 1e6),
+    );
+    plot_data(
+        &throughput_data,
+        "throughput",
+        &x_label_formatter,
+        "Throughput",
+        &|y| format!("{} GB/s", y / 1e9),
+    );
 }
