@@ -513,7 +513,6 @@ if (BUILD_TESTING)
     if (TSAN OR ASAN)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
     endif()
-
     if(TSAN)
         set(TSAN_SUPPRESSIONS_FILE ${CMAKE_SOURCE_DIR}/tests/.tsan_suppressions)
         if(NOT EXISTS ${TSAN_SUPPRESSIONS_FILE})

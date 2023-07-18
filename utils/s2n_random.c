@@ -34,15 +34,6 @@
  * - https://stackoverflow.com/a/5724485
  * - https://stackoverflow.com/a/5583764
  */
-#if defined(S2N_ADDRESS_SANITIZER)
-    /**
-     * Marks that a function should be ignored for address sanitizer jobs
-     */
-    #define ASAN_IGNORE __attribute__((no_address_safety_analysis))
-#else
-    #define ASAN_IGNORE
-#endif /* defined(S2N_ADDRESS_SANITIZER) */
-
 #ifndef _XOPEN_SOURCE
     #define _XOPEN_SOURCE 700
     #include <fcntl.h>

@@ -39,6 +39,15 @@
     #define FALL_THROUGH ((void) 0)
 #endif
 
+#if defined(S2N_ADDRESS_SANITIZER)
+    /**
+     * Marks that a function should be ignored for address sanitizer jobs
+     */
+    #define ASAN_IGNORE __attribute__((no_address_safety_analysis))
+#else
+    #define ASAN_IGNORE
+#endif /* defined(S2N_ADDRESS_SANITIZER) */
+
 int s2n_in_unit_test_set(bool is_unit);
 int s2n_in_integ_test_set(bool is_integ);
 bool s2n_in_unit_test();
