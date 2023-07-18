@@ -28,30 +28,38 @@ S2N_RESULT s2n_ktls_set_ancillary_data(struct msghdr *msg, uint8_t record_type);
 S2N_RESULT s2n_ktls_parse_ancillary_data(struct msghdr *msg, uint8_t *record_type);
 
 #define TEST_MAX_DATA_LEN 20000
-uint8_t TEST_SEND_RECORD_TYPE = 10;
+uint8_t TEST_SEND_RECORD_TYPE = 42;
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-#if !S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
-    char buf[sizeof(uint8_t)] = { 0 };
-
-    /* Init msghdr */
-    struct msghdr msg = { 0 };
-    msg.msg_control = buf;
-    msg.msg_controllen = sizeof(uint8_t);
-
-    EXPECT_ERROR_WITH_ERRNO(s2n_ktls_set_ancillary_data(&msg, TEST_SEND_RECORD_TYPE), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-    uint8_t record_type = 0;
-    EXPECT_ERROR_WITH_ERRNO(s2n_ktls_parse_ancillary_data(&msg, &record_type), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-
-#else /* kTLS supported */
-
+    /* test data */
     uint8_t test_data[TEST_MAX_DATA_LEN] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
     EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
+
+#if !S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
+    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+            s2n_connection_ptr_free);
+    DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+
+    /* Init msg */
+    struct msghdr msg = { 0 };
+    struct iovec msg_iov = { 0 };
+    msg_iov.iov_base = test_data;
+    msg_iov.iov_len = 10;
+
+    ssize_t len = 0;
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    EXPECT_ERROR_WITH_ERRNO(s2n_ktls_send_msg_impl(io_pair.client, &msg, &msg_iov, 1, &blocked, &len),
+            S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+    EXPECT_ERROR_WITH_ERRNO(s2n_ktls_recv_msg_impl(conn, io_pair.server, &msg, &msg_iov, &blocked, &len),
+            S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+
+#else /* kTLS supported */
 
     /* Test send/recv msg */
     {
@@ -70,7 +78,7 @@ int main(int argc, char **argv)
             /* send msg */
             ssize_t total_sent_len = 0;
             while (total_sent_len < to_send) {
-                send_msg_iov.iov_base = (void *) (uintptr_t) test_data + total_sent_len;
+                send_msg_iov.iov_base = test_data + total_sent_len;
                 send_msg_iov.iov_len = to_send - total_sent_len;
                 ssize_t sent_len = 0;
                 EXPECT_OK(s2n_ktls_send_msg_impl(io_pair.client, &send_msg, &send_msg_iov, 1, &blocked, &sent_len));
@@ -112,7 +120,7 @@ int main(int argc, char **argv)
             /* init send msg */
             struct msghdr send_msg = { 0 };
             struct iovec send_msg_iov = { 0 };
-            send_msg_iov.iov_base = (void *) (uintptr_t) test_data;
+            send_msg_iov.iov_base = test_data;
             send_msg_iov.iov_len = to_send;
             /* init rev msg */
             uint8_t recv_buffer[TEST_MAX_DATA_LEN] = { 0 };
@@ -156,7 +164,7 @@ int main(int argc, char **argv)
             /* init send msg */
             struct msghdr send_msg = { 0 };
             struct iovec send_msg_iov = { 0 };
-            send_msg_iov.iov_base = (void *) (uintptr_t) test_data;
+            send_msg_iov.iov_base = test_data;
             send_msg_iov.iov_len = to_send;
             /* init rev msg */
             uint8_t recv_buffer[TEST_MAX_DATA_LEN] = { 0 };
@@ -196,7 +204,7 @@ int main(int argc, char **argv)
             /* init send msg */
             struct msghdr send_msg = { 0 };
             struct iovec send_msg_iov = { 0 };
-            send_msg_iov.iov_base = (void *) (uintptr_t) test_data;
+            send_msg_iov.iov_base = test_data;
             send_msg_iov.iov_len = to_send;
             /* init rev msg */
             uint8_t recv_buffer[TEST_MAX_DATA_LEN] = { 0 };

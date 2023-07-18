@@ -18,6 +18,8 @@
 #include "tls/s2n_ktls.h"
 #include "utils/s2n_socket.h"
 
+#if S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
+
 /*
  * sendmsg and recvmsg are syscalls which can be used to send 'real' data along
  * with ancillary data. Ancillary data is used to communicate to the socket the
@@ -56,9 +58,6 @@ S2N_RESULT s2n_ktls_set_ancillary_data(struct msghdr *msg, uint8_t record_type)
 {
     RESULT_ENSURE_REF(msg);
 
-#if !S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
-    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-#else
     RESULT_ENSURE_REF(msg->msg_control);
     RESULT_ENSURE_GTE(msg->msg_controllen, CMSG_SPACE(sizeof(uint8_t)));
 
@@ -69,7 +68,6 @@ S2N_RESULT s2n_ktls_set_ancillary_data(struct msghdr *msg, uint8_t record_type)
     hdr->cmsg_type = S2N_TLS_SET_RECORD_TYPE;
     hdr->cmsg_len = CMSG_LEN(sizeof(uint8_t));
     RESULT_CHECKED_MEMCPY(CMSG_DATA(hdr), &record_type, sizeof(uint8_t));
-#endif
 
     return S2N_RESULT_OK;
 }
@@ -90,7 +88,6 @@ S2N_RESULT s2n_ktls_send_msg(
     /* Init msghdr */
     struct msghdr msg = { 0 };
 
-#if S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
     /* Allocate a char array of suitable size to hold the ancillary data.
      * However, since this buffer is in reality a 'struct cmsghdr', use a
      * union to ensure that it is aligned as required for that structure.
@@ -101,7 +98,6 @@ S2N_RESULT s2n_ktls_send_msg(
     } control_msg = { 0 };
     msg.msg_control = control_msg.buf;
     msg.msg_controllen = sizeof(control_msg.buf);
-#endif
 
     RESULT_GUARD(s2n_ktls_set_ancillary_data(&msg, record_type));
     RESULT_GUARD(s2n_ktls_send_msg_impl(sock, &msg, msg_iov, count, blocked, send_len));
@@ -145,9 +141,6 @@ S2N_RESULT s2n_ktls_parse_ancillary_data(struct msghdr *msg, uint8_t *record_typ
     RESULT_ENSURE_REF(msg);
     RESULT_ENSURE_REF(record_type);
 
-#if !S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
-    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-#else
     RESULT_ENSURE_REF(msg->msg_control);
     RESULT_ENSURE_GTE(msg->msg_controllen, CMSG_SPACE(sizeof(uint8_t)));
 
@@ -166,7 +159,6 @@ S2N_RESULT s2n_ktls_parse_ancillary_data(struct msghdr *msg, uint8_t *record_typ
         /* attempt to get the next header */
         hdr = CMSG_NXTHDR(msg, hdr);
     }
-#endif
 
     /* return an IO error if no record was received */
     RESULT_BAIL(S2N_ERR_IO);
@@ -186,7 +178,6 @@ S2N_RESULT s2n_ktls_recv_msg(struct s2n_connection *conn, int sock, uint8_t *buf
     /* Init msghdr */
     struct msghdr msg = { 0 };
 
-#if S2N_KTLS_SUPPORTED /* CMSG_* macros are platform specific */
     /* Allocate a char array of suitable size to hold the ancillary data.
      * However, since this buffer is in reality a 'struct cmsghdr', use a
      * union to ensure that it is aligned as required for that structure.
@@ -198,7 +189,6 @@ S2N_RESULT s2n_ktls_recv_msg(struct s2n_connection *conn, int sock, uint8_t *buf
     } control_msg = { 0 };
     msg.msg_control = control_msg.buf;
     msg.msg_controllen = sizeof(control_msg.buf);
-#endif
 
     struct iovec msg_iov = { 0 };
     msg_iov.iov_base = buf;
@@ -210,3 +200,25 @@ S2N_RESULT s2n_ktls_recv_msg(struct s2n_connection *conn, int sock, uint8_t *buf
 
     return S2N_RESULT_OK;
 }
+#else
+
+S2N_RESULT s2n_ktls_send_msg_impl(int sock, struct msghdr *msg,
+        struct iovec *msg_iov, size_t count, s2n_blocked_status *blocked, ssize_t *send_len)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+S2N_RESULT s2n_ktls_recv_msg_impl(struct s2n_connection *conn, int sock, struct msghdr *msg,
+        struct iovec *msg_iov, s2n_blocked_status *blocked, ssize_t *bytes_read)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+S2N_RESULT s2n_ktls_parse_ancillary_data(struct msghdr *msg, uint8_t *record_type)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+S2N_RESULT s2n_ktls_set_ancillary_data(struct msghdr *msg, uint8_t record_type)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+
+#endif
