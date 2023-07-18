@@ -39,6 +39,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls_parameters.h"
 #include "tls/s2n_x509_validator.h"
+#include "utils/s2n_atomic.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_timer.h"
 
@@ -93,9 +94,6 @@ struct s2n_connection {
     unsigned managed_send_io : 1;
     unsigned managed_recv_io : 1;
 
-    /* Key update data */
-    unsigned key_update_pending : 1;
-
     /* Early data supported by caller.
      * If a caller does not use any APIs that support early data,
      * do not negotiate early data.
@@ -109,9 +107,6 @@ struct s2n_connection {
      * This means that the connection will keep the existing value of psk_params->type,
      * even when setting a new config. */
     unsigned psk_mode_overridden : 1;
-
-    /* Have we received a close notify alert from the peer. */
-    unsigned close_notify_received : 1;
 
     /* Connection negotiated an EMS */
     unsigned ems_negotiated : 1;
@@ -272,6 +267,10 @@ struct s2n_connection {
     uint8_t reader_warning_out;
     bool alert_sent;
 
+    /* Receiving error or close_notify alerts changes the behavior of s2n_shutdown_send */
+    s2n_atomic_flag error_alert_received;
+    s2n_atomic_flag close_notify_received;
+
     /* Our handshake state machine */
     struct s2n_handshake handshake;
 
@@ -308,13 +307,11 @@ struct s2n_connection {
     uint64_t wire_bytes_out;
     uint64_t early_data_bytes;
 
-    /* Is the connection open or closed?
-     *
-     * We use C's only atomic type as an error requires shutting down both read
-     * and write, so both the reader and writer threads may access both fields.
+    /* Either the reader or the writer can trigger both sides of the connection
+     * to close in response to a fatal error.
      */
-    sig_atomic_t read_closed;
-    sig_atomic_t write_closed;
+    s2n_atomic_flag read_closed;
+    s2n_atomic_flag write_closed;
 
     /* TLS extension data */
     char server_name[S2N_MAX_SERVER_NAME + 1];
@@ -382,6 +379,10 @@ struct s2n_connection {
     uint32_t server_keying_material_lifetime;
 
     struct s2n_post_handshake post_handshake;
+    /* Both the reader and writer can set key_update_pending.
+     * The writer clears it after a KeyUpdate is sent.
+     */
+    s2n_atomic_flag key_update_pending;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);

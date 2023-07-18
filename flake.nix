@@ -10,6 +10,8 @@
       let
         pkgs = nixpkgs.legacyPackages.${system};
         aws-lc = awslc.packages.${system}.aws-lc;
+        # TODO: submit a flake PR
+        corretto = import nix/amazon-corretto-17.nix { pkgs = pkgs; };
         # TODO: We have parts of our CI that rely on clang-format-15, but that is only available on github:nixos/nixpkgs/nixos-unstable
         llvmPkgs = pkgs.llvmPackages_14;
         pythonEnv = import ./nix/pyenv.nix { pkgs = pkgs; };
@@ -18,13 +20,12 @@
         openssl_1_1_1 = import ./nix/openssl_1_1_1.nix { pkgs = pkgs; };
         openssl_3_0 = import ./nix/openssl_3_0.nix { pkgs = pkgs; };
         libressl = import ./nix/libressl.nix { pkgs = pkgs; };
-        corretto-8 = import nix/amazon-corretto-8.nix { pkgs = pkgs; };
         common_packages = [
           # Integration Deps
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
           pythonEnv
-          corretto-8
+          corretto
           pkgs.iproute2
           pkgs.apacheHttpd
           # GnuTLS-cli and serv utilities needed for some integration tests.

@@ -10,6 +10,7 @@ use crate::{
     error::{Error, Fallible, Pollable},
     security,
 };
+
 use core::{
     convert::TryInto,
     fmt,
@@ -675,6 +676,46 @@ impl Connection {
         }
 
         unsafe { Ok(Some(std::slice::from_raw_parts(chain, len as usize))) }
+    }
+
+    // The memory backing the ClientHello is owned by the Connection, so we
+    // tie the ClientHello to the lifetime of the Connection. This is validated
+    // with a doc test that ensures the ClientHello is invalid once the
+    // connection has gone out of scope.
+    //
+    /// Returns a reference to the ClientHello associated with the connection.
+    /// ```compile_fail
+    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::connection::Connection;
+    /// use s2n_tls::enums::Mode;
+    ///
+    /// let mut conn = Connection::new(Mode::Server);
+    /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
+    /// let mut hash = Vec::new();
+    /// drop(conn);
+    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// ```
+    ///
+    /// The compilation could be failing for a variety of reasons, so make sure
+    /// that the test case is actually good.
+    /// ```no_run
+    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::connection::Connection;
+    /// use s2n_tls::enums::Mode;
+    ///
+    /// let mut conn = Connection::new(Mode::Server);
+    /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
+    /// let mut hash = Vec::new();
+    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// drop(conn);
+    /// ```
+    #[cfg(feature = "unstable-fingerprint")]
+    pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
+        let mut handle =
+            unsafe { s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()? };
+        Ok(crate::client_hello::ClientHello::from_ptr(unsafe {
+            handle.as_mut()
+        }))
     }
 
     pub(crate) fn mark_client_hello_cb_done(&mut self) -> Result<(), Error> {

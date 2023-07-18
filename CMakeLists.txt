@@ -38,10 +38,6 @@ option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
-option(EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS "Additional compiler warnings are treated as errors. Warnings may
-indicate danger points where you should verify with the S2N-TLS developers that the security of
-the library is not compromised. These warnings are currently failing for some builds; once the problems are fixed,
-they will be moved to UNSAFE_TREAT_WARNINGS_AS_ERRORS." OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 
@@ -165,12 +161,8 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wno-strict-prototypes -Wa,--noexecstack
+        -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
 )
-
-if (EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare )
-endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
@@ -223,7 +215,7 @@ if(S2N_UNSAFE_FUZZING_MODE)
 endif()
 
 if(TSAN)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread -DS2N_THREAD_SANITIZER=1)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
 endif()
 
@@ -320,6 +312,10 @@ endfunction()
 
 # Tries to compile a feature probe and initializes the corresponding flags
 function(feature_probe PROBE_NAME)
+    # Load the global probe flags
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/tests/features/GLOBAL.flags" GLOBAL_FILE)
+    string(REPLACE "\n" "" GLOBAL_FLAGS "${GLOBAL_FILE}")
+
     # Load the probe's flags
     file(READ "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.flags" PROBE_FILE)
     string(REPLACE "\n" "" PROBE_FLAGS "${PROBE_FILE}")
@@ -331,9 +327,12 @@ function(feature_probe PROBE_NAME)
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
-        COMPILE_DEFINITIONS -c ${PROBE_FLAGS}
+        COMPILE_DEFINITIONS -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
+        OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
+    # Uncomment the line below to get the output of the try_compile command
+    #message(STATUS "Output of try_compile: ${TRY_COMPILE_OUTPUT}")
 
     # Set the result of the probe
     feature_probe_result(${PROBE_NAME} ${IS_AVAILABLE})
@@ -520,7 +519,12 @@ if (BUILD_TESTING)
         if(NOT EXISTS ${TSAN_SUPPRESSIONS_FILE})
             message(FATAL_ERROR "TSAN suppression file ${TSAN_SUPPRESSIONS_FILE} missing")
         endif()
-        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=suppressions=${TSAN_SUPPRESSIONS_FILE})
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
+        set(TSAN_OPTIONS suppressions=${TSAN_SUPPRESSIONS_FILE})
+        if(DEFINED ENV{TSAN_OPTIONS})
+            set(TSAN_OPTIONS "${TSAN_OPTIONS} $ENV{TSAN_OPTIONS}")
+        endif()
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=${TSAN_OPTIONS})
     endif()
     message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
 
@@ -599,6 +603,12 @@ if (BUILD_TESTING)
                 # For Nix and environments where LD_LIBRARY_PATH is already correct.
                 # We're also dropping tox and calling pytest directly, because
                 # Nix is already handling all of the python setup.
+                if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND ${test_target} STREQUAL "integrationv2_sslyze" )
+                  # sslyze/nassl is not available on aarch64.
+                  message(WARNING "Skipping ${test_target} due to missing tools on ${CMAKE_SYSTEM_PROCESSOR}")
+                  continue()
+                endif()
+                message(STATUS "Adding integ test ${test_target}")
                 add_test(NAME ${test_target}
                         COMMAND
                         pytest

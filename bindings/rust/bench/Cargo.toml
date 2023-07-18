@@ -1,0 +1,23 @@
+[package]
+name = "bench"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+s2n-tls = { path = "../s2n-tls" }
+rustls = "0.21"
+rustls-pemfile = "1.0"
+openssl = "0.10"
+errno = "0.3"
+libc = "0.2"
+
+[dev-dependencies]
+criterion = "0.3"
+
+[[bench]]
+name = "handshake"
+harness = false
+
+[[bench]]
+name = "throughput"
+harness = false

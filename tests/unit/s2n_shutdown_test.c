@@ -21,15 +21,6 @@
 
 #define ALERT_LEN (sizeof(uint16_t))
 
-static S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn)
-{
-    conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE;
-    while (!s2n_handshake_is_complete(conn)) {
-        conn->handshake.message_number++;
-    }
-    return S2N_RESULT_OK;
-}
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -66,7 +57,7 @@ int main(int argc, char **argv)
 
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
@@ -78,7 +69,7 @@ int main(int argc, char **argv)
 
         /* Verify state after shutdown attempt */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_TRUE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
@@ -109,7 +100,7 @@ int main(int argc, char **argv)
 
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
@@ -123,7 +114,7 @@ int main(int argc, char **argv)
 
         /* Verify state after shutdown attempt */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_TRUE(conn->alert_sent);
         EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
 
@@ -146,7 +137,7 @@ int main(int argc, char **argv)
 
         /* Verify state prior to alert */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
@@ -173,7 +164,7 @@ int main(int argc, char **argv)
 
         /* Verify state after shutdown attempt */
         EXPECT_TRUE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
@@ -195,7 +186,7 @@ int main(int argc, char **argv)
 
         /* Verify state prior to alert */
         EXPECT_FALSE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
@@ -204,7 +195,7 @@ int main(int argc, char **argv)
 
         /* Verify state after shutdown */
         EXPECT_FALSE(s2n_handshake_is_complete(conn));
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_TRUE(conn->alert_sent);
 
         /* Fully closed: we don't worry about truncating data */
@@ -225,7 +216,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify state prior to alert */
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
@@ -234,7 +225,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
         /* Verify state after shutdown attempt */
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_TRUE(conn->alert_sent);
 
         /* Half-close: only write closed */
@@ -257,7 +248,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
 
         /* Verify state prior to alert */
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
 
@@ -266,7 +257,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
 
         /* Verify state after alert */
-        EXPECT_TRUE(conn->close_notify_received);
+        EXPECT_TRUE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
         EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
@@ -276,7 +267,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
         /* Verify state after shutdown attempt */
-        EXPECT_TRUE(conn->close_notify_received);
+        EXPECT_TRUE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_TRUE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
     };
@@ -309,7 +300,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(conn, &blocked), S2N_ERR_ALERT);
 
         /* Verify state after shutdown attempt */
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_TRUE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
         EXPECT_EQUAL(s2n_stuffer_data_available(&output), alert_record_size);
@@ -317,7 +308,7 @@ int main(int argc, char **argv)
         /* Future calls are no-ops */
         for (size_t i = 0; i < 5; i++) {
             EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
-            EXPECT_FALSE(conn->close_notify_received);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
             EXPECT_TRUE(conn->alert_sent);
         }
     };
@@ -410,7 +401,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
         /* Verify state after shutdown attempt */
-        EXPECT_FALSE(conn->close_notify_received);
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         EXPECT_FALSE(conn->alert_sent);
         EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
     };
@@ -586,7 +577,7 @@ int main(int argc, char **argv)
             /* Full close is no-op */
             EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            EXPECT_FALSE(conn->close_notify_received);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         };
 
         /* Test: Half close, peer alert, then full close */
@@ -621,7 +612,7 @@ int main(int argc, char **argv)
             /* Full close is no-op */
             EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            EXPECT_FALSE(conn->close_notify_received);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         };
     }
 

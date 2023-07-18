@@ -43,6 +43,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls_parameters.h"
+#include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
 #include "utils/s2n_mem.h"
@@ -351,6 +352,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      * However, the s2n_config_set_verification_ca_location behavior predates client authentication
      * support for OCSP stapling, so could only affect whether clients requested OCSP stapling. We
      * therefore only have to maintain the legacy behavior for clients, not servers.
+     * 
+     * Note: The Rust bindings do not maintain the legacy behavior.
      */
     conn->request_ocsp_status = config->ocsp_status_requested_by_user;
     if (config->ocsp_status_requested_by_s2n && conn->mode == S2N_CLIENT) {
@@ -1168,8 +1171,8 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
 S2N_RESULT s2n_connection_set_closed(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
-    conn->read_closed = 1;
-    conn->write_closed = 1;
+    s2n_atomic_flag_set(&conn->read_closed);
+    s2n_atomic_flag_set(&conn->write_closed);
     return S2N_RESULT_OK;
 }
 
@@ -1547,7 +1550,9 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
         return false;
     }
 
-    const bool is_full_duplex = !conn->read_closed && !conn->write_closed;
+    bool read_closed = s2n_atomic_flag_test(&conn->read_closed);
+    bool write_closed = s2n_atomic_flag_test(&conn->write_closed);
+    bool full_duplex = !read_closed && !write_closed;
 
     /*
      *= https://tools.ietf.org/rfc/rfc8446#section-6.1
@@ -1561,21 +1566,21 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
             case S2N_IO_WRITABLE:
             case S2N_IO_READABLE:
             case S2N_IO_FULL_DUPLEX:
-                return is_full_duplex;
+                return full_duplex;
             case S2N_IO_CLOSED:
-                return !is_full_duplex;
+                return !full_duplex;
         }
     }
 
     switch (status) {
         case S2N_IO_WRITABLE:
-            return !conn->write_closed;
+            return !write_closed;
         case S2N_IO_READABLE:
-            return !conn->read_closed;
+            return !read_closed;
         case S2N_IO_FULL_DUPLEX:
-            return is_full_duplex;
+            return full_duplex;
         case S2N_IO_CLOSED:
-            return conn->read_closed && conn->write_closed;
+            return read_closed && write_closed;
     }
 
     return false;

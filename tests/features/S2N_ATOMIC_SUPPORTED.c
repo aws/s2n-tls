@@ -13,26 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#include "s2n_test.h"
-#include "tls/s2n_ktls.h"
+#include <signal.h>
+#include <stddef.h>
 
-#if defined(__linux__)
-    #include "linux/version.h"
-#endif
+int main() {
+    /* Atomic builtins are supported by gcc 4.7.3 and later. */
+    sig_atomic_t atomic = 0, value = 1;
+    __atomic_store(&atomic, &value, __ATOMIC_RELAXED);
+    __atomic_load(&atomic, &value, __ATOMIC_RELAXED);
 
-int main(int argc, char **argv)
-{
-    BEGIN_TEST();
-
-    /* kTLS feature probe */
-    {
-#if defined(__linux__)
-    /* kTLS support was first added to AL2 starting in 5.10.130. */
-    #if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 130))
-        EXPECT_TRUE(s2n_ktls_is_supported_on_platform());
-    #endif
-#endif
-    };
-
-    END_TEST();
+    /* _Static_assert is supported for C99 by gcc 4.6 and later,
+     * so using it here shouldn't limit use of the atomic builtins. */
+    _Static_assert(__atomic_always_lock_free(sizeof(sig_atomic_t), NULL),
+            "Atomic operations in this environment would require locking");
+    return 0;
 }
