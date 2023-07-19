@@ -15,27 +15,30 @@ pushd "$(dirname "$0")"
 cert-gen () {
     echo -e "\n----- generating certs for $1$2 -----\n"
 
+    key_family=$1
+    key_size=$2
+
     # set openssl argument name
-    if [[ $1 == rsa ]]; then
+    if [[ $key_family == rsa ]]; then
         local argname=rsa_keygen_bits:
-    elif [[ $1 == ec ]]; then
+    elif [[ $key_family == ec ]]; then
         local argname=ec_paramgen_curve:P-
     fi
 
     # make directory for certs
-    if [ ! -d $1$2/ ]; then
-        mkdir $1$2
+    if [ ! -d $key_family$key_size/ ]; then
+        mkdir $key_family$key_size
     fi
-    cd $1$2
+    cd $key_family$key_size
 
     echo "generating CA private key and certificate"
-    openssl req -new -nodes -x509 -newkey $1 -pkeyopt $argname$2 -keyout  ca-key.pem -out ca-cert.pem -days 65536 -config ../config/ca.cnf
+    openssl req -new -nodes -x509 -newkey $key_family -pkeyopt $argname$key_size -keyout  ca-key.pem -out ca-cert.pem -days 65536 -config ../config/ca.cnf
 
     echo "generating server private key and CSR"
-    openssl req  -new -nodes -newkey $1 -pkeyopt $argname$2 -keyout server-key.pem -out server.csr -config ../config/server.cnf
+    openssl req  -new -nodes -newkey $key_family -pkeyopt $argname$key_size -keyout server-key.pem -out server.csr -config ../config/server.cnf
 
     echo "generating client private key and CSR"
-    openssl req  -new -nodes -newkey $1 -pkeyopt $argname$2 -keyout client-key.pem -out client.csr -config ../config/client.cnf
+    openssl req  -new -nodes -newkey $key_family -pkeyopt $argname$key_size -keyout client-key.pem -out client.csr -config ../config/client.cnf
 
     echo "generating server certificate and signing it"
     openssl x509 -days 65536 -req -in server.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extensions req_ext -extfile ../config/server.cnf
