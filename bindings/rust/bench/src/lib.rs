@@ -27,9 +27,9 @@ use SigType::*;
 fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
     let filename = match pem_type {
         ServerKey => "server-key.pem",
-        ServerCertChain => "server-fullchain.pem",
+        ServerCertChain => "server-cert.pem",
         ClientKey => "client-key.pem",
-        ClientCertChain => "client-fullchain.pem",
+        ClientCertChain => "client-cert.pem",
         CACert => "ca-cert.pem",
     };
 

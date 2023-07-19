@@ -47,10 +47,6 @@ cert-gen () {
     openssl verify -CAfile ca-cert.pem server-cert.pem
     openssl verify -CAfile ca-cert.pem client-cert.pem
 
-    echo "combining certs into cert chains"
-    cat server-cert.pem ca-cert.pem > server-fullchain.pem
-    cat client-cert.pem ca-cert.pem > client-fullchain.pem
-
     echo "cleaning up temporary files"
     rm server.csr
     rm client.csr
