@@ -4,7 +4,9 @@ We use to Criterion.rs to benchmark s2n-tls against two commonly used TLS librar
 
 ## Setup 
 
-Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tls using `bindings/rust/generate.sh`. To bench with AWS-LC, Amazon's custom libcrypto implementation, run `use-awslc-s2n.sh` or `use-awslc-rustls.sh`, which sets up the benchmarks to use AWS-LC for s2n-tls and Rustls, respectively. To stop benching with AWS-LC, delete `.cargo/config.toml`.
+Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tls using `bindings/rust/generate.sh`. To bench with AWS-LC, Amazon's custom libcrypto implementation, run `use-awslc-s2n.sh` or `use-awslc-rustls.sh`, which sets up the benchmarks to use AWS-LC for s2n-tls and Rustls, respectively. To stop benching with AWS-LC, delete `.cargo/config.toml` and `target/release`.
+
+Dependencies are the same as with s2n-tls. Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments. 
 
 ## Running benchmarks
 
