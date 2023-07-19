@@ -27,10 +27,10 @@ then
     if [ ! -e "$aws_lc_dir"/install/lib/libcrypto.a ]
     then
         # clone fresh aws-lc
-        cd "$bench_dir"/target
-        rm -rf aws-lc
-        git clone --depth=1 https://github.com/aws/aws-lc
-        cd aws-lc
+        cd "$bench_dir"
+        rm -rf target/aws-lc
+        git clone --depth=1 https://github.com/aws/aws-lc target/aws-lc
+        cd target/aws-lc
 
         # build and install aws-lc
         cmake -B build -DCMAKE_INSTALL_PREFIX="$aws_lc_dir"/install -DBUILD_TESTING=OFF -DBUILD_LIBSSL=OFF
