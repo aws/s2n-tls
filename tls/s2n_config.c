@@ -84,6 +84,12 @@ static int s2n_config_setup_fips(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
+static int s2n_default_setsockopt(int fd, int level, int optname, const void *optval, socklen_t optlen)
+{
+    POSIX_GUARD(setsockopt(fd, level, optname, optval, optlen));
+    return S2N_SUCCESS;
+}
+
 static int s2n_config_init(struct s2n_config *config)
 {
     config->wall_clock = wall_clock;
@@ -114,6 +120,7 @@ static int s2n_config_init(struct s2n_config *config)
     POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
+    POSIX_GUARD_RESULT(s2n_config_set_setsockopt(config, s2n_default_setsockopt));
 
     return 0;
 }
@@ -1080,6 +1087,13 @@ int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegot
     config->renegotiate_request_cb = cb;
     config->renegotiate_request_ctx = ctx;
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_set_setsockopt(struct s2n_config *config, s2n_setsockopt_cb cb)
+{
+    RESULT_ENSURE_REF(config);
+    config->setsockopt_cb = cb;
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_set_npn(struct s2n_config *config, bool enable)
