@@ -9,6 +9,7 @@ use crate::{
     enums::*,
     error::{Error, Fallible, Pollable},
     security,
+    session_ticket::SessionTicket,
 };
 
 use core::{
@@ -576,6 +577,20 @@ impl Connection {
                 Err(_) => None,
             }
         }
+    }
+
+    /// Adds a session ticket from a previous TLS connection to create a resumed session
+    pub fn set_session_ticket(&mut self, session: &SessionTicket) -> Result<&mut Self, Error> {
+        let data = session.session_data();
+        unsafe {
+            s2n_connection_set_session(
+                self.connection.as_ptr(),
+                data.as_ptr() as *mut u8,
+                data.len(),
+            )
+            .into_result()
+        }?;
+        Ok(self)
     }
 
     /// Sets a Waker on the connection context or clears it if `None` is passed.

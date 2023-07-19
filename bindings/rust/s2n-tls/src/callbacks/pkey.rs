@@ -139,10 +139,7 @@ mod tests {
         "/../../../tests/pems/ecdsa_p384_pkcs1_cert.pem"
     ));
 
-    fn new_pair<T>(
-        callback: T,
-        waker: Waker,
-    ) -> Result<Pair<s2n_tls::Harness, s2n_tls::Harness>, Error>
+    fn new_pair<T>(callback: T, waker: Waker) -> Result<Pair<s2n_tls::Harness>, Error>
     where
         T: 'static + PrivateKeyCallback,
     {

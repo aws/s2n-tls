@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    callbacks::VerifyHostNameCallback, config::*, enums::Blinding, security,
+    callbacks::VerifyHostNameCallback, config::*, connection, enums::Blinding, security,
     testing::s2n_tls::Harness,
 };
 use alloc::{collections::VecDeque, sync::Arc};
@@ -13,6 +13,7 @@ use core::{
 };
 
 pub mod client_hello;
+pub mod resumption;
 pub mod s2n_tls;
 
 type Error = Box<dyn std::error::Error>;
@@ -53,7 +54,10 @@ impl Default for Counter {
 }
 
 pub trait Connection: core::fmt::Debug {
-    fn poll<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>>;
+    fn poll_negotiate<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>>;
+    fn poll_action<Ctx: Context, F>(&mut self, context: &mut Ctx, action: F) -> Poll<Result<()>>
+    where
+        F: FnOnce(&mut connection::Connection) -> Poll<Result<usize, crate::error::Error>>;
 }
 
 pub trait Context {
@@ -61,20 +65,25 @@ pub trait Context {
     fn send(&mut self, data: Bytes);
 }
 
+pub enum Mode {
+    Client,
+    Server,
+}
+
 #[derive(Debug)]
-pub struct Pair<Server: Connection, Client: Connection> {
-    pub server: (Server, MemoryContext),
-    pub client: (Client, MemoryContext),
+pub struct Pair<C: Connection> {
+    pub server: (C, MemoryContext),
+    pub client: (C, MemoryContext),
     pub max_iterations: usize,
 }
 
-impl<Server: Connection, Client: Connection> Pair<Server, Client> {
+impl<C: Connection> Pair<C> {
     /// The number of iterations that will be executed until the handshake exits with an error
     ///
     /// This is to prevent endless looping without making progress on the connection.
     const DEFAULT_ITERATIONS: usize = 100;
 
-    pub fn new(server: Server, client: Client) -> Self {
+    pub fn new(server: C, client: C) -> Self {
         Self {
             server: (server, Default::default()),
             client: (client, Default::default()),
@@ -87,8 +96,8 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
             "handshake has iterated too many times: {:#?}",
             self,
         );
-        let client_res = self.client.0.poll(&mut self.client.1);
-        let server_res = self.server.0.poll(&mut self.server.1);
+        let client_res = self.client.0.poll_negotiate(&mut self.client.1);
+        let server_res = self.server.0.poll_negotiate(&mut self.server.1);
         self.client.1.transfer(&mut self.server.1);
         self.max_iterations -= 1;
         match (client_res, server_res) {
@@ -106,6 +115,37 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
                 Poll::Pending
             }
             _ => Poll::Pending,
+        }
+    }
+
+    pub fn poll_send(&mut self, sender: Mode, buf: &[u8]) -> Poll<Result<()>> {
+        let (conn, mem_ctx) = match sender {
+            Mode::Client => &mut self.client,
+            Mode::Server => &mut self.server,
+        };
+        let result = conn.poll_action(mem_ctx, |conn| connection::Connection::poll_send(conn, buf));
+        self.server.1.transfer(&mut self.client.1);
+        match result {
+            Poll::Ready(result) => {
+                result?;
+                Ok(()).into()
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+
+    pub fn poll_recv(&mut self, receiver: Mode, buf: &mut [u8]) -> Poll<Result<()>> {
+        let (conn, mem_ctx) = match receiver {
+            Mode::Client => &mut self.client,
+            Mode::Server => &mut self.server,
+        };
+        let result = conn.poll_action(mem_ctx, |conn| connection::Connection::poll_recv(conn, buf));
+        match result {
+            Poll::Ready(result) => {
+                result?;
+                Ok(()).into()
+            }
+            Poll::Pending => Poll::Pending,
         }
     }
 }
@@ -220,7 +260,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     Ok(builder)
 }
 
-pub fn tls_pair(config: crate::config::Config) -> Pair<Harness, Harness> {
+pub fn tls_pair(config: crate::config::Config) -> Pair<Harness> {
     // create and configure a server connection
     let mut server = crate::connection::Connection::new_server();
     // some tests check for connection failure so disable blinding to avoid delay
@@ -261,7 +301,7 @@ pub fn establish_connection(config: crate::config::Config) {
     poll_tls_pair(pair);
 }
 
-pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness> {
+pub fn poll_tls_pair(mut pair: Pair<Harness>) -> Pair<Harness> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => {
@@ -275,7 +315,7 @@ pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness>
     pair
 }
 
-pub fn poll_tls_pair_result(pair: &mut Pair<Harness, Harness>) -> Result<()> {
+pub fn poll_tls_pair_result(pair: &mut Pair<Harness>) -> Result<()> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => return result,
