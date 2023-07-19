@@ -242,14 +242,11 @@ fn main() {
 
     // combine all versions present in handshake and throughput data
     // also fill in missing version v1.3.15 and v1.3.30-v1.3.37
-    let versions = get_unique_versions(&handshake_data)
-        .into_iter()
-        .chain(get_unique_versions(&throughput_data).into_iter())
-        .chain((15..16).chain(30..38).map(|p| Version::new(1, 3, p)))
-        .collect::<BTreeSet<Version>>()
-        .into_iter()
-        .collect::<Vec<Version>>();
-
+    let mut versions = get_unique_versions(&handshake_data);
+    versions.extend(get_unique_versions(&throughput_data).into_iter());
+    versions.extend((15..16).chain(30..38).map(|p| Version::new(1, 3, p)));
+    let versions = versions.into_iter().collect::<Vec<Version>>();
+    
     // map versions to x coordinates
     let version_to_x = versions
         .iter()
