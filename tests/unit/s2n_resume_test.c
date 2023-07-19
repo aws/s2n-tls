@@ -1397,6 +1397,110 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
         };
+
+        /* Server can decrypt session ticket with key before the key's introduction time */
+        {
+            struct s2n_connection *issuing_connection;
+            struct s2n_connection *resuming_connection;
+            struct s2n_config *issuing_config;
+            struct s2n_config *resuming_config;
+            uint64_t current_time;
+            EXPECT_NOT_NULL(issuing_connection = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(resuming_connection = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(issuing_config = s2n_config_new());
+            EXPECT_NOT_NULL(resuming_config = s2n_config_new());
+
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(issuing_config, 1));
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(resuming_config, 1));
+            EXPECT_SUCCESS(issuing_config->wall_clock(issuing_config->sys_clock_ctx, &current_time));
+            current_time = current_time / ONE_SEC_IN_NANOS;
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(issuing_config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time - 1));
+            /* for the resuming config, the ticket currently isn't valid */
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(resuming_config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time + 3600));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(issuing_connection, issuing_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(resuming_connection, resuming_config));
+            issuing_connection->actual_protocol_version = S2N_TLS12;
+            issuing_connection->handshake.handshake_type = NEGOTIATED;
+            resuming_connection->actual_protocol_version = S2N_TLS12;
+            resuming_connection->handshake.handshake_type = NEGOTIATED;
+
+            struct s2n_blob secret = { 0 };
+            struct s2n_stuffer secret_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&secret, issuing_connection->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
+            issuing_connection->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            resuming_connection->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+
+            EXPECT_SUCCESS(s2n_encrypt_session_ticket(issuing_connection, &issuing_connection->client_ticket_to_decrypt));
+            EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&issuing_connection->client_ticket_to_decrypt), 0);
+
+            /* Wiping the master secret to prove that the decryption function actually writes the master secret */
+            memset(resuming_connection->secrets.version.tls12.master_secret, 0, test_master_secret.size);
+
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(resuming_connection, &issuing_connection->client_ticket_to_decrypt));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&issuing_connection->client_ticket_to_decrypt), 0);
+
+            /* Check decryption was successful by comparing master key */
+            EXPECT_BYTEARRAY_EQUAL(resuming_connection->secrets.version.tls12.master_secret, test_master_secret.data, test_master_secret.size);
+
+            EXPECT_SUCCESS(s2n_connection_free(issuing_connection));
+            EXPECT_SUCCESS(s2n_connection_free(resuming_connection));
+            EXPECT_SUCCESS(s2n_config_free(issuing_config));
+            EXPECT_SUCCESS(s2n_config_free(resuming_config));
+        }
+
+        /* Server can decrypt session ticket with key before the key's introduction time */
+        {
+            struct s2n_connection *connection;
+            struct s2n_config *issuing_config;
+            struct s2n_config *resuming_config;
+            uint64_t current_time;
+            EXPECT_NOT_NULL(connection = s2n_connection_new(S2N_SERVER));
+            EXPECT_NOT_NULL(issuing_config = s2n_config_new());
+            EXPECT_NOT_NULL(resuming_config = s2n_config_new());
+
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(issuing_config, 1));
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(resuming_config, 1));
+            EXPECT_SUCCESS(issuing_config->wall_clock(issuing_config->sys_clock_ctx, &current_time));
+            current_time = current_time / ONE_SEC_IN_NANOS;
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(issuing_config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time - 1));
+            /* for the resuming config, the ticket currently isn't valid */
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(resuming_config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, current_time + 3600));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(connection, issuing_config));
+            connection->actual_protocol_version = S2N_TLS12;
+            connection->handshake.handshake_type = NEGOTIATED;
+
+            struct s2n_blob secret = { 0 };
+            struct s2n_stuffer secret_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&secret, connection->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+            EXPECT_SUCCESS(s2n_stuffer_init(&secret_stuffer, &secret));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_master_secret.data, S2N_TLS_SECRET_LEN));
+            connection->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+
+            EXPECT_SUCCESS(s2n_encrypt_session_ticket(connection, &connection->client_ticket_to_decrypt));
+            EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&connection->client_ticket_to_decrypt), 0);
+
+            /* Wiping the master secret to prove that the decryption function actually writes the master secret */
+            memset(connection->secrets.version.tls12.master_secret, 0, test_master_secret.size);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(connection, resuming_config));
+            EXPECT_SUCCESS(s2n_decrypt_session_ticket(connection, &connection->client_ticket_to_decrypt));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&connection->client_ticket_to_decrypt), 0);
+
+            /* Check decryption was successful by comparing master key */
+            EXPECT_BYTEARRAY_EQUAL(connection->secrets.version.tls12.master_secret, test_master_secret.data, test_master_secret.size);
+
+            EXPECT_SUCCESS(s2n_connection_free(connection));
+            EXPECT_SUCCESS(s2n_config_free(issuing_config));
+            EXPECT_SUCCESS(s2n_config_free(resuming_config));
+        }
     };
 
     /* s2n_config_set_initial_ticket_count */
