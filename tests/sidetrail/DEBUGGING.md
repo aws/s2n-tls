@@ -247,11 +247,11 @@ so bumping `__VERIFIER_ASSERT_MAX_LEAKAGE` up to `100` resolved the issue.
 ## Expected runtimes:
 
 | Test name                         | Runtime | 
-| --------------------------------- | ------: |
-| s2n-record-read-cbc-negative-test | 20s     |
-| s2n-cbc                           | 5m 45s  |
-| s2n-record-read-composite         | 15s     |
-| s2n-record-read-aead              | 4m 10s  |
-| s2n-record-read-stream            | 25s     |
-| s2n-record-read-cbc               | 20s     |
+| --------------------------------- |--------:|
+| s2n-record-read-cbc-negative-test |     30s |
+| s2n-cbc                           |     35m |
+| s2n-record-read-aead              |     30s |
+| s2n-record-read-cbc               |     20s |
+| s2n-record-read-composite         |     15s |
+| s2n-record-read-stream            |  1m 30s |
 
