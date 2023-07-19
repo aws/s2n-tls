@@ -126,7 +126,7 @@ fn convert_to_data_series(
                     // map VersionDataPoints to DataPoints
                     x: version_to_x[&&version_data_point.version],
                     y: version_data_point.mean,
-                    y_bar: version_data_point.stderr * 1.96,
+                    y_bar: version_data_point.stderr * 1.96, // 95% confidence interval
                 })
                 .collect(),
         })
@@ -154,7 +154,7 @@ fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
         .unwrap();
 
     // setup plotting
-    let path = format!("historical-perf/historical-perf-{bench_name}.svg");
+    let path = format!("images/historical-perf-{bench_name}.svg");
     let drawing_area = SVGBackend::new(&path, (1000, 500)).into_drawing_area();
     drawing_area.fill(&WHITE).unwrap();
 
@@ -246,7 +246,7 @@ fn main() {
     versions.extend(get_unique_versions(&throughput_data).into_iter());
     versions.extend((15..16).chain(30..38).map(|p| Version::new(1, 3, p)));
     let versions = versions.into_iter().collect::<Vec<Version>>();
-    
+
     // map versions to x coordinates
     let version_to_x = versions
         .iter()
