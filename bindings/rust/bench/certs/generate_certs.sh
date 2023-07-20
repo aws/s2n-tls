@@ -26,9 +26,7 @@ cert-gen () {
     fi
 
     # make directory for certs
-    if [ ! -d $key_family$key_size/ ]; then
-        mkdir $key_family$key_size
-    fi
+    mkdir -p $key_family$key_size
     cd $key_family$key_size
 
     echo "generating CA private key and certificate"
