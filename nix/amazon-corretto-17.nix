@@ -3,23 +3,29 @@ pkgs.stdenv.mkDerivation rec {
   pname = "amazon-corretto";
   version = "17";
   # From https://docs.aws.amazon.com/corretto/latest/corretto-17-ug/downloads-list.html
-  src = let uri = "https://corretto.aws/downloads";
+  src = let
+    uri = "https://corretto.aws/downloads/resources";
+    corretto-version = "17.0.7.7.1";
   in {
     x86_64-linux = pkgs.fetchzip {
-      url = "${uri}/latest/amazon-corretto-17-x64-linux-jdk.tar.gz";
+      url =
+        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-linux-x64.tar.gz";
       sha256 = "sha256-DEkfpGiqcas4HcAc327uMZj5BDR29JYSP0g4sEbFVSU=";
     };
     aarch64-linux = pkgs.fetchzip {
-      url = "${uri}/latest/amazon-corretto-17-aarch64-linux-jdk.tar.gz";
+      url =
+        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-linux-aarch64.tar.gz";
       sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
     };
     # TODO: The Mac versions will be validated in future darwin PR - nix still wants them defined.
     x86_64-darwin = pkgs.fetchzip {
-      url = "${uri}/latest/amazon-corretto-17-x64-macos-jdk.tar.gz";
+      url =
+        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-macosx-x64.tar.gz";
       sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
     };
     aarch64-darwin = pkgs.fetchzip {
-      url = "${uri}/latest/amazon-corretto-17-x64-macos-jdk.tar.gz";
+      url =
+        "${uri}/${corretto-version}/amazon-corretto-${corretto-version}-macosx-aarch64.tar.gz";
       sha256 = "sha256-DvL/1F1FD7bksodDNNJL+lKBMWOPuYdOihJ/CQxosNU=";
     };
   }.${pkgs.stdenv.hostPlatform.system} or (throw
