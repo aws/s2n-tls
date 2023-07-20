@@ -4,7 +4,7 @@ We use to Criterion.rs to benchmark s2n-tls against two commonly used TLS librar
 
 ## Setup 
 
-Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tls using `bindings/rust/generate.sh`.
+Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `certs/generate_certs.sh`.
 
 ## Running benchmarks
 
@@ -20,7 +20,7 @@ To remove external factors, we use custom IO with our benchmarks, bypassing the 
 
 ### Certificate generation
 
-All certs are stored in `certs/` and can be regenerated using `certs/generate_certs.sh`. There is one root cert that directly signs the server and client certs that are used in benchmarking. We currently bench RSA and ECDSA certs.
+There is one root cert that directly signs the server and client certs that are used in benchmarking. We currently bench RSA and ECDSA certs.
 
 ### Negotiation parameters
 
