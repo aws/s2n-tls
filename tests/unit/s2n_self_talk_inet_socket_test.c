@@ -28,6 +28,17 @@
 const char CHAR_A = 'a';
 const char CHAR_B = 'b';
 
+/* A collection of callbacks run during inet socket self talk tests */
+struct self_talk_inet_socket_callbacks {
+    S2N_RESULT (*server_post_handshake_cb)(struct s2n_connection *conn);
+    S2N_RESULT (*client_post_handshake_cb)(struct s2n_connection *conn);
+};
+
+S2N_RESULT s2n_noop_inet_socket_cb(struct s2n_connection *conn)
+{
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT start_client(int fd, int read_pipe, const struct self_talk_inet_socket_callbacks *socket_cb)
 {
     /* Setup connections */
@@ -57,15 +68,13 @@ static S2N_RESULT start_client(int fd, int read_pipe, const struct self_talk_ine
     char sync = 0;
     char recv_buffer[1] = { 0 };
 
-    {
-        RESULT_GUARD_POSIX(read(read_pipe, &sync, 1));
-        RESULT_GUARD_POSIX(s2n_recv(client_conn, recv_buffer, 1, &blocked));
-        RESULT_ENSURE_EQ(memcmp(&CHAR_A, &recv_buffer[0], 1), 0);
+    RESULT_GUARD_POSIX(read(read_pipe, &sync, 1));
+    RESULT_GUARD_POSIX(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+    RESULT_ENSURE_EQ(memcmp(&CHAR_A, &recv_buffer[0], 1), 0);
 
-        RESULT_GUARD_POSIX(read(read_pipe, &sync, 1));
-        RESULT_GUARD_POSIX(s2n_recv(client_conn, recv_buffer, 1, &blocked));
-        RESULT_ENSURE_EQ(memcmp(&CHAR_B, &recv_buffer[0], 1), 0);
-    }
+    RESULT_GUARD_POSIX(read(read_pipe, &sync, 1));
+    RESULT_GUARD_POSIX(s2n_recv(client_conn, recv_buffer, 1, &blocked));
+    RESULT_ENSURE_EQ(memcmp(&CHAR_B, &recv_buffer[0], 1), 0);
 
     return S2N_RESULT_OK;
 }
@@ -99,15 +108,14 @@ static S2N_RESULT start_server(int fd, int write_pipe, const struct self_talk_in
 
     char sync = 0;
     char send_buffer[1] = { 0 };
-    {
-        send_buffer[0] = CHAR_A;
-        EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
-        EXPECT_SUCCESS(write(write_pipe, &sync, 1));
 
-        send_buffer[0] = CHAR_B;
-        EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
-        EXPECT_SUCCESS(write(write_pipe, &sync, 1));
-    }
+    send_buffer[0] = CHAR_A;
+    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
+    EXPECT_SUCCESS(write(write_pipe, &sync, 1));
+
+    send_buffer[0] = CHAR_B;
+    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
+    EXPECT_SUCCESS(write(write_pipe, &sync, 1));
 
     return S2N_RESULT_OK;
 }
