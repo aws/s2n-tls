@@ -35,15 +35,19 @@ impl PemType {
 }
 
 fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
-    format!("certs/{}/{}", sig_type.get_dir_name(), pem_type.get_filename())
+    format!(
+        "certs/{}/{}",
+        sig_type.get_dir_name(),
+        pem_type.get_filename()
+    )
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use std::path::Path;
     use PemType::*;
     use SigType::*;
-    use std::path::Path;
 
     #[test]
     fn cert_paths_valid() {
@@ -55,7 +59,10 @@ mod tests {
             CACert,
         ] {
             for sig_type in [Rsa2048, Rsa3072, Rsa4096, Ec384] {
-                assert!(Path::new(&get_cert_path(pem_type, sig_type)).exists(), "cert not found");
+                assert!(
+                    Path::new(&get_cert_path(pem_type, sig_type)).exists(),
+                    "cert not found"
+                );
             }
         }
     }

@@ -87,7 +87,7 @@ impl CryptoConfig {
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(Default::default(), Default::default())
+        Self::new(CryptoConfig::default(), HandshakeType::default())
     }
 
     /// Initialize buffers, configs, and connections (pre-handshake)
@@ -212,8 +212,8 @@ macro_rules! test_tls_bench_harnesses {
                 // use a large buffer to test across TLS record boundaries
                 let mut buf = [0x56u8; 1000000];
                 for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
-                    let crypto_config = CryptoConfig::new(cipher_suite, Default::default(), Default::default());
-                    let mut harness = <$harness_type>::new(crypto_config, Default::default()).unwrap();
+                    let crypto_config = CryptoConfig::new(cipher_suite, ECGroup::default(), SigType::default());
+                    let mut harness = <$harness_type>::new(crypto_config, HandshakeType::default()).unwrap();
                     harness.handshake().unwrap();
                     harness.round_trip_transfer(&mut buf).unwrap();
                 }

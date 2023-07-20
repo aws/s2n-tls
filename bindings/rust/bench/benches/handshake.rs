@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    CryptoConfig,
+    CipherSuite, CryptoConfig,
     ECGroup::{self, *},
     HandshakeType::{self, *},
     OpenSslHarness, RustlsHarness, S2NHarness,
@@ -25,7 +25,7 @@ pub fn bench_handshake_params(c: &mut Criterion) {
             b.iter_batched_ref(
                 || {
                     T::new(
-                        CryptoConfig::new(Default::default(), ec_group, sig_type),
+                        CryptoConfig::new(CipherSuite::default(), ec_group, sig_type),
                         handshake_type,
                     )
                     .unwrap()
