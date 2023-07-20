@@ -233,20 +233,29 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &conn->resume_protocol_version));
+    uint8_t protocol_version = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &protocol_version));
 
     uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(from, S2N_TLS_CIPHER_SUITE_LEN);
     RESULT_ENSURE_REF(cipher_suite_wire);
-    RESULT_GUARD_POSIX(s2n_set_cipher_as_client(conn, cipher_suite_wire));
 
     uint64_t then = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &then));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+    uint8_t master_secret[S2N_TLS_SECRET_LEN] = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, master_secret, S2N_TLS_SECRET_LEN));
 
+    bool ems_included = false;
+    uint8_t ems_negotiated = 0;
     if (s2n_stuffer_data_available(from)) {
-        uint8_t ems_negotiated = 0;
+        ems_included = true;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &ems_negotiated));
+    }
+
+    RESULT_GUARD_POSIX(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+    RESULT_CHECKED_MEMCPY(conn->secrets.version.tls12.master_secret, master_secret, S2N_TLS_SECRET_LEN);
+    conn->resume_protocol_version = protocol_version;
+    if (ems_included) {
         conn->ems_negotiated = ems_negotiated;
     }
     return S2N_RESULT_OK;
@@ -353,12 +362,6 @@ S2N_RESULT s2n_deserialize_resumption_state(struct s2n_connection *conn, struct 
         }
     } else if (format == S2N_SERIALIZED_FORMAT_TLS13_V1) {
         RESULT_GUARD(s2n_tls13_deserialize_session_state(conn, psk_identity, from));
-        if (conn->mode == S2N_CLIENT) {
-            /* Free the client_ticket after setting a psk on the connection.
-             * This prevents s2n_connection_get_session from returning a TLS1.3
-             * ticket before a ticket has been received from the server. */
-            RESULT_GUARD_POSIX(s2n_free(&conn->client_ticket));
-        }
     } else {
         RESULT_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
@@ -393,10 +396,23 @@ static int s2n_client_deserialize_with_session_ticket(struct s2n_connection *con
         POSIX_BAIL(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
     }
 
-    POSIX_GUARD(s2n_realloc(&conn->client_ticket, session_ticket_len));
-    POSIX_GUARD(s2n_stuffer_read(from, &conn->client_ticket));
+    DEFER_CLEANUP(struct s2n_blob client_ticket = { 0 }, s2n_free);
+    POSIX_GUARD(s2n_alloc(&client_ticket, session_ticket_len));
+    POSIX_GUARD(s2n_stuffer_read(from, &client_ticket));
 
-    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &conn->client_ticket, from));
+    POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &client_ticket, from));
+
+    /* If a new session ticket has not been received yet, s2n_connection_get_session
+     * should return the current session ticket.
+     *
+     * However, TLS1.3 session tickets require new input from the NewSessionTicket
+     * message, so do not support this behavior.
+     */
+    if (conn->resume_protocol_version && conn->resume_protocol_version <= S2N_TLS12) {
+        POSIX_GUARD(s2n_free(&conn->client_ticket));
+        conn->client_ticket = client_ticket;
+        ZERO_TO_DISABLE_DEFER_CLEANUP(client_ticket);
+    }
 
     return 0;
 }
