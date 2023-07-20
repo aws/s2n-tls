@@ -115,7 +115,7 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
 }
 
 #if defined(S2N_KTLS_SUPPORTED)
-static S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info)
 {
     RESULT_ENSURE_REF(conn);
