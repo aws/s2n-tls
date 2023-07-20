@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "utils/s2n_result.h"
+#include "tls/s2n_connection.h"
 /* Define headers needed to enable and use kTLS.
  *
  * The inline header definitions are required to compile kTLS specific code.

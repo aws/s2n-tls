@@ -153,6 +153,26 @@ static S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *co
         RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->client->client_sequence_number, sizeof(conn->client->client_sequence_number)));
     }
 
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc4106#section-4
+     *#   0                   1                   2                   3
+     *#  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+     *# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *# |                             Salt                              |
+     *# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *# |                     Initialization Vector                     |
+     *# |                                                               |
+     *# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+     *#
+     *#                        Figure 2: Nonce Format
+     *#
+     *# The components of the nonce are as follows:
+     *#
+     *# Salt
+     *#    The salt field is a four-octet value that is assigned at the
+     *#    beginning of the security association, and then remains constant
+     *#    for the life of the security association.
+     */
     RESULT_ENSURE_GTE(implicit_iv.size, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
     RESULT_CHECKED_MEMCPY(crypto_info->salt, implicit_iv.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
 

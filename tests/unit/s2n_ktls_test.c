@@ -18,8 +18,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-#define SEND_FD 66
-#define RECV_FD 55
+#define S2N_TEST_SEND_FD 66
+#define S2N_TEST_RECV_FD 55
 
 static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
@@ -28,7 +28,7 @@ static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *
 
 static int s2n_test_setsockopt_tx(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
-    POSIX_ENSURE_EQ(fd, SEND_FD);
+    POSIX_ENSURE_EQ(fd, S2N_TEST_SEND_FD);
 
     if (level == S2N_SOL_TLS) {
         POSIX_ENSURE_EQ(optname, S2N_TLS_TX);
@@ -44,7 +44,7 @@ static int s2n_test_setsockopt_tx(int fd, int level, int optname, const void *op
 
 static int s2n_test_setsockopt_rx(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
-    POSIX_ENSURE_EQ(fd, RECV_FD);
+    POSIX_ENSURE_EQ(fd, S2N_TEST_RECV_FD);
 
     if (level == S2N_SOL_TLS) {
         POSIX_ENSURE_EQ(optname, S2N_TLS_RX);
@@ -68,8 +68,8 @@ S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn, s
     EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
     /* config I/O */
-    RESULT_GUARD_POSIX(s2n_connection_set_write_fd(conn, SEND_FD));
-    RESULT_GUARD_POSIX(s2n_connection_set_read_fd(conn, RECV_FD));
+    RESULT_GUARD_POSIX(s2n_connection_set_write_fd(conn, S2N_TEST_SEND_FD));
+    RESULT_GUARD_POSIX(s2n_connection_set_read_fd(conn, S2N_TEST_RECV_FD));
     conn->ktls_send_enabled = false;
     conn->ktls_recv_enabled = false;
 

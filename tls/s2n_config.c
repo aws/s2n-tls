@@ -120,7 +120,7 @@ static int s2n_config_init(struct s2n_config *config)
     POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
 
     s2n_x509_trust_store_init_empty(&config->trust_store);
-    POSIX_GUARD_RESULT(s2n_config_set_setsockopt(config, s2n_default_setsockopt));
+    config->setsockopt_cb = s2n_default_setsockopt;
 
     return 0;
 }
@@ -1092,6 +1092,8 @@ int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegot
 S2N_RESULT s2n_config_set_setsockopt(struct s2n_config *config, s2n_setsockopt_cb cb)
 {
     RESULT_ENSURE_REF(config);
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
     config->setsockopt_cb = cb;
     return S2N_RESULT_OK;
 }
