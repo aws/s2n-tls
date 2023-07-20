@@ -56,6 +56,17 @@ pub enum SigType {
     Ec384,
 }
 
+impl SigType {
+    pub fn get_dir_name(&self) -> &str {
+        match self {
+            SigType::Rsa2048 => "rsa2048",
+            SigType::Rsa3072 => "rsa3072",
+            SigType::Rsa4096 => "rsa4096",
+            SigType::Ec384 => "ec384",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct CryptoConfig {
     pub cipher_suite: CipherSuite,

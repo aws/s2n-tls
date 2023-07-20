@@ -5,6 +5,7 @@ pub mod harness;
 pub mod openssl;
 pub mod rustls;
 pub mod s2n_tls;
+
 pub use crate::{
     harness::{CipherSuite, CryptoConfig, ECGroup, HandshakeType, Mode, SigType, TlsBenchHarness},
     openssl::OpenSslHarness,
@@ -21,31 +22,27 @@ pub enum PemType {
     CACert,
 }
 
-use PemType::*;
-use SigType::*;
+impl PemType {
+    fn get_filename(&self) -> &str {
+        match self {
+            PemType::ServerKey => "server-key.pem",
+            PemType::ServerCertChain => "server-cert.pem",
+            PemType::ClientKey => "client-key.pem",
+            PemType::ClientCertChain => "client-cert.pem",
+            PemType::CACert => "ca-cert.pem",
+        }
+    }
+}
 
 fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
-    let filename = match pem_type {
-        ServerKey => "server-key.pem",
-        ServerCertChain => "server-cert.pem",
-        ClientKey => "client-key.pem",
-        ClientCertChain => "client-cert.pem",
-        CACert => "ca-cert.pem",
-    };
-
-    let dir = match sig_type {
-        Rsa2048 => "rsa2048",
-        Rsa3072 => "rsa3072",
-        Rsa4096 => "rsa4096",
-        Ec384 => "ec384",
-    };
-
-    format!("certs/{dir}/{filename}")
+    format!("certs/{}/{}", sig_type.get_dir_name(), pem_type.get_filename())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use PemType::*;
+    use SigType::*;
     use std::path::Path;
 
     #[test]
@@ -58,7 +55,7 @@ mod tests {
             CACert,
         ] {
             for sig_type in [Rsa2048, Rsa3072, Rsa4096, Ec384] {
-                assert!(Path::new(&get_cert_path(pem_type, sig_type)).exists());
+                assert!(Path::new(&get_cert_path(pem_type, sig_type)).exists(), "cert not found");
             }
         }
     }
