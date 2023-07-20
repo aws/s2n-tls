@@ -15,10 +15,17 @@
 
 #include "tls/s2n_ktls.h"
 
-#include <sys/socket.h>
-
 #include "tls/s2n_prf.h"
-#include "utils/s2n_socket.h"
+
+/* Used for overriding setsockopt calls in testing */
+s2n_setsockopt_fn s2n_setsockopt = setsockopt;
+
+S2N_RESULT s2n_test_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb)
+{
+    RESULT_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
+    s2n_setsockopt = cb;
+    return S2N_RESULT_OK;
+}
 
 bool s2n_ktls_is_supported_on_platform()
 {
@@ -97,7 +104,6 @@ static S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_
     } else if (ktls_mode == S2N_KTLS_MODE_SEND) {
         RESULT_GUARD_POSIX(s2n_connection_get_write_fd(conn, fd));
     }
-
     return S2N_RESULT_OK;
 }
 
@@ -110,6 +116,19 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
     } else {
         *tls_tx_rx_mode = S2N_TLS_RX;
     }
+    return S2N_RESULT_OK;
+}
+
+/* If server is sending or client is receiving then use server key material */
+S2N_RESULT s2n_use_server_key_material(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, bool *use_server_km)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(use_server_km);
+    *use_server_km =
+            /* server sending */
+            (conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND) ||
+            /* client receiving */
+            (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV);
 
     return S2N_RESULT_OK;
 }
@@ -123,7 +142,6 @@ S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n
     RESULT_ENSURE_REF(conn->server);
     RESULT_ENSURE_REF(key_material);
     RESULT_ENSURE_REF(crypto_info);
-
     RESULT_ENSURE_REF(conn->secure);
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
@@ -140,10 +158,9 @@ S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n
     struct s2n_blob implicit_iv = { 0 };
     struct s2n_blob sequence_number = { 0 };
 
-    if ((conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND)        /* server sending */
-            || (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV) /* client receiving */
-    ) {
-        /* if server is sending or client is receiving then use server key material */
+    bool use_server_km = false;
+    RESULT_GUARD(s2n_use_server_key_material(conn, ktls_mode, &use_server_km));
+    if (use_server_km) {
         key = &key_material->server_key;
         RESULT_GUARD_POSIX(s2n_blob_init(&implicit_iv, conn->server->server_implicit_iv, sizeof(conn->server->server_implicit_iv)));
         RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->server->server_sequence_number, sizeof(conn->server->server_sequence_number)));
@@ -155,24 +172,11 @@ S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc4106#section-4
-     *#   0                   1                   2                   3
-     *#  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
-     *# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     *# |                             Salt                              |
-     *# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     *# |                     Initialization Vector                     |
-     *# |                                                               |
-     *# +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-     *#
-     *#                        Figure 2: Nonce Format
-     *#
-     *# The components of the nonce are as follows:
-     *#
-     *# Salt
-     *#    The salt field is a four-octet value that is assigned at the
-     *#    beginning of the security association, and then remains constant
-     *#    for the life of the security association.
+     *# The salt field is a four-octet value that is assigned at the
+     *# beginning of the security association, and then remains constant
+     *# for the life of the security association.
      */
+    /* The salt is the first 4 bytes of the IV */
     RESULT_ENSURE_GTE(implicit_iv.size, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
     RESULT_CHECKED_MEMCPY(crypto_info->salt, implicit_iv.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
 
@@ -207,7 +211,7 @@ static S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, s2n_ktls_mode k
 
     /* Set crypto_info on the socket; enabling kTLS and offloading the TLS
      * protocol to the kernel. */
-    int ret = conn->config->setsockopt_cb(fd, S2N_SOL_TLS, tls_tx_rx_mode, &crypto_info, sizeof(crypto_info));
+    int ret = s2n_setsockopt(fd, S2N_SOL_TLS, tls_tx_rx_mode, &crypto_info, sizeof(crypto_info));
     if (ret < 0) {
         RESULT_BAIL(S2N_ERR_KTLS_ENABLE_CRYPTO);
     }
@@ -229,7 +233,7 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
      * the call to setsockopt(..TCP_ULP...) to determine if kTLS is supported.
      * This is a safe and non destructive operation on Linux.
      */
-    int ret = conn->config->setsockopt_cb(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
+    int ret = s2n_setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
     if (ret < 0) {
         /* https://github.com/torvalds/linux/blob/831fe284d8275987596b7d640518dddba5735f61/net/ipv4/tcp_ulp.c#L64-L65
          *

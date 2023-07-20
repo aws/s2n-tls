@@ -16,7 +16,6 @@
 #pragma once
 
 #include <sys/param.h>
-#include <sys/socket.h>
 
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
@@ -54,8 +53,6 @@ typedef enum {
     S2N_APP_OWNED,
     S2N_LIB_OWNED,
 } s2n_cert_ownership;
-
-typedef int (*s2n_setsockopt_cb)(int fd, int level, int optname, const void *optval, socklen_t optlen);
 
 struct s2n_config {
     unsigned use_tickets : 1;
@@ -194,9 +191,6 @@ struct s2n_config {
 
     void *renegotiate_request_ctx;
     s2n_renegotiate_request_cb renegotiate_request_cb;
-
-    /* Used for overriding setsockopt calls in testing */
-    s2n_setsockopt_cb setsockopt_cb;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
@@ -212,4 +206,3 @@ void s2n_wipe_static_configs(void);
 struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
 int s2n_config_get_num_default_certs(struct s2n_config *config);
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
-S2N_RESULT s2n_config_set_setsockopt(struct s2n_config *config, s2n_setsockopt_cb cb);
