@@ -3,8 +3,8 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-# sets up bench crate to use aws-lc for either s2n-tls or rustls if desired
-# to run with aws-lc, use and cargo command with:
+# Sets up bench crate to use aws-lc for either s2n-tls or rustls if desired
+# To run with aws-lc, use any cargo command with:
 # --config aws-lc-config/s2n.toml
 # --config aws-lc-config/rustls.toml
 # or both
