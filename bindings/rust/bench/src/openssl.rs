@@ -2,13 +2,19 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    harness::{CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, Mode, TlsBenchHarness},
-    CA_CERT_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    harness::{
+        CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode, TlsBenchHarness,
+    },
+    CA_CERT_PATH, CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream, SslVersion,
+    ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream,
+    SslVerifyMode, SslVersion,
 };
-use std::error::Error;
+use std::{
+    error::Error,
+    io::{Read, Write},
+};
 
 pub struct OpenSslHarness {
     client_conn: SslStream<ConnectedBuffer>,
@@ -46,7 +52,10 @@ impl OpenSslHarness {
 }
 
 impl TlsBenchHarness for OpenSslHarness {
-    fn new(crypto_config: &CryptoConfig) -> Result<Self, Box<dyn Error>> {
+    fn new(
+        crypto_config: CryptoConfig,
+        handshake_type: HandshakeType,
+    ) -> Result<Self, Box<dyn Error>> {
         let client_buf = ConnectedBuffer::new();
         let server_buf = client_buf.clone_inverse();
 
@@ -68,6 +77,13 @@ impl TlsBenchHarness for OpenSslHarness {
         server_builder.set_certificate_chain_file(SERVER_CERT_CHAIN_PATH)?;
         server_builder.set_private_key_file(SERVER_KEY_PATH, SslFiletype::PEM)?;
         Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
+
+        if handshake_type == HandshakeType::MutualAuth {
+            client_builder.set_certificate_chain_file(CLIENT_CERT_CHAIN_PATH)?;
+            client_builder.set_private_key_file(CLIENT_KEY_PATH, SslFiletype::PEM)?;
+            server_builder.set_ca_file(CA_CERT_PATH)?;
+            server_builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
+        }
 
         let client_config = client_builder.build();
         let server_config = server_builder.build();
@@ -113,5 +129,34 @@ impl TlsBenchHarness for OpenSslHarness {
             .version2() // version() -> &str is deprecated, version2() returns an enum instead
             .expect("Handshake not completed")
             == SslVersion::TLS1_3
+    }
+
+    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        let send_conn = match sender {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            write_offset += send_conn.write(&data[write_offset..data.len()])?;
+            send_conn.flush()?; // make sure internal buffers don't fill up
+        }
+
+        Ok(())
+    }
+
+    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        let recv_conn = match receiver {
+            Mode::Client => &mut self.client_conn,
+            Mode::Server => &mut self.server_conn,
+        };
+
+        let mut read_offset = 0;
+        while read_offset < data.len() {
+            read_offset += recv_conn.read(data)?
+        }
+
+        Ok(())
     }
 }
