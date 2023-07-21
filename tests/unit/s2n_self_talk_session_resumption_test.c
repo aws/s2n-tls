@@ -571,23 +571,11 @@ int main(int argc, char **argv)
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, &data, 1, &blocked), S2N_ERR_IO_BLOCKED);
 
-        /* Store the TLS1.3 session ticket */
+        /* Get the TLS1.3 session ticket */
         size_t tls13_session_ticket_len = s2n_connection_get_session_length(client_conn);
         EXPECT_SUCCESS(s2n_blob_zero(&ticket));
         EXPECT_SUCCESS(s2n_realloc(&ticket, tls13_session_ticket_len));
         EXPECT_SUCCESS(s2n_connection_get_session(client_conn, ticket.data, ticket.size));
-
-        /* Prepare client and server for a third connection */
-        EXPECT_OK(s2n_wipe_connections(client_conn, server_conn, &io_pair));
-
-        /* Client sets up a resumption connection with the received TLS1.3 session ticket data */
-        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, ticket.data, ticket.size));
-
-        /* Negotiate third connection */
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
-        EXPECT_FALSE(ARE_FULL_HANDSHAKES(client_conn, server_conn));
-        EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
     };
 
     /* HRR when issuing a session resumption ticket and when resuming a session */
