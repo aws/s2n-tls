@@ -216,7 +216,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, client_ticket_size));
 
-            uint8_t versions[] = { S2N_TLS12, S2N_TLS13 };
             /* TLS 1.2 */
             {
                 conn->actual_protocol_version = S2N_TLS12;
