@@ -558,6 +558,10 @@ int main(int argc, char **argv)
          * number, nothing should be copied because this operation should fail
          */
         EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
+        /* In the event that get_session actually writes data, we want an error,
+         * not a segfault.
+         */
+        s2n_realloc(&ticket, 512);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, ticket.data, 512), 0);
 
         /* the server automatically sends a session ticket as part of completing
