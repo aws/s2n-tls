@@ -10,6 +10,14 @@ Dependencies are the same as with s2n-tls. Currently, this crate has only been t
 
 To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `install-aws-lc.sh` to install AWS-LC for the bench crate. To then run the benchmarks with AWS-LC, use Cargo with either the flag `--config aws-lc-config/s2n.toml` or `--config aws-lc-config/rustls.toml` (or both). You can also append these configs to `.cargo/config.toml` to let Cargo automatically detect the settings without specifying the flags each time.  
 
+For example, to get started with benching s2n-tls with AWS-LC:
+
+```
+../generate.sh
+./install-aws-lc.sh
+cargo bench --config aws-lc-config/s2n.toml
+```
+
 ## Running benchmarks
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
