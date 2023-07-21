@@ -19,15 +19,6 @@
 
 #define BUFFER_SIZE 100
 
-#define EXPECT_NOT_BLOCKED(conn, blocked, expected_msg) \
-    EXPECT_EQUAL((blocked), S2N_NOT_BLOCKED);           \
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
-#define EXPECT_BLOCKED_ON_EARLY_DATA(result) EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_EARLY_DATA_BLOCKED)
-#define EXPECT_BLOCKED_ON_IO(result)         EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_IO_BLOCKED)
-#define EXPECT_BLOCKED_ON(conn, blocked, expected_blocked, expected_msg) \
-    EXPECT_EQUAL((blocked), (expected_blocked));                         \
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
-
 static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn)
 {
     *client_conn = s2n_connection_new(S2N_CLIENT);
@@ -890,7 +881,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
-            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv
              * code because the handshake traces we're using are meant for stateful session resumption.
              * TODO: https://github.com/aws/s2n-tls/issues/2742 */
             server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
@@ -934,7 +925,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
-            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv
              * code because the handshake traces we're using are meant for stateful session resumption.
              * TODO: https://github.com/aws/s2n-tls/issues/2742 */
             server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
@@ -1016,7 +1007,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk_without_early_data));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
-            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv
              * code because the handshake traces we're using are meant for stateful session resumption.
              * TODO: https://github.com/aws/s2n-tls/issues/2742 */
             server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
@@ -1061,7 +1052,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, known_psk_with_wrong_cipher_suite));
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(server_conn, max_early_data));
-            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv 
+            /* We need to explicitly set the psk_params type to skip our stateless session resumption recv
              * code because the handshake traces we're using are meant for stateful session resumption.
              * TODO: https://github.com/aws/s2n-tls/issues/2742 */
             server_conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
