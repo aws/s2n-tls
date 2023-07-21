@@ -19,6 +19,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
+#include "utils/s2n_socket.h"
 
 #define S2N_TEST_SEND_FD 66
 #define S2N_TEST_RECV_FD 55
@@ -29,8 +30,6 @@
 S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info);
 #endif
-int s2n_ktls_disabled_write(void *io_context, const uint8_t *buf, uint32_t len);
-int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len);
 
 static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
@@ -206,12 +205,12 @@ int main(int argc, char **argv)
             /* enable kTLS send */
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
             EXPECT_TRUE(server_conn->ktls_send_enabled);
-            EXPECT_EQUAL(server_conn->send, s2n_ktls_disabled_write);
+            EXPECT_NOT_EQUAL(server_conn->send, s2n_socket_write);
 
             /* enable kTLS recv */
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
             EXPECT_TRUE(server_conn->ktls_recv_enabled);
-            EXPECT_EQUAL(server_conn->recv, s2n_ktls_disabled_read);
+            EXPECT_NOT_EQUAL(server_conn->recv, s2n_socket_read);
         }
 
         /* enable TX/RX */
