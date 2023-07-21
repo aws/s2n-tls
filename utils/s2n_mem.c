@@ -149,6 +149,10 @@ int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_clean
     return S2N_SUCCESS;
 }
 
+/*
+ * Generally, s2n_realloc is preferred over s2n_alloc. This is because calling
+ * s2n_alloc on a blob that already has memory allocated will leak memory.
+*/
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);

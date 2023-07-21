@@ -211,15 +211,6 @@ int test_count;
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
 #define EXPECT_STRING_NOT_EQUAL( p1, p2 ) EXPECT_NOT_EQUAL( strcmp( (p1), (p2) ), 0 )
 
-#define EXPECT_NOT_BLOCKED(conn, blocked, expected_msg) \
-    EXPECT_EQUAL((blocked), S2N_NOT_BLOCKED);           \
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
-#define EXPECT_BLOCKED_ON_EARLY_DATA(result) EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_EARLY_DATA_BLOCKED)
-#define EXPECT_BLOCKED_ON_IO(result)         EXPECT_FAILURE_WITH_ERRNO((result), S2N_ERR_IO_BLOCKED)
-#define EXPECT_BLOCKED_ON(conn, blocked, expected_blocked, expected_msg) \
-    EXPECT_EQUAL((blocked), (expected_blocked));                         \
-    EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
-
 #ifdef S2N_TEST_IN_FIPS_MODE
 #include <openssl/err.h>
 
