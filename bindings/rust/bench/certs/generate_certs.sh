@@ -3,11 +3,15 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+# Usage: ./generate_certs.sh [clean]
+# Generates all necessary certs for benching
+# Use argument "clean" to remove all generated certs
+
 # immediately bail if any command fails
 set -e
 
 # go to directory script is located in
-pushd "$(dirname "$0")"
+pushd "$(dirname "$0")" > /dev/null
 
 # Generates certs with given algorithms and bits in $1$2/, ex. ec384/
 # $1: rsa or ec
@@ -56,9 +60,15 @@ cert-gen () {
     cd ..
 }
 
-cert-gen ec 384
-cert-gen rsa 2048
-cert-gen rsa 3072
-cert-gen rsa 4096
+if [[ $1 != "clean" ]] 
+then
+    cert-gen ec 384
+    cert-gen rsa 2048
+    cert-gen rsa 3072
+    cert-gen rsa 4096
+else 
+    echo "cleaning certs"
+    rm -rf ec*/ rsa*/
+fi
 
-popd
+popd > /dev/null
