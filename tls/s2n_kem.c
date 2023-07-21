@@ -15,7 +15,7 @@
 
 #include "tls/s2n_kem.h"
 
-#include "pq-crypto/s2n_kyber_512_evp.h"
+#include "pq-crypto/s2n_kyber_evp.h"
 #include "pq-crypto/s2n_pq.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
@@ -32,7 +32,7 @@ const struct s2n_kem s2n_kyber_512_r3 = {
     .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER512)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     .generate_keypair = &s2n_kyber_512_evp_generate_keypair,
     .encapsulate = &s2n_kyber_512_evp_encapsulate,
     .decapsulate = &s2n_kyber_512_evp_decapsulate,
