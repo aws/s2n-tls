@@ -134,7 +134,6 @@ int main(int argc, char **argv)
             uint8_t secret_size = 0;
             EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
             EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, secret_size));
-            printf("session secret size for boring data is %i", secret_size);
 
             /* Result matches constant */
             size_t actual_size = 0;
@@ -177,7 +176,6 @@ int main(int argc, char **argv)
             uint8_t secret_size = 0;
             EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
             EXPECT_SUCCESS(s2n_alloc(&conn->tls13_ticket_fields.session_secret, secret_size));
-            printf("session secret size for early data is %i", secret_size);
 
             /* Set early data fields */
             const uint8_t data[] = "test data";
