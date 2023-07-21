@@ -264,7 +264,7 @@ where
         self: Pin<&mut Self>,
         mut remembered_error: Result<(), Error>,
     ) -> Result<(), Error> {
-        let mut tls = self.get_mut();
+        let tls = self.get_mut();
 
         if tls.blinding.is_none() {
             let delay = tls.as_ref().remaining_blinding_delay()?;

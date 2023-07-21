@@ -322,7 +322,10 @@ function(feature_probe PROBE_NAME)
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
         COMPILE_DEFINITIONS -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
+        OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
+    # Uncomment the line below to get the output of the try_compile command
+    #message(STATUS "Output of try_compile: ${TRY_COMPILE_OUTPUT}")
 
     # Set the result of the probe
     feature_probe_result(${PROBE_NAME} ${IS_AVAILABLE})
