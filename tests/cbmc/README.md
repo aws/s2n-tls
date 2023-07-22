@@ -43,6 +43,13 @@ Running the proofs
 ------------------
 
 Each of the leaf directories under `proofs` is a proof of the memory safety of a single entry point.
+
+Before running proofs, you must pull in the `aws-verification-model-for-libcrypto`. That can be done by running
+```shell
+git submodule update --init
+```
+in the main s2n-tls folder.
+
 To run a proof, change into the directory for that proof and run `make` on Linux or macOS.
 The proofs may take some time to run; they eventually write their output to `cbmc.txt`, which should have the text `VERIFICATION SUCCESSFUL` at the end.
 
