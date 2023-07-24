@@ -12,7 +12,7 @@ index 3405781..3beeacf 100644
  #include <stdint.h>
  
  int s2n_hash_hmac_alg(s2n_hash_algorithm hash_alg, s2n_hmac_algorithm *out)
-@@ -246,7 +249,7 @@ static S2N_RESULT s2n_hmac_update_impl(struct s2n_hmac_state *state, const void
+@@ -268,7 +271,7 @@ static S2N_RESULT s2n_hmac_update_impl(struct s2n_hmac_state *state, const void
       */
      const uint32_t HIGHEST_32_BIT = 4294949760;
      RESULT_ENSURE(size <= (UINT32_MAX - HIGHEST_32_BIT), S2N_ERR_INTEGER_OVERFLOW);
@@ -21,7 +21,7 @@ index 3405781..3beeacf 100644
      RESULT_GUARD_POSIX(s2n_add_overflow(state->currently_in_hash_block, value, &state->currently_in_hash_block));
      state->currently_in_hash_block %= state->hash_block_size;
  
-@@ -299,8 +302,8 @@ static S2N_RESULT s2n_hmac_copy_impl(struct s2n_hmac_state *to, struct s2n_hmac_
+@@ -333,8 +336,8 @@ static S2N_RESULT s2n_hmac_copy_impl(struct s2n_hmac_state *to, struct s2n_hmac_
      RESULT_GUARD_POSIX(s2n_hash_copy(&to->outer, &from->outer));
      RESULT_GUARD_POSIX(s2n_hash_copy(&to->outer_just_key, &from->outer_just_key));
  
@@ -32,7 +32,7 @@ index 3405781..3beeacf 100644
  
      return S2N_RESULT_OK;
  }
-@@ -422,28 +425,28 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
+@@ -440,28 +443,28 @@ int s2n_hmac_copy(struct s2n_hmac_state *to, struct s2n_hmac_state *from)
  /* Preserve the handlers for hmac state pointers to avoid re-allocation
   * Only valid if the HMAC is in EVP mode
   */
