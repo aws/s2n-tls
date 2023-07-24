@@ -3,6 +3,9 @@ name = "bench"
 version = "0.1.0"
 edition = "2021"
 
+[features]
+historical-perf = []
+
 [dependencies]
 s2n-tls = { path = "../s2n-tls" }
 rustls = "0.21"
@@ -10,6 +13,9 @@ rustls-pemfile = "1.0"
 openssl = "0.10"
 errno = "0.3"
 libc = "0.2"
+serde_json = "1.0"
+plotters = "0.3"
+semver = "1.0"
 
 [dev-dependencies]
 criterion = "0.3"
