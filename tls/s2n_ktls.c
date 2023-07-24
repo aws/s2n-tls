@@ -119,6 +119,7 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
     return S2N_RESULT_OK;
 }
 
+#if defined(S2N_KTLS_SUPPORTED)
 /* If server is sending or client is receiving then use server key material */
 static S2N_RESULT s2n_use_server_key_material(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, bool *use_server_km)
 {
@@ -130,7 +131,6 @@ static S2N_RESULT s2n_use_server_key_material(struct s2n_connection *conn, s2n_k
     return S2N_RESULT_OK;
 }
 
-#if defined(S2N_KTLS_SUPPORTED)
 S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info)
 {
