@@ -20,7 +20,7 @@
 /* Used for overriding setsockopt calls in testing */
 s2n_setsockopt_fn s2n_setsockopt = setsockopt;
 
-S2N_RESULT s2n_test_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb)
+S2N_RESULT s2n_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb)
 {
     RESULT_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
     s2n_setsockopt = cb;
@@ -36,12 +36,12 @@ bool s2n_ktls_is_supported_on_platform()
 #endif
 }
 
-int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
+static int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     POSIX_BAIL(S2N_ERR_IO);
 }
 
-int s2n_ktls_disabled_write(void *io_context, const uint8_t *buf, uint32_t len)
+static int s2n_ktls_disabled_write(void *io_context, const uint8_t *buf, uint32_t len)
 {
     POSIX_BAIL(S2N_ERR_IO);
 }
@@ -120,16 +120,13 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
 }
 
 /* If server is sending or client is receiving then use server key material */
-S2N_RESULT s2n_use_server_key_material(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, bool *use_server_km)
+static S2N_RESULT s2n_use_server_key_material(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, bool *use_server_km)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(use_server_km);
-    *use_server_km =
-            /* server sending */
-            (conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND) ||
-            /* client receiving */
-            (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV);
-
+    bool server_sending = (conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND);
+    bool client_receiving = (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV);
+    *use_server_km = server_sending || client_receiving;
     return S2N_RESULT_OK;
 }
 
@@ -170,13 +167,13 @@ S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n
         RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->client->client_sequence_number, sizeof(conn->client->client_sequence_number)));
     }
 
-    /**
+    /* The salt is the first 4 bytes of the IV.
+     *
      *= https://www.rfc-editor.org/rfc/rfc4106#section-4
      *# The salt field is a four-octet value that is assigned at the
      *# beginning of the security association, and then remains constant
      *# for the life of the security association.
      */
-    /* The salt is the first 4 bytes of the IV */
     RESULT_ENSURE_GTE(implicit_iv.size, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
     RESULT_CHECKED_MEMCPY(crypto_info->salt, implicit_iv.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
 

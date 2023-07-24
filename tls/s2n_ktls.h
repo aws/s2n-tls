@@ -39,7 +39,7 @@ typedef enum {
 /* Used for overriding setsockopt calls in testing */
 typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name,
         const void *option_value, socklen_t option_len);
-S2N_RESULT s2n_test_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb);
+S2N_RESULT s2n_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb);
 
 bool s2n_ktls_is_supported_on_platform();
 
