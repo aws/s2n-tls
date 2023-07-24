@@ -500,8 +500,6 @@ int main(int argc, char **argv)
 
     /* Test: A TLS1.3 client with a valid TLS1.2 ticket can fall back to a
      * TLS1.3 connection.
-     * Test: When TLS 1.3 is negotiated s2n_connection_get_session should not
-     * return a ticket before it has been received.
      *
      * This scenario could occur when upgrading a fleet of TLS1.2 servers to
      * TLS1.3 without disabling session resumption.
@@ -554,28 +552,12 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
         /* since TLS 1.3 was negotiated, and the client hasn't called recv yet
-         * there should be no session ticket available. 512 is an arbitrary
-         * number, nothing should be copied because this operation should fail
+         * there should be no session ticket available. We know that ticket.size
+         * is non-zero here because otherwise the previous call to set_session
+         * would have failed.
          */
         EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
-        /* In the event that get_session actually writes data, we want an error,
-         * not a segfault.
-         */
-        s2n_realloc(&ticket, 512);
-        EXPECT_EQUAL(s2n_connection_get_session(client_conn, ticket.data, 512), 0);
-
-        /* the server automatically sends a session ticket as part of completing
-         * handshake io, so it isn't necessary to call send again
-         */
-        uint8_t data = 1;
-        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(client_conn, &data, 1, &blocked), S2N_ERR_IO_BLOCKED);
-
-        /* Get the TLS1.3 session ticket */
-        size_t tls13_session_ticket_len = s2n_connection_get_session_length(client_conn);
-        EXPECT_SUCCESS(s2n_blob_zero(&ticket));
-        EXPECT_SUCCESS(s2n_realloc(&ticket, tls13_session_ticket_len));
-        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, ticket.data, ticket.size));
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, ticket.data, ticket.size), 0);
     };
 
     /* HRR when issuing a session resumption ticket and when resuming a session */

@@ -207,17 +207,16 @@ int main(int argc, char **argv)
         {
             const uint16_t client_ticket_size = 10;
 
-            struct s2n_config *config = s2n_config_new();
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
 
-            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
-            EXPECT_NOT_NULL(conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, client_ticket_size));
-
             /* TLS 1.2 */
             {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, client_ticket_size));
                 conn->actual_protocol_version = S2N_TLS12;
                 int session_length = s2n_connection_get_session_length(conn);
                 EXPECT_NOT_EQUAL(session_length, 0);
@@ -230,6 +229,10 @@ int main(int argc, char **argv)
 
             /* TLS 1.3 */
             {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+                EXPECT_SUCCESS(s2n_realloc(&conn->client_ticket, client_ticket_size));
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
@@ -245,9 +248,6 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_alloc(&session_data, session_length));
                 EXPECT_SUCCESS(s2n_connection_get_session(conn, session_data.data, session_data.size));
             }
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_config_free(config));
         };
 
         /* Session ID */
@@ -568,7 +568,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* Erroneous secret size */
+        /* Erroneous secret size: too large */
         {
             struct s2n_connection *conn;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -581,6 +581,23 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
             EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, UINT8_MAX + 1));
+            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
+
+            EXPECT_SUCCESS(s2n_connection_free(conn));
+        };
+
+        /* Erroneous secret size: zero length */
+        {
+            struct s2n_connection *conn;
+            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            conn->actual_protocol_version = S2N_TLS13;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+            EXPECT_EQUAL(&conn->tls13_ticket_fields.session_secret.size, 0);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
