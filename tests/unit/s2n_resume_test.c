@@ -107,27 +107,40 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* Minimal TLS1.3 state: all variable fields empty, zero-length session secret, no early data */
+        /* TLS1.3 with all variables empty except non-zero session secret */
         {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            /* Set non-zero length secret */
+            uint8_t secret_size = 0;
+            EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
+            EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, secret_size));
 
             /* Result matches constant */
             size_t actual_size = 0;
             EXPECT_OK(s2n_connection_get_session_state_size(conn, &actual_size));
-            EXPECT_EQUAL(actual_size, S2N_TLS13_FIXED_STATE_SIZE);
+            EXPECT_EQUAL(actual_size, S2N_TLS13_FIXED_STATE_SIZE + secret_size);
 
             /* Result matches actual size of data */
             DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
-            /* Session tickets can't have zero-length secrets */
-            EXPECT_ERROR(s2n_tls13_serialize_resumption_state(conn, &actual_data));
+            EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &actual_data));
+            const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
+            if (actual_size != expected_size) {
+                fprintf(stderr, "\nS2N_TLS13_FIXED_STATE_SIZE (%i) should be set to %u\n\n",
+                    S2N_TLS13_FIXED_STATE_SIZE, expected_size);
+            }
+            EXPECT_EQUAL(actual_size, expected_size);
+            EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* TLS1.3 with non-zero session secret */
+        /* TLS1.3 with all variables empty except non-zero session secret */
         {
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             conn->actual_protocol_version = S2N_TLS13;
+            /* use a different hash digest to get more coverage/certainty */
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
 
             /* Set non-zero length secret */
@@ -149,21 +162,33 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* Minimal TLS1.3 with early data: all variable fields empty */
+        /* Minimal TLS1.3 with early data: all variable fields empty except non-zero session secret */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             conn->actual_protocol_version = S2N_TLS13;
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_SUCCESS(s2n_connection_set_server_max_early_data_size(conn, 1));
+
+            /* Set non-zero length secret */
+            uint8_t secret_size = 0;
+            EXPECT_SUCCESS(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
+            EXPECT_SUCCESS(s2n_alloc(&conn->tls13_ticket_fields.session_secret, secret_size));
 
             /* Result matches constants */
             size_t actual_size = 0;
             EXPECT_OK(s2n_connection_get_session_state_size(conn, &actual_size));
-            EXPECT_EQUAL(actual_size, S2N_TLS13_FIXED_STATE_SIZE + S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE);
+            EXPECT_EQUAL(actual_size, S2N_TLS13_FIXED_STATE_SIZE + S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE + secret_size);
 
             /* Result matches actual size of data */
             DEFER_CLEANUP(struct s2n_stuffer actual_data = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&actual_data, actual_size));
-            EXPECT_ERROR(s2n_tls13_serialize_resumption_state(conn, &actual_data));
+            EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &actual_data));
+            const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
+            if (actual_size != expected_size) {
+                fprintf(stderr, "\nS2N_TLS13_FIXED_STATE_SIZE (%i) should be set to %u\n\n",
+                    S2N_TLS13_FIXED_STATE_SIZE, expected_size);
+            }
+            EXPECT_EQUAL(actual_size, expected_size);
         };
 
         /* TLS1.3 with early data: all variable fields set */
@@ -588,19 +613,17 @@ int main(int argc, char **argv)
 
         /* Erroneous secret size: zero length */
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
             conn->actual_protocol_version = S2N_TLS13;
 
             DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
             conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
-            EXPECT_EQUAL(&conn->tls13_ticket_fields.session_secret.size, 0);
+            s2n_blob_zero(&conn->tls13_ticket_fields.session_secret);
+            EXPECT_EQUAL(conn->tls13_ticket_fields.session_secret.size, 0);
             EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
         };
     };
 
