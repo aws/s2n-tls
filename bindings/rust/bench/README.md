@@ -4,7 +4,7 @@ We use to Criterion.rs to benchmark s2n-tls against two commonly used TLS librar
 
 ## Setup 
 
-Setup is easy! Just have OpenSSL installed and generate Rust bindings for s2n-tls using `bindings/rust/generate.sh`. 
+Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `certs/generate_certs.sh`. 
 
 Dependencies are the same as with s2n-tls. Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments. 
 
@@ -14,6 +14,7 @@ For example, to get started with benching s2n-tls with AWS-LC:
 
 ```
 ../generate.sh
+certs/generate_certs.sh
 ./install-aws-lc.sh
 cargo bench --config aws-lc-config/s2n.toml
 ```
@@ -44,7 +45,7 @@ To remove external factors, we use custom IO with our benchmarks, bypassing the 
 
 ### Certificate generation
 
-All certs are stored in `certs/` and can be regenerated using `certs/generate_certs.sh`. There is one root cert that directly signs the server and client certs that are used in benchmarking. Currently, we use ECDSA with `secp384r1`.
+There is one root cert that directly signs the server and client certs that are used in benchmarking. We currently bench RSA and ECDSA certs.
 
 ### Negotiation parameters
 

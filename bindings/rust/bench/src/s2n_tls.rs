@@ -6,7 +6,7 @@ use crate::{
         read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
         TlsBenchHarness,
     },
-    CA_CERT_PATH, CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    PemType::*,
 };
 use s2n_tls::{
     callbacks::VerifyHostNameCallback,
@@ -105,15 +105,15 @@ impl S2NHarness {
     ) -> Result<Config, Box<dyn Error>> {
         let mut builder = Self::create_common_config_builder(crypto_config, handshake_type)?;
         builder
-            .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
+            .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
             .set_verify_host_callback(HostNameHandler {
                 expected_server_name: "localhost",
             })?;
 
         if handshake_type == HandshakeType::MutualAuth {
             builder.load_pem(
-                read_to_bytes(CLIENT_CERT_CHAIN_PATH).as_slice(),
-                read_to_bytes(CLIENT_KEY_PATH).as_slice(),
+                read_to_bytes(ClientCertChain, crypto_config.sig_type).as_slice(),
+                read_to_bytes(ClientKey, crypto_config.sig_type).as_slice(),
             )?;
         }
 
@@ -126,13 +126,13 @@ impl S2NHarness {
     ) -> Result<Config, Box<dyn Error>> {
         let mut builder = Self::create_common_config_builder(crypto_config, handshake_type)?;
         builder.load_pem(
-            read_to_bytes(SERVER_CERT_CHAIN_PATH).as_slice(),
-            read_to_bytes(SERVER_KEY_PATH).as_slice(),
+            read_to_bytes(ServerCertChain, crypto_config.sig_type).as_slice(),
+            read_to_bytes(ServerKey, crypto_config.sig_type).as_slice(),
         )?;
 
         if handshake_type == HandshakeType::MutualAuth {
             builder
-                .trust_pem(read_to_bytes(CA_CERT_PATH).as_slice())?
+                .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
                 .set_verify_host_callback(HostNameHandler {
                     expected_server_name: "localhost",
                 })?;

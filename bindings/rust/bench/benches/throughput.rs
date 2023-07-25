@@ -3,7 +3,8 @@
 
 use bench::{
     CipherSuite::{self, *},
-    CryptoConfig, OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness,
+    CryptoConfig, ECGroup, HandshakeType, OpenSslHarness, RustlsHarness, S2NHarness, SigType,
+    TlsBenchHarness, harness::ConnectedBuffer,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -24,12 +25,9 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
             b.iter_batched_ref(
                 || {
                     T::new(
-                        CryptoConfig {
-                            cipher_suite,
-                            ec_group: Default::default(),
-                        },
-                        Default::default(),
-                        Default::default(),
+                        CryptoConfig::new(cipher_suite, ECGroup::default(), SigType::default()),
+                        HandshakeType::default(),
+                        ConnectedBuffer::default(),
                     )
                     .map(|mut h| {
                         let _ = h.handshake();
