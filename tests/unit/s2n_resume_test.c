@@ -1644,11 +1644,6 @@ int main(int argc, char **argv)
             uint8_t *ticket_bytes = s2n_stuffer_raw_read(&ticket_stuffer, ticket_size);
             EXPECT_NOT_NULL(ticket_bytes);
 
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
             /* Test that deserialize modifies the connection in limited ways.
              *
              * No mechanism exists to do more than a shallow comparison of two connections.
@@ -1658,32 +1653,72 @@ int main(int argc, char **argv)
              * test that s2n_deserialize_resumption_state can successfully operate
              * on an s2n_connection with a limited number of its pointers initialized.
              */
-            struct s2n_connection empty_conn = { 0 };
-            struct s2n_crypto_parameters crypto_params = { .cipher_suite = &s2n_null_cipher_suite };
-            empty_conn.secure = &crypto_params;
-            empty_conn.mode = S2N_CLIENT;
-            /* We can safely assume that a connection doesn't modify its config */
-            empty_conn.config = conn->config;
-            EXPECT_SUCCESS(s2n_connection_set_session(&empty_conn, ticket_bytes, ticket_size));
-            EXPECT_SUCCESS(s2n_free(&empty_conn.client_ticket));
+            {
+                struct s2n_connection empty_conn = { 0 };
+                struct s2n_crypto_parameters crypto_params = { .cipher_suite = &s2n_null_cipher_suite };
+                empty_conn.secure = &crypto_params;
+                empty_conn.mode = S2N_CLIENT;
+                /* We can safely assume that a connection doesn't modify its config */
+                empty_conn.config = config;
+                EXPECT_SUCCESS(s2n_connection_set_session(&empty_conn, ticket_bytes, ticket_size));
+                EXPECT_SUCCESS(s2n_free(&empty_conn.client_ticket));
+            };
 
-            /* Trigger the deserialization failure as late as possible.
-             * The last byte is optional, so drop the last two bytes.
+            /* Test that deserialize does not modify the connection on parsing failure,
+             * given the constraints proven above.
              */
-            ticket_size -= 2;
+            {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Test the connection is not modified by a failed deserialize */
-            uint8_t saved_conn[sizeof(struct s2n_connection)] = { 0 };
-            EXPECT_MEMCPY_SUCCESS(saved_conn, conn, sizeof(struct s2n_connection));
-            uint8_t saved_secure[sizeof(struct s2n_crypto_parameters)] = { 0 };
-            EXPECT_MEMCPY_SUCCESS(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, ticket_size),
-                    S2N_ERR_STUFFER_OUT_OF_DATA);
-            EXPECT_BYTEARRAY_EQUAL(saved_conn, conn, sizeof(struct s2n_connection));
-            EXPECT_BYTEARRAY_EQUAL(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
+                /* Trigger the deserialization failure as late as possible.
+                 * The last byte is optional, so drop the last two bytes.
+                 */
+                size_t bad_ticket_size = ticket_size - 2;
 
-            /* No valid ticket */
-            EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+                /* Test the connection is not modified by a failed deserialize */
+                uint8_t saved_conn[sizeof(struct s2n_connection)] = { 0 };
+                EXPECT_MEMCPY_SUCCESS(saved_conn, conn, sizeof(struct s2n_connection));
+                uint8_t saved_secure[sizeof(struct s2n_crypto_parameters)] = { 0 };
+                EXPECT_MEMCPY_SUCCESS(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, bad_ticket_size),
+                        S2N_ERR_STUFFER_OUT_OF_DATA);
+                EXPECT_BYTEARRAY_EQUAL(saved_conn, conn, sizeof(struct s2n_connection));
+                EXPECT_BYTEARRAY_EQUAL(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
+
+                /* No valid ticket */
+                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+            };
+
+            /* Test that deserialize does not modify the connection on a cipher selection failure,
+             * given the constraints proven above.
+             */
+            {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+                /* Trigger the deserialization failure when checking the validity
+                 * of the chosen cipher, not when parsing the ticket.
+                 */
+                EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "null"));
+
+                /* Test the connection is not modified by a failed deserialize */
+                uint8_t saved_conn[sizeof(struct s2n_connection)] = { 0 };
+                EXPECT_MEMCPY_SUCCESS(saved_conn, conn, sizeof(struct s2n_connection));
+                uint8_t saved_secure[sizeof(struct s2n_crypto_parameters)] = { 0 };
+                EXPECT_MEMCPY_SUCCESS(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, ticket_size),
+                        S2N_ERR_CIPHER_NOT_SUPPORTED);
+                EXPECT_BYTEARRAY_EQUAL(saved_conn, conn, sizeof(struct s2n_connection));
+                EXPECT_BYTEARRAY_EQUAL(saved_secure, conn->secure, sizeof(struct s2n_crypto_parameters));
+
+                /* No valid ticket */
+                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+            };
         };
 
         /* Invalid TLS1.3 tickets should not modify the connection.
@@ -1702,11 +1737,6 @@ int main(int argc, char **argv)
             uint8_t *ticket_bytes = s2n_stuffer_raw_read(&ticket_stuffer, ticket_size);
             EXPECT_NOT_NULL(ticket_bytes);
 
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-
             /* Test that the connection is only shallowly modified by a successful deserialize.
              *
              * No mechanism exists to do more than a shallow comparison of two connections.
@@ -1716,27 +1746,39 @@ int main(int argc, char **argv)
              * test that s2n_deserialize_resumption_state can successfully operate
              * on an s2n_connection with none of its pointers initialized.
              */
-            struct s2n_connection empty_conn = { 0 };
-            empty_conn.mode = S2N_CLIENT;
-            /* We can safely assume that a connection doesn't modify its config */
-            empty_conn.config = conn->config;
-            EXPECT_SUCCESS(s2n_connection_set_session(&empty_conn, ticket_bytes, ticket_size));
-            EXPECT_OK(s2n_psk_parameters_wipe(&empty_conn.psk_params));
+            {
+                struct s2n_connection empty_conn = { 0 };
+                empty_conn.mode = S2N_CLIENT;
+                /* We can safely assume that a connection doesn't modify its config */
+                empty_conn.config = config;
+                EXPECT_SUCCESS(s2n_connection_set_session(&empty_conn, ticket_bytes, ticket_size));
+                EXPECT_OK(s2n_psk_parameters_wipe(&empty_conn.psk_params));
+            };
 
-            /* Trigger the deserialization failure as late as possible in parsing.
-             * Drop the last byte we expect.
+            /* Test that deserialize does not modify the connection on failure,
+             * given the constraints proven above.
              */
-            size_t wrong_ticket_size = ticket_size - 1;
+            {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            /* Test the connection is not modified by a failed deserialize */
-            uint8_t saved[sizeof(struct s2n_connection)] = { 0 };
-            EXPECT_MEMCPY_SUCCESS(saved, conn, sizeof(struct s2n_connection));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, wrong_ticket_size),
-                    S2N_ERR_STUFFER_OUT_OF_DATA);
-            EXPECT_BYTEARRAY_EQUAL(saved, conn, sizeof(struct s2n_connection));
+                /* Trigger the deserialization failure as late as possible in parsing.
+                 * Drop the last byte we expect.
+                 */
+                size_t bad_ticket_size = ticket_size - 1;
 
-            /* No valid ticket */
-            EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+                /* Test the connection is not modified by a failed deserialize */
+                uint8_t saved[sizeof(struct s2n_connection)] = { 0 };
+                EXPECT_MEMCPY_SUCCESS(saved, conn, sizeof(struct s2n_connection));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_session(conn, ticket_bytes, bad_ticket_size),
+                        S2N_ERR_STUFFER_OUT_OF_DATA);
+                EXPECT_BYTEARRAY_EQUAL(saved, conn, sizeof(struct s2n_connection));
+
+                /* No valid ticket */
+                EXPECT_EQUAL(s2n_connection_get_session_length(conn), 0);
+            };
         };
     };
 

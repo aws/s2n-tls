@@ -240,26 +240,26 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
      */
     struct s2n_crypto_parameters *secure = conn->secure;
     RESULT_ENSURE_REF(secure);
-    struct s2n_connection resume_conn = *conn;
-    struct s2n_crypto_parameters resume_secure = *secure;
-    resume_conn.secure = &resume_secure;
+    struct s2n_connection temp_conn = *conn;
+    struct s2n_crypto_parameters temp_secure = *secure;
+    temp_conn.secure = &temp_secure;
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &resume_conn.resume_protocol_version));
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &temp_conn.resume_protocol_version));
 
     uint8_t *cipher_suite_wire = s2n_stuffer_raw_read(from, S2N_TLS_CIPHER_SUITE_LEN);
     RESULT_ENSURE_REF(cipher_suite_wire);
-    RESULT_GUARD_POSIX(s2n_set_cipher_as_client(&resume_conn, cipher_suite_wire));
+    RESULT_GUARD_POSIX(s2n_set_cipher_as_client(&temp_conn, cipher_suite_wire));
 
     uint64_t then = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint64(from, &then));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, resume_conn.secrets.version.tls12.master_secret,
+    RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, temp_conn.secrets.version.tls12.master_secret,
             S2N_TLS_SECRET_LEN));
 
     if (s2n_stuffer_data_available(from)) {
         uint8_t ems_negotiated = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(from, &ems_negotiated));
-        resume_conn.ems_negotiated = ems_negotiated;
+        temp_conn.ems_negotiated = ems_negotiated;
     }
 
     DEFER_CLEANUP(struct s2n_blob client_ticket = { 0 }, s2n_free);
@@ -269,8 +269,8 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
 
     /* Finally, actually update the connection */
     RESULT_GUARD_POSIX(s2n_free(&conn->client_ticket));
-    *secure = resume_secure;
-    *conn = resume_conn;
+    *secure = temp_secure;
+    *conn = temp_conn;
     conn->secure = secure;
     conn->client_ticket = client_ticket;
     ZERO_TO_DISABLE_DEFER_CLEANUP(client_ticket);
