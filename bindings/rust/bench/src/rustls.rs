@@ -6,7 +6,8 @@ use crate::{
         read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
         TlsBenchHarness,
     },
-    CA_CERT_PATH, CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    PemType::{self, *},
+    SigType,
 };
 use rustls::{
     cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
@@ -34,25 +35,28 @@ pub struct RustlsHarness {
 }
 
 impl RustlsHarness {
-    fn get_root_cert_store() -> Result<RootCertStore, Box<dyn Error>> {
+    fn get_root_cert_store(sig_type: SigType) -> Result<RootCertStore, Box<dyn Error>> {
         let root_cert =
-            Certificate(certs(&mut BufReader::new(&*read_to_bytes(CA_CERT_PATH)))?.remove(0));
+            Certificate(certs(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))?.remove(0));
         let mut root_certs = RootCertStore::empty();
         root_certs.add(&root_cert)?;
         Ok(root_certs)
     }
 
-    fn get_cert_chain(path: &str) -> Result<Vec<Certificate>, Box<dyn Error>> {
-        let chain = certs(&mut BufReader::new(&*read_to_bytes(path)))?;
+    fn get_cert_chain(
+        pem_type: PemType,
+        sig_type: SigType,
+    ) -> Result<Vec<Certificate>, Box<dyn Error>> {
+        let chain = certs(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?;
         Ok(chain
             .iter()
             .map(|bytes| Certificate(bytes.to_vec()))
             .collect())
     }
 
-    fn get_key(path: &str) -> Result<PrivateKey, Box<dyn Error>> {
+    fn get_key(pem_type: PemType, sig_type: SigType) -> Result<PrivateKey, Box<dyn Error>> {
         Ok(PrivateKey(
-            pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(path)))?.remove(0),
+            pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?.remove(0),
         ))
     }
 
@@ -72,8 +76,9 @@ impl TlsBenchHarness for RustlsHarness {
     fn new(
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
+        buffer: ConnectedBuffer,
     ) -> Result<Self, Box<dyn Error>> {
-        let client_buf = ConnectedBuffer::new();
+        let client_buf = buffer;
         let server_buf = client_buf.clone_inverse();
 
         let cipher_suite = match crypto_config.cipher_suite {
@@ -90,7 +95,7 @@ impl TlsBenchHarness for RustlsHarness {
             .with_cipher_suites(&[cipher_suite])
             .with_kx_groups(&[kx_group])
             .with_protocol_versions(&[&TLS13])?
-            .with_root_certificates(Self::get_root_cert_store()?);
+            .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type)?);
 
         let server_builder = ServerConfig::builder()
             .with_cipher_suites(&[cipher_suite])
@@ -100,11 +105,13 @@ impl TlsBenchHarness for RustlsHarness {
         let (client_builder, server_builder) = match handshake_type {
             HandshakeType::MutualAuth => (
                 client_builder.with_client_auth_cert(
-                    Self::get_cert_chain(CLIENT_CERT_CHAIN_PATH)?,
-                    Self::get_key(CLIENT_KEY_PATH)?,
+                    Self::get_cert_chain(ClientCertChain, crypto_config.sig_type)?,
+                    Self::get_key(ClientKey, crypto_config.sig_type)?,
                 )?,
                 server_builder.with_client_cert_verifier(Arc::new(
-                    AllowAnyAuthenticatedClient::new(Self::get_root_cert_store()?),
+                    AllowAnyAuthenticatedClient::new(Self::get_root_cert_store(
+                        crypto_config.sig_type,
+                    )?),
                 )),
             ),
             HandshakeType::ServerAuth => (
@@ -115,8 +122,8 @@ impl TlsBenchHarness for RustlsHarness {
 
         let client_config = Arc::new(client_builder);
         let server_config = Arc::new(server_builder.with_single_cert(
-            Self::get_cert_chain(SERVER_CERT_CHAIN_PATH)?,
-            Self::get_key(SERVER_KEY_PATH)?,
+            Self::get_cert_chain(ServerCertChain, crypto_config.sig_type)?,
+            Self::get_key(ServerKey, crypto_config.sig_type)?,
         )?);
 
         let client_conn = Client(ClientConnection::new(

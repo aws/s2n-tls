@@ -2,10 +2,11 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
+    get_cert_path,
     harness::{
         CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode, TlsBenchHarness,
     },
-    CA_CERT_PATH, CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
+    PemType::*,
 };
 use openssl::ssl::{
     ErrorCode, Ssl, SslContext, SslContextBuilder, SslFiletype, SslMethod, SslStream,
@@ -55,8 +56,9 @@ impl TlsBenchHarness for OpenSslHarness {
     fn new(
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
+        buffer: ConnectedBuffer,
     ) -> Result<Self, Box<dyn Error>> {
-        let client_buf = ConnectedBuffer::new();
+        let client_buf = buffer;
         let server_buf = client_buf.clone_inverse();
 
         let cipher_suite = match crypto_config.cipher_suite {
@@ -70,18 +72,28 @@ impl TlsBenchHarness for OpenSslHarness {
         };
 
         let mut client_builder = SslContext::builder(SslMethod::tls_client())?;
-        client_builder.set_ca_file(CA_CERT_PATH)?;
         Self::common_config(&mut client_builder, cipher_suite, ec_key)?;
+        client_builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
 
         let mut server_builder = SslContext::builder(SslMethod::tls_server())?;
-        server_builder.set_certificate_chain_file(SERVER_CERT_CHAIN_PATH)?;
-        server_builder.set_private_key_file(SERVER_KEY_PATH, SslFiletype::PEM)?;
         Self::common_config(&mut server_builder, cipher_suite, ec_key)?;
+        server_builder
+            .set_certificate_chain_file(get_cert_path(ServerCertChain, crypto_config.sig_type))?;
+        server_builder.set_private_key_file(
+            get_cert_path(ServerKey, crypto_config.sig_type),
+            SslFiletype::PEM,
+        )?;
 
         if handshake_type == HandshakeType::MutualAuth {
-            client_builder.set_certificate_chain_file(CLIENT_CERT_CHAIN_PATH)?;
-            client_builder.set_private_key_file(CLIENT_KEY_PATH, SslFiletype::PEM)?;
-            server_builder.set_ca_file(CA_CERT_PATH)?;
+            client_builder.set_certificate_chain_file(get_cert_path(
+                ClientCertChain,
+                crypto_config.sig_type,
+            ))?;
+            client_builder.set_private_key_file(
+                get_cert_path(ClientKey, crypto_config.sig_type),
+                SslFiletype::PEM,
+            )?;
+            server_builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
             server_builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
         }
 

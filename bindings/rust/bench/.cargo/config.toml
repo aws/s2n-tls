@@ -1,0 +1,3 @@
+[env]
+S2N_TLS_LIB_DIR = "/home/ubuntu/s2n-tls/bindings/rust/bench/target/s2n-tls-build/lib"
+LD_LIBRARY_PATH = "/home/ubuntu/s2n-tls/bindings/rust/bench/target/s2n-tls-build/lib"

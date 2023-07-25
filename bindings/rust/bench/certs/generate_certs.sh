@@ -1,41 +1,74 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+# Usage: ./generate_certs.sh [clean]
+# Generates all necessary certs for benching
+# Use argument "clean" to remove all generated certs
+
 # immediately bail if any command fails
 set -e
 
-pushd "$(dirname "$0")"
+# go to directory script is located in
+pushd "$(dirname "$0")" > /dev/null
 
-echo "generating CA private key and certificate"
-openssl req -nodes -new -x509 -keyout ca-key.pem -out ca-cert.pem -days 65536 -config config/ca.cnf
+# Generates certs with given algorithms and bits in $1$2/, ex. ec384/
+# $1: rsa or ec
+# $2: number of bits
+cert-gen () {
+    echo -e "\n----- generating certs for $1$2 -----\n"
 
-# secp384r1 is an arbitrarily chosen curve that is supported by the default
-# security policy in s2n-tls.
-# https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#chart-security-policy-version-to-supported-curvesgroups
-echo "generating server private key and CSR"
-openssl req  -new -nodes -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout server-key.pem -out server.csr -config config/server.cnf
+    key_family=$1
+    key_size=$2
 
-echo "generating client private key and CSR"
-openssl req  -new -nodes -newkey ec -pkeyopt ec_paramgen_curve:secp384r1 -keyout client-key.pem -out client.csr -config config/client.cnf
+    # set openssl argument name
+    if [[ $key_family == rsa ]]; then
+        local argname=rsa_keygen_bits:
+    elif [[ $key_family == ec ]]; then
+        local argname=ec_paramgen_curve:P-
+    fi
 
-echo "generating server certificate and signing it"
-openssl x509 -days 65536 -req -in server.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extensions req_ext -extfile config/server.cnf
+    # make directory for certs
+    mkdir -p $key_family$key_size
+    cd $key_family$key_size
 
-echo "generating client certificate and signing it"
-openssl x509 -days 65536 -req -in client.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -extensions req_ext -extfile config/client.cnf
+    echo "generating CA private key and certificate"
+    openssl req -new -nodes -x509 -newkey $key_family -pkeyopt $argname$key_size -keyout  ca-key.pem -out ca-cert.pem -days 65536 -config ../config/ca.cnf
 
-echo "verifying generated certificates"
-openssl verify -CAfile ca-cert.pem server-cert.pem
-openssl verify -CAfile ca-cert.pem client-cert.pem
+    echo "generating server private key and CSR"
+    openssl req  -new -nodes -newkey $key_family -pkeyopt $argname$key_size -keyout server-key.pem -out server.csr -config ../config/server.cnf
 
-cat server-cert.pem ca-cert.pem > server-fullchain.pem
-cat client-cert.pem ca-cert.pem > client-fullchain.pem
+    echo "generating client private key and CSR"
+    openssl req  -new -nodes -newkey $key_family -pkeyopt $argname$key_size -keyout client-key.pem -out client.csr -config ../config/client.cnf
 
-echo "cleaning up temporary files"
-rm server.csr
-rm client.csr
-rm ca-key.pem
+    echo "generating server certificate and signing it"
+    openssl x509 -days 65536 -req -in server.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out server-cert.pem -extensions req_ext -extfile ../config/server.cnf
 
-popd
+    echo "generating client certificate and signing it"
+    openssl x509 -days 65536 -req -in client.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -extensions req_ext -extfile ../config/client.cnf
+
+    echo "verifying generated certificates"
+    openssl verify -CAfile ca-cert.pem server-cert.pem
+    openssl verify -CAfile ca-cert.pem client-cert.pem
+
+    echo "cleaning up temporary files"
+    rm server.csr
+    rm client.csr
+    rm ca-key.pem
+
+    cd ..
+}
+
+if [[ $1 != "clean" ]] 
+then
+    cert-gen ec 384
+    cert-gen rsa 2048
+    cert-gen rsa 3072
+    cert-gen rsa 4096
+else 
+    echo "cleaning certs"
+    rm -rf ec*/ rsa*/
+fi
+
+popd > /dev/null
