@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.47-bce2b1a6</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.47-403d5e6b</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -7836,6 +7836,7 @@ The callback may send less than the requested length. The function should return
       </table>
 </div><div class="memdoc">
 <p >De-serializes the session state and updates the connection accordingly.</p>
+<p >If this method fails, the connection should not be affected: calling s2n_negotiate with the connection should simply result in a full handshake.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
