@@ -130,7 +130,7 @@ int main(int argc, char **argv)
             const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
             if (actual_size != expected_size) {
                 fprintf(stderr, "\nS2N_TLS13_FIXED_STATE_SIZE (%i) should be set to %u\n\n",
-                    S2N_TLS13_FIXED_STATE_SIZE, expected_size);
+                        S2N_TLS13_FIXED_STATE_SIZE, expected_size);
             }
             EXPECT_EQUAL(actual_size, expected_size);
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
             const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
             if (actual_size != expected_size) {
                 fprintf(stderr, "\nS2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE (%i) should be set to %u\n\n",
-                    S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE, expected_size - S2N_TLS13_FIXED_STATE_SIZE);
+                        S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE, expected_size - S2N_TLS13_FIXED_STATE_SIZE);
             }
             EXPECT_EQUAL(actual_size, expected_size);
         };
@@ -593,38 +593,51 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* Erroneous secret size: too large */
+        /* erroneous secret size*/
         {
-            struct s2n_connection *conn;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
-            conn->actual_protocol_version = S2N_TLS13;
+            struct {
+                uint32_t secret_size;
+                bool success;
+            } test_cases[] = {
+                {
+                        /* too small */
+                        .secret_size = 0,
+                        .success = false,
+                },
+                {
+                        .secret_size = 1,
+                        .success = true,
+                },
+                {
+                        .secret_size = UINT8_MAX,
+                        .success = true,
+                },
+                {
+                        /* too large */
+                        .secret_size = UINT8_MAX + 1,
+                        .success = false,
+                }
+            };
 
-            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+            for (int i = 0; i < s2n_array_len(test_cases); i++) {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+                conn->actual_protocol_version = S2N_TLS13;
 
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
+                DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
 
-            EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, UINT8_MAX + 1));
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
+                conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
+                EXPECT_SUCCESS(s2n_dup(&test_session_secret, &conn->tls13_ticket_fields.session_secret));
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        };
-
-        /* Erroneous secret size: zero length */
-        {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-            conn->actual_protocol_version = S2N_TLS13;
-
-            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-
-            conn->tls13_ticket_fields = (struct s2n_ticket_fields){ .ticket_age_add = 1 };
-            s2n_blob_zero(&conn->tls13_ticket_fields.session_secret);
-            EXPECT_EQUAL(conn->tls13_ticket_fields.session_secret.size, 0);
-            EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
-        };
+                EXPECT_SUCCESS(s2n_realloc(&conn->tls13_ticket_fields.session_secret, test_cases[i].secret_size));
+                if (test_cases[i].success) {
+                    EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &output));
+                } else {
+                    EXPECT_ERROR_WITH_ERRNO(s2n_tls13_serialize_resumption_state(conn, &output), S2N_ERR_SAFETY);
+                }
+            }
+        }
     };
 
     /* s2n_deserialize_resumption_state */

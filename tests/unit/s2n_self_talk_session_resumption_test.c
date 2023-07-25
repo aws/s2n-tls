@@ -552,9 +552,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
         /* since TLS 1.3 was negotiated, and the client hasn't called recv yet
-         * there should be no session ticket available. We know that ticket.size
-         * is non-zero here because otherwise the previous call to set_session
-         * would have failed.
+         * there should be no session ticket available.
          */
         EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, ticket.data, ticket.size), 0);
