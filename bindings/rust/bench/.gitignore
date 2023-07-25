@@ -1,0 +1,3 @@
+*.pem
+*.svg
+!historical-perf-*.svg
