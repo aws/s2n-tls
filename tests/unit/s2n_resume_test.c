@@ -621,7 +621,7 @@ int main(int argc, char **argv)
 
             for (int i = 0; i < s2n_array_len(test_cases); i++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+                EXPECT_NOT_NULL(conn);
                 conn->actual_protocol_version = S2N_TLS13;
 
                 DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
