@@ -593,7 +593,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
-        /* erroneous secret size*/
+        /* Erroneous secret size */
         {
             struct {
                 uint32_t secret_size;
