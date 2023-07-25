@@ -120,17 +120,6 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
 }
 
 #if defined(S2N_KTLS_SUPPORTED)
-/* If server is sending or client is receiving then use server key material */
-static S2N_RESULT s2n_use_server_key_material(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, bool *use_server_km)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(use_server_km);
-    bool server_sending = (conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND);
-    bool client_receiving = (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV);
-    *use_server_km = server_sending || client_receiving;
-    return S2N_RESULT_OK;
-}
-
 S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info)
 {
@@ -155,9 +144,10 @@ S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n
     struct s2n_blob implicit_iv = { 0 };
     struct s2n_blob sequence_number = { 0 };
 
-    bool use_server_km = false;
-    RESULT_GUARD(s2n_use_server_key_material(conn, ktls_mode, &use_server_km));
-    if (use_server_km) {
+    bool server_sending = (conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND);
+    bool client_receiving = (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV);
+    if (server_sending || client_receiving) {
+        /* If server is sending or client is receiving then use server key material */
         key = &key_material->server_key;
         RESULT_GUARD_POSIX(s2n_blob_init(&implicit_iv, conn->server->server_implicit_iv, sizeof(conn->server->server_implicit_iv)));
         RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->server->server_sequence_number, sizeof(conn->server->server_sequence_number)));

@@ -25,8 +25,9 @@
 #define S2N_TEST_RECV_FD 55
 
 #if defined(S2N_KTLS_SUPPORTED)
-/* Its difficult to test this method via s2n_connection_ktls_enable_send/recv because
- * the key_material is populated via prf, which tends to be non-deterministic */
+/* It's difficult to test this method via s2n_connection_ktls_enable_send/recv because
+ * the key_material is populated via prf, which by definition produces "pseudo-random"
+ * output */
 S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
         struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info);
 #endif
@@ -355,7 +356,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(memcmp(crypto_info.salt, server_param->server_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE), 0);
             EXPECT_EQUAL(memcmp(crypto_info.rec_seq, server_param->server_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE), 0);
 
-            /* server should recv with its peers keys */
+            /* server should recv with its peer's keys */
             ktls_mode = S2N_KTLS_MODE_RECV;
             EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info));
             EXPECT_EQUAL(memcmp(crypto_info.key, key_material.client_key.data, key_material.client_key.size), 0);
