@@ -1,6 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+use crate::{get_cert_path, PemType};
 use std::{
     cell::RefCell,
     collections::VecDeque,
@@ -10,17 +11,19 @@ use std::{
     rc::Rc,
 };
 
-pub fn read_to_bytes(path: &str) -> Vec<u8> {
-    read_to_string(path).unwrap().into_bytes()
+pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
+    read_to_string(get_cert_path(pem_type, sig_type))
+        .unwrap()
+        .into_bytes()
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Mode {
     Client,
     Server,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum HandshakeType {
     #[default]
     ServerAuth,
@@ -30,39 +33,71 @@ pub enum HandshakeType {
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum CipherSuite {
     #[default]
     AES_128_GCM_SHA256,
     AES_256_GCM_SHA384,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub enum ECGroup {
     SECP256R1,
     #[default]
     X25519,
 }
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SigType {
+    Rsa2048,
+    Rsa3072,
+    Rsa4096,
+    #[default]
+    Ec384,
+}
+
+impl SigType {
+    pub fn get_dir_name(&self) -> &str {
+        match self {
+            SigType::Rsa2048 => "rsa2048",
+            SigType::Rsa3072 => "rsa3072",
+            SigType::Rsa4096 => "rsa4096",
+            SigType::Ec384 => "ec384",
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
 pub struct CryptoConfig {
     pub cipher_suite: CipherSuite,
     pub ec_group: ECGroup,
+    pub sig_type: SigType,
+}
+
+impl CryptoConfig {
+    pub fn new(cipher_suite: CipherSuite, ec_group: ECGroup, sig_type: SigType) -> Self {
+        Self {
+            cipher_suite,
+            ec_group,
+            sig_type,
+        }
+    }
 }
 
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(Default::default(), Default::default())
+        Self::new(CryptoConfig::default(), HandshakeType::default(), ConnectedBuffer::default())
     }
 
     /// Initialize buffers, configs, and connections (pre-handshake)
     fn new(
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
+        buffer: ConnectedBuffer,
     ) -> Result<Self, Box<dyn Error>>;
 
-    /// Run handshake on initialized connection
+    /// Run handshake on initialized connections
     /// Returns error if handshake has already completed
     fn handshake(&mut self) -> Result<(), Box<dyn Error>>;
 
@@ -106,10 +141,14 @@ pub struct ConnectedBuffer {
 impl ConnectedBuffer {
     /// Make a new struct with new internal buffers
     pub fn new() -> Self {
-        Self {
-            recv: Rc::new(RefCell::new(VecDeque::new())),
-            send: Rc::new(RefCell::new(VecDeque::new())),
-        }
+        let recv = Rc::new(RefCell::new(VecDeque::new()));
+        let send = Rc::new(RefCell::new(VecDeque::new()));
+
+        // prevent resizing of buffers, useful for memory bench
+        recv.borrow_mut().reserve(10000);
+        send.borrow_mut().reserve(10000);
+
+        Self { recv, send }
     }
     /// Make a new struct that shares internal buffers but swapped, ex.
     /// `write()` writes to the buffer that the inverse `read()`s from
@@ -123,7 +162,8 @@ impl ConnectedBuffer {
 
 impl Read for ConnectedBuffer {
     fn read(&mut self, dest: &mut [u8]) -> Result<usize, std::io::Error> {
-        match self.recv.borrow_mut().read(dest) {
+        let res = self.recv.borrow_mut().read(dest);
+        match res {
             // rustls expects WouldBlock on read of length 0
             Ok(0) => Err(std::io::Error::new(ErrorKind::WouldBlock, "blocking")),
             Ok(len) => Ok(len),
@@ -141,6 +181,12 @@ impl Write for ConnectedBuffer {
     }
 }
 
+impl Default for ConnectedBuffer {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 #[cfg(test)]
 macro_rules! test_tls_bench_harnesses {
     ($($lib_name:ident: $harness_type:ty,)*) => {
@@ -150,21 +196,24 @@ macro_rules! test_tls_bench_harnesses {
             use CipherSuite::*;
             use ECGroup::*;
             use HandshakeType::*;
+            use SigType::*;
 
             #[test]
             fn test_handshake_config() {
                 for handshake_type in [ServerAuth, MutualAuth] {
                     for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
                         for ec_group in [SECP256R1, X25519] {
-                            let crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
-                            let mut harness = <$harness_type>::new(crypto_config, handshake_type).unwrap();
+                            for sig_type in [Ec384, Rsa2048, Rsa3072, Rsa4096] {
+                                let crypto_config = CryptoConfig::new(cipher_suite, ec_group, sig_type);
+                                let mut harness = <$harness_type>::new(crypto_config, handshake_type, ConnectedBuffer::default()).unwrap();
 
-                            assert!(!harness.handshake_completed());
-                            harness.handshake().unwrap();
-                            assert!(harness.handshake_completed());
+                                assert!(!harness.handshake_completed());
+                                harness.handshake().unwrap();
+                                assert!(harness.handshake_completed());
 
-                            assert!(harness.negotiated_tls13());
-                            assert_eq!(cipher_suite, harness.get_negotiated_cipher_suite());
+                                assert!(harness.negotiated_tls13());
+                                assert_eq!(cipher_suite, harness.get_negotiated_cipher_suite());
+                            }
                         }
                     }
                 }
@@ -174,10 +223,9 @@ macro_rules! test_tls_bench_harnesses {
             fn test_transfer() {
                 // use a large buffer to test across TLS record boundaries
                 let mut buf = [0x56u8; 1000000];
-                let (mut harness, mut crypto_config);
                 for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
-                    crypto_config = CryptoConfig { cipher_suite: cipher_suite, ec_group: Default::default() };
-                    harness = <$harness_type>::new(crypto_config, Default::default()).unwrap();
+                    let crypto_config = CryptoConfig::new(cipher_suite, ECGroup::default(), SigType::default());
+                    let mut harness = <$harness_type>::new(crypto_config, HandshakeType::default(), ConnectedBuffer::default()).unwrap();
                     harness.handshake().unwrap();
                     harness.round_trip_transfer(&mut buf).unwrap();
                 }
