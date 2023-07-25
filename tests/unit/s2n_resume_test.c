@@ -185,8 +185,8 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_tls13_serialize_resumption_state(conn, &actual_data));
             const uint32_t expected_size = s2n_stuffer_data_available(&actual_data);
             if (actual_size != expected_size) {
-                fprintf(stderr, "\nS2N_TLS13_FIXED_STATE_SIZE (%i) should be set to %u\n\n",
-                    S2N_TLS13_FIXED_STATE_SIZE, expected_size);
+                fprintf(stderr, "\nS2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE (%i) should be set to %u\n\n",
+                    S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE, expected_size - S2N_TLS13_FIXED_STATE_SIZE);
             }
             EXPECT_EQUAL(actual_size, expected_size);
         };
