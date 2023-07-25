@@ -7,63 +7,11 @@ pub mod rustls;
 pub mod s2n_tls;
 
 pub use crate::{
-    harness::{CipherSuite, CryptoConfig, ECGroup, HandshakeType, Mode, SigType, TlsBenchHarness},
-    openssl::OpenSslHarness,
-    rustls::RustlsHarness,
-    s2n_tls::S2NHarness,
+    harness::{
+        get_cert_path, CipherSuite, CryptoConfig, ECGroup, HandshakeType, Mode, PemType, SigType,
+        TlsConnPair, TlsConnection,
+    },
+    openssl::OpenSslConnection,
+    rustls::RustlsConnection,
+    s2n_tls::S2NConnection,
 };
-
-#[derive(Clone, Copy)]
-pub enum PemType {
-    ServerKey,
-    ServerCertChain,
-    ClientKey,
-    ClientCertChain,
-    CACert,
-}
-
-impl PemType {
-    fn get_filename(&self) -> &str {
-        match self {
-            PemType::ServerKey => "server-key.pem",
-            PemType::ServerCertChain => "server-cert.pem",
-            PemType::ClientKey => "client-key.pem",
-            PemType::ClientCertChain => "client-cert.pem",
-            PemType::CACert => "ca-cert.pem",
-        }
-    }
-}
-
-fn get_cert_path(pem_type: PemType, sig_type: SigType) -> String {
-    format!(
-        "certs/{}/{}",
-        sig_type.get_dir_name(),
-        pem_type.get_filename()
-    )
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::path::Path;
-    use PemType::*;
-    use SigType::*;
-
-    #[test]
-    fn cert_paths_valid() {
-        for pem_type in [
-            ServerKey,
-            ServerCertChain,
-            ClientKey,
-            ClientCertChain,
-            CACert,
-        ] {
-            for sig_type in [Rsa2048, Rsa3072, Rsa4096, Ec384] {
-                assert!(
-                    Path::new(&get_cert_path(pem_type, sig_type)).exists(),
-                    "cert not found"
-                );
-            }
-        }
-    }
-}

@@ -2,9 +2,10 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
+    harness::ConnectedBuffer,
     CipherSuite::{self, *},
-    CryptoConfig, ECGroup, HandshakeType, OpenSslHarness, RustlsHarness, S2NHarness, SigType,
-    TlsBenchHarness, harness::ConnectedBuffer,
+    CryptoConfig, ECGroup, HandshakeType, OpenSslConnection, RustlsConnection, S2NConnection,
+    SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -15,7 +16,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
     // arbitrarily large to cut across TLS record boundaries
     let mut shared_buf = [0u8; 100000];
 
-    fn bench_throughput_for_library<T: TlsBenchHarness>(
+    fn bench_throughput_for_library<T: TlsConnection>(
         bench_group: &mut BenchmarkGroup<WallTime>,
         name: &str,
         shared_buf: &mut [u8],
@@ -24,7 +25,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
         bench_group.bench_function(name, |b| {
             b.iter_batched_ref(
                 || {
-                    T::new(
+                    TlsConnPair::<T, T>::new(
                         CryptoConfig::new(cipher_suite, ECGroup::default(), SigType::default()),
                         HandshakeType::default(),
                         ConnectedBuffer::default(),
@@ -47,7 +48,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
     for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
         let mut bench_group = c.benchmark_group(format!("throughput-{:?}", cipher_suite));
         bench_group.throughput(Throughput::Bytes(shared_buf.len() as u64));
-        bench_throughput_for_library::<S2NHarness>(
+        bench_throughput_for_library::<S2NConnection>(
             &mut bench_group,
             "s2n-tls",
             &mut shared_buf,
@@ -55,13 +56,13 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
         );
         #[cfg(not(feature = "historical-perf"))]
         {
-            bench_throughput_for_library::<RustlsHarness>(
+            bench_throughput_for_library::<RustlsConnection>(
                 &mut bench_group,
                 "rustls",
                 &mut shared_buf,
                 cipher_suite,
             );
-            bench_throughput_for_library::<OpenSslHarness>(
+            bench_throughput_for_library::<OpenSslConnection>(
                 &mut bench_group,
                 "openssl",
                 &mut shared_buf,
