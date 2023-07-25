@@ -26,7 +26,8 @@
 static struct s2n_kem_params kyber512_r3_draft0_params = { .kem = &s2n_kyber_512_r3, .len_prefixed = true };
 static struct s2n_kem_params kyber512_r3_draft5_params = { .kem = &s2n_kyber_512_r3, .len_prefixed = false };
 
-int s2n_fuzz_test(const uint8_t *buf, size_t len) {
+int s2n_fuzz_test(const uint8_t *buf, size_t len)
+{
     POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber512_r3_draft0_params));
     POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber512_r3_draft5_params));
     return S2N_SUCCESS;

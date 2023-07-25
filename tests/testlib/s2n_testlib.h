@@ -75,6 +75,7 @@ int s2n_connection_allow_response_extension(struct s2n_connection *conn, uint16_
 int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn);
+S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn);
 
 S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn);
 
