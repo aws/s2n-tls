@@ -29,6 +29,7 @@ pub fn bench_handshake_params(c: &mut Criterion) {
                             ec_group,
                         },
                         handshake_type,
+                        Default::default(),
                     )
                 },
                 |harness| {

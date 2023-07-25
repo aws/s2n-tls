@@ -53,16 +53,17 @@ pub struct CryptoConfig {
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(Default::default(), Default::default())
+        Self::new(Default::default(), Default::default(), Default::default())
     }
 
     /// Initialize buffers, configs, and connections (pre-handshake)
     fn new(
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
+        buffer: ConnectedBuffer,
     ) -> Result<Self, Box<dyn Error>>;
 
-    /// Run handshake on initialized connection
+    /// Run handshake on initialized connections
     /// Returns error if handshake has already completed
     fn handshake(&mut self) -> Result<(), Box<dyn Error>>;
 
@@ -106,10 +107,14 @@ pub struct ConnectedBuffer {
 impl ConnectedBuffer {
     /// Make a new struct with new internal buffers
     pub fn new() -> Self {
-        Self {
-            recv: Rc::new(RefCell::new(VecDeque::new())),
-            send: Rc::new(RefCell::new(VecDeque::new())),
-        }
+        let recv = Rc::new(RefCell::new(VecDeque::new()));
+        let send = Rc::new(RefCell::new(VecDeque::new()));
+
+        // prevent resizing of buffers, useful for memory bench
+        recv.borrow_mut().reserve(10000);
+        send.borrow_mut().reserve(10000);
+
+        Self { recv, send }
     }
     /// Make a new struct that shares internal buffers but swapped, ex.
     /// `write()` writes to the buffer that the inverse `read()`s from
@@ -123,7 +128,8 @@ impl ConnectedBuffer {
 
 impl Read for ConnectedBuffer {
     fn read(&mut self, dest: &mut [u8]) -> Result<usize, std::io::Error> {
-        match self.recv.borrow_mut().read(dest) {
+        let res = self.recv.borrow_mut().read(dest);
+        match res {
             // rustls expects WouldBlock on read of length 0
             Ok(0) => Err(std::io::Error::new(ErrorKind::WouldBlock, "blocking")),
             Ok(len) => Ok(len),
@@ -138,6 +144,12 @@ impl Write for ConnectedBuffer {
     }
     fn flush(&mut self) -> Result<(), std::io::Error> {
         Ok(()) // data already available to destination
+    }
+}
+
+impl Default for ConnectedBuffer {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -157,7 +169,7 @@ macro_rules! test_tls_bench_harnesses {
                     for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
                         for ec_group in [SECP256R1, X25519] {
                             let crypto_config = CryptoConfig { cipher_suite: cipher_suite.clone(), ec_group: ec_group.clone() };
-                            let mut harness = <$harness_type>::new(crypto_config, handshake_type).unwrap();
+                            let mut harness = <$harness_type>::new(crypto_config, handshake_type, Default::default()).unwrap();
 
                             assert!(!harness.handshake_completed());
                             harness.handshake().unwrap();
@@ -177,7 +189,7 @@ macro_rules! test_tls_bench_harnesses {
                 let (mut harness, mut crypto_config);
                 for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
                     crypto_config = CryptoConfig { cipher_suite: cipher_suite, ec_group: Default::default() };
-                    harness = <$harness_type>::new(crypto_config, Default::default()).unwrap();
+                    harness = <$harness_type>::new(crypto_config, Default::default(), Default::default()).unwrap();
                     harness.handshake().unwrap();
                     harness.round_trip_transfer(&mut buf).unwrap();
                 }

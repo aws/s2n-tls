@@ -3,7 +3,8 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, CryptoConfig, ECGroup, HandshakeType, Mode, TlsBenchHarness,
+        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
+        TlsBenchHarness,
     },
     CA_CERT_PATH, CLIENT_CERT_CHAIN_PATH, CLIENT_KEY_PATH, SERVER_CERT_CHAIN_PATH, SERVER_KEY_PATH,
 };
@@ -15,23 +16,20 @@ use s2n_tls::{
     security::Policy,
 };
 use std::{
-    cell::UnsafeCell,
-    collections::VecDeque,
     error::Error,
     ffi::c_void,
-    io::{Read, Write},
+    io::{ErrorKind, Read, Write},
     os::raw::c_int,
     pin::Pin,
     task::Poll::Ready,
 };
 
+#[allow(dead_code)]
 pub struct S2NHarness {
     // UnsafeCell is needed b/c client and server share *mut to IO buffers
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
-    client_to_server_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
-    server_to_client_buf: Pin<Box<UnsafeCell<VecDeque<u8>>>>,
-    client_config: Config,
-    server_config: Config,
+    client_buf: Pin<Box<ConnectedBuffer>>,
+    server_buf: Pin<Box<ConnectedBuffer>>,
     client_conn: Connection,
     server_conn: Connection,
     client_handshake_completed: bool,
@@ -55,22 +53,26 @@ impl S2NHarness {
     /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
     /// reduce overhead and outside noise with a local buffer for benchmarking
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut VecDeque<u8>);
+        let context = &mut *(context as *mut ConnectedBuffer);
         let data = core::slice::from_raw_parts(data, len as _);
         context.write(data).unwrap() as _
     }
 
     /// Unsafe callback for custom IO C API
     unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut VecDeque<u8>);
+        let context = &mut *(context as *mut ConnectedBuffer);
         let data = core::slice::from_raw_parts_mut(data, len as _);
         context.flush().unwrap();
-        let len = context.read(data).unwrap();
-        if len == 0 {
-            errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
-            -1
-        } else {
-            len as _
+        match context.read(data) {
+            Err(err) => {
+                if let ErrorKind::WouldBlock = err.kind() {
+                    errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+                    -1
+                } else {
+                    panic!("{err:?}");
+                }
+            }
+            Ok(len) => len as _,
         }
     }
 
@@ -140,31 +142,18 @@ impl S2NHarness {
     }
 
     /// Set up connections with config and custom IO
-    fn init_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
-        let client_to_server_ptr = self.client_to_server_buf.get() as *mut c_void;
-        let server_to_client_ptr = self.server_to_client_buf.get() as *mut c_void;
-        let (read_ptr, write_ptr, config, conn) = match mode {
-            Mode::Client => (
-                server_to_client_ptr,
-                client_to_server_ptr,
-                &self.client_config,
-                &mut self.client_conn,
-            ),
-            Mode::Server => (
-                client_to_server_ptr,
-                server_to_client_ptr,
-                &self.server_config,
-                &mut self.server_conn,
-            ),
-        };
-
+    fn init_conn(
+        conn: &mut Connection,
+        buffer: &mut Pin<Box<ConnectedBuffer>>,
+        config: Config,
+    ) -> Result<(), Box<dyn Error>> {
         conn.set_blinding(Blinding::SelfService)?
-            .set_config(config.clone())?
+            .set_config(config)?
             .set_send_callback(Some(Self::send_cb))?
             .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
-            conn.set_send_context(write_ptr)?
-                .set_receive_context(read_ptr)?;
+            conn.set_send_context(&mut **buffer as *mut ConnectedBuffer as *mut c_void)?
+                .set_receive_context(&mut **buffer as *mut ConnectedBuffer as *mut c_void)?;
         }
 
         Ok(())
@@ -191,26 +180,28 @@ impl TlsBenchHarness for S2NHarness {
     fn new(
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
+        buffer: ConnectedBuffer,
     ) -> Result<Self, Box<dyn Error>> {
-        let client_to_server_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
-        let server_to_client_buf = Box::pin(UnsafeCell::new(VecDeque::new()));
+        let mut client_buf = Box::pin(buffer);
+        let mut server_buf = Box::pin(client_buf.clone_inverse());
 
         let client_config = Self::create_client_config(crypto_config, handshake_type)?;
         let server_config = Self::create_server_config(crypto_config, handshake_type)?;
 
-        let mut harness = Self {
-            client_to_server_buf,
-            server_to_client_buf,
-            client_config,
-            server_config,
-            client_conn: Connection::new_client(),
-            server_conn: Connection::new_server(),
+        let mut client_conn = Connection::new_client();
+        let mut server_conn = Connection::new_server();
+
+        Self::init_conn(&mut client_conn, &mut client_buf, client_config)?;
+        Self::init_conn(&mut server_conn, &mut server_buf, server_config)?;
+
+        let harness = Self {
+            client_buf,
+            server_buf,
+            client_conn,
+            server_conn,
             client_handshake_completed: false,
             server_handshake_completed: false,
         };
-
-        harness.init_conn(Mode::Client)?;
-        harness.init_conn(Mode::Server)?;
 
         Ok(harness)
     }

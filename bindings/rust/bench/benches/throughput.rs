@@ -29,6 +29,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
                             ec_group: Default::default(),
                         },
                         Default::default(),
+                        Default::default(),
                     )
                     .map(|mut h| {
                         let _ = h.handshake();
