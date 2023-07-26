@@ -254,6 +254,8 @@ impl<C: TlsConnection, S: TlsConnection> TlsConnPair<C, S> {
     }
 
     /// Run handshake on connections
+    /// Two round trips are needed for the server to receive the Finished message
+    /// from the client and be ready to send data
     pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
         for _ in 0..2 {
             self.client.handshake()?;
