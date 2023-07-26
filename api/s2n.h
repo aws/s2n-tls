@@ -2214,6 +2214,9 @@ S2N_API extern int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ti
 /**
  * De-serializes the session state and updates the connection accordingly.
  *
+ * If this method fails, the connection should not be affected: calling s2n_negotiate
+ * with the connection should simply result in a full handshake.
+ *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `length`
  * @param length The size of the `session` buffer
