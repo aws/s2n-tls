@@ -37,7 +37,7 @@ cd target/aws-lc-rs/aws-lc-rs
 git submodule init
 git submodule update
 
-# change aws-lc-rs to look like compatible ring (name and version)
+# change aws-lc-rs to look like API compatible ring (name and version)
 # assumes name and version are in the first 5 lines of the Cargo.toml and replaces them
 sed -i '1,5s|name = .*|name = "ring"| ; 1,5s|version = .*|version = "0.16.20"|' Cargo.toml
 
