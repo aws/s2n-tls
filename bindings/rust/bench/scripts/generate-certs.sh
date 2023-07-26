@@ -10,8 +10,8 @@
 # immediately bail if any command fails
 set -e
 
-# go to directory script is located in
-pushd "$(dirname "$0")" > /dev/null
+# go to directory certs are located
+pushd "$(dirname "$0")"/../certs > /dev/null
 
 # Generates certs with given algorithms and bits in $1$2/, ex. ec384/
 # $1: rsa or ec

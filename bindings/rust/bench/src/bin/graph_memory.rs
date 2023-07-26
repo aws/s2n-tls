@@ -66,7 +66,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .1
         .mean;
 
-    let drawing_area = SVGBackend::new("memory/memory.svg", (1000, 500)).into_drawing_area();
+    let drawing_area = SVGBackend::new("images/memory.svg", (1000, 500)).into_drawing_area();
     drawing_area.fill(&WHITE)?;
 
     let mut ctx = ChartBuilder::on(&drawing_area)
