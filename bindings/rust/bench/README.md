@@ -4,7 +4,7 @@ We use to Criterion.rs to benchmark s2n-tls against two commonly used TLS librar
 
 ## Setup 
 
-Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `certs/generate_certs.sh`. 
+Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `generate_certs.sh`. 
 
 Dependencies are the same as with s2n-tls. Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments. 
 
@@ -14,8 +14,8 @@ For example, to get started with benching s2n-tls with AWS-LC:
 
 ```
 ../generate.sh
-certs/generate_certs.sh
-./install-aws-lc.sh
+scripts/generate_certs.sh
+scripts/install-aws-lc.sh
 cargo bench --config aws-lc-config/s2n.toml
 ```
 
@@ -23,11 +23,11 @@ cargo bench --config aws-lc-config/s2n.toml
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
-To run memory benchmarks, run `memory/bench-memory.sh`. A graph of memory usage will be generated in `memory/memory.svg`.
+To run memory benchmarks, run `bench-memory.sh`. A graph of memory usage will be generated in `memory/memory.svg`.
 
 ## Historical benchmarks
 
-To do historical benchmarks, run `historical-perf/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
+To do historical benchmarks, run `bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
 
 ### Caveats
 
