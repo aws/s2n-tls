@@ -44,10 +44,12 @@ pub fn bench_handshake_params(c: &mut Criterion) {
     for handshake_type in HandshakeType::iter() {
         for kx_group in KXGroup::iter() {
             for sig_type in SigType::iter() {
-                let mut bench_group = c.benchmark_group(format!(
-                    "handshake-{:?}-{:?}-{:?}",
-                    handshake_type, kx_group, sig_type
-                ));
+                let mut bench_group = c.benchmark_group(match handshake_type {
+                    HandshakeType::ServerAuth => format!("handshake-{:?}-{:?}", kx_group, sig_type),
+                    HandshakeType::MutualAuth => {
+                        format!("handshake-mTLS-{:?}-{:?}", kx_group, sig_type)
+                    }
+                });
                 bench_handshake_for_library::<S2NConnection>(
                     &mut bench_group,
                     handshake_type,

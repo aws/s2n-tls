@@ -5,9 +5,10 @@ use std::{
     cell::RefCell,
     collections::VecDeque,
     error::Error,
+    fmt::Debug,
     fs::read_to_string,
     io::{ErrorKind, Read, Write},
-    rc::Rc, fmt::Debug,
+    rc::Rc,
 };
 use strum::EnumIter;
 
@@ -85,15 +86,6 @@ pub enum HandshakeType {
     MutualAuth,
 }
 
-impl Debug for HandshakeType {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::ServerAuth => "",
-            Self::MutualAuth => "mTLS",
-        })
-    }
-}
-
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
@@ -113,10 +105,14 @@ pub enum KXGroup {
 
 impl Debug for KXGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", match self {
-            Self::Secp256R1 => "secp256r1",
-            Self::X25519 => "x25519",
-        })
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Secp256R1 => "secp256r1",
+                Self::X25519 => "x25519",
+            }
+        )
     }
 }
 
