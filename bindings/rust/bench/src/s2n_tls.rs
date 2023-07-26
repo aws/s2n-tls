@@ -3,7 +3,7 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
+        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
         TlsConnection,
     },
     PemType::*,
@@ -93,11 +93,11 @@ impl TlsConnection for S2NConnection {
     ) -> Result<Self::Config, Box<dyn Error>> {
         // these security policies negotiate the given cipher suite and key
         // exchange group as their top choice
-        let security_policy = match (crypto_config.cipher_suite, crypto_config.ec_group) {
-            (CipherSuite::AES_128_GCM_SHA256, ECGroup::SECP256R1) => "20230317",
-            (CipherSuite::AES_256_GCM_SHA384, ECGroup::SECP256R1) => "20190802",
-            (CipherSuite::AES_128_GCM_SHA256, ECGroup::X25519) => "default_tls13",
-            (CipherSuite::AES_256_GCM_SHA384, ECGroup::X25519) => "20190801",
+        let security_policy = match (crypto_config.cipher_suite, crypto_config.kx_group) {
+            (CipherSuite::AES_128_GCM_SHA256, KXGroup::Secp256R1) => "20230317",
+            (CipherSuite::AES_256_GCM_SHA384, KXGroup::Secp256R1) => "20190802",
+            (CipherSuite::AES_128_GCM_SHA256, KXGroup::X25519) => "default_tls13",
+            (CipherSuite::AES_256_GCM_SHA384, KXGroup::X25519) => "20190801",
         };
 
         let mut builder = Builder::new();

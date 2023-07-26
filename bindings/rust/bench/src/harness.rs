@@ -7,10 +7,11 @@ use std::{
     error::Error,
     fs::read_to_string,
     io::{ErrorKind, Read, Write},
-    rc::Rc,
+    rc::Rc, fmt::Debug,
 };
+use strum::EnumIter;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, EnumIter)]
 pub enum PemType {
     ServerKey,
     ServerCertChain,
@@ -31,13 +32,13 @@ impl PemType {
     }
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+#[derive(Clone, Copy, Default, EnumIter)]
 pub enum SigType {
     Rsa2048,
     Rsa3072,
     Rsa4096,
     #[default]
-    Ec384,
+    Ecdsa384,
 }
 
 impl SigType {
@@ -46,8 +47,14 @@ impl SigType {
             SigType::Rsa2048 => "rsa2048",
             SigType::Rsa3072 => "rsa3072",
             SigType::Rsa4096 => "rsa4096",
-            SigType::Ec384 => "ec384",
+            SigType::Ecdsa384 => "ecdsa384",
         }
+    }
+}
+
+impl Debug for SigType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", self.get_dir_name())
     }
 }
 
@@ -65,48 +72,66 @@ pub fn read_to_bytes(pem_type: PemType, sig_type: SigType) -> Vec<u8> {
         .into_bytes()
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy)]
 pub enum Mode {
     Client,
     Server,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Default, EnumIter, Eq, PartialEq)]
 pub enum HandshakeType {
     #[default]
     ServerAuth,
     MutualAuth,
 }
 
+impl Debug for HandshakeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Self::ServerAuth => "",
+            Self::MutualAuth => "mTLS",
+        })
+    }
+}
+
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Default, EnumIter, Eq, PartialEq)]
 pub enum CipherSuite {
     #[default]
     AES_128_GCM_SHA256,
     AES_256_GCM_SHA384,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
-pub enum ECGroup {
-    SECP256R1,
+#[derive(Clone, Copy, Default, EnumIter)]
+pub enum KXGroup {
+    Secp256R1,
     #[default]
     X25519,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
+impl Debug for KXGroup {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "{}", match self {
+            Self::Secp256R1 => "secp256r1",
+            Self::X25519 => "x25519",
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug, Default)]
 pub struct CryptoConfig {
     pub cipher_suite: CipherSuite,
-    pub ec_group: ECGroup,
+    pub kx_group: KXGroup,
     pub sig_type: SigType,
 }
 
 impl CryptoConfig {
-    pub fn new(cipher_suite: CipherSuite, ec_group: ECGroup, sig_type: SigType) -> Self {
+    pub fn new(cipher_suite: CipherSuite, kx_group: KXGroup, sig_type: SigType) -> Self {
         Self {
             cipher_suite,
-            ec_group,
+            kx_group,
             sig_type,
         }
     }
@@ -356,70 +381,16 @@ impl Default for ConnectedBuffer {
 }
 
 #[cfg(test)]
-macro_rules! test_tls_bench_harnesses {
-    ($($lib_name:ident: $client_type:ty | $server_type:ty,)*) => {
-    $(
-        mod $lib_name {
-            use super::*;
-            use CipherSuite::*;
-            use ECGroup::*;
-            use HandshakeType::*;
-
-            #[test]
-            fn test_handshake_configs() {
-                for handshake_type in [ServerAuth, MutualAuth] {
-                    for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
-                        for ec_group in [SECP256R1, X25519] {
-                            for sig_type in [Ec384, Rsa2048, Rsa3072, Rsa4096] {
-                                let crypto_config = CryptoConfig::new(cipher_suite, ec_group, sig_type);
-                                let mut harness = TlsConnPair::<$client_type, $server_type>::new(crypto_config, handshake_type, ConnectedBuffer::default()).unwrap();
-
-                                assert!(!harness.handshake_completed());
-                                harness.handshake().unwrap();
-                                assert!(harness.handshake_completed());
-
-                                assert!(harness.negotiated_tls13());
-                                assert_eq!(cipher_suite, harness.get_negotiated_cipher_suite());
-                            }
-                        }
-                    }
-                }
-            }
-
-            #[test]
-            fn test_transfer() {
-                // use a large buffer to test across TLS record boundaries
-                let mut buf = [0x56u8; 1000000];
-                for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
-                    let crypto_config = CryptoConfig::new(cipher_suite, ECGroup::default(), SigType::default());
-                    let mut harness = TlsConnPair::<$client_type, $server_type>::new(crypto_config, HandshakeType::default(), ConnectedBuffer::default()).unwrap();
-                    harness.handshake().unwrap();
-                    harness.round_trip_transfer(&mut buf).unwrap();
-                }
-            }
-        }
-    )*
-    }
-}
-
-#[cfg(test)]
 mod tests {
     use super::*;
     use crate::{OpenSslConnection, RustlsConnection, S2NConnection, TlsConnPair};
     use std::path::Path;
-    use PemType::*;
-    use SigType::*;
+    use strum::IntoEnumIterator;
 
     #[test]
     fn test_cert_paths_valid() {
-        for pem_type in [
-            ServerKey,
-            ServerCertChain,
-            ClientKey,
-            ClientCertChain,
-            CACert,
-        ] {
-            for sig_type in [Rsa2048, Rsa3072, Rsa4096, Ec384] {
+        for pem_type in PemType::iter() {
+            for sig_type in SigType::iter() {
                 assert!(
                     Path::new(&get_cert_path(pem_type, sig_type)).exists(),
                     "cert not found"
@@ -428,15 +399,61 @@ mod tests {
         }
     }
 
-    test_tls_bench_harnesses! {
-        s2n_tls: S2NConnection | S2NConnection,
-        s2n_tls__rustls: S2NConnection | RustlsConnection,
-        s2n_tls__openssl: S2NConnection | OpenSslConnection,
-        rustls__s2n_tls: RustlsConnection | S2NConnection,
-        rustls: RustlsConnection | RustlsConnection,
-        rustls__openssl: RustlsConnection | OpenSslConnection,
-        openssl__s2n_tls: OpenSslConnection | S2NConnection,
-        openssl__rustls: OpenSslConnection | RustlsConnection,
-        openssl: OpenSslConnection | OpenSslConnection,
+    #[test]
+    fn test_all() {
+        test_type::<S2NConnection, S2NConnection>();
+        test_type::<RustlsConnection, RustlsConnection>();
+        test_type::<OpenSslConnection, OpenSslConnection>();
+    }
+
+    fn test_type<C: TlsConnection, S: TlsConnection>() {
+        eprintln!("{} client --- {} server", C::name(), S::name());
+        eprintln!("testing handshake...");
+        test_handshake_configs::<C, S>();
+        eprintln!("testing transfer...");
+        test_transfer::<C, S>();
+        eprintln!();
+    }
+
+    fn test_handshake_configs<C: TlsConnection, S: TlsConnection>() {
+        for handshake_type in HandshakeType::iter() {
+            for cipher_suite in CipherSuite::iter() {
+                for kx_group in KXGroup::iter() {
+                    for sig_type in SigType::iter() {
+                        let crypto_config = CryptoConfig::new(cipher_suite, kx_group, sig_type);
+                        let mut conn_pair = TlsConnPair::<C, S>::new(
+                            crypto_config,
+                            handshake_type,
+                            ConnectedBuffer::default(),
+                        )
+                        .unwrap();
+
+                        assert!(!conn_pair.handshake_completed());
+                        conn_pair.handshake().unwrap();
+                        assert!(conn_pair.handshake_completed());
+
+                        assert!(conn_pair.negotiated_tls13());
+                        assert_eq!(cipher_suite, conn_pair.get_negotiated_cipher_suite());
+                    }
+                }
+            }
+        }
+    }
+
+    fn test_transfer<C: TlsConnection, S: TlsConnection>() {
+        // use a large buffer to test across TLS record boundaries
+        let mut buf = [0x56u8; 1000000];
+        for cipher_suite in CipherSuite::iter() {
+            let crypto_config =
+                CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
+            let mut conn_pair = TlsConnPair::<C, S>::new(
+                crypto_config,
+                HandshakeType::default(),
+                ConnectedBuffer::default(),
+            )
+            .unwrap();
+            conn_pair.handshake().unwrap();
+            conn_pair.round_trip_transfer(&mut buf).unwrap();
+        }
     }
 }

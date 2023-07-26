@@ -4,7 +4,7 @@
 use crate::{
     get_cert_path,
     harness::{
-        CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode, TlsConnection,
+        CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, TlsConnection,
     },
     PemType::*,
 };
@@ -49,9 +49,9 @@ impl TlsConnection for OpenSslConnection {
             CipherSuite::AES_256_GCM_SHA384 => "TLS_AES_256_GCM_SHA384",
         };
 
-        let ec_key = match crypto_config.ec_group {
-            ECGroup::SECP256R1 => "P-256",
-            ECGroup::X25519 => "X25519",
+        let ec_key = match crypto_config.kx_group {
+            KXGroup::Secp256R1 => "P-256",
+            KXGroup::X25519 => "X25519",
         };
 
         let ssl_method = match mode {

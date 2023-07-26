@@ -2,15 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::ConnectedBuffer,
-    CipherSuite::{self, *},
-    CryptoConfig, ECGroup, HandshakeType, OpenSslConnection, RustlsConnection, S2NConnection,
-    SigType, TlsConnPair, TlsConnection,
+    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
+    RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
+use strum::IntoEnumIterator;
 
 pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
     // arbitrarily large to cut across TLS record boundaries
@@ -18,15 +17,14 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
 
     fn bench_throughput_for_library<T: TlsConnection>(
         bench_group: &mut BenchmarkGroup<WallTime>,
-        name: &str,
         shared_buf: &mut [u8],
         cipher_suite: CipherSuite,
     ) {
-        bench_group.bench_function(name, |b| {
+        bench_group.bench_function(T::name(), |b| {
             b.iter_batched_ref(
                 || {
                     TlsConnPair::<T, T>::new(
-                        CryptoConfig::new(cipher_suite, ECGroup::default(), SigType::default()),
+                        CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default()),
                         HandshakeType::default(),
                         ConnectedBuffer::default(),
                     )
@@ -35,9 +33,9 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
                         h
                     })
                 },
-                |harness| {
-                    if let Ok(harness) = harness {
-                        let _ = harness.round_trip_transfer(shared_buf);
+                |conn_pair_res| {
+                    if let Ok(conn_pair) = conn_pair_res {
+                        let _ = conn_pair.round_trip_transfer(shared_buf);
                     }
                 },
                 BatchSize::SmallInput,
@@ -45,12 +43,11 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
         });
     }
 
-    for cipher_suite in [AES_128_GCM_SHA256, AES_256_GCM_SHA384] {
+    for cipher_suite in CipherSuite::iter() {
         let mut bench_group = c.benchmark_group(format!("throughput-{:?}", cipher_suite));
         bench_group.throughput(Throughput::Bytes(shared_buf.len() as u64));
         bench_throughput_for_library::<S2NConnection>(
             &mut bench_group,
-            "s2n-tls",
             &mut shared_buf,
             cipher_suite,
         );
@@ -58,13 +55,11 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
         {
             bench_throughput_for_library::<RustlsConnection>(
                 &mut bench_group,
-                "rustls",
                 &mut shared_buf,
                 cipher_suite,
             );
             bench_throughput_for_library::<OpenSslConnection>(
                 &mut bench_group,
-                "openssl",
                 &mut shared_buf,
                 cipher_suite,
             );

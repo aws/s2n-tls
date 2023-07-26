@@ -14,8 +14,8 @@ fn memory_bench<T: TlsConnection>(dir_name: &str) {
         create_dir_all(format!("target/memory/{dir_name}")).unwrap();
     }
 
-    let mut harnesses = Vec::new();
-    harnesses.reserve(100);
+    let mut conn_pairs = Vec::new();
+    conn_pairs.reserve(100);
 
     // reserve space for buffers before benching
     let mut buffers = Vec::new();
@@ -25,17 +25,17 @@ fn memory_bench<T: TlsConnection>(dir_name: &str) {
     }
 
     // handshake one harness to initalize libraries
-    let mut harness = TlsConnPair::<T, T>::default();
-    harness.handshake().unwrap();
+    let mut conn_pair = TlsConnPair::<T, T>::default();
+    conn_pair.handshake().unwrap();
 
     // tell massif to take initial memory snapshot
     crabgrind::monitor_command(format!("snapshot target/memory/{dir_name}/0.snapshot")).unwrap();
 
-    // make and handshake 100 harness
+    // make and handshake 100 connection pairs
     // memory usage stabilizes after first few handshakes
     for i in 1..101 {
         // put new harness directly into harness vec
-        harnesses.push(
+        conn_pairs.push(
             TlsConnPair::<T, T>::new(
                 CryptoConfig::default(),
                 HandshakeType::default(),
@@ -45,7 +45,7 @@ fn memory_bench<T: TlsConnection>(dir_name: &str) {
         );
 
         // handshake last harness added
-        harnesses
+        conn_pairs
             .as_mut_slice()
             .last_mut()
             .unwrap()

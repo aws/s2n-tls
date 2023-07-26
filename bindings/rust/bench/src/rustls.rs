@@ -3,7 +3,7 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
+        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
         TlsConnection,
     },
     PemType::{self, *},
@@ -91,9 +91,9 @@ impl TlsConnection for RustlsConnection {
             CipherSuite::AES_256_GCM_SHA384 => TLS13_AES_256_GCM_SHA384,
         };
 
-        let kx_group = match crypto_config.ec_group {
-            ECGroup::SECP256R1 => &SECP256R1,
-            ECGroup::X25519 => &X25519,
+        let kx_group = match crypto_config.kx_group {
+            KXGroup::Secp256R1 => &SECP256R1,
+            KXGroup::X25519 => &X25519,
         };
 
         match mode {

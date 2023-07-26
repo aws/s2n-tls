@@ -8,7 +8,7 @@ pub mod s2n_tls;
 
 pub use crate::{
     harness::{
-        get_cert_path, CipherSuite, CryptoConfig, ECGroup, HandshakeType, Mode, PemType, SigType,
+        get_cert_path, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode, PemType, SigType,
         TlsConnPair, TlsConnection,
     },
     openssl::OpenSslConnection,
