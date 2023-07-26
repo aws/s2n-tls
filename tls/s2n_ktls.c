@@ -94,7 +94,7 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd)
+S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(fd);
@@ -213,7 +213,6 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
 
     int fd = 0;
     RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, ktls_mode, &fd));
-
     /* Enable 'tls' ULP for the socket. https://lwn.net/Articles/730207
      *
      * Its not possible to detect kTLS support at compile time. We need rely on

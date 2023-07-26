@@ -19,6 +19,7 @@
 
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_ktls.h"
 
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
@@ -245,3 +246,35 @@ extern const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_
 int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params);
+
+/* kTLS */
+/* The record_type is communicated via ancillary data when using kTLS. For this
+ * reason s2n must use `send/recvmsg` syscalls rather than `send/read`. To mimic
+ * the send/recvmsg calls more accurately, we mock the socket via two separate
+ * buffers: data_buffer and ancillary_buffer.
+ *
+ * The mock implementation, uses 3 bytes with a tag + len format to represent
+ * each record. The first byte(tag) is the record_type and the next two represent
+ * the length of the record. Length is represented as a u16 to capture the max
+ * possible TLS record length.
+ *
+ * ancillary_buffer memory layout:
+ *    [      u8      |            u16            ]
+ *      record_type             length
+ */
+#define S2N_TEST_KTLS_MOCK_HEADER_SIZE        3
+#define S2N_TEST_KTLS_MOCK_HEADER_LENGTH_SIZE 2
+struct s2n_test_ktls_io_stuffer {
+    struct s2n_stuffer ancillary_buffer;
+    struct s2n_stuffer data_buffer;
+};
+struct s2n_test_ktls_io_pair {
+    struct s2n_test_ktls_io_stuffer client_in;
+    struct s2n_test_ktls_io_stuffer server_in;
+};
+S2N_RESULT s2n_test_ktls_rewrite_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t new_len);
+S2N_CLEANUP_RESULT s2n_ktls_io_pair_free(struct s2n_test_ktls_io_pair *ctx);
+
+/* Used to override sendmsg and recvmsg for testing */
+ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msghdr *msg, uint8_t record_type);
+ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msghdr *msg, uint8_t *record_type);
