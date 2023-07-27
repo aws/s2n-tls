@@ -1,11 +1,15 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "openssl")]
+use bench::OpenSslHarness;
+#[cfg(feature = "rustls")]
+use bench::RustlsHarness;
 use bench::{
     CipherSuite, CryptoConfig,
     ECGroup::{self, *},
     HandshakeType::{self, *},
-    OpenSslHarness, RustlsHarness, S2NHarness,
+    S2NHarness,
     SigType::{self, *},
     TlsBenchHarness,
 };
@@ -59,23 +63,22 @@ pub fn bench_handshake_params(c: &mut Criterion) {
                     ec_group,
                     sig_type,
                 );
-                #[cfg(not(feature = "historical-perf"))]
-                {
-                    bench_handshake_for_library::<RustlsHarness>(
-                        &mut bench_group,
-                        "rustls",
-                        handshake_type,
-                        ec_group,
-                        sig_type,
-                    );
-                    bench_handshake_for_library::<OpenSslHarness>(
-                        &mut bench_group,
-                        "openssl",
-                        handshake_type,
-                        ec_group,
-                        sig_type,
-                    );
-                }
+                #[cfg(feature = "rustls")]
+                bench_handshake_for_library::<RustlsHarness>(
+                    &mut bench_group,
+                    "rustls",
+                    handshake_type,
+                    ec_group,
+                    sig_type,
+                );
+                #[cfg(feature = "openssl")]
+                bench_handshake_for_library::<OpenSslHarness>(
+                    &mut bench_group,
+                    "openssl",
+                    handshake_type,
+                    ec_group,
+                    sig_type,
+                );
             }
         }
     }

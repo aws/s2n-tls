@@ -1,7 +1,11 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use bench::{harness::ConnectedBuffer, OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness};
+#[cfg(feature = "openssl")]
+use bench::OpenSslHarness;
+#[cfg(feature = "rustls")]
+use bench::RustlsHarness;
+use bench::{harness::ConnectedBuffer, S2NHarness, TlsBenchHarness};
 use std::{fs::create_dir_all, path::Path};
 
 fn memory_bench<T: TlsBenchHarness>(dir_name: &str) {
@@ -59,6 +63,8 @@ fn main() {
     assert!(!cfg!(debug_assertions), "need to run in release mode");
 
     memory_bench::<S2NHarness>("s2n-tls");
+    #[cfg(feature = "rustls")]
     memory_bench::<RustlsHarness>("rustls");
+    #[cfg(feature = "openssl")]
     memory_bench::<OpenSslHarness>("openssl");
 }

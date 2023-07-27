@@ -87,7 +87,11 @@ impl CryptoConfig {
 pub trait TlsBenchHarness: Sized {
     /// Default harness
     fn default() -> Result<Self, Box<dyn Error>> {
-        Self::new(CryptoConfig::default(), HandshakeType::default(), ConnectedBuffer::default())
+        Self::new(
+            CryptoConfig::default(),
+            HandshakeType::default(),
+            ConnectedBuffer::default(),
+        )
     }
 
     /// Initialize buffers, configs, and connections (pre-handshake)
@@ -238,11 +242,21 @@ macro_rules! test_tls_bench_harnesses {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{OpenSslHarness, RustlsHarness, S2NHarness, TlsBenchHarness};
+    #[cfg(feature = "openssl")]
+    use crate::OpenSslHarness;
+    #[cfg(feature = "rustls")]
+    use crate::RustlsHarness;
+    use crate::{S2NHarness, TlsBenchHarness};
 
     test_tls_bench_harnesses! {
         s2n_tls: S2NHarness,
+    }
+    #[cfg(feature = "rustls")]
+    test_tls_bench_harnesses! {
         rustls: RustlsHarness,
+    }
+    #[cfg(feature = "openssl")]
+    test_tls_bench_harnesses! {
         openssl: OpenSslHarness,
     }
 }

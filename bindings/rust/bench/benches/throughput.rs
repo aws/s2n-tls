@@ -1,10 +1,14 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "openssl")]
+use bench::OpenSslHarness;
+#[cfg(feature = "rustls")]
+use bench::RustlsHarness;
 use bench::{
+    harness::ConnectedBuffer,
     CipherSuite::{self, *},
-    CryptoConfig, ECGroup, HandshakeType, OpenSslHarness, RustlsHarness, S2NHarness, SigType,
-    TlsBenchHarness, harness::ConnectedBuffer,
+    CryptoConfig, ECGroup, HandshakeType, S2NHarness, SigType, TlsBenchHarness,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -53,21 +57,20 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
             &mut shared_buf,
             cipher_suite,
         );
-        #[cfg(not(feature = "historical-perf"))]
-        {
-            bench_throughput_for_library::<RustlsHarness>(
-                &mut bench_group,
-                "rustls",
-                &mut shared_buf,
-                cipher_suite,
-            );
-            bench_throughput_for_library::<OpenSslHarness>(
-                &mut bench_group,
-                "openssl",
-                &mut shared_buf,
-                cipher_suite,
-            );
-        }
+        #[cfg(feature = "rustls")]
+        bench_throughput_for_library::<RustlsHarness>(
+            &mut bench_group,
+            "rustls",
+            &mut shared_buf,
+            cipher_suite,
+        );
+        #[cfg(feature = "openssl")]
+        bench_throughput_for_library::<OpenSslHarness>(
+            &mut bench_group,
+            "openssl",
+            &mut shared_buf,
+            cipher_suite,
+        );
     }
 }
 

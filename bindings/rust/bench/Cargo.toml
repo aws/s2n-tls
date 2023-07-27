@@ -4,13 +4,15 @@ version = "0.1.0"
 edition = "2021"
 
 [features]
-historical-perf = []
+default = ["rustls", "openssl"]
+rustls = ["dep:rustls", "rustls-pemfile"]
+openssl = ["dep:openssl"]
 
 [dependencies]
 s2n-tls = { path = "../s2n-tls" }
-rustls = "0.21"
-rustls-pemfile = "1.0"
-openssl = "0.10"
+rustls = { version = "0.21", optional = true }
+rustls-pemfile = { version = "1.0", optional = true }
+openssl = { version = "0.10", optional = true }
 errno = "0.3"
 libc = "0.2"
 crabgrind = "0.1"
