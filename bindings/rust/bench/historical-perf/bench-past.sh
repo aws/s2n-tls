@@ -70,6 +70,6 @@ done
 
 # graph results
 cd $bench_path
-cargo run --release --bin graph_perf
+cargo run --release --no-default-features --features historical-perf --bin graph_perf
 
 popd
