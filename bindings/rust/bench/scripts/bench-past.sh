@@ -6,7 +6,7 @@
 # Run historical benchmarking by checking out old version of s2n-tls into target/
 # Criterion JSON results get cached to target/historical-perf/[bench-group-name]/[version].json
 # Results are then plotted, saved to images/historical-perf-[bench-name].svg
-# The default configuration (without AWS-LC) is used
+# All given arguments (ex. `--config aws-lc-config/s2n.toml` to use AWS-LC) are passed to Cargo
 
 # immediately bail if any command fails
 set -e
@@ -61,7 +61,7 @@ do
         echo "running cargo bench and saving results" >&2
         cd $bench_path
         rm -rf target/criterion
-        cargo bench --features historical-perf --no-fail-fast
+        cargo bench --features historical-perf --no-fail-fast "$@"
 
         # cache criterion outputs from this bench into target/historical-perf
         for bench_group in $(ls target/criterion | grep -v "report")
