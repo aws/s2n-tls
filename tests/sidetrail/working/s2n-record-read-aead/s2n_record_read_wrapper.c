@@ -81,23 +81,28 @@ int s2n_record_parse_wrapper(int *xor_pad,
   public_in(__SMACK_value(flags));
   
   struct s2n_hmac_state hmac = {
-    .alg = S2N_HMAC_SHA1,
-    .hash_block_size = BLOCK_SIZE,
-    .currently_in_hash_block = 0,
-    .digest_size = SHA_DIGEST_LENGTH,
-    .xor_pad_size = BLOCK_SIZE,
-    .inner.alg = S2N_HASH_SHA1,
-    .inner.currently_in_hash_block = 0,
-    .inner_just_key.alg = S2N_HASH_SHA1,
-    .inner_just_key.currently_in_hash_block = 0,
-    .outer.alg = S2N_HASH_SHA1,
-    .outer.currently_in_hash_block = 0,
-    .outer_just_key.alg = S2N_HASH_SHA1,
-    .outer_just_key.currently_in_hash_block = 0,
-     .xor_pad = *xor_pad,
-    .digest_pad = *digest_pad
+    .impl_type = S2N_HMAC_CUSTOM_IMPL,
+    .impl_state = {
+      .custom = {
+        .alg = S2N_HMAC_SHA1,
+        .hash_block_size = BLOCK_SIZE,
+        .currently_in_hash_block = 0,
+        .digest_size = SHA_DIGEST_LENGTH,
+        .xor_pad_size = BLOCK_SIZE,
+        .inner.alg = S2N_HASH_SHA1,
+        .inner.currently_in_hash_block = 0,
+        .inner_just_key.alg = S2N_HASH_SHA1,
+        .inner_just_key.currently_in_hash_block = 0,
+        .outer.alg = S2N_HASH_SHA1,
+        .outer.currently_in_hash_block = 0,
+        .outer_just_key.alg = S2N_HASH_SHA1,
+        .outer_just_key.currently_in_hash_block = 0,
+        .xor_pad = *xor_pad,
+        .digest_pad = *digest_pad
+      },
+      .libcrypto = { 0 }
+    }
   };
-
   
   struct s2n_cipher aead_cipher = {
     .type = S2N_AEAD,

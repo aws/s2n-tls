@@ -371,13 +371,7 @@ static int s2n_hmac_p_hash_digest(struct s2n_prf_working_space *ws, void *digest
 
 static int s2n_hmac_p_hash_reset(struct s2n_prf_working_space *ws)
 {
-    /* If we actually initialized s2n_hmac, wipe it.
-     * A valid, initialized s2n_hmac_state will have a valid block size.
-     */
-    if (ws->p_hash.s2n_hmac.hash_block_size != 0) {
-        return s2n_hmac_reset(&ws->p_hash.s2n_hmac);
-    }
-    return S2N_SUCCESS;
+    return s2n_hmac_reset(&ws->p_hash.s2n_hmac);
 }
 
 static int s2n_hmac_p_hash_cleanup(struct s2n_prf_working_space *ws)

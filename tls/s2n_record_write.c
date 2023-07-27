@@ -289,8 +289,8 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         POSIX_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
     }
 
-    uint8_t mac_digest_size;
-    POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
+    uint8_t mac_digest_size = 0;
+    POSIX_GUARD(s2n_hmac_size(mac, &mac_digest_size));
 
     /* Before we do anything, we need to figure out what the length of the
      * fragment is going to be.

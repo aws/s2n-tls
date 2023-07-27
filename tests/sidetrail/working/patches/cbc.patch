@@ -2,9 +2,9 @@ diff --git a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c b/tests/sidetrail/wor
 index 401ab760..f39cc7e2 100644
 --- a/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
 +++ b/tests/sidetrail/working/s2n-cbc/tls/s2n_cbc.c
-@@ -26,6 +26,28 @@
- #include "tls/s2n_connection.h"
- #include "tls/s2n_record.h"
+@@ -23,6 +23,28 @@
+ #include "utils/s2n_mem.h"
+ #include "utils/s2n_safety.h"
  
 +#include <smack.h>
 +#include <smack-contracts.h>
@@ -16,29 +16,29 @@ index 401ab760..f39cc7e2 100644
 + * a fix soon
 + */
 +int double_loop(int old_mismatches, struct s2n_blob *decrypted, int check, int cutoff, int padding_length) {
-+  __VERIFIER_assert(decrypted->size >= 0);
-+  __VERIFIER_assert(decrypted->size <= MAX_SIZE);
-+  int mismatches = old_mismatches;
-+  for (uint32_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
-+    invariant(i <= check);
-+    invariant(j == i + decrypted->size - check - 1);
-+    uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
-+    mismatches |= (decrypted->data[j] ^ padding_length) & mask;
-+  }
-+  return mismatches;
++    __VERIFIER_assert(decrypted->size >= 0);
++    __VERIFIER_assert(decrypted->size <= MAX_SIZE);
++    int mismatches = old_mismatches;
++    for (uint32_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
++        invariant(i <= check);
++        invariant(j == i + decrypted->size - check - 1);
++        uint8_t mask = ~(0xff << ((i >= cutoff) * 8));
++        mismatches |= (decrypted->data[j] ^ padding_length) & mask;
++    }
++    return mismatches;
 +}
 +
  /* A TLS CBC record looks like ..
   *
   * [ Payload data ] [ HMAC ] [ Padding ] [ Padding length byte ]
-@@ -48,23 +70,28 @@
+@@ -45,17 +67,20 @@
   */
  int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
  {
 -    uint8_t mac_digest_size;
--    POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
+-    POSIX_GUARD(s2n_hmac_size(hmac, &mac_digest_size));
 +    uint8_t mac_digest_size = DIGEST_SIZE;
-+    //POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
++    //POSIX_GUARD(s2n_hmac_size(hmac, &mac_digest_size));
  
      /* The record has to be at least big enough to contain the MAC,
       * plus the padding length byte */
@@ -54,15 +54,16 @@ index 401ab760..f39cc7e2 100644
  
      int payload_length = MAX(payload_and_padding_size - padding_length - 1, 0);
  
-     /* Update the MAC */
+@@ -63,6 +88,8 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
      POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data, payload_length));
-     int currently_in_hash_block = hmac->currently_in_hash_block;
+     uint32_t currently_in_hash_block = 0;
+     POSIX_GUARD(s2n_hmac_currently_in_hash_block(hmac, &currently_in_hash_block));
 +    __VERIFIER_assume(currently_in_hash_block >= 0);
 +    __VERIFIER_assume(currently_in_hash_block < BLOCK_SIZE);
  
      /* Check the MAC */
      uint8_t check_digest[S2N_MAX_DIGEST_LEN];
-@@ -81,18 +108,19 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
+@@ -79,9 +106,9 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
      POSIX_GUARD(s2n_hmac_update(hmac, decrypted->data + payload_length + mac_digest_size, decrypted->size - payload_length - mac_digest_size - 1));
  
      /* SSLv3 doesn't specify what the padding should actually be */
@@ -75,9 +76,9 @@ index 401ab760..f39cc7e2 100644
  
      /* Check the maximum amount that could theoretically be padding */
      uint32_t check = MIN(255, (payload_and_padding_size - 1));
-
+@@ -89,10 +116,11 @@ int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, str
      POSIX_ENSURE_GTE(check, padding_length);
-
+ 
      uint32_t cutoff = check - padding_length;
 -    for (size_t i = 0, j = decrypted->size - 1 - check; i < check && j < decrypted->size; i++, j++) {
 -        uint8_t mask = ~(0xff << ((i >= cutoff) * 8));

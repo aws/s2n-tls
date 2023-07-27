@@ -2,7 +2,7 @@ diff --git a/crypto/s2n_hmac.c b/crypto/s2n_hmac.c
 index 29ded952..f7a24a01 100644
 --- a/crypto/s2n_hmac.c
 +++ b/crypto/s2n_hmac.c
-@@ -244,8 +244,7 @@ static S2N_RESULT s2n_hmac_update_impl(struct s2n_hmac_state *state, const void
+@@ -283,8 +283,7 @@ static S2N_RESULT s2n_hmac_update_impl(struct s2n_custom_hmac_state *state, cons
       * input. On some platforms, including Intel, the operation can take a
       * smaller number of cycles if the input is "small".
       */

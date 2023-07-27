@@ -216,7 +216,7 @@ let hash_get_currently_in_hash_total_spec = do {
 // HMAC.
 
 let setup_hmac_state alg0 hash_block_size0 block_size0 digest_size0 = do {
-    pstate <- crucible_alloc (llvm_struct "struct.s2n_hmac_state");
+    pstate <- crucible_alloc (llvm_struct "struct.s2n_custom_hmac_state");
     currently_in_hash_block0 <- crucible_fresh_var "currently_in_hash_block" (llvm_int 32);
     xor_pad0 <- crucible_fresh_var "xor_pad" (llvm_array 128 (llvm_int 8));
     let digest_size = eval_size {| SHA512_DIGEST_LENGTH |};
