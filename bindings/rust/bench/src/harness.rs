@@ -223,7 +223,7 @@ impl<C: TlsConnection, S: TlsConnection> TlsConnPair<C, S> {
     }
 
     /// Take back ownership of individual connections in the TlsConnPair
-    pub fn unwrap(self) -> (C, S) {
+    pub fn split(self) -> (C, S) {
         (self.client, self.server)
     }
 
