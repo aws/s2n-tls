@@ -19,13 +19,17 @@ certs/generate_certs.sh
 cargo bench --config aws-lc-config/s2n.toml
 ```
 
+### Features
+
+Default features (`rustls` and `openssl`) can be disabled by running the benches with `--no-default-features`. The non-default `memory` and `historical-perf` features are used to enable dependencies specific to those types of benches, and are automatically used by the scripts that run those benches.
+
 ## Running benchmarks
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
 To run memory benchmarks, run `memory/bench-memory.sh`. A graph of memory usage will be generated in `memory/memory.svg`.
 
-## Historical benchmarks
+### Historical benchmarks
 
 To do historical benchmarks, run `historical-perf/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
 
