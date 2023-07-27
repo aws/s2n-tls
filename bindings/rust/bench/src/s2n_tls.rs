@@ -41,7 +41,6 @@ pub struct S2NConfig {
 }
 
 pub struct S2NConnection {
-    // UnsafeCell is needed b/c client and server share *mut to IO buffers
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remains valid
     connected_buffer: Pin<Box<ConnectedBuffer>>,
     connection: Connection,
