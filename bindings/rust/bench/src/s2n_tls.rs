@@ -3,14 +3,14 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, ECGroup, HandshakeType, Mode,
-        TlsBenchHarness,
+        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
+        TlsConnection,
     },
     PemType::*,
 };
 use s2n_tls::{
     callbacks::VerifyHostNameCallback,
-    config::{Builder, Config},
+    config::Builder,
     connection::Connection,
     enums::{Blinding, ClientAuthType, Version},
     security::Policy,
@@ -21,20 +21,7 @@ use std::{
     io::{ErrorKind, Read, Write},
     os::raw::c_int,
     pin::Pin,
-    task::Poll::Ready,
 };
-
-#[allow(dead_code)]
-pub struct S2NHarness {
-    // UnsafeCell is needed b/c client and server share *mut to IO buffers
-    // Pin<Box<T>> is to ensure long-term *mut to IO buffers remain valid
-    client_buf: Pin<Box<ConnectedBuffer>>,
-    server_buf: Pin<Box<ConnectedBuffer>>,
-    client_conn: Connection,
-    server_conn: Connection,
-    client_handshake_completed: bool,
-    server_handshake_completed: bool,
-}
 
 /// Custom callback for verifying hostnames. Rustls requires checking hostnames,
 /// so this is to make a fair comparison
@@ -47,7 +34,20 @@ impl VerifyHostNameCallback for HostNameHandler<'_> {
     }
 }
 
-impl S2NHarness {
+/// s2n-tls has mode-independent configs, so this struct wraps the config with the mode
+pub struct S2NConfig {
+    mode: Mode,
+    config: s2n_tls::config::Config,
+}
+
+pub struct S2NConnection {
+    // Pin<Box<T>> is to ensure long-term *mut to IO buffers remains valid
+    connected_buffer: Pin<Box<ConnectedBuffer>>,
+    connection: Connection,
+    handshake_completed: bool,
+}
+
+impl S2NConnection {
     /// Unsafe callback for custom IO C API
     ///
     /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
@@ -65,6 +65,7 @@ impl S2NHarness {
         context.flush().unwrap();
         match context.read(data) {
             Err(err) => {
+                // s2n-tls requires the callback to set errno if blocking happens
                 if let ErrorKind::WouldBlock = err.kind() {
                     errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
                     -1
@@ -75,16 +76,27 @@ impl S2NHarness {
             Ok(len) => len as _,
         }
     }
+}
 
-    fn create_common_config_builder(
+impl TlsConnection for S2NConnection {
+    type Config = S2NConfig;
+
+    fn name() -> String {
+        "s2n-tls".to_string()
+    }
+
+    fn make_config(
+        mode: Mode,
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
-    ) -> Result<Builder, Box<dyn Error>> {
-        let security_policy = match (crypto_config.cipher_suite, crypto_config.ec_group) {
-            (CipherSuite::AES_128_GCM_SHA256, ECGroup::SECP256R1) => "20230317",
-            (CipherSuite::AES_256_GCM_SHA384, ECGroup::SECP256R1) => "20190802",
-            (CipherSuite::AES_128_GCM_SHA256, ECGroup::X25519) => "default_tls13",
-            (CipherSuite::AES_256_GCM_SHA384, ECGroup::X25519) => "20190801",
+    ) -> Result<Self::Config, Box<dyn Error>> {
+        // these security policies negotiate the given cipher suite and key
+        // exchange group as their top choice
+        let security_policy = match (crypto_config.cipher_suite, crypto_config.kx_group) {
+            (CipherSuite::AES_128_GCM_SHA256, KXGroup::Secp256R1) => "20230317",
+            (CipherSuite::AES_256_GCM_SHA384, KXGroup::Secp256R1) => "20190802",
+            (CipherSuite::AES_128_GCM_SHA256, KXGroup::X25519) => "default_tls13",
+            (CipherSuite::AES_256_GCM_SHA384, KXGroup::X25519) => "20190801",
         };
 
         let mut builder = Builder::new();
@@ -96,130 +108,90 @@ impl S2NHarness {
                 HandshakeType::MutualAuth => ClientAuthType::Required,
             })?;
 
-        Ok(builder)
-    }
+        match mode {
+            Mode::Client => {
+                builder
+                    .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
+                    .set_verify_host_callback(HostNameHandler {
+                        expected_server_name: "localhost",
+                    })?;
 
-    fn create_client_config(
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-    ) -> Result<Config, Box<dyn Error>> {
-        let mut builder = Self::create_common_config_builder(crypto_config, handshake_type)?;
-        builder
-            .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
-            .set_verify_host_callback(HostNameHandler {
-                expected_server_name: "localhost",
-            })?;
+                if handshake_type == HandshakeType::MutualAuth {
+                    builder.load_pem(
+                        read_to_bytes(ClientCertChain, crypto_config.sig_type).as_slice(),
+                        read_to_bytes(ClientKey, crypto_config.sig_type).as_slice(),
+                    )?;
+                }
+            }
+            Mode::Server => {
+                builder.load_pem(
+                    read_to_bytes(ServerCertChain, crypto_config.sig_type).as_slice(),
+                    read_to_bytes(ServerKey, crypto_config.sig_type).as_slice(),
+                )?;
 
-        if handshake_type == HandshakeType::MutualAuth {
-            builder.load_pem(
-                read_to_bytes(ClientCertChain, crypto_config.sig_type).as_slice(),
-                read_to_bytes(ClientKey, crypto_config.sig_type).as_slice(),
-            )?;
+                if handshake_type == HandshakeType::MutualAuth {
+                    builder
+                        .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
+                        .set_verify_host_callback(HostNameHandler {
+                            expected_server_name: "localhost",
+                        })?;
+                }
+            }
         }
 
-        Ok(builder.build()?)
+        Ok(S2NConfig {
+            mode,
+            config: builder.build()?,
+        })
     }
 
-    fn create_server_config(
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-    ) -> Result<Config, Box<dyn Error>> {
-        let mut builder = Self::create_common_config_builder(crypto_config, handshake_type)?;
-        builder.load_pem(
-            read_to_bytes(ServerCertChain, crypto_config.sig_type).as_slice(),
-            read_to_bytes(ServerKey, crypto_config.sig_type).as_slice(),
-        )?;
+    fn new_from_config(
+        config: &Self::Config,
+        connected_buffer: ConnectedBuffer,
+    ) -> Result<Self, Box<dyn Error>> {
+        let mode = match config.mode {
+            Mode::Client => s2n_tls::enums::Mode::Client,
+            Mode::Server => s2n_tls::enums::Mode::Server,
+        };
 
-        if handshake_type == HandshakeType::MutualAuth {
-            builder
-                .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
-                .set_verify_host_callback(HostNameHandler {
-                    expected_server_name: "localhost",
-                })?;
-        }
+        let mut connected_buffer = Box::pin(connected_buffer);
 
-        Ok(builder.build()?)
-    }
-
-    /// Set up connections with config and custom IO
-    fn init_conn(
-        conn: &mut Connection,
-        buffer: &mut Pin<Box<ConnectedBuffer>>,
-        config: Config,
-    ) -> Result<(), Box<dyn Error>> {
-        conn.set_blinding(Blinding::SelfService)?
-            .set_config(config)?
+        let mut connection = Connection::new(mode);
+        connection
+            .set_blinding(Blinding::SelfService)?
+            .set_config(config.config.clone())?
             .set_send_callback(Some(Self::send_cb))?
             .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
-            conn.set_send_context(&mut **buffer as *mut ConnectedBuffer as *mut c_void)?
-                .set_receive_context(&mut **buffer as *mut ConnectedBuffer as *mut c_void)?;
+            connection
+                .set_send_context(&mut *connected_buffer as *mut ConnectedBuffer as *mut c_void)?
+                .set_receive_context(
+                    &mut *connected_buffer as *mut ConnectedBuffer as *mut c_void,
+                )?;
         }
 
-        Ok(())
-    }
-
-    /// Handshake step for one connection
-    fn handshake_conn(&mut self, mode: Mode) -> Result<(), Box<dyn Error>> {
-        let (conn, handshake_completed) = match mode {
-            Mode::Client => (&mut self.client_conn, &mut self.client_handshake_completed),
-            Mode::Server => (&mut self.server_conn, &mut self.server_handshake_completed),
-        };
-
-        if let Ready(res) = conn.poll_negotiate() {
-            res?;
-            *handshake_completed = true;
-        } else {
-            *handshake_completed = false;
-        }
-        Ok(())
-    }
-}
-
-impl TlsBenchHarness for S2NHarness {
-    fn new(
-        crypto_config: CryptoConfig,
-        handshake_type: HandshakeType,
-        buffer: ConnectedBuffer,
-    ) -> Result<Self, Box<dyn Error>> {
-        let mut client_buf = Box::pin(buffer);
-        let mut server_buf = Box::pin(client_buf.clone_inverse());
-
-        let client_config = Self::create_client_config(crypto_config, handshake_type)?;
-        let server_config = Self::create_server_config(crypto_config, handshake_type)?;
-
-        let mut client_conn = Connection::new_client();
-        let mut server_conn = Connection::new_server();
-
-        Self::init_conn(&mut client_conn, &mut client_buf, client_config)?;
-        Self::init_conn(&mut server_conn, &mut server_buf, server_config)?;
-
-        let harness = Self {
-            client_buf,
-            server_buf,
-            client_conn,
-            server_conn,
-            client_handshake_completed: false,
-            server_handshake_completed: false,
-        };
-
-        Ok(harness)
+        Ok(Self {
+            connected_buffer,
+            connection,
+            handshake_completed: false,
+        })
     }
 
     fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
-        for _ in 0..2 {
-            self.handshake_conn(Mode::Client)?;
-            self.handshake_conn(Mode::Server)?;
-        }
+        self.handshake_completed = self
+            .connection
+            .poll_negotiate()
+            .map(|res| res.unwrap()) // unwrap `Err` if present
+            .is_ready();
         Ok(())
     }
 
     fn handshake_completed(&self) -> bool {
-        self.client_handshake_completed && self.server_handshake_completed
+        self.handshake_completed
     }
 
     fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        match self.client_conn.cipher_suite().unwrap() {
+        match self.connection.cipher_suite().unwrap() {
             "TLS_AES_128_GCM_SHA256" => CipherSuite::AES_128_GCM_SHA256,
             "TLS_AES_256_GCM_SHA384" => CipherSuite::AES_256_GCM_SHA384,
             _ => panic!("Unknown cipher suite"),
@@ -227,28 +199,29 @@ impl TlsBenchHarness for S2NHarness {
     }
 
     fn negotiated_tls13(&self) -> bool {
-        self.client_conn.actual_protocol_version().unwrap() == Version::TLS13
+        self.connection.actual_protocol_version().unwrap() == Version::TLS13
     }
 
-    fn send(&mut self, sender: Mode, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        let send_conn = match sender {
-            Mode::Client => &mut self.client_conn,
-            Mode::Server => &mut self.server_conn,
-        };
-
-        assert!(send_conn.poll_send(data).is_ready());
-        assert!(send_conn.poll_flush().is_ready());
-
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        assert!(self.connection.poll_send(data).is_ready());
+        assert!(self.connection.poll_flush().is_ready());
         Ok(())
     }
 
-    fn recv(&mut self, receiver: Mode, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        let recv_conn = match receiver {
-            Mode::Client => &mut self.client_conn,
-            Mode::Server => &mut self.server_conn,
-        };
-
-        assert!(recv_conn.poll_recv(data).is_ready());
+    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        assert!(self.connection.poll_recv(data).is_ready());
         Ok(())
+    }
+
+    fn shrink_connection_buffers(&mut self) {
+        self.connection.release_buffers().unwrap();
+    }
+
+    fn shrink_connected_buffer(&mut self) {
+        self.connected_buffer.shrink();
+    }
+
+    fn connected_buffer(&self) -> &ConnectedBuffer {
+        &self.connected_buffer
     }
 }

@@ -10,7 +10,7 @@ historical-perf = []
 s2n-tls = { path = "../s2n-tls" }
 rustls = "0.21"
 rustls-pemfile = "1.0"
-openssl = "0.10"
+openssl = { version = "0.10", features = ["vendored"] }
 errno = "0.3"
 libc = "0.2"
 crabgrind = "0.1"
@@ -19,9 +19,10 @@ rand_distr = "0.4"
 plotters = "0.3"
 serde_json = "1.0"
 semver = "1.0"
+strum = { version = "0.25", features = ["derive"] }
 
 [dev-dependencies]
-criterion = "0.3"
+criterion = "0.5"
 
 [[bench]]
 name = "handshake"
