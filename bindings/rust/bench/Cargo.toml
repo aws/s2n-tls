@@ -14,9 +14,10 @@ historical-perf = ["plotters", "serde_json", "semver"]
 s2n-tls = { path = "../s2n-tls" }
 errno = "0.3"
 libc = "0.2"
+strum = { version = "0.25", features = ["derive"] }
 rustls = { version = "0.21", optional = true }
 rustls-pemfile = { version = "1.0", optional = true }
-openssl = { version = "0.10", optional = true }
+openssl = { version = "0.10", features = ["vendored"], optional = true }
 crabgrind = { version = "0.1", optional = true }
 serde_json = { version = "1.0", optional = true }
 semver = { version = "1.0", optional = true }

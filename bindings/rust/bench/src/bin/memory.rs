@@ -2,21 +2,24 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[cfg(feature = "openssl")]
-use bench::OpenSslHarness;
+use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
-use bench::RustlsHarness;
-use bench::{harness::ConnectedBuffer, S2NHarness, TlsBenchHarness};
+use bench::RustlsConnection;
+use bench::{
+    harness::ConnectedBuffer, CryptoConfig, HandshakeType,
+    S2NConnection, TlsConnPair, TlsConnection,
+};
 use std::{fs::create_dir_all, path::Path};
 
-fn memory_bench<T: TlsBenchHarness>(dir_name: &str) {
+fn memory_bench<T: TlsConnection>(dir_name: &str) {
     println!("testing {dir_name}");
 
     if !Path::new(&format!("target/memory/{dir_name}")).is_dir() {
         create_dir_all(format!("target/memory/{dir_name}")).unwrap();
     }
 
-    let mut harnesses = Vec::new();
-    harnesses.reserve(100);
+    let mut conn_pairs = Vec::new();
+    conn_pairs.reserve(100);
 
     // reserve space for buffers before benching
     let mut buffers = Vec::new();
@@ -26,27 +29,27 @@ fn memory_bench<T: TlsBenchHarness>(dir_name: &str) {
     }
 
     // handshake one harness to initalize libraries
-    let mut harness = T::default().unwrap();
-    harness.handshake().unwrap();
+    let mut conn_pair = TlsConnPair::<T, T>::default();
+    conn_pair.handshake().unwrap();
 
     // tell massif to take initial memory snapshot
     crabgrind::monitor_command(format!("snapshot target/memory/{dir_name}/0.snapshot")).unwrap();
 
-    // make and handshake 100 harness
+    // make and handshake 100 connection pairs
     // memory usage stabilizes after first few handshakes
     for i in 1..101 {
         // put new harness directly into harness vec
-        harnesses.push(
-            T::new(
-                Default::default(),
-                Default::default(),
+        conn_pairs.push(
+            TlsConnPair::<T, T>::new(
+                CryptoConfig::default(),
+                HandshakeType::default(),
                 buffers.pop().unwrap(), // take ownership of buffer
             )
             .unwrap(),
         );
 
         // handshake last harness added
-        harnesses
+        conn_pairs
             .as_mut_slice()
             .last_mut()
             .unwrap()

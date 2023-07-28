@@ -2,81 +2,76 @@
 // SPDX-License-Identifier: Apache-2.0
 
 #[cfg(feature = "openssl")]
-use bench::OpenSslHarness;
+use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
-use bench::RustlsHarness;
+use bench::RustlsConnection;
 use bench::{
-    CipherSuite, CryptoConfig,
-    ECGroup::{self, *},
-    HandshakeType::{self, *},
-    S2NHarness,
-    SigType::{self, *},
-    TlsBenchHarness,
+    CipherSuite, CryptoConfig, HandshakeType, KXGroup, 
+    S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
+use strum::IntoEnumIterator;
+
+fn bench_handshake_for_library<T: TlsConnection>(
+    bench_group: &mut BenchmarkGroup<WallTime>,
+    handshake_type: HandshakeType,
+    kx_group: KXGroup,
+    sig_type: SigType,
+) {
+    // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
+    // only include negotiation and not config/connection initialization
+    bench_group.bench_function(T::name(), |b| {
+        b.iter_batched_ref(
+            || {
+                TlsConnPair::<T, T>::new(
+                    CryptoConfig::new(CipherSuite::default(), kx_group, sig_type),
+                    handshake_type,
+                    Default::default(),
+                )
+            },
+            |conn_pair_res| {
+                // harnesses with certain parameters fail to initialize for
+                // some past versions of s2n-tls, but missing data can be
+                // visually interpolated in the historical performance graph
+                if let Ok(conn_pair) = conn_pair_res {
+                    let _ = conn_pair.handshake();
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
+}
 
 pub fn bench_handshake_params(c: &mut Criterion) {
-    fn bench_handshake_for_library<T: TlsBenchHarness>(
-        bench_group: &mut BenchmarkGroup<WallTime>,
-        name: &str,
-        handshake_type: HandshakeType,
-        ec_group: ECGroup,
-        sig_type: SigType,
-    ) {
-        // generate all harnesses (TlsBenchHarness structs) beforehand so that benchmarks
-        // only include negotiation and not config/connection initialization
-        bench_group.bench_function(name, |b| {
-            b.iter_batched_ref(
-                || {
-                    T::new(
-                        CryptoConfig::new(CipherSuite::default(), ec_group, sig_type),
-                        handshake_type,
-                        Default::default(),
-                    )
-                },
-                |harness| {
-                    // harnesses with certain parameters fail to initialize for
-                    // some past versions of s2n-tls, but missing data can be
-                    // visually interpolated in the historical performance graph
-                    if let Ok(harness) = harness {
-                        let _ = harness.handshake();
+    for handshake_type in HandshakeType::iter() {
+        for kx_group in KXGroup::iter() {
+            for sig_type in SigType::iter() {
+                let mut bench_group = c.benchmark_group(match handshake_type {
+                    HandshakeType::ServerAuth => format!("handshake-{:?}-{:?}", kx_group, sig_type),
+                    HandshakeType::MutualAuth => {
+                        format!("handshake-mTLS-{:?}-{:?}", kx_group, sig_type)
                     }
-                },
-                BatchSize::SmallInput,
-            )
-        });
-    }
-
-    for handshake_type in [ServerAuth, MutualAuth] {
-        for ec_group in [SECP256R1, X25519] {
-            for sig_type in [Rsa2048, Rsa3072, Rsa4096, Ec384] {
-                let mut bench_group = c.benchmark_group(format!(
-                    "handshake-{:?}-{:?}-{:?}",
-                    handshake_type, ec_group, sig_type
-                ));
-                bench_handshake_for_library::<S2NHarness>(
+                });
+                bench_handshake_for_library::<S2NConnection>(
                     &mut bench_group,
-                    "s2n-tls",
                     handshake_type,
-                    ec_group,
+                    kx_group,
                     sig_type,
                 );
                 #[cfg(feature = "rustls")]
-                bench_handshake_for_library::<RustlsHarness>(
+                bench_handshake_for_library::<RustlsConnection>(
                     &mut bench_group,
-                    "rustls",
                     handshake_type,
-                    ec_group,
+                    kx_group,
                     sig_type,
                 );
                 #[cfg(feature = "openssl")]
-                bench_handshake_for_library::<OpenSslHarness>(
+                bench_handshake_for_library::<OpenSslConnection>(
                     &mut bench_group,
-                    "openssl",
                     handshake_type,
-                    ec_group,
+                    kx_group,
                     sig_type,
                 );
             }
