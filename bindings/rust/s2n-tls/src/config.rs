@@ -640,7 +640,7 @@ impl Builder {
     }
 
     /// Adds a key which will be used to encrypt and decrypt session tickets. The intro_time parameter is time since
-    /// the Unix epoch (Midnight, January 1st, 1970).
+    /// the Unix epoch (Midnight, January 1st, 1970). The key must be at least 16 bytes.
     pub fn add_session_ticket_key(
         &mut self,
         key_name: &[u8],

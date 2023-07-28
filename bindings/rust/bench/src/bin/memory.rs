@@ -6,8 +6,7 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    ConnectedBuffer, CryptoConfig, HandshakeType, Mode,
-    S2NConnection, TlsConnPair, TlsConnection,
+    ConnectedBuffer, CryptoConfig, HandshakeType, Mode, S2NConnection, TlsConnPair, TlsConnection,
 };
 use std::{error::Error, fs::create_dir_all};
 use structopt::{clap::arg_enum, StructOpt};

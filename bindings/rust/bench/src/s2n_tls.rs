@@ -9,19 +9,22 @@ use crate::{
     PemType::*,
 };
 use s2n_tls::{
-    callbacks::VerifyHostNameCallback,
+    callbacks::{SessionTicketCallback, VerifyHostNameCallback},
     config::Builder,
     connection::Connection,
     enums::{Blinding, ClientAuthType, Version},
     security::Policy,
 };
 use std::{
+    borrow::BorrowMut,
     error::Error,
     ffi::c_void,
     io::{ErrorKind, Read, Write},
     os::raw::c_int,
     pin::Pin,
+    sync::{Arc, Mutex},
     task::Poll,
+    time::SystemTime,
 };
 
 /// Custom callback for verifying hostnames. Rustls requires checking hostnames,
@@ -35,10 +38,29 @@ impl VerifyHostNameCallback for HostNameHandler<'_> {
     }
 }
 
+#[derive(Clone, Debug, Default)]
+pub struct SessionTicketStorage(Arc<Mutex<Option<Vec<u8>>>>);
+
+impl SessionTicketCallback for SessionTicketStorage {
+    fn on_session_ticket(
+        &self,
+        _connection: &mut s2n_tls::connection::Connection,
+        session_ticket: &s2n_tls::callbacks::SessionTicket,
+    ) {
+        let mut ticket = vec![0; session_ticket.len().unwrap()];
+        session_ticket.data(&mut ticket).unwrap();
+        let _ = self.0.lock().unwrap().insert(ticket);
+    }
+}
+
+const KEY_NAME: &str = "InsecureTestKey";
+const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
+
 /// s2n-tls has mode-independent configs, so this struct wraps the config with the mode
 pub struct S2NConfig {
     mode: Mode,
     config: s2n_tls::config::Config,
+    ticket_storage: SessionTicketStorage,
 }
 
 pub struct S2NConnection {
@@ -77,6 +99,10 @@ impl S2NConnection {
             Ok(len) => len as _,
         }
     }
+
+    pub fn connection(&self) -> &Connection {
+        &self.connection
+    }
 }
 
 impl TlsConnection for S2NConnection {
@@ -105,9 +131,15 @@ impl TlsConnection for S2NConnection {
             .set_security_policy(&Policy::from_version(security_policy)?)?
             .wipe_trust_store()?
             .set_client_auth_type(match handshake_type {
-                HandshakeType::ServerAuth => ClientAuthType::None,
                 HandshakeType::MutualAuth => ClientAuthType::Required,
+                _ => ClientAuthType::None, // ServerAuth or resumption handshake
             })?;
+
+        if handshake_type == HandshakeType::Resumption {
+            builder.enable_session_tickets(true)?;
+        }
+
+        let session_ticket_storage = SessionTicketStorage::default();
 
         match mode {
             Mode::Client => {
@@ -117,11 +149,18 @@ impl TlsConnection for S2NConnection {
                         expected_server_name: "localhost",
                     })?;
 
-                if handshake_type == HandshakeType::MutualAuth {
-                    builder.load_pem(
-                        read_to_bytes(ClientCertChain, crypto_config.sig_type).as_slice(),
-                        read_to_bytes(ClientKey, crypto_config.sig_type).as_slice(),
-                    )?;
+                match handshake_type {
+                    HandshakeType::MutualAuth => {
+                        builder.load_pem(
+                            read_to_bytes(ClientCertChain, crypto_config.sig_type).as_slice(),
+                            read_to_bytes(ClientKey, crypto_config.sig_type).as_slice(),
+                        )?;
+                    }
+                    HandshakeType::Resumption => {
+                        builder.set_session_ticket_callback(session_ticket_storage.clone())?;
+                    }
+                    // no special configuration
+                    HandshakeType::ServerAuth => {}
                 }
             }
             Mode::Server => {
@@ -130,19 +169,33 @@ impl TlsConnection for S2NConnection {
                     read_to_bytes(ServerKey, crypto_config.sig_type).as_slice(),
                 )?;
 
-                if handshake_type == HandshakeType::MutualAuth {
-                    builder
-                        .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
-                        .set_verify_host_callback(HostNameHandler {
-                            expected_server_name: "localhost",
-                        })?;
-                }
+                match handshake_type {
+                    HandshakeType::MutualAuth => {
+                        builder
+                            .trust_pem(read_to_bytes(CACert, crypto_config.sig_type).as_slice())?
+                            .set_verify_host_callback(HostNameHandler {
+                                expected_server_name: "localhost",
+                            })?;
+                    }
+                    HandshakeType::Resumption => {
+                        builder.add_session_ticket_key(
+                            KEY_NAME.as_bytes(),
+                            KEY_VALUE.as_slice(),
+                            // use a time that we are sure is in the past to
+                            // make the key immediately available
+                            SystemTime::UNIX_EPOCH,
+                        )?;
+                    }
+                    // no special configuration for normal handshake
+                    HandshakeType::ServerAuth => {}
+                };
             }
         }
 
         Ok(S2NConfig {
             mode,
             config: builder.build()?,
+            ticket_storage: session_ticket_storage,
         })
     }
 
@@ -169,6 +222,10 @@ impl TlsConnection for S2NConnection {
                 .set_receive_context(
                     &mut *connected_buffer as *mut ConnectedBuffer as *mut c_void,
                 )?;
+        }
+
+        if let Some(ticket) = config.ticket_storage.0.lock().unwrap().borrow_mut().take() {
+            connection.set_session_ticket(&ticket)?;
         }
 
         Ok(Self {
@@ -201,6 +258,14 @@ impl TlsConnection for S2NConnection {
 
     fn negotiated_tls13(&self) -> bool {
         self.connection.actual_protocol_version().unwrap() == Version::TLS13
+    }
+
+    fn resumed_connection(&self) -> bool {
+        !self
+            .connection
+            .handshake_type()
+            .unwrap()
+            .contains("FULL_HANDSHAKE")
     }
 
     fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
