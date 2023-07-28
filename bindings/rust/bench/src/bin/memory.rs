@@ -6,8 +6,8 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    harness::ConnectedBuffer, CryptoConfig, HandshakeType,
-    S2NConnection, TlsConnPair, TlsConnection,
+    harness::ConnectedBuffer, CryptoConfig, HandshakeType, S2NConnection, TlsConnPair,
+    TlsConnection,
 };
 use std::{fs::create_dir_all, path::Path};
 
@@ -65,9 +65,9 @@ fn memory_bench<T: TlsConnection>(dir_name: &str) {
 fn main() {
     assert!(!cfg!(debug_assertions), "need to run in release mode");
 
-    memory_bench::<S2NHarness>("s2n-tls");
+    memory_bench::<S2NConnection>("s2n-tls");
     #[cfg(feature = "rustls")]
-    memory_bench::<RustlsHarness>("rustls");
+    memory_bench::<RustlsConnection>("rustls");
     #[cfg(feature = "openssl")]
-    memory_bench::<OpenSslHarness>("openssl");
+    memory_bench::<OpenSslConnection>("openssl");
 }

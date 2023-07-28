@@ -381,10 +381,10 @@ impl Default for ConnectedBuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    #[cfg(feature = "rustls")]
-    use crate::RustlsConnection;
     #[cfg(feature = "openssl")]
     use crate::OpenSslConnection;
+    #[cfg(feature = "rustls")]
+    use crate::RustlsConnection;
     use crate::{S2NConnection, TlsConnPair};
     use std::path::Path;
     use strum::IntoEnumIterator;

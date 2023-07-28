@@ -6,8 +6,8 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
+    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection,
+    SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
