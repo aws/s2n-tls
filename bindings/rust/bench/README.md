@@ -12,9 +12,12 @@ scripts/generate-certs.sh
 scripts/install-aws-lc.sh
 
 # run all benchmarks (s2n-tls with AWS-LC)
-cargo bench --config aws-lc-config/s2n.toml
-scripts/bench-memory.sh --config aws-lc-config/s2n.toml
-scripts/bench-past.sh --config aws-lc-config/s2n.toml
+mkdir .cargo
+cat aws-lc-config/s2n.toml > .cargo/config.toml
+cargo bench
+scripts/bench-memory.sh
+scripts/bench-past.sh
+rm -rf .cargo
 ```
 
 ## Setup 
