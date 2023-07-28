@@ -38,9 +38,13 @@ git submodule init
 git submodule update
 
 # change aws-lc-rs to look like API compatible ring (name and version)
-# changes first occurrence of 'name = .*' and 'version = .*' to be 
-# 'name = "ring"' and 'version = "0.16.20"'
-sed -i '1,/name = .*/{s|name = .*|name = "ring"|} ; 1,/version = .*/{s|version = .*|version = "0.16.20"|}' Cargo.toml
+# first get the version of ring that Cargo expects with `cargo tree`
+pushd "$bench_dir" > /dev/null
+version="$(cargo tree -p ring | head -n 1 | sed 's|ring v||')"
+popd > /dev/null
+# next change first occurrence of 'name = .*' and 'version = .*' in Cargo.toml
+# to be 'name = "ring"' and 'version = "[curr_version]"'
+sed -i "1,/name = .*/{s|name = .*|name = \"ring\"|} ; 1,/version = .*/{s|version = .*|version = \"$version\"|}" Cargo.toml
 
 
 
