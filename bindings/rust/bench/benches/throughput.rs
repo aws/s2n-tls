@@ -11,37 +11,37 @@ use criterion::{
 };
 use strum::IntoEnumIterator;
 
+fn bench_throughput_for_library<T: TlsConnection>(
+    bench_group: &mut BenchmarkGroup<WallTime>,
+    shared_buf: &mut [u8],
+    cipher_suite: CipherSuite,
+) {
+    bench_group.bench_function(T::name(), |b| {
+        b.iter_batched_ref(
+            || {
+                TlsConnPair::<T, T>::new(
+                    CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default()),
+                    HandshakeType::default(),
+                    ConnectedBuffer::default(),
+                )
+                .map(|mut h| {
+                    let _ = h.handshake();
+                    h
+                })
+            },
+            |conn_pair_res| {
+                if let Ok(conn_pair) = conn_pair_res {
+                    let _ = conn_pair.round_trip_transfer(shared_buf);
+                }
+            },
+            BatchSize::SmallInput,
+        )
+    });
+}
+
 pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
     // arbitrarily large to cut across TLS record boundaries
     let mut shared_buf = [0u8; 100000];
-
-    fn bench_throughput_for_library<T: TlsConnection>(
-        bench_group: &mut BenchmarkGroup<WallTime>,
-        shared_buf: &mut [u8],
-        cipher_suite: CipherSuite,
-    ) {
-        bench_group.bench_function(T::name(), |b| {
-            b.iter_batched_ref(
-                || {
-                    TlsConnPair::<T, T>::new(
-                        CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default()),
-                        HandshakeType::default(),
-                        ConnectedBuffer::default(),
-                    )
-                    .map(|mut h| {
-                        let _ = h.handshake();
-                        h
-                    })
-                },
-                |conn_pair_res| {
-                    if let Ok(conn_pair) = conn_pair_res {
-                        let _ = conn_pair.round_trip_transfer(shared_buf);
-                    }
-                },
-                BatchSize::SmallInput,
-            )
-        });
-    }
 
     for cipher_suite in CipherSuite::iter() {
         let mut bench_group = c.benchmark_group(format!("throughput-{:?}", cipher_suite));
