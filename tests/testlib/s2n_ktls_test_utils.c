@@ -165,50 +165,30 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
         POSIX_ENSURE_GTE(updated_requested_len, 0);
         total_read += n_read;
 
-        /* if already read the requested amount then break */
-        if (updated_requested_len == 0) {
-            break;
-        }
-
         /* Handle if we partially read a record */
         ssize_t remaining_len = n_avail - n_read;
         if (remaining_len) {
             POSIX_GUARD_RESULT(s2n_test_ktls_rewrite_prev_header_len(io_ctx, remaining_len));
         }
 
+        /* if already read the requested amount then break */
+        if (updated_requested_len == 0) {
+            break;
+        }
         /* Attempt to read multiple records (must be of the same type) */
         if (updated_requested_len) {
-            POSIX_GUARD(s2n_stuffer_peek_char(&io_ctx->ancillary_buffer, (char *) &next_record_type));
+            int ret = s2n_stuffer_peek_char(&io_ctx->ancillary_buffer, (char *) &next_record_type);
 
-            bool no_more_data = s2n_stuffer_data_available(&io_ctx->ancillary_buffer) == 0;
+            bool no_more_records = ret < 0;
             bool next_record_different_type = next_record_type != *record_type;
 
-            if (no_more_data || next_record_different_type) {
+            if (no_more_records || next_record_different_type) {
                 break;
             }
         }
     }
 
     return total_read;
-}
-
-S2N_RESULT s2n_test_init_ktls_stuffer_io(struct s2n_connection *server, struct s2n_connection *client,
-        struct s2n_test_ktls_io_pair *io_pair)
-{
-    RESULT_ENSURE_REF(server);
-    RESULT_ENSURE_REF(client);
-    RESULT_ENSURE_REF(io_pair);
-    /* setup stuffer IO */
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->server_in.data_buffer, 0));
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->server_in.ancillary_buffer, 0));
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->client_in.data_buffer, 0));
-    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->client_in.ancillary_buffer, 0));
-
-    RESULT_GUARD(s2n_ktls_set_send_recv_msg_fn(s2n_test_ktls_sendmsg_stuffer_io, s2n_test_ktls_recvmsg_stuffer_io));
-    RESULT_GUARD(s2n_ktls_set_send_recv_msg_ctx(server, &io_pair->client_in, &io_pair->server_in));
-    RESULT_GUARD(s2n_ktls_set_send_recv_msg_ctx(client, &io_pair->server_in, &io_pair->client_in));
-
-    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data, uint16_t len)
@@ -240,6 +220,25 @@ S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
     uint8_t *ancillary_ptr = s2n_stuffer_raw_read(&ktls_io->ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE);
     RESULT_ENSURE_REF(ancillary_ptr);
     RESULT_ENSURE_EQ(memcmp(ancillary_ptr, expected_ancillary_buf, S2N_TEST_KTLS_MOCK_HEADER_SIZE), 0);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_init_ktls_stuffer_io(struct s2n_connection *server, struct s2n_connection *client,
+        struct s2n_test_ktls_io_pair *io_pair)
+{
+    RESULT_ENSURE_REF(server);
+    RESULT_ENSURE_REF(client);
+    RESULT_ENSURE_REF(io_pair);
+    /* setup stuffer IO */
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->server_in.data_buffer, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->server_in.ancillary_buffer, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->client_in.data_buffer, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io_pair->client_in.ancillary_buffer, 0));
+
+    RESULT_GUARD(s2n_ktls_set_send_recv_msg_fn(s2n_test_ktls_sendmsg_stuffer_io, s2n_test_ktls_recvmsg_stuffer_io));
+    RESULT_GUARD(s2n_ktls_set_send_recv_msg_ctx(server, &io_pair->client_in, &io_pair->server_in));
+    RESULT_GUARD(s2n_ktls_set_send_recv_msg_ctx(client, &io_pair->server_in, &io_pair->client_in));
 
     return S2N_RESULT_OK;
 }
