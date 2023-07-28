@@ -193,6 +193,9 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
 
         conn->actual_protocol_version = conn->server_protocol_version;
         POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+
+        /* Erase TLS 1.2 client session ticket which might have been set for session resumption */
+        POSIX_GUARD(s2n_free(&conn->client_ticket));
     } else {
         conn->server_protocol_version = legacy_version;
 
