@@ -32,7 +32,7 @@ To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `scrip
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
-To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `memory/memory.svg`.
+To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 
 ## Historical benchmarks
 
