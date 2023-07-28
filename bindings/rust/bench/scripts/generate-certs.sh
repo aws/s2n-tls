@@ -16,11 +16,13 @@ pushd "$(dirname "$0")"/../certs > /dev/null
 # Generates certs with given algorithms and bits in $1$2/, ex. ec384/
 # $1: rsa or ec
 # $2: number of bits
+# $3: directory under the `certs/` directory to put certs in
 cert-gen () {
     echo -e "\n----- generating certs for $1$2 -----\n"
 
     key_family=$1
     key_size=$2
+    dir_name=$3
 
     # set openssl argument name
     if [[ $key_family == rsa ]]; then
@@ -30,8 +32,8 @@ cert-gen () {
     fi
 
     # make directory for certs
-    mkdir -p $key_family$key_size
-    cd $key_family$key_size
+    mkdir -p $dir_name
+    cd $dir_name
 
     echo "generating CA private key and certificate"
     openssl req -new -nodes -x509 -newkey $key_family -pkeyopt $argname$key_size -keyout  ca-key.pem -out ca-cert.pem -days 65536 -config ../config/ca.cnf
@@ -62,13 +64,13 @@ cert-gen () {
 
 if [[ $1 != "clean" ]] 
 then
-    cert-gen ec 384
-    cert-gen rsa 2048
-    cert-gen rsa 3072
-    cert-gen rsa 4096
+    cert-gen ec 384 ecdsa384
+    cert-gen rsa 2048 rsa2048
+    cert-gen rsa 3072 rsa3072
+    cert-gen rsa 4096 rsa4096
 else 
     echo "cleaning certs"
-    rm -rf ec*/ rsa*/
+    rm -rf ecdsa*/ rsa*/
 fi
 
 popd > /dev/null

@@ -28,7 +28,7 @@ fn get_bytes_from_snapshot(name: &str, i: i32) -> i32 {
 }
 
 /// Get the difference in bytes between two snapshots, which is memory of the
-/// `i`th TlsBenchHarness (client and server)
+/// `i`th TlsConnPair (client and server)
 fn get_bytes_diff(name: &str, i: i32) -> i32 {
     get_bytes_from_snapshot(name, i + 1) - get_bytes_from_snapshot(name, i)
 }
