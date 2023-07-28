@@ -260,9 +260,24 @@ int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n
  * the length of the record. Length is represented as a u16 to capture the max
  * possible TLS record length.
  *
- * ancillary_buffer memory layout:
- *    [      u8      |            u16            ]
- *      record_type             length
+ * memory layout per record:
+ * ```
+ *    [     u8    |    u16    ]
+ *     record_type   length
+ * ```
+ *
+ * memory layout of ancillary_buffer with 3 records and how it maps
+ * to the data_buffer:
+ * ```
+ *            ancillary_buffer
+ *    [ [record] [record] [record] ]
+ *    [ [u8|u16] [u8|u16] [u8|u16] ]
+ *    [  [21|5]   [22|7]    [21|2] ]
+ *           |        |         |
+ *     v-------v v-----------v v-v
+ *    [1 2 3 4 5 1 2 3 4 5 6 7 1 2]
+ *              data_buffer
+ * ```
  */
 struct s2n_test_ktls_io_stuffer {
     struct s2n_stuffer ancillary_buffer;

@@ -19,6 +19,9 @@
 
 #define S2N_TEST_RECORD_TYPE 43
 
+/* Creates an iovec and sets it on new msghdr. This operation is verbose
+ * and not super interesting so its captured in a macro to make the tests
+ * easier to read. */
 #define INIT_MSGHDR(name, buf, len)       \
     struct iovec name##_msg_iov = { 0 };  \
     name##_msg_iov.iov_base = buf;        \

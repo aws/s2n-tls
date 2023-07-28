@@ -21,6 +21,7 @@ static ssize_t s2n_ktls_default_recvmsg(struct s2n_connection *conn, struct msgh
 s2n_ktls_sendmsg_fn s2n_sendmsg_fn = s2n_ktls_default_sendmsg;
 s2n_ktls_recvmsg_fn s2n_recvmsg_fn = s2n_ktls_default_recvmsg;
 
+/* TODO make use of record_type when we implement this function */
 static ssize_t s2n_ktls_default_recvmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t *record_type)
 {
     POSIX_ENSURE_REF(conn);
@@ -30,10 +31,10 @@ static ssize_t s2n_ktls_default_recvmsg(struct s2n_connection *conn, struct msgh
     int fd = 0;
     POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_RECV, &fd));
 
-    /* TODO make use of record_type */
     return recvmsg(fd, msg, 0);
 }
 
+/* TODO make use of record_type when we implement this function */
 static ssize_t s2n_ktls_default_sendmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t record_type)
 {
     POSIX_ENSURE_REF(conn);
@@ -42,7 +43,6 @@ static ssize_t s2n_ktls_default_sendmsg(struct s2n_connection *conn, struct msgh
     int fd = 0;
     POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &fd));
 
-    /* TODO make use of record_type */
     return sendmsg(fd, msg, 0);
 }
 
