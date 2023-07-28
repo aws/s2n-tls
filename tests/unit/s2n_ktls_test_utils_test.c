@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include "testlib/s2n_ktls_test_utils.h"
+
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
@@ -40,7 +42,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
     EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
 
-    /* Test the test. Tests the mock IO stuffer implementation */
+    /* Test the mock IO stuffer implementation can send/recv records */
     for (size_t to_send = 1; to_send < S2N_TLS_MAXIMUM_FRAGMENT_LENGTH; to_send++) {
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -79,7 +81,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(io_pair.server_in.invoked_count, 0);
     };
 
-    /* rewrite mock header */
+    /* Test s2n_test_ktls_update_prev_header_len */
     {
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -101,12 +103,12 @@ int main(int argc, char **argv)
 
         /* set new value and check again */
         for (size_t to_send_loop = 1; to_send_loop < S2N_TLS_MAXIMUM_FRAGMENT_LENGTH; to_send_loop++) {
-            EXPECT_OK(s2n_test_ktls_rewrite_prev_header_len(&io_pair.client_in, to_send_loop));
+            EXPECT_OK(s2n_test_ktls_update_prev_header_len(&io_pair.client_in, to_send_loop));
             EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, S2N_TEST_RECORD_TYPE, to_send_loop));
         }
 
         /* updating len to 0 is an error */
-        EXPECT_ERROR_WITH_ERRNO(s2n_test_ktls_rewrite_prev_header_len(&io_pair.client_in, 0), S2N_ERR_SAFETY);
+        EXPECT_ERROR_WITH_ERRNO(s2n_test_ktls_update_prev_header_len(&io_pair.client_in, 0), S2N_ERR_SAFETY);
 
         EXPECT_EQUAL(io_pair.client_in.invoked_count, 1);
         EXPECT_EQUAL(io_pair.server_in.invoked_count, 0);

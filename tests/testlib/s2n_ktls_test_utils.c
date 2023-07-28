@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "testlib/s2n_testlib.h"
+#include "testlib/s2n_ktls_test_utils.h"
 
 /* These MOCK_IO* macros set errno before returning an error. These macros are
  * mainly used for IO related operations (stuffer writes, NULL arguments,
@@ -55,7 +55,9 @@ static S2N_RESULT s2n_ktls_validate_ktls_io(struct s2n_test_ktls_io_stuffer *io_
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_test_ktls_rewrite_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
+/* Since its possible to read partial data, we need a way to update the length
+ * of the previous record for the mock stuffer IO implementation. */
+S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
 {
     RESULT_ENSURE_REF(io_ctx);
     RESULT_ENSURE(remaining_len > 0, S2N_ERR_SAFETY);
@@ -168,7 +170,7 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
         /* Handle if we partially read a record */
         ssize_t remaining_len = n_avail - n_read;
         if (remaining_len) {
-            POSIX_GUARD_RESULT(s2n_test_ktls_rewrite_prev_header_len(io_ctx, remaining_len));
+            POSIX_GUARD_RESULT(s2n_test_ktls_update_prev_header_len(io_ctx, remaining_len));
         }
 
         /* if already read the requested amount then break */

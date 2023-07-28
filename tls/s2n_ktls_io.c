@@ -21,25 +21,23 @@ static ssize_t s2n_ktls_default_recvmsg(struct s2n_connection *conn, struct msgh
 s2n_ktls_sendmsg_fn s2n_sendmsg_fn = s2n_ktls_default_sendmsg;
 s2n_ktls_recvmsg_fn s2n_recvmsg_fn = s2n_ktls_default_recvmsg;
 
-/* TODO make use of record_type when we implement this function */
+/* TODO make use of record_type */
 static ssize_t s2n_ktls_default_recvmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t *record_type)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(record_type);
-    /* kTLS doesn't modify the recv_io_context so its possible to retrieve the socket fd */
     int fd = 0;
     POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_RECV, &fd));
 
     return recvmsg(fd, msg, 0);
 }
 
-/* TODO make use of record_type when we implement this function */
+/* TODO make use of record_type */
 static ssize_t s2n_ktls_default_sendmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t record_type)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(msg);
-    /* kTLS doesn't modify the send_io_context so its possible to retrieve the socket fd */
     int fd = 0;
     POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &fd));
 
