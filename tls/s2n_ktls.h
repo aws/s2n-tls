@@ -15,8 +15,9 @@
 
 #pragma once
 
-#include "tls/s2n_config.h"
+#include <sys/socket.h>
 
+#include "tls/s2n_connection.h"
 /* Define headers needed to enable and use kTLS.
  *
  * The inline header definitions are required to compile kTLS specific code.
@@ -34,6 +35,11 @@ typedef enum {
     /* Enable kTLS for the receive socket. */
     S2N_KTLS_MODE_RECV,
 } s2n_ktls_mode;
+
+/* Used for overriding setsockopt calls in testing */
+typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name,
+        const void *option_value, socklen_t option_len);
+S2N_RESULT s2n_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb);
 
 bool s2n_ktls_is_supported_on_platform();
 

@@ -24,21 +24,35 @@
  * - https://elixir.bootlin.com/linux/v6.3.8/A/ident/SOL_TCP
  */
 
-#define S2N_TLS_ULP_NAME      "tls"
-#define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
-
-#if defined(__linux__)
-    #define S2N_KTLS_SUPPORTED true
+#if defined(S2N_KTLS_SUPPORTED)
+    #include <linux/tls.h>
 
     /* socket definitions */
     #define S2N_TCP_ULP 31 /* Attach a ULP to a TCP connection.  */
     #define S2N_SOL_TCP 6  /* TCP level */
+    #define S2N_SOL_TLS 282
+
+    /* We typically only define values not available in the linux uapi. However,
+     * only TLS_TX is defined in the first version of kTLS. Since calling setsockopt
+     * with TLS_RX fails and is non destructive, define both TX and RX to keep the
+     * definitions co-located and avoid extra ifdefs.
+     * https://github.com/torvalds/linux/blob/3c4d7559159bfe1e3b94df3a657b2cda3a34e218/include/uapi/linux/tls.h#L43
+     */
+    #define S2N_TLS_TX 1
+    #define S2N_TLS_RX 2
 
 #else
-    /* For unsupported platforms 0-init all values. */
-    #define S2N_KTLS_SUPPORTED false
+    /* For unsupported platforms 0-init (array of size 1) all values. */
 
     /* socket definitions */
-    #define S2N_TCP_ULP        0
-    #define S2N_SOL_TCP        0
+    #define S2N_TCP_ULP 0
+    #define S2N_SOL_TCP 0
+    #define S2N_SOL_TLS 0
+
+    #define S2N_TLS_TX 0
+    #define S2N_TLS_RX 0
 #endif
+
+/* Common */
+#define S2N_TLS_ULP_NAME      "tls"
+#define S2N_TLS_ULP_NAME_SIZE sizeof(S2N_TLS_ULP_NAME)
