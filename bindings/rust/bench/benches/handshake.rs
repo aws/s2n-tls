@@ -3,7 +3,7 @@
 
 use bench::{
     CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection, RustlsConnection,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
+    S2NConnection, SigType, TlsConnPair, TlsConnection, ConnectedBuffer,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -25,7 +25,7 @@ pub fn bench_handshake_params(c: &mut Criterion) {
                     TlsConnPair::<T, T>::new(
                         CryptoConfig::new(CipherSuite::default(), kx_group, sig_type),
                         handshake_type,
-                        Default::default(),
+                        ConnectedBuffer::default(),
                     )
                 },
                 |conn_pair_res| {

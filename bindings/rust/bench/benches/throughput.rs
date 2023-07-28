@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
+    ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
     RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
