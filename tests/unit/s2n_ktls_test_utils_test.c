@@ -21,17 +21,6 @@
 
 #define S2N_TEST_RECORD_TYPE 43
 
-/* Creates an iovec and sets it on new msghdr. This operation is verbose
- * and not super interesting so its captured in a macro to make the tests
- * easier to read. */
-#define INIT_MSGHDR(name, buf, len)       \
-    struct iovec name##_msg_iov = { 0 };  \
-    name##_msg_iov.iov_base = buf;        \
-    name##_msg_iov.iov_len = len;         \
-    struct msghdr name##_msg = { 0 };     \
-    name##_msg.msg_iov = &name##_msg_iov; \
-    name##_msg.msg_iovlen = 1;
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -53,7 +42,12 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_test_init_ktls_stuffer_io(server, client, &io_pair));
 
         /* Init send msghdr */
-        INIT_MSGHDR(send, test_data, to_send);
+        struct iovec send_msg_iov = { 0 };
+        send_msg_iov.iov_base = test_data;
+        send_msg_iov.iov_len = to_send;
+        struct msghdr send_msg = { 0 };
+        send_msg.msg_iov = &send_msg_iov;
+        send_msg.msg_iovlen = 1;
         /* sendmsg */
         ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server, &send_msg, S2N_TEST_RECORD_TYPE);
         EXPECT_EQUAL(bytes_written, to_send);
@@ -68,7 +62,12 @@ int main(int argc, char **argv)
 
         /* Init recv msghdr */
         uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-        INIT_MSGHDR(recv, recv_buffer, to_send);
+        struct iovec recv_msg_iov = { 0 };
+        recv_msg_iov.iov_base = recv_buffer;
+        recv_msg_iov.iov_len = to_send;
+        struct msghdr recv_msg = { 0 };
+        recv_msg.msg_iov = &recv_msg_iov;
+        recv_msg.msg_iovlen = 1;
         /* recvmsg */
         uint8_t recv_record_type = 0;
         ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client, &recv_msg, &recv_record_type);
@@ -93,7 +92,12 @@ int main(int argc, char **argv)
         size_t to_send = 10;
 
         /* Init send msghdr */
-        INIT_MSGHDR(send, test_data, to_send);
+        struct iovec send_msg_iov = { 0 };
+        send_msg_iov.iov_base = test_data;
+        send_msg_iov.iov_len = to_send;
+        struct msghdr send_msg = { 0 };
+        send_msg.msg_iov = &send_msg_iov;
+        send_msg.msg_iovlen = 1;
         /* sendmsg */
         ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server, &send_msg, S2N_TEST_RECORD_TYPE);
         EXPECT_EQUAL(bytes_written, to_send);
