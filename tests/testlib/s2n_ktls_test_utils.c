@@ -35,32 +35,12 @@
 #define MOCK_IO_ENSURE_REF(x) \
     MOCK_IO_ENSURE(S2N_OBJECT_PTR_IS_READABLE(x))
 
-static S2N_RESULT s2n_ktls_validate_ktls_io(struct s2n_test_ktls_io_stuffer *io_ctx)
-{
-    RESULT_ENSURE_REF(io_ctx);
-
-    /* Assert ancillary_buffer is growable, which simplifies IO logic. Blocking IO can
-     * be mocked by restricting the data_buffer. */
-    RESULT_ENSURE(io_ctx->ancillary_buffer.growable, S2N_ERR_SAFETY);
-
-    uint32_t ancillary_len = s2n_stuffer_data_available(&io_ctx->ancillary_buffer);
-    uint32_t data_len = s2n_stuffer_data_available(&io_ctx->data_buffer);
-
-    /* ensure ancillary data is not malformed */
-    RESULT_ENSURE(ancillary_len % S2N_TEST_KTLS_MOCK_HEADER_SIZE == 0, S2N_ERR_SAFETY);
-    if (ancillary_len == 0) {
-        RESULT_ENSURE(data_len == 0, S2N_ERR_SAFETY);
-    }
-
-    return S2N_RESULT_OK;
-}
-
 /* Since its possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
 S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
 {
     RESULT_ENSURE_REF(io_ctx);
-    RESULT_ENSURE(remaining_len > 0, S2N_ERR_SAFETY);
+    RESULT_ENSURE(remaining_len > 0, S2N_ERR_IO);
 
     /* rewind the read ptr */
     RESULT_GUARD_POSIX(s2n_stuffer_rewind_read(&io_ctx->ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_LENGTH_SIZE));
@@ -89,7 +69,9 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msg
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) conn->send_io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->invoked_count++;
-    POSIX_GUARD_RESULT(s2n_ktls_validate_ktls_io(io_ctx));
+    /* Assert ancillary_buffer is growable, which simplifies IO logic. Blocking IO can
+     * be mocked by restricting the data_buffer. */
+    POSIX_ENSURE(io_ctx->ancillary_buffer.growable, S2N_ERR_IO);
 
     size_t total_len = 0;
     for (size_t count = 0; count < msg->msg_iovlen; count++) {
@@ -99,19 +81,19 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msg
 
         /* If we fail to write to stuffer then return blocked */
         if (s2n_stuffer_write_bytes(&io_ctx->data_buffer, buf, len) < 0) {
-            POSIX_GUARD_RESULT(s2n_ktls_validate_ktls_io(io_ctx));
             errno = EAGAIN;
             return -1;
         }
 
         total_len += len;
     }
-    /* write record_type and len after data was written successfully. ancillary_buffer is
-     * growable so this operation should always succeed. */
-    MOCK_IO_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, record_type));
-    MOCK_IO_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
+    if (total_len) {
+        /* write record_type and len after data was written successfully. ancillary_buffer is
+         * growable so this operation should always succeed. */
+        MOCK_IO_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, record_type));
+        MOCK_IO_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
+    }
 
-    POSIX_GUARD_RESULT(s2n_ktls_validate_ktls_io(io_ctx));
     return total_len;
 }
 
@@ -129,7 +111,9 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
 
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) conn->recv_io_context;
     POSIX_ENSURE_REF(io_ctx);
-    POSIX_GUARD_RESULT(s2n_ktls_validate_ktls_io(io_ctx));
+    /* Assert ancillary_buffer is growable, which simplifies IO logic. Blocking IO can
+     * be mocked by restricting the data_buffer. */
+    POSIX_ENSURE(io_ctx->ancillary_buffer.growable, S2N_ERR_IO);
     io_ctx->invoked_count++;
 
     /* s2n only receives using msg_iovlen of 1 */
@@ -140,7 +124,6 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
 
     /* There is no data available so return blocked */
     if (!s2n_stuffer_data_available(&io_ctx->ancillary_buffer)) {
-        POSIX_GUARD_RESULT(s2n_ktls_validate_ktls_io(io_ctx));
         errno = EAGAIN;
         return -1;
     }
