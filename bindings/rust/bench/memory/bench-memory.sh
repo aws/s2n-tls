@@ -12,7 +12,7 @@ set -e
 
 pushd "$(dirname "$0")"/.. > /dev/null
 
-cargo build --release --bin memory
+cargo build --release --bin memory "$@"
 
 for reuse_config in false true
 do
@@ -26,11 +26,9 @@ do
                 rm target/memory/massif.out
             done
         done
-        unset name
-
     done
 done
 
-cargo run --release --bin graph_memory
+cargo run --release --bin graph_memory "$@"
 
 popd > /dev/null
