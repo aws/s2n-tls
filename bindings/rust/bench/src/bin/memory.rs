@@ -16,27 +16,47 @@ arg_enum! {
     }
 }
 
+impl std::fmt::Debug for MemoryBenchTarget {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MemoryBenchTarget::Client => "client",
+                MemoryBenchTarget::Server => "server",
+                MemoryBenchTarget::Pair => "pair",
+            }
+        )
+    }
+}
+
 /// Bench the memory taken by either a client, server, or pair of connections
 fn memory_bench<T: TlsConnection>(opt: &Opt) -> Result<(), Box<dyn Error>> {
     let reuse_config: bool = opt.reuse_config.parse()?;
     let shrink_buffers: bool = opt.shrink_buffers.parse()?;
 
-    let dir_name = match opt.mode {
-        MemoryBenchTarget::Client => format!("{}_client", T::name()),
-        MemoryBenchTarget::Server => format!("{}_server", T::name()),
-        MemoryBenchTarget::Pair => format!("{}_pair", T::name()),
+    // store data in directory based on params, target, and library name
+    let params_string = match (reuse_config, shrink_buffers) {
+        (false, false) => "no-optimizations",
+        (true, false) => "reuse-config",
+        (false, true) => "shrink-buffers",
+        (true, true) => "reuse-config-shrink-buffers",
     };
+    let dir_name = &format!(
+        "target/memory/{params_string}/{:?}/{}",
+        opt.target,
+        T::name()
+    );
 
-    println!("testing {dir_name}");
+    println!("benching {:?} {} {}", opt.target, T::name(), params_string);
 
-    // create the directories that will hold memory snapshots
-    create_dir_all(format!("target/memory/{dir_name}")).unwrap();
-    create_dir_all("target/memory/xtree").unwrap();
+    // create the directory that will hold memory snapshots and xtree
+    create_dir_all(dir_name).unwrap();
 
     // create space to store TlsConnections
     const BENCH_SIZE: usize = 100;
     let mut connections = Vec::new();
-    match opt.mode {
+    match opt.target {
         MemoryBenchTarget::Client | MemoryBenchTarget::Server => {
             connections.reserve_exact(BENCH_SIZE)
         }
@@ -45,12 +65,14 @@ fn memory_bench<T: TlsConnection>(opt: &Opt) -> Result<(), Box<dyn Error>> {
     };
 
     // reserve space for buffers before benching
-    // shrink buffers before and after handshake to keep memory used net zero
-    let mut buffers: Vec<ConnectedBuffer> = (0..BENCH_SIZE).map(|_| {
-        let mut buffer = ConnectedBuffer::new();
-        buffer.shrink();
-        buffer
-    }).collect();
+    // shrink buffers before and after handshake to keep memory net zero
+    let mut buffers: Vec<ConnectedBuffer> = (0..BENCH_SIZE)
+        .map(|_| {
+            let mut buffer = ConnectedBuffer::new();
+            buffer.shrink();
+            buffer
+        })
+        .collect();
 
     // handshake one harness to initalize libraries
     let mut conn_pair = TlsConnPair::<T, T>::default();
@@ -69,7 +91,7 @@ fn memory_bench<T: TlsConnection>(opt: &Opt) -> Result<(), Box<dyn Error>> {
     )?;
 
     // tell valgrind/massif to take initial memory snapshot
-    crabgrind::monitor_command(format!("snapshot target/memory/{dir_name}/0.snapshot")).unwrap();
+    crabgrind::monitor_command(format!("snapshot {dir_name}/0.snapshot")).unwrap();
 
     // make and handshake conn pairs
     for i in 1..BENCH_SIZE + 1 {
@@ -89,7 +111,7 @@ fn memory_bench<T: TlsConnection>(opt: &Opt) -> Result<(), Box<dyn Error>> {
                 buffers.pop().unwrap(),
             )?;
         }
-        
+
         // handshake conn pair
         conn_pair.handshake()?;
         if shrink_buffers {
@@ -97,38 +119,44 @@ fn memory_bench<T: TlsConnection>(opt: &Opt) -> Result<(), Box<dyn Error>> {
         }
         conn_pair.shrink_connected_buffers();
 
-        // store things that are bench targets to prevent dropping
-        match opt.mode {
-            MemoryBenchTarget::Client => connections.push(conn_pair.split().0),
-            MemoryBenchTarget::Server => connections.push(conn_pair.split().1),
+        // store bench target(s)
+        let (client, server) = conn_pair.split();
+        match opt.target {
+            MemoryBenchTarget::Client => connections.push(client),
+            MemoryBenchTarget::Server => connections.push(server),
             MemoryBenchTarget::Pair => {
-                let (client, server) = conn_pair.split();
                 connections.push(client);
                 connections.push(server);
             }
         };
 
         // take memory snapshot
-        crabgrind::monitor_command(format!("snapshot target/memory/{dir_name}/{i}.snapshot"))?;
+        crabgrind::monitor_command(format!("snapshot {dir_name}/{i}.snapshot"))?;
     }
 
     // take xtree snapshot
-    crabgrind::monitor_command(format!("xtmemory target/memory/xtree/{dir_name}.out"))?;
+    crabgrind::monitor_command(format!("xtmemory {dir_name}/xtree.out"))?;
 
     Ok(())
 }
 
 #[derive(StructOpt)]
+/// Generate TLS connections and record memory used after each connection.
+/// Snapshots are stored in target/memory/[params]/[target]
 struct Opt {
+    /// Which connection(s) to memory bench
+    #[structopt(possible_values = &MemoryBenchTarget::variants(), case_insensitive = true, default_value = "pair")]
+    target: MemoryBenchTarget,
+
+    /// If set, run benches with only a specific library
     #[structopt()]
     lib_name: Option<String>,
 
-    #[structopt(possible_values = &MemoryBenchTarget::variants(), case_insensitive = true, default_value = "pair")]
-    mode: MemoryBenchTarget,
-
+    /// Reuse configs when making connections
     #[structopt(long, default_value = "true")]
     reuse_config: String,
 
+    /// Shrink connection buffers after handshake to simulate idle connection
     #[structopt(long, default_value = "true")]
     shrink_buffers: String,
 }

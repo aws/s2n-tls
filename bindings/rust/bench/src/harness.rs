@@ -208,7 +208,12 @@ pub struct TlsConnPair<C: TlsConnection, S: TlsConnection> {
 
 impl<C: TlsConnection, S: TlsConnection> Default for TlsConnPair<C, S> {
     fn default() -> Self {
-        Self::new(CryptoConfig::default(), HandshakeType::default(), ConnectedBuffer::default()).unwrap()
+        Self::new(
+            CryptoConfig::default(),
+            HandshakeType::default(),
+            ConnectedBuffer::default(),
+        )
+        .unwrap()
     }
 }
 

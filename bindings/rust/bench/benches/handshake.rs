@@ -2,8 +2,8 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection, RustlsConnection,
-    S2NConnection, SigType, TlsConnPair, TlsConnection, ConnectedBuffer,
+    CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
+    RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
