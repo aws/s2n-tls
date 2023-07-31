@@ -38,11 +38,14 @@ int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pu
 
     DEFER_CLEANUP(EVP_PKEY *kyber_pkey = NULL, EVP_PKEY_free_pointer);
     POSIX_GUARD_OSSL(EVP_PKEY_keygen(kyber_pkey_ctx, &kyber_pkey), S2N_ERR_PQ_CRYPTO);
+    POSIX_GUARD_PTR(kyber_pkey);
 
     size_t public_key_size = kem->public_key_length;
     POSIX_GUARD_OSSL(EVP_PKEY_get_raw_public_key(kyber_pkey, public_key, &public_key_size), S2N_ERR_PQ_CRYPTO);
+    POSIX_ENSURE_EQ(kem->public_key_length, public_key_size);
     size_t private_key_size = kem->private_key_length;
     POSIX_GUARD_OSSL(EVP_PKEY_get_raw_private_key(kyber_pkey, secret_key, &private_key_size), S2N_ERR_PQ_CRYPTO);
+    POSIX_ENSURE_EQ(kem->private_key_length, private_key_size);
 
     return S2N_SUCCESS;
 }
@@ -61,6 +64,9 @@ int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphert
     POSIX_GUARD_OSSL(EVP_PKEY_encapsulate(kyber_pkey_ctx, ciphertext, &ciphertext_size, shared_secret,
                              &shared_secret_size),
             S2N_ERR_PQ_CRYPTO);
+    POSIX_ENSURE_EQ(kem->ciphertext_length, ciphertext_size);
+    POSIX_ENSURE_EQ(kem->shared_secret_key_length, shared_secret_size);
+
     return S2N_SUCCESS;
 }
 
@@ -77,6 +83,8 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
     POSIX_GUARD_OSSL(EVP_PKEY_decapsulate(kyber_pkey_ctx, shared_secret, &shared_secret_size,
                 (uint8_t *) ciphertext, kem->ciphertext_length),
             S2N_ERR_PQ_CRYPTO);
+    POSIX_ENSURE_EQ(kem->shared_secret_key_length, shared_secret_size);
+
     return S2N_SUCCESS;
 }
 #else
