@@ -2,12 +2,14 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection, RustlsConnection,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
+    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+    OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
+use pprof::criterion::{Output, PProfProfiler};
+use std::error::Error;
 use strum::IntoEnumIterator;
 
 fn bench_handshake_for_library<T: TlsConnection>(
@@ -16,16 +18,27 @@ fn bench_handshake_for_library<T: TlsConnection>(
     kx_group: KXGroup,
     sig_type: SigType,
 ) {
+    // make configs before to save time
+    let crypto_config = CryptoConfig::new(CipherSuite::default(), kx_group, sig_type);
+    let client_config_res = T::make_config(Mode::Client, crypto_config, handshake_type);
+    let server_config_res = T::make_config(Mode::Server, crypto_config, handshake_type);
+
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
     // only include negotiation and not config/connection initialization
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
-            || {
-                TlsConnPair::<T, T>::new(
-                    CryptoConfig::new(CipherSuite::default(), kx_group, sig_type),
-                    handshake_type,
-                    Default::default(),
-                )
+            || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
+                if let (Ok(client_config), Ok(server_config)) =
+                    (client_config_res.as_ref(), server_config_res.as_ref())
+                {
+                    let connected_buffer = ConnectedBuffer::default();
+                    let client =
+                        T::new_from_config(&client_config, connected_buffer.clone_inverse())?;
+                    let server = T::new_from_config(&server_config, connected_buffer)?;
+                    Ok(TlsConnPair::wrap(client, server))
+                } else {
+                    Err("invalid configs".into())
+                }
             },
             |conn_pair_res| {
                 // harnesses with certain parameters fail to initialize for
@@ -76,5 +89,9 @@ pub fn bench_handshake_params(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_handshake_params);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
+    targets = bench_handshake_params
+}
 criterion_main!(benches);

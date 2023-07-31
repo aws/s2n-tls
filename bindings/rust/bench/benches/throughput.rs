@@ -2,13 +2,15 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use bench::{
-    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
-    RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
+    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+    OpenSslConnection, RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
+use pprof::criterion::{Output, PProfProfiler};
+use std::error::Error;
 use strum::IntoEnumIterator;
 
 fn bench_throughput_for_library<T: TlsConnection>(
@@ -16,18 +18,26 @@ fn bench_throughput_for_library<T: TlsConnection>(
     shared_buf: &mut [u8],
     cipher_suite: CipherSuite,
 ) {
+    let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
+    let client_config_res = T::make_config(Mode::Client, crypto_config, HandshakeType::default());
+    let server_config_res = T::make_config(Mode::Server, crypto_config, HandshakeType::default());
+
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
-            || {
-                TlsConnPair::<T, T>::new(
-                    CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default()),
-                    HandshakeType::default(),
-                    ConnectedBuffer::default(),
-                )
-                .map(|mut h| {
-                    let _ = h.handshake();
-                    h
-                })
+            || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
+                if let (Ok(client_config), Ok(server_config)) =
+                    (client_config_res.as_ref(), server_config_res.as_ref())
+                {
+                    let connected_buffer = ConnectedBuffer::default();
+                    let client =
+                        T::new_from_config(&client_config, connected_buffer.clone_inverse())?;
+                    let server = T::new_from_config(&server_config, connected_buffer)?;
+                    let mut conn_pair = TlsConnPair::wrap(client, server);
+                    conn_pair.handshake()?;
+                    Ok(conn_pair)
+                } else {
+                    Err("invalid configs".into())
+                }
             },
             |conn_pair_res| {
                 if let Ok(conn_pair) = conn_pair_res {
@@ -67,5 +77,9 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
     }
 }
 
-criterion_group!(benches, bench_throughput_cipher_suite);
+criterion_group! {
+    name = benches;
+    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
+    targets = bench_throughput_cipher_suite
+}
 criterion_main!(benches);

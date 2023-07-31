@@ -23,6 +23,7 @@ strum = { version = "0.25", features = ["derive"] }
 
 [dev-dependencies]
 criterion = "0.5"
+pprof = { version = "0.12", features = ["criterion", "flamegraph"] }
 
 [[bench]]
 name = "handshake"
