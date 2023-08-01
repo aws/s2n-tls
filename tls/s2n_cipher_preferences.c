@@ -1850,9 +1850,12 @@ const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_26 = {
     .allow_chacha20_boosting = false,
 };
 
-/* Same as 2021_05_26, but with TLSv1.2 Kyber KEM cipher suite removed */
+/* Same as 2021_05_26, but:
+ * 1. TLSv1.2 Kyber KEM cipher suites are removed
+ * 2. AES 256 is preferred over AES 128 as in the cloudfront ciphersuites
+ */
 struct s2n_cipher_suite *cipher_suites_pq_tls_1_3_2023_06_01[] = {
-    S2N_TLS13_CLOUDFRONT_CIPHER_SUITES_20200716,
+    S2N_TLS13_CIPHER_SUITES_20190801,
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
