@@ -53,5 +53,5 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
  * ancillary data on msghdr prior to sending */
 typedef ssize_t (*s2n_ktls_sendmsg_fn)(struct s2n_connection *conn, struct msghdr *msg, uint8_t record_type);
 typedef ssize_t (*s2n_ktls_recvmsg_fn)(struct s2n_connection *conn, struct msghdr *msg, uint8_t *record_type);
-S2N_RESULT s2n_ktls_set_send_recv_msg_fn(s2n_ktls_sendmsg_fn send_cb, s2n_ktls_recvmsg_fn recv_cb);
-S2N_RESULT s2n_ktls_set_send_recv_msg_ctx(struct s2n_connection *conn, void *send_ctx, void *recv_ctx);
+S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg_fn send_cb, void *send_ctx);
+S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg_fn recv_cb, void *recv_ctx);

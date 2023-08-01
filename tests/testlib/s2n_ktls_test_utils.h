@@ -51,7 +51,7 @@
 struct s2n_test_ktls_io_stuffer {
     struct s2n_stuffer ancillary_buffer;
     struct s2n_stuffer data_buffer;
-    size_t invoked_count;
+    size_t send_recv_msg_invoked_count;
 };
 struct s2n_test_ktls_io_pair {
     struct s2n_test_ktls_io_stuffer client_in;
