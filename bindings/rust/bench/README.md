@@ -16,7 +16,7 @@ mkdir .cargo
 cat aws-lc-config/s2n.toml > .cargo/config.toml
 cargo bench
 scripts/bench-memory.sh
-scripts/bench-past.sh
+cargo bench --bench handshake --bench throughput -- --profile-time 5
 rm -rf .cargo
 ```
 
@@ -34,7 +34,7 @@ The benchmarks can be run with the `cargo bench` command. Criterion will auto-ge
 
 To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 
-To generate flamegraphs, run `scripts/generate-flamegraphs.sh`. Flamegraphs will be copied to `images/flamegraph/`.
+To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -- --profile-time 5`.
 
 ## Historical benchmarks
 
