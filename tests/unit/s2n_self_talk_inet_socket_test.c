@@ -87,22 +87,22 @@ static S2N_RESULT start_server(int fd, int write_pipe, const struct self_talk_in
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+    RESULT_GUARD_POSIX(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* Setup config */
-    EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
-    EXPECT_EQUAL(s2n_connection_get_delay(server_conn), 0);
-    EXPECT_SUCCESS(s2n_connection_set_fd(server_conn, fd));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-    EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
-    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+    RESULT_GUARD_POSIX(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+    RESULT_ENSURE_EQ(s2n_connection_get_delay(server_conn), 0);
+    RESULT_GUARD_POSIX(s2n_connection_set_fd(server_conn, fd));
+    RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default"));
+    RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
+    RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    RESULT_GUARD_POSIX(s2n_connection_set_config(server_conn, config));
 
     /* Complete the handshake */
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-    EXPECT_SUCCESS(s2n_negotiate(server_conn, &blocked));
-    EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+    RESULT_GUARD_POSIX(s2n_negotiate(server_conn, &blocked));
+    RESULT_ENSURE_EQ(server_conn->actual_protocol_version, S2N_TLS12);
 
     RESULT_GUARD(socket_cb->server_post_handshake_cb(server_conn));
 
@@ -110,12 +110,12 @@ static S2N_RESULT start_server(int fd, int write_pipe, const struct self_talk_in
     char send_buffer[1] = { 0 };
 
     send_buffer[0] = CHAR_A;
-    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
-    EXPECT_SUCCESS(write(write_pipe, &sync, 1));
+    RESULT_GUARD_POSIX(s2n_send(server_conn, send_buffer, 1, &blocked));
+    RESULT_GUARD_POSIX(write(write_pipe, &sync, 1));
 
     send_buffer[0] = CHAR_B;
-    EXPECT_SUCCESS(s2n_send(server_conn, send_buffer, 1, &blocked));
-    EXPECT_SUCCESS(write(write_pipe, &sync, 1));
+    RESULT_GUARD_POSIX(s2n_send(server_conn, send_buffer, 1, &blocked));
+    RESULT_GUARD_POSIX(write(write_pipe, &sync, 1));
 
     return S2N_RESULT_OK;
 }
