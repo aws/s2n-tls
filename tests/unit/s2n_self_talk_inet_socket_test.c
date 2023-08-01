@@ -176,12 +176,14 @@ static S2N_RESULT launch_test(const struct self_talk_inet_socket_callbacks *sock
     return S2N_RESULT_OK;
 }
 
-/* These test are unique compared to our other self talk tests because they are testing
- * socket functionality. When enabled, kTLS offloads the TLS protocol to the socket so
- * its necessary to use AF_INET sockets to test this functionality. Its not possible to
- * enable kTLS on a AF_UNIX socket, which is what our other self talk test use. The use
- * of AF_INET socket also drives the need to fork and create two process (client and
- * server) to establish the connection.
+/* This test is unique compared to our other self talk tests because it's testing
+ * AF_INET socket functionality.
+ *
+ * When enabled, kTLS offloads the TLS protocol to the socket. It's not possible to
+ * enable kTLS on an AF_UNIX socket, which is what our other self talk tests use.
+ * Instead we need to use AF_INET sockets to test kTLS functionality. The use of
+ * AF_INET sockets also drives the need to `fork` and create two processes (client and
+ * server) to establish a TLS connection.
  */
 int main(int argc, char **argv)
 {
