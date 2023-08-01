@@ -34,6 +34,8 @@ The benchmarks can be run with the `cargo bench` command. Criterion will auto-ge
 
 To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 
+To generate flamegraphs, run `scripts/generate-flamegraphs.sh`. Flamegraphs will be copied to `images/flamegraph/`.
+
 ## Historical benchmarks
 
 To do historical benchmarks, run `scripts/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
