@@ -15,29 +15,6 @@
 
 #include "testlib/s2n_ktls_test_utils.h"
 
-#include "stuffer/s2n_stuffer.h"
-#include "utils/s2n_safety_macros.h"
-
-/* These MOCK_IO* macros set errno before returning an error. These macros are
- * mainly used for IO related operations (stuffer writes, NULL arguments,
- * invalid length). Other sanity checks are guarded by the POSIX* macros.
- *
- * EINVAL will always be treated as a fatal errno code so it is sufficient to
- * use that as the generic errno code in the guard macros. */
-#define MOCK_IO_ENSURE(x)   \
-    do {                    \
-        if (!(x)) {         \
-            errno = EINVAL; \
-            return -1;      \
-        }                   \
-    } while (0)
-
-#define MOCK_IO_GUARD(x) \
-    MOCK_IO_ENSURE((x) > S2N_FAILURE)
-
-#define MOCK_IO_ENSURE_REF(x) \
-    MOCK_IO_ENSURE(S2N_OBJECT_PTR_IS_READABLE(x))
-
 /* Since it is possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
 S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
@@ -79,7 +56,7 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msg
     size_t total_len = 0;
     for (size_t count = 0; count < msg->msg_iovlen; count++) {
         uint8_t *buf = msg->msg_iov[count].iov_base;
-        MOCK_IO_ENSURE_REF(buf);
+        POSIX_ENSURE_REF(buf);
         size_t len = msg->msg_iov[count].iov_len;
 
         /* If we fail to write to stuffer then return blocked */
@@ -92,8 +69,8 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msg
     }
     if (total_len) {
         /* write record_type and len after data was written successfully */
-        MOCK_IO_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, record_type));
-        MOCK_IO_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, record_type));
+        POSIX_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
     }
 
     return total_len;
@@ -119,10 +96,10 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
     POSIX_ENSURE(io_ctx->ancillary_buffer.growable, S2N_ERR_IO);
 
     /* s2n only receives using msg_iovlen of 1 */
-    MOCK_IO_ENSURE(msg->msg_iovlen == 1);
+    POSIX_ENSURE_EQ(msg->msg_iovlen, 1);
 
     uint8_t *buf = msg->msg_iov->iov_base;
-    MOCK_IO_ENSURE_REF(buf);
+    POSIX_ENSURE_REF(buf);
 
     /* There is no data available so return blocked */
     if (!s2n_stuffer_data_available(&io_ctx->ancillary_buffer)) {
@@ -138,16 +115,21 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
     uint8_t next_record_type = 0;
     while (*record_type == next_record_type) {
         /* read record_type and number of bytes available in the next record */
-        MOCK_IO_GUARD(s2n_stuffer_read_uint8(&io_ctx->ancillary_buffer, record_type));
+        POSIX_GUARD(s2n_stuffer_read_uint8(&io_ctx->ancillary_buffer, record_type));
         uint16_t n_avail = 0;
-        MOCK_IO_GUARD(s2n_stuffer_read_uint16(&io_ctx->ancillary_buffer, &n_avail));
+        POSIX_GUARD(s2n_stuffer_read_uint16(&io_ctx->ancillary_buffer, &n_avail));
         POSIX_ENSURE_LTE(n_avail, s2n_stuffer_data_available(&io_ctx->data_buffer));
 
         /* read minimul of requested_len and bytes_available */
         size_t n_read = MIN(updated_requested_len, n_avail);
-        MOCK_IO_ENSURE(n_read > 0);
+        POSIX_ENSURE(n_read > 0, S2N_ERR_SAFETY);
 
-        MOCK_IO_GUARD(s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + total_read, n_read));
+        int ret = s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + total_read, n_read);
+        if (ret < 0) {
+            errno = EINVAL;
+            return -1;
+        }
+
         updated_requested_len -= n_read;
         POSIX_ENSURE_GTE(updated_requested_len, 0);
         total_read += n_read;
