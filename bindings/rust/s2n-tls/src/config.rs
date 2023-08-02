@@ -13,7 +13,8 @@ use s2n_tls_sys::*;
 use std::{
     ffi::{c_void, CString},
     path::Path,
-    sync::atomic::{AtomicUsize, Ordering}, time::Duration,
+    sync::atomic::{AtomicUsize, Ordering},
+    time::Duration,
 };
 
 #[derive(Debug, PartialEq)]
@@ -667,16 +668,31 @@ impl Builder {
         Ok(self)
     }
 
-    // Sets how long a session ticket key will be able to be used for both encryption 
+    // Sets how long a session ticket key will be able to be used for both encryption
     // and decryption of tickets
-    pub fn set_ticket_key_encrypt_decrypt_lifetime(&mut self, lifetime: Duration) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_ticket_encrypt_decrypt_key_lifetime(self.as_mut_ptr(), lifetime.as_secs()).into_result()}?;
+    pub fn set_ticket_key_encrypt_decrypt_lifetime(
+        &mut self,
+        lifetime: Duration,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_ticket_encrypt_decrypt_key_lifetime(
+                self.as_mut_ptr(),
+                lifetime.as_secs(),
+            )
+            .into_result()
+        }?;
         Ok(self)
     }
 
     // Sets how long a session ticket key will be able to be used for only decryption
-    pub fn set_ticket_key_decrypt_lifetime(&mut self, lifetime: Duration) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_ticket_decrypt_key_lifetime(self.as_mut_ptr(), lifetime.as_secs()).into_result()}?;
+    pub fn set_ticket_key_decrypt_lifetime(
+        &mut self,
+        lifetime: Duration,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_ticket_decrypt_key_lifetime(self.as_mut_ptr(), lifetime.as_secs())
+                .into_result()
+        }?;
         Ok(self)
     }
 
