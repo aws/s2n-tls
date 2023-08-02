@@ -77,8 +77,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(sending_conn, config));
         sending_conn->handshake_params.our_chain_and_key = cert_chain;
-        sending_conn->handshake_params.conn_sig_scheme = sig_scheme;
-        sending_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
+        sending_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
+        sending_conn->handshake_params.client_cert_sig_scheme = &sig_scheme;
         sending_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         sending_conn->actual_protocol_version = S2N_TLS13;
 
@@ -160,8 +160,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
-        verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
-        verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
+        verifying_conn->handshake_params.client_cert_sig_scheme = &sig_scheme;
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
@@ -229,8 +229,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
-        verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
-        verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
+        verifying_conn->handshake_params.client_cert_sig_scheme = &sig_scheme;
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
         EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
@@ -299,8 +299,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
-        verifying_conn->handshake_params.conn_sig_scheme = sig_scheme;
-        verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
+        verifying_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
+        verifying_conn->handshake_params.client_cert_sig_scheme = &sig_scheme;
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         verifying_conn->actual_protocol_version = S2N_TLS13;
 
@@ -329,16 +329,17 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
 
         /* In this case it doesn't matter if we use conn_sig_scheme or client_cert_sig_scheme as they are currently equal */
-        verifying_conn->handshake_params.conn_sig_scheme.hash_alg = S2N_HASH_SHA1;
-        EXPECT_FAILURE(s2n_tls13_cert_read_and_verify_signature(verifying_conn, &verifying_conn->handshake_params.conn_sig_scheme));
+        struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
+        verifying_conn->handshake_params.server_cert_sig_scheme = &test_scheme;
+        test_scheme.hash_alg = S2N_HASH_SHA1;
+        EXPECT_FAILURE(s2n_tls13_cert_read_and_verify_signature(verifying_conn,
+                verifying_conn->handshake_params.server_cert_sig_scheme));
 
         /* send and receive with mismatched signature algs */
-        verifying_conn->handshake_params.conn_sig_scheme.hash_alg = S2N_HASH_SHA256;
-        verifying_conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
-        verifying_conn->handshake_params.conn_sig_scheme.iana_value = 0xFFFF;
-        verifying_conn->handshake_params.client_cert_sig_scheme.hash_alg = S2N_HASH_SHA256;
-        verifying_conn->handshake_params.client_cert_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
-        verifying_conn->handshake_params.client_cert_sig_scheme.iana_value = 0xFFFF;
+        verifying_conn->handshake_params.client_cert_sig_scheme = &test_scheme;
+        test_scheme.hash_alg = S2N_HASH_SHA256;
+        test_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
+        test_scheme.iana_value = 0xFFFF;
 
         EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));

@@ -660,7 +660,7 @@ void cbmc_populate_s2n_handshake_parameters(struct s2n_handshake_parameters *s2n
     CBMC_ENSURE_REF(s2n_handshake_parameters);
     cbmc_populate_s2n_pkey(&(s2n_handshake_parameters->server_public_key));
     cbmc_populate_s2n_pkey(&(s2n_handshake_parameters->client_public_key));
-    cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->conn_sig_scheme));
+    cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->server_cert_sig_scheme));
     cbmc_populate_s2n_blob(&(s2n_handshake_parameters->client_cert_chain));
     cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->client_cert_sig_scheme));
     cbmc_populate_s2n_cert_chain_and_key(s2n_handshake_parameters->our_chain_and_key);

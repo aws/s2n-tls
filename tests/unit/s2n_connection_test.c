@@ -253,8 +253,10 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = S2N_TLS_HASH_NONE; i <= UINT16_MAX; i++) {
-            conn->handshake_params.client_cert_sig_scheme.hash_alg = i;
-            conn->handshake_params.conn_sig_scheme.hash_alg = i;
+            struct s2n_signature_scheme test_scheme = *conn->handshake_params.client_cert_sig_scheme;
+            test_scheme.hash_alg = i;
+            conn->handshake_params.client_cert_sig_scheme = &test_scheme;
+            conn->handshake_params.server_cert_sig_scheme = &test_scheme;
             if (i <= S2N_HASH_SENTINEL) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
                 EXPECT_EQUAL(expected_output[i], output);
@@ -300,8 +302,10 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i <= UINT16_MAX; i++) {
-            conn->handshake_params.client_cert_sig_scheme.sig_alg = i;
-            conn->handshake_params.conn_sig_scheme.sig_alg = i;
+            struct s2n_signature_scheme test_scheme = *conn->handshake_params.client_cert_sig_scheme;
+            test_scheme.sig_alg = i;
+            conn->handshake_params.client_cert_sig_scheme = &test_scheme;
+            conn->handshake_params.server_cert_sig_scheme = &test_scheme;
 
             if (i < s2n_array_len(expected_output)) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));

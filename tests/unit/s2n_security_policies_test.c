@@ -151,7 +151,7 @@ int main(int argc, char **argv)
                     client_conn->secure->cipher_suite = &tls_13_ciphers[i];
                     server_conn->secure->cipher_suite = &tls_13_ciphers[i];
 
-                    struct s2n_signature_scheme chosen_scheme = { 0 };
+                    const struct s2n_signature_scheme *chosen_scheme = NULL;
 
                     if (s2n_is_rsa_pss_signing_supported()) {
                         /* If RSA PSS signing is supported, then we should always be able to select a default Signature
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
                     client_conn->secure->cipher_suite = &tls_13_ciphers[i];
                     server_conn->secure->cipher_suite = &tls_13_ciphers[i];
 
-                    struct s2n_signature_scheme chosen_scheme = { 0 };
+                    const struct s2n_signature_scheme *chosen_scheme = NULL;
 
                     /* If an ECDSA Certificate is configured, then we should always be able to pick a default Signature
                      * Scheme (even if RSA PSS is not supported by the libcrypto) */
