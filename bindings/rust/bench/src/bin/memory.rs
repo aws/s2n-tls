@@ -1,9 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "openssl")]
+use bench::OpenSslConnection;
+#[cfg(feature = "rustls")]
+use bench::RustlsConnection;
 use bench::{
-    harness::ConnectedBuffer, CryptoConfig, HandshakeType, OpenSslConnection, RustlsConnection,
-    S2NConnection, TlsConnPair, TlsConnection,
+    harness::ConnectedBuffer, CryptoConfig, HandshakeType, S2NConnection, TlsConnPair,
+    TlsConnection,
 };
 use std::{fs::create_dir_all, path::Path};
 
@@ -62,6 +66,8 @@ fn main() {
     assert!(!cfg!(debug_assertions), "need to run in release mode");
 
     memory_bench::<S2NConnection>("s2n-tls");
+    #[cfg(feature = "rustls")]
     memory_bench::<RustlsConnection>("rustls");
+    #[cfg(feature = "openssl")]
     memory_bench::<OpenSslConnection>("openssl");
 }
