@@ -1,8 +1,12 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "openssl")]
+use bench::OpenSslConnection;
+#[cfg(feature = "rustls")]
+use bench::RustlsConnection;
 use bench::{
-    ConnectedBuffer, CryptoConfig, HandshakeType, Mode, OpenSslConnection, RustlsConnection,
+    ConnectedBuffer, CryptoConfig, HandshakeType, Mode,
     S2NConnection, TlsConnPair, TlsConnection,
 };
 use std::{error::Error, fs::create_dir_all};
@@ -169,14 +173,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     match &opt.lib_name {
         Some(lib_name) => match lib_name.as_str() {
             "s2n-tls" => memory_bench::<S2NConnection>(&opt)?,
+            #[cfg(feature = "rustls")]
             "rustls" => memory_bench::<RustlsConnection>(&opt)?,
+            #[cfg(feature = "openssl")]
             "openssl" => memory_bench::<OpenSslConnection>(&opt)?,
             _ => panic!("invalid library"),
         },
         None => {
             memory_bench::<S2NConnection>(&opt)?;
-            memory_bench::<OpenSslConnection>(&opt)?;
+            #[cfg(feature = "rustls")]
             memory_bench::<RustlsConnection>(&opt)?;
+            #[cfg(feature = "openssl")]
+            memory_bench::<OpenSslConnection>(&opt)?;
         }
     }
 
