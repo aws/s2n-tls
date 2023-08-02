@@ -99,7 +99,7 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
  *
  * Retrieving fd assumes that the connection is using socket IO and has the
  * send_io_context set. While kTLS overrides IO and essentially disables
- * the socket conn->send function callback, it doesnt modify the
+ * the socket conn->send function callback, it doesn't modify the
  * send_io_context. */
 S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd)
 {

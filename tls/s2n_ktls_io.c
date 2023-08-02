@@ -26,7 +26,6 @@ S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(send_ctx);
     RESULT_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
-
     conn->send_io_context = send_ctx;
     s2n_sendmsg_fn = send_cb;
     return S2N_RESULT_OK;
@@ -37,7 +36,6 @@ S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(recv_ctx);
     RESULT_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
-
     conn->recv_io_context = recv_ctx;
     s2n_recvmsg_fn = recv_cb;
     return S2N_RESULT_OK;

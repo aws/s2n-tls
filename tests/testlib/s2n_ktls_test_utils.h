@@ -16,8 +16,8 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_ktls.h"
 
-#define S2N_TEST_KTLS_MOCK_HEADER_SIZE        3
-#define S2N_TEST_KTLS_MOCK_HEADER_LENGTH_SIZE 2
+#define S2N_TEST_KTLS_MOCK_HEADER_SIZE     3
+#define S2N_TEST_KTLS_MOCK_HEADER_TAG_SIZE 1
 
 /* The record_type is communicated via ancillary data when using kTLS. For this
  * reason s2n must use `send/recvmsg` syscalls rather than `send/read`. To mimic
@@ -41,7 +41,7 @@
  *            ancillary_buffer
  *    [ [record] [record] [record] ]
  *    [ [u8|u16] [u8|u16] [u8|u16] ]
- *    [  [21|5]   [22|7]    [21|2] ]
+ *    [  [23|5]   [23|7]    [21|2] ]
  *           |        |         |
  *     v-------v v-----------v v-v
  *    [1 2 3 4 5 1 2 3 4 5 6 7 1 2]

@@ -17,8 +17,8 @@
 
 #include <stdint.h>
 
+#include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
-#include "tls/s2n_ktls.h"
 
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
@@ -245,4 +245,3 @@ extern const s2n_parsed_extension EMPTY_PARSED_EXTENSIONS[S2N_PARSED_EXTENSIONS_
 int s2n_kem_recv_public_key_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params);
-
