@@ -107,147 +107,29 @@ int main(int argc, char **argv)
             }
         }
 
-        if (has_tls_13_cipher) {
-            /* Validate that s2n_tls13_default_sig_scheme() is successful on all TLS 1.3 Security Policies for all
-             * TLS 1.3 Ciphers */
-            {
-                struct s2n_cipher_suite tls_13_ciphers[] = {
-                    s2n_tls13_aes_128_gcm_sha256,
-                    s2n_tls13_aes_256_gcm_sha384,
-                    s2n_tls13_chacha20_poly1305_sha256
-                };
-
-                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i++) {
-                    struct s2n_config *config = s2n_config_new();
-                    EXPECT_NOT_NULL(config);
-
-                    if (security_policy_selection[policy_index].security_policy->minimum_protocol_version > s2n_get_highest_fully_supported_tls_version()) {
-                        /* We purposefully do not allow users to configure Security Policies with a minimum allowed TLS
-                         * versions that are greater than what libcrypto supports. */
-                        EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
-                        EXPECT_SUCCESS(s2n_config_free(config));
-                        continue;
-                    }
-
-                    struct s2n_cert_chain_and_key *default_cert;
-                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&default_cert, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-
-                    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, default_cert));
-                    EXPECT_TRUE(config->is_rsa_cert_configured);
-
-                    struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-                    struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-                    EXPECT_NOT_NULL(client_conn);
-                    EXPECT_NOT_NULL(server_conn);
-
-                    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
-                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-                    EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_RSA]);
-                    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-                    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-
-                    client_conn->actual_protocol_version = S2N_TLS13;
-                    server_conn->actual_protocol_version = S2N_TLS13;
-                    client_conn->secure->cipher_suite = &tls_13_ciphers[i];
-                    server_conn->secure->cipher_suite = &tls_13_ciphers[i];
-
-                    const struct s2n_signature_scheme *chosen_scheme = NULL;
-
-                    if (s2n_is_rsa_pss_signing_supported()) {
-                        /* If RSA PSS signing is supported, then we should always be able to select a default Signature
-                         * Scheme for RSA Certs for TLS 1.3 */
-                        EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
-                        EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
-                    } else {
-                        /* We can't pick a default TLS 1.3 signature scheme when configured with an RSA Cert when we
-                         * do not support RSA PSS signing since RSA PSS signing is required for TLS 1.3 */
-                        EXPECT_FAILURE(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
-                        EXPECT_FAILURE(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
-                    }
-
-                    EXPECT_SUCCESS(s2n_connection_free(client_conn));
-                    EXPECT_SUCCESS(s2n_connection_free(server_conn));
-                    EXPECT_SUCCESS(s2n_config_free(config));
-                    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
-                }
-            }
-
-            /* Same as above test, but with ECDSA Certificates */
-            {
-                struct s2n_cipher_suite tls_13_ciphers[] = {
-                    s2n_tls13_aes_128_gcm_sha256,
-                    s2n_tls13_aes_256_gcm_sha384,
-                    s2n_tls13_chacha20_poly1305_sha256
-                };
-
-                for (size_t i = 0; i < s2n_array_len(tls_13_ciphers); i++) {
-                    struct s2n_config *config = s2n_config_new();
-                    EXPECT_NOT_NULL(config);
-
-                    if (security_policy_selection[policy_index].security_policy->minimum_protocol_version > s2n_get_highest_fully_supported_tls_version()) {
-                        /* We purposefully do not allow users to configure Security Policies with a minimum allowed TLS
-                         * Version of TLS 1.3, if TLS 1.3 algorithms aren't fully supported by the libcrypto we're using */
-                        EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
-                        EXPECT_SUCCESS(s2n_config_free(config));
-                        continue;
-                    }
-
-                    struct s2n_cert_chain_and_key *default_cert;
-                    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&default_cert, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
-
-                    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, default_cert));
-                    EXPECT_FALSE(config->is_rsa_cert_configured);
-
-                    struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-                    struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
-                    EXPECT_NOT_NULL(client_conn);
-                    EXPECT_NOT_NULL(server_conn);
-
-                    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_selection[policy_index].version));
-                    EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, NULL));
-                    EXPECT_NOT_NULL(config->default_certs_by_type.certs[S2N_PKEY_TYPE_ECDSA]);
-                    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-                    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-
-                    client_conn->actual_protocol_version = S2N_TLS13;
-                    server_conn->actual_protocol_version = S2N_TLS13;
-                    client_conn->secure->cipher_suite = &tls_13_ciphers[i];
-                    server_conn->secure->cipher_suite = &tls_13_ciphers[i];
-
-                    const struct s2n_signature_scheme *chosen_scheme = NULL;
-
-                    /* If an ECDSA Certificate is configured, then we should always be able to pick a default Signature
-                     * Scheme (even if RSA PSS is not supported by the libcrypto) */
-                    EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(client_conn, &chosen_scheme));
-                    EXPECT_SUCCESS(s2n_tls13_default_sig_scheme(server_conn, &chosen_scheme));
-
-                    EXPECT_SUCCESS(s2n_connection_free(client_conn));
-                    EXPECT_SUCCESS(s2n_connection_free(server_conn));
-                    EXPECT_SUCCESS(s2n_config_free(config));
-                    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(default_cert));
-                }
-            }
-
-            bool has_tls_13_sig_alg = false;
-            bool has_rsa_pss = false;
-
-            for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
-                int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
-                int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
-                s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
-
-                if (min == S2N_TLS13 || max >= S2N_TLS13) {
-                    has_tls_13_sig_alg = true;
-                }
-
-                if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
-                    has_rsa_pss = true;
-                }
-            }
-
-            EXPECT_TRUE(has_tls_13_sig_alg);
-            EXPECT_TRUE(has_rsa_pss);
+        if (!has_tls_13_cipher) {
+            continue;
         }
+
+        bool has_tls_13_sig_alg = false;
+        bool has_rsa_pss = false;
+
+        for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
+            int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
+            int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
+            s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
+
+            if (min == S2N_TLS13 || max >= S2N_TLS13) {
+                has_tls_13_sig_alg = true;
+            }
+
+            if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
+                has_rsa_pss = true;
+            }
+        }
+
+        EXPECT_TRUE(has_tls_13_sig_alg);
+        EXPECT_TRUE(has_rsa_pss);
     }
 
     const struct s2n_security_policy *security_policy = NULL;
