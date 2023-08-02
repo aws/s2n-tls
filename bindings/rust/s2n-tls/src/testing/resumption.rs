@@ -8,7 +8,7 @@ mod tests {
         session_ticket::{SessionTicket, SessionTicketCallback},
         testing::{s2n_tls::*, *},
     };
-    use std::{cell::RefCell, rc::Rc};
+    use std::{cell::RefCell, rc::Rc, time::Duration};
 
     // Creates session ticket callback handler
     #[derive(Default, Clone)]
@@ -25,6 +25,11 @@ mod tests {
         ) {
             let data = session_ticket.session_data();
             (*self.stored_ticket).borrow_mut().extend(data);
+            // Default ticket lifetime is 15 hours
+            assert_eq!(
+                session_ticket.session_lifetime().unwrap(),
+                Duration::new(54000, 0)
+            );
         }
     }
 
@@ -233,8 +238,6 @@ mod tests {
     }
 
     #[test]
-    // This test checks that the user can own the SessionTicket object rather than storing
-    // the raw ticket bytes if desired
     fn resume_with_owned_session() {
         let keypair = CertKeyPair::default();
 

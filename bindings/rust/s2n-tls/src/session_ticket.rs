@@ -2,6 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use core::ptr::NonNull;
+use std::time::Duration;
 
 use s2n_tls_sys::*;
 
@@ -19,7 +20,7 @@ pub trait SessionTicketCallback {
 #[derive(Debug)]
 pub struct SessionTicket {
     data: Vec<u8>,
-    lifetime: u32,
+    lifetime: Option<Duration>,
 }
 
 impl SessionTicket {
@@ -34,9 +35,12 @@ impl SessionTicket {
                 .into_result()?
         };
 
-        Ok(Self { lifetime, data })
+        Ok(Self {
+            lifetime: Some(Duration::new(lifetime.into(), 0)),
+            data,
+        })
     }
-    pub fn session_lifetime(&self) -> u32 {
+    pub fn session_lifetime(&self) -> Option<Duration> {
         self.lifetime
     }
 
@@ -45,6 +49,9 @@ impl SessionTicket {
     }
 
     pub fn new(data: Vec<u8>) -> Self {
-        Self { data, lifetime: 0 }
+        Self {
+            data,
+            lifetime: None,
+        }
     }
 }
