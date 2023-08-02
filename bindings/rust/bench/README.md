@@ -2,22 +2,31 @@
 
 We use to Criterion.rs to benchmark s2n-tls against two commonly used TLS libraries, Rustls and OpenSSL.
 
+## Quickstart
+```
+# generate rust bindings
+../generate.sh
+
+# set up bench crate
+scripts/generate-certs.sh
+scripts/install-aws-lc.sh
+
+# run all benchmarks (s2n-tls with AWS-LC)
+mkdir .cargo
+cat aws-lc-config/s2n.toml > .cargo/config.toml
+cargo bench
+scripts/bench-memory.sh
+scripts/bench-past.sh
+rm -rf .cargo
+```
+
 ## Setup 
 
-Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `certs/generate_certs.sh`. 
+Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `scripts/generate-certs.sh`. 
 
 Dependencies are the same as with s2n-tls. Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments. 
 
-To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `install-aws-lc.sh` to install AWS-LC for the bench crate. To then run the benchmarks with AWS-LC, use Cargo with either the flag `--config aws-lc-config/s2n.toml` or `--config aws-lc-config/rustls.toml` (or both). You can also append these configs to `.cargo/config.toml` to let Cargo automatically detect the settings without specifying the flags each time.  
-
-For example, to get started with benching s2n-tls with AWS-LC:
-
-```
-../generate.sh
-certs/generate_certs.sh
-./install-aws-lc.sh
-cargo bench --config aws-lc-config/s2n.toml
-```
+To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `scripts/install-aws-lc.sh` to install AWS-LC for the bench crate. To then run the benchmarks with AWS-LC, use Cargo with either the flag `--config aws-lc-config/s2n.toml` or `--config aws-lc-config/rustls.toml` (or both). You can also append these configs to `.cargo/config.toml` to let Cargo automatically detect the settings without specifying the flags each time.  
 
 ### Features
 
@@ -27,11 +36,11 @@ Default features (`rustls` and `openssl`) can be disabled by running the benches
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
-To run memory benchmarks, run `memory/bench-memory.sh`. A graph of memory usage will be generated in `memory/memory.svg`.
+To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 
 ### Historical benchmarks
 
-To do historical benchmarks, run `historical-perf/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
+To do historical benchmarks, run `scripts/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
 
 ### Caveats
 

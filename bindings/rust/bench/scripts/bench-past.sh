@@ -3,6 +3,11 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
+# Run historical benchmarking by checking out old version of s2n-tls into target/
+# Criterion JSON results get cached to target/historical-perf/[bench-group-name]/[version].json
+# Results are then plotted, saved to images/historical-perf-[bench-name].svg
+# All given arguments (ex. `--config aws-lc-config/s2n.toml` to use AWS-LC) are passed to Cargo
+
 # immediately bail if any command fails
 set -e
 
@@ -11,7 +16,7 @@ exec >/dev/null
 export CARGO_TERM_QUIET=true
 export RUSTFLAGS=-Awarnings
 
-# go to s2n-tls/bindings/rust/bench/
+# go to bench directory
 pushd "$(dirname "$0")"/../
 bench_path="$(pwd)"
 
