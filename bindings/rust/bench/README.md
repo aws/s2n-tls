@@ -32,6 +32,8 @@ To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `scrip
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
+Throughput benchmarks measure round-trip throughput with the client and server connections in the same thread for symmetry. In practice, throughput for a single connection would be ~4x higher than the values from the benchmarks.
+
 To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 
 ## Historical benchmarks
