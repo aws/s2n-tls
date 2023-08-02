@@ -108,19 +108,16 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
 
     ssize_t total_read = 0;
     /* updated as partial or multiple records are read */
-    size_t updated_requested_len = msg->msg_iov->iov_len;
-    /* track two record_types since it is possible to read multiple records of the same type */
-    *record_type = 0;
-    uint8_t next_record_type = 0;
-    while (*record_type == next_record_type) {
+    size_t amount_requested = msg->msg_iov->iov_len;
+    while (true) {
         /* read record_type and number of bytes available in the next record */
         POSIX_GUARD(s2n_stuffer_read_uint8(&io_ctx->ancillary_buffer, record_type));
         uint16_t n_avail = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(&io_ctx->ancillary_buffer, &n_avail));
         POSIX_ENSURE_LTE(n_avail, s2n_stuffer_data_available(&io_ctx->data_buffer));
 
-        /* read minimul of requested_len and bytes_available */
-        size_t n_read = MIN(updated_requested_len, n_avail);
+        /* read minimum of requested_len and bytes_available */
+        size_t n_read = MIN(amount_requested, n_avail);
         POSIX_ENSURE_GT(n_read, 0);
 
         int ret = s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + total_read, n_read);
@@ -129,8 +126,8 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
             return -1;
         }
 
-        updated_requested_len -= n_read;
-        POSIX_ENSURE_GTE(updated_requested_len, 0);
+        amount_requested -= n_read;
+        POSIX_ENSURE_GTE(amount_requested, 0);
         total_read += n_read;
 
         /* Handle if we partially read a record */
@@ -140,13 +137,13 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
         }
 
         /* if already read the requested amount then break */
-        if (updated_requested_len == 0) {
+        if (amount_requested == 0) {
             break;
         }
         /* Attempt to read multiple records (must be of the same type) */
-        if (updated_requested_len) {
+        if (amount_requested) {
+            uint8_t next_record_type = 0;
             int ret = s2n_stuffer_peek_char(&io_ctx->ancillary_buffer, (char *) &next_record_type);
-
             bool no_more_records = ret < 0;
             bool next_record_different_type = next_record_type != *record_type;
             if (no_more_records || next_record_different_type) {
