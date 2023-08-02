@@ -12,7 +12,7 @@ use crate::{
 };
 
 /// A trait to retrieve session tickets from the connection
-pub trait SessionTicketCallback {
+pub trait SessionTicketCallback: Send + Sync {
     fn on_session_ticket(&self, connection: &mut Connection, session_ticket: SessionTicket);
 }
 
@@ -24,7 +24,7 @@ pub struct SessionTicket {
 }
 
 impl SessionTicket {
-    pub fn from_raw(ticket: NonNull<s2n_session_ticket>) -> Result<Self, Error> {
+    pub(crate) fn from_raw(ticket: NonNull<s2n_session_ticket>) -> Result<Self, Error> {
         let mut lifetime = 0;
         unsafe { s2n_session_ticket_get_lifetime(ticket.as_ptr(), &mut lifetime).into_result()? };
         let mut data_len = 0;
@@ -44,7 +44,7 @@ impl SessionTicket {
         self.lifetime
     }
 
-    pub fn session_data(&self) -> &Vec<u8> {
+    pub fn session_data(&self) -> &[u8] {
         &self.data
     }
 

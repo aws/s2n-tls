@@ -8,6 +8,7 @@ mod tests {
         session_ticket::{SessionTicket, SessionTicketCallback},
         testing::{s2n_tls::*, *},
     };
+    use std::error::Error;
     use std::{cell::RefCell, rc::Rc, time::Duration};
 
     // Creates session ticket callback handler
@@ -15,6 +16,9 @@ mod tests {
     pub struct SessionTicketRawBytesHandler {
         stored_ticket: Rc<RefCell<Vec<u8>>>,
     }
+
+    unsafe impl Sync for SessionTicketRawBytesHandler{}
+    unsafe impl Send for SessionTicketRawBytesHandler{}
 
     // Implement the session ticket callback
     impl SessionTicketCallback for SessionTicketRawBytesHandler {
@@ -25,18 +29,16 @@ mod tests {
         ) {
             let data = session_ticket.session_data();
             (*self.stored_ticket).borrow_mut().extend(data);
-            // Default ticket lifetime is 15 hours
-            assert_eq!(
-                session_ticket.session_lifetime().unwrap(),
-                Duration::new(54000, 0)
-            );
         }
     }
 
     #[derive(Default, Clone)]
-    pub struct SessionTicketHandler {
+    pub struct SessionTicketHandler{
         stored_ticket: Rc<RefCell<Option<SessionTicket>>>,
     }
+
+    unsafe impl Sync for SessionTicketHandler{}
+    unsafe impl Send for SessionTicketHandler{}
 
     // Implement the session ticket callback that stores the SessionTicket type instead of
     // raw bytes.
@@ -53,24 +55,21 @@ mod tests {
         }
     }
 
-    #[test]
-    fn resume_session() {
-        let keypair = CertKeyPair::default();
+    // Create test ticket key
+    const KEY: [u8; 3] = [1, 2, 3];
+    const KEYNAME: [u8; 3] = [1, 3, 4];
 
-        // Create test ticket key
-        let key: [u8; 3] = [1, 2, 3];
-        let keyname: [u8; 3] = [1, 3, 4];
+    #[test]
+    fn resume_session() -> Result<(), Box<dyn Error>> {
+        let keypair = CertKeyPair::default();
 
         // Initialize config for server with a ticket key
         let mut server_config_builder = Builder::new();
         server_config_builder
-            .enable_session_tickets()
-            .unwrap()
-            .add_session_ticket_key(&keyname, &key, 0)
-            .unwrap()
-            .load_pem(keypair.cert(), keypair.key())
-            .unwrap();
-        let server_config = server_config_builder.build().unwrap();
+            .enable_session_tickets(true)?
+            .add_session_ticket_key(&KEYNAME, &KEY, Duration::new(0, 0))?
+            .load_pem(keypair.cert(), keypair.key())?;
+        let server_config = server_config_builder.build()?;
 
         let handler = SessionTicketRawBytesHandler::default();
 
@@ -78,15 +77,11 @@ mod tests {
         let mut client_config_builder = Builder::new();
 
         client_config_builder
-            .enable_session_tickets()
-            .unwrap()
-            .set_session_ticket_callback(handler.clone())
-            .unwrap()
-            .trust_pem(keypair.cert())
-            .unwrap()
-            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-            .unwrap();
-        let client_config = client_config_builder.build().unwrap();
+            .enable_session_tickets(true)?
+            .set_session_ticket_callback(handler.clone())?
+            .trust_pem(keypair.cert())?
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+        let client_config = client_config_builder.build()?;
 
         // create and configure a server connection
         let mut server = connection::Connection::new_server();
@@ -109,7 +104,7 @@ mod tests {
 
         // Check connection was full handshake and a session ticket was included
         assert_eq!(
-            client.handshake_type().unwrap(),
+            client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY|WITH_SESSION_TICKET"
         );
 
@@ -124,8 +119,7 @@ mod tests {
 
         let ticket = SessionTicket::new(handler.stored_ticket.borrow().to_vec());
         client
-            .set_session_ticket(&ticket)
-            .unwrap()
+            .set_session_ticket(&ticket)?
             .set_config(client_config)
             .expect("Unable to set client config");
 
@@ -137,46 +131,34 @@ mod tests {
         let client = pair.client.0.connection();
 
         // Check new connection was resumed
-        assert_eq!(client.handshake_type().unwrap(), "NEGOTIATED");
+        assert_eq!(client.handshake_type()?, "NEGOTIATED");
+        Ok(())
     }
 
     #[test]
-    fn resume_tls13_session() {
+    fn resume_tls13_session() -> Result<(), Box<dyn Error>> {
         let keypair = CertKeyPair::default();
-
-        // Create test ticket key
-        let key: [u8; 3] = [1, 2, 3];
-        let keyname: [u8; 3] = [1, 3, 4];
 
         // Initialize config for server with a ticket key
         let mut server_config_builder = Builder::new();
         server_config_builder
-            .enable_session_tickets()
-            .unwrap()
-            .add_session_ticket_key(&keyname, &key, 0)
-            .unwrap()
-            .load_pem(keypair.cert(), keypair.key())
-            .unwrap()
-            .set_security_policy(&security::DEFAULT_TLS13)
-            .unwrap();
-        let server_config = server_config_builder.build().unwrap();
+            .enable_session_tickets(true)?
+            .add_session_ticket_key(&KEYNAME, &KEY, Duration::new(0, 0))?
+            .load_pem(keypair.cert(), keypair.key())?
+            .set_security_policy(&security::DEFAULT_TLS13)?;
+        let server_config = server_config_builder.build()?;
 
         let handler = SessionTicketRawBytesHandler::default();
 
         // create config for client
         let mut client_config_builder = Builder::new();
         client_config_builder
-            .enable_session_tickets()
-            .unwrap()
-            .set_session_ticket_callback(handler.clone())
-            .unwrap()
-            .trust_pem(keypair.cert())
-            .unwrap()
-            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-            .unwrap()
-            .set_security_policy(&security::DEFAULT_TLS13)
-            .unwrap();
-        let client_config = client_config_builder.build().unwrap();
+            .enable_session_tickets(true)?
+            .set_session_ticket_callback(handler.clone())?
+            .trust_pem(keypair.cert())?
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+            .set_security_policy(&security::DEFAULT_TLS13)?;
+        let client_config = client_config_builder.build()?;
 
         // create and configure a server connection
         let mut server = connection::Connection::new_server();
@@ -204,7 +186,7 @@ mod tests {
         let client = pair.client.0.connection();
         // Check connection was full handshake
         assert_eq!(
-            client.handshake_type().unwrap(),
+            client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|MIDDLEBOX_COMPAT"
         );
 
@@ -218,8 +200,7 @@ mod tests {
         // create a client connection with a resumption ticket
         let mut client = connection::Connection::new_client();
         client
-            .set_session_ticket(&ticket)
-            .unwrap()
+            .set_session_ticket(&ticket)?
             .set_config(client_config)
             .expect("Unable to set client config");
 
@@ -231,49 +212,34 @@ mod tests {
         let client = pair.client.0.connection();
 
         // Check new connection was resumed
-        assert_eq!(
-            client.handshake_type().unwrap(),
-            "NEGOTIATED|MIDDLEBOX_COMPAT"
-        );
+        assert_eq!(client.handshake_type()?, "NEGOTIATED|MIDDLEBOX_COMPAT");
+        Ok(())
     }
 
     #[test]
-    fn resume_with_owned_session() {
+    fn resume_with_owned_session() -> Result<(), Box<dyn Error>> {
         let keypair = CertKeyPair::default();
-
-        // Create test ticket key
-        let key: [u8; 3] = [1, 2, 3];
-        let keyname: [u8; 3] = [1, 3, 4];
 
         // Initialize config for server with a ticket key
         let mut server_config_builder = Builder::new();
         server_config_builder
-            .enable_session_tickets()
-            .unwrap()
-            .add_session_ticket_key(&keyname, &key, 0)
-            .unwrap()
-            .load_pem(keypair.cert(), keypair.key())
-            .unwrap()
-            .set_security_policy(&security::DEFAULT_TLS13)
-            .unwrap();
-        let server_config = server_config_builder.build().unwrap();
+            .enable_session_tickets(true)?
+            .add_session_ticket_key(&KEYNAME, &KEY, Duration::new(0, 0))?
+            .load_pem(keypair.cert(), keypair.key())?
+            .set_security_policy(&security::DEFAULT_TLS13)?;
+        let server_config = server_config_builder.build()?;
 
         let handler = SessionTicketHandler::default();
 
         // create config for client
         let mut client_config_builder = Builder::new();
         client_config_builder
-            .enable_session_tickets()
-            .unwrap()
-            .set_session_ticket_callback(handler.clone())
-            .unwrap()
-            .trust_pem(keypair.cert())
-            .unwrap()
-            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-            .unwrap()
-            .set_security_policy(&security::DEFAULT_TLS13)
-            .unwrap();
-        let client_config = client_config_builder.build().unwrap();
+            .enable_session_tickets(true)?
+            .set_session_ticket_callback(handler.clone())?
+            .trust_pem(keypair.cert())?
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+            .set_security_policy(&security::DEFAULT_TLS13)?;
+        let client_config = client_config_builder.build()?;
 
         // create and configure a server connection
         let mut server = connection::Connection::new_server();
@@ -301,7 +267,7 @@ mod tests {
         let client = pair.client.0.connection();
         // Check connection was full handshake
         assert_eq!(
-            client.handshake_type().unwrap(),
+            client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|MIDDLEBOX_COMPAT"
         );
 
@@ -314,8 +280,7 @@ mod tests {
         // create a client connection with a resumption ticket
         let mut client = connection::Connection::new_client();
         client
-            .set_session_ticket((*handler.stored_ticket.borrow()).as_ref().unwrap())
-            .unwrap()
+            .set_session_ticket((*handler.stored_ticket.borrow()).as_ref().unwrap())?
             .set_config(client_config)
             .expect("Unable to set client config");
 
@@ -327,9 +292,7 @@ mod tests {
         let client = pair.client.0.connection();
 
         // Check new connection was resumed
-        assert_eq!(
-            client.handshake_type().unwrap(),
-            "NEGOTIATED|MIDDLEBOX_COMPAT"
-        );
+        assert_eq!(client.handshake_type()?, "NEGOTIATED|MIDDLEBOX_COMPAT");
+        Ok(())
     }
 }

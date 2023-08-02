@@ -637,17 +637,18 @@ impl Builder {
     }
 
     /// Enable negotiating session tickets in a TLS connection
-    pub fn enable_session_tickets(&mut self) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_session_tickets_onoff(self.as_mut_ptr(), 1).into_result() }?;
+    pub fn enable_session_tickets(&mut self, enable: bool) -> Result<&mut Self, Error> {
+        unsafe { s2n_config_set_session_tickets_onoff(self.as_mut_ptr(), enable.into()).into_result() }?;
         Ok(self)
     }
 
-    /// Adds a key which will be used to encrypt and decrypt session tickets
+    /// Adds a key which will be used to encrypt and decrypt session tickets. The intro_time parameter is time since
+    /// the Unix epoch (Midnight, January 1st, 1970). If this is 0, then into_time is set to now.
     pub fn add_session_ticket_key(
         &mut self,
         key_name: &[u8],
         key: &[u8],
-        intro_time: u64,
+        intro_time: Duration,
     ) -> Result<&mut Self, Error> {
         let key_name_len: u32 = key_name
             .len()
@@ -659,9 +660,10 @@ impl Builder {
                 self.as_mut_ptr(),
                 key_name.as_ptr(),
                 key_name_len,
+                // s2n-tls does not modify the key, but needs a mut parameter because it makes working with stuffers and blobs easier
                 key.as_ptr() as *mut u8,
                 key_len,
-                intro_time,
+                intro_time.as_secs(),
             )
             .into_result()
         }?;
