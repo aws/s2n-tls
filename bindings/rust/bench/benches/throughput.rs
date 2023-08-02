@@ -19,14 +19,14 @@ fn bench_throughput_for_library<T: TlsConnection>(
     cipher_suite: CipherSuite,
 ) {
     let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
-    let client_config_res = T::make_config(Mode::Client, crypto_config, HandshakeType::default());
-    let server_config_res = T::make_config(Mode::Server, crypto_config, HandshakeType::default());
+    let client_config = T::make_config(Mode::Client, crypto_config, HandshakeType::default());
+    let server_config = T::make_config(Mode::Server, crypto_config, HandshakeType::default());
 
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
             || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
                 if let (Ok(client_config), Ok(server_config)) =
-                    (client_config_res.as_ref(), server_config_res.as_ref())
+                    (client_config.as_ref(), server_config.as_ref())
                 {
                     let connected_buffer = ConnectedBuffer::default();
                     let client =
@@ -39,8 +39,8 @@ fn bench_throughput_for_library<T: TlsConnection>(
                     Err("invalid configs".into())
                 }
             },
-            |conn_pair_res| {
-                if let Ok(conn_pair) = conn_pair_res {
+            |conn_pair| {
+                if let Ok(conn_pair) = conn_pair {
                     let _ = conn_pair.round_trip_transfer(shared_buf);
                 }
             },
@@ -79,6 +79,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
+    // profile 100 samples/sec
     config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
     targets = bench_throughput_cipher_suite
 }

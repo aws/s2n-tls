@@ -18,10 +18,10 @@ fn bench_handshake_for_library<T: TlsConnection>(
     kx_group: KXGroup,
     sig_type: SigType,
 ) {
-    // make configs before to save time
+    // make configs before benching to reuse
     let crypto_config = CryptoConfig::new(CipherSuite::default(), kx_group, sig_type);
-    let client_config_res = T::make_config(Mode::Client, crypto_config, handshake_type);
-    let server_config_res = T::make_config(Mode::Server, crypto_config, handshake_type);
+    let client_config = T::make_config(Mode::Client, crypto_config, handshake_type);
+    let server_config = T::make_config(Mode::Server, crypto_config, handshake_type);
 
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
     // only include negotiation and not config/connection initialization
@@ -29,7 +29,7 @@ fn bench_handshake_for_library<T: TlsConnection>(
         b.iter_batched_ref(
             || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
                 if let (Ok(client_config), Ok(server_config)) =
-                    (client_config_res.as_ref(), server_config_res.as_ref())
+                    (client_config.as_ref(), server_config.as_ref())
                 {
                     let connected_buffer = ConnectedBuffer::default();
                     let client =
@@ -40,11 +40,11 @@ fn bench_handshake_for_library<T: TlsConnection>(
                     Err("invalid configs".into())
                 }
             },
-            |conn_pair_res| {
+            |conn_pair| {
                 // harnesses with certain parameters fail to initialize for
                 // some past versions of s2n-tls, but missing data can be
                 // visually interpolated in the historical performance graph
-                if let Ok(conn_pair) = conn_pair_res {
+                if let Ok(conn_pair) = conn_pair {
                     let _ = conn_pair.handshake();
                 }
             },
@@ -91,6 +91,7 @@ pub fn bench_handshake_params(c: &mut Criterion) {
 
 criterion_group! {
     name = benches;
+    // profile 100 samples/sec
     config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
     targets = bench_handshake_params
 }

@@ -34,7 +34,7 @@ The benchmarks can be run with the `cargo bench` command. Criterion will auto-ge
 
 To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 
-To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -- --profile-time 5`.
+To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -- --profile-time 5`, which profiles each benchmark for 5 seconds.
 
 ## Historical benchmarks
 

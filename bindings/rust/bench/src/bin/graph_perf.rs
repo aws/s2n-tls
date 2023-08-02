@@ -60,8 +60,8 @@ fn process_single_json(path: &Path) -> Stats {
 fn parse_bench_group_data(path: &Path) -> Vec<VersionDataPoint> {
     let mut data: Vec<VersionDataPoint> = read_dir(path)
         .unwrap()
-        .map(|dir_entry_res| {
-            let path = dir_entry_res.unwrap().path();
+        .map(|dir_entry| {
+            let path = dir_entry.unwrap().path();
             let stats = process_single_json(&path);
             let tag = path.file_stem().unwrap().to_str().unwrap();
             let version = Version::parse(&tag[1..]).unwrap();
@@ -80,7 +80,7 @@ fn parse_bench_group_data(path: &Path) -> Vec<VersionDataPoint> {
 fn get_all_data(prefix: &str) -> Vec<VersionDataSeries> {
     read_dir("target/historical-perf")
         .unwrap()
-        .map(|dir_entry_res| dir_entry_res.unwrap().path())
+        .map(|dir_entry| dir_entry.unwrap().path())
         .filter(|path| {
             // get all paths starting with prefix
             path.file_name()
