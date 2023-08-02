@@ -149,6 +149,8 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
  * https://tools.ietf.org/html/draft-stebila-tls-hybrid-design.
  * Values for interoperability are defined in
  * https://github.com/open-quantum-safe/oqs-provider/blob/main/oqs-template/oqs-kem-info.md
+ * and
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
  *
  * The structure of the hybrid share is:
  *    size of ECC key share (2 bytes)
@@ -163,7 +165,7 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
 };
 
 const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
-    .name = "secp768r1_kyber-768-r3",
+    .name = "SecP256r1Kyber768Draft00",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_768_r3,
@@ -191,7 +193,7 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
 };
 
 const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
-    .name = "x25519_kyber-768-r3",
+    .name = "X25519Kyber768Draft00",
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_768_r3,
