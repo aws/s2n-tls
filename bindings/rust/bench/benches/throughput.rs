@@ -1,9 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "openssl")]
+use bench::OpenSslConnection;
+#[cfg(feature = "rustls")]
+use bench::RustlsConnection;
 use bench::{
-    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
-    RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
+    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection,
+    SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -51,19 +55,18 @@ pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
             &mut shared_buf,
             cipher_suite,
         );
-        #[cfg(not(feature = "historical-perf"))]
-        {
-            bench_throughput_for_library::<RustlsConnection>(
-                &mut bench_group,
-                &mut shared_buf,
-                cipher_suite,
-            );
-            bench_throughput_for_library::<OpenSslConnection>(
-                &mut bench_group,
-                &mut shared_buf,
-                cipher_suite,
-            );
-        }
+        #[cfg(feature = "rustls")]
+        bench_throughput_for_library::<RustlsConnection>(
+            &mut bench_group,
+            &mut shared_buf,
+            cipher_suite,
+        );
+        #[cfg(feature = "openssl")]
+        bench_throughput_for_library::<OpenSslConnection>(
+            &mut bench_group,
+            &mut shared_buf,
+            cipher_suite,
+        );
     }
 }
 

@@ -1,9 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "openssl")]
+use bench::OpenSslConnection;
+#[cfg(feature = "rustls")]
+use bench::RustlsConnection;
 use bench::{
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection, RustlsConnection,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
+    CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection, SigType, TlsConnPair,
+    TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -47,21 +51,20 @@ fn bench_handshake_with_params(
     sig_type: SigType,
 ) {
     bench_handshake_for_library::<S2NConnection>(bench_group, handshake_type, kx_group, sig_type);
-    #[cfg(not(feature = "historical-perf"))]
-    {
-        bench_handshake_for_library::<RustlsConnection>(
-            bench_group,
-            handshake_type,
-            kx_group,
-            sig_type,
-        );
-        bench_handshake_for_library::<OpenSslConnection>(
-            bench_group,
-            handshake_type,
-            kx_group,
-            sig_type,
-        );
-    }
+    #[cfg(feature = "rustls")]
+    bench_handshake_for_library::<RustlsConnection>(
+        bench_group,
+        handshake_type,
+        kx_group,
+        sig_type,
+    );
+    #[cfg(feature = "openssl")]
+    bench_handshake_for_library::<OpenSslConnection>(
+        bench_group,
+        handshake_type,
+        kx_group,
+        sig_type,
+    );
 }
 
 pub fn bench_handshake_types(c: &mut Criterion) {
