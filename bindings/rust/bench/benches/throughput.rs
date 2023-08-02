@@ -7,7 +7,7 @@ use bench::OpenSslConnection;
 use bench::RustlsConnection;
 use bench::{
     harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
+    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -83,7 +83,7 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
 criterion_group! {
     name = benches;
     // profile 100 samples/sec
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
+    config = Criterion::default().with_profiler(PProfProfiler::new(PROFILER_FREQUENCY, Output::Flamegraph(None)));
     targets = bench_throughput_cipher_suite
 }
 criterion_main!(benches);

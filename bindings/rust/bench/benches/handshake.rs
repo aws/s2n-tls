@@ -7,7 +7,7 @@ use bench::OpenSslConnection;
 use bench::RustlsConnection;
 use bench::{
     harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    S2NConnection, SigType, TlsConnPair, TlsConnection,
+    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -95,7 +95,7 @@ pub fn bench_handshake_params(c: &mut Criterion) {
 criterion_group! {
     name = benches;
     // profile 100 samples/sec
-    config = Criterion::default().with_profiler(PProfProfiler::new(100, Output::Flamegraph(None)));
+    config = Criterion::default().with_profiler(PProfProfiler::new(PROFILER_FREQUENCY, Output::Flamegraph(None)));
     targets = bench_handshake_params
 }
 criterion_main!(benches);
