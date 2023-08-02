@@ -28,7 +28,7 @@ impl SessionTicket {
         unsafe { s2n_session_ticket_get_lifetime(ticket.as_ptr(), &mut lifetime).into_result()? };
         let mut data_len = 0;
         unsafe { s2n_session_ticket_get_data_len(ticket.as_ptr(), &mut data_len).into_result()? };
-        let mut data = vec![0; data_len as usize];
+        let mut data = vec![0; data_len];
         unsafe {
             s2n_session_ticket_get_data(ticket.as_ptr(), data_len, data.as_mut_ptr())
                 .into_result()?
