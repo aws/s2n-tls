@@ -136,6 +136,7 @@ fn convert_to_data_series(
 /// Plots given DataSeries with given chart parameters
 fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
     data: &[DataSeries],
+    image_name: &str,
     bench_name: &str,
     x_label_formatter: &F,
     y_label: &str,
@@ -154,7 +155,7 @@ fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
         .unwrap();
 
     // setup plotting
-    let path = format!("images/historical-perf-{bench_name}.svg");
+    let path = format!("images/historical-perf-{image_name}.svg");
     let drawing_area = SVGBackend::new(&path, (1000, 500)).into_drawing_area();
     drawing_area.fill(&WHITE).unwrap();
 
@@ -289,6 +290,7 @@ fn main() {
     plot_data(
         &handshake_data,
         "handshake",
+        "handshake",
         &x_label_formatter,
         "Time",
         &|y| format!("{} ms", y / 1e6),
@@ -296,6 +298,7 @@ fn main() {
     plot_data(
         &throughput_data,
         "throughput",
+        "round trip throughput",
         &x_label_formatter,
         "Throughput",
         &|y| format!("{} GB/s", y / 1e9),

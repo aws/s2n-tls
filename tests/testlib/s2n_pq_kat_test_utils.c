@@ -158,13 +158,13 @@ static int s2n_test_kem_with_kat(const struct s2n_kem *kem, const char *kat_file
         POSIX_GUARD_RESULT(s2n_drbg_instantiate(&drbg_for_pq_kats, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
 
         /* Generate the public/private key pair */
-        POSIX_GUARD(kem->generate_keypair(pk, sk));
+        POSIX_GUARD(kem->generate_keypair(kem, pk, sk));
 
         /* Create a shared secret and use the public key to encrypt it */
-        POSIX_GUARD(kem->encapsulate(ct, client_shared_secret, pk));
+        POSIX_GUARD(kem->encapsulate(kem, ct, client_shared_secret, pk));
 
         /* Use the private key to decrypt the ct to get the shared secret */
-        POSIX_GUARD(kem->decapsulate(server_shared_secret, ct, sk));
+        POSIX_GUARD(kem->decapsulate(kem, server_shared_secret, ct, sk));
 
         /* Read the KAT values */
         POSIX_GUARD(ReadHex(kat_file, pk_answer, kem->public_key_length, "pk = "));
