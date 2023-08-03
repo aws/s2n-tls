@@ -18,7 +18,7 @@ mkdir .cargo
 cat aws-lc-config/s2n.toml > .cargo/config.toml
 cargo bench
 scripts/bench-memory.sh
-scripts/bench-past.sh
+cargo bench --bench handshake --bench throughput -- --profile-time 5
 rm -rf .cargo
 ```
 
@@ -42,7 +42,9 @@ Throughput benchmarks measure round-trip throughput with the client and server c
 
 To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 
-### Historical benchmarks
+To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -- --profile-time 5`, which profiles each benchmark for 5 seconds.
+
+## Historical benchmarks
 
 To do historical benchmarks, run `scripts/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
 

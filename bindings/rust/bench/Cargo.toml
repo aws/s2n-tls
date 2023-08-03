@@ -30,6 +30,7 @@ features = ["all_series", "all_elements", "full_palette", "svg_backend"]
 
 [dev-dependencies]
 criterion = "0.5"
+pprof = { version = "0.12", features = ["criterion", "flamegraph"] }
 
 [[bin]]
 name = "memory"
