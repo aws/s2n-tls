@@ -7,7 +7,7 @@ edition = "2021"
 default = ["rustls", "openssl"]
 rustls = ["dep:rustls", "rustls-pemfile"]
 openssl = ["dep:openssl"]
-memory = ["plotters", "crabgrind"]
+memory = ["plotters", "crabgrind", "structopt"]
 historical-perf = ["plotters", "serde_json", "semver"]
 
 [dependencies]
@@ -19,6 +19,7 @@ rustls = { version = "0.21", optional = true }
 rustls-pemfile = { version = "1.0", optional = true }
 openssl = { version = "0.10", features = ["vendored"], optional = true }
 crabgrind = { version = "0.1", optional = true }
+structopt = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
 semver = { version = "1.0", optional = true }
 
