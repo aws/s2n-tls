@@ -501,7 +501,7 @@ impl Builder {
             _context: *mut ::libc::c_void,
             session_ticket: *mut s2n_session_ticket,
         ) -> libc::c_int {
-            let session_ticket = session_ticket::SessionTicket::from_raw(*session_ticket);
+            let session_ticket = session_ticket::SessionTicket::from_ptr(&*session_ticket);
             with_context(conn_ptr, |conn, context| {
                 let callback = context.session_ticket_callback.as_ref();
                 callback.map(|c| c.on_session_ticket(conn, session_ticket))
