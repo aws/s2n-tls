@@ -24,27 +24,28 @@
  * the send/recvmsg calls more accurately, we mock the socket via two separate
  * buffers: data_buffer and ancillary_buffer.
  *
- * The mock implementation, uses 3 bytes with a tag + len format to represent
- * each record. The first byte(tag) is the record_type and the next two represent
+ * The mock implementation uses 3 bytes with a tag + len format to represent
+ * each record. The first byte represents the record_type and the next two represent
  * the length of the record. Length is represented as a u16 to capture the max
  * possible TLS record length.
  *
- * memory layout per record:
+ * Example: ancillary_buffer memory layout per record:
  * ```
  *    [     u8    |    u16    ]
  *     record_type   length
  * ```
  *
- * memory layout of ancillary_buffer with 3 records and how it maps
- * to the data_buffer:
+ * Example: memory layout of ancillary_buffer and data_buffer with 3 records:
  * ```
  *            ancillary_buffer
+ *
  *    [ [record] [record] [record] ]
  *    [ [u8|u16] [u8|u16] [u8|u16] ]
  *    [  [23|5]   [23|7]    [21|2] ]
  *           |        |         |
  *     v-------v v-----------v v-v
  *    [1 2 3 4 5 1 2 3 4 5 6 7 1 2]
+ *
  *              data_buffer
  * ```
  */
@@ -62,5 +63,4 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg, u
 
 S2N_RESULT s2n_test_init_ktls_stuffer_io(struct s2n_connection *server, struct s2n_connection *client,
         struct s2n_test_ktls_io_pair *io_pair);
-S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t new_len);
 S2N_CLEANUP_RESULT s2n_ktls_io_pair_free(struct s2n_test_ktls_io_pair *ctx);

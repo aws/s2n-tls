@@ -42,7 +42,6 @@ S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg
     return S2N_RESULT_OK;
 }
 
-/* TODO make use of record_type */
 static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg, uint8_t *record_type)
 {
     POSIX_ENSURE_REF(io_context);
@@ -56,7 +55,6 @@ static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg, ui
     return recvmsg(fd, msg, 0);
 }
 
-/* TODO make use of record_type */
 static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg, uint8_t record_type)
 {
     POSIX_ENSURE_REF(io_context);

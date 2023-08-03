@@ -49,6 +49,7 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
 
 /* Testing */
+/* TODO The following fn signatures will removed `record_type` in a following PR to better match send/recvmsg */
 typedef ssize_t (*s2n_ktls_sendmsg_fn)(void *io_context, const struct msghdr *msg, uint8_t record_type);
 typedef ssize_t (*s2n_ktls_recvmsg_fn)(void *io_context, struct msghdr *msg, uint8_t *record_type);
 S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg_fn send_cb, void *send_ctx);

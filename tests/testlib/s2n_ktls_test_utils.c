@@ -17,12 +17,12 @@
 
 /* Since it is possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
-S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
+static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
 {
     RESULT_ENSURE_REF(io_ctx);
     RESULT_ENSURE(remaining_len > 0, S2N_ERR_IO);
 
-    /* rewind the last header */
+    /* rewind so we can read the last header with the updated len */
     RESULT_GUARD_POSIX(s2n_stuffer_rewind_read(&io_ctx->ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE));
 
     /* get position for the last header's length */
@@ -119,17 +119,17 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg, u
         POSIX_ENSURE_GTE(amount_requested, 0);
         total_read += n_read;
 
-        /* Handle if we partially read a record */
+        /* handle partially read records */
         ssize_t remaining_len = n_avail - n_read;
         if (remaining_len) {
             POSIX_GUARD_RESULT(s2n_test_ktls_update_prev_header_len(io_ctx, remaining_len));
         }
 
-        /* if already read the requested amount then break */
+        /* if we have read the amount_requested then we are done */
         if (amount_requested == 0) {
             break;
         }
-        /* Attempt to read multiple records (must be of the same type) */
+        /* attempt to read multiple records (must be of the same type) */
         if (amount_requested) {
             uint8_t next_record_type = 0;
             int ret = s2n_stuffer_peek_char(&io_ctx->ancillary_buffer, (char *) &next_record_type);
