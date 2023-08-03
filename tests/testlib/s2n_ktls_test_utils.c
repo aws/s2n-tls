@@ -36,14 +36,13 @@ S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer 
     return S2N_RESULT_OK;
 }
 
-ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msghdr *msg, uint8_t record_type)
+ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *msg, uint8_t record_type)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->send_io_context);
+    POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
-    struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) conn->send_io_context;
+    struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->send_recv_msg_invoked_count++;
 
@@ -53,16 +52,13 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msg
         POSIX_ENSURE_REF(buf);
         size_t len = msg->msg_iov[count].iov_len;
 
-        /* If we fail to write to stuffer then return blocked */
         if (s2n_stuffer_write_bytes(&io_ctx->data_buffer, buf, len) < 0) {
-            if (count > 0) {
-                /* This mock implementation doesn't handle partial writes for msg_iovlen > 1.
-                 *
-                 * This simplifies the implementation and importantly doesn't limit our test
-                 * coverage because partial write are handled the same regardless of
-                 * msg_iovlen. */
-                POSIX_BAIL(S2N_ERR_SAFETY);
-            }
+            /* This mock implementation doesn't handle partial writes for msg_iovlen > 1.
+             *
+             * This simplifies the implementation and importantly doesn't limit our test
+             * coverage because partial write are handled the same regardless of
+             * msg_iovlen. */
+            POSIX_ENSURE(count == 0, S2N_ERR_SAFETY);
 
             errno = EAGAIN;
             return -1;
@@ -84,15 +80,14 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(struct s2n_connection *conn, struct msg
  * the length of the next record. Instead the socket returns the minimum of
  * bytes-requested and data-available; reading multiple consecutive records if they
  * are of the same type. */
-ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msghdr *msg, uint8_t *record_type)
+ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg, uint8_t *record_type)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->recv_io_context);
+    POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
     POSIX_ENSURE_REF(record_type);
 
-    struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) conn->recv_io_context;
+    struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->send_recv_msg_invoked_count++;
     /* s2n only receives using msg_iovlen of 1 */
@@ -107,7 +102,6 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
     }
 
     ssize_t total_read = 0;
-    /* updated as partial or multiple records are read */
     size_t amount_requested = msg->msg_iov->iov_len;
     while (true) {
         /* read record_type and number of bytes available in the next record */
@@ -119,12 +113,7 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
         /* read minimum of requested_len and bytes_available */
         size_t n_read = MIN(amount_requested, n_avail);
         POSIX_ENSURE_GT(n_read, 0);
-
-        int ret = s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + total_read, n_read);
-        if (ret < 0) {
-            errno = EINVAL;
-            return -1;
-        }
+        POSIX_GUARD(s2n_stuffer_read_bytes(&io_ctx->data_buffer, buf + total_read, n_read));
 
         amount_requested -= n_read;
         POSIX_ENSURE_GTE(amount_requested, 0);
@@ -153,35 +142,6 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(struct s2n_connection *conn, struct msg
     }
 
     return total_read;
-}
-
-S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data, uint16_t expected_len)
-{
-    RESULT_ENSURE_REF(ktls_io);
-    RESULT_ENSURE_REF(expected_data);
-
-    struct s2n_stuffer *stuffer = &ktls_io->data_buffer;
-    RESULT_ENSURE_EQ(s2n_stuffer_data_available(stuffer), expected_len);
-    uint8_t *data_ptr = s2n_stuffer_raw_read(stuffer, expected_len);
-    RESULT_ENSURE_REF(data_ptr);
-    RESULT_ENSURE_EQ(memcmp(data_ptr, expected_data, expected_len), 0);
-
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t expected_record_type, uint16_t expected_len)
-{
-    RESULT_ENSURE_REF(ktls_io);
-
-    uint8_t tag;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(&ktls_io->ancillary_buffer, &tag));
-    RESULT_ENSURE_EQ(tag, expected_record_type);
-
-    uint16_t len;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&ktls_io->ancillary_buffer, &len));
-    RESULT_ENSURE_EQ(len, expected_len);
-
-    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_test_init_ktls_stuffer_io(struct s2n_connection *server, struct s2n_connection *client,

@@ -14,10 +14,11 @@
  */
 
 #include "tls/s2n_ktls.h"
+#include "utils/s2n_socket.h"
 
 /* Used to override sendmsg and recvmsg for testing. */
-static ssize_t s2n_ktls_default_sendmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t record_type);
-static ssize_t s2n_ktls_default_recvmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t *record_type);
+static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg, uint8_t record_type);
+static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg, uint8_t *record_type);
 s2n_ktls_sendmsg_fn s2n_sendmsg_fn = s2n_ktls_default_sendmsg;
 s2n_ktls_recvmsg_fn s2n_recvmsg_fn = s2n_ktls_default_recvmsg;
 
@@ -42,24 +43,28 @@ S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg
 }
 
 /* TODO make use of record_type */
-static ssize_t s2n_ktls_default_recvmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t *record_type)
+static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg, uint8_t *record_type)
 {
-    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(record_type);
+
     int fd = 0;
-    POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_RECV, &fd));
+    const struct s2n_socket_read_io_context *peer_socket_ctx = io_context;
+    fd = peer_socket_ctx->fd;
 
     return recvmsg(fd, msg, 0);
 }
 
 /* TODO make use of record_type */
-static ssize_t s2n_ktls_default_sendmsg(struct s2n_connection *conn, struct msghdr *msg, uint8_t record_type)
+static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg, uint8_t record_type)
 {
-    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
+
     int fd = 0;
-    POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &fd));
+    const struct s2n_socket_write_io_context *peer_socket_ctx = io_context;
+    fd = peer_socket_ctx->fd;
 
     return sendmsg(fd, msg, 0);
 }
