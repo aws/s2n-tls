@@ -501,11 +501,7 @@ impl Builder {
             _context: *mut ::libc::c_void,
             session_ticket: *mut s2n_session_ticket,
         ) -> libc::c_int {
-            let ptr = NonNull::new(session_ticket).expect("ticket should not be null");
-            let session_ticket = match session_ticket::SessionTicket::from_raw(ptr) {
-                Ok(ticket) => ticket,
-                Err(_) => return CallbackResult::Failure.into(),
-            };
+            let session_ticket = session_ticket::SessionTicket::from_raw(*session_ticket);
             with_context(conn_ptr, |conn, context| {
                 let callback = context.session_ticket_callback.as_ref();
                 callback.map(|c| c.on_session_ticket(conn, session_ticket))
@@ -638,7 +634,9 @@ impl Builder {
 
     /// Enable negotiating session tickets in a TLS connection
     pub fn enable_session_tickets(&mut self, enable: bool) -> Result<&mut Self, Error> {
-        unsafe { s2n_config_set_session_tickets_onoff(self.as_mut_ptr(), enable.into()).into_result() }?;
+        unsafe {
+            s2n_config_set_session_tickets_onoff(self.as_mut_ptr(), enable.into()).into_result()
+        }?;
         Ok(self)
     }
 
@@ -660,7 +658,7 @@ impl Builder {
                 self.as_mut_ptr(),
                 key_name.as_ptr(),
                 key_name_len,
-                // s2n-tls does not modify the key, but needs a mut parameter because it makes working with stuffers and blobs easier
+                // s2n-tls doesn't mutate key, it's just mut for easier use with stuffers and blobs
                 key.as_ptr() as *mut u8,
                 key_len,
                 intro_time.as_secs(),

@@ -8,17 +8,14 @@ mod tests {
         session_ticket::{SessionTicket, SessionTicketCallback},
         testing::{s2n_tls::*, *},
     };
-    use std::error::Error;
     use std::{cell::RefCell, rc::Rc, time::Duration};
+    use std::{error::Error, sync::Mutex};
 
     // Creates session ticket callback handler
     #[derive(Default, Clone)]
     pub struct SessionTicketRawBytesHandler {
-        stored_ticket: Rc<RefCell<Vec<u8>>>,
+        stored_ticket: Arc<Mutex<Vec<u8>>>,
     }
-
-    unsafe impl Sync for SessionTicketRawBytesHandler{}
-    unsafe impl Send for SessionTicketRawBytesHandler{}
 
     // Implement the session ticket callback
     impl SessionTicketCallback for SessionTicketRawBytesHandler {
@@ -27,18 +24,18 @@ mod tests {
             _connection: &mut connection::Connection,
             session_ticket: SessionTicket,
         ) {
-            let data = session_ticket.session_data();
-            (*self.stored_ticket).borrow_mut().extend(data);
+            let mut ptr = self.stored_ticket.lock().unwrap();
+            ptr.extend(session_ticket.session_data().unwrap());
         }
     }
 
     #[derive(Default, Clone)]
-    pub struct SessionTicketHandler{
+    pub struct SessionTicketHandler {
         stored_ticket: Rc<RefCell<Option<SessionTicket>>>,
     }
 
-    unsafe impl Sync for SessionTicketHandler{}
-    unsafe impl Send for SessionTicketHandler{}
+    unsafe impl Sync for SessionTicketHandler {}
+    unsafe impl Send for SessionTicketHandler {}
 
     // Implement the session ticket callback that stores the SessionTicket type instead of
     // raw bytes.
@@ -117,7 +114,8 @@ mod tests {
         // create a client connection with a resumption ticket
         let mut client = connection::Connection::new_client();
 
-        let ticket = SessionTicket::new(handler.stored_ticket.borrow().to_vec());
+        let ptr = (*handler.stored_ticket).lock().unwrap();
+        let ticket = SessionTicket::new(ptr.to_vec());
         client
             .set_session_ticket(&ticket)?
             .set_config(client_config)
@@ -196,7 +194,9 @@ mod tests {
             .set_config(server_config)
             .expect("Failed to bind config to server connection");
 
-        let ticket = SessionTicket::new(handler.stored_ticket.borrow().to_vec());
+        let ptr = (*handler.stored_ticket).lock().unwrap();
+        let ticket = SessionTicket::new(ptr.to_vec());
+
         // create a client connection with a resumption ticket
         let mut client = connection::Connection::new_client();
         client
