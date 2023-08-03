@@ -19,7 +19,7 @@ mkdir .cargo
 cat aws-lc-config/s2n.toml > .cargo/config.toml
 cargo bench
 scripts/bench-memory.sh
-scripts/bench-past.sh
+cargo bench --bench handshake --bench throughput -- --profile-time 5
 rm -rf .cargo
 ```
 
@@ -40,6 +40,8 @@ Default features (`rustls` and `openssl`) can be disabled by running the benches
 The handshake and throughput benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
 
 Throughput benchmarks measure round-trip throughput with the client and server connections in the same thread for symmetry. In practice, a machine would either host only the client or only the server and use multiple threads, so throughput for a single connection could theoretically be up to ~4x higher than the values from the benchmarks (when run on the same machine).
+
+To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -- --profile-time 5`, which profiles each benchmark for 5 seconds and stores the resulting flamegraph in `target/criterion/[bench-name]/[lib-name]/profile/flamegraph.svg`.
 
 ## Memory benchmarks
 

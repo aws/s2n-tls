@@ -19,3 +19,6 @@ pub use crate::{
     },
     s2n_tls::S2NConnection,
 };
+
+// controls profiler frequency for flamegraph generation in benchmarks
+pub const PROFILER_FREQUENCY: i32 = 100;
