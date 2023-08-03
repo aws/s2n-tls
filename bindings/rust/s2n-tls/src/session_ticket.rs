@@ -39,6 +39,7 @@ impl SessionTicket {
         Ok(Duration::new(lifetime.into(), 0))
     }
 
+    #[allow(clippy::len_without_is_empty)]
     pub fn len(&self) -> Result<usize, Error> {
         let mut data_len = 0;
         unsafe {
