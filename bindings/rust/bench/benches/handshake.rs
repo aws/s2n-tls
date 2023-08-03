@@ -57,38 +57,62 @@ fn bench_handshake_for_library<T: TlsConnection>(
     });
 }
 
-pub fn bench_handshake_params(c: &mut Criterion) {
+fn bench_handshake_with_params(
+    bench_group: &mut BenchmarkGroup<WallTime>,
+    handshake_type: HandshakeType,
+    kx_group: KXGroup,
+    sig_type: SigType,
+) {
+    bench_handshake_for_library::<S2NConnection>(bench_group, handshake_type, kx_group, sig_type);
+    #[cfg(feature = "rustls")]
+    bench_handshake_for_library::<RustlsConnection>(
+        bench_group,
+        handshake_type,
+        kx_group,
+        sig_type,
+    );
+    #[cfg(feature = "openssl")]
+    bench_handshake_for_library::<OpenSslConnection>(
+        bench_group,
+        handshake_type,
+        kx_group,
+        sig_type,
+    );
+}
+
+pub fn bench_handshake_types(c: &mut Criterion) {
     for handshake_type in HandshakeType::iter() {
-        for kx_group in KXGroup::iter() {
-            for sig_type in SigType::iter() {
-                let mut bench_group = c.benchmark_group(match handshake_type {
-                    HandshakeType::ServerAuth => format!("handshake-{:?}-{:?}", kx_group, sig_type),
-                    HandshakeType::MutualAuth => {
-                        format!("handshake-mTLS-{:?}-{:?}", kx_group, sig_type)
-                    }
-                });
-                bench_handshake_for_library::<S2NConnection>(
-                    &mut bench_group,
-                    handshake_type,
-                    kx_group,
-                    sig_type,
-                );
-                #[cfg(feature = "rustls")]
-                bench_handshake_for_library::<RustlsConnection>(
-                    &mut bench_group,
-                    handshake_type,
-                    kx_group,
-                    sig_type,
-                );
-                #[cfg(feature = "openssl")]
-                bench_handshake_for_library::<OpenSslConnection>(
-                    &mut bench_group,
-                    handshake_type,
-                    kx_group,
-                    sig_type,
-                );
-            }
-        }
+        let mut bench_group = c.benchmark_group(format!("handshake-{handshake_type:?}"));
+        bench_handshake_with_params(
+            &mut bench_group,
+            handshake_type,
+            KXGroup::default(),
+            SigType::default(),
+        );
+    }
+}
+
+pub fn bench_handshake_kx_groups(c: &mut Criterion) {
+    for kx_group in KXGroup::iter() {
+        let mut bench_group = c.benchmark_group(format!("handshake-{kx_group:?}"));
+        bench_handshake_with_params(
+            &mut bench_group,
+            HandshakeType::default(),
+            kx_group,
+            SigType::default(),
+        );
+    }
+}
+
+pub fn bench_handshake_sig_types(c: &mut Criterion) {
+    for sig_type in SigType::iter() {
+        let mut bench_group = c.benchmark_group(format!("handshake-{sig_type:?}"));
+        bench_handshake_with_params(
+            &mut bench_group,
+            HandshakeType::default(),
+            KXGroup::default(),
+            sig_type,
+        );
     }
 }
 
@@ -96,6 +120,6 @@ criterion_group! {
     name = benches;
     // profile 100 samples/sec
     config = Criterion::default().with_profiler(PProfProfiler::new(PROFILER_FREQUENCY, Output::Flamegraph(None)));
-    targets = bench_handshake_params
+    targets = bench_handshake_types, bench_handshake_kx_groups, bench_handshake_sig_types
 }
 criterion_main!(benches);

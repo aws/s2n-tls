@@ -2,6 +2,8 @@
 
 We use to Criterion.rs to benchmark s2n-tls against two commonly used TLS libraries, Rustls and OpenSSL.
 
+All benchmarks are run in an idealized environment, using only a single thread and with custom IO bypassing the networking stack. As such, performance numbers will be different from in practice, but relative performance between the libraries should still be accurate.
+
 ## Quickstart
 ```
 # generate rust bindings
@@ -35,6 +37,8 @@ Default features (`rustls` and `openssl`) can be disabled by running the benches
 ## Running benchmarks
 
 The benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
+
+Throughput benchmarks measure round-trip throughput with the client and server connections in the same thread for symmetry. In practice, a machine would either host only the client or only the server and use multiple threads, so throughput for a single connection could theoretically be up to ~4x higher than the values from the benchmarks (when run on the same machine).
 
 To run memory benchmarks, run `scripts/bench-memory.sh`. A graph of memory usage will be generated in `images/memory.svg`.
 

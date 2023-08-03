@@ -53,7 +53,7 @@ fn bench_throughput_for_library<T: TlsConnection>(
     });
 }
 
-pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
+pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
     // arbitrarily large to cut across TLS record boundaries
     let mut shared_buf = [0u8; 100000];
 
@@ -84,6 +84,6 @@ criterion_group! {
     name = benches;
     // profile 100 samples/sec
     config = Criterion::default().with_profiler(PProfProfiler::new(PROFILER_FREQUENCY, Output::Flamegraph(None)));
-    targets = bench_throughput_cipher_suite
+    targets = bench_throughput_cipher_suites
 }
 criterion_main!(benches);

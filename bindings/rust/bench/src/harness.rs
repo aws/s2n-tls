@@ -86,6 +86,15 @@ pub enum HandshakeType {
     MutualAuth,
 }
 
+impl Debug for HandshakeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            HandshakeType::ServerAuth => write!(f, "no-mTLS"),
+            HandshakeType::MutualAuth => write!(f, "mTLS"),
+        }
+    }
+}
+
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
@@ -105,14 +114,10 @@ pub enum KXGroup {
 
 impl Debug for KXGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Secp256R1 => "secp256r1",
-                Self::X25519 => "x25519",
-            }
-        )
+        match self {
+            Self::Secp256R1 => write!(f, "secp256r1"),
+            Self::X25519 => write!(f, "x25519"),
+        }
     }
 }
 
