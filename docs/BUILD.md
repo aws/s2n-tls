@@ -108,70 +108,9 @@ For help building a desired libcrypto on your platform, please consult the proje
 
 ### AWS-LC
 
-[AWS-LC](https://github.com/aws/aws-lc) is the recommended libcrypto to use with s2n-tls due to increased performance and security. AWS-LC can be built with the following:
+[AWS-LC](https://github.com/aws/aws-lc) is the recommended libcrypto to use with s2n-tls due to increased performance and security. See the [AWS-LC build documentation](https://github.com/aws/aws-lc/blob/main/BUILDING.md) for information on building AWS-LC.
 
-<details open>
-<summary>Ubuntu</summary>
-
-```bash
-# clone aws-lc locally
-git clone https://github.com/aws/aws-lc.git
-cd aws-lc
-
-# install build dependencies
-sudo apt update
-sudo apt install cmake ninja-build golang
-
-# build and install aws-lc
-cmake -GNinja -B build -DCMAKE_INSTALL_PREFIX=./aws-lc-install
-ninja -C build -j $(nproc)
-ninja -C build run_tests
-ninja -C build install
-```
-</details>
-
-<details>
-<summary>MacOS</summary>
-
-```bash
-# clone aws-lc locally
-git clone https://github.com/aws/aws-lc.git
-cd aws-lc
-
-# install build dependencies
-brew install cmake ninja go
-
-# build and install aws-lc
-cmake -GNinja -B build -DCMAKE_INSTALL_PREFIX=./aws-lc-install
-ninja -C build -j $(sysctl -n hw.ncpu)
-ninja -C build run_tests
-ninja -C build install
-```
-</details>
-
-<details>
-<summary>AL2</summary>
-
-```bash
-# clone aws-lc locally
-git clone https://github.com/aws/aws-lc.git
-cd aws-lc
-
-# install build dependencies
-sudo yum groupinstall "Development Tools"
-sudo yum install cmake3 ninja-build perl golang
-
-# build and install aws-lc
-cmake -GNinja -B build -DCMAKE_INSTALL_PREFIX=./aws-lc-install
-ninja -C build -j $(nproc)
-ninja -C build run_tests
-ninja -C build install
-```
-</details>
-
-The AWS-LC install location set by `CMAKE_INSTALL_PREFIX` should be specified when building s2n-tls with the `CMAKE_PREFIX_PATH` option. This will ensure that s2n-tls finds aws-lc when building.
-
-For more information on building AWS-LC, see the [Building AWS-LC documentation](https://github.com/aws/aws-lc/blob/main/BUILDING.md)
+The `CMAKE_INSTALL_PREFIX` option can be provided when building AWS-LC to specify where AWS-LC will be installed. The install path for AWS-LC should be provided when building s2n-tls, via the `CMAKE_PREFIX_PATH` option. This will ensure that s2n-tls is able to find the AWS-LC library artifact to link with.
 
 ## Other build methods
 
