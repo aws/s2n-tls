@@ -6,7 +6,6 @@ use crate::{
     enums::*,
     error::{Error, Fallible},
     security,
-    session_ticket::{self, SessionTicketCallback},
 };
 use core::{convert::TryInto, ptr::NonNull};
 use s2n_tls_sys::*;
@@ -501,7 +500,7 @@ impl Builder {
             _context: *mut ::libc::c_void,
             session_ticket: *mut s2n_session_ticket,
         ) -> libc::c_int {
-            let session_ticket = session_ticket::SessionTicket::from_ptr(&*session_ticket);
+            let session_ticket = SessionTicket::from_ptr(&*session_ticket);
             with_context(conn_ptr, |conn, context| {
                 let callback = context.session_ticket_callback.as_ref();
                 callback.map(|c| c.on_session_ticket(conn, session_ticket))
@@ -641,7 +640,7 @@ impl Builder {
     }
 
     /// Adds a key which will be used to encrypt and decrypt session tickets. The intro_time parameter is time since
-    /// the Unix epoch (Midnight, January 1st, 1970). If this is 0, then into_time is set to now.
+    /// the Unix epoch (Midnight, January 1st, 1970). If this is 0, then intro_time is set to now.
     pub fn add_session_ticket_key(
         &mut self,
         key_name: &[u8],

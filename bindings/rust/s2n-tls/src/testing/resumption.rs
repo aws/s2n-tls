@@ -5,8 +5,7 @@
 mod tests {
     use crate::{
         connection,
-        session_ticket::{SessionTicket, SessionTicketCallback},
-        testing::{s2n_tls::*, *},
+        testing::{s2n_tls::*, *}, callbacks::{SessionTicketCallback, SessionTicket},
     };
     use std::{error::Error, sync::Mutex, time::Duration};
 

@@ -22,7 +22,6 @@ pub mod enums;
 pub mod init;
 pub mod pool;
 pub mod security;
-pub mod session_ticket;
 
 pub use s2n_tls_sys as ffi;
 
