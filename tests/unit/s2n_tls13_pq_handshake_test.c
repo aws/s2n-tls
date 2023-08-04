@@ -404,7 +404,7 @@ int main()
                 .len_prefix_expected = false,
         },
         /* Kyber768 should be preferred over 1024, which should be preferred over 512
-         * when available. Note that nlike older KEM group preferences, 2023_06_01
+         * when available. Note that unlike older KEM group preferences, 2023_06_01
          * prefers secp256r1 over x25519 for the hybrid EC.
          */
         {
