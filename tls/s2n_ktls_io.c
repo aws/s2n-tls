@@ -17,8 +17,8 @@
 #include "utils/s2n_socket.h"
 
 /* Used to override sendmsg and recvmsg for testing. */
-static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg, uint8_t record_type);
-static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg, uint8_t *record_type);
+static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg);
+static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg);
 s2n_ktls_sendmsg_fn s2n_sendmsg_fn = s2n_ktls_default_sendmsg;
 s2n_ktls_recvmsg_fn s2n_recvmsg_fn = s2n_ktls_default_recvmsg;
 
@@ -42,11 +42,10 @@ S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg
     return S2N_RESULT_OK;
 }
 
-static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg, uint8_t *record_type)
+static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg)
 {
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
-    POSIX_ENSURE_REF(record_type);
 
     int fd = 0;
     const struct s2n_socket_read_io_context *peer_socket_ctx = io_context;
@@ -55,7 +54,7 @@ static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg, ui
     return recvmsg(fd, msg, 0);
 }
 
-static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg, uint8_t record_type)
+static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg)
 {
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);

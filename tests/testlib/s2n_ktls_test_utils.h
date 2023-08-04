@@ -58,8 +58,8 @@ struct s2n_test_ktls_io_pair {
     struct s2n_test_ktls_io_stuffer client_in;
     struct s2n_test_ktls_io_stuffer server_in;
 };
-ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *msg, uint8_t record_type);
-ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg, uint8_t *record_type);
+ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *msg);
+ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg);
 
 S2N_RESULT s2n_test_init_ktls_stuffer_io(struct s2n_connection *server, struct s2n_connection *client,
         struct s2n_test_ktls_io_pair *io_pair);

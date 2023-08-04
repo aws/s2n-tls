@@ -36,12 +36,14 @@ static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_s
     return S2N_RESULT_OK;
 }
 
-ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *msg, uint8_t record_type)
+ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *msg)
 {
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
+    uint8_t *record_type = (uint8_t *) msg->msg_control;
+    POSIX_ENSURE_REF(record_type);
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->send_recv_msg_invoked_count++;
@@ -68,7 +70,7 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *
     }
     if (total_len) {
         /* write record_type and len after some data was written successfully */
-        POSIX_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, record_type));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, *record_type));
         POSIX_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
     }
 
@@ -80,13 +82,14 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *
  * the length of the next record. Instead the socket returns the minimum of
  * bytes-requested and data-available; reading multiple consecutive records if they
  * are of the same type. */
-ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg, uint8_t *record_type)
+ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg)
 {
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
-    POSIX_ENSURE_REF(record_type);
 
+    uint8_t *record_type = (uint8_t *) msg->msg_control;
+    POSIX_ENSURE_REF(record_type);
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->send_recv_msg_invoked_count++;

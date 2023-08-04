@@ -19,8 +19,7 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"
 
-#define S2N_TEST_RECORD_TYPE 43
-#define S2N_TEST_TO_SEND     10
+#define S2N_TEST_TO_SEND 10
 
 S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data, uint16_t expected_len)
 {
@@ -54,6 +53,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    uint8_t test_record_type = 43;
     /* test data */
     uint8_t test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
@@ -73,14 +73,14 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_init_ktls_stuffer_io(server, client, &io_pair));
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             /* sendmsg */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
 
             /* confirm sent data */
             EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, S2N_TEST_TO_SEND));
-            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, S2N_TEST_RECORD_TYPE, S2N_TEST_TO_SEND));
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, S2N_TEST_TO_SEND));
 
             EXPECT_EQUAL(io_pair.client_in.send_recv_msg_invoked_count, 1);
             EXPECT_EQUAL(io_pair.server_in.send_recv_msg_invoked_count, 0);
@@ -98,9 +98,9 @@ int main(int argc, char **argv)
 
             size_t send_zero = 0;
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = send_zero };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             /* sendmsg */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, send_zero);
 
             /* confirm no records were sent  */
@@ -130,15 +130,15 @@ int main(int argc, char **argv)
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
                 test_data_ptr += S2N_TEST_TO_SEND;
             }
-            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = count };
+            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = count, .msg_control = &test_record_type };
 
             /* sendmsg */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, total_to_send);
 
             /* confirm sent data */
             EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, total_to_send));
-            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, S2N_TEST_RECORD_TYPE, S2N_TEST_TO_SEND * count));
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, S2N_TEST_TO_SEND * count));
             /* validate only 1 record was sent  */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), S2N_TEST_KTLS_MOCK_HEADER_SIZE);
             EXPECT_EQUAL(io_pair.client_in.send_recv_msg_invoked_count, 1);
@@ -158,14 +158,14 @@ int main(int argc, char **argv)
 
             size_t records_to_send = 5;
             struct iovec send_msg_iov = { .iov_len = S2N_TEST_TO_SEND };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             size_t total_sent = 0;
             for (size_t i = 0; i < records_to_send; i++) {
                 /* increment test data ptr */
                 send_msg_iov.iov_base = test_data + total_sent;
 
                 /* sendmsg */
-                ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+                ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
                 EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
                 total_sent += bytes_written;
             }
@@ -176,7 +176,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), records_to_send * S2N_TEST_KTLS_MOCK_HEADER_SIZE);
             /* validate ancillary header */
             for (size_t i = 0; i < records_to_send; i++) {
-                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, S2N_TEST_RECORD_TYPE, S2N_TEST_TO_SEND));
+                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, S2N_TEST_TO_SEND));
                 /* progress/consume the header validate the next header */
                 EXPECT_NOT_NULL(s2n_stuffer_raw_read(&io_pair.client_in.ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE));
             }
@@ -201,9 +201,10 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < records_to_send; i++) {
                 /* increment test data ptr */
                 send_msg_iov.iov_base = test_data + total_sent;
+                send_msg.msg_control = &i;
 
                 /* sendmsg */
-                ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, i);
+                ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
                 EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
                 total_sent += bytes_written;
             }
@@ -236,21 +237,21 @@ int main(int argc, char **argv)
 
             size_t to_send = 1;
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             /* attempt sendmsg and expect EAGAIN */
-            EXPECT_EQUAL(s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE), -1);
+            EXPECT_EQUAL(s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg), -1);
             EXPECT_EQUAL(errno, EAGAIN);
 
             /* enable growable to unblock write */
             /* cppcheck-suppress redundantAssignment */
             io_pair.client_in.data_buffer.growable = true;
             /* attempt sendmsg again and expect success */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, to_send);
 
             /* confirm sent data */
             EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, to_send));
-            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, S2N_TEST_RECORD_TYPE, to_send));
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, to_send));
             /* validate only 1 record was sent  */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), S2N_TEST_KTLS_MOCK_HEADER_SIZE);
 
@@ -279,10 +280,10 @@ int main(int argc, char **argv)
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
                 test_data_ptr += S2N_TEST_TO_SEND;
             }
-            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = count };
+            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = count, .msg_control = &test_record_type };
 
             /* sendmsg */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE),
+            EXPECT_FAILURE_WITH_ERRNO(s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg),
                     S2N_ERR_SAFETY);
             /* validate no record were sent  */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), 0);
@@ -305,21 +306,21 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_init_ktls_stuffer_io(server, client, &io_pair));
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             /* sendmsg */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, to_send);
 
             uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_send };
-            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1 };
-            /* recvmsg */
             uint8_t recv_record_type = 0;
-            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_send };
+            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1, .msg_control = &recv_record_type };
+            /* recvmsg */
+            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
             EXPECT_EQUAL(bytes_read, to_send);
             /* confirm read data */
             EXPECT_BYTEARRAY_EQUAL(test_data, recv_buffer, to_send);
-            EXPECT_EQUAL(recv_record_type, S2N_TEST_RECORD_TYPE);
+            EXPECT_EQUAL(recv_record_type, test_record_type);
 
             EXPECT_EQUAL(io_pair.client_in.send_recv_msg_invoked_count, 2);
             EXPECT_EQUAL(io_pair.server_in.send_recv_msg_invoked_count, 0);
@@ -337,29 +338,29 @@ int main(int argc, char **argv)
 
             size_t to_send = 1;
             uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_send };
-            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1 };
-            /* attempting to recv data when nothing has been sent blocks */
             uint8_t recv_record_type = 0;
-            EXPECT_EQUAL(s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type), -1);
+            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_send };
+            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1, .msg_control = &recv_record_type };
+            /* attempting to recv data when nothing has been sent blocks */
+            EXPECT_EQUAL(s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg), -1);
             EXPECT_EQUAL(errno, EAGAIN);
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             /* sendmsg */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, to_send);
 
             /* recv all the sent data */
             ssize_t bytes_read = 0;
-            bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
             EXPECT_EQUAL(bytes_read, to_send);
             /* confirm read data */
             EXPECT_BYTEARRAY_EQUAL(test_data, recv_buffer, to_send);
-            EXPECT_EQUAL(recv_record_type, S2N_TEST_RECORD_TYPE);
+            EXPECT_EQUAL(recv_record_type, test_record_type);
 
             /* attempting to recv more data blocks */
-            EXPECT_EQUAL(s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type), -1);
+            EXPECT_EQUAL(s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg), -1);
             EXPECT_EQUAL(errno, EAGAIN);
 
             EXPECT_EQUAL(io_pair.client_in.send_recv_msg_invoked_count, 4);
@@ -380,21 +381,21 @@ int main(int argc, char **argv)
             size_t remaining_len = to_send - to_recv;
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             /* sendmsg */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, to_send);
 
             uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
-            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1 };
-            /* recvmsg */
             uint8_t recv_record_type = 0;
-            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
+            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1, .msg_control = &recv_record_type };
+            /* recvmsg */
+            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
             EXPECT_EQUAL(bytes_read, to_recv);
             /* confirm read data */
             EXPECT_BYTEARRAY_EQUAL(test_data, recv_buffer, to_recv);
-            EXPECT_EQUAL(recv_record_type, S2N_TEST_RECORD_TYPE);
+            EXPECT_EQUAL(recv_record_type, test_record_type);
 
             /* confirm that a single records still exists; data len is updated on partial reads */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), S2N_TEST_KTLS_MOCK_HEADER_SIZE);
@@ -402,9 +403,9 @@ int main(int argc, char **argv)
             /* offset and recv remaining data of the same record type */
             recv_msg_iov.iov_base = recv_buffer + to_recv;
             recv_msg_iov.iov_len = remaining_len;
-            bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
             EXPECT_EQUAL(bytes_read, remaining_len);
-            EXPECT_EQUAL(recv_record_type, S2N_TEST_RECORD_TYPE);
+            EXPECT_EQUAL(recv_record_type, test_record_type);
 
             /* validate all sent/recv data */
             EXPECT_BYTEARRAY_EQUAL(test_data, recv_buffer, to_send);
@@ -428,22 +429,22 @@ int main(int argc, char **argv)
             size_t to_recv = 15;
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             /* sendmsg */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, to_send);
 
             uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
-            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1 };
-            /* recvmsg */
             uint8_t recv_record_type = 0;
-            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
+            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1, .msg_control = &recv_record_type };
+            /* recvmsg */
+            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
 
             /* confirm read data: minimum of sent and requested (to_send) */
             EXPECT_EQUAL(bytes_read, to_send);
             EXPECT_BYTEARRAY_EQUAL(test_data, recv_buffer, to_send);
-            EXPECT_EQUAL(recv_record_type, S2N_TEST_RECORD_TYPE);
+            EXPECT_EQUAL(recv_record_type, test_record_type);
 
             EXPECT_EQUAL(io_pair.client_in.send_recv_msg_invoked_count, 2);
         };
@@ -464,26 +465,26 @@ int main(int argc, char **argv)
             size_t to_recv = 10;
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
-            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
+            struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = &test_record_type };
             size_t total_sent = 0;
             for (size_t i = 0; i < records_to_send; i++) {
                 /* increment test data ptr */
                 send_msg_iov.iov_base = test_data + total_sent;
 
                 /* sendmsg */
-                ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, S2N_TEST_RECORD_TYPE);
+                ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
                 EXPECT_EQUAL(bytes_written, to_send);
                 total_sent += bytes_written;
             }
 
             uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
-            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1 };
-            /* recvmsg */
             uint8_t recv_record_type = 0;
-            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
+            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1, .msg_control = &recv_record_type };
+            /* recvmsg */
+            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
             EXPECT_EQUAL(bytes_read, to_recv);
-            EXPECT_EQUAL(recv_record_type, S2N_TEST_RECORD_TYPE);
+            EXPECT_EQUAL(recv_record_type, test_record_type);
 
             /* validate all data was received */
             EXPECT_EQUAL(bytes_read, total_sent);
@@ -513,27 +514,29 @@ int main(int argc, char **argv)
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
             struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
             /* sendmsg record_type_1 */
-            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, record_type_1);
+            send_msg.msg_control = &record_type_1;
+            ssize_t bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, to_send);
             total_sent += bytes_written;
             /* sendmsg record_type_2 */
+            send_msg.msg_control = &record_type_2;
             send_msg_iov.iov_base = test_data + total_sent;
-            bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg, record_type_2);
+            bytes_written = s2n_test_ktls_sendmsg_stuffer_io(server->send_io_context, &send_msg);
             EXPECT_EQUAL(bytes_written, to_send);
             total_sent += bytes_written;
 
             uint8_t recv_buffer[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
-            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
-            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1 };
-            /* only recv record_type_1 even though we request more data */
             uint8_t recv_record_type = 0;
-            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            struct iovec recv_msg_iov = { .iov_base = recv_buffer, .iov_len = to_recv };
+            struct msghdr recv_msg = { .msg_iov = &recv_msg_iov, .msg_iovlen = 1, .msg_control = &recv_record_type };
+            /* only recv record_type_1 even though we request more data */
+            ssize_t bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
             EXPECT_EQUAL(bytes_read, to_send);
             EXPECT_EQUAL(recv_record_type, record_type_1);
             total_recv += bytes_read;
             /* only recv record_type_2 even though we request more data */
             recv_msg_iov.iov_base = recv_buffer + bytes_read;
-            bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg, &recv_record_type);
+            bytes_read = s2n_test_ktls_recvmsg_stuffer_io(client->recv_io_context, &recv_msg);
             EXPECT_EQUAL(bytes_read, to_send);
             EXPECT_EQUAL(recv_record_type, record_type_2);
             total_recv += bytes_read;
