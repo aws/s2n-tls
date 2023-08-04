@@ -22,18 +22,18 @@ cd s2n-tls
 
 # install build dependencies
 sudo apt update
-sudo apt install cmake ninja-build
+sudo apt install cmake
 
 # install a libcrypto
 sudo apt install libssl-dev
 
 # build s2n-tls
-cmake . -Bbuild -GNinja \
+cmake . -Bbuild \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
-ninja -C build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
-ninja -C build install
+cmake --build build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+cmake --install build
 ```
 
 See the [s2n-tls build documentation](docs/BUILD.md) for further guidance on building s2n-tls for your platform.

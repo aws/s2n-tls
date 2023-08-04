@@ -1,13 +1,5 @@
 # Building s2n-tls
 
-Obtain s2n-tls by cloning the Github repo locally:
-```bash
-git clone https://github.com/aws/s2n-tls.git
-cd s2n-tls
-```
-
-## Building
-
 s2n-tls can be built as follows:
 
 <details open>
@@ -16,18 +8,18 @@ s2n-tls can be built as follows:
 ```bash
 # install build dependencies
 sudo apt update
-sudo apt install cmake ninja-build
+sudo apt install cmake
 
 # install a libcrypto
 sudo apt install libssl-dev
 
 # build s2n-tls
-cmake . -Bbuild -GNinja \
+cmake . -Bbuild \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
-ninja -C build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
-ninja -C build install
+cmake --build build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+cmake --install build
 ```
 </details>
 
@@ -36,19 +28,19 @@ ninja -C build install
 
 ```bash
 # install build dependencies
-brew install cmake ninja
+brew install cmake
 
 # install a libcrypto
 brew install openssl@3
 
 # build s2n-tls
-cmake . -Bbuild -GNinja \
+cmake . -Bbuild \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@3|grep libcrypto.dylib))) \
     -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
-ninja -C build -j $(sysctl -n hw.ncpu)
-CTEST_PARALLEL_LEVEL=$(sysctl -n hw.ncpu) ninja -C build test
-ninja -C build install
+cmake --build build -j $(sysctl -n hw.ncpu)
+CTEST_PARALLEL_LEVEL=$(sysctl -n hw.ncpu) ctest --test-dir build
+cmake --install build
 ```
 </details>
 
@@ -58,21 +50,23 @@ ninja -C build install
 ```bash
 # install build dependencies
 sudo yum groupinstall "Development Tools"
-sudo yum install cmake3 ninja-build 
+sudo yum install cmake3
 
 # install a libcrypto
 sudo yum install openssl-devel
 
 # build s2n-tls
-cmake . -Bbuild -GNinja \
+cmake . -Bbuild \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=./s2n-tls-install \
     -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz"
-ninja -C build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
-ninja -C build install
+cmake --build build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+cmake --install build
 ```
 </details>
+
+Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
 
 s2n-tls can be configured with the following CMake options. Each option can be set by passing a `-D<option>=<value>` flag to CMake.
 - [**`CMAKE_BUILD_TYPE`**](https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html): Sets the build type. Some of the possible build types are as follows:
@@ -114,20 +108,25 @@ The `CMAKE_INSTALL_PREFIX` option can be provided when building AWS-LC to specif
 
 ## Other build methods
 
-### Non-ninja CMake
+### Ninja build system
 
-s2n-tls can be built with CMake without a dependency on Ninja:
+[Ninja](https://ninja-build.org/) can be specified as the build system with CMake, which can lead to faster builds:
 
 <details open>
 <summary>Ubuntu</summary>
 
 ```bash
-cmake . -Bbuild \
+# install ninja
+sudo apt update
+sudo apt install ninja-build
+
+# build s2n-tls with ninja
+cmake . -Bbuild -GNinja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
-cmake --build build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
-cmake --install build
+ninja -C build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
+ninja -C build install
 ```
 </details>
 
