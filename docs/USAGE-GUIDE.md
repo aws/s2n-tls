@@ -1,13 +1,5 @@
 # Using s2n-tls
 
-s2n-tls is a C library, and is built using CMake. To clone the latest
-copy of s2n-tls from git use:
-
-```bash
-git clone https://github.com/aws/s2n-tls.git
-cd s2n-tls
-```
-
 ## Building s2n-tls
 
 See the [s2n-tls build documentation](BUILD.md) for guidance on building s2n-tls for your platform.

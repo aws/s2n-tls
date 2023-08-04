@@ -68,6 +68,10 @@ cmake --install build
 
 Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
 
+See the [s2n-tls usage guide](USAGE-GUIDE.md#consuming-s2n-tls-via-cmake) for instructions on how to include s2n-tls in your CMake project.
+
+## Configuring the s2n-tls build
+
 s2n-tls can be configured with the following CMake options. Each option can be set by passing a `-D<option>=<value>` flag to CMake.
 - [**`CMAKE_BUILD_TYPE`**](https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html): Sets the build type. Some of the possible build types are as follows:
   - `Release`: Produce an optimized s2n-tls library artifact with no debug info. This option should be used when building s2n-tls for use in production.
@@ -81,8 +85,6 @@ The entire list of s2n-tls CMake options can be viewed with the following comman
 ```bash
 cmake . -LH
 ```
-
-See the [s2n-tls usage guide](USAGE-GUIDE.md#consuming-s2n-tls-via-cmake) for instructions on how to include s2n-tls in your CMake project.
 
 ## Building with a specific libcrypto
 
@@ -110,7 +112,7 @@ The `CMAKE_INSTALL_PREFIX` option can be provided when building AWS-LC to specif
 
 ### Ninja build system
 
-[Ninja](https://ninja-build.org/) can be specified as the build system with CMake, which can lead to faster builds:
+[Ninja](https://ninja-build.org/) can be specified as the build system with CMake, which can increase build performance:
 
 <details open>
 <summary>Ubuntu</summary>
