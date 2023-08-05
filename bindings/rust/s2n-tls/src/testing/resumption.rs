@@ -4,8 +4,9 @@
 #[cfg(test)]
 mod tests {
     use crate::{
+        callbacks::{SessionTicket, SessionTicketCallback},
         connection,
-        testing::{s2n_tls::*, *}, callbacks::{SessionTicketCallback, SessionTicket},
+        testing::{s2n_tls::*, *},
     };
     use std::{error::Error, sync::Mutex, time::Duration};
 
@@ -32,7 +33,7 @@ mod tests {
     }
 
     // Create test ticket key
-    const KEY: [u8; 3] = [1, 2, 3];
+    const KEY: [u8; 16] = [0; 16];
     const KEYNAME: [u8; 3] = [1, 3, 4];
 
     #[test]

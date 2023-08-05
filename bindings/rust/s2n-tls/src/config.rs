@@ -652,6 +652,11 @@ impl Builder {
             .try_into()
             .map_err(|_| Error::INVALID_INPUT)?;
         let key_len: u32 = key.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        // Ticket keys should be at least 128 bits in strength
+        // https://www.rfc-editor.org/rfc/rfc5077#section-5.5
+        if key_len < 16 {
+            return Err(Error::INVALID_INPUT);
+        }
         unsafe {
             s2n_config_add_ticket_crypto_key(
                 self.as_mut_ptr(),
@@ -664,6 +669,7 @@ impl Builder {
             )
             .into_result()
         }?;
+        self.enable_session_tickets(true)?;
         Ok(self)
     }
 
