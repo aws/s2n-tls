@@ -86,6 +86,15 @@ pub enum HandshakeType {
     MutualAuth,
 }
 
+impl Debug for HandshakeType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            HandshakeType::ServerAuth => write!(f, "no-mTLS"),
+            HandshakeType::MutualAuth => write!(f, "mTLS"),
+        }
+    }
+}
+
 // these parameters were the only ones readily usable for all three libaries:
 // s2n-tls, rustls, and openssl
 #[allow(non_camel_case_types)]
@@ -105,14 +114,10 @@ pub enum KXGroup {
 
 impl Debug for KXGroup {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Secp256R1 => "secp256r1",
-                Self::X25519 => "x25519",
-            }
-        )
+        match self {
+            Self::Secp256R1 => write!(f, "secp256r1"),
+            Self::X25519 => write!(f, "x25519"),
+        }
     }
 }
 
@@ -208,7 +213,12 @@ pub struct TlsConnPair<C: TlsConnection, S: TlsConnection> {
 
 impl<C: TlsConnection, S: TlsConnection> Default for TlsConnPair<C, S> {
     fn default() -> Self {
-        Self::new(Default::default(), Default::default(), Default::default()).unwrap()
+        Self::new(
+            CryptoConfig::default(),
+            HandshakeType::default(),
+            ConnectedBuffer::default(),
+        )
+        .unwrap()
     }
 }
 
@@ -381,7 +391,11 @@ impl Default for ConnectedBuffer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{OpenSslConnection, RustlsConnection, S2NConnection, TlsConnPair};
+    #[cfg(feature = "openssl")]
+    use crate::OpenSslConnection;
+    #[cfg(feature = "rustls")]
+    use crate::RustlsConnection;
+    use crate::{S2NConnection, TlsConnPair};
     use std::path::Path;
     use strum::IntoEnumIterator;
 
@@ -400,7 +414,9 @@ mod tests {
     #[test]
     fn test_all() {
         test_type::<S2NConnection, S2NConnection>();
+        #[cfg(feature = "rustls")]
         test_type::<RustlsConnection, RustlsConnection>();
+        #[cfg(feature = "openssl")]
         test_type::<OpenSslConnection, OpenSslConnection>();
     }
 

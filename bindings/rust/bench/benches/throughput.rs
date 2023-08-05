@@ -1,14 +1,20 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "openssl")]
+use bench::OpenSslConnection;
+#[cfg(feature = "rustls")]
+use bench::RustlsConnection;
 use bench::{
-    harness::ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, OpenSslConnection,
-    RustlsConnection, S2NConnection, SigType, TlsConnPair, TlsConnection,
+    ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
     Throughput,
 };
+use pprof::criterion::{Output, PProfProfiler};
+use std::error::Error;
 use strum::IntoEnumIterator;
 
 fn bench_throughput_for_library<T: TlsConnection>(
@@ -16,21 +22,29 @@ fn bench_throughput_for_library<T: TlsConnection>(
     shared_buf: &mut [u8],
     cipher_suite: CipherSuite,
 ) {
+    let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
+    let client_config = T::make_config(Mode::Client, crypto_config, HandshakeType::default());
+    let server_config = T::make_config(Mode::Server, crypto_config, HandshakeType::default());
+
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
-            || {
-                TlsConnPair::<T, T>::new(
-                    CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default()),
-                    HandshakeType::default(),
-                    ConnectedBuffer::default(),
-                )
-                .map(|mut h| {
-                    let _ = h.handshake();
-                    h
-                })
+            || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
+                if let (Ok(client_config), Ok(server_config)) =
+                    (client_config.as_ref(), server_config.as_ref())
+                {
+                    let connected_buffer = ConnectedBuffer::default();
+                    let client =
+                        T::new_from_config(&client_config, connected_buffer.clone_inverse())?;
+                    let server = T::new_from_config(&server_config, connected_buffer)?;
+                    let mut conn_pair = TlsConnPair::wrap(client, server);
+                    conn_pair.handshake()?;
+                    Ok(conn_pair)
+                } else {
+                    Err("invalid configs".into())
+                }
             },
-            |conn_pair_res| {
-                if let Ok(conn_pair) = conn_pair_res {
+            |conn_pair| {
+                if let Ok(conn_pair) = conn_pair {
                     let _ = conn_pair.round_trip_transfer(shared_buf);
                 }
             },
@@ -39,7 +53,7 @@ fn bench_throughput_for_library<T: TlsConnection>(
     });
 }
 
-pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
+pub fn bench_throughput_cipher_suites(c: &mut Criterion) {
     // arbitrarily large to cut across TLS record boundaries
     let mut shared_buf = [0u8; 100000];
 
@@ -51,21 +65,25 @@ pub fn bench_throughput_cipher_suite(c: &mut Criterion) {
             &mut shared_buf,
             cipher_suite,
         );
-        #[cfg(not(feature = "historical-perf"))]
-        {
-            bench_throughput_for_library::<RustlsConnection>(
-                &mut bench_group,
-                &mut shared_buf,
-                cipher_suite,
-            );
-            bench_throughput_for_library::<OpenSslConnection>(
-                &mut bench_group,
-                &mut shared_buf,
-                cipher_suite,
-            );
-        }
+        #[cfg(feature = "rustls")]
+        bench_throughput_for_library::<RustlsConnection>(
+            &mut bench_group,
+            &mut shared_buf,
+            cipher_suite,
+        );
+        #[cfg(feature = "openssl")]
+        bench_throughput_for_library::<OpenSslConnection>(
+            &mut bench_group,
+            &mut shared_buf,
+            cipher_suite,
+        );
     }
 }
 
-criterion_group!(benches, bench_throughput_cipher_suite);
+criterion_group! {
+    name = benches;
+    // profile 100 samples/sec
+    config = Criterion::default().with_profiler(PProfProfiler::new(PROFILER_FREQUENCY, Output::Flamegraph(None)));
+    targets = bench_throughput_cipher_suites
+}
 criterion_main!(benches);

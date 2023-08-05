@@ -21,6 +21,7 @@ use std::{
     io::{ErrorKind, Read, Write},
     os::raw::c_int,
     pin::Pin,
+    task::Poll,
 };
 
 /// Custom callback for verifying hostnames. Rustls requires checking hostnames,
@@ -203,13 +204,26 @@ impl TlsConnection for S2NConnection {
     }
 
     fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
-        assert!(self.connection.poll_send(data).is_ready());
-        assert!(self.connection.poll_flush().is_ready());
+        let mut write_offset = 0;
+        while write_offset < data.len() {
+            match self.connection.poll_send(&data[write_offset..]) {
+                Poll::Ready(bytes_written) => write_offset += bytes_written?,
+                Poll::Pending => return Err("unexpected pending".into()),
+            }
+            assert!(self.connection.poll_flush().is_ready());
+        }
         Ok(())
     }
 
     fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
-        assert!(self.connection.poll_recv(data).is_ready());
+        let data_len = data.len();
+        let mut read_offset = 0;
+        while read_offset < data_len {
+            match self.connection.poll_recv(data) {
+                Poll::Ready(bytes_read) => read_offset += bytes_read?,
+                Poll::Pending => return Err("unexpected pending".into()),
+            }
+        }
         Ok(())
     }
 

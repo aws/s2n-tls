@@ -128,5 +128,6 @@ extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05
 extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_24;
 extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_25;
 extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_0_2021_05_26;
+extern const struct s2n_cipher_preferences cipher_preferences_pq_tls_1_3_2023_06_01;
 
 extern const struct s2n_cipher_preferences cipher_preferences_null;
