@@ -42,6 +42,9 @@ ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
+    /* Assuming msg_control is uint8_t is a simplification and will not work when we
+     * attempt to test the production 2n_ktls_send implementation. However, setting/parsing
+     * cmsg is critical code and will be added in a separate PR. */
     uint8_t *record_type = (uint8_t *) msg->msg_control;
     POSIX_ENSURE_REF(record_type);
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
@@ -88,6 +91,9 @@ ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg)
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
+    /* Assuming msg_control is uint8_t is a simplification and will not work when we
+     * attempt to test the production 2n_ktls_send implementation. However, setting/parsing
+     * cmsg is critical code and will be added in a separate PR. */
     uint8_t *record_type = (uint8_t *) msg->msg_control;
     POSIX_ENSURE_REF(record_type);
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
