@@ -52,15 +52,16 @@
 struct s2n_test_ktls_io_stuffer {
     struct s2n_stuffer ancillary_buffer;
     struct s2n_stuffer data_buffer;
-    size_t send_recv_msg_invoked_count;
+    size_t sendmsg_invoked_count;
+    size_t recvmsg_invoked_count;
 };
-struct s2n_test_ktls_io_pair {
+struct s2n_test_ktls_io_stuffer_pair {
     struct s2n_test_ktls_io_stuffer client_in;
     struct s2n_test_ktls_io_stuffer server_in;
 };
-ssize_t s2n_test_ktls_sendmsg_stuffer_io(void *io_context, const struct msghdr *msg);
-ssize_t s2n_test_ktls_recvmsg_stuffer_io(void *io_context, struct msghdr *msg);
+ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *msg);
+ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg);
 
-S2N_RESULT s2n_test_init_ktls_stuffer_io(struct s2n_connection *server, struct s2n_connection *client,
-        struct s2n_test_ktls_io_pair *io_pair);
-S2N_CLEANUP_RESULT s2n_ktls_io_pair_free(struct s2n_test_ktls_io_pair *ctx);
+S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client,
+        struct s2n_test_ktls_io_stuffer_pair *io_pair);
+S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer_pair *pair);

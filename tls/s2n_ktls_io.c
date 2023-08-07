@@ -47,9 +47,8 @@ static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg)
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
 
-    int fd = 0;
     const struct s2n_socket_read_io_context *peer_socket_ctx = io_context;
-    fd = peer_socket_ctx->fd;
+    int fd = peer_socket_ctx->fd;
 
     return recvmsg(fd, msg, 0);
 }
@@ -59,9 +58,8 @@ static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *m
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
 
-    int fd = 0;
     const struct s2n_socket_write_io_context *peer_socket_ctx = io_context;
-    fd = peer_socket_ctx->fd;
+    int fd = peer_socket_ctx->fd;
 
     return sendmsg(fd, msg, 0);
 }
