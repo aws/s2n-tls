@@ -579,11 +579,13 @@ int main()
         bool len_prefix_expected = vector->len_prefix_expected;
 
         if (!s2n_pq_is_enabled()) {
-            /* If PQ is disabled, for older policies we expect to negotiate x25519 if available.
-             * For newer policies, we always expect to negotiate NIST curves on ECC-only fallback.
+            /* If PQ is disabled, for older policies we expect to negotiate
+             * x25519 ECDH if available.  Newer policies only include NIST
+             * curves, so if the server policy doesn't contain x25519, modify
+             * that expectation to a NIST curve.
              */
             kem_group = NULL;
-            if (server_policy == &security_policy_pq_tls_1_3_2023_06_01) {
+            if (!s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, expected_curve->iana_id)) {
                 curve = &s2n_ecc_curve_secp256r1;
             } else {
                 curve = expected_curve;

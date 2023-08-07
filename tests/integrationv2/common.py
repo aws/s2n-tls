@@ -358,7 +358,10 @@ class KemGroup(object):
 
 
 class KemGroups(object):
-    # oqs_openssl 1.1.1 does not support KEM groups with 128-bit secuirty ECC + Kyber >512
+    # Though s2n and oqs_openssl 3.x support KEM groups with 128-bit security
+    # ECC + Kyber >512, oqs_openssl 1.1.1 does not:
+    #
+    # https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md
     X25519_KYBER512R3 = KemGroup("X25519_kyber512")
     P256_KYBER512R3 = KemGroup("p256_kyber512")
     P384_KYBER768R3 = KemGroup("p384_kyber768")
