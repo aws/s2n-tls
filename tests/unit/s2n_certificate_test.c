@@ -289,7 +289,7 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, input),
                         S2N_ERR_INVALID_ARGUMENT);
 
-                /* Validate original cert chain not modified */
+                /* Validate that the original cert chain was not modified */
                 EXPECT_NOT_NULL(input->cert_chain);
                 EXPECT_NOT_NULL(input->cert_chain->head);
                 EXPECT_EQUAL(input->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
