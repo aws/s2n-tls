@@ -519,11 +519,15 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
+
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
+
     POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
          * default, etc. */
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
