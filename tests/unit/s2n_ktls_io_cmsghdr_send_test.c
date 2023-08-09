@@ -253,6 +253,44 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, records_to_send);
         };
 
+        /* Attempt send and expect S2N_ERR_IO_BLOCKED error  */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+            /* disable growable to simulate blocked/network buffer full */
+            io_pair.client_in.data_buffer.growable = false;
+
+            size_t to_send = 1;
+            struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
+            /* attempt sendmsg and expect EAGAIN */
+            ssize_t bytes_written = 0;
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            for (size_t i = 0; i < 5; i++) {
+                EXPECT_ERROR_WITH_ERRNO(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 1, &blocked, &bytes_written),
+                        S2N_ERR_IO_BLOCKED);
+                EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+            }
+
+            /* enable growable to unblock write */
+            /* cppcheck-suppress redundantAssignment */
+            io_pair.client_in.data_buffer.growable = true;
+            /* attempt sendmsg again and expect success */
+            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 1, &blocked, &bytes_written));
+            EXPECT_EQUAL(bytes_written, to_send);
+
+            /* confirm sent data */
+            EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, to_send));
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, to_send));
+            /* validate only 1 record was sent  */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), S2N_TEST_KTLS_MOCK_HEADER_SIZE);
+
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 6);
+        };
     };
 
     END_TEST();
