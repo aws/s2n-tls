@@ -87,6 +87,172 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(io_pair.server_in.sendmsg_invoked_count, 1);
         };
 
+        /* Send 0 bytes. iovec.iov_len = 0 */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            size_t send_zero = 0;
+            struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = send_zero };
+            /* sendmsg */
+            ssize_t bytes_written = 0;
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_ERROR_WITH_ERRNO(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 1, &blocked, &bytes_written),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_EQUAL(bytes_written, send_zero);
+
+            /* confirm no records were sent  */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), 0);
+
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 0);
+        };
+
+        /* Send 0 bytes. msghdr.msg_iovlen = 0 */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
+            /* sendmsg */
+            ssize_t bytes_written = 0;
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_ERROR_WITH_ERRNO(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 0, &blocked, &bytes_written),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_EQUAL(bytes_written, 0);
+
+            /* confirm no records were sent  */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), 0);
+
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 0);
+        };
+
+        /* Send msg_iovlen > 1 */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            uint8_t count = 5;
+            size_t total_sent = 0;
+            struct iovec *send_msg_iov = NULL;
+            send_msg_iov = malloc(sizeof(*send_msg_iov) * count);
+            for (size_t i = 0; i < count; i++) {
+                send_msg_iov[i].iov_base = test_data + total_sent;
+                send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
+
+                total_sent += S2N_TEST_TO_SEND;
+            }
+
+            /* sendmsg */
+            ssize_t bytes_written = 0;
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, send_msg_iov, count, &blocked, &bytes_written));
+            EXPECT_EQUAL(bytes_written, total_sent);
+
+            /* confirm sent data */
+            EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, total_sent));
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, total_sent));
+            /* validate only 1 record was sent  */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), S2N_TEST_KTLS_MOCK_HEADER_SIZE);
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
+
+            free(send_msg_iov);
+        };
+
+        /* Send multiple records of same type */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            size_t records_to_send = 5;
+            struct iovec send_msg_iov = { .iov_len = S2N_TEST_TO_SEND };
+
+            size_t total_sent = 0;
+            for (size_t i = 0; i < records_to_send; i++) {
+                /* increment test data ptr */
+                send_msg_iov.iov_base = test_data + total_sent;
+
+                /* sendmsg */
+                ssize_t bytes_written = 0;
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 1, &blocked, &bytes_written));
+                EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
+                total_sent += bytes_written;
+            }
+
+            /* confirm sent data */
+            EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, total_sent));
+            /* validate `records_to_send` records were sent  */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), records_to_send * S2N_TEST_KTLS_MOCK_HEADER_SIZE);
+            /* validate ancillary header */
+            for (size_t i = 0; i < records_to_send; i++) {
+                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, S2N_TEST_TO_SEND));
+                /* consume the header in order to then validate the next header */
+                EXPECT_NOT_NULL(s2n_stuffer_raw_read(&io_pair.client_in.ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE));
+            }
+
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, records_to_send);
+        };
+
+        /* Send multiple records of different types */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            size_t records_to_send = 5;
+            struct iovec send_msg_iov = { .iov_len = S2N_TEST_TO_SEND };
+            size_t total_sent = 0;
+            for (size_t i = 0; i < records_to_send; i++) {
+                /* increment test data ptr */
+                send_msg_iov.iov_base = test_data + total_sent;
+
+                /* sendmsg */
+                ssize_t bytes_written = 0;
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                EXPECT_OK(s2n_ktls_sendmsg(server, i, &send_msg_iov, 1, &blocked, &bytes_written));
+                EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
+                total_sent += bytes_written;
+            }
+
+            /* confirm sent data */
+            EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, total_sent));
+            /* validate `records_to_send` records were sent  */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), records_to_send * S2N_TEST_KTLS_MOCK_HEADER_SIZE);
+            /* validate ancillary header */
+            for (size_t i = 0; i < records_to_send; i++) {
+                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, i, S2N_TEST_TO_SEND));
+                /* progress/consume the header validate the next header */
+                EXPECT_NOT_NULL(s2n_stuffer_raw_read(&io_pair.client_in.ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE));
+            }
+
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, records_to_send);
+        };
+
     };
 
     END_TEST();
