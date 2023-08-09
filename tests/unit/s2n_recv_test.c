@@ -270,7 +270,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_recv_multi_record(config, multi_record));
             size_t max_recv_size = test_data_size;
 
-            /* in multi-record, we can read all of the records in one go */
+            /* In multi-record, we can read all of the records in one go */
             if (multi_record) {
                 max_recv_size *= record_count;
             }
@@ -291,20 +291,20 @@ int main(int argc, char **argv)
                 while (recv_bytes < total_data_size) {
                     size_t expected_recv_size = MIN(MIN(read_size, total_data_size - recv_bytes), max_recv_size);
 
-                    /* perform the actual recv call */
+                    /* Perform the actual recv call */
                     ssize_t actual_recv_size = s2n_recv(server_conn, output.data, read_size, &blocked);
 
                     if (multi_record) {
-                        /* in multi-record mode we should always read the size we expect */
+                        /* In multi-record mode we should always read the size we expect */
                         EXPECT_EQUAL(actual_recv_size, expected_recv_size);
                     } else {
-                        /* in single-record mode, we could potentially get a smaller read than a full record due to
+                        /* In single-record mode, we could potentially get a smaller read than a full record due to
                          * random record boundaries so we can only assert it's within the range we expect. */
                         EXPECT_NOT_EQUAL(actual_recv_size, 0);
                         EXPECT_TRUE(actual_recv_size <= expected_recv_size);
                     }
 
-                    /* keep track of the total amount of bytes read */
+                    /* Keep track of the total amount of bytes read */
                     recv_bytes += actual_recv_size;
 
                     /* Due to the history of this API, some applications depend on the blocked status to know if
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
                     }
                 }
 
-                /* the final read should return blocked since we don't have any more data from the socket */
+                /* The final read should return blocked since we don't have any more data from the socket */
                 EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, output.data, read_size, &blocked), S2N_ERR_IO_BLOCKED);
                 EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
             }
