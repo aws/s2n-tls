@@ -312,6 +312,43 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(invoked_count, 1);
         };
 
+        /* validate sent ancillary data */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+
+            /* setup sendmsg cb */
+            size_t to_send = 83;
+            size_t count = 1;
+            uint8_t record_type = 99;
+            struct s2n_test_ktls_io_validate io_ctx = {
+                .expected_data = test_data,
+                .iov_len = to_send,
+                .msg_iovlen = count,
+                .record_type = record_type,
+                .invoked_count = 0
+            };
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(server, s2n_test_ktls_sendmsg_validate, &io_ctx));
+
+            size_t total_sent = 0;
+            struct iovec *send_msg_iov = NULL;
+            send_msg_iov = malloc(sizeof(*send_msg_iov) * count);
+            for (size_t i = 0; i < count; i++) {
+                send_msg_iov[i].iov_base = test_data + total_sent;
+                send_msg_iov[i].iov_len = to_send;
+
+                total_sent += to_send;
+            }
+
+            /* sendmsg */
+            ssize_t bytes_written = 0;
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_OK(s2n_ktls_sendmsg(server, record_type, send_msg_iov, count, &blocked, &bytes_written));
+            EXPECT_EQUAL(bytes_written, total_sent);
+
+            EXPECT_EQUAL(io_ctx.invoked_count, 1);
+            free(send_msg_iov);
+        };
     };
 
     END_TEST();
