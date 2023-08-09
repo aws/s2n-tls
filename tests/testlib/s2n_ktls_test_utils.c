@@ -174,6 +174,55 @@ S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s
     return S2N_RESULT_OK;
 }
 
+ssize_t s2n_test_ktls_sendmsg_validate(void *io_context, const struct msghdr *msg)
+{
+    POSIX_ENSURE_REF(io_context);
+    POSIX_ENSURE_REF(msg);
+    POSIX_ENSURE_REF(msg->msg_iov);
+    POSIX_ENSURE_REF(msg->msg_control);
+
+    struct s2n_test_ktls_io_validate *io_ctx = (struct s2n_test_ktls_io_validate *) io_context;
+    POSIX_ENSURE_REF(io_ctx);
+    POSIX_ENSURE_REF(io_ctx->expected_data);
+
+    /* validate data */
+    size_t total_sent = 0;
+    POSIX_ENSURE_EQ(msg->msg_iovlen, io_ctx->msg_iovlen);
+    for (size_t i = 0; i < msg->msg_iovlen; i++) {
+        POSIX_ENSURE(msg->msg_iov[i].iov_len, io_ctx->iov_len);
+        POSIX_ENSURE_REF(msg->msg_iov[i].iov_base);
+        POSIX_ENSURE_EQ(memcmp(msg->msg_iov[i].iov_base, io_ctx->expected_data + total_sent, io_ctx->iov_len), 0);
+
+        total_sent += msg->msg_iovlen;
+    }
+
+    /* validate control data */
+    POSIX_ENSURE_EQ(msg->msg_controllen, CMSG_LEN(sizeof(io_ctx->record_type)));
+    POSIX_ENSURE_LT(msg->msg_controllen, CMSG_SPACE(sizeof(io_ctx->record_type)));
+    struct cmsghdr *hdr = CMSG_FIRSTHDR(msg);
+    POSIX_ENSURE_REF(hdr);
+    POSIX_ENSURE(hdr->cmsg_level, S2N_SOL_TLS);
+    POSIX_ENSURE(hdr->cmsg_type, TLS_SET_RECORD_TYPE);
+    POSIX_ENSURE(hdr->cmsg_len, CMSG_LEN(sizeof(io_ctx->record_type)));
+    POSIX_ENSURE_EQ(*CMSG_DATA(hdr), io_ctx->record_type);
+
+    io_ctx->invoked_count++;
+    return io_ctx->iov_len * io_ctx->msg_iovlen;
+}
+
+ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
+{
+    POSIX_ENSURE_REF(io_context);
+    POSIX_ENSURE_REF(msg);
+
+    size_t *invoked_count = (size_t *) io_context;
+    POSIX_ENSURE_REF(invoked_count);
+    (*invoked_count)++;
+
+    errno = EINVAL;
+    return -1;
+}
+
 S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data, uint16_t expected_len)
 {
     RESULT_ENSURE_REF(ktls_io);
@@ -220,6 +269,14 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
     POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
 }
 ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+ssize_t s2n_test_ktls_sendmsg_validate(void *io_context, const struct msghdr *msg)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
 {
     POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
 }
