@@ -174,6 +174,19 @@ S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s
     return S2N_RESULT_OK;
 }
 
+ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
+{
+    POSIX_ENSURE_REF(io_context);
+    POSIX_ENSURE_REF(msg);
+
+    size_t *invoked_count = (size_t *) io_context;
+    POSIX_ENSURE_REF(invoked_count);
+    (*invoked_count)++;
+
+    errno = EINVAL;
+    return -1;
+}
+
 S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data, uint16_t expected_len)
 {
     RESULT_ENSURE_REF(ktls_io);
@@ -220,6 +233,10 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
     POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
 }
 ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
 {
     POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
 }

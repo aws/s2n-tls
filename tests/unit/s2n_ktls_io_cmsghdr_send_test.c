@@ -291,6 +291,27 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 6);
         };
+
+        /* Attempt send and expect S2N_ERR_IO error  */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+
+            /* setup sendmsg cb */
+            size_t invoked_count = 0;
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(server, s2n_test_ktls_sendmsg_fail, &invoked_count));
+
+            struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
+            /* attempt sendmsg and expect blocked error */
+            ssize_t bytes_written = 0;
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_ERROR_WITH_ERRNO(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 1, &blocked, &bytes_written),
+                    S2N_ERR_IO);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+            EXPECT_EQUAL(invoked_count, 1);
+        };
+
     };
 
     END_TEST();
