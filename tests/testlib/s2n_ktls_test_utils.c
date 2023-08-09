@@ -15,6 +15,7 @@
 
 #include "testlib/s2n_ktls_test_utils.h"
 
+#if defined(S2N_KTLS_SUPPORTED)
 /* Since it is possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
 static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
@@ -41,12 +42,19 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
+    POSIX_ENSURE_REF(msg->msg_control);
 
-    /* Assuming msg_control is uint8_t is a simplification and will not work when we
-     * attempt to test the production s2n_ktls_send implementation. However, setting/parsing
-     * cmsg is critical code and will be added in a separate PR. */
-    uint8_t *record_type = (uint8_t *) msg->msg_control;
-    POSIX_ENSURE_REF(record_type);
+    /* s2n_ktls_send sets msghdr.msg_control to `struct cmsghdr` */
+    uint8_t record_type = 0;
+    struct cmsghdr *hdr = CMSG_FIRSTHDR(msg);
+    POSIX_ENSURE(hdr != NULL, S2N_ERR_IO);
+    /* NOTE: expect TLS_SET_RECORD_TYPE since cmsg_type is set for sending */
+    if (hdr->cmsg_level == S2N_SOL_TLS && hdr->cmsg_type == TLS_SET_RECORD_TYPE) {
+        record_type = *CMSG_DATA(hdr);
+    } else {
+        POSIX_BAIL(S2N_ERR_IO);
+    }
+
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->sendmsg_invoked_count++;
@@ -73,7 +81,7 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
     }
     if (total_len) {
         /* write record_type and len after some data was written successfully */
-        POSIX_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, *record_type));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, record_type));
         POSIX_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
     }
 
@@ -147,8 +155,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     return bytes_read;
 }
 
-S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client,
-        struct s2n_test_ktls_io_stuffer_pair *io_pair)
+S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client, struct s2n_test_ktls_io_stuffer_pair *io_pair)
 {
     RESULT_ENSURE_REF(server);
     RESULT_ENSURE_REF(client);
@@ -167,6 +174,35 @@ S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data, uint16_t expected_len)
+{
+    RESULT_ENSURE_REF(ktls_io);
+    RESULT_ENSURE_REF(expected_data);
+
+    struct s2n_stuffer validate_data_stuffer = ktls_io->data_buffer;
+    RESULT_ENSURE_EQ(s2n_stuffer_data_available(&validate_data_stuffer), expected_len);
+    uint8_t *data_ptr = s2n_stuffer_raw_read(&validate_data_stuffer, expected_len);
+    RESULT_ENSURE_REF(data_ptr);
+    RESULT_ENSURE_EQ(memcmp(data_ptr, expected_data, expected_len), 0);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t expected_record_type, uint16_t expected_len)
+{
+    RESULT_ENSURE_REF(ktls_io);
+
+    struct s2n_stuffer validate_ancillary_stuffer = ktls_io->ancillary_buffer;
+    uint8_t tag = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(&validate_ancillary_stuffer, &tag));
+    RESULT_ENSURE_EQ(tag, expected_record_type);
+    uint16_t len;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&validate_ancillary_stuffer, &len));
+    RESULT_ENSURE_EQ(len, expected_len);
+
+    return S2N_RESULT_OK;
+}
+
 S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer_pair *pair)
 {
     RESULT_ENSURE_REF(pair);
@@ -177,3 +213,30 @@ S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer
 
     return S2N_RESULT_OK;
 }
+
+#else
+ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *msg)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
+{
+    POSIX_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client, struct s2n_test_ktls_io_stuffer_pair *io_pair)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data, uint16_t expected_len)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t expected_record_type, uint16_t expected_len)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer_pair *pair)
+{
+    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
+}
+#endif
