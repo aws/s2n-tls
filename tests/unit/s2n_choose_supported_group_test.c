@@ -146,6 +146,10 @@ int main()
 #if EVP_APIS_SUPPORTED
             &s2n_x25519_kyber_512_r3,
 #endif
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+            &s2n_secp384r1_kyber_768_r3,
+            &s2n_secp521r1_kyber_1024_r3,
+#endif
         };
 
         const struct s2n_kem_preferences test_kem_prefs = {

@@ -309,6 +309,8 @@ class Ciphers(object):
         "PQ-TLS-1-0-2020-12", Protocols.TLS10, False, False, s2n=True, pq=True)
     PQ_TLS_1_0_2023_01 = Cipher(
         "PQ-TLS-1-0-2023-01-24", Protocols.TLS10, False, False, s2n=True, pq=True)
+    PQ_TLS_1_3_2023_06_01 = Cipher(
+        "PQ-TLS-1-3-2023-06-01", Protocols.TLS12, False, False, s2n=True, pq=True)
 
     SECURITY_POLICY_20210816 = Cipher(
         "20210816", Protocols.TLS12, False, False, s2n=True, pq=False)
@@ -356,8 +358,14 @@ class KemGroup(object):
 
 
 class KemGroups(object):
-    # oqs_openssl does not support x25519 based KEM groups
+    # Though s2n and oqs_openssl 3.x support KEM groups with 128-bit security
+    # ECC + Kyber >512, oqs_openssl 1.1.1 does not:
+    #
+    # https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md
+    X25519_KYBER512R3 = KemGroup("X25519_kyber512")
     P256_KYBER512R3 = KemGroup("p256_kyber512")
+    P384_KYBER768R3 = KemGroup("p384_kyber768")
+    P521_KYBER1024R3 = KemGroup("p521_kyber1024")
 
 
 class Signature(object):

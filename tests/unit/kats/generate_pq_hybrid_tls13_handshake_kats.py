@@ -1,34 +1,9 @@
 import hashlib
 import hmac
 
-# The following PEM-encoded ECC private keys were used to generate the ECC shared secrets.
-# These private keys are also used in s2n/tests/unit/s2n_tls13_hybrid_shared_secret_test.c.
-#
-# #define CLIENT_X25519_PRIV_KEY "-----BEGIN PRIVATE KEY-----\n"\
-#                                "MC4CAQAwBQYDK2VuBCIEIIgzBrAp631nCDaoA7ilx/8S/cW1lddVQOw9869sROBF\n"\
-#                                "-----END PRIVATE KEY-----"
-#
-# #define SERVER_X25519_PRIV_KEY "-----BEGIN PRIVATE KEY-----\n"\
-#                                "MC4CAQAwBQYDK2VuBCIEIIBo+KJ2Zs3vRHQ3sYgHL4zTQPlJPl1y7sW8HT9qRE96\n"\
-#                                "-----END PRIVATE KEY-----"
-#
-# #define CLIENT_SECP256R1_PRIV_KEY "-----BEGIN EC PARAMETERS-----\n"\
-#                                   "BggqhkjOPQMBBw==\n"\
-#                                   "-----END EC PARAMETERS-----\n"\
-#                                   "-----BEGIN EC PRIVATE KEY-----\n"\
-#                                   "MHcCAQEEIFCkEmNXACRbWdizfAKP8/Qvx9aplVxLE+Sm2vmCcsY3oAoGCCqGSM49\n"\
-#                                   "AwEHoUQDQgAESk526eZ9lf6xrNOiTF8qkYvJDOfc4qqShcbB7qnT67As4pyeQzVm\n"\
-#                                   "xfMjmXYBOUnPVBL3FKnIk45sDSCfu++gug==\n"\
-#                                   "-----END EC PRIVATE KEY-----"
-#
-# #define SERVER_SECP256R1_PRIV_KEY "-----BEGIN EC PARAMETERS-----\n"\
-#                                   "BggqhkjOPQMBBw==\n"\
-#                                   "-----END EC PARAMETERS-----\n"\
-#                                   "-----BEGIN EC PRIVATE KEY-----\n"\
-#                                   "MHcCAQEEINXLCaZuyYG0HrlSFcHLPFmSnyFm5RqrmyZfgdrxqprXoAoGCCqGSM49\n"\
-#                                   "AwEHoUQDQgAEMDuuxEQ1yaA13ceuJP+RC0sbf5ksW6DPlL+yXJiD7cUeWUPrtxbP\n"\
-#                                   "ViSR6ex8fYV69oCHgnDnElfE3xaiXiQWBw==\n"\
-#                                   "-----END EC PRIVATE KEY-----"
+# The PEM-encoded ECC private keys were used to generate the ECC shared secrets
+# are located in in s2n/tests/unit/s2n_tls13_hybrid_shared_secret_test.c with
+# names like "CLIENT_{CURVE}_PRIV_KEY" and "SERVER_{CURVE}_PRIV_KEY".
 
 # We aren't really concerned with the actual bytes of the transcript, only the hash.
 # The transcript_hash values were calculated as:
@@ -135,8 +110,7 @@ input_vectors = [
         "ec_shared_secret": "519be87fa0599077e5673d6f2d910aa150d7fef783c5e1491961fdf63b255910",
         "pq_shared_secret": "0A6925676F24B22C286F4C81A4224CEC506C9B257D480E02E3B49F44CAA3237F",
         "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
-    },
-    {
+    },    {
         "group_name": "secp256r1_kyber512r3",
         "cipher_suite": "TLS_AES_128_GCM_SHA256",
         "ec_shared_secret": "9348e27655539e08fffe46b35f863dd634e7437cc6bc11c7d329ef5484ec3b60",
@@ -176,6 +150,62 @@ input_vectors = [
         "cipher_suite": "TLS_AES_256_GCM_SHA384",
         "ec_shared_secret": "9348e27655539e08fffe46b35f863dd634e7437cc6bc11c7d329ef5484ec3b60",
         "pq_shared_secret": "1A88B3A458EE42906A5FD423817E043532579C4F79518A81213DC91D0F2FCEA9",
+        "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
+    },
+    {
+        "group_name": "x25519_kyber768r3",
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "ec_shared_secret": "519be87fa0599077e5673d6f2d910aa150d7fef783c5e1491961fdf63b255910",
+        "pq_shared_secret": "914CB67FE5C38E73BF74181C0AC50428DEDF7750A98058F7D536708774535B29",
+        "transcript_hash": "f5f7f7867668be4b792159d4d194a03ec5cfa238b6409b5ca2ddccfddcc92a2b",
+    },
+    {
+        "group_name": "x25519_kyber768r3",
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "ec_shared_secret": "519be87fa0599077e5673d6f2d910aa150d7fef783c5e1491961fdf63b255910",
+        "pq_shared_secret": "914CB67FE5C38E73BF74181C0AC50428DEDF7750A98058F7D536708774535B29",
+        "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
+    },
+    {
+        "group_name": "secp256r1_kyber768r3",
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "ec_shared_secret": "9348e27655539e08fffe46b35f863dd634e7437cc6bc11c7d329ef5484ec3b60",
+        "pq_shared_secret": "914CB67FE5C38E73BF74181C0AC50428DEDF7750A98058F7D536708774535B29",
+        "transcript_hash": "f5f7f7867668be4b792159d4d194a03ec5cfa238b6409b5ca2ddccfddcc92a2b",
+    },
+    {
+        "group_name": "secp256r1_kyber768r3",
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "ec_shared_secret": "9348e27655539e08fffe46b35f863dd634e7437cc6bc11c7d329ef5484ec3b60",
+        "pq_shared_secret": "914CB67FE5C38E73BF74181C0AC50428DEDF7750A98058F7D536708774535B29",
+        "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
+    },
+    {
+        "group_name": "secp384r1_kyber768r3",
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "ec_shared_secret": "b72536062cd8e8eced91046e33413b027cabde0576747aa47863b8dcb914100585c600fafc8ff4927a34abb0aa6b3b68",
+        "pq_shared_secret": "914CB67FE5C38E73BF74181C0AC50428DEDF7750A98058F7D536708774535B29",
+        "transcript_hash": "f5f7f7867668be4b792159d4d194a03ec5cfa238b6409b5ca2ddccfddcc92a2b",
+    },
+    {
+        "group_name": "secp384r1_kyber768r3",
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "ec_shared_secret": "b72536062cd8e8eced91046e33413b027cabde0576747aa47863b8dcb914100585c600fafc8ff4927a34abb0aa6b3b68",
+        "pq_shared_secret": "914CB67FE5C38E73BF74181C0AC50428DEDF7750A98058F7D536708774535B29",
+        "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
+    },
+    {
+        "group_name": "secp521r1_kyber1024r3",
+        "cipher_suite": "TLS_AES_128_GCM_SHA256",
+        "ec_shared_secret": "009643bb20199e8f408b7c19bb98d1d19f0cef9104e2ec790c398c6abe7dc5cf47afb96de70aa14c86bc546a12f9ea3abbf2eec399b4d586083114cbc37f53ed2d8b",
+        "pq_shared_secret": "B10F7394926AD3B49C5D62D5AEB531D5757538BCC0DA9E550D438F1B61BD7419",
+        "transcript_hash": "f5f7f7867668be4b792159d4d194a03ec5cfa238b6409b5ca2ddccfddcc92a2b",
+    },
+    {
+        "group_name": "secp521r1_kyber1024r3",
+        "cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "ec_shared_secret": "009643bb20199e8f408b7c19bb98d1d19f0cef9104e2ec790c398c6abe7dc5cf47afb96de70aa14c86bc546a12f9ea3abbf2eec399b4d586083114cbc37f53ed2d8b",
+        "pq_shared_secret": "B10F7394926AD3B49C5D62D5AEB531D5757538BCC0DA9E550D438F1B61BD7419",
         "transcript_hash": "35412cebcf35cb8a7af8f78278a486fc798f8702eaebd067c97acb27bffe13524d8426a4ed57956b4fd0ffdc4c90be52",
     },
 ]
