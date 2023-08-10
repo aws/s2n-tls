@@ -15,7 +15,6 @@
 
 #include "tls/s2n_ktls.h"
 
-#include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_random.h"

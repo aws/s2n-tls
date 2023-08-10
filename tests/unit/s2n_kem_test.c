@@ -172,11 +172,11 @@ int main(int argc, char **argv)
 
         /* The kem_extensions and kems arrays should be kept in sync with each other */
         kem_extension_size kem_extensions[] = {
-            TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3
+            TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
         };
 
         const struct s2n_kem *kems[] = {
-            &s2n_kyber_512_r3
+            &s2n_kyber_512_r3,
         };
 
         for (size_t i = 0; i < s2n_array_len(kems); i++) {
