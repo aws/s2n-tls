@@ -31,10 +31,12 @@ int s2n_example_recv(struct s2n_connection *conn, uint8_t *buffer, size_t buffer
             break;
         } else if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED) {
             /* The return of `s2n_recv()` indicates an error. If this error is `S2N_ERR_T_BLOCKED`,
-             * the socket is blocked waiting to receive more data from the peer. In a typical
-             * non-blocking environment, `poll()` or `select()` would be used re-enter
+             * the socket is blocked waiting to receive more data from the peer.
+             *
+             * In a typical non-blocking environment, `poll()` or `select()` would be used re-enter
              * `s2n_example_recv()` and call `s2n_recv()` again after the socket has more data
-             * available.
+             * available. But this example just busy-waits, so we immediately call `s2n_recv()`
+             * again.
              */
             continue;
         } else {

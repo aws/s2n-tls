@@ -28,9 +28,12 @@ int s2n_example_send(struct s2n_connection *conn, uint8_t *data, size_t data_siz
             bytes_written += w;
         } else if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_BLOCKED) {
             /* The return of `s2n_send()` indicates an error. If this error is `S2N_ERR_T_BLOCKED`,
-             * the socket is blocked waiting to send more data. In a typical non-blocking
-             * environment, `poll()` or `select()` would be used re-enter `s2n_example_send()` and
-             * call `s2n_send()` again after the socket is ready to send more data.
+             * the socket is blocked waiting to send more data.
+             *
+             * In a typical non-blocking environment, `poll()` or `select()` would be used re-enter
+             * `s2n_example_send()` and call `s2n_send()` again after the socket is ready to send
+             * more data. But this example just busy-waits, so we immediately call `s2n_send()`
+             * again.
              */
             continue;
         } else {
