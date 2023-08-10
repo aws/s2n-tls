@@ -831,55 +831,33 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
         };
 
-        /* Test: Malformed TLS1.2 certificate chain is still available */
+        /* Test: Certificate that fails parsing is still available in TLS1.2 */
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
-            struct s2n_stuffer_reservation total_size = { 0 };
-            const uint32_t cert_size = 24;
-            EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&input, &total_size));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&input, cert_size));
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, cert_size));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&input, cert_size));
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, cert_size));
-            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&total_size));
-
-            /* Sanity check: test cert chain is well-formed (but invalid) */
-            {
-                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                server->actual_protocol_version = S2N_TLS12;
-                EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
-                        s2n_stuffer_data_available(&input)));
-
-                EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_CERT_INVALID);
-                EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
-                EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
-            };
-
-            /* Modify last cert to be malformed. Keep correct total size */
-            EXPECT_SUCCESS(s2n_stuffer_reread(&input));
-            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&input, 1));
-            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&total_size));
-
-            /* Data available even if malformed: we don't parse pre-TLS1.3 chains
-             * before storing them.
+            /* Generate a completely malformed certificate chain, with no
+             * properly formed certificates.
+             *
+             * We don't parse pre-TLS1.3 chains before storing them, so don't
+             * care whether or not they're malformed.
              */
-            {
-                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                server->actual_protocol_version = S2N_TLS12;
-                EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
-                        s2n_stuffer_data_available(&input)));
+            const uint32_t chain_size = 24;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&input, chain_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, chain_size));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_CERT_INVALID);
-                EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
-                EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
-            };
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            server->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
+                    s2n_stuffer_data_available(&input)));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_CERT_INVALID);
+            EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
+            EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
         };
 
-        /* Test: Malformed TLS1.3 certificate chain is not available */
+        /* Test: Certificate that fails parsing is not available in TLS1.3 */
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
@@ -887,6 +865,20 @@ int main(int argc, char **argv)
             /* Since it's TLS1.3, we also need a zero-length request context */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, 0));
 
+            /* Generate a well-formed certificate chain.
+             *
+             * Unlike in TLS1.2, in TLS1.3 we must parse chains before storing
+             * them to remove the per-certificate TLS extension lists. Chains
+             * we cannot parse should not be stored.
+             *
+             * We could generate a completely invalid chain to test this case,
+             * like we do for TLS1.2. However, we want to ensure that a partially
+             * parsed chain is not partially stored. To do that, we need to
+             * generated a partially correct chain.
+             *
+             * We start with a completely parseable chain and then modify it
+             * to create a malformed chain.
+             */
             struct s2n_stuffer_reservation total_size = { 0 };
             const uint32_t cert_size = 24, extensions_size = 20;
             EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&input, &total_size));
@@ -900,7 +892,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, extensions_size));
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&total_size));
 
-            /* Sanity check: test cert chain is well-formed (but invalid) */
+            /* Validate that the certificate chain we generated is parseable.
+             * The chain will still ultimately fail validation, but it will be
+             * parsed and stored on the connection.
+             */
             {
                 DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
@@ -911,27 +906,27 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_CERT_INVALID);
                 EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
                 EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
-            };
+            }
 
-            /* Modify last extension list to be malformed. Keep correct total size */
+            /* Modify the last certificate's TLS extension list to be malformed.
+             *
+             * We want the parsing error to occur as late as possible (on the last
+             * extension list) to test that the cert chain is not partially stored.
+             */
             EXPECT_SUCCESS(s2n_stuffer_reread(&input));
             EXPECT_SUCCESS(s2n_stuffer_wipe_n(&input, 1));
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&total_size));
 
-            /* Data not available if any certs or extensions malformed: we have
-             * to parse the chain in TLS1.3 to remove the TLS extension lists
-             */
-            {
-                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                server->actual_protocol_version = S2N_TLS13;
-                EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
-                        s2n_stuffer_data_available(&input)));
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            server->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
+                    s2n_stuffer_data_available(&input)));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_BAD_MESSAGE);
-                EXPECT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
-                EXPECT_NULL(server->handshake_params.client_cert_chain.data);
-            };
+            /* Assert that no part of the certificate chain is stored */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_BAD_MESSAGE);
+            EXPECT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
+            EXPECT_NULL(server->handshake_params.client_cert_chain.data);
         };
     };
 
