@@ -21,7 +21,7 @@
 
     #define S2N_TEST_TO_SEND 10
     /* record_type is of type uint8_t */
-    #define S2N_RECORD_TYPE_SIZE 1
+    #define S2N_RECORD_TYPE_SIZE sizeof(uint8_t)
 
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, uint8_t record_type);
 #endif
@@ -30,11 +30,11 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-#if !defined(S2N_KTLS_SUPPORTED)
+#if !defined(S2N_KTLS_SUPPORTED) /* CMSG_* macros are not available on some platforms */
 
     END_TEST();
 
-#else /* CMSG_* macros are platform specific */
+#else
 
     uint8_t test_record_type = 43;
     /* test data */
@@ -215,12 +215,12 @@ int main(int argc, char **argv)
             char cmsg_buf[CMSG_SPACE(S2N_RECORD_TYPE_SIZE)] = { 0 };
             struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1, .msg_control = cmsg_buf };
             size_t total_sent = 0;
-            for (size_t i = 0; i < records_to_send; i++) {
+            for (size_t record_type = 0; record_type < records_to_send; record_type++) {
                 /* increment test data ptr */
                 send_msg_iov.iov_base = test_data + total_sent;
                 /* reset size since s2n_ktls_set_control_data overwrites this value */
                 send_msg.msg_controllen = sizeof(cmsg_buf);
-                EXPECT_OK(s2n_ktls_set_control_data(&send_msg, i));
+                EXPECT_OK(s2n_ktls_set_control_data(&send_msg, record_type));
 
                 /* sendmsg */
                 ssize_t bytes_written = s2n_test_ktls_sendmsg_io_stuffer(server->send_io_context, &send_msg);
@@ -233,8 +233,8 @@ int main(int argc, char **argv)
             /* validate `records_to_send` records were sent  */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), records_to_send * S2N_TEST_KTLS_MOCK_HEADER_SIZE);
             /* validate ancillary header */
-            for (size_t i = 0; i < records_to_send; i++) {
-                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, i, S2N_TEST_TO_SEND));
+            for (size_t record_type = 0; record_type < records_to_send; record_type++) {
+                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, record_type, S2N_TEST_TO_SEND));
                 /* consume the header in order to then validate the next header */
                 EXPECT_NOT_NULL(s2n_stuffer_raw_read(&io_pair.client_in.ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE));
             }
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             char cmsg_buf[CMSG_SPACE(S2N_RECORD_TYPE_SIZE)] = { 0 };
-            /* miss-configured control message */
+            /* misconfigured control message */
             struct msghdr send_msg = { .msg_iov = &send_msg_iov, .msg_iovlen = 1 };
 
             /* call s2n_ktls_set_control_data and expect error until msg_control* has been correctly configured */

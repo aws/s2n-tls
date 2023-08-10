@@ -191,14 +191,14 @@ ssize_t s2n_test_ktls_sendmsg_validate(void *io_context, const struct msghdr *ms
     for (size_t i = 0; i < msg->msg_iovlen; i++) {
         POSIX_ENSURE(msg->msg_iov[i].iov_len, io_ctx->iov_len);
         POSIX_ENSURE_REF(msg->msg_iov[i].iov_base);
+        /* increment expected_data */
         POSIX_ENSURE_EQ(memcmp(msg->msg_iov[i].iov_base, io_ctx->expected_data + total_sent, io_ctx->iov_len), 0);
 
-        total_sent += msg->msg_iovlen;
+        total_sent += io_ctx->iov_len;
     }
 
     /* validate control data */
     POSIX_ENSURE_EQ(msg->msg_controllen, CMSG_LEN(sizeof(io_ctx->record_type)));
-    POSIX_ENSURE_LT(msg->msg_controllen, CMSG_SPACE(sizeof(io_ctx->record_type)));
     struct cmsghdr *hdr = CMSG_FIRSTHDR(msg);
     POSIX_ENSURE_REF(hdr);
     POSIX_ENSURE(hdr->cmsg_level, S2N_SOL_TLS);
@@ -215,9 +215,9 @@ ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
     POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
 
-    size_t *invoked_count = (size_t *) io_context;
-    POSIX_ENSURE_REF(invoked_count);
-    (*invoked_count)++;
+    struct s2n_test_ktls_io_fail *io_ctx = (struct s2n_test_ktls_io_fail *) io_context;
+    POSIX_ENSURE_REF(io_ctx);
+    io_ctx->invoked_count++;
 
     errno = EINVAL;
     return -1;

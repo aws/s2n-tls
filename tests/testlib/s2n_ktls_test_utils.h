@@ -78,6 +78,9 @@ struct s2n_test_ktls_io_validate {
 ssize_t s2n_test_ktls_sendmsg_validate(void *io_context, const struct msghdr *msg);
 
 /* Mock implementation used for validating failure behavior */
+struct s2n_test_ktls_io_fail {
+    size_t invoked_count;
+};
 ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg);
 
 S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client, struct s2n_test_ktls_io_stuffer_pair *io_pair);
