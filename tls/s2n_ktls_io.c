@@ -86,9 +86,11 @@ static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *m
     return sendmsg(fd, msg, 0);
 }
 
+
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, uint8_t record_type,
-    uint8_t *cmsg_buf, size_t cmsg_buf_size)
+    uint8_t *cmsg_buf, size_t cmsg_buf_size, int cmsg_type)
 {
+
     RESULT_ENSURE_REF(msg);
 
     RESULT_ENSURE_REF(cmsg_buf);
@@ -114,8 +116,7 @@ S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, uint8_t record_type,
 
     /* KTLS documentation? */
     hdr->cmsg_level = S2N_SOL_TLS;
-    hdr->cmsg_type = TLS_SET_RECORD_TYPE;
-
+    hdr->cmsg_type = cmsg_type;
 
     /* 
     TODO: clean up comment
@@ -141,7 +142,7 @@ S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, uint8_t record_type,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, struct iovec *msg_iov,
+S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, const struct iovec *msg_iov,
         size_t count, s2n_blocked_status *blocked, size_t *bytes_written)
 {
     RESULT_ENSURE_REF(msg_iov);
@@ -154,12 +155,14 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, st
     RESULT_ENSURE(count > 0, S2N_ERR_INVALID_ARGUMENT);
 
     struct msghdr msg = {
-        .msg_iov = msg_iov,
+        /* TODO: properly discard const, add comment */
+        .msg_iov = (struct iovec*) msg_iov,
         .msg_iovlen = count,
     };
 
     char control_data[S2N_CONTROL_DATA_BUF_SIZE] = { 0 };
-    RESULT_GUARD(s2n_ktls_set_control_data(&msg, record_type, control_data, sizeof(control_data)));
+    RESULT_GUARD(s2n_ktls_set_control_data(&msg, record_type, control_data, sizeof(control_data),
+        TLS_SET_RECORD_TYPE));
 
     ssize_t result = s2n_sendmsg_fn(conn->send_io_context, msg);
     if (result < 0) {

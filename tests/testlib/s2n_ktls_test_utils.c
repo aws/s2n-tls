@@ -16,6 +16,7 @@
 #include "testlib/s2n_ktls_test_utils.h"
 
 #if defined(S2N_KTLS_SUPPORTED)
+
 /* Since it is possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
 static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
