@@ -652,7 +652,9 @@ impl Builder {
             .try_into()
             .map_err(|_| Error::INVALID_INPUT)?;
         let key_len: u32 = key.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let intro_time = intro_time.duration_since(std::time::UNIX_EPOCH).map_err(|_| Error::INVALID_INPUT)?;
+        let intro_time = intro_time
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| Error::INVALID_INPUT)?;
         // Ticket keys should be at least 128 bits in strength
         // https://www.rfc-editor.org/rfc/rfc5077#section-5.5
         if key_len < 16 {
