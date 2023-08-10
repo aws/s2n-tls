@@ -8,7 +8,7 @@ mod tests {
         connection,
         testing::{s2n_tls::*, *},
     };
-    use std::{error::Error, sync::Mutex, time::Duration};
+    use std::{error::Error, sync::Mutex, time::SystemTime};
 
     #[derive(Default, Clone)]
     pub struct SessionTicketHandler {
@@ -44,7 +44,7 @@ mod tests {
         let mut server_config_builder = Builder::new();
         server_config_builder
             .enable_session_tickets(true)?
-            .add_session_ticket_key(&KEYNAME, &KEY, Duration::new(0, 0))?
+            .add_session_ticket_key(&KEYNAME, &KEY, SystemTime::now())?
             .load_pem(keypair.cert(), keypair.key())?;
         let server_config = server_config_builder.build()?;
 
@@ -124,7 +124,7 @@ mod tests {
         let mut server_config_builder = Builder::new();
         server_config_builder
             .enable_session_tickets(true)?
-            .add_session_ticket_key(&KEYNAME, &KEY, Duration::new(0, 0))?
+            .add_session_ticket_key(&KEYNAME, &KEY, SystemTime::now())?
             .load_pem(keypair.cert(), keypair.key())?
             .set_security_policy(&security::DEFAULT_TLS13)?;
         let server_config = server_config_builder.build()?;

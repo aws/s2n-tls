@@ -71,19 +71,19 @@ pub enum Mode {
 }
 
 #[derive(Debug)]
-pub struct Pair<C: Connection> {
-    pub server: (C, MemoryContext),
-    pub client: (C, MemoryContext),
+pub struct Pair<Server: Connection, Client: Connection> {
+    pub server: (Server, MemoryContext),
+    pub client: (Client, MemoryContext),
     pub max_iterations: usize,
 }
 
-impl<C: Connection> Pair<C> {
+impl<Server: Connection, Client: Connection> Pair<Server, Client> {
     /// The number of iterations that will be executed until the handshake exits with an error
     ///
     /// This is to prevent endless looping without making progress on the connection.
     const DEFAULT_ITERATIONS: usize = 100;
 
-    pub fn new(server: C, client: C) -> Self {
+    pub fn new(server: Server, client: Client) -> Self {
         Self {
             server: (server, Default::default()),
             client: (client, Default::default()),
@@ -119,11 +119,14 @@ impl<C: Connection> Pair<C> {
     }
 
     pub fn poll_send(&mut self, sender: Mode, buf: &[u8]) -> Poll<Result<()>> {
-        let (conn, mem_ctx) = match sender {
-            Mode::Client => &mut self.client,
-            Mode::Server => &mut self.server,
+        let result = match sender {
+            Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
+                connection::Connection::poll_send(conn, buf)
+            }),
+            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
+                connection::Connection::poll_send(conn, buf)
+            }),
         };
-        let result = conn.poll_action(mem_ctx, |conn| connection::Connection::poll_send(conn, buf));
         self.server.1.transfer(&mut self.client.1);
         match result {
             Poll::Ready(result) => {
@@ -135,11 +138,14 @@ impl<C: Connection> Pair<C> {
     }
 
     pub fn poll_recv(&mut self, receiver: Mode, buf: &mut [u8]) -> Poll<Result<()>> {
-        let (conn, mem_ctx) = match receiver {
-            Mode::Client => &mut self.client,
-            Mode::Server => &mut self.server,
+        let result = match receiver {
+            Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
+                connection::Connection::poll_recv(conn, buf)
+            }),
+            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
+                connection::Connection::poll_recv(conn, buf)
+            }),
         };
-        let result = conn.poll_action(mem_ctx, |conn| connection::Connection::poll_recv(conn, buf));
         match result {
             Poll::Ready(result) => {
                 result?;
@@ -260,7 +266,7 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
     Ok(builder)
 }
 
-pub fn tls_pair(config: crate::config::Config) -> Pair<Harness> {
+pub fn tls_pair(config: crate::config::Config) -> Pair<Harness, Harness> {
     // create and configure a server connection
     let mut server = crate::connection::Connection::new_server();
     // some tests check for connection failure so disable blinding to avoid delay
@@ -301,7 +307,7 @@ pub fn establish_connection(config: crate::config::Config) {
     poll_tls_pair(pair);
 }
 
-pub fn poll_tls_pair(mut pair: Pair<Harness>) -> Pair<Harness> {
+pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => {
@@ -315,7 +321,7 @@ pub fn poll_tls_pair(mut pair: Pair<Harness>) -> Pair<Harness> {
     pair
 }
 
-pub fn poll_tls_pair_result(pair: &mut Pair<Harness>) -> Result<()> {
+pub fn poll_tls_pair_result(pair: &mut Pair<Harness, Harness>) -> Result<()> {
     loop {
         match pair.poll() {
             Poll::Ready(result) => return result,

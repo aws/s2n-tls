@@ -13,7 +13,7 @@ use std::{
     ffi::{c_void, CString},
     path::Path,
     sync::atomic::{AtomicUsize, Ordering},
-    time::Duration,
+    time::{Duration, SystemTime},
 };
 
 #[derive(Debug, PartialEq)]
@@ -640,18 +640,19 @@ impl Builder {
     }
 
     /// Adds a key which will be used to encrypt and decrypt session tickets. The intro_time parameter is time since
-    /// the Unix epoch (Midnight, January 1st, 1970). If this is 0, then intro_time is set to now.
+    /// the Unix epoch (Midnight, January 1st, 1970).
     pub fn add_session_ticket_key(
         &mut self,
         key_name: &[u8],
         key: &[u8],
-        intro_time: Duration,
+        intro_time: SystemTime,
     ) -> Result<&mut Self, Error> {
         let key_name_len: u32 = key_name
             .len()
             .try_into()
             .map_err(|_| Error::INVALID_INPUT)?;
         let key_len: u32 = key.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let intro_time = intro_time.duration_since(std::time::UNIX_EPOCH).map_err(|_| Error::INVALID_INPUT)?;
         // Ticket keys should be at least 128 bits in strength
         // https://www.rfc-editor.org/rfc/rfc5077#section-5.5
         if key_len < 16 {
