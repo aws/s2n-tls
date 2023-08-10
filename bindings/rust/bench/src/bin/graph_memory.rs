@@ -6,9 +6,10 @@ use plotters::{
     style::{AsRelative, Color, IntoFont, Palette, Palette99, RGBAColor, WHITE},
 };
 use std::{
-    collections::HashMap,
+    collections::BTreeMap,
     error::Error,
     fs::{read_dir, read_to_string},
+    path::Path,
 };
 
 struct Stats {
@@ -16,9 +17,9 @@ struct Stats {
     stderr: f64,
 }
 
-fn get_bytes_from_snapshot(name: &str, i: i32) -> i32 {
+fn get_bytes_from_snapshot(path: &Path, i: i32) -> i32 {
     // number of bytes in snapshot starts on 8th line, 12th character
-    read_to_string(format!("target/memory/{name}/{i}.snapshot"))
+    read_to_string(format!("{}/{i}.snapshot", path.display()))
         .unwrap()
         .lines()
         .nth(7)
@@ -29,12 +30,12 @@ fn get_bytes_from_snapshot(name: &str, i: i32) -> i32 {
 
 /// Get the difference in bytes between two snapshots, which is memory of the
 /// `i`th TlsConnPair (client and server)
-fn get_bytes_diff(name: &str, i: i32) -> i32 {
-    get_bytes_from_snapshot(name, i + 1) - get_bytes_from_snapshot(name, i)
+fn get_bytes_diff(path: &Path, i: i32) -> i32 {
+    get_bytes_from_snapshot(path, i + 1) - get_bytes_from_snapshot(path, i)
 }
 
-fn get_memory_data(name: &str) -> Stats {
-    let data: Vec<f64> = (0..100).map(|i| get_bytes_diff(name, i) as f64).collect();
+fn get_memory_data(path: &Path) -> Stats {
+    let data: Vec<f64> = (0..100).map(|i| get_bytes_diff(path, i) as f64).collect();
     let mean = data.iter().sum::<f64>() / (data.len() as f64);
     let variance: f64 =
         data.iter().map(|x| (x - mean) * (x - mean)).sum::<f64>() / ((data.len() - 1) as f64);
@@ -44,34 +45,29 @@ fn get_memory_data(name: &str) -> Stats {
     Stats { mean, stderr }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
-    // get data from each directory in target/memory
-    // map bench name to its memory stats
-    let mut stats: HashMap<String, Stats> = Default::default();
-    for dir_entry in read_dir("target/memory")? {
+/// Gets data from memory benching and plots it
+fn plot_memory_data(param_name: &str, target_name: &str) -> Result<(), Box<dyn Error>> {
+    // go through each library name directory (ex. "s2n-tls") and calculate stats
+    let mut stats: BTreeMap<String, Stats> = Default::default(); // btree to sort by name
+    for dir_entry in read_dir(format!("target/memory/{param_name}/{target_name}"))? {
         let dir_path = dir_entry?.path();
         let dir_name = dir_path.file_name().unwrap().to_str().unwrap().to_string();
-
-        if dir_name != "xtree" {
-            stats.insert(dir_name.clone(), get_memory_data(&dir_name));
-        }
+        stats.insert(dir_name.clone(), get_memory_data(&dir_path));
     }
 
+    // calculate things for plotting
     let num_bars = stats.len();
     let x_labels: Vec<String> = stats.iter().map(|kv| kv.0.clone()).collect();
-    let max_mem = stats
-        .iter()
-        .max_by(|a, b| f64::total_cmp(&a.1.mean, &b.1.mean))
-        .unwrap()
-        .1
-        .mean;
+    let max_mem = 120_000.0; // constant to keep scale same for all graphs
 
-    let drawing_area = SVGBackend::new("images/memory.svg", (1000, 500)).into_drawing_area();
+    // setup plotting
+    let chart_path = format!("images/memory-{target_name}-{param_name}.svg");
+    let drawing_area = SVGBackend::new(&chart_path, (600, 500)).into_drawing_area();
     drawing_area.fill(&WHITE)?;
 
     let mut ctx = ChartBuilder::on(&drawing_area)
         .caption(
-            "Memory usage of a connection pair",
+            format!("Memory of {target_name} with {param_name}"),
             ("sans-serif", 30).into_font(),
         )
         .set_label_area_size(LabelAreaPosition::Left, (15).percent()) // axes padding
@@ -110,9 +106,26 @@ fn main() -> Result<(), Box<dyn Error>> {
         let x1 = SegmentValue::Exact(i + 1);
         let color = Palette99::pick(i).filled();
         let mut bar = Rectangle::new([(x0, 0.0), (x1, stats.mean)], color);
-        bar.set_margin(0, 0, 100, 100); // spacing between bars
+        bar.set_margin(0, 0, 30, 30); // spacing between bars
         bar
     }))?;
+
+    Ok(())
+}
+
+/// Plots all available data in target/memory and stores graphs in images
+fn main() -> Result<(), Box<dyn Error>> {
+    // iterate through param options ex. shrink-buffers or reuse-config
+    for param_dir_entry in read_dir("target/memory")? {
+        let param_dir_path = param_dir_entry?.path();
+        let param_name = param_dir_path.file_name().unwrap().to_str().unwrap();
+
+        // iterate through targets, ex. client or server
+        for target_dir_entry in read_dir(&param_dir_path)? {
+            let target_name = target_dir_entry?.file_name().to_string_lossy().to_string();
+            plot_memory_data(param_name, &target_name)?;
+        }
+    }
 
     Ok(())
 }

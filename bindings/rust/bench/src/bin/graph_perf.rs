@@ -60,8 +60,8 @@ fn process_single_json(path: &Path) -> Stats {
 fn parse_bench_group_data(path: &Path) -> Vec<VersionDataPoint> {
     let mut data: Vec<VersionDataPoint> = read_dir(path)
         .unwrap()
-        .map(|dir_entry_res| {
-            let path = dir_entry_res.unwrap().path();
+        .map(|dir_entry| {
+            let path = dir_entry.unwrap().path();
             let stats = process_single_json(&path);
             let tag = path.file_stem().unwrap().to_str().unwrap();
             let version = Version::parse(&tag[1..]).unwrap();
@@ -80,7 +80,7 @@ fn parse_bench_group_data(path: &Path) -> Vec<VersionDataPoint> {
 fn get_all_data(prefix: &str) -> Vec<VersionDataSeries> {
     read_dir("target/historical-perf")
         .unwrap()
-        .map(|dir_entry_res| dir_entry_res.unwrap().path())
+        .map(|dir_entry| dir_entry.unwrap().path())
         .filter(|path| {
             // get all paths starting with prefix
             path.file_name()
@@ -136,6 +136,7 @@ fn convert_to_data_series(
 /// Plots given DataSeries with given chart parameters
 fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
     data: &[DataSeries],
+    image_name: &str,
     bench_name: &str,
     x_label_formatter: &F,
     y_label: &str,
@@ -154,7 +155,7 @@ fn plot_data<F: Fn(&i32) -> String, G: Fn(&f64) -> String>(
         .unwrap();
 
     // setup plotting
-    let path = format!("images/historical-perf-{bench_name}.svg");
+    let path = format!("images/historical-perf-{image_name}.svg");
     let drawing_area = SVGBackend::new(&path, (1000, 500)).into_drawing_area();
     drawing_area.fill(&WHITE).unwrap();
 
@@ -289,6 +290,7 @@ fn main() {
     plot_data(
         &handshake_data,
         "handshake",
+        "handshake",
         &x_label_formatter,
         "Time",
         &|y| format!("{} ms", y / 1e6),
@@ -296,6 +298,7 @@ fn main() {
     plot_data(
         &throughput_data,
         "throughput",
+        "round trip throughput",
         &x_label_formatter,
         "Throughput",
         &|y| format!("{} GB/s", y / 1e9),

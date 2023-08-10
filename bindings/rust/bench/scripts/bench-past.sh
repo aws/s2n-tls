@@ -61,7 +61,7 @@ do
         echo "running cargo bench and saving results" >&2
         cd $bench_path
         rm -rf target/criterion
-        cargo bench --features historical-perf --no-fail-fast "$@"
+        cargo bench --no-default-features --no-fail-fast
 
         # cache criterion outputs from this bench into target/historical-perf
         for bench_group in $(ls target/criterion | grep -v "report")
@@ -75,6 +75,6 @@ done
 
 # graph results
 cd $bench_path
-cargo run --release --bin graph_perf
+cargo run --release --no-default-features --features historical-perf --bin graph_perf
 
 popd

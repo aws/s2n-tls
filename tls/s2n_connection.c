@@ -1348,10 +1348,15 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(cert_chain_and_key);
+    POSIX_ENSURE_REF(cert_chain_and_key->cert_chain);
+
+    /* Ensure that cert_chain_and_key is empty BEFORE we modify it in any way.
+     * That includes before tying its cert_chain to DEFER_CLEANUP.
+     */
+    POSIX_ENSURE(cert_chain_and_key->cert_chain->head == NULL, S2N_ERR_INVALID_ARGUMENT);
 
     DEFER_CLEANUP(struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain, s2n_cert_chain_free_pointer);
     struct s2n_cert **insert = &cert_chain->head;
-    POSIX_ENSURE(*insert == NULL, S2N_ERR_INVALID_ARGUMENT);
 
     const struct s2n_x509_validator *validator = &conn->x509_validator;
     POSIX_ENSURE_REF(validator);

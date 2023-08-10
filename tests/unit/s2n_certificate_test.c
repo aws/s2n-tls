@@ -272,25 +272,41 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server_conn->x509_validator.state, VALIDATED);
             EXPECT_NOT_EQUAL(client_conn->x509_validator.state, VALIDATED);
 
-            struct s2n_cert_chain_and_key *test_peer_chain = s2n_cert_chain_and_key_new();
-            EXPECT_NOT_NULL(test_peer_chain);
-
             /* Safety checks */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(NULL, chain_and_key), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, NULL), S2N_ERR_NULL);
+            {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = s2n_cert_chain_and_key_new(),
+                        s2n_cert_chain_and_key_ptr_free);
+                EXPECT_NOT_NULL(chain);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(NULL, chain), S2N_ERR_NULL);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, NULL), S2N_ERR_NULL);
+            }
 
             /* Input certificate chain is not empty */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, chain_and_key),
-                    S2N_ERR_INVALID_ARGUMENT);
+            {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *input = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&input,
+                        S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, input),
+                        S2N_ERR_INVALID_ARGUMENT);
+
+                /* Validate that the original cert chain was not modified */
+                EXPECT_NOT_NULL(input->cert_chain);
+                EXPECT_NOT_NULL(input->cert_chain->head);
+                EXPECT_EQUAL(input->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
+            }
 
             /* x509 verification is skipped on client side */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(client_conn, test_peer_chain),
-                    S2N_ERR_CERT_NOT_VALIDATED);
+            {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = s2n_cert_chain_and_key_new(),
+                        s2n_cert_chain_and_key_ptr_free);
+                EXPECT_NOT_NULL(chain);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(client_conn, chain),
+                        S2N_ERR_CERT_NOT_VALIDATED);
+            }
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
             /* Clean-up */
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_peer_chain));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         };

@@ -14,54 +14,29 @@ s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be 
 [![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Quickstart for Ubuntu
-1. Fork s2n-tls on GitHub
-2. Run the following commands on Ubuntu.
-```
-git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
+
+```bash
+# clone s2n-tls
+git clone https://github.com/aws/s2n-tls.git
 cd s2n-tls
 
-# Pick an "env" line from the codebuild/codebuild.config file and run it, in this case choose the openssl-1.1.1 with GCC 9 build
-S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integrationv2 GCC_VERSION=9
+# install build dependencies
+sudo apt update
+sudo apt install cmake
 
-sudo codebuild/bin/s2n_install_test_dependencies.sh
-codebuild/bin/s2n_codebuild.sh
+# install a libcrypto
+sudo apt install libssl-dev
+
+# build s2n-tls
+cmake . -Bbuild \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
+cmake --build build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+cmake --install build
 ```
 
-## Quickstart for OSX (or other platforms)
-
-If you are building on OSX, or simply don't want to execute the entire build script above, you can use build tools like Ninja.
-
-### OSX
-
-An example of building on OSX:
-
-```sh
-# Install required dependencies using homebrew
-brew install ninja cmake coreutils openssl@1.1
-
-# Clone the s2n-tls source repository into the `s2n-tls` directory
-git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
-cd s2n-tls
-
-# Create a build directory, and build s2n-tls with debug symbols and a specific OpenSSL version.
-cmake . -Bbuild -GNinja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib)))
-cmake --build ./build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
-```
-
-### Amazonlinux2
-
-Install dependencies with `./codebuild/bin/install_al2_dependencies.sh` after cloning.
-
-```sh
-git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
-cd s2n-tls
-cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build ./build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
-```
+See the [s2n-tls build documentation](docs/BUILD.md) for further guidance on building s2n-tls for your platform.
 
 ## Have a Question?
 If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
