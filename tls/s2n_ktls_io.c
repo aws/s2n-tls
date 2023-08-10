@@ -97,15 +97,15 @@ static S2N_RESULT s2n_ktls_sendmsg_impl(struct s2n_connection *conn, const struc
 
     *blocked = S2N_BLOCKED_ON_WRITE;
     *bytes_written = s2n_sendmsg_fn(conn->send_io_context, msg);
-    bool is_error = *bytes_written < 0;
+    bool did_fail = *bytes_written < 0;
 
     /* handle blocked error */
-    if (is_error && (errno == EWOULDBLOCK || errno == EAGAIN)) {
+    if (did_fail && (errno == EWOULDBLOCK || errno == EAGAIN)) {
         RESULT_BAIL(S2N_ERR_IO_BLOCKED);
     }
 
     *blocked = S2N_NOT_BLOCKED;
-    RESULT_ENSURE(!is_error, S2N_ERR_IO);
+    RESULT_ENSURE(!did_fail, S2N_ERR_IO);
 
     return S2N_RESULT_OK;
 }

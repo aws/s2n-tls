@@ -123,11 +123,12 @@ int main(int argc, char **argv)
                     s2n_ktls_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
 
+            size_t zero_count = 0;
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             /* sendmsg */
             ssize_t bytes_written = 0;
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-            EXPECT_ERROR_WITH_ERRNO(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 0, &blocked, &bytes_written),
+            EXPECT_ERROR_WITH_ERRNO(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, zero_count, &blocked, &bytes_written),
                     S2N_ERR_INVALID_ARGUMENT);
             EXPECT_EQUAL(bytes_written, 0);
 
@@ -227,14 +228,14 @@ int main(int argc, char **argv)
             size_t records_to_send = 5;
             struct iovec send_msg_iov = { .iov_len = S2N_TEST_TO_SEND };
             size_t total_sent = 0;
-            for (size_t i = 0; i < records_to_send; i++) {
+            for (size_t record_type = 0; record_type < records_to_send; record_type++) {
                 /* increment test data ptr */
                 send_msg_iov.iov_base = test_data + total_sent;
 
                 /* sendmsg */
                 ssize_t bytes_written = 0;
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-                EXPECT_OK(s2n_ktls_sendmsg(server, i, &send_msg_iov, 1, &blocked, &bytes_written));
+                EXPECT_OK(s2n_ktls_sendmsg(server, record_type, &send_msg_iov, 1, &blocked, &bytes_written));
                 EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
                 total_sent += bytes_written;
             }
@@ -244,8 +245,8 @@ int main(int argc, char **argv)
             /* validate `records_to_send` records were sent  */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), records_to_send * S2N_TEST_KTLS_MOCK_HEADER_SIZE);
             /* validate ancillary header */
-            for (size_t i = 0; i < records_to_send; i++) {
-                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, i, S2N_TEST_TO_SEND));
+            for (size_t record_type = 0; record_type < records_to_send; record_type++) {
+                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, record_type, S2N_TEST_TO_SEND));
                 /* progress/consume the header validate the next header */
                 EXPECT_NOT_NULL(s2n_stuffer_raw_read(&io_pair.client_in.ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE));
             }
@@ -267,7 +268,7 @@ int main(int argc, char **argv)
 
             size_t to_send = 1;
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = to_send };
-            /* attempt sendmsg and expect EAGAIN */
+            /* attempt sendmsg and expect blocked error */
             ssize_t bytes_written = 0;
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             for (size_t i = 0; i < 5; i++) {
@@ -297,19 +298,21 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
 
-            /* setup sendmsg cb */
-            size_t invoked_count = 0;
-            EXPECT_OK(s2n_ktls_set_sendmsg_cb(server, s2n_test_ktls_sendmsg_fail, &invoked_count));
+            /* setup sendmsg callback */
+            struct s2n_test_ktls_io_fail io_ctx = {
+                .invoked_count = 0
+            };
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(server, s2n_test_ktls_sendmsg_fail, &io_ctx));
 
             struct iovec send_msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
-            /* attempt sendmsg and expect blocked error */
+            /* attempt sendmsg and expect IO error */
             ssize_t bytes_written = 0;
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_ERROR_WITH_ERRNO(s2n_ktls_sendmsg(server, test_record_type, &send_msg_iov, 1, &blocked, &bytes_written),
                     S2N_ERR_IO);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
-            EXPECT_EQUAL(invoked_count, 1);
+            EXPECT_EQUAL(io_ctx.invoked_count, 1);
         };
 
         /* validate sent ancillary data */
@@ -317,9 +320,9 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
 
-            /* setup sendmsg cb */
+            /* setup sendmsg callback */
             size_t to_send = 83;
-            size_t count = 1;
+            size_t count = 5;
             uint8_t record_type = 99;
             struct s2n_test_ktls_io_validate io_ctx = {
                 .expected_data = test_data,
