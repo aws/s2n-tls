@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.48-4b2187d5</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.48-b8c3945e</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -8320,10 +8320,11 @@ Reusing the same connection handle(s) is more performant than repeatedly calling
 </div><div class="memdoc">
 <p >Performs the initial "handshake" phase of a TLS connection and must be called before any <a class="el" href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv()</a> or <a class="el" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send()</a> calls.</p>
 <dl class="section note"><dt>Note</dt><dd>When using client authentication with TLS1.3, <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> will report a successful handshake to clients before the server validates the client certificate. If the server then rejects the client certificate, the client may later receive an alert while calling s2n_recv, potentially after already having sent application data with s2n_send.</dd></dl>
+<p>See the following example for guidance on calling <code><a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a></code>: <a href="https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c">https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
-    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status. </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status if an <code>S2N_ERR_T_BLOCKED</code> error is returned. </td></tr>
   </table>
   </dd>
 </dl>
@@ -9127,25 +9128,14 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Decrypts and reads **size* to <code>buf</code> data from the associated connection.</p>
-<dl class="section note"><dt>Note</dt><dd>Unlike OpenSSL, repeated calls to <code>s2n_recv</code> should not duplicate the original parameters, but should update <code>buf</code> and <code>size</code> per the indication of size read. For example; <div class="fragment"><div class="line"><a class="code hl_enumeration" href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a> blocked;</div>
-<div class="line"><span class="keywordtype">int</span> bytes_read = 0;</div>
-<div class="line"><span class="keywordtype">char</span> data[10];</div>
-<div class="line"><span class="keywordflow">do</span> {</div>
-<div class="line">    <span class="keywordtype">int</span> r = <a class="code hl_function" href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a>(conn, data + bytes_read, 10 - bytes_read, &amp;blocked);</div>
-<div class="line">    <span class="keywordflow">if</span> (r &lt; 0) {</div>
-<div class="line">        <span class="keywordflow">break</span>;</div>
-<div class="line">    }</div>
-<div class="line">    bytes_read += r;</div>
-<div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
-<div class="ttc" id="as2n_8h_html_a3b67ff058796d4c6c6caddfd0f10274e"><div class="ttname"><a href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv</a></div><div class="ttdeci">S2N_API ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-<div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:1822</div></div>
-</div><!-- fragment --></dd></dl>
+<dl class="section note"><dt>Note</dt><dd>Unlike OpenSSL, repeated calls to <code>s2n_recv</code> should not duplicate the original parameters, but should update <code>buf</code> and <code>size</code> per the indication of size read.</dd></dl>
+<p>See the following example for guidance on calling <code><a class="el" href="s2n_8h.html#a3b67ff058796d4c6c6caddfd0f10274e">s2n_recv()</a></code>: <a href="https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c">https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
     <tr><td class="paramname">buf</td><td>A pointer to a buffer that s2n will place read data into. </td></tr>
     <tr><td class="paramname">size</td><td>Size of <code>buf</code> </td></tr>
-    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status, as in <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status if an <code>S2N_ERR_T_BLOCKED</code> error is returned. </td></tr>
   </table>
   </dd>
 </dl>
@@ -9252,24 +9242,14 @@ Safety</h1>
 <p >Writes and encrypts <code>size</code> of <code>buf</code> data to the associated connection. <a class="el" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send()</a> will return the number of bytes written, and may indicate a partial write.</p>
 <dl class="section note"><dt>Note</dt><dd>Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. </dd>
 <dd>
-Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send()</a> should not duplicate the original parameters, but should update <code>buf</code> and <code>size</code> per the indication of size written. For example; <div class="fragment"><div class="line"><a class="code hl_enumeration" href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a> blocked;</div>
-<div class="line"><span class="keywordtype">int</span> written = 0;</div>
-<div class="line"><span class="keywordtype">char</span> data[10]; </div>
-<div class="line"><span class="keywordflow">do</span> {</div>
-<div class="line">    <span class="keywordtype">int</span> w = <a class="code hl_function" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send</a>(conn, data + written, 10 - written, &amp;blocked);</div>
-<div class="line">    <span class="keywordflow">if</span> (w &lt; 0) {</div>
-<div class="line">        <span class="keywordflow">break</span>;</div>
-<div class="line">    }</div>
-<div class="line">    written += w;</div>
-<div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
-<div class="ttc" id="as2n_8h_html_a9afeb514731fa9d74edf6b9e1348c067"><div class="ttname"><a href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send</a></div><div class="ttdeci">S2N_API ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked)</div></div>
-</div><!-- fragment --></dd></dl>
+Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send()</a> should not duplicate the original parameters, but should update <code>buf</code> and <code>size</code> per the indication of size written.</dd></dl>
+<p>See the following example for guidance on calling <code><a class="el" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send()</a></code>: <a href="https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c">https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c</a></p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
     <tr><td class="paramname">buf</td><td>A pointer to a buffer that s2n will write data from </td></tr>
     <tr><td class="paramname">size</td><td>The size of buf </td></tr>
-    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status, as in <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status if an <code>S2N_ERR_T_BLOCKED</code> error is returned. </td></tr>
   </table>
   </dd>
 </dl>
@@ -9379,7 +9359,7 @@ Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a9afeb514731fa
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
     <tr><td class="paramname">bufs</td><td>A pointer to a vector of buffers that s2n will write data from. </td></tr>
     <tr><td class="paramname">count</td><td>The number of buffers in <code>bufs</code> </td></tr>
-    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status, as in <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status if an <code>S2N_ERR_T_BLOCKED</code> error is returned. </td></tr>
   </table>
   </dd>
 </dl>
@@ -9433,28 +9413,15 @@ Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a9afeb514731fa
 <p >Works in the same way as <a class="el" href="s2n_8h.html#a9afeb514731fa9d74edf6b9e1348c067">s2n_send()</a> except that it accepts vectorized buffers. Will return the number of bytes written, and may indicate a partial write. Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active.</p>
 <dl class="section note"><dt>Note</dt><dd>Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active.</dd>
 <dd>
-Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a1b09f96a5f4fe3b78a08e76e7304853f">s2n_sendv_with_offset()</a> should not duplicate the original parameters, but should update <code>bufs</code> and <code>count</code> per the indication of size written. For example;</dd></dl>
-<div class="fragment"><div class="line"><a class="code hl_enumeration" href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a> blocked;</div>
-<div class="line"><span class="keywordtype">int</span> written = 0;</div>
-<div class="line"><span class="keywordtype">char</span> data[10]; </div>
-<div class="line"><span class="keyword">struct </span>iovec iov[1];</div>
-<div class="line">iov[0].iov_base = data;</div>
-<div class="line">iov[0].iov_len = 10;</div>
-<div class="line"><span class="keywordflow">do</span> {</div>
-<div class="line">    <span class="keywordtype">int</span> w = <a class="code hl_function" href="s2n_8h.html#a1b09f96a5f4fe3b78a08e76e7304853f">s2n_sendv_with_offset</a>(conn, iov, 1, written, &amp;blocked);</div>
-<div class="line">    <span class="keywordflow">if</span> (w &lt; 0) {</div>
-<div class="line">        <span class="keywordflow">break</span>;</div>
-<div class="line">    }</div>
-<div class="line">    written += w;</div>
-<div class="line">} <span class="keywordflow">while</span> (blocked != S2N_NOT_BLOCKED);</div>
-<div class="ttc" id="as2n_8h_html_a1b09f96a5f4fe3b78a08e76e7304853f"><div class="ttname"><a href="s2n_8h.html#a1b09f96a5f4fe3b78a08e76e7304853f">s2n_sendv_with_offset</a></div><div class="ttdeci">S2N_API ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked)</div></div>
-</div><!-- fragment --><dl class="params"><dt>Parameters</dt><dd>
+Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a1b09f96a5f4fe3b78a08e76e7304853f">s2n_sendv_with_offset()</a> should not duplicate the original parameters, but should update <code>bufs</code> and <code>count</code> per the indication of size written.</dd></dl>
+<p>See the following example for guidance on calling <code><a class="el" href="s2n_8h.html#a1b09f96a5f4fe3b78a08e76e7304853f">s2n_sendv_with_offset()</a></code>: <a href="https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c">https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c</a></p>
+<dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
     <tr><td class="paramname">bufs</td><td>A pointer to a vector of buffers that s2n will write data from. </td></tr>
     <tr><td class="paramname">count</td><td>The number of buffers in <code>bufs</code> </td></tr>
     <tr><td class="paramname">offs</td><td>The write cursor offset. This should be updated as data is written. See the example code. </td></tr>
-    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status, as in <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status if an <code>S2N_ERR_T_BLOCKED</code> error is returned. </td></tr>
   </table>
   </dd>
 </dl>
@@ -9655,7 +9622,7 @@ Safety</h1>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
-    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status, as in <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status if an <code>S2N_ERR_T_BLOCKED</code> error is returned. </td></tr>
   </table>
   </dd>
 </dl>
@@ -9701,7 +9668,7 @@ Safety</h1>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
-    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status, as in <a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a> </td></tr>
+    <tr><td class="paramname">blocked</td><td>A pointer which will be set to the blocked status if an <code>S2N_ERR_T_BLOCKED</code> error is returned. </td></tr>
   </table>
   </dd>
 </dl>
