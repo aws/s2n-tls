@@ -329,11 +329,16 @@ how to handle C signals, or simply ignore the SIGPIPE signal by calling
 s2n-tls supports both blocking and non-blocking I/O.
 * In blocking mode, each s2n-tls I/O function will not return until it has completed
 the requested IO operation.
-* In non-blocking mode, an s2n-tls I/O function may return while there is
-still I/O pending. If **S2N_FAILURE** is returned, `s2n_error_get_type()`
-will report **S2N_ERR_T_BLOCKED**. The s2n_blocked_status parameter will be
-set to indicate which IO direction blocked. s2n-tls I/O functions should be called
-repeatedly until the **blocked** parameter is **S2N_NOT_BLOCKED**.
+* In non-blocking mode, s2n-tls I/O functions will immediately return, even if the socket couldn't
+send or receive all the requested data. In this case, the I/O function will return `S2N_FAILURE`,
+and `s2n_error_get_type()` will return `S2N_ERR_T_BLOCKED`. The I/O operation will have to be
+called again in order to send or receive the remaining requested data.
+
+Some s2n-tls I/O functions take a `blocked` argument. If an I/O function returns an
+`S2N_ERR_T_BLOCKED` error, the `blocked` argument will be set to a `s2n_blocked_status` value,
+indicating what s2n-tls is currently blocked on. Note that unless an I/O function returns
+`S2N_FAILURE` with an `S2N_ERR_T_BLOCKED` error, the `blocked` argument is meaningless, and should
+not be used in any application logic.
 
 Servers in particular usually prefer non-blocking mode. In blocking mode, a single connection
 blocks the thread while waiting for more IO. In non-blocking mode, multiple connections
@@ -401,9 +406,15 @@ provided application data. s2n-tls breaks the application data into fixed-sized
 records before encryption, and calls write for each record.
 [See the record size documentation for how record size may impact performance](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#record-sizes).
 
-To ensure that all data passed to `s2n_send()` is successfully sent, either call
-`s2n_send()` until its s2n_blocked_status parameter is **S2N_NOT_BLOCKED** or
-until the return values across all calls have added up to the length of the data.
+In non-blocking mode, `s2n_send()` will send data from the provided buffer and return the number of
+bytes sent, as long as the socket was able to send at least 1 byte. If no bytes could be sent on the
+socket, `s2n_send()` will return `S2N_FAILURE`, and `s2n_error_get_type()` will return
+`S2N_ERR_T_BLOCKED`. To ensure that all the provided data gets sent, applications should continue
+calling `s2n_send()` until the return values across all calls have added up to the length of the
+data, or until `s2n_send()` returns an `S2N_ERR_T_BLOCKED` error. After an `S2N_ERR_T_BLOCKED`
+error is returned, applications should call `s2n_send()` again only after the socket is
+able to send more data. This can be determined by using methods like
+[`poll`](https://linux.die.net/man/2/poll) or [`select`](https://linux.die.net/man/2/select).
 
 Unlike OpenSSL, repeated calls to `s2n_send()` should not duplicate the original
 parameters, but should update the inputs per the indication of size written.
@@ -426,11 +437,18 @@ the application-provided output buffer. It returns the number of bytes read, and
 may indicate a partial read even if blocking IO is used.
 It returns "0" to indicate that the peer has shutdown the connection.
 
-By default, `s2n_recv()` will return after reading a single TLS record.
-To instead read until the provided output buffer is full, call `s2n_recv()` until
-its s2n_blocked_status parameter is **S2N_NOT_BLOCKED**. Alternatively, use
-`s2n_config_set_recv_multi_record()` to configure s2n-tls to read multiple
-TLS records until the provided output buffer is full.
+By default, `s2n_recv()` will return after reading a single TLS record. `s2n_recv()` can be called
+repeatedly to read multiple records. To allow `s2n_recv()` to read multiple records with a single
+call, use `s2n_config_set_recv_multi_record()`.
+
+In non-blocking mode, `s2n_recv()` will read data into the provided buffer and return the number of
+bytes read, as long as at least 1 byte was read from the socket. If no bytes could be read from the
+socket, `s2n_recv()` will return `S2N_FAILURE`, and `s2n_error_get_type()` will return
+`S2N_ERR_T_BLOCKED`. To ensure that all data on the socket is properly received, applications
+should continue calling `s2n_recv()` until it returns an `S2N_ERR_T_BLOCKED` error. After an
+`S2N_ERR_T_BLOCKED` error is returned, applications should call `s2n_recv()` again only after the
+socket has received more data. This can be determined by using methods like 
+[`poll`](https://linux.die.net/man/2/poll) or [`select`](https://linux.die.net/man/2/select).
 
 Unlike OpenSSL, repeated calls to `s2n_recv()` should not duplicate the original parameters,
 but should update the inputs per the indication of size read.
