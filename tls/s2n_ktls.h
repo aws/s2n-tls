@@ -26,6 +26,9 @@
  */
 #include "tls/s2n_ktls_parameters.h"
 
+#define TLS_GET_RECORD_TYPE 0
+#define TLS_SET_RECORD_TYPE 0
+
 /* A set of kTLS configurations representing the combination of sending
  * and receiving.
  */
