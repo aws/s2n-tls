@@ -578,6 +578,15 @@ impl Connection {
         }
     }
 
+    /// Adds a session ticket from a previous TLS connection to create a resumed session
+    pub fn set_session_ticket(&mut self, session: &[u8]) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_session(self.connection.as_ptr(), session.as_ptr(), session.len())
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Sets a Waker on the connection context or clears it if `None` is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();

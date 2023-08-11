@@ -13,7 +13,9 @@
 # permissions and limitations under the License.
 
 # Get a list of changed files
-changed_files=$(git diff origin/main --name-only )
+REMOTE="${1:-origin}"
+BRANCH="${2:-main}"
+changed_files=$(git diff "$REMOTE"/"$BRANCH" --name-only )
 
 # Run clang-format on each changed file
 for file in $changed_files
