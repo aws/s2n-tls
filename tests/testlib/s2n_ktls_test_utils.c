@@ -16,7 +16,7 @@
 #include "testlib/s2n_ktls_test_utils.h"
 
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
-    int cmsg_type,  uint8_t record_type);
+        int cmsg_type, uint8_t record_type);
 S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t *record_type);
 
 /* Since it is possible to read partial data, we need a way to update the length
@@ -96,9 +96,6 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->recvmsg_invoked_count++;
 
-    /* Assuming msg_control is uint8_t is a simplification and will not work when we
-     * attempt to test the production s2n_ktls_recv implementation. However, setting/parsing
-     * cmsg is critical code and will be added in a separate PR. */
     uint8_t *buf = msg->msg_iov->iov_base;
     POSIX_ENSURE_REF(buf);
 
@@ -115,7 +112,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     uint8_t record_type = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(&io_ctx->ancillary_buffer, &record_type));
     POSIX_GUARD_RESULT(s2n_ktls_set_control_data(msg, msg->msg_control, msg->msg_controllen,
-        S2N_TLS_GET_RECORD_TYPE, record_type));
+            S2N_TLS_GET_RECORD_TYPE, record_type));
 
     ssize_t bytes_read = 0;
     while (bytes_read < size) {
@@ -132,6 +129,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         ssize_t remaining_len = n_avail - n_read;
         if (remaining_len) {
             POSIX_GUARD_RESULT(s2n_test_ktls_update_prev_header_len(io_ctx, remaining_len));
+            break;
         }
 
         /* attempt to read multiple records (must be of the same type) */

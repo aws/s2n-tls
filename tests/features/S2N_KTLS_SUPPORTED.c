@@ -26,5 +26,8 @@ int main()
     struct tls12_crypto_info_aes_gcm_128 aes_crypto_info;
     struct tls_crypto_info crypto_info;
 
+    int get_record_type = TLS_GET_RECORD_TYPE;
+    int set_record_type = TLS_SET_RECORD_TYPE;
+
     return 0;
 }
