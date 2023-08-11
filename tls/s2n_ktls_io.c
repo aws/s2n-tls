@@ -70,8 +70,8 @@ static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *m
     return sendmsg(fd, msg, 0);
 }
 
-S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, uint8_t record_type,
-    char *buf, size_t buf_size, int cmsg_type)
+S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
+    int cmsg_type, uint8_t record_type)
 {
     RESULT_ENSURE_REF(msg);
     RESULT_ENSURE_REF(buf);
