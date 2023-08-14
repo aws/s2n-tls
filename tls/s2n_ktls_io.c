@@ -13,12 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "error/s2n_errno.h"
-#include "tls/s2n_ktls.h"
-#include "utils/s2n_result.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_socket.h"
-
 #if defined(__FreeBSD__) || defined(__APPLE__)
     /* https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html
      * The POSIX standard does not define the CMSG_LEN and CMSG_SPACE macros. FreeBSD
@@ -28,10 +22,14 @@
      * POSIX compliant, we continue the pattern here.
      */
     #undef _POSIX_C_SOURCE
-    #include <sys/socket.h>
-#else
-    #include <sys/socket.h>
 #endif
+#include <sys/socket.h>
+
+#include "error/s2n_errno.h"
+#include "tls/s2n_ktls.h"
+#include "utils/s2n_result.h"
+#include "utils/s2n_safety.h"
+#include "utils/s2n_socket.h"
 
 /* record_type is of type uint8_t */
 #define S2N_KTLS_RECORD_TYPE_SIZE (sizeof(uint8_t))
