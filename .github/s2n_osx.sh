@@ -20,7 +20,15 @@ export CTEST_OUTPUT_ON_FAILURE=1
 BREWINSTLLPATH=$(brew --prefix openssl@1.1)
 OPENSSL_1_1_1_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@1.1/1.1.1?"}"
 
+echo "--------------- socket.h"
+sudo cat /Applications/Xcode_14.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/socket.h
+
+echo "--------------- types.h"
+sudo cat /Applications/Xcode_14.2.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX.sdk/usr/include/sys/types.h
+
+echo "--------------- print_header"
 gcc -H print_header.c
+
 
 echo "Using OpenSSL at $OPENSSL_1_1_1_INSTALL_DIR"
 # Build with debug symbols and a specific OpenSSL version
