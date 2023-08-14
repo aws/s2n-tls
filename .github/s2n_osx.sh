@@ -20,6 +20,8 @@ export CTEST_OUTPUT_ON_FAILURE=1
 BREWINSTLLPATH=$(brew --prefix openssl@1.1)
 OPENSSL_1_1_1_INSTALL_DIR="${BREWINSTLLPATH:-"/usr/local/Cellar/openssl@1.1/1.1.1?"}"
 
+gcc -H print_header.c
+
 echo "Using OpenSSL at $OPENSSL_1_1_1_INSTALL_DIR"
 # Build with debug symbols and a specific OpenSSL version
 cmake . -Bbuild -GNinja \
