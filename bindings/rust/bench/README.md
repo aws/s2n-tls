@@ -45,7 +45,7 @@ To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -
 
 ## Memory benchmarks
 
-To run all memory benchmarks, run `memory/bench-memory.sh`. Graphs of memory usage will be generated in `images/`.
+To run all memory benchmarks, run `scripts/bench-memory.sh`. Graphs of memory usage will be generated in `images/`.
 
 Memory benchmark data is generated using the `memory` binary. Command line arguments can be given to `cargo run` or to the built executable located at `target/release/memory`. The usage is as follows:
 
