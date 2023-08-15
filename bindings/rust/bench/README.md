@@ -45,7 +45,7 @@ To generate flamegraphs, run `cargo bench --bench handshake --bench throughput -
 
 ## Memory benchmarks
 
-To run all memory benchmarks, run `memory/bench-memory.sh`. Graphs of memory usage will be generated in `images/`.
+To run all memory benchmarks, run `scripts/bench-memory.sh`. Graphs of memory usage will be generated in `images/`.
 
 Memory benchmark data is generated using the `memory` binary. Command line arguments can be given to `cargo run` or to the built executable located at `target/release/memory`. The usage is as follows:
 
@@ -88,7 +88,7 @@ Notes:
 - Two sets of parameters for the handshake couldn't be benched before 1.3.40, since security policies that negotiated those policies as their top choice did not exist before then.
 - There is no data from 1.3.30 to 1.3.37 because those versions have a dependency issue that cause the Rust bindings not to build. However, there is data before and after that period, so the performance for those versions can be inferred via interpolation.
 - The improvement in throughput in 1.3.28 was most likely caused by the addition of LTO to the default Rust bindings build. 
-- Since the benches are run over a long time, noise on the machine can cause variability, as seen in the throughput graph.
+- Since the benches are run over a long time, noise on the machine can cause variability, and background processes can cause spikes.
 - The variability can be seen with throughput especially because it is calculated as the inverse of time taken.
 
 ![historical-perf-handshake](images/historical-perf-handshake.svg)
