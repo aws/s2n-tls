@@ -182,3 +182,34 @@ S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer
 
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data,
+        uint16_t expected_len)
+{
+    RESULT_ENSURE_REF(ktls_io);
+    RESULT_ENSURE_REF(expected_data);
+
+    struct s2n_stuffer validate_data_stuffer = ktls_io->data_buffer;
+    RESULT_ENSURE_EQ(s2n_stuffer_data_available(&validate_data_stuffer), expected_len);
+    uint8_t *data_ptr = s2n_stuffer_raw_read(&validate_data_stuffer, expected_len);
+    RESULT_ENSURE_REF(data_ptr);
+    RESULT_ENSURE_EQ(memcmp(data_ptr, expected_data, expected_len), 0);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
+        uint8_t expected_record_type, uint16_t expected_len)
+{
+    RESULT_ENSURE_REF(ktls_io);
+
+    struct s2n_stuffer validate_ancillary_stuffer = ktls_io->ancillary_buffer;
+    uint8_t tag = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(&validate_ancillary_stuffer, &tag));
+    RESULT_ENSURE_EQ(tag, expected_record_type);
+    uint16_t len;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&validate_ancillary_stuffer, &len));
+    RESULT_ENSURE_EQ(len, expected_len);
+
+    return S2N_RESULT_OK;
+}

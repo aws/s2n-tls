@@ -32,7 +32,8 @@
 #include "utils/s2n_socket.h"
 
 /* record_type is of type uint8_t */
-#define S2N_KTLS_RECORD_TYPE_SIZE (sizeof(uint8_t))
+#define S2N_KTLS_RECORD_TYPE_SIZE    (sizeof(uint8_t))
+#define S2N_KTLS_CONTROL_BUFFER_SIZE (CMSG_SPACE(S2N_KTLS_RECORD_TYPE_SIZE))
 
 /* Used to override sendmsg and recvmsg for testing. */
 static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg);
@@ -172,5 +173,42 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
     RESULT_ENSURE(hdr->cmsg_len == CMSG_LEN(S2N_KTLS_RECORD_TYPE_SIZE), S2N_ERR_KTLS_BAD_CMSG);
     *record_type = *CMSG_DATA(hdr);
 
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type,
+        const struct iovec *msg_iov, size_t msg_iovlen, s2n_blocked_status *blocked,
+        size_t *bytes_written)
+{
+    RESULT_ENSURE_REF(msg_iov);
+    RESULT_ENSURE_REF(blocked);
+    RESULT_ENSURE_REF(conn);
+
+    *blocked = S2N_BLOCKED_ON_WRITE;
+
+    RESULT_ENSURE(msg_iov->iov_base, S2N_ERR_INVALID_ARGUMENT);
+
+    struct msghdr msg = {
+        /* msghdr requires a non-const iovec. This is safe because s2n-tls does
+         * not modify msg_iov after this point.
+         */
+        .msg_iov = (struct iovec *) (uintptr_t) msg_iov,
+        .msg_iovlen = msg_iovlen,
+    };
+
+    char control_data[S2N_KTLS_CONTROL_BUFFER_SIZE] = { 0 };
+    RESULT_GUARD(s2n_ktls_set_control_data(&msg, control_data, sizeof(control_data),
+            S2N_TLS_SET_RECORD_TYPE, record_type));
+
+    ssize_t result = s2n_sendmsg_fn(conn->send_io_context, &msg);
+    if (result < 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            RESULT_BAIL(S2N_ERR_IO_BLOCKED);
+        }
+        RESULT_BAIL(S2N_ERR_IO);
+    }
+
+    *blocked = S2N_NOT_BLOCKED;
+    *bytes_written = result;
     return S2N_RESULT_OK;
 }
