@@ -507,6 +507,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(server_conn->handshake.handshake_type & HELLO_RETRY_REQUEST);
         EXPECT_EQUAL(client_hello_ctx.invocations, 1);
 
+        EXPECT_NOT_NULL(s2n_connection_get_client_hello(server_conn));
         EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(client_conn));
         EXPECT_TRUE(IS_HELLO_RETRY_HANDSHAKE(server_conn));
 

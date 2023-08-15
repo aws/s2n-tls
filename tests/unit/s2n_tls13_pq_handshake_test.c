@@ -237,6 +237,14 @@ int main()
         &s2n_x25519_kyber_512_r3,
 #endif
         &s2n_secp256r1_kyber_512_r3,
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+        &s2n_secp256r1_kyber_768_r3,
+        &s2n_secp384r1_kyber_768_r3,
+        &s2n_secp521r1_kyber_1024_r3,
+#endif
+#if EVP_APIS_SUPPORTED && defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+        &s2n_x25519_kyber_768_r3,
+#endif
     };
 
     const struct s2n_kem_preferences kyber_test_prefs_draft0 = {
@@ -269,6 +277,52 @@ int main()
         .kem_preferences = &kyber_test_prefs_draft5,
         .signature_preferences = &s2n_signature_preferences_20200207,
         .ecc_preferences = &s2n_ecc_preferences_20200310,
+    };
+
+    const struct s2n_kem_group *kyber768_test_kem_groups[] = {
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+        &s2n_secp384r1_kyber_768_r3,
+#endif
+        &s2n_secp256r1_kyber_512_r3,
+    };
+
+    const struct s2n_kem_preferences kyber768_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(kyber768_test_kem_groups),
+        .tls13_kem_groups = kyber768_test_kem_groups,
+        .tls13_pq_hybrid_draft_revision = 5,
+    };
+
+    const struct s2n_security_policy kyber768_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &kyber768_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20201021,
+    };
+
+    const struct s2n_kem_group *kyber1024_test_kem_groups[] = {
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+        &s2n_secp521r1_kyber_1024_r3,
+#endif
+        &s2n_secp256r1_kyber_512_r3,
+    };
+
+    const struct s2n_kem_preferences kyber1024_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(kyber1024_test_kem_groups),
+        .tls13_kem_groups = kyber1024_test_kem_groups,
+        .tls13_pq_hybrid_draft_revision = 5,
+    };
+
+    const struct s2n_security_policy kyber1024_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &kyber1024_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20201021,
     };
 
     const struct s2n_security_policy ecc_retry_policy = {
@@ -349,7 +403,58 @@ int main()
                 .hrr_expected = false,
                 .len_prefix_expected = false,
         },
-
+        /* Kyber768 should be preferred over 1024, which should be preferred over 512
+         * when available. Note that unlike older KEM group preferences, 2023_06_01
+         * prefers secp256r1 over x25519 for the hybrid EC.
+         */
+        {
+                .client_policy = &security_policy_pq_tls_1_3_2023_06_01,
+                .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+                .expected_kem_group = &s2n_secp256r1_kyber_768_r3,
+#else
+                .expected_kem_group = &s2n_secp256r1_kyber_512_r3,
+#endif
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &kyber1024_test_policy,
+                .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+                .expected_kem_group = &s2n_secp521r1_kyber_1024_r3,
+#else
+                .expected_kem_group = &s2n_secp256r1_kyber_512_r3,
+#endif
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &kyber768_test_policy,
+                .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+                .expected_kem_group = &s2n_secp384r1_kyber_768_r3,
+#else
+                .expected_kem_group = &s2n_secp256r1_kyber_512_r3,
+#endif
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        /* Server supports Kyber768+ parameters, Client only supports Kyber512.
+         * Expect Kyber512 to be negotiated if PQ is enabled, else fall back to
+         * ECC on hello retry.
+         */
+        {
+                .client_policy = &security_policy_pq_tls_1_1_2021_05_21,
+                .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+                .expected_kem_group = expected_kyber_r3_group,
+                .expected_curve = NULL,
+                .hrr_expected = !s2n_pq_is_enabled(),
+                .len_prefix_expected = true,
+        },
         /* Check that we're backwards and forwards compatible with different Hybrid PQ draft revisions*/
         {
                 .client_policy = &kyber_test_policy_draft0,
@@ -474,9 +579,17 @@ int main()
         bool len_prefix_expected = vector->len_prefix_expected;
 
         if (!s2n_pq_is_enabled()) {
-            /* If PQ is disabled, we always expected to negotiate ECC. */
+            /* If PQ is disabled, for older policies we expect to negotiate
+             * x25519 ECDH if available.  Newer policies only include NIST
+             * curves, so if the server policy doesn't contain x25519, modify
+             * that expectation to a NIST curve.
+             */
             kem_group = NULL;
-            curve = expected_curve;
+            if (!s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, expected_curve->iana_id)) {
+                curve = &s2n_ecc_curve_secp256r1;
+            } else {
+                curve = expected_curve;
+            }
         }
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));

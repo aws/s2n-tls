@@ -17,10 +17,14 @@ CIPHERS = [
     Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02,
     Ciphers.KMS_TLS_1_0_2018_10,
     Ciphers.PQ_TLS_1_0_2020_12,
+    Ciphers.PQ_TLS_1_3_2023_06_01,
 ]
 
 KEM_GROUPS = [
+    KemGroups.X25519_KYBER512R3,
     KemGroups.P256_KYBER512R3,
+    KemGroups.P384_KYBER768R3,
+    KemGroups.P521_KYBER1024R3,
 ]
 
 EXPECTED_RESULTS = {
@@ -96,7 +100,8 @@ EXPECTED_RESULTS = {
             "kem": "NONE", "kem_group": "NONE"},
 
     # The expected kem_group string for this case purposefully excludes a curve;
-    # depending on how s2n was compiled, the curve may be either x25519 or p256.
+    # depending on how s2n was compiled, the curve may be either x25519 or one
+    # of the NIST curves.
     (Ciphers.PQ_TLS_1_0_2020_12, Ciphers.PQ_TLS_1_0_2020_12):
         {"cipher": "TLS_AES_256_GCM_SHA384",
             "kem": "NONE", "kem_group": "_kyber-512-r3"},
@@ -124,6 +129,15 @@ EXPECTED_RESULTS = {
     (KemGroups.P256_KYBER512R3, Ciphers.PQ_TLS_1_0_2023_01):
         {"cipher": "AES256_GCM_SHA384", "kem": "NONE",
             "kem_group": "secp256r1_kyber-512-r3"},
+    (KemGroups.P256_KYBER512R3, Ciphers.PQ_TLS_1_3_2023_06_01):
+        {"cipher": "AES256_GCM_SHA384", "kem": "NONE",
+            "kem_group": "secp256r1_kyber-512-r3"},
+    (KemGroups.P384_KYBER768R3, Ciphers.PQ_TLS_1_3_2023_06_01):
+        {"cipher": "AES256_GCM_SHA384", "kem": "NONE",
+            "kem_group": "secp384r1_kyber-768-r3"},
+    (KemGroups.P521_KYBER1024R3, Ciphers.PQ_TLS_1_3_2023_06_01):
+        {"cipher": "AES256_GCM_SHA384", "kem": "NONE",
+            "kem_group": "secp521r1_kyber-1024-r3"},
 }
 
 """

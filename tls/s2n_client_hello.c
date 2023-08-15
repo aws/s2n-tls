@@ -43,7 +43,7 @@
 
 struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn)
 {
-    if (conn->client_hello.callback_invoked != 1) {
+    if (conn->client_hello.parsed != 1) {
         return NULL;
     }
 
@@ -638,6 +638,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     /* Only parse the ClientHello once */
     if (!conn->client_hello.parsed) {
         POSIX_GUARD(s2n_parse_client_hello(conn));
+        /* Mark the collected client hello as available when parsing is done and before the client hello callback */
         conn->client_hello.parsed = true;
     }
 
@@ -647,7 +648,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
      * callback state may have been cleared while parsing the second ClientHello.
      */
     if (!conn->client_hello.callback_invoked && !IS_HELLO_RETRY_HANDSHAKE(conn)) {
-        /* Mark the collected client hello as available when parsing is done and before the client hello callback */
+        /* Mark the client hello callback as invoked to avoid calling it again. */
         conn->client_hello.callback_invoked = true;
 
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */

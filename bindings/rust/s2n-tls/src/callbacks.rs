@@ -32,6 +32,9 @@ pub use async_cb::*;
 mod client_hello;
 pub use client_hello::*;
 
+mod session_ticket;
+pub use session_ticket::*;
+
 mod pkey;
 pub use pkey::*;
 
