@@ -15,8 +15,9 @@
 
 #pragma once
 
-#include "tls/s2n_config.h"
+#include <sys/socket.h>
 
+#include "tls/s2n_connection.h"
 /* Define headers needed to enable and use kTLS.
  *
  * The inline header definitions are required to compile kTLS specific code.
@@ -35,8 +36,20 @@ typedef enum {
     S2N_KTLS_MODE_RECV,
 } s2n_ktls_mode;
 
+/* Used for overriding setsockopt calls in testing */
+typedef int (*s2n_setsockopt_fn)(int socket, int level, int option_name,
+        const void *option_value, socklen_t option_len);
+S2N_RESULT s2n_ktls_set_setsockopt_cb(s2n_setsockopt_fn cb);
+
 bool s2n_ktls_is_supported_on_platform();
+S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
 
 /* These functions will be part of the public API. */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
+
+/* Testing */
+typedef ssize_t (*s2n_ktls_sendmsg_fn)(void *io_context, const struct msghdr *msg);
+typedef ssize_t (*s2n_ktls_recvmsg_fn)(void *io_context, struct msghdr *msg);
+S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg_fn send_cb, void *send_ctx);
+S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg_fn recv_cb, void *recv_ctx);

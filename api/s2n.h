@@ -1835,8 +1835,11 @@ typedef enum {
  * rejects the client certificate, the client may later receive an alert while calling s2n_recv,
  * potentially after already having sent application data with s2n_send.
  *
+ * See the following example for guidance on calling `s2n_negotiate()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c
+ *
  * @param conn A pointer to the s2n_connection object
- * @param blocked A pointer which will be set to the blocked status. 
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns S2N_SUCCESS if the handshake completed. S2N_FAILURE if the handshake encountered an error or is blocked.
  */
 S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
@@ -1847,24 +1850,15 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
  *
  * @note Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. 
  * @note Unlike OpenSSL, repeated calls to s2n_send() should not duplicate the original parameters, but should 
- * update `buf` and `size` per the indication of size written. For example;
- * ```c
- * s2n_blocked_status blocked;
- * int written = 0;
- * char data[10]; 
- * do {
- *     int w = s2n_send(conn, data + written, 10 - written, &blocked);
- *     if (w < 0) {
- *         break;
- *     }
- *     written += w;
- * } while (blocked != S2N_NOT_BLOCKED);
- * ```
+ * update `buf` and `size` per the indication of size written.
+ *
+ * See the following example for guidance on calling `s2n_send()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c
  *
  * @param conn A pointer to the s2n_connection object
  * @param buf A pointer to a buffer that s2n will write data from
  * @param size The size of buf
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written, and may indicate a partial write
  */
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
@@ -1877,7 +1871,7 @@ S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ss
  * @param conn A pointer to the s2n_connection object
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written, and may indicate a partial write. 
  */
 S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
@@ -1887,29 +1881,16 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  *
  * @note Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active.
  *
- * @note Unlike OpenSSL, repeated calls to s2n_sendv_with_offset() should not duplicate the original parameters, but should update `bufs` and `count` per the indication of size written. For example;
- * 
- * ```c
- * s2n_blocked_status blocked;
- * int written = 0;
- * char data[10]; 
- * struct iovec iov[1];
- * iov[0].iov_base = data;
- * iov[0].iov_len = 10;
- * do {
- *     int w = s2n_sendv_with_offset(conn, iov, 1, written, &blocked);
- *     if (w < 0) {
- *         break;
- *     }
- *     written += w;
- * } while (blocked != S2N_NOT_BLOCKED);
- * ```
+ * @note Unlike OpenSSL, repeated calls to s2n_sendv_with_offset() should not duplicate the original parameters, but should update `bufs` and `count` per the indication of size written.
+ *
+ * See the following example for guidance on calling `s2n_sendv_with_offset()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c
  *
  * @param conn A pointer to the s2n_connection object
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
  * @param offs The write cursor offset. This should be updated as data is written. See the example code.
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written, and may indicate a partial write. 
  */
 S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
@@ -1918,24 +1899,15 @@ S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const 
  * Decrypts and reads **size* to `buf` data from the associated
  * connection. 
  * 
- * @note Unlike OpenSSL, repeated calls to `s2n_recv` should not duplicate the original parameters, but should update `buf` and `size` per the indication of size read. For example;
- * ```c
- * s2n_blocked_status blocked;
- * int bytes_read = 0;
- * char data[10];
- * do {
- *     int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &blocked);
- *     if (r < 0) {
- *         break;
- *     }
- *     bytes_read += r;
- * } while (blocked != S2N_NOT_BLOCKED);
- * ```
+ * @note Unlike OpenSSL, repeated calls to `s2n_recv` should not duplicate the original parameters, but should update `buf` and `size` per the indication of size read.
+ *
+ * See the following example for guidance on calling `s2n_recv()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c
  *
  * @param conn A pointer to the s2n_connection object
  * @param buf A pointer to a buffer that s2n will place read data into.
  * @param size Size of `buf`
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns number of bytes read. 0 if the connection was shutdown by peer.
  */
 S2N_API extern ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked);
@@ -2009,7 +1981,7 @@ S2N_API extern int s2n_connection_free(struct s2n_connection *conn);
  * * The s2n_connection handle can be freed via s2n_connection_free() or reused via s2n_connection_wipe()
  *
  * @param conn A pointer to the s2n_connection object
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
@@ -2037,7 +2009,7 @@ S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status 
  * the read side of the underlying transport.
  *
  * @param conn A pointer to the s2n_connection object
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
@@ -2213,6 +2185,9 @@ S2N_API extern int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ti
 
 /**
  * De-serializes the session state and updates the connection accordingly.
+ *
+ * If this method fails, the connection should not be affected: calling s2n_negotiate
+ * with the connection should simply result in a full handshake.
  *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `length`

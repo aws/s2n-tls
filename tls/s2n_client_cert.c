@@ -51,23 +51,29 @@
  * So in order to store / return the certificates in the same format as in TLS1.2,
  * we need to first strip out the extensions.
  */
-static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn, struct s2n_blob *client_cert_chain)
+static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn,
+        struct s2n_blob *raw_cert_chain)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(raw_cert_chain);
+
+    /* There shouldn't already be a client cert chain, but free just in case */
+    RESULT_GUARD_POSIX(s2n_free(&conn->handshake_params.client_cert_chain));
 
     /* Earlier versions are a basic copy */
     if (conn->actual_protocol_version < S2N_TLS13) {
-        RESULT_GUARD_POSIX(s2n_dup(client_cert_chain, &conn->handshake_params.client_cert_chain));
+        RESULT_GUARD_POSIX(s2n_dup(raw_cert_chain, &conn->handshake_params.client_cert_chain));
         return S2N_RESULT_OK;
     }
 
+    DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
+    RESULT_GUARD_POSIX(s2n_realloc(&output, raw_cert_chain->size));
+
     struct s2n_stuffer cert_chain_in = { 0 };
-    RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_in, client_cert_chain));
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&cert_chain_in, client_cert_chain->size));
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&cert_chain_in, raw_cert_chain));
 
     struct s2n_stuffer cert_chain_out = { 0 };
-    RESULT_GUARD_POSIX(s2n_realloc(&conn->handshake_params.client_cert_chain, client_cert_chain->size));
-    RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_out, &conn->handshake_params.client_cert_chain));
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_out, &output));
 
     uint32_t cert_size = 0;
     uint16_t extensions_size = 0;
@@ -86,7 +92,10 @@ static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn, struc
     /* We will have allocated more memory than actually necessary.
      * If this becomes a problem, we should consider reallocing the correct amount of memory here.
      */
-    conn->handshake_params.client_cert_chain.size = s2n_stuffer_data_available(&cert_chain_out);
+    output.size = s2n_stuffer_data_available(&cert_chain_out);
+
+    conn->handshake_params.client_cert_chain = output;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(output);
     return S2N_RESULT_OK;
 }
 
@@ -99,34 +108,35 @@ int s2n_client_cert_recv(struct s2n_connection *conn)
     }
 
     struct s2n_stuffer *in = &conn->handshake.io;
-    struct s2n_blob client_cert_chain = { 0 };
 
-    POSIX_GUARD(s2n_stuffer_read_uint24(in, &client_cert_chain.size));
-
-    S2N_ERROR_IF(client_cert_chain.size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-
-    if (client_cert_chain.size == 0) {
+    uint32_t cert_chain_size = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint24(in, &cert_chain_size));
+    POSIX_ENSURE(cert_chain_size <= s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
+    if (cert_chain_size == 0) {
         POSIX_GUARD(s2n_conn_set_handshake_no_client_cert(conn));
-        return 0;
+        return S2N_SUCCESS;
     }
 
-    client_cert_chain.data = s2n_stuffer_raw_read(in, client_cert_chain.size);
-    POSIX_ENSURE_REF(client_cert_chain.data);
+    uint8_t *cert_chain_data = s2n_stuffer_raw_read(in, cert_chain_size);
+    POSIX_ENSURE_REF(cert_chain_data);
 
-    s2n_cert_public_key public_key;
+    struct s2n_blob cert_chain = { 0 };
+    POSIX_GUARD(s2n_blob_init(&cert_chain, cert_chain_data, cert_chain_size));
+    POSIX_ENSURE(s2n_result_is_ok(s2n_client_cert_chain_store(conn, &cert_chain)),
+            S2N_ERR_BAD_MESSAGE);
+
+    s2n_cert_public_key public_key = { 0 };
     POSIX_GUARD(s2n_pkey_zero_init(&public_key));
 
-    s2n_pkey_type pkey_type;
-
     /* Determine the Cert Type, Verify the Cert, and extract the Public Key */
-    POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, client_cert_chain.data,
-            client_cert_chain.size, &pkey_type, &public_key));
+    s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+    POSIX_GUARD_RESULT(s2n_x509_validator_validate_cert_chain(&conn->x509_validator, conn, cert_chain_data,
+            cert_chain_size, &pkey_type, &public_key));
 
     conn->handshake_params.client_cert_pkey_type = pkey_type;
     POSIX_GUARD(s2n_pkey_setup_for_type(&public_key, pkey_type));
 
     POSIX_GUARD(s2n_pkey_check_key_exists(&public_key));
-    POSIX_GUARD_RESULT(s2n_client_cert_chain_store(conn, &client_cert_chain));
     conn->handshake_params.client_public_key = public_key;
 
     return S2N_SUCCESS;

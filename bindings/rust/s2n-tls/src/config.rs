@@ -13,6 +13,7 @@ use std::{
     ffi::{c_void, CString},
     path::Path,
     sync::atomic::{AtomicUsize, Ordering},
+    time::{Duration, SystemTime},
 };
 
 #[derive(Debug, PartialEq)]
@@ -488,6 +489,41 @@ impl Builder {
         Ok(self)
     }
 
+    /// Sets a custom callback which provides access to session tickets when they arrive
+    pub fn set_session_ticket_callback<T: 'static + SessionTicketCallback>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        // Define C callback function that can be set on the s2n_config struct
+        unsafe extern "C" fn session_ticket_cb(
+            conn_ptr: *mut s2n_connection,
+            _context: *mut ::libc::c_void,
+            session_ticket: *mut s2n_session_ticket,
+        ) -> libc::c_int {
+            let session_ticket = SessionTicket::from_ptr(&*session_ticket);
+            with_context(conn_ptr, |conn, context| {
+                let callback = context.session_ticket_callback.as_ref();
+                callback.map(|c| c.on_session_ticket(conn, session_ticket))
+            });
+            CallbackResult::Success.into()
+        }
+
+        // Store callback in context
+        let handler = Box::new(handler);
+        let context = self.config.context_mut();
+        context.session_ticket_callback = Some(handler);
+
+        unsafe {
+            s2n_config_set_session_ticket_cb(
+                self.as_mut_ptr(),
+                Some(session_ticket_cb),
+                self.config.context_mut() as *mut Context as *mut c_void,
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Set a callback function triggered by operations requiring the private key.
     ///
     /// See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#private-key-operation-related-calls
@@ -595,6 +631,79 @@ impl Builder {
         Ok(self)
     }
 
+    /// Enable negotiating session tickets in a TLS connection
+    pub fn enable_session_tickets(&mut self, enable: bool) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_session_tickets_onoff(self.as_mut_ptr(), enable.into()).into_result()
+        }?;
+        Ok(self)
+    }
+
+    /// Adds a key which will be used to encrypt and decrypt session tickets. The intro_time parameter is time since
+    /// the Unix epoch (Midnight, January 1st, 1970).
+    pub fn add_session_ticket_key(
+        &mut self,
+        key_name: &[u8],
+        key: &[u8],
+        intro_time: SystemTime,
+    ) -> Result<&mut Self, Error> {
+        let key_name_len: u32 = key_name
+            .len()
+            .try_into()
+            .map_err(|_| Error::INVALID_INPUT)?;
+        let key_len: u32 = key.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
+        let intro_time = intro_time
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_err(|_| Error::INVALID_INPUT)?;
+        // Ticket keys should be at least 128 bits in strength
+        // https://www.rfc-editor.org/rfc/rfc5077#section-5.5
+        if key_len < 16 {
+            return Err(Error::INVALID_INPUT);
+        }
+        unsafe {
+            s2n_config_add_ticket_crypto_key(
+                self.as_mut_ptr(),
+                key_name.as_ptr(),
+                key_name_len,
+                // s2n-tls doesn't mutate key, it's just mut for easier use with stuffers and blobs
+                key.as_ptr() as *mut u8,
+                key_len,
+                intro_time.as_secs(),
+            )
+            .into_result()
+        }?;
+        self.enable_session_tickets(true)?;
+        Ok(self)
+    }
+
+    // Sets how long a session ticket key will be able to be used for both encryption
+    // and decryption of tickets
+    pub fn set_ticket_key_encrypt_decrypt_lifetime(
+        &mut self,
+        lifetime: Duration,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_ticket_encrypt_decrypt_key_lifetime(
+                self.as_mut_ptr(),
+                lifetime.as_secs(),
+            )
+            .into_result()
+        }?;
+        Ok(self)
+    }
+
+    // Sets how long a session ticket key will be able to be used for only decryption
+    pub fn set_ticket_key_decrypt_lifetime(
+        &mut self,
+        lifetime: Duration,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_ticket_decrypt_key_lifetime(self.as_mut_ptr(), lifetime.as_secs())
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
     pub fn build(mut self) -> Result<Config, Error> {
         if self.load_system_certs {
             unsafe {
@@ -623,6 +732,7 @@ pub(crate) struct Context {
     pub(crate) client_hello_callback: Option<Box<dyn ClientHelloCallback>>,
     pub(crate) private_key_callback: Option<Box<dyn PrivateKeyCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
+    pub(crate) session_ticket_callback: Option<Box<dyn SessionTicketCallback>>,
     pub(crate) wall_clock: Option<Box<dyn WallClock>>,
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
 }
@@ -638,6 +748,7 @@ impl Default for Context {
             client_hello_callback: None,
             private_key_callback: None,
             verify_host_callback: None,
+            session_ticket_callback: None,
             wall_clock: None,
             monotonic_clock: None,
         }

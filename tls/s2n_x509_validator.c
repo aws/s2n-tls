@@ -425,7 +425,7 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
 
         /* the cert is der encoded, just convert it. */
         server_cert = d2i_X509(NULL, &data, asn1_cert.size);
-        RESULT_ENSURE_REF(server_cert);
+        RESULT_ENSURE(server_cert, S2N_ERR_CERT_INVALID);
 
         /* add the cert to the chain. */
         if (!sk_X509_push(validator->cert_chain_from_wire, server_cert)) {
