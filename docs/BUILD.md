@@ -1,15 +1,45 @@
 # Building s2n-tls
 
+To use s2n-tls, you must build the library from the source and then include it in your program.
 ## Requirements
 
-s2n-tls builds on modern Linux and linux-based systems.ns2n-tls does not support [Windows](https://github.com/aws/s2n-tls/issues/497).
+s2n-tls supports and tests on **x86** and **arm** architectures.
+
+### System requirements
+
+* 20GB RAM availible
+
+### Supported OS and Distributions: 
+
+| OS     | Distros |      |        |
+|--------|---------|------|--------|
+| Redhat | Fedora  | AL   |
+| debian | ubuntu  |
+| *BSD   | free    | open | darwin |
+
+s2n-tls does not support [Windows](https://github.com/aws/s2n-tls/issues/497).
+
+<!-- We may want to move in this direction:
+
+### Redhat
+
+#### Fedora
+
+| Version | Kernel |
+|---------|--------|
+| 37      | 6.0    |
+| 38      | 6.2    | -->
+
+
+### Software requirements
 
 Building s2n-tls requires:
 
 1. Git
+1. GCC or Clang
 1. CMake
 1. OpenSSL
-1. Build tools for your platform
+1. Platform-specific build tools
 
 ## Building s2n-tls from the source
 
@@ -212,7 +242,9 @@ CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
 ```
 </details>
 
-## Memory managment and system limits
+## Troubleshooting
+
+### Memory managment and system limits (mlock failures)
 
 s2n-tls uses `mlock()` to prevent memory from being swapped to disk. The
 s2n-tls build tests may fail in some environments if the default limit on locked
