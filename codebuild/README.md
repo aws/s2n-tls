@@ -2,7 +2,7 @@
 The codebuild specifications are run on a custom docker images that have the test dependencies installed. The docker image structure is described below.
 
 ### libcrypto
-Various libcrypto's are installed to `/usr/local/$LIBCRYPTO` directories. For example
+Various libcryptos are installed to `/usr/local/$LIBCRYPTO` directories. For example
 ```
 # non-exhaustive list
 /usr/local/openssl-1.0.2/lib/libcrypto.a
