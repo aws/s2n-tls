@@ -21,6 +21,7 @@
 
 #define S2N_TEST_TO_SEND     10
 #define S2N_CONTROL_BUF_SIZE 100
+#define S2N_TEST_MSG_IOVLEN  5
 
 S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
         int cmsg_type, uint8_t record_type);
@@ -155,16 +156,15 @@ int main(int argc, char **argv)
                     s2n_ktls_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
 
-            uint8_t count = 5;
             size_t total_sent = 0;
-            struct iovec send_msg_iov[sizeof(struct iovec) * 5] = { 0 };
-            for (size_t i = 0; i < count; i++) {
+            struct iovec send_msg_iov[sizeof(struct iovec) * S2N_TEST_MSG_IOVLEN] = { 0 };
+            for (size_t i = 0; i < S2N_TEST_MSG_IOVLEN; i++) {
                 send_msg_iov[i].iov_base = test_data + total_sent;
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
 
                 total_sent += S2N_TEST_TO_SEND;
             }
-            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = count };
+            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = S2N_TEST_MSG_IOVLEN };
             char control_buf[S2N_CONTROL_BUF_SIZE] = { 0 };
             EXPECT_OK(s2n_ktls_set_control_data(&send_msg, control_buf, sizeof(control_buf),
                     S2N_TLS_SET_RECORD_TYPE, test_record_type));
@@ -316,15 +316,14 @@ int main(int argc, char **argv)
             io_pair.client_in.data_buffer.growable = false;
             EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.client_in.data_buffer, S2N_TEST_TO_SEND));
 
-            uint8_t count = 2;
             uint8_t *test_data_ptr = test_data;
-            struct iovec send_msg_iov[sizeof(struct iovec) * 5] = { 0 };
-            for (size_t i = 0; i < count; i++) {
+            struct iovec send_msg_iov[sizeof(struct iovec) * S2N_TEST_MSG_IOVLEN] = { 0 };
+            for (size_t i = 0; i < S2N_TEST_MSG_IOVLEN; i++) {
                 send_msg_iov[i].iov_base = (void *) test_data_ptr;
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
                 test_data_ptr += S2N_TEST_TO_SEND;
             }
-            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = count };
+            struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = S2N_TEST_MSG_IOVLEN };
             char control_buf[S2N_CONTROL_BUF_SIZE] = { 0 };
             EXPECT_OK(s2n_ktls_set_control_data(&send_msg, control_buf, sizeof(control_buf),
                     S2N_TLS_SET_RECORD_TYPE, test_record_type));
