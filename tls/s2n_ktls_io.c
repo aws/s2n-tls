@@ -176,9 +176,8 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type,
-        const struct iovec *msg_iov, size_t msg_iovlen, s2n_blocked_status *blocked,
-        size_t *bytes_written)
+S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, const struct iovec *msg_iov,
+        size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written)
 {
     RESULT_ENSURE_REF(bytes_written);
     RESULT_ENSURE_REF(msg_iov);
