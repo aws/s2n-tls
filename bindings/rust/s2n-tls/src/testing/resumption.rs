@@ -43,7 +43,6 @@ mod tests {
         // Initialize config for server with a ticket key
         let mut server_config_builder = Builder::new();
         server_config_builder
-            .enable_session_tickets(true)?
             .add_session_ticket_key(&KEYNAME, &KEY, SystemTime::now())?
             .load_pem(keypair.cert(), keypair.key())?;
         let server_config = server_config_builder.build()?;
@@ -123,7 +122,6 @@ mod tests {
         // Initialize config for server with a ticket key
         let mut server_config_builder = Builder::new();
         server_config_builder
-            .enable_session_tickets(true)?
             .add_session_ticket_key(&KEYNAME, &KEY, SystemTime::now())?
             .load_pem(keypair.cert(), keypair.key())?
             .set_security_policy(&security::DEFAULT_TLS13)?;

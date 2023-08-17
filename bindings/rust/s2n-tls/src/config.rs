@@ -660,6 +660,7 @@ impl Builder {
         if key_len < 16 {
             return Err(Error::INVALID_INPUT);
         }
+        self.enable_session_tickets(true)?;
         unsafe {
             s2n_config_add_ticket_crypto_key(
                 self.as_mut_ptr(),
@@ -672,7 +673,6 @@ impl Builder {
             )
             .into_result()
         }?;
-        self.enable_session_tickets(true)?;
         Ok(self)
     }
 
