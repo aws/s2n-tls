@@ -180,6 +180,7 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type,
         const struct iovec *msg_iov, size_t msg_iovlen, s2n_blocked_status *blocked,
         size_t *bytes_written)
 {
+    RESULT_ENSURE_REF(bytes_written);
     RESULT_ENSURE_REF(msg_iov);
     RESULT_ENSURE_REF(blocked);
     RESULT_ENSURE_REF(conn);
