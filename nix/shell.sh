@@ -62,7 +62,7 @@ function integ {
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
                echo "Test failed, stopping execution"
-               exit 1
+               return 1
             fi
         done
     fi
