@@ -14,6 +14,7 @@ all_sigs = [
     Signatures.RSA_SHA384,
     Signatures.RSA_SHA512,
     Signatures.ECDSA_SECP256r1_SHA256,
+    Signatures.ECDSA_SECP384r1_SHA384,
     Signatures.ECDSA_SECP521r1_SHA512,
     Signatures.RSA_PSS_RSAE_SHA256,
     Signatures.RSA_PSS_PSS_SHA256,

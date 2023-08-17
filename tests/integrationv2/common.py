@@ -424,6 +424,11 @@ class Signatures(object):
         min_protocol=Protocols.TLS13,
         sig_type='ECDSA',
         sig_digest='SHA256')
+    ECDSA_SECP384r1_SHA384 = Signature(
+        'ecdsa_secp384r1_sha384',
+        min_protocol=Protocols.TLS13,
+        sig_type='ECDSA',
+        sig_digest='SHA384')
     ECDSA_SECP521r1_SHA512 = Signature(
         'ecdsa_secp521r1_sha512',
         min_protocol=Protocols.TLS13,
