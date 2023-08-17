@@ -21,7 +21,8 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
 
 /* Since it is possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
-static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
+static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx,
+        uint16_t remaining_len)
 {
     RESULT_ENSURE_REF(io_ctx);
     RESULT_ENSURE(remaining_len > 0, S2N_ERR_IO);
@@ -151,8 +152,8 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     return bytes_read;
 }
 
-S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client,
-        struct s2n_test_ktls_io_stuffer_pair *io_pair)
+S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server,
+        struct s2n_connection *client, struct s2n_test_ktls_io_stuffer_pair *io_pair)
 {
     RESULT_ENSURE_REF(server);
     RESULT_ENSURE_REF(client);

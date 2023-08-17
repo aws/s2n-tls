@@ -29,8 +29,8 @@ int main(int argc, char **argv)
     {
         /* Test: Safety */
         {
-            char buf[100] = { 0 };
             struct msghdr msg = { 0 };
+            char buf[100] = { 0 };
             EXPECT_ERROR_WITH_ERRNO(s2n_ktls_set_control_data(NULL, buf, sizeof(buf), 0, 0),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(s2n_ktls_set_control_data(&msg, NULL, sizeof(buf), 0, 0),
@@ -47,10 +47,10 @@ int main(int argc, char **argv)
 
         /* Test: s2n_ktls_set_control_data msg is parseable by s2n_ktls_get_control_data */
         {
-            struct msghdr msg = { 0 };
-            char buf[100] = { 0 };
             const uint8_t set_record_type = 5;
+            struct msghdr msg = { 0 };
             const int cmsg_type = 11;
+            char buf[100] = { 0 };
             EXPECT_OK(s2n_ktls_set_control_data(&msg, buf, sizeof(buf), cmsg_type, set_record_type));
 
             uint8_t get_record_type = 0;
@@ -61,14 +61,14 @@ int main(int argc, char **argv)
 
         /* Test: s2n_ktls_get_control_data fails with unexpected cmsg_type */
         {
-            struct msghdr msg = { 0 };
-            char buf[100] = { 0 };
             const uint8_t set_record_type = 5;
+            struct msghdr msg = { 0 };
             const int cmsg_type = 11;
+            char buf[100] = { 0 };
             EXPECT_OK(s2n_ktls_set_control_data(&msg, buf, sizeof(buf), cmsg_type, set_record_type));
 
-            uint8_t get_record_type = 0;
             const int bad_cmsg_type = 99;
+            uint8_t get_record_type = 0;
             EXPECT_ERROR_WITH_ERRNO(s2n_ktls_get_control_data(&msg, bad_cmsg_type, &get_record_type),
                     S2N_ERR_KTLS_BAD_CMSG);
         };

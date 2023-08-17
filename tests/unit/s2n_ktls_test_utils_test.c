@@ -145,7 +145,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
         };
 
-        /* Send iov_len > 1 */
+        /* Send msg_iovlen > 1 */
         {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -157,8 +157,7 @@ int main(int argc, char **argv)
 
             uint8_t count = 5;
             size_t total_sent = 0;
-            struct iovec *send_msg_iov = NULL;
-            send_msg_iov = malloc(sizeof(*send_msg_iov) * count);
+            struct iovec send_msg_iov[sizeof(struct iovec) * 5] = { 0 };
             for (size_t i = 0; i < count; i++) {
                 send_msg_iov[i].iov_base = test_data + total_sent;
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
@@ -178,8 +177,6 @@ int main(int argc, char **argv)
             /* validate only 1 record was sent  */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), S2N_TEST_KTLS_MOCK_HEADER_SIZE);
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
-
-            free(send_msg_iov);
         };
 
         /* Send multiple records of same type */
@@ -282,7 +279,8 @@ int main(int argc, char **argv)
             char control_buf[S2N_CONTROL_BUF_SIZE] = { 0 };
 
             /* attempt sendmsg and expect EAGAIN */
-            for (size_t i = 0; i < 5; i++) {
+            size_t blocked_invoked_count = 5;
+            for (size_t i = 0; i < blocked_invoked_count; i++) {
                 EXPECT_OK(s2n_ktls_set_control_data(&send_msg, control_buf, sizeof(control_buf),
                         S2N_TLS_SET_RECORD_TYPE, test_record_type));
                 EXPECT_EQUAL(s2n_test_ktls_sendmsg_io_stuffer(server->send_io_context, &send_msg), S2N_FAILURE);
@@ -302,7 +300,7 @@ int main(int argc, char **argv)
             /* validate only 1 record was sent  */
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), S2N_TEST_KTLS_MOCK_HEADER_SIZE);
 
-            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 6);
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, blocked_invoked_count + 1);
         };
 
         /* Attempt partial write with iov_len > 1 and expect error */
@@ -319,9 +317,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.client_in.data_buffer, S2N_TEST_TO_SEND));
 
             uint8_t count = 2;
-            struct iovec *send_msg_iov = NULL;
-            send_msg_iov = malloc(sizeof(*send_msg_iov) * count);
             uint8_t *test_data_ptr = test_data;
+            struct iovec send_msg_iov[sizeof(struct iovec) * 5] = { 0 };
             for (size_t i = 0; i < count; i++) {
                 send_msg_iov[i].iov_base = (void *) test_data_ptr;
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
@@ -337,7 +334,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), 0);
 
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
-            free(send_msg_iov);
         };
     };
 
@@ -424,14 +420,15 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_ktls_get_control_data(&recv_msg, S2N_TLS_GET_RECORD_TYPE, &recv_record_type));
             EXPECT_EQUAL(recv_record_type, test_record_type);
 
-            for (size_t i = 0; i < 5; i++) {
+            size_t blocked_invoked_count = 5;
+            for (size_t i = 0; i < blocked_invoked_count; i++) {
                 /* attempting to recv more data blocks */
                 EXPECT_EQUAL(s2n_test_ktls_recvmsg_io_stuffer(client->recv_io_context, &recv_msg), S2N_FAILURE);
                 EXPECT_EQUAL(errno, EAGAIN);
             }
 
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
-            EXPECT_EQUAL(io_pair.client_in.recvmsg_invoked_count, 7);
+            EXPECT_EQUAL(io_pair.client_in.recvmsg_invoked_count, blocked_invoked_count + 2);
         };
 
         /* Read partial data: request < total sent */

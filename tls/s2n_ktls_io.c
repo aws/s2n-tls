@@ -40,7 +40,8 @@ static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg);
 s2n_ktls_sendmsg_fn s2n_sendmsg_fn = s2n_ktls_default_sendmsg;
 s2n_ktls_recvmsg_fn s2n_recvmsg_fn = s2n_ktls_default_recvmsg;
 
-S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg_fn send_cb, void *send_ctx)
+S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg_fn send_cb,
+        void *send_ctx)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(send_ctx);
@@ -50,7 +51,8 @@ S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg_fn recv_cb, void *recv_ctx)
+S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg_fn recv_cb,
+        void *recv_ctx)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(recv_ctx);
