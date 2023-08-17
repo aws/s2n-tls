@@ -54,6 +54,7 @@ struct s2n_test_ktls_io_stuffer {
     struct s2n_stuffer data_buffer;
     size_t sendmsg_invoked_count;
     size_t recvmsg_invoked_count;
+    int recv_msg_flags;
 };
 struct s2n_test_ktls_io_stuffer_pair {
     struct s2n_test_ktls_io_stuffer client_in;

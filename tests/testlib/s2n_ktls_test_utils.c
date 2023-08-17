@@ -149,6 +149,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         POSIX_GUARD(s2n_stuffer_skip_read(&io_ctx->ancillary_buffer, sizeof(record_type)));
     }
 
+    msg->msg_flags = io_ctx->recv_msg_flags;
     return bytes_read;
 }
 
