@@ -207,7 +207,7 @@ S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
     uint8_t tag = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(&validate_ancillary_stuffer, &tag));
     RESULT_ENSURE_EQ(tag, expected_record_type);
-    uint16_t len;
+    uint16_t len = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&validate_ancillary_stuffer, &len));
     RESULT_ENSURE_EQ(len, expected_len);
 

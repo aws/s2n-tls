@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    uint8_t test_record_type = 43;
+    const uint8_t test_record_type = 43;
     /* test data */
     uint8_t test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
@@ -108,16 +108,14 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
-                    s2n_ktls_io_stuffer_pair_free);
-            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
 
             struct iovec msg_iov_valid = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
 
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_ktls_sendmsg(NULL, test_record_type, NULL, 1, &blocked, &bytes_written),
+                    S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_sendmsg(server, test_record_type, NULL, 1, &blocked, &bytes_written),
                     S2N_ERR_NULL);
@@ -169,7 +167,7 @@ int main(int argc, char **argv)
                     s2n_ktls_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
 
-            struct iovec msg_iov[sizeof(struct iovec) * S2N_TEST_MSG_IOVLEN] = { 0 };
+            struct iovec msg_iov[S2N_TEST_MSG_IOVLEN] = { 0 };
             size_t total_sent = 0;
             for (size_t i = 0; i < S2N_TEST_MSG_IOVLEN; i++) {
                 msg_iov[i].iov_base = test_data + total_sent;

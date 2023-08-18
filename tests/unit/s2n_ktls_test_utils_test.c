@@ -31,7 +31,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    uint8_t test_record_type = 43;
+    const uint8_t test_record_type = 43;
     /* test data */
     uint8_t test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
 
             size_t total_sent = 0;
-            struct iovec send_msg_iov[sizeof(struct iovec) * S2N_TEST_MSG_IOVLEN] = { 0 };
+            struct iovec send_msg_iov[S2N_TEST_MSG_IOVLEN] = { 0 };
             for (size_t i = 0; i < S2N_TEST_MSG_IOVLEN; i++) {
                 send_msg_iov[i].iov_base = test_data + total_sent;
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.client_in.data_buffer, S2N_TEST_TO_SEND));
 
             uint8_t *test_data_ptr = test_data;
-            struct iovec send_msg_iov[sizeof(struct iovec) * S2N_TEST_MSG_IOVLEN] = { 0 };
+            struct iovec send_msg_iov[S2N_TEST_MSG_IOVLEN] = { 0 };
             for (size_t i = 0; i < S2N_TEST_MSG_IOVLEN; i++) {
                 send_msg_iov[i].iov_base = (void *) test_data_ptr;
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
