@@ -152,6 +152,19 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     return bytes_read;
 }
 
+S2N_RESULT s2n_test_init_ktls_io_stuffer_send(struct s2n_connection *conn,
+        struct s2n_test_ktls_io_stuffer *io)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(io);
+
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io->data_buffer, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io->ancillary_buffer, 0));
+    RESULT_GUARD(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_io_stuffer, io));
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server,
         struct s2n_connection *client, struct s2n_test_ktls_io_stuffer_pair *io_pair)
 {
@@ -172,13 +185,20 @@ S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server,
     return S2N_RESULT_OK;
 }
 
+S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_free(struct s2n_test_ktls_io_stuffer *io)
+{
+    RESULT_ENSURE_REF(io);
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io->data_buffer));
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io->ancillary_buffer));
+    return S2N_RESULT_OK;
+}
+
 S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer_pair *pair)
 {
     RESULT_ENSURE_REF(pair);
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->client_in.data_buffer));
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->client_in.ancillary_buffer));
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->server_in.data_buffer));
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->server_in.ancillary_buffer));
+
+    RESULT_GUARD(s2n_ktls_io_stuffer_free(&pair->client_in));
+    RESULT_GUARD(s2n_ktls_io_stuffer_free(&pair->server_in));
 
     return S2N_RESULT_OK;
 }
