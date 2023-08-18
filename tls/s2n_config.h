@@ -18,6 +18,7 @@
 #include <sys/param.h>
 
 #include "api/s2n.h"
+#include "api/unstable/cert_validation_callback.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
 #include "tls/s2n_crl.h"
@@ -151,6 +152,9 @@ struct s2n_config {
 
     s2n_crl_lookup_callback crl_lookup_cb;
     void *crl_lookup_ctx;
+
+    s2n_cert_validation_callback cert_validation_cb;
+    void *cert_validation_ctx;
 
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;
