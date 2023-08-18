@@ -113,7 +113,7 @@ int main(int argc, char **argv)
             size_t bytes_written = 0;
 
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(NULL, test_record_type, NULL, 1, &blocked, &bytes_written),
+                    s2n_ktls_sendmsg(NULL, test_record_type, &msg_iov_valid, 1, &blocked, &bytes_written),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_sendmsg(server, test_record_type, NULL, 1, &blocked, &bytes_written),
