@@ -7,14 +7,6 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
-certs = [
-    Certificates.RSA_2048_SHA256,
-    Certificates.RSA_2048_SHA384,
-    Certificates.RSA_PSS_2048_SHA256,
-    Certificates.ECDSA_256,
-    Certificates.ECDSA_384,
-]
-
 all_sigs = [
     Signatures.RSA_SHA1,
     Signatures.RSA_SHA224,
@@ -22,10 +14,15 @@ all_sigs = [
     Signatures.RSA_SHA384,
     Signatures.RSA_SHA512,
     Signatures.ECDSA_SECP256r1_SHA256,
+    Signatures.ECDSA_SECP384r1_SHA384,
+    Signatures.ECDSA_SECP521r1_SHA512,
     Signatures.RSA_PSS_RSAE_SHA256,
     Signatures.RSA_PSS_PSS_SHA256,
-    Signatures.ECDSA_SHA224,
     Signatures.ECDSA_SHA1,
+    Signatures.ECDSA_SHA224,
+    Signatures.ECDSA_SHA256,
+    Signatures.ECDSA_SHA384,
+    Signatures.ECDSA_SHA512,
 ]
 
 
