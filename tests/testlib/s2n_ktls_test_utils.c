@@ -15,9 +15,14 @@
 
 #include "testlib/s2n_ktls_test_utils.h"
 
+S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_size,
+        int cmsg_type, uint8_t record_type);
+S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t *record_type);
+
 /* Since it is possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
-static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
+static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx,
+        uint16_t remaining_len)
 {
     RESULT_ENSURE_REF(io_ctx);
     RESULT_ENSURE(remaining_len > 0, S2N_ERR_IO);
@@ -38,18 +43,16 @@ static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_s
 
 ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *msg)
 {
-    POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
-    /* Assuming msg_control is uint8_t is a simplification and will not work when we
-     * attempt to test the production s2n_ktls_send implementation. However, setting/parsing
-     * cmsg is critical code and will be added in a separate PR. */
-    uint8_t *record_type = (uint8_t *) msg->msg_control;
-    POSIX_ENSURE_REF(record_type);
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->sendmsg_invoked_count++;
+
+    uint8_t record_type = 0;
+    struct msghdr msg_to_parse = *msg;
+    POSIX_GUARD_RESULT(s2n_ktls_get_control_data(&msg_to_parse, S2N_TLS_SET_RECORD_TYPE, &record_type));
 
     size_t total_len = 0;
     for (size_t count = 0; count < msg->msg_iovlen; count++) {
@@ -73,7 +76,7 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
     }
     if (total_len) {
         /* write record_type and len after some data was written successfully */
-        POSIX_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, *record_type));
+        POSIX_GUARD(s2n_stuffer_write_uint8(&io_ctx->ancillary_buffer, record_type));
         POSIX_GUARD(s2n_stuffer_write_uint16(&io_ctx->ancillary_buffer, total_len));
     }
 
@@ -87,18 +90,13 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
  * are of the same type. */
 ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
 {
-    POSIX_ENSURE_REF(io_context);
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
-    /* Assuming msg_control is uint8_t is a simplification and will not work when we
-     * attempt to test the production s2n_ktls_recv implementation. However, setting/parsing
-     * cmsg is critical code and will be added in a separate PR. */
-    uint8_t *record_type = (uint8_t *) msg->msg_control;
-    POSIX_ENSURE_REF(record_type);
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->recvmsg_invoked_count++;
+
     uint8_t *buf = msg->msg_iov->iov_base;
     POSIX_ENSURE_REF(buf);
 
@@ -112,10 +110,13 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     POSIX_ENSURE_EQ(msg->msg_iovlen, 1);
     size_t size = msg->msg_iov->iov_len;
 
+    uint8_t record_type = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint8(&io_ctx->ancillary_buffer, &record_type));
+    POSIX_GUARD_RESULT(s2n_ktls_set_control_data(msg, msg->msg_control, msg->msg_controllen,
+            S2N_TLS_GET_RECORD_TYPE, record_type));
+
     ssize_t bytes_read = 0;
     while (bytes_read < size) {
-        /* read record_type and number of bytes available in the next record */
-        POSIX_GUARD(s2n_stuffer_read_uint8(&io_ctx->ancillary_buffer, record_type));
         uint16_t n_avail = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(&io_ctx->ancillary_buffer, &n_avail));
 
@@ -129,6 +130,7 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         ssize_t remaining_len = n_avail - n_read;
         if (remaining_len) {
             POSIX_GUARD_RESULT(s2n_test_ktls_update_prev_header_len(io_ctx, remaining_len));
+            break;
         }
 
         /* attempt to read multiple records (must be of the same type) */
@@ -138,17 +140,20 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         if (no_more_records) {
             break;
         }
-        bool next_record_different_type = next_record_type != *record_type;
+
+        bool next_record_different_type = next_record_type != record_type;
         if (next_record_different_type) {
             break;
         }
+
+        POSIX_GUARD(s2n_stuffer_skip_read(&io_ctx->ancillary_buffer, sizeof(record_type)));
     }
 
     return bytes_read;
 }
 
-S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client,
-        struct s2n_test_ktls_io_stuffer_pair *io_pair)
+S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server,
+        struct s2n_connection *client, struct s2n_test_ktls_io_stuffer_pair *io_pair)
 {
     RESULT_ENSURE_REF(server);
     RESULT_ENSURE_REF(client);

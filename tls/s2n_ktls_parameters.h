@@ -41,6 +41,8 @@
     #define S2N_TLS_TX 1
     #define S2N_TLS_RX 2
 
+    #define S2N_TLS_SET_RECORD_TYPE TLS_SET_RECORD_TYPE
+    #define S2N_TLS_GET_RECORD_TYPE TLS_GET_RECORD_TYPE
 #else
     /* For unsupported platforms 0-init (array of size 1) all values. */
 
@@ -51,6 +53,9 @@
 
     #define S2N_TLS_TX 0
     #define S2N_TLS_RX 0
+
+    #define S2N_TLS_SET_RECORD_TYPE 0
+    #define S2N_TLS_GET_RECORD_TYPE 0
 #endif
 
 /* Common */
