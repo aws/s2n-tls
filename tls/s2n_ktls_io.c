@@ -186,8 +186,6 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
 
     *blocked = S2N_BLOCKED_ON_WRITE;
 
-    RESULT_ENSURE(msg_iov->iov_base, S2N_ERR_INVALID_ARGUMENT);
-
     struct msghdr msg = {
         /* msghdr requires a non-const iovec. This is safe because s2n-tls does
          * not modify msg_iov after this point.

@@ -124,11 +124,6 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_sendmsg(server, test_record_type, &msg_iov_valid, 1, &blocked, NULL),
                     S2N_ERR_NULL);
-
-            struct iovec msg_iov_null_data = { .iov_base = NULL, .iov_len = S2N_TEST_TO_SEND };
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(server, test_record_type, &msg_iov_null_data, 1, &blocked, &bytes_written),
-                    S2N_ERR_INVALID_ARGUMENT);
         };
 
         /* Happy case: msg_iovlen = 1 */
