@@ -19,7 +19,6 @@
 #include <openssl/x509.h>
 #include <sys/socket.h>
 
-#include "api/unstable/cert_validation_callback.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "tls/extensions/s2n_extension_list.h"

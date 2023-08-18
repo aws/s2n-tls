@@ -18,7 +18,6 @@
 #include <sys/param.h>
 
 #include "api/s2n.h"
-#include "api/unstable/cert_validation_callback.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_dhe.h"
 #include "tls/s2n_crl.h"
