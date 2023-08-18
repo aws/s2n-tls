@@ -244,7 +244,7 @@ CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
 
 ## Troubleshooting
 
-### Memory managment and system limits (mlock failures)
+### Memory management and system limits (mlock failures)
 
 s2n-tls uses `mlock()` to prevent memory from being swapped to disk. The
 s2n-tls build tests may fail in some environments if the default limit on locked
