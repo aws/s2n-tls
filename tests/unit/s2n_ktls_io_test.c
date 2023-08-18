@@ -28,8 +28,8 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
 
 /* Mock implementation used for validating failure behavior */
 struct s2n_test_ktls_io_fail {
-    size_t errno_code;
     size_t invoked_count;
+    size_t errno_code;
 };
 
 static ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
@@ -37,7 +37,6 @@ static ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr 
     struct s2n_test_ktls_io_fail *io_ctx = (struct s2n_test_ktls_io_fail *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->invoked_count++;
-
     errno = io_ctx->errno_code;
     return -1;
 }
@@ -254,9 +253,9 @@ int main(int argc, char **argv)
             };
             EXPECT_OK(s2n_ktls_set_sendmsg_cb(server, s2n_test_ktls_sendmsg_fail, &io_ctx));
 
+            struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
-            struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written),
                     S2N_ERR_IO);
@@ -274,10 +273,10 @@ int main(int argc, char **argv)
                     s2n_ktls_io_stuffer_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(server, &client_in));
 
+            struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
 
-            struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             size_t iovlen_zero = 0;
             EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov, iovlen_zero, &blocked, &bytes_written));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
