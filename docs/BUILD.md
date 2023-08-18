@@ -7,7 +7,7 @@ s2n-tls supports and tests on **x86** and **arm** architectures.
 
 ### System requirements
 
-* 20GB RAM availible
+* 20GB RAM available
 
 ### Supported OS and Distributions: 
 
