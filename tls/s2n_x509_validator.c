@@ -619,10 +619,10 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
-    if (conn->config->cert_validation_cb) {
+    if (conn->config->cert_validation_cb && !validator->skip_cert_validation) {
         struct s2n_cert_validation_info info = { 0 };
-        int ret = conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx);
-        RESULT_ENSURE(ret == S2N_SUCCESS, S2N_ERR_CANCELLED);
+        RESULT_ENSURE(conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx) >= S2N_SUCCESS,
+                S2N_ERR_CANCELLED);
         RESULT_ENSURE(info.finished, S2N_ERR_INVALID_STATE);
         RESULT_ENSURE(info.accepted, S2N_ERR_CERT_VALIDATION_CALLBACK_FAILED);
     }

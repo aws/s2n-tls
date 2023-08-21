@@ -17,7 +17,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_x509_validator.h"
 
-struct cert_validation_data {
+struct s2n_cert_validation_data {
     unsigned call_accept_or_reject : 1;
     unsigned accept : 1;
     unsigned return_success : 1;
@@ -25,17 +25,9 @@ struct cert_validation_data {
     int invoked_count;
 };
 
-static S2N_CLEANUP_RESULT reset_cert_validation_data(struct cert_validation_data **data)
+static int s2n_test_cert_validation_callback(struct s2n_connection *conn, struct s2n_cert_validation_info *info, void *ctx)
 {
-    RESULT_ENSURE_REF(data);
-    RESULT_ENSURE_REF(*data);
-    (*data)->invoked_count = 0;
-    return S2N_RESULT_OK;
-}
-
-static int test_cert_validation_callback(struct s2n_connection *conn, struct s2n_cert_validation_info *info, void *ctx)
-{
-    struct cert_validation_data *data = (struct cert_validation_data *) ctx;
+    struct s2n_cert_validation_data *data = (struct s2n_cert_validation_data *) ctx;
 
     data->invoked_count += 1;
 
@@ -57,7 +49,7 @@ static int test_cert_validation_callback(struct s2n_connection *conn, struct s2n
     return ret;
 }
 
-static int test_cert_validation_callback_self_talk(struct s2n_connection *conn,
+static int s2n_test_cert_validation_callback_self_talk(struct s2n_connection *conn,
         struct s2n_cert_validation_info *info, void *ctx)
 {
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *peer_cert_chain = s2n_cert_chain_and_key_new(),
@@ -70,10 +62,10 @@ static int test_cert_validation_callback_self_talk(struct s2n_connection *conn,
     EXPECT_SUCCESS(s2n_cert_chain_get_length(peer_cert_chain, &peer_cert_chain_len));
     EXPECT_TRUE(peer_cert_chain_len > 0);
 
-    return test_cert_validation_callback(conn, info, ctx);
+    return s2n_test_cert_validation_callback(conn, info, ctx);
 }
 
-static int test_cert_validation_callback_self_talk_server(struct s2n_connection *conn,
+static int s2n_test_cert_validation_callback_self_talk_server(struct s2n_connection *conn,
         struct s2n_cert_validation_info *info, void *ctx)
 {
     /* Ensure that the callback was invoked on the server connection */
@@ -81,14 +73,14 @@ static int test_cert_validation_callback_self_talk_server(struct s2n_connection 
 
     /* Ensure that the client's certificate chain can be retrieved at the time the callback was invoked */
     uint8_t *der_cert_chain = 0;
-    uint32_t cert_chain_len;
+    uint32_t cert_chain_len = 0;
     EXPECT_SUCCESS(s2n_connection_get_client_cert_chain(conn, &der_cert_chain, &cert_chain_len));
     EXPECT_TRUE(cert_chain_len > 0);
 
-    return test_cert_validation_callback_self_talk(conn, info, ctx);
+    return s2n_test_cert_validation_callback_self_talk(conn, info, ctx);
 }
 
-static int test_cert_validation_callback_self_talk_ocsp(struct s2n_connection *conn,
+static int s2n_test_cert_validation_callback_self_talk_ocsp(struct s2n_connection *conn,
         struct s2n_cert_validation_info *info, void *ctx)
 {
     /* Ensure that the OCSP response was received prior to invoking the callback */
@@ -97,7 +89,7 @@ static int test_cert_validation_callback_self_talk_ocsp(struct s2n_connection *c
     EXPECT_NOT_NULL(ocsp_response);
     EXPECT_TRUE(ocsp_response_length > 0);
 
-    return test_cert_validation_callback_self_talk(conn, info, ctx);
+    return s2n_test_cert_validation_callback_self_talk(conn, info, ctx);
 }
 
 int main(int argc, char *argv[])
@@ -165,9 +157,13 @@ int main(int argc, char *argv[])
 
     /* Test s2n_cert_validation_callback */
     {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
         /* clang-format off */
         struct {
-            struct cert_validation_data data;
+            const struct s2n_cert_validation_data data;
             s2n_error expected_error;
         } test_cases[] = {
             /* No error when accept is called from the callback */
@@ -220,9 +216,8 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
-            DEFER_CLEANUP(struct cert_validation_data *data = &test_cases[i].data, reset_cert_validation_data);
-            EXPECT_EQUAL(data->invoked_count, 0);
-            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, test_cert_validation_callback, data));
+            struct s2n_cert_validation_data data = test_cases[i].data;
+            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_callback, &data));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
@@ -249,12 +244,45 @@ int main(int argc, char *argv[])
                         expected_error);
             }
 
-            EXPECT_EQUAL(data->invoked_count, 1);
+            EXPECT_EQUAL(data.invoked_count, 1);
         }
 
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+        /* The callback is never invoked if certificate validation is disabled */
+        {
+            DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+            s2n_x509_trust_store_init_empty(&trust_store);
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+
+            struct s2n_cert_validation_data data = {
+                .return_success = false
+            };
+            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_callback, &data));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(conn, S2N_DEFAULT_TEST_CERT_CHAIN, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
+                    &pkey_type, &public_key_out));
+
+            EXPECT_EQUAL(data.invoked_count, 0);
+        }
 
         /* Self-talk: callback is invoked on the client after receiving the server's certificate */
         for (int i = 0; i < s2n_array_len(test_cases); i++) {
@@ -264,9 +292,8 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
-            DEFER_CLEANUP(struct cert_validation_data *data = &test_cases[i].data, reset_cert_validation_data);
-            EXPECT_EQUAL(data->invoked_count, 0);
-            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, test_cert_validation_callback_self_talk, data));
+            struct s2n_cert_validation_data data = test_cases[i].data;
+            EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_callback_self_talk, &data));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -291,7 +318,7 @@ int main(int argc, char *argv[])
                         expected_error);
             }
 
-            EXPECT_EQUAL(data->invoked_count, 1);
+            EXPECT_EQUAL(data.invoked_count, 1);
         }
 
         /* Self-talk: callback is invoked on the server after receiving the client's certificate */
@@ -303,10 +330,9 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
-            DEFER_CLEANUP(struct cert_validation_data *data = &test_cases[i].data, reset_cert_validation_data);
-            EXPECT_EQUAL(data->invoked_count, 0);
+            struct s2n_cert_validation_data data = test_cases[i].data;
             EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(server_config,
-                    test_cert_validation_callback_self_talk_server, data));
+                    s2n_test_cert_validation_callback_self_talk_server, &data));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -338,7 +364,7 @@ int main(int argc, char *argv[])
                         expected_error);
             }
 
-            EXPECT_EQUAL(data->invoked_count, 1);
+            EXPECT_EQUAL(data.invoked_count, 1);
         }
 
         /* Self-talk: callback is invoked after an OCSP response is received in TLS 1.3
@@ -383,10 +409,9 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
             EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
 
-            DEFER_CLEANUP(struct cert_validation_data *data = &test_cases[i].data, reset_cert_validation_data);
-            EXPECT_EQUAL(data->invoked_count, 0);
+            struct s2n_cert_validation_data data = test_cases[i].data;
             EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(client_config,
-                    test_cert_validation_callback_self_talk_ocsp, data));
+                    s2n_test_cert_validation_callback_self_talk_ocsp, &data));
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
@@ -407,7 +432,7 @@ int main(int argc, char *argv[])
                         expected_error);
             }
 
-            EXPECT_EQUAL(data->invoked_count, 1);
+            EXPECT_EQUAL(data.invoked_count, 1);
         }
     }
 
