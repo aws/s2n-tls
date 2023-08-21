@@ -247,11 +247,16 @@ int main(int argc, char *argv[])
             EXPECT_EQUAL(data.invoked_count, 1);
         }
 
-        /* The callback is never invoked if certificate validation is disabled */
-        {
+        /* The callback is invoked even if cert verification is disabled */
+        for (int i = 0; i < s2n_array_len(test_cases); i++) {
             DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
             s2n_x509_trust_store_init_empty(&trust_store);
 
+            char cert_chain[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, cert_chain));
+
+            /* Initialize the x509_validator with skip_cert_validation enabled */
             DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
             EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
 
@@ -259,9 +264,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
-            struct s2n_cert_validation_data data = {
-                .return_success = false
-            };
+            struct s2n_cert_validation_data data = test_cases[i].data;
             EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_callback, &data));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -278,10 +281,17 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
             s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
-            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
-                    &pkey_type, &public_key_out));
+            s2n_error expected_error = test_cases[i].expected_error;
+            if (expected_error == S2N_ERR_OK) {
+                EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
+                        &pkey_type, &public_key_out));
+            } else {
+                EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data,
+                                                chain_len, &pkey_type, &public_key_out),
+                        expected_error);
+            }
 
-            EXPECT_EQUAL(data.invoked_count, 0);
+            EXPECT_EQUAL(data.invoked_count, 1);
         }
 
         /* Self-talk: callback is invoked on the client after receiving the server's certificate */

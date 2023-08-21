@@ -619,7 +619,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
 
-    if (conn->config->cert_validation_cb && !validator->skip_cert_validation) {
+    if (conn->config->cert_validation_cb) {
         struct s2n_cert_validation_info info = { 0 };
         RESULT_ENSURE(conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx) >= S2N_SUCCESS,
                 S2N_ERR_CANCELLED);
