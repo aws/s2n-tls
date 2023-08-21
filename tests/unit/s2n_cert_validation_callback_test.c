@@ -245,7 +245,8 @@ int main(int argc, char *argv[])
                         &pkey_type, &public_key_out));
             } else {
                 EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data,
-                        chain_len, &pkey_type, &public_key_out), expected_error);
+                                                chain_len, &pkey_type, &public_key_out),
+                        expected_error);
             }
 
             EXPECT_EQUAL(data->invoked_count, 1);
