@@ -422,6 +422,7 @@ int main(int argc, char **argv)
                     S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
+            /* cppcheck-suppress redundantAssignment */
             io_ctx.errno_code = EAGAIN;
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
