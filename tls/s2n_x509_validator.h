@@ -66,6 +66,11 @@ struct s2n_x509_validator {
     struct s2n_array *crl_lookup_list;
 };
 
+struct s2n_cert_validation_info {
+    unsigned finished : 1;
+    unsigned accepted : 1;
+};
+
 /** Some libcrypto implementations do not support OCSP validation. Returns 1 if supported, 0 otherwise. */
 uint8_t s2n_x509_ocsp_stapling_supported(void);
 
@@ -138,3 +143,12 @@ S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 
 /* Checks to see if a certificate has a signature algorithm that's in our certificate_signature_preferences list */
 S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert,
         const struct s2n_signature_preferences *cert_sig_preferences);
+
+typedef int (*s2n_cert_validation_callback)(struct s2n_connection *conn, struct s2n_cert_validation_info *info,
+        void *context);
+
+int s2n_config_set_cert_validation_cb(struct s2n_config *config,
+        s2n_cert_validation_callback cert_validation_cb, void *context);
+
+int s2n_cert_validation_accept(struct s2n_cert_validation_info *info);
+int s2n_cert_validation_reject(struct s2n_cert_validation_info *info);
