@@ -624,7 +624,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_ENSURE(conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx) >= S2N_SUCCESS,
                 S2N_ERR_CANCELLED);
         RESULT_ENSURE(info.finished, S2N_ERR_INVALID_STATE);
-        RESULT_ENSURE(info.accepted, S2N_ERR_CERT_VALIDATION_CALLBACK_FAILED);
+        RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
     }
 
     *public_key_out = public_key;

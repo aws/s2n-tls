@@ -175,7 +175,7 @@ int main(int argc, char *argv[])
             /* Error if reject was called from the callback */
             {
                 .data = { .call_accept_or_reject = true, .accept = false, .return_success = true },
-                .expected_error = S2N_ERR_CERT_VALIDATION_CALLBACK_FAILED
+                .expected_error = S2N_ERR_CERT_REJECTED
             },
 
             /* Error if the callback doesn't return successfully */
