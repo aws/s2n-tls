@@ -93,9 +93,11 @@ class Cert(object):
         self.cert = location + prefix + "_cert.pem"
         self.key = location + prefix + "_key.pem"
         self.algorithm = 'ANY'
+        self.curve = None
 
         if 'ECDSA' in name:
             self.algorithm = 'EC'
+            self.curve = name[-3:]
         elif 'RSA' in name:
             self.algorithm = 'RSA'
         if 'PSS' in name:
@@ -107,15 +109,15 @@ class Cert(object):
     def compatible_with_curve(self, curve):
         if self.algorithm != 'EC':
             return True
-
-        return curve.name[-3:] == self.name[-3:]
+        return curve.name[-3:] == self.curve
 
     def compatible_with_sigalg(self, sigalg):
-        if self.algorithm == 'EC':
-            if '384' in self.name and 'p256' in sigalg.name:
-                return False
-
-        return (self.algorithm == sigalg.algorithm)
+        if self.algorithm != sigalg.algorithm:
+            return False
+        sig_alg_has_curve = sigalg.algorithm == 'EC' and sigalg.min_protocol == Protocols.TLS13
+        if sig_alg_has_curve and self.curve not in sigalg.name:
+            return False
+        return True
 
     def __str__(self):
         return self.name
@@ -140,6 +142,7 @@ class Certificates(object):
 
     ECDSA_256 = Cert("ECDSA_256", "localhost_ecdsa_p256")
     ECDSA_384 = Cert("ECDSA_384", "ecdsa_p384_pkcs1")
+    ECDSA_521 = Cert("ECDSA_521", "ecdsa_p521")
 
     RSA_2048_SHA256_WILDCARD = Cert(
         "RSA_2048_SHA256_WILDCARD", "rsa_2048_sha256_wildcard")
@@ -400,6 +403,9 @@ class Signatures(object):
     RSA_SHA512 = Signature('RSA+SHA512', max_protocol=Protocols.TLS12)
     RSA_MD5_SHA1 = Signature('RSA+MD5_SHA1', max_protocol=Protocols.TLS11)
     ECDSA_SHA224 = Signature('ECDSA+SHA224', max_protocol=Protocols.TLS12)
+    ECDSA_SHA256 = Signature('ECDSA+SHA256', max_protocol=Protocols.TLS12)
+    ECDSA_SHA384 = Signature('ECDSA+SHA384', max_protocol=Protocols.TLS12)
+    ECDSA_SHA512 = Signature('ECDSA+SHA512', max_protocol=Protocols.TLS12)
     ECDSA_SHA1 = Signature('ECDSA+SHA1', max_protocol=Protocols.TLS12)
 
     RSA_PSS_RSAE_SHA256 = Signature(
@@ -418,6 +424,16 @@ class Signatures(object):
         min_protocol=Protocols.TLS13,
         sig_type='ECDSA',
         sig_digest='SHA256')
+    ECDSA_SECP384r1_SHA384 = Signature(
+        'ecdsa_secp384r1_sha384',
+        min_protocol=Protocols.TLS13,
+        sig_type='ECDSA',
+        sig_digest='SHA384')
+    ECDSA_SECP521r1_SHA512 = Signature(
+        'ecdsa_secp521r1_sha512',
+        min_protocol=Protocols.TLS13,
+        sig_type='ECDSA',
+        sig_digest='SHA512')
 
 
 class Results(object):

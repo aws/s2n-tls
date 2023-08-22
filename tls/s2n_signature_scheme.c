@@ -148,6 +148,7 @@ const struct s2n_signature_scheme s2n_ecdsa_secp521r1_sha512 = {
     .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SECP521R1_SHA512,
     .hash_alg = S2N_HASH_SHA512,
     .sig_alg = S2N_SIGNATURE_ECDSA,
+    .libcrypto_nid = NID_ecdsa_with_SHA512,
     .signature_curve = &s2n_ecc_curve_secp521r1, /* Hardcoded as of TLS 1.3 */
     .minimum_protocol_version = S2N_TLS13,
 };

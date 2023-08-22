@@ -21,7 +21,8 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
 
 /* Since it is possible to read partial data, we need a way to update the length
  * of the previous record for the mock stuffer IO implementation. */
-static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx, uint16_t remaining_len)
+static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_stuffer *io_ctx,
+        uint16_t remaining_len)
 {
     RESULT_ENSURE_REF(io_ctx);
     RESULT_ENSURE(remaining_len > 0, S2N_ERR_IO);
@@ -151,8 +152,21 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     return bytes_read;
 }
 
-S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s2n_connection *client,
-        struct s2n_test_ktls_io_stuffer_pair *io_pair)
+S2N_RESULT s2n_test_init_ktls_io_stuffer_send(struct s2n_connection *conn,
+        struct s2n_test_ktls_io_stuffer *io)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(io);
+
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io->data_buffer, 0));
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&io->ancillary_buffer, 0));
+    RESULT_GUARD(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_io_stuffer, io));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server,
+        struct s2n_connection *client, struct s2n_test_ktls_io_stuffer_pair *io_pair)
 {
     RESULT_ENSURE_REF(server);
     RESULT_ENSURE_REF(client);
@@ -171,13 +185,51 @@ S2N_RESULT s2n_test_init_ktls_io_stuffer(struct s2n_connection *server, struct s
     return S2N_RESULT_OK;
 }
 
+S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_free(struct s2n_test_ktls_io_stuffer *io)
+{
+    RESULT_ENSURE_REF(io);
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io->data_buffer));
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&io->ancillary_buffer));
+    return S2N_RESULT_OK;
+}
+
 S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer_pair *pair)
 {
     RESULT_ENSURE_REF(pair);
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->client_in.data_buffer));
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->client_in.ancillary_buffer));
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->server_in.data_buffer));
-    RESULT_GUARD_POSIX(s2n_stuffer_free(&pair->server_in.ancillary_buffer));
+
+    RESULT_GUARD(s2n_ktls_io_stuffer_free(&pair->client_in));
+    RESULT_GUARD(s2n_ktls_io_stuffer_free(&pair->server_in));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data,
+        uint16_t expected_len)
+{
+    RESULT_ENSURE_REF(ktls_io);
+    RESULT_ENSURE_REF(expected_data);
+
+    struct s2n_stuffer validate_data_stuffer = ktls_io->data_buffer;
+    RESULT_ENSURE_EQ(s2n_stuffer_data_available(&validate_data_stuffer), expected_len);
+    uint8_t *data_ptr = s2n_stuffer_raw_read(&validate_data_stuffer, expected_len);
+    RESULT_ENSURE_REF(data_ptr);
+    RESULT_ENSURE_EQ(memcmp(data_ptr, expected_data, expected_len), 0);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
+        uint8_t expected_record_type, uint16_t expected_len)
+{
+    RESULT_ENSURE_REF(ktls_io);
+
+    struct s2n_stuffer validate_ancillary_stuffer = ktls_io->ancillary_buffer;
+    uint8_t tag = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(&validate_ancillary_stuffer, &tag));
+    RESULT_ENSURE_EQ(tag, expected_record_type);
+    uint16_t len = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&validate_ancillary_stuffer, &len));
+    RESULT_ENSURE_EQ(len, expected_len);
 
     return S2N_RESULT_OK;
 }

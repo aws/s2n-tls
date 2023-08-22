@@ -52,7 +52,8 @@ ALL_TEST_CERTS = [
     Certificates.RSA_4096_SHA512,
     Certificates.ECDSA_256,
     Certificates.ECDSA_384,
-    Certificates.RSA_PSS_2048_SHA256
+    Certificates.ECDSA_521,
+    Certificates.RSA_PSS_2048_SHA256,
 ]
 
 
