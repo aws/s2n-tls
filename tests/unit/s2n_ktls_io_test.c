@@ -492,10 +492,8 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
                     s2n_ktls_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
-
-            /* The stuffer mock IO is used to ensure `cmsghdr` is otherwise properly constructed
-             * and that the failure occurs due to the MSG_CTRUNC flag. */
-            io_pair.client_in.recv_msg_flags = MSG_CTRUNC;
+            /* override the client recvmsg callback to add a MSG_CTRUNC flag to msghdr before returning */
+            EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_io_ctrunc, &io_pair.client_in));
 
             struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;

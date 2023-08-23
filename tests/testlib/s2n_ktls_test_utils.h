@@ -54,7 +54,6 @@ struct s2n_test_ktls_io_stuffer {
     struct s2n_stuffer data_buffer;
     size_t sendmsg_invoked_count;
     size_t recvmsg_invoked_count;
-    int recv_msg_flags;
 };
 struct s2n_test_ktls_io_stuffer_pair {
     struct s2n_test_ktls_io_stuffer client_in;
@@ -62,6 +61,7 @@ struct s2n_test_ktls_io_stuffer_pair {
 };
 ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *msg);
 ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg);
+ssize_t s2n_test_ktls_recvmsg_io_ctrunc(void *io_context, struct msghdr *msg);
 
 S2N_RESULT s2n_test_init_ktls_io_stuffer_send(struct s2n_connection *conn,
         struct s2n_test_ktls_io_stuffer *io);

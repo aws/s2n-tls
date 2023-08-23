@@ -149,8 +149,20 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
         POSIX_GUARD(s2n_stuffer_skip_read(&io_ctx->ancillary_buffer, sizeof(record_type)));
     }
 
-    msg->msg_flags = io_ctx->recv_msg_flags;
     return bytes_read;
+}
+
+ssize_t s2n_test_ktls_recvmsg_io_ctrunc(void *io_context, struct msghdr *msg)
+{
+    POSIX_ENSURE_REF(msg);
+
+    ssize_t ret = s2n_test_ktls_recvmsg_io_stuffer(io_context, msg);
+    POSIX_GUARD(ret);
+
+    /* The stuffer mock IO is used to ensure `cmsghdr` is otherwise properly constructed
+     * and that the failure occurs due to the MSG_CTRUNC flag. */
+    msg->msg_flags = MSG_CTRUNC;
+    return ret;
 }
 
 S2N_RESULT s2n_test_init_ktls_io_stuffer_send(struct s2n_connection *conn,
