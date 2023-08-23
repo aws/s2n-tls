@@ -29,7 +29,6 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
 /* Mock implementation used for validating failure behavior */
 struct s2n_test_ktls_io_fail_ctx {
     size_t errno_code;
-    ssize_t return_value;
     size_t invoked_count;
 };
 
@@ -39,7 +38,7 @@ static ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr 
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->invoked_count++;
     errno = io_ctx->errno_code;
-    return io_ctx->return_value;
+    return -1;
 }
 
 static ssize_t s2n_test_ktls_recvmsg_fail(void *io_context, struct msghdr *msg)
@@ -50,7 +49,19 @@ static ssize_t s2n_test_ktls_recvmsg_fail(void *io_context, struct msghdr *msg)
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->invoked_count++;
     errno = io_ctx->errno_code;
-    return io_ctx->return_value;
+    return -1;
+}
+
+struct s2n_test_ktls_io_eof_ctx {
+    size_t invoked_count;
+};
+
+static ssize_t s2n_test_ktls_recvmsg_eof(void *io_context, struct msghdr *msg)
+{
+    struct s2n_test_ktls_io_eof_ctx *io_ctx = (struct s2n_test_ktls_io_eof_ctx *) io_context;
+    POSIX_ENSURE_REF(io_ctx);
+    io_ctx->invoked_count++;
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -229,9 +240,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
-            struct s2n_test_ktls_io_fail_ctx io_ctx = {
-                .return_value = -1,
-            };
+            struct s2n_test_ktls_io_fail_ctx io_ctx = { 0 };
             EXPECT_OK(s2n_ktls_set_sendmsg_cb(server, s2n_test_ktls_sendmsg_fail, &io_ctx));
 
             struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
@@ -258,7 +267,6 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             struct s2n_test_ktls_io_fail_ctx io_ctx = {
                 .errno_code = EINVAL,
-                .return_value = -1,
             };
             EXPECT_OK(s2n_ktls_set_sendmsg_cb(server, s2n_test_ktls_sendmsg_fail, &io_ctx));
 
@@ -409,9 +417,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            struct s2n_test_ktls_io_fail_ctx io_ctx = {
-                .return_value = -1,
-            };
+            struct s2n_test_ktls_io_fail_ctx io_ctx = { 0 };
             EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_fail, &io_ctx));
 
             uint8_t recv_buf[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
@@ -441,7 +447,6 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             struct s2n_test_ktls_io_fail_ctx io_ctx = {
                 .errno_code = EINVAL,
-                .return_value = -1,
             };
             EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_fail, &io_ctx));
 
@@ -462,11 +467,8 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            ssize_t return_value_eof = 0;
-            struct s2n_test_ktls_io_fail_ctx io_ctx = {
-                .return_value = return_value_eof,
-            };
-            EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_fail, &io_ctx));
+            struct s2n_test_ktls_io_eof_ctx io_ctx = { 0 };
+            EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_eof, &io_ctx));
 
             uint8_t recv_buf[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
