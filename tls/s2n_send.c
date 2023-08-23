@@ -24,6 +24,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
 #include "utils/s2n_blob.h"
@@ -109,10 +110,15 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
 ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iovec *bufs,
         ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
-    ssize_t user_data_sent, total_size = 0;
-
     POSIX_ENSURE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE), S2N_ERR_CLOSED);
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+
+    if (conn->ktls_send_enabled) {
+        return s2n_ktls_send(conn, bufs, count, offs, blocked);
+    }
+
+    ssize_t user_data_sent = 0;
+    ssize_t total_size = 0;
 
     /* Flush any pending I/O */
     POSIX_GUARD(s2n_flush(conn, blocked));
@@ -231,6 +237,13 @@ ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *b
     conn->send_in_use = true;
 
     ssize_t result = s2n_sendv_with_offset_impl(conn, bufs, count, offs, blocked);
+    /* https://github.com/aws/s2n-tls/issues/4159
+     * Error handling should also be added for non-kTLS code path.
+     */
+    if (conn->ktls_send_enabled && result < 0 && s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
+        POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+    }
+
     POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, result));
 
     POSIX_GUARD_RESULT(s2n_connection_dynamic_free_out_buffer(conn));

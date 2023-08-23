@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "utils/s2n_safety_macros.h"
 #if defined(__FreeBSD__) || defined(__APPLE__)
     /* https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/sys_socket.h.html
      * The POSIX standard does not define the CMSG_LEN and CMSG_SPACE macros. FreeBSD
@@ -183,7 +184,7 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, const struct iovec *msg_iov,
+S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, struct iovec *msg_iov,
         size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written)
 {
     RESULT_ENSURE_REF(bytes_written);
@@ -195,10 +196,7 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
     *bytes_written = 0;
 
     struct msghdr msg = {
-        /* msghdr requires a non-const iovec. This is safe because s2n-tls does
-         * not modify msg_iov after this point.
-         */
-        .msg_iov = (struct iovec *) (uintptr_t) msg_iov,
+        .msg_iov = msg_iov,
         .msg_iovlen = msg_iovlen,
     };
 
@@ -270,4 +268,117 @@ S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, u
     *blocked = S2N_NOT_BLOCKED;
     *bytes_read = result;
     return S2N_RESULT_OK;
+}
+
+/* Update iovec to account for partially sends.
+ *
+ * sendmsg returns the number of bytes sent; which can be less than the total
+ * requested amount. This function updates iovec to skip data which has already
+ * been sent. */
+static S2N_RESULT s2n_ktls_send_update_iovec(struct iovec *msg_iov, size_t msg_iovlen, size_t bytes_sent)
+{
+    RESULT_ENSURE_REF(msg_iov);
+
+    for (size_t i = 0; i < msg_iovlen; i++) {
+        size_t current_iov_len = msg_iov[i].iov_len;
+
+        if (current_iov_len > bytes_sent) {
+            msg_iov[i].iov_base = (uint8_t *) msg_iov[i].iov_base + bytes_sent;
+            msg_iov[i].iov_len = current_iov_len - bytes_sent;
+            return S2N_RESULT_OK;
+        }
+
+        msg_iov[i].iov_len = 0;
+        bytes_sent -= current_iov_len;
+    }
+
+    return S2N_RESULT_OK;
+}
+
+/* TODO
+ D - handle updating msg_iov
+ D - update connection state
+ *   (recv)
+ D   - s2n_connection_get_wire_bytes_in: wire_bytes_in
+ *   (send)
+ D   - s2n_connection_get_wire_bytes_out: wire_bytes_out
+ D   - write_fd_broken (errno == EPIPE). Just return S2N_ERR_IO
+ *   (error)
+ D   - read_closed
+ D   - write_closed
+ *   (alert)
+ *   - s2n_connection_get_alert alert_in;
+ *   - alert_sent
+ *   - error_alert_received
+ *   - close_notify_received
+ *   - reader_warning_out
+ *   (handshake)
+ *   - tickets_to_send/tickets_sent
+ *
+ * - check s2n_sendv_with_offset_impl for missing logic
+ D - test template
+ * - ?error handling (close connection)
+ */
+/* TODO
+ D - Check case: First send succeeds, second send IO errors
+ D - Return error from s2n_connection_get_wire_bytes_in/out
+ */
+S2N_RESULT s2n_ktls_send_impl(struct s2n_connection *conn, const struct iovec *msg_iov,
+        size_t msg_iovlen, size_t offset, s2n_blocked_status *blocked, size_t *bytes_written)
+{
+    RESULT_ENSURE_REF(bytes_written);
+    RESULT_ENSURE_REF(msg_iov);
+
+    size_t total_size = 0;
+    for (size_t i = 0; i < msg_iovlen; i++) {
+        total_size += msg_iov[i].iov_len;
+    }
+    total_size -= offset;
+
+    DEFER_CLEANUP(struct s2n_blob iovec_mem = { 0 }, s2n_free);
+    RESULT_GUARD_POSIX(s2n_alloc(&iovec_mem, sizeof(struct iovec) * msg_iovlen));
+    struct iovec *msg_iov_skip_sent = (struct iovec *) (void *) iovec_mem.data;
+    RESULT_CHECKED_MEMCPY(msg_iov_skip_sent, msg_iov, sizeof(struct iovec) * msg_iovlen);
+
+    /* Update msg_iov_skip_sent based on offset amount passed by application */
+    RESULT_GUARD(s2n_ktls_send_update_iovec(msg_iov_skip_sent, msg_iovlen, offset));
+
+    /* Attempt to send until either we send all the data or we become blocked. */
+    size_t total_data_sent = 0;
+    while (total_size - total_data_sent) {
+        size_t sendmsg_bytes_written = 0;
+        s2n_result sendmsg_result = s2n_ktls_sendmsg(conn, TLS_APPLICATION_DATA, msg_iov_skip_sent,
+                msg_iovlen, blocked, &sendmsg_bytes_written);
+        if (s2n_result_is_error(sendmsg_result)) {
+            bool some_data_sent = total_data_sent || sendmsg_bytes_written;
+            if (s2n_errno == S2N_ERR_IO_BLOCKED && some_data_sent) {
+                /* Acknowledge the data sent.
+                 *
+                 * Successfully sent > 0 user bytes, but not the full requested payload because
+                 * we became blocked on I/O. */
+                total_data_sent += sendmsg_bytes_written;
+                *bytes_written = total_data_sent;
+                return S2N_RESULT_OK;
+            } else {
+                /* All non-blocked errors are considered fatal. */
+                return sendmsg_result;
+            }
+        }
+
+        /* Update msg_iov_skip_sent based on bytes sent this past round */
+        total_data_sent += sendmsg_bytes_written;
+        RESULT_ENSURE_LTE(total_data_sent, total_size);
+        RESULT_GUARD(s2n_ktls_send_update_iovec(msg_iov_skip_sent, msg_iovlen, sendmsg_bytes_written));
+    }
+
+    *bytes_written = total_data_sent;
+    return S2N_RESULT_OK;
+}
+
+ssize_t s2n_ktls_send(struct s2n_connection *conn, const struct iovec *msg_iov,
+        size_t msg_iovlen, size_t offset, s2n_blocked_status *blocked)
+{
+    size_t bytes_written = 0;
+    POSIX_GUARD_RESULT(s2n_ktls_send_impl(conn, msg_iov, msg_iovlen, offset, blocked, &bytes_written));
+    return bytes_written;
 }

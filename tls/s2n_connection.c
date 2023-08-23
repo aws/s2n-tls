@@ -352,7 +352,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      * However, the s2n_config_set_verification_ca_location behavior predates client authentication
      * support for OCSP stapling, so could only affect whether clients requested OCSP stapling. We
      * therefore only have to maintain the legacy behavior for clients, not servers.
-     * 
+     *
      * Note: The Rust bindings do not maintain the legacy behavior.
      */
     conn->request_ocsp_status = config->ocsp_status_requested_by_user;
@@ -851,11 +851,21 @@ int s2n_connection_use_corked_io(struct s2n_connection *conn)
     return 0;
 }
 
+/* This API does not report correct values once kTLS has been enable for recv
+ * (s2n_connection_ktls_enable_recv).
+ *
+ * kTLS is responsible for fragmentation and record creation, making exact byte
+ * tracking infeasible. */
 uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 {
     return conn->wire_bytes_in;
 }
 
+/* This API does not report correct values once kTLS has been enable for send
+ * (s2n_connection_ktls_enable_send).
+ *
+ * kTLS is responsible for fragmentation and record creation, making exact byte
+ * tracking infeasible. */
 uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
 {
     return conn->wire_bytes_out;

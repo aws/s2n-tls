@@ -274,7 +274,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, blocked_invoked_count + 1);
         };
 
-        /* Attempt partial write with iov_len > 1 and expect error */
+        /* Attempt partial write with iov_len > 1 */
         {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -284,33 +284,54 @@ int main(int argc, char **argv)
                     s2n_ktls_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
             /* disable growable and alloc enough space for only 1 iov buffer */
-            io_pair.client_in.data_buffer.growable = false;
             EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.client_in.data_buffer, S2N_TEST_TO_SEND));
+            io_pair.client_in.data_buffer.growable = false;
 
-            uint8_t *test_data_ptr = test_data;
+            size_t total_sent = 0;
             struct iovec send_msg_iov[S2N_TEST_MSG_IOVLEN] = { 0 };
             for (size_t i = 0; i < S2N_TEST_MSG_IOVLEN; i++) {
-                send_msg_iov[i].iov_base = (void *) test_data_ptr;
+                send_msg_iov[i].iov_base = test_data + total_sent;
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
-                test_data_ptr += S2N_TEST_TO_SEND;
+                total_sent += S2N_TEST_TO_SEND;
             }
+
             struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = S2N_TEST_MSG_IOVLEN };
             char control_buf[S2N_CONTROL_BUF_SIZE] = { 0 };
             EXPECT_OK(s2n_ktls_set_control_data(&send_msg, control_buf, sizeof(control_buf),
                     S2N_TLS_SET_RECORD_TYPE, test_record_type));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_test_ktls_sendmsg_io_stuffer(server->send_io_context, &send_msg),
-                    S2N_ERR_SAFETY);
-            /* validate no record were sent  */
-            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), 0);
 
-            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
+            size_t sent = 0;
+            for (size_t i = 0; i < S2N_TEST_MSG_IOVLEN; i++) {
+                ssize_t bytes_written = s2n_test_ktls_sendmsg_io_stuffer(server->send_io_context, &send_msg);
+                EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
+                EXPECT_EQUAL(errno, EAGAIN);
+                sent += bytes_written;
+
+                /* validate partial data was sent  */
+                EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, S2N_TEST_TO_SEND));
+                /* consume the header in order to then validate the next header */
+                EXPECT_NOT_NULL(s2n_stuffer_raw_read(&io_pair.client_in.ancillary_buffer, S2N_TEST_KTLS_MOCK_HEADER_SIZE));
+                EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, sent));
+
+                /* resize */
+                io_pair.client_in.data_buffer.growable = true;
+                EXPECT_SUCCESS(s2n_stuffer_resize(&io_pair.client_in.data_buffer, sent + S2N_TEST_TO_SEND));
+                io_pair.client_in.data_buffer.growable = false;
+
+                /* wrote the iov_len worth of bytes so set the len to zero */
+                EXPECT_EQUAL(send_msg_iov[i].iov_len, bytes_written);
+                send_msg_iov[i].iov_len = 0;
+            }
+
+            EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, total_sent));
+            EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 5);
         };
     };
 
     /* Test the recvmsg mock IO stuffer implementation */
     {
         /* Happy case: test send/recv non-zero values. Sending 0 is a special case and tested separately */
-        for (size_t to_send = 1; to_send < S2N_TLS_MAXIMUM_FRAGMENT_LENGTH; to_send++) {
+        for (size_t to_send = 1; to_send < S2N_TEST_KTLS_MOCK_MAX_FRAG_SIZE; to_send++) {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),

@@ -26,21 +26,6 @@ S2N_RESULT s2n_ktls_set_control_data(struct msghdr *msg, char *buf, size_t buf_s
         int cmsg_type, uint8_t record_type);
 S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t *record_type);
 
-/* Mock implementation used for validating failure behavior */
-struct s2n_test_ktls_io_fail_ctx {
-    size_t errno_code;
-    size_t invoked_count;
-};
-
-static ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
-{
-    struct s2n_test_ktls_io_fail_ctx *io_ctx = (struct s2n_test_ktls_io_fail_ctx *) io_context;
-    POSIX_ENSURE_REF(io_ctx);
-    io_ctx->invoked_count++;
-    errno = io_ctx->errno_code;
-    return -1;
-}
-
 static ssize_t s2n_test_ktls_recvmsg_fail(void *io_context, struct msghdr *msg)
 {
     POSIX_ENSURE_REF(msg);

@@ -39,10 +39,12 @@ typedef enum {
 bool s2n_ktls_is_supported_on_platform();
 S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
 
-S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, const struct iovec *msg_iov,
+S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, struct iovec *msg_iov,
         size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written);
 S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, uint8_t *buf,
         size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read);
+ssize_t s2n_ktls_send(struct s2n_connection *conn, const struct iovec *msg_iov,
+        size_t msg_iovlen, size_t offset, s2n_blocked_status *blocked);
 
 /* These functions will be part of the public API. */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn);

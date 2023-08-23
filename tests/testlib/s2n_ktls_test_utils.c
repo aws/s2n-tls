@@ -55,24 +55,28 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
     POSIX_GUARD_RESULT(s2n_ktls_get_control_data(&msg_to_parse, S2N_TLS_SET_RECORD_TYPE, &record_type));
 
     size_t total_len = 0;
-    for (size_t count = 0; count < msg->msg_iovlen; count++) {
-        uint8_t *buf = msg->msg_iov[count].iov_base;
+    size_t fragment_size_remaining = S2N_TEST_KTLS_MOCK_MAX_FRAG_SIZE;
+    for (size_t i = 0; i < msg->msg_iovlen && fragment_size_remaining; i++) {
+        /* allow for 0-sized iov_len */
+        if (msg->msg_iov[i].iov_len == 0) {
+            continue;
+        }
+        size_t fragment_len_to_send = MIN(fragment_size_remaining, msg->msg_iov[i].iov_len);
+        uint8_t *buf = msg->msg_iov[i].iov_base;
         POSIX_ENSURE_REF(buf);
-        size_t len = msg->msg_iov[count].iov_len;
 
-        if (s2n_stuffer_write_bytes(&io_ctx->data_buffer, buf, len) < 0) {
-            /* This mock implementation only handles partial writes for msg_iovlen == 1.
-             *
-             * This simplifies the implementation and importantly doesn't limit our test
-             * coverage because partial writes are handled the same regardless of
-             * msg_iovlen. */
-            POSIX_ENSURE(msg->msg_iovlen == 1, S2N_ERR_SAFETY);
+        if (s2n_stuffer_write_bytes(&io_ctx->data_buffer, buf, fragment_len_to_send) < 0) {
+            if (total_len) {
+                break;
+            }
 
             errno = EAGAIN;
             return -1;
         }
 
-        total_len += len;
+        total_len += fragment_len_to_send;
+        /* stop sending if we already sent max_fragment_len amount this syscall */
+        fragment_size_remaining -= fragment_len_to_send;
     }
     if (total_len) {
         /* write record_type and len after some data was written successfully */
@@ -150,6 +154,15 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
     }
 
     return bytes_read;
+}
+
+ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg)
+{
+    struct s2n_test_ktls_io_fail_ctx *io_ctx = (struct s2n_test_ktls_io_fail_ctx *) io_context;
+    POSIX_ENSURE_REF(io_ctx);
+    io_ctx->invoked_count++;
+    errno = io_ctx->errno_code;
+    return -1;
 }
 
 S2N_RESULT s2n_test_init_ktls_io_stuffer_send(struct s2n_connection *conn,

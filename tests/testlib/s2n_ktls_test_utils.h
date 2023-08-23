@@ -18,6 +18,9 @@
 
 #define S2N_TEST_KTLS_MOCK_HEADER_SIZE     3
 #define S2N_TEST_KTLS_MOCK_HEADER_TAG_SIZE 1
+/* Mimic socket buffer behavior by setting a max fragment size. This allows for
+ * testing partial sends. */
+#define S2N_TEST_KTLS_MOCK_MAX_FRAG_SIZE 50
 
 /* The record_type is communicated via ancillary data when using kTLS. For this
  * reason s2n must use `send/recvmsg` syscalls rather than `send/read`. To mimic
@@ -61,6 +64,13 @@ struct s2n_test_ktls_io_stuffer_pair {
 };
 ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *msg);
 ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg);
+
+/* Mock implementation used for validating failure behavior */
+struct s2n_test_ktls_io_fail_ctx {
+    size_t errno_code;
+    size_t invoked_count;
+};
+ssize_t s2n_test_ktls_sendmsg_fail(void *io_context, const struct msghdr *msg);
 
 S2N_RESULT s2n_test_init_ktls_io_stuffer_send(struct s2n_connection *conn,
         struct s2n_test_ktls_io_stuffer *io);
