@@ -315,6 +315,9 @@ int main(int argc, char **argv)
                     s2n_ktls_recvmsg(NULL, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
+                    s2n_ktls_recvmsg(client, NULL, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_recvmsg(client, &recv_record_type, NULL, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
@@ -330,7 +333,7 @@ int main(int argc, char **argv)
                     S2N_ERR_SAFETY);
         };
 
-        /* Happy case */
+        /* Happy case: send/recv data using sendmsg/recvmsg */
         {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);

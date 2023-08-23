@@ -192,6 +192,7 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
     RESULT_ENSURE_REF(conn);
 
     *blocked = S2N_BLOCKED_ON_WRITE;
+    *bytes_written = 0;
 
     struct msghdr msg = {
         /* msghdr requires a non-const iovec. This is safe because s2n-tls does
@@ -221,6 +222,7 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
 S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, uint8_t *buf,
         size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read)
 {
+    RESULT_ENSURE_REF(record_type);
     RESULT_ENSURE_REF(bytes_read);
     RESULT_ENSURE_REF(blocked);
     RESULT_ENSURE_REF(conn);
@@ -231,6 +233,8 @@ S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, u
     RESULT_ENSURE_GT(buf_len, 0);
 
     *blocked = S2N_BLOCKED_ON_READ;
+    *record_type = 0;
+    *bytes_read = 0;
     struct iovec msg_iov = {
         .iov_base = buf,
         .iov_len = buf_len
