@@ -581,6 +581,9 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+
     switch (validator->state) {
         case INIT:
             break;
@@ -614,6 +617,14 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
          *# the first CertificateEntry.
          */
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
+    }
+
+    if (conn->config->cert_validation_cb) {
+        struct s2n_cert_validation_info info = { 0 };
+        RESULT_ENSURE(conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx) >= S2N_SUCCESS,
+                S2N_ERR_CANCELLED);
+        RESULT_ENSURE(info.finished, S2N_ERR_INVALID_STATE);
+        RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
     }
 
     *public_key_out = public_key;
@@ -850,4 +861,26 @@ S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)
 {
     return validator && (validator->state == VALIDATED || validator->state == OCSP_VALIDATED);
+}
+
+int s2n_cert_validation_accept(struct s2n_cert_validation_info *info)
+{
+    POSIX_ENSURE_REF(info);
+    POSIX_ENSURE(!info->finished, S2N_ERR_INVALID_STATE);
+
+    info->finished = true;
+    info->accepted = true;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_cert_validation_reject(struct s2n_cert_validation_info *info)
+{
+    POSIX_ENSURE_REF(info);
+    POSIX_ENSURE(!info->finished, S2N_ERR_INVALID_STATE);
+
+    info->finished = true;
+    info->accepted = false;
+
+    return S2N_SUCCESS;
 }

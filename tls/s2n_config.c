@@ -1121,3 +1121,13 @@ int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cert_validation_callback cb, void *ctx)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->cert_validation_cb = cb;
+    config->cert_validation_ctx = ctx;
+
+    return S2N_SUCCESS;
+}
