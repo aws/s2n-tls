@@ -185,9 +185,9 @@ struct s2n_cert_validation_info;
  *  - `s2n_connection_get_peer_cert_chain()`
  *  - `s2n_connection_get_client_cert_chain()`
  *
- * If the validation performed in the callback is successful, `s2n_cert_validation_accept()` should be called to allow
+ * If the validation performed in the callback is successful, `s2n_cert_validation_accept()` MUST be called to allow
  * `s2n_negotiate()` to continue the handshake. If the validation is unsuccessful, `s2n_cert_validation_reject()`
- * should be called, which will cause `s2n_negotiate()` to error. The behavior of `s2n_negotiate()` is undefined if
+ * MUST be called, which will cause `s2n_negotiate()` to error. The behavior of `s2n_negotiate()` is undefined if
  * neither `s2n_cert_validation_accept()` or `s2n_cert_validation_reject()` are called.
  *
  * Applications can specify an error code when calling `s2n_cert_validation_reject()` by setting an error code field
