@@ -52,16 +52,24 @@ static ssize_t s2n_test_ktls_recvmsg_fail(void *io_context, struct msghdr *msg)
     return -1;
 }
 
-struct s2n_test_ktls_io_eof_ctx {
-    size_t invoked_count;
-};
-
 static ssize_t s2n_test_ktls_recvmsg_eof(void *io_context, struct msghdr *msg)
 {
-    struct s2n_test_ktls_io_eof_ctx *io_ctx = (struct s2n_test_ktls_io_eof_ctx *) io_context;
+    struct s2n_test_ktls_io_fail_ctx *io_ctx = (struct s2n_test_ktls_io_fail_ctx *) io_context;
     POSIX_ENSURE_REF(io_ctx);
     io_ctx->invoked_count++;
     return 0;
+}
+
+ssize_t s2n_test_ktls_recvmsg_io_stuffer_and_ctrunc(void *io_context, struct msghdr *msg)
+{
+    POSIX_ENSURE_REF(msg);
+
+    /* The stuffer mock IO is used to ensure `cmsghdr` is otherwise properly constructed
+     * and that the failure occurs due to the MSG_CTRUNC flag. */
+    ssize_t ret = s2n_test_ktls_recvmsg_io_stuffer(io_context, msg);
+    POSIX_GUARD(ret);
+    msg->msg_flags = MSG_CTRUNC;
+    return ret;
 }
 
 int main(int argc, char **argv)
@@ -467,7 +475,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            struct s2n_test_ktls_io_eof_ctx io_ctx = { 0 };
+            struct s2n_test_ktls_io_fail_ctx io_ctx = { 0 };
             EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_eof, &io_ctx));
 
             uint8_t recv_buf[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
@@ -493,7 +501,7 @@ int main(int argc, char **argv)
                     s2n_ktls_io_stuffer_pair_free);
             EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
             /* override the client recvmsg callback to add a MSG_CTRUNC flag to msghdr before returning */
-            EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_io_ctrunc, &io_pair.client_in));
+            EXPECT_OK(s2n_ktls_set_recvmsg_cb(client, s2n_test_ktls_recvmsg_io_stuffer_and_ctrunc, &io_pair.client_in));
 
             struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
