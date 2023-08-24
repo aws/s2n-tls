@@ -195,10 +195,9 @@ struct s2n_cert_validation_info;
  * lifetime of the callback, and must not be used after the callback has finished.
  *
  * After calling `s2n_cert_validation_reject()`, `s2n_negotiate()` will fail with a protocol error indicating that
- * the cert has been rejected from the callback. To report more specific errors from the callback, applications can
- * set an error code field on the context for the `s2n_connection`, via the `s2n_connection_set_ctx()` API. The error
- * code can be set from the callback by retrieving the context via `s2n_connection_get_ctx()`, and then retrieved again
- * later when processing the `s2n_negotiate()` failure.
+ * the cert has been rejected from the callback. If more information regarding an application's custom validation
+ * failure is required, consider adding an error code field to the custom connection context. See
+ * `s2n_connection_set_ctx()` and `s2n_connection_get_ctx()` for how to set and retrieve custom connection contexts.
  *
  * @param conn The connection object from which the callback was invoked.
  * @param info The cert validation info object used to call cert validation APIs.
