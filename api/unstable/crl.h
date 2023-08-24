@@ -190,10 +190,15 @@ struct s2n_cert_validation_info;
  * MUST be called, which will cause `s2n_negotiate()` to error. The behavior of `s2n_negotiate()` is undefined if
  * neither `s2n_cert_validation_accept()` or `s2n_cert_validation_reject()` are called.
  *
- * Applications can specify an error code when calling `s2n_cert_validation_reject()` by setting an error code field
- * on the context for the `s2n_connection`, via the `s2n_connection_set_ctx()` API. The error code can be set from the
- * callback by retrieving the context via `s2n_connection_get_ctx()`, and then retrieved again later when processing
- * the `s2n_negotiate()` failure.
+ * The `info` parameter is passed to the callback in order to call APIs specific to the cert validation callback, like
+ * `s2n_cert_validation_accept()` and `s2n_cert_validation_reject()`. The `info` argument is only valid for the
+ * lifetime of the callback, and must not be used after the callback has finished.
+ *
+ * After calling `s2n_cert_validation_reject()`, `s2n_negotiate()` will fail with a protocol error indicating that
+ * the cert has been rejected from the callback. To report more specific errors from the callback, applications can
+ * set an error code field on the context for the `s2n_connection`, via the `s2n_connection_set_ctx()` API. The error
+ * code can be set from the callback by retrieving the context via `s2n_connection_get_ctx()`, and then retrieved again
+ * later when processing the `s2n_negotiate()` failure.
  *
  * @param conn The connection object from which the callback was invoked.
  * @param info The cert validation info object used to call cert validation APIs.
@@ -220,6 +225,8 @@ S2N_API int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cer
  * `s2n_cert_validation_accept()` should be called from within the cert validation callback to allow `s2n_negotiate()`
  * to continue the handshake.
  *
+ * This function must not be called outside of the cert validation callback.
+ *
  * @param info The cert validation info object for the associated callback.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
@@ -230,6 +237,8 @@ S2N_API int s2n_cert_validation_accept(struct s2n_cert_validation_info *info);
  *
  * `s2n_cert_validation_reject()` should be called from within the cert validation callback to cause `s2n_negotiate()`
  * to error.
+ *
+ * This function must not be called outside of the cert validation callback.
  *
  * @param info The cert validation info object for the associated callback.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
