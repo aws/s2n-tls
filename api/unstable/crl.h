@@ -211,7 +211,7 @@ typedef int (*s2n_cert_validation_callback)(struct s2n_connection *conn, struct 
  * @param context Optional application data passed to the callback function.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cert_validation_callback callback,
+S2N_API int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cert_validation_callback callback,
         void *context);
 
 /**
@@ -223,7 +223,7 @@ S2N_API extern int s2n_config_set_cert_validation_cb(struct s2n_config *config, 
  * @param info The cert validation info object for the associated callback.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_cert_validation_accept(struct s2n_cert_validation_info *info);
+S2N_API int s2n_cert_validation_accept(struct s2n_cert_validation_info *info);
 
 /**
  * Indicates that the validation performed in the cert validation callback was unsuccessful.
@@ -234,4 +234,4 @@ S2N_API extern int s2n_cert_validation_accept(struct s2n_cert_validation_info *i
  * @param info The cert validation info object for the associated callback.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_cert_validation_reject(struct s2n_cert_validation_info *info);
+S2N_API int s2n_cert_validation_reject(struct s2n_cert_validation_info *info);
