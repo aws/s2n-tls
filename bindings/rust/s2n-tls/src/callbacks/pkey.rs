@@ -92,7 +92,7 @@ impl PrivateKeyOperation {
     /// Sets the output of the operation
     pub fn set_output(self, conn: &mut Connection, buf: &[u8]) -> Result<(), Error> {
         let buf_len: u32 = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_ptr() as *const u8;
+        let buf_ptr = buf.as_ptr();
         unsafe {
             s2n_async_pkey_op_set_output(self.raw.as_ptr(), buf_ptr, buf_len).into_result()?;
             s2n_async_pkey_op_apply(self.raw.as_ptr(), conn.as_ptr()).into_result()?;
