@@ -146,6 +146,13 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
     RESULT_ENSURE_REF(msg);
     RESULT_ENSURE_REF(record_type);
 
+    /* https://man7.org/linux/man-pages/man3/recvmsg.3p.html
+     * MSG_CTRUNC  Control data was truncated.
+     */
+    if (msg->msg_flags & MSG_CTRUNC) {
+        RESULT_BAIL(S2N_ERR_KTLS_BAD_CMSG);
+    }
+
     /*
      * https://man7.org/linux/man-pages/man3/cmsg.3.html
      * To create ancillary data, first initialize the msg_controllen
@@ -185,6 +192,7 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
     RESULT_ENSURE_REF(conn);
 
     *blocked = S2N_BLOCKED_ON_WRITE;
+    *bytes_written = 0;
 
     struct msghdr msg = {
         /* msghdr requires a non-const iovec. This is safe because s2n-tls does
@@ -208,5 +216,58 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
 
     *blocked = S2N_NOT_BLOCKED;
     *bytes_written = result;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, uint8_t *buf,
+        size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read)
+{
+    RESULT_ENSURE_REF(record_type);
+    RESULT_ENSURE_REF(bytes_read);
+    RESULT_ENSURE_REF(blocked);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(buf);
+    /* Ensure that buf_len is > 0 since trying to receive 0 bytes does not
+     * make sense and a return value of `0` from recvmsg is treated as EOF.
+     */
+    RESULT_ENSURE_GT(buf_len, 0);
+
+    *blocked = S2N_BLOCKED_ON_READ;
+    *record_type = 0;
+    *bytes_read = 0;
+    struct iovec msg_iov = {
+        .iov_base = buf,
+        .iov_len = buf_len
+    };
+    struct msghdr msg = {
+        .msg_iov = &msg_iov,
+        .msg_iovlen = 1,
+    };
+
+    /*
+     * https://man7.org/linux/man-pages/man3/cmsg.3.html
+     * To create ancillary data, first initialize the msg_controllen
+     * member of the msghdr with the length of the control message
+     * buffer.
+     */
+    char control_data[S2N_KTLS_CONTROL_BUFFER_SIZE] = { 0 };
+    msg.msg_controllen = sizeof(control_data);
+    msg.msg_control = control_data;
+
+    ssize_t result = s2n_recvmsg_fn(conn->recv_io_context, &msg);
+    if (result < 0) {
+        if (errno == EWOULDBLOCK || errno == EAGAIN) {
+            RESULT_BAIL(S2N_ERR_IO_BLOCKED);
+        }
+        RESULT_BAIL(S2N_ERR_IO);
+    } else if (result == 0) {
+        /* The return value will be 0 when the socket reads EOF. */
+        RESULT_BAIL(S2N_ERR_CLOSED);
+    }
+
+    RESULT_GUARD(s2n_ktls_get_control_data(&msg, S2N_TLS_GET_RECORD_TYPE, record_type));
+
+    *blocked = S2N_NOT_BLOCKED;
+    *bytes_read = result;
     return S2N_RESULT_OK;
 }
