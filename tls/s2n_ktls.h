@@ -41,6 +41,8 @@ S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mo
 
 S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, const struct iovec *msg_iov,
         size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written);
+S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, uint8_t *buf,
+        size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read);
 
 /* These functions will be part of the public API. */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
