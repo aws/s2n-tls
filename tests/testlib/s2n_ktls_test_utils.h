@@ -72,3 +72,5 @@ S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint
         uint16_t expected_len);
 S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
         uint8_t expected_record_type, uint16_t expected_len);
+S2N_RESULT s2n_test_records_in_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
+        uint16_t expected_records);

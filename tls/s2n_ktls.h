@@ -44,6 +44,9 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
 S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, uint8_t *buf,
         size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read);
 
+ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs,
+        ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
+
 /* These functions will be part of the public API. */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);

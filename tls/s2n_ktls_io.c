@@ -187,9 +187,9 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
         size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written)
 {
     RESULT_ENSURE_REF(bytes_written);
-    RESULT_ENSURE_REF(msg_iov);
     RESULT_ENSURE_REF(blocked);
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE(msg_iov != NULL || msg_iovlen == 0, S2N_ERR_NULL);
 
     *blocked = S2N_BLOCKED_ON_WRITE;
     *bytes_written = 0;
@@ -270,4 +270,55 @@ S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, u
     *blocked = S2N_NOT_BLOCKED;
     *bytes_read = result;
     return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_ktls_new_iovecs_with_offset(const struct iovec *bufs,
+        size_t count, size_t offs, struct s2n_blob *mem)
+{
+    RESULT_ENSURE(bufs != NULL || count == 0, S2N_ERR_NULL);
+    RESULT_ENSURE_REF(mem);
+
+    RESULT_GUARD_POSIX(s2n_realloc(mem, sizeof(struct iovec) * count));
+    struct iovec *new_bufs = (struct iovec *) (void *) mem->data;
+    RESULT_ENSURE_REF(new_bufs);
+
+    for (size_t i = 0; i < count; i++) {
+        size_t old_len = bufs[i].iov_len;
+        if (offs < old_len) {
+            new_bufs[i].iov_base = (uint8_t *) bufs[i].iov_base + offs;
+            new_bufs[i].iov_len = old_len - offs;
+            offs = 0;
+        } else {
+            /* Zero any iovec skipped by the offset.
+             * We could change the count of the copy instead, but this is simpler. */
+            new_bufs[i].iov_base = NULL;
+            new_bufs[i].iov_len = 0;
+            offs -= old_len;
+        }
+    }
+    RESULT_ENSURE_EQ(offs, 0);
+    return S2N_RESULT_OK;
+}
+
+ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs,
+        ssize_t count_in, ssize_t offs_in, s2n_blocked_status *blocked)
+{
+    POSIX_ENSURE(count_in >= 0, S2N_ERR_INVALID_ARGUMENT);
+    size_t count = count_in;
+    POSIX_ENSURE(offs_in >= 0, S2N_ERR_INVALID_ARGUMENT);
+    size_t offs = offs_in;
+
+    DEFER_CLEANUP(struct s2n_blob new_bufs = { 0 }, s2n_free);
+    if (offs > 0) {
+        /* We can't modify the application-owned iovecs to reflect the offset.
+         * Therefore, we must alloc and modify a copy.
+         */
+        POSIX_GUARD_RESULT(s2n_ktls_new_iovecs_with_offset(bufs, count, offs, &new_bufs));
+        bufs = (const struct iovec *) (void *) new_bufs.data;
+    }
+
+    size_t bytes_written = 0;
+    POSIX_GUARD_RESULT(s2n_ktls_sendmsg(conn, TLS_APPLICATION_DATA, bufs, count,
+            blocked, &bytes_written));
+    return bytes_written;
 }
