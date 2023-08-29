@@ -68,14 +68,14 @@ fn bench_handshake_server_1rtt<T: TlsConnection>(
 pub fn bench_resumption(c: &mut Criterion) {
     // compare resumption savings across both client and server
     for sig_type in [SigType::Rsa2048, SigType::Ecdsa384] {
-        let mut bench_group = c.benchmark_group(format!("resumption-pair{:?}", sig_type));
+        let mut bench_group = c.benchmark_group(format!("resumption-pair-{:?}", sig_type));
         bench_handshake_pair::<S2NConnection>(&mut bench_group, sig_type);
     }
 
     // only look at resumption savings for the server, specifically the work
     // done in the first rtt.
     for sig_type in [SigType::Rsa2048, SigType::Ecdsa384] {
-        let mut bench_group = c.benchmark_group(format!("resumption-server-1rtt{:?}", sig_type));
+        let mut bench_group = c.benchmark_group(format!("resumption-server-1rtt-{:?}", sig_type));
         bench_handshake_server_1rtt::<S2NConnection>(&mut bench_group, sig_type);
     }
 }
