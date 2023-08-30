@@ -66,6 +66,10 @@ impl RustlsConnection {
             },
         }
     }
+
+    pub fn connection(&self) -> &Connection {
+        &self.connection
+    }
 }
 
 /// Clients and servers have different config types in Rustls, so wrap them in an enum
@@ -105,12 +109,18 @@ impl TlsConnection for RustlsConnection {
                     .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type)?);
 
                 let config = match handshake_type {
-                    HandshakeType::ServerAuth => builder.with_no_client_auth(),
+                    HandshakeType::ServerAuth | HandshakeType::Resumption => {
+                        builder.with_no_client_auth()
+                    }
                     HandshakeType::MutualAuth => builder.with_client_auth_cert(
                         Self::get_cert_chain(ClientCertChain, crypto_config.sig_type)?,
                         Self::get_key(ClientKey, crypto_config.sig_type)?,
                     )?,
                 };
+
+                if handshake_type != HandshakeType::Resumption {
+                    rustls::client::Resumption::disabled();
+                }
 
                 Ok(RustlsConfig::Client(Arc::new(config)))
             }
@@ -121,7 +131,9 @@ impl TlsConnection for RustlsConnection {
                     .with_protocol_versions(&[&TLS13])?;
 
                 let builder = match handshake_type {
-                    HandshakeType::ServerAuth => builder.with_no_client_auth(),
+                    HandshakeType::ServerAuth | HandshakeType::Resumption => {
+                        builder.with_no_client_auth()
+                    }
                     HandshakeType::MutualAuth => builder.with_client_cert_verifier(Arc::new(
                         AllowAnyAuthenticatedClient::new(Self::get_root_cert_store(
                             crypto_config.sig_type,
@@ -220,5 +232,13 @@ impl TlsConnection for RustlsConnection {
 
     fn connected_buffer(&self) -> &ConnectedBuffer {
         &self.connected_buffer
+    }
+
+    fn resumed_connection(&self) -> bool {
+        if let rustls::Connection::Server(s) = &self.connection {
+            s.received_resumption_data().is_some()
+        } else {
+            panic!("rustls connection resumption status must be check on the server side");
+        }
     }
 }
