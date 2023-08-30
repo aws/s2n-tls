@@ -19,6 +19,7 @@
 #include <openssl/x509.h>
 #include <stdint.h>
 
+#include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
 DEFINE_POINTER_CLEANUP_FUNC(X509 *, X509_free);
@@ -26,3 +27,6 @@ DEFINE_POINTER_CLEANUP_FUNC(X509 *, X509_free);
 S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain);
 
 S2N_CLEANUP_RESULT s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **time);
+
+S2N_RESULT s2n_openssl_x509_parse(struct s2n_blob *cert_asn1_der, X509 **cert, uint32_t *cert_len);
+S2N_RESULT s2n_openssl_x509_validate_length(struct s2n_blob *cert_asn1_der, uint32_t cert_len);

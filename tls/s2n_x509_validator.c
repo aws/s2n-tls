@@ -386,7 +386,7 @@ static S2N_RESULT s2n_verify_host_information(struct s2n_connection *conn, X509 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert)
+S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert)
 {
     uint32_t certificate_size = 0;
 
@@ -421,11 +421,8 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
         struct s2n_blob asn1_cert = { 0 };
         RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
-        const uint8_t *data = asn1_cert.data;
-
-        /* the cert is der encoded, just convert it. */
-        server_cert = d2i_X509(NULL, &data, asn1_cert.size);
-        RESULT_ENSURE(server_cert, S2N_ERR_CERT_INVALID);
+        uint32_t cert_len = 0;
+        RESULT_GUARD(s2n_openssl_x509_parse(&asn1_cert, &server_cert, &cert_len));
 
         /* add the cert to the chain. */
         if (!sk_X509_push(validator->cert_chain_from_wire, server_cert)) {
@@ -433,6 +430,14 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
              * s2n_x509_validator_wipe. If adding the cert fails, free it now instead. */
             X509_free(server_cert);
             RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        }
+
+        /* Ensure that the received certificate doesn't contain too many trailing bytes. This
+         * additional validation is only performed on the leaf certificate to maintain backwards
+         * compatibility.
+         */
+        if (sk_X509_num(validator->cert_chain_from_wire) == 1) {
+            RESULT_ENSURE_OK(s2n_openssl_x509_validate_length(&asn1_cert, cert_len), S2N_ERR_CERT_UNTRUSTED);
         }
 
         if (!validator->skip_cert_validation) {
@@ -551,29 +556,42 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len,
-        struct s2n_pkey *public_key, s2n_pkey_type *pkey_type, s2n_parsed_extensions_list *first_certificate_extensions)
+static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2n_connection *conn, uint8_t *cert_chain,
+        uint32_t cert_chain_len, s2n_parsed_extensions_list *leaf_certificate_extensions)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cert_chain);
+    RESULT_ENSURE_REF(leaf_certificate_extensions);
+
     struct s2n_blob cert_chain_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
-    DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = { 0 }, s2n_stuffer_free);
+    RESULT_GUARD_POSIX(s2n_blob_init(&cert_chain_blob, cert_chain, cert_chain_len));
+    struct s2n_stuffer cert_chain_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&cert_chain_stuffer, &cert_chain_blob));
 
-    RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
-    RESULT_GUARD_POSIX(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
-
+    /* Skip to certificate extensions */
     struct s2n_blob asn1_cert = { 0 };
-    RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
-
-    RESULT_ENSURE(s2n_asn1der_to_public_key_and_type(public_key, pkey_type, &asn1_cert) == 0,
-            S2N_ERR_CERT_UNTRUSTED);
+    RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_stuffer, &asn1_cert));
 
     /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
-    if (conn->actual_protocol_version >= S2N_TLS13) {
-        s2n_parsed_extensions_list parsed_extensions_list = { 0 };
-        RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
+    RESULT_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
-        *first_certificate_extensions = parsed_extensions_list;
-    }
+    RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_stuffer, leaf_certificate_extensions));
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_x509_validator_get_public_key_and_type(struct s2n_x509_validator *validator,
+        s2n_pkey_type *pkey_type, struct s2n_pkey *public_key)
+{
+    RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(pkey_type);
+    RESULT_ENSURE_REF(public_key);
+
+    RESULT_ENSURE_GT(sk_X509_num(validator->cert_chain_from_wire), 0);
+    X509 *leaf_cert = sk_X509_value(validator->cert_chain_from_wire, 0);
+    RESULT_ENSURE_REF(leaf_cert);
+
+    RESULT_GUARD(s2n_pkey_x509_to_public_key_and_type(leaf_cert, public_key, pkey_type));
 
     return S2N_RESULT_OK;
 }
@@ -602,13 +620,11 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD(s2n_x509_validator_verify_cert_chain(validator, conn));
     }
 
-    DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
-    s2n_pkey_zero_init(&public_key);
-    s2n_parsed_extensions_list first_certificate_extensions = { 0 };
-    RESULT_GUARD(s2n_x509_validator_read_leaf_info(conn, cert_chain_in, cert_chain_len, &public_key, pkey_type,
-            &first_certificate_extensions));
-
     if (conn->actual_protocol_version >= S2N_TLS13) {
+        s2n_parsed_extensions_list leaf_certificate_extensions = { 0 };
+        RESULT_GUARD(s2n_x509_validator_parse_leaf_certificate_extensions(conn, cert_chain_in, cert_chain_len,
+                &leaf_certificate_extensions));
+
         /* Only process certificate extensions received in the first certificate. Extensions received in all other
          * certificates are ignored.
          *
@@ -616,7 +632,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
          *# If an extension applies to the entire chain, it SHOULD be included in
          *# the first CertificateEntry.
          */
-        RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
+        RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &leaf_certificate_extensions));
     }
 
     if (conn->config->cert_validation_cb) {
@@ -627,10 +643,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
     }
 
-    *public_key_out = public_key;
-
-    /* Reset the old struct, so we don't clean up public_key_out */
-    s2n_pkey_zero_init(&public_key);
+    RESULT_GUARD(s2n_x509_validator_get_public_key_and_type(validator, pkey_type, public_key_out));
 
     return S2N_RESULT_OK;
 }

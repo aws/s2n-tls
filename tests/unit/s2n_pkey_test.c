@@ -17,6 +17,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert);
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -166,6 +168,54 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         }
     };
+
+    /* s2n_asn1der_to_public_key_and_type tests */
+    {
+        /* A certificate with one trailing byte is parsed successfully */
+        {
+            uint8_t cert_chain_data[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            uint32_t cert_chain_len = 0;
+            EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ONE_TRAILING_BYTE_CERT_BIN, cert_chain_data, &cert_chain_len,
+                    S2N_MAX_TEST_PEM_SIZE));
+
+            struct s2n_blob cert_chain_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_init_written(&cert_chain_stuffer, &cert_chain_blob));
+
+            struct s2n_blob cert_asn1_der = { 0 };
+            EXPECT_OK(s2n_x509_validator_read_asn1_cert(&cert_chain_stuffer, &cert_asn1_der));
+
+            DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert_asn1_der));
+        }
+
+        /* A certificate with too many trailing bytes errors */
+        {
+            uint8_t cert_chain_data[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            uint32_t cert_chain_len = 0;
+            EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_FOUR_TRAILING_BYTE_CERT_BIN, cert_chain_data, &cert_chain_len,
+                    S2N_MAX_TEST_PEM_SIZE));
+
+            struct s2n_blob cert_chain_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_init_written(&cert_chain_stuffer, &cert_chain_blob));
+
+            struct s2n_blob cert_asn1_der = { 0 };
+            EXPECT_OK(s2n_x509_validator_read_asn1_cert(&cert_chain_stuffer, &cert_asn1_der));
+
+            DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert_asn1_der),
+                    S2N_ERR_DECODE_CERTIFICATE);
+        }
+    }
 
     END_TEST();
 }

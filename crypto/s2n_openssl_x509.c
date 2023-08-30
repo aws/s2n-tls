@@ -17,6 +17,8 @@
 
 #include "api/s2n.h"
 
+#define S2N_MAX_ALLOWED_CERT_TRAILING_BYTES 3
+
 S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
 {
     RESULT_ENSURE_REF(*cert_chain);
@@ -37,5 +39,39 @@ S2N_CLEANUP_RESULT s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **tim
     RESULT_ENSURE_REF(*time_ptr);
     ASN1_STRING_free((ASN1_STRING *) *time_ptr);
     *time_ptr = NULL;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_openssl_x509_parse(struct s2n_blob *cert_asn1_der, X509 **cert, uint32_t *cert_len)
+{
+    RESULT_ENSURE_REF(cert_asn1_der);
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(cert_len);
+
+    const uint8_t *cert_data_ptr = cert_asn1_der->data;
+
+    *cert = d2i_X509(NULL, (const unsigned char **) &cert_data_ptr, cert_asn1_der->size);
+    RESULT_ENSURE(*cert, S2N_ERR_CERT_INVALID);
+
+    /* If cert parsing is successful, d2i_X509 increments *cert_data_ptr to the byte following the
+     * parsed data.
+     */
+    *cert_len = cert_data_ptr - cert_asn1_der->data;
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_openssl_x509_validate_length(struct s2n_blob *cert_asn1_der, uint32_t cert_len)
+{
+    RESULT_ENSURE_REF(cert_asn1_der);
+
+    RESULT_ENSURE_GTE(cert_asn1_der->size, cert_len);
+
+    /* Some asn1-encoded certificates contain extraneous trailing bytes. s2n-tls permits some
+     * number of trailing bytes for compatibility with these certificates.
+     */
+    uint32_t trailing_bytes = cert_asn1_der->size - cert_len;
+    RESULT_ENSURE(trailing_bytes <= S2N_MAX_ALLOWED_CERT_TRAILING_BYTES, S2N_ERR_DECODE_CERTIFICATE);
+
     return S2N_RESULT_OK;
 }
