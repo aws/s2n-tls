@@ -296,7 +296,8 @@ static S2N_RESULT s2n_ktls_new_iovecs_with_offset(const struct iovec *bufs,
             offs -= old_len;
         }
     }
-    RESULT_ENSURE_EQ(offs, 0);
+    /* The offset cannot be greater than the total size of all iovecs */
+    RESULT_ENSURE(offs == 0, S2N_ERR_INVALID_ARGUMENT);
     return S2N_RESULT_OK;
 }
 

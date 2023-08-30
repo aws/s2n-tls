@@ -760,7 +760,29 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_new_iovecs(&test_iovecs, &test_data_blob,
                     test_iov_lens, s2n_array_len(test_iov_lens)));
 
-            /* Send with all possible offsets */
+            /* Test: Send with invalid / too large offset */
+            {
+                const size_t bad_offset = sizeof(test_data) + 1;
+
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                ssize_t result = s2n_ktls_sendv_with_offset(conn,
+                        test_iovecs.iovecs, test_iovecs.iovecs_count, bad_offset, &blocked);
+                EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_INVALID_ARGUMENT);
+
+                EXPECT_EQUAL(out.sendmsg_invoked_count, 0);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_OK(s2n_test_records_in_ancillary(&out, 0));
+            }
+
+            /* Test: Send with all possible valid offsets */
             for (size_t offset = 0; offset < sizeof(test_data); offset++) {
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
