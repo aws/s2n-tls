@@ -9,20 +9,41 @@ use crate::{
     PemType::*,
 };
 use openssl::ssl::{
-    ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion,
+    ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslSession, SslSessionCacheMode, SslStream,
+    SslVerifyMode, SslVersion,
 };
 use std::{
     error::Error,
     io::{Read, Write},
+    sync::{Arc, Mutex},
 };
+
+// Creates session ticket callback handler
+#[derive(Clone, Default)]
+pub struct SessionTicketStorage {
+    stored_ticket: Arc<Mutex<Option<SslSession>>>,
+}
 
 pub struct OpenSslConnection {
     connected_buffer: ConnectedBuffer,
     connection: SslStream<ConnectedBuffer>,
 }
 
+impl Drop for OpenSslConnection {
+    fn drop(&mut self) {
+        // shutdown must be called for session resumption to work
+        // https://www.openssl.org/docs/man1.1.1/man3/SSL_set_session.html
+        self.connection.shutdown().unwrap();
+    }
+}
+
+pub struct OpenSslConfig {
+    config: SslContext,
+    session_ticket_storage: SessionTicketStorage,
+}
+
 impl TlsConnection for OpenSslConnection {
-    type Config = SslContext;
+    type Config = OpenSslConfig;
 
     fn name() -> String {
         let version_num = openssl::version::number() as u64;
@@ -59,6 +80,8 @@ impl TlsConnection for OpenSslConnection {
             Mode::Server => SslMethod::tls_server(),
         };
 
+        let session_ticket_storage = SessionTicketStorage::default();
+
         let mut builder = SslContext::builder(ssl_method)?;
         builder.set_min_proto_version(Some(SslVersion::TLS1_3))?;
         builder.set_ciphersuites(cipher_suite)?;
@@ -69,15 +92,32 @@ impl TlsConnection for OpenSslConnection {
                 builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
                 builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
 
-                if handshake_type == HandshakeType::MutualAuth {
-                    builder.set_certificate_chain_file(get_cert_path(
-                        ClientCertChain,
-                        crypto_config.sig_type,
-                    ))?;
-                    builder.set_private_key_file(
-                        get_cert_path(ClientKey, crypto_config.sig_type),
-                        SslFiletype::PEM,
-                    )?;
+                match handshake_type {
+                    HandshakeType::MutualAuth => {
+                        builder.set_certificate_chain_file(get_cert_path(
+                            ClientCertChain,
+                            crypto_config.sig_type,
+                        ))?;
+                        builder.set_private_key_file(
+                            get_cert_path(ClientKey, crypto_config.sig_type),
+                            SslFiletype::PEM,
+                        )?;
+                    }
+                    HandshakeType::Resumption => {
+                        builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
+                        // do not attempt to define the callback outside of an
+                        // expression directly passed into the function, because
+                        // the compiler's type inference doesn't work for this
+                        // scenario
+                        // https://github.com/rust-lang/rust/issues/70263
+                        builder.set_new_session_callback({
+                            let sts = session_ticket_storage.clone();
+                            move |_, ticket| {
+                                let _ = sts.stored_ticket.lock().unwrap().insert(ticket);
+                            }
+                        });
+                    }
+                    HandshakeType::ServerAuth => {}
                 }
             }
             Mode::Server => {
@@ -94,17 +134,40 @@ impl TlsConnection for OpenSslConnection {
                     builder.set_ca_file(get_cert_path(CACert, crypto_config.sig_type))?;
                     builder.set_verify(SslVerifyMode::FAIL_IF_NO_PEER_CERT | SslVerifyMode::PEER);
                 }
+                if handshake_type == HandshakeType::Resumption {
+                    builder.set_session_cache_mode(SslSessionCacheMode::CLIENT);
+                }
             }
         }
-
-        Ok(builder.build())
+        Ok(Self::Config {
+            config: builder.build(),
+            session_ticket_storage,
+        })
     }
 
     fn new_from_config(
         config: &Self::Config,
         connected_buffer: ConnectedBuffer,
     ) -> Result<Self, Box<dyn Error>> {
-        let connection = SslStream::new(Ssl::new(config)?, connected_buffer.clone())?;
+        // check if there is a session ticket available
+        // a session ticket will only be available if the Config was created
+        // with session resumption enabled
+        let maybe_ticket = config
+            .session_ticket_storage
+            .stored_ticket
+            .lock()
+            .unwrap()
+            .take();
+        if let Some(ticket) = &maybe_ticket {
+            let _result = unsafe { config.config.add_session(ticket) };
+        }
+
+        let mut connection = Ssl::new(&config.config)?;
+        if let Some(ticket) = &maybe_ticket {
+            unsafe { connection.set_session(ticket)? };
+        }
+
+        let connection = SslStream::new(connection, connected_buffer.clone())?;
         Ok(Self {
             connected_buffer,
             connection,
@@ -187,5 +250,9 @@ impl TlsConnection for OpenSslConnection {
 
     fn connected_buffer(&self) -> &ConnectedBuffer {
         &self.connected_buffer
+    }
+
+    fn resumed_connection(&self) -> bool {
+        self.connection.ssl().session_reused()
     }
 }
