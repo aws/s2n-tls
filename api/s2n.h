@@ -1864,8 +1864,8 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 
 /**
- * Works in the same way as s2n_sendv_with_offset() except that the latter's `offs` parameter is implicitly assumed to be 0. 
- * Therefore in the partial write case, the caller would have to make sure that `bufs` and `count` fields are modified in a way that takes 
+ * Works in the same way as s2n_sendv_with_offset() but with the `offs` parameter implicitly assumed to be 0.
+ * Therefore in the partial write case, the caller would have to make sure that the `bufs` and `count` fields are modified in a way that takes
  * the partial writes into account.
  *
  * @param conn A pointer to the s2n_connection object
