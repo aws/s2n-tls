@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.50-d9c9a108</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.50-ea7caff6</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -9354,7 +9354,7 @@ Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a9afeb514731fa
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Works in the same way as <a class="el" href="s2n_8h.html#a1b09f96a5f4fe3b78a08e76e7304853f">s2n_sendv_with_offset()</a> except that the latter's <code>offs</code> parameter is implicitly assumed to be 0. Therefore in the partial write case, the caller would have to make sure that <code>bufs</code> and <code>count</code> fields are modified in a way that takes the partial writes into account.</p>
+<p >Works in the same way as <a class="el" href="s2n_8h.html#a1b09f96a5f4fe3b78a08e76e7304853f">s2n_sendv_with_offset()</a> but with the <code>offs</code> parameter implicitly assumed to be 0. Therefore in the partial write case, the caller would have to make sure that the <code>bufs</code> and <code>count</code> fields are modified in a way that takes the partial writes into account.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
