@@ -43,6 +43,7 @@ static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_s
 
 ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *msg)
 {
+    errno = EINVAL;
     POSIX_ENSURE_REF(msg);
 
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
@@ -62,9 +63,8 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
 
         if (s2n_stuffer_write_bytes(data_buffer, buf, len) != S2N_SUCCESS) {
             size_t partial_len = MIN(len, s2n_stuffer_space_remaining(data_buffer));
-            if (s2n_stuffer_write_bytes(data_buffer, buf, partial_len) == S2N_SUCCESS) {
-                total_len += partial_len;
-            }
+            POSIX_GUARD(s2n_stuffer_write_bytes(data_buffer, buf, partial_len));
+            total_len += partial_len;
             if (total_len) {
                 break;
             }
@@ -89,6 +89,7 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
  * are of the same type. */
 ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
 {
+    errno = EINVAL;
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
