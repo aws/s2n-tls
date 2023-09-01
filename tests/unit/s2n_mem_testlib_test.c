@@ -97,11 +97,12 @@ int main()
 
         const size_t requested[] = { 10, 1, 17, 17, 111 };
         const size_t count = s2n_array_len(requested);
+        struct s2n_blob mem = { 0 };
         for (size_t i = 0; i < count; i++) {
-            DEFER_CLEANUP(struct s2n_blob mem = { 0 }, s2n_free);
             EXPECT_SUCCESS(s2n_alloc(&mem, requested[i]));
             EXPECT_NOT_NULL(mem.data);
             EXPECT_EQUAL(mem.size, requested[i]);
+            EXPECT_SUCCESS(s2n_free(&mem));
         }
 
         /* Test: s2n_mem_test_assert_malloc_count */
