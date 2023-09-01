@@ -32,9 +32,6 @@ S2N_RESULT s2n_mem_test_init_callbacks(void *ctx);
 S2N_CLEANUP_RESULT s2n_mem_test_free_callbacks(void *ctx);
 S2N_RESULT s2n_mem_test_wipe_callbacks();
 
-S2N_RESULT s2n_mem_test_get_malloc_count(uint32_t *count);
-S2N_RESULT s2n_mem_test_get_malloc(uint32_t idx, struct s2n_mem_test_malloc *info);
-
 S2N_RESULT s2n_mem_test_assert_malloc_count(uint32_t count);
 S2N_RESULT s2n_mem_test_assert_malloc(uint32_t requested);
 S2N_RESULT s2n_mem_test_assert_all_freed();

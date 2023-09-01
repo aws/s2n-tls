@@ -21,12 +21,6 @@ int main()
 {
     BEGIN_TEST();
 
-    /* Test: Safety */
-    {
-        EXPECT_ERROR_WITH_ERRNO(s2n_mem_test_get_malloc_count(NULL), S2N_ERR_NULL);
-        EXPECT_ERROR_WITH_ERRNO(s2n_mem_test_get_malloc(0, NULL), S2N_ERR_NULL);
-    }
-
     /* Test: No mallocs */
     for (size_t init = 0; init < 2; init++) {
         /* The getters and asserts should behave the same whether the callbacks
@@ -37,20 +31,6 @@ int main()
                     s2n_mem_test_free_callbacks);
             EXPECT_OK(s2n_mem_test_init_callbacks(&scope));
         }
-
-        /* Test: s2n_mem_test_get_malloc_count */
-        {
-            uint32_t count = 1;
-            EXPECT_OK(s2n_mem_test_get_malloc_count(&count));
-            EXPECT_EQUAL(count, 0);
-        };
-
-        /* Test: s2n_mem_test_get_malloc */
-        {
-            struct s2n_mem_test_malloc malloc = { 0 };
-            EXPECT_ERROR_WITH_ERRNO(s2n_mem_test_get_malloc(0, &malloc),
-                    S2N_ERR_STUFFER_OUT_OF_DATA);
-        };
 
         /* Test: s2n_mem_test_assert_malloc_count */
         {
@@ -82,24 +62,6 @@ int main()
         EXPECT_SUCCESS(s2n_alloc(&mem, requested));
         EXPECT_NOT_NULL(mem.data);
         EXPECT_EQUAL(mem.size, requested);
-
-        /* Test: s2n_mem_test_get_malloc_count */
-        {
-            uint32_t count = 0;
-            EXPECT_OK(s2n_mem_test_get_malloc_count(&count));
-            EXPECT_EQUAL(count, 1);
-        };
-
-        /* Test: s2n_mem_test_get_malloc */
-        {
-            struct s2n_mem_test_malloc malloc = { 0 };
-            EXPECT_OK(s2n_mem_test_get_malloc(0, &malloc));
-            EXPECT_EQUAL(malloc.requested, requested);
-            EXPECT_FALSE(malloc.freed);
-
-            EXPECT_ERROR_WITH_ERRNO(s2n_mem_test_get_malloc(1, &malloc),
-                    S2N_ERR_STUFFER_OUT_OF_DATA);
-        };
 
         /* Test: s2n_mem_test_assert_malloc_count */
         {
@@ -141,25 +103,6 @@ int main()
             EXPECT_NOT_NULL(mem.data);
             EXPECT_EQUAL(mem.size, requested[i]);
         }
-
-        /* Test: s2n_mem_test_get_malloc_count */
-        {
-            uint32_t actual_count = 0;
-            EXPECT_OK(s2n_mem_test_get_malloc_count(&actual_count));
-            EXPECT_EQUAL(count, actual_count);
-        };
-
-        /* Test: s2n_mem_test_get_malloc */
-        {
-            struct s2n_mem_test_malloc malloc = { 0 };
-            for (size_t i = 0; i < count; i++) {
-                EXPECT_OK(s2n_mem_test_get_malloc(i, &malloc));
-                EXPECT_EQUAL(malloc.requested, requested[i]);
-                EXPECT_TRUE(malloc.freed);
-            }
-            EXPECT_ERROR_WITH_ERRNO(s2n_mem_test_get_malloc(count, &malloc),
-                    S2N_ERR_STUFFER_OUT_OF_DATA);
-        };
 
         /* Test: s2n_mem_test_assert_malloc_count */
         {
@@ -206,7 +149,7 @@ int main()
 
         EXPECT_OK(s2n_mem_test_wipe_callbacks());
         EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
-    }
+    };
 
     /* Test: s2n_mem_test_init_callbacks */
     {
@@ -222,7 +165,7 @@ int main()
             EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
         }
         EXPECT_OK(s2n_mem_test_free_callbacks(NULL));
-    }
+    };
 
     /* Test: s2n_mem_test_free_callbacks */
     {
@@ -249,7 +192,7 @@ int main()
             EXPECT_NOT_NULL(mem2.data);
             EXPECT_OK(s2n_mem_test_assert_malloc_count(0));
         }
-    }
+    };
 
     END_TEST();
 }

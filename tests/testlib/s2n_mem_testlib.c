@@ -112,7 +112,7 @@ S2N_RESULT s2n_mem_test_wipe_callbacks()
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_mem_test_get_malloc_count(uint32_t *count)
+static S2N_RESULT s2n_mem_test_get_malloc_count(uint32_t *count)
 {
     RESULT_ENSURE_REF(count);
     size_t size = s2n_stuffer_data_available(&s2n_mem_test_ctx.mallocs);
@@ -122,7 +122,7 @@ S2N_RESULT s2n_mem_test_get_malloc_count(uint32_t *count)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_mem_test_get_malloc(uint32_t idx, struct s2n_mem_test_malloc *info)
+static S2N_RESULT s2n_mem_test_get_malloc(uint32_t idx, struct s2n_mem_test_malloc *info)
 {
     RESULT_ENSURE_REF(info);
     struct s2n_stuffer read_copy = s2n_mem_test_ctx.mallocs;
