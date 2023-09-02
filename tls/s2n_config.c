@@ -751,7 +751,7 @@ int s2n_config_set_extension_data(struct s2n_config *config, s2n_tls_extension_t
     POSIX_ENSURE(config->cert_ownership == S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     switch (type) {
-        case S2N_EXTENSION_CERTIFICATE_TRANSPARENCY:
+        case S2N_EXTENSION_SCT_LIST:
             POSIX_GUARD(s2n_cert_chain_and_key_set_sct_list(config_chain_and_key, data, length));
             break;
         case S2N_EXTENSION_OCSP_STAPLING:

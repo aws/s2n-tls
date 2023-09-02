@@ -1126,9 +1126,9 @@ int main(int argc, char **argv)
         ext_data = NULL;
 
         /* Verify get extension and it's length calls for a non-existing extension type */
-        EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), 0);
+        EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_SCT_LIST), 0);
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
-        EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
+        EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_SCT_LIST, ext_data, server_name_extension_len), 0);
         EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
         free(ext_data);
         ext_data = NULL;
@@ -1140,7 +1140,7 @@ int main(int argc, char **argv)
 
         /* Verify expected result for non-existing extension */
         extension_exists = false;
-        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &extension_exists));
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_SCT_LIST, &extension_exists));
         EXPECT_FALSE(extension_exists);
 
         /* Verify s2n_client_hello_get_session_id is what we received in ClientHello */
