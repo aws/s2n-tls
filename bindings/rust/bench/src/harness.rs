@@ -84,13 +84,15 @@ pub enum HandshakeType {
     #[default]
     ServerAuth,
     MutualAuth,
+    Resumption,
 }
 
 impl Debug for HandshakeType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            HandshakeType::ServerAuth => write!(f, "no-mTLS"),
+            HandshakeType::ServerAuth => write!(f, "server-auth"),
             HandshakeType::MutualAuth => write!(f, "mTLS"),
+            HandshakeType::Resumption => write!(f, "resumption"),
         }
     }
 }
@@ -190,6 +192,10 @@ pub trait TlsConnection: Sized {
 
     fn negotiated_tls13(&self) -> bool;
 
+    /// Describes whether a connection was resumed. This method is only valid on
+    /// server connections because of rustls API limitations.
+    fn resumed_connection(&self) -> bool;
+
     /// Send application data to ConnectedBuffer
     fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
 
@@ -243,6 +249,34 @@ impl<C: TlsConnection, S: TlsConnection> TlsConnPair<C, S> {
         handshake_type: HandshakeType,
         connected_buffer: ConnectedBuffer,
     ) -> Result<Self, Box<dyn Error>> {
+        // do an initial handshake to generate the session ticket
+        if handshake_type == HandshakeType::Resumption {
+            let server_config = S::make_config(Mode::Server, crypto_config, handshake_type)?;
+            let client_config = C::make_config(Mode::Client, crypto_config, handshake_type)?;
+
+            // handshake the client and server connections. This will result in
+            // session ticket getting stored in client_config
+            let buffer = ConnectedBuffer::default();
+            let client = C::new_from_config(&client_config, buffer.clone_inverse())?;
+            let server = S::new_from_config(&server_config, buffer)?;
+            let mut pair = TlsConnPair { client, server };
+            pair.handshake()?;
+            // NewSessionTicket messages are part of the application data and sent
+            // after the handshake is complete, so we must trigger an additional
+            // "read" on the client connection to ensure that the session ticket
+            // gets received and stored in the config
+            pair.round_trip_transfer(&mut [0]).unwrap();
+
+            // new_from_config will check if a session ticket is available,
+            // and set it on the connection. This results in the session ticket
+            // in client_config (from the previous handshake) getting set on
+            // the client connection.
+            let client = C::new_from_config(&client_config, connected_buffer.clone_inverse())?;
+            let server = S::new_from_config(&server_config, connected_buffer)?;
+
+            return Ok(Self { client, server });
+        }
+
         Ok(Self {
             client: C::new(
                 Mode::Client,
@@ -421,15 +455,12 @@ mod tests {
     }
 
     fn test_type<C: TlsConnection, S: TlsConnection>() {
-        eprintln!("{} client --- {} server", C::name(), S::name());
-        eprintln!("testing handshake...");
-        test_handshake_configs::<C, S>();
-        eprintln!("testing transfer...");
-        test_transfer::<C, S>();
-        eprintln!();
+        println!("{} client --- {} server", C::name(), S::name());
+        handshake_configs::<C, S>();
+        transfer::<C, S>();
     }
 
-    fn test_handshake_configs<C: TlsConnection, S: TlsConnection>() {
+    fn handshake_configs<C: TlsConnection, S: TlsConnection>() {
         for handshake_type in HandshakeType::iter() {
             for cipher_suite in CipherSuite::iter() {
                 for kx_group in KXGroup::iter() {
@@ -454,7 +485,41 @@ mod tests {
         }
     }
 
-    fn test_transfer<C: TlsConnection, S: TlsConnection>() {
+    fn session_resumption<C: TlsConnection, S: TlsConnection>() {
+        println!("testing with client:{} server:{}", C::name(), S::name());
+        let mut conn_pair = TlsConnPair::<C, S>::new(
+            CryptoConfig::default(),
+            HandshakeType::Resumption,
+            ConnectedBuffer::default(),
+        )
+        .unwrap();
+        conn_pair.handshake().unwrap();
+        let (_, server) = conn_pair.split();
+        assert!(server.resumed_connection());
+    }
+
+    #[test]
+    fn session_resumption_interop() {
+        env_logger::builder()
+            .filter_level(log::LevelFilter::Debug)
+            .is_test(true)
+            .try_init()
+            .unwrap();
+        session_resumption::<S2NConnection, S2NConnection>();
+        // https://github.com/aws/s2n-tls/issues/4124
+        // session_resumption::<S2NConnection, RustlsConnection>();
+        session_resumption::<S2NConnection, OpenSslConnection>();
+
+        session_resumption::<RustlsConnection, RustlsConnection>();
+        session_resumption::<RustlsConnection, S2NConnection>();
+        session_resumption::<RustlsConnection, OpenSslConnection>();
+
+        session_resumption::<OpenSslConnection, OpenSslConnection>();
+        session_resumption::<OpenSslConnection, S2NConnection>();
+        session_resumption::<OpenSslConnection, RustlsConnection>();
+    }
+
+    fn transfer<C: TlsConnection, S: TlsConnection>() {
         // use a large buffer to test across TLS record boundaries
         let mut buf = [0x56u8; 1000000];
         for cipher_suite in CipherSuite::iter() {

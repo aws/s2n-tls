@@ -6,8 +6,8 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    ConnectedBuffer, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
-    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, S2NConnection,
+    SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -37,8 +37,8 @@ fn bench_handshake_for_library<T: TlsConnection>(
                 {
                     let connected_buffer = ConnectedBuffer::default();
                     let client =
-                        T::new_from_config(&client_config, connected_buffer.clone_inverse())?;
-                    let server = T::new_from_config(&server_config, connected_buffer)?;
+                        T::new_from_config(client_config, connected_buffer.clone_inverse())?;
+                    let server = T::new_from_config(server_config, connected_buffer)?;
                     Ok(TlsConnPair::wrap(client, server))
                 } else {
                     Err("invalid configs".into())
