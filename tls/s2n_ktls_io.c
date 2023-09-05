@@ -322,3 +322,52 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
             bufs, count, blocked, &bytes_written));
     return bytes_written;
 }
+
+int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    /* For now, all control records are assumed to be alerts.
+     * We can set the record_type on the io_context in the future.
+     */
+    const uint8_t record_type = TLS_ALERT;
+
+    const struct iovec iov = {
+        .iov_base = (void *) (uintptr_t) buf,
+        .iov_len = len,
+    };
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    size_t bytes_written = 0;
+
+    s2n_result result = s2n_ktls_sendmsg(io_context, record_type, &iov, 1,
+            &blocked, &bytes_written);
+
+    POSIX_GUARD_RESULT(result);
+    POSIX_ENSURE_LTE(bytes_written, len);
+    return bytes_written;
+}
+
+int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
+        const struct iovec *in, int in_count, size_t offs, size_t to_write)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(in_count > 0, S2N_ERR_INVALID_ARGUMENT);
+    size_t count = in_count;
+    POSIX_ENSURE_REF(in);
+
+    /* Currently, ktls only supports sending alerts.
+     * To also support handshake messages, we would need a way to track record_type.
+     * We could add a field to the send io context.
+     */
+    POSIX_ENSURE(content_type == TLS_ALERT, S2N_ERR_UNIMPLEMENTED);
+
+    /* When stuffers automatically resize, they allocate a potentially large
+     * chunk of memory to avoid repeated resizes.
+     * Since ktls only uses conn->out for control messages (alerts and eventually
+     * handshake messages), we expect infrequent small writes with conn->out
+     * freed in between. Since we're therefore more concerned with the size of
+     * the allocation than the frequency, use a more accurate size for each write.
+     */
+    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->out, to_write));
+
+    POSIX_GUARD(s2n_stuffer_writev_bytes(&conn->out, in, count, offs, to_write));
+    return to_write;
+}

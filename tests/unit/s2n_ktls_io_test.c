@@ -877,5 +877,106 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: s2n_ktls_send_cb */
+    {
+        /* It's safe to reuse a connection across tests because the connection
+         * isn't actually used by s2n_ktls_send_cb. It's just required for test
+         * setup methods.
+         */
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        /* Safety */
+        {
+            struct s2n_test_ktls_io_stuffer ctx = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(NULL, test_data, 1), S2N_ERR_IO);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, NULL, 1), S2N_ERR_IO);
+        };
+
+        /* Test: Basic write succeeds */
+        {
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer ctx = { 0 },
+                    s2n_ktls_io_stuffer_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &ctx));
+
+            EXPECT_SUCCESS(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)));
+            EXPECT_EQUAL(ctx.sendmsg_invoked_count, 1);
+            EXPECT_OK(s2n_test_validate_ancillary(&ctx, TLS_ALERT, sizeof(test_data)));
+            EXPECT_OK(s2n_test_validate_data(&ctx, test_data, sizeof(test_data)));
+        };
+
+        /* Test: Errors passed on to caller */
+        {
+            struct s2n_test_ktls_io_fail_ctx ctx = { 0 };
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_fail, &ctx));
+
+            ctx.errno_code = 1;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO);
+
+            ctx.errno_code = EINVAL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO);
+
+            ctx.errno_code = EAGAIN;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO_BLOCKED);
+
+            ctx.errno_code = EWOULDBLOCK;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO_BLOCKED);
+        };
+    };
+
+    /* Test: s2n_ktls_record_writev */
+    {
+        const size_t to_write = 10;
+
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            struct iovec iov = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_record_writev(NULL, 0, &iov, 1, 1, 1),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_record_writev(conn, 0, NULL, 1, 1, 1),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_record_writev(conn, 0, &iov, -1, 1, 1),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: Basic write succeeds */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            struct iovec iov = {
+                .iov_base = test_data,
+                .iov_len = sizeof(test_data),
+            };
+            EXPECT_EQUAL(s2n_ktls_record_writev(conn, TLS_ALERT, &iov, 1, 0, to_write), to_write);
+            EXPECT_EQUAL(conn->out.blob.allocated, to_write);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), to_write);
+            uint8_t *in_out = s2n_stuffer_raw_read(&conn->out, to_write);
+            EXPECT_BYTEARRAY_EQUAL(in_out, test_data, to_write);
+        };
+
+        /* Test: Only alerts currently supported */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            struct iovec iov = {
+                .iov_base = test_data,
+                .iov_len = sizeof(test_data),
+            };
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_record_writev(conn, TLS_HANDSHAKE, &iov, 1, 0, to_write),
+                    S2N_ERR_UNIMPLEMENTED);
+        };
+    };
+
     END_TEST();
 }
