@@ -129,7 +129,6 @@ int main()
         /* Test: s2n_mem_test_assert_all_freed */
         {
             EXPECT_OK(s2n_mem_test_assert_all_freed());
-            struct s2n_blob mem = { 0 };
             EXPECT_SUCCESS(s2n_alloc(&mem, 1));
             EXPECT_ERROR_WITH_ERRNO(s2n_mem_test_assert_all_freed(), S2N_ERR_TEST_ASSERTION);
             EXPECT_SUCCESS(s2n_free(&mem));
