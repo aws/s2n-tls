@@ -118,7 +118,7 @@ bool s2n_libcrypto_is_awslc()
 #endif
 }
 
-static uint64_t s2n_libcrypto_awslc_api_version(void)
+uint64_t s2n_libcrypto_awslc_api_version(void)
 {
 #if defined(OPENSSL_IS_AWSLC)
     return AWSLC_API_VERSION;

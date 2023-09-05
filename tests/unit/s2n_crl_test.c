@@ -573,7 +573,7 @@ int main(int argc, char *argv[])
     };
 
     /* CRL validation succeeds for a CRL with an invalid nextUpdate date */
-    {
+    for (int disable_time_validation = 0; disable_time_validation <= 1; disable_time_validation += 1) {
         DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
         s2n_x509_trust_store_init_empty(&trust_store);
 
@@ -591,6 +591,15 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
+
+        /* Enabling CRL validation and disabling certificate validity period validation can both
+         * set an X509_STORE verify callback. Ensure that the CRL verify callback functionality
+         * remains, and a CRL with an invalid nextUpdate field passes validation after validity
+         * period validation is disabled.
+         */
+        if (disable_time_validation) {
+            EXPECT_SUCCESS(s2n_config_disable_x509_validity_period_validation(config));
+        }
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(connection);
