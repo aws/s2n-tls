@@ -337,10 +337,9 @@ int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
     s2n_blocked_status blocked = S2N_NOT_BLOCKED;
     size_t bytes_written = 0;
 
-    s2n_result result = s2n_ktls_sendmsg(io_context, record_type, &iov, 1,
-            &blocked, &bytes_written);
+    POSIX_GUARD_RESULT(s2n_ktls_sendmsg(io_context, record_type, &iov, 1,
+            &blocked, &bytes_written));
 
-    POSIX_GUARD_RESULT(result);
     POSIX_ENSURE_LTE(bytes_written, len);
     return bytes_written;
 }
