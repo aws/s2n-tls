@@ -962,23 +962,19 @@ int main(int argc, char **argv)
         }
     }
 
-    /* s2n_config_validate_x509_time tests */
+    /* s2n_config_disable_x509_time_validation tests */
     {
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_validate_x509_time(NULL, true), S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_validate_x509_time(NULL, false), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_disable_x509_time_validation(NULL), S2N_ERR_NULL);
 
-        /* Ensure s2n_config_validate_x509_time sets the proper state */
+        /* Ensure s2n_config_disable_x509_time_validation sets the proper state */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_EQUAL(config->disable_x509_time_validation, false);
 
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, false));
+            EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
             EXPECT_EQUAL(config->disable_x509_time_validation, true);
-
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, true));
-            EXPECT_EQUAL(config->disable_x509_time_validation, false);
         }
     }
 

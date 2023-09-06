@@ -47,14 +47,14 @@ int main(int argc, char *argv[])
         struct {
             const char *cert_pem_path;
             const char *key_pem_path;
-            bool validate_x509_time;
+            bool disable_x509_time_validation;
             s2n_error expected_error;
         } test_cases[] = {
             /* Validation should fail for a certificate that is not yet valid. */
             {
                 .cert_pem_path = S2N_NOT_YET_VALID_CERT_CHAIN,
                 .key_pem_path = S2N_NOT_YET_VALID_KEY,
-                .validate_x509_time = true,
+                .disable_x509_time_validation = false,
                 .expected_error = S2N_ERR_CERT_NOT_YET_VALID,
             },
 
@@ -64,7 +64,7 @@ int main(int argc, char *argv[])
             {
                 .cert_pem_path = S2N_NOT_YET_VALID_CERT_CHAIN,
                 .key_pem_path = S2N_NOT_YET_VALID_KEY,
-                .validate_x509_time = false,
+                .disable_x509_time_validation = true,
                 .expected_error = S2N_ERR_OK,
             },
 
@@ -72,7 +72,7 @@ int main(int argc, char *argv[])
             {
                 .cert_pem_path = S2N_EXPIRED_CERT_CHAIN,
                 .key_pem_path = S2N_EXPIRED_KEY,
-                .validate_x509_time = true,
+                .disable_x509_time_validation = false,
                 .expected_error = S2N_ERR_CERT_EXPIRED,
             },
 
@@ -82,7 +82,7 @@ int main(int argc, char *argv[])
             {
                 .cert_pem_path = S2N_EXPIRED_CERT_CHAIN,
                 .key_pem_path = S2N_EXPIRED_KEY,
-                .validate_x509_time = false,
+                .disable_x509_time_validation = true,
                 .expected_error = S2N_ERR_OK,
             },
         };
@@ -103,7 +103,10 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, test_cases[i].validate_x509_time));
+
+            if (test_cases[i].disable_x509_time_validation) {
+                EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
+            }
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
@@ -142,7 +145,10 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_pem_path, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, test_cases[i].validate_x509_time));
+
+            if (test_cases[i].disable_x509_time_validation) {
+                EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
+            }
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -181,7 +187,10 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, test_cases[i].cert_pem_path, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(server_config, test_cases[i].validate_x509_time));
+
+            if (test_cases[i].disable_x509_time_validation) {
+                EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(server_config));
+            }
 
             /* Disable verify host validation for client auth */
             EXPECT_SUCCESS(s2n_config_set_verify_host_callback(server_config, s2n_verify_host_accept_everything, NULL));
@@ -242,7 +251,7 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-        EXPECT_SUCCESS(s2n_config_validate_x509_time(config, false));
+        EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);

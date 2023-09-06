@@ -596,7 +596,7 @@ int main(int argc, char *argv[])
          * validation is disabled.
          */
         if (disable_time_validation) {
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, false));
+            EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
         }
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);

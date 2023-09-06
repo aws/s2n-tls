@@ -975,7 +975,7 @@ S2N_API extern int s2n_config_set_verify_host_callback(struct s2n_config *config
 S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
 
 /**
- * Specifies whether to validate timestamp fields on received certificates.
+ * Disables timestamp validation for received certificates.
  *
  * By default, s2n-tls checks the notBefore and notAfter fields on the certificates it receives
  * during the handshake. If the current date is not within the range of these fields for any
@@ -994,10 +994,9 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  * some external method for limiting certificate lifetime.
  *
  * @param config The associated connection config.
- * @param validate Set to true to enable x509 time validation, set to false to disable. Defaults to true.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_config_validate_x509_time(struct s2n_config *config, bool validate);
+S2N_API extern int s2n_config_disable_x509_time_validation(struct s2n_config *config);
 
 /**
  * Turns off all X.509 validation during the negotiation phase of the connection. This should only
