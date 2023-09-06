@@ -24,6 +24,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
 #include "utils/s2n_blob.h"
@@ -113,6 +114,10 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
 
     POSIX_ENSURE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE), S2N_ERR_CLOSED);
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+
+    if (conn->ktls_send_enabled) {
+        return s2n_ktls_sendv_with_offset(conn, bufs, count, offs, blocked);
+    }
 
     /* Flush any pending I/O */
     POSIX_GUARD(s2n_flush(conn, blocked));

@@ -274,7 +274,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, blocked_invoked_count + 1);
         };
 
-        /* Attempt partial write with iov_len > 1 and expect error */
+        /* Partial write with iov_len > 1 */
         {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -294,16 +294,17 @@ int main(int argc, char **argv)
                 send_msg_iov[i].iov_len = S2N_TEST_TO_SEND;
                 test_data_ptr += S2N_TEST_TO_SEND;
             }
+
             struct msghdr send_msg = { .msg_iov = send_msg_iov, .msg_iovlen = S2N_TEST_MSG_IOVLEN };
             char control_buf[S2N_CONTROL_BUF_SIZE] = { 0 };
             EXPECT_OK(s2n_ktls_set_control_data(&send_msg, control_buf, sizeof(control_buf),
                     S2N_TLS_SET_RECORD_TYPE, test_record_type));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_test_ktls_sendmsg_io_stuffer(server->send_io_context, &send_msg),
-                    S2N_ERR_SAFETY);
-            /* validate no record were sent  */
-            EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.client_in.ancillary_buffer), 0);
+            EXPECT_EQUAL(s2n_test_ktls_sendmsg_io_stuffer(server->send_io_context, &send_msg),
+                    S2N_TEST_TO_SEND);
 
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, test_record_type, S2N_TEST_TO_SEND));
+            EXPECT_OK(s2n_test_validate_data(&io_pair.client_in, test_data, S2N_TEST_TO_SEND));
         };
     };
 
