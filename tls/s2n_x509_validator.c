@@ -534,13 +534,16 @@ static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connecti
     RESULT_ENSURE_REF(validator);
     RESULT_ENSURE_REF(validator->store_ctx);
 
-    /* Setting an X509_STORE verify callback is not recommended in AWS-LC:
+    /* Setting an X509_STORE verify callback is not recommended with AWS-LC:
      * https://github.com/aws/aws-lc/blob/aa90e509f2e940916fbe9fdd469a4c90c51824f6/include/openssl/x509.h#L2980-L2990
      *
-     * If the libcrypto supports the ability to disable validity period validation with an
-     * X509_VERIFY_PARAM NO_CHECK_TIME flag, this method is preferred. However, older versions of
-     * AWS-LC and OpenSSL 1.0.2 do not support this flag. In this case, an X509_STORE verify
-     * callback is used instead.
+     * If the libcrypto supports the ability to disable time validation with an X509_VERIFY_PARAM
+     * NO_CHECK_TIME flag, this method is preferred.
+     *
+     * However, older versions of AWS-LC and OpenSSL 1.0.2 do not support this flag. In this case,
+     * an X509_STORE verify callback is used. This is acceptable in older versions of AWS-LC
+     * because the versions are fixed, and updates to AWS-LC will not break the callback
+     * implementation.
      */
     if (s2n_libcrypto_supports_flag_no_check_time()) {
         RESULT_GUARD(s2n_x509_validator_set_no_check_time_flag(validator));
