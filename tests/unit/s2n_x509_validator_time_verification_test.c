@@ -105,7 +105,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
             if (test_cases[i].disable_x509_time_validation) {
-                EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
+                EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
             }
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -147,7 +147,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
             if (test_cases[i].disable_x509_time_validation) {
-                EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
+                EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
             }
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
             if (test_cases[i].disable_x509_time_validation) {
-                EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(server_config));
+                EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(server_config));
             }
 
             /* Disable verify host validation for client auth */
@@ -251,7 +251,7 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-        EXPECT_SUCCESS(s2n_config_disable_x509_time_validation(config));
+        EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);

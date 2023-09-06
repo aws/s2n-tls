@@ -451,7 +451,7 @@ int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_
     return 0;
 }
 
-int s2n_config_disable_x509_time_validation(struct s2n_config *config)
+int s2n_config_disable_x509_time_verification(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
     config->disable_x509_time_validation = true;

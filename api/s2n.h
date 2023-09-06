@@ -996,7 +996,7 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  * @param config The associated connection config.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_config_disable_x509_time_validation(struct s2n_config *config);
+S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *config);
 
 /**
  * Turns off all X.509 validation during the negotiation phase of the connection. This should only
