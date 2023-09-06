@@ -95,6 +95,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
+    config->validate_x509_time = true;
 
     /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
      * authenticate any client certificates. */
@@ -451,10 +452,10 @@ int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_
     return 0;
 }
 
-int s2n_config_disable_x509_validity_period_validation(struct s2n_config *config)
+int s2n_config_validate_x509_time(struct s2n_config *config, bool validate)
 {
     POSIX_ENSURE_REF(config);
-    config->disable_x509_validity_period_validation = true;
+    config->validate_x509_time = validate;
     return S2N_SUCCESS;
 }
 

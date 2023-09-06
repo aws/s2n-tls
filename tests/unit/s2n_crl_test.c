@@ -592,11 +592,11 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
-        /* Ensure that validation succeeds for a CRL with an invalid nextUpdate field after time
+        /* Ensure that validation succeeds for a CRL with an invalid nextUpdate field when time
          * validation is disabled.
          */
         if (disable_time_validation) {
-            EXPECT_SUCCESS(s2n_config_disable_x509_validity_period_validation(config));
+            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, false));
         }
 
         DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);

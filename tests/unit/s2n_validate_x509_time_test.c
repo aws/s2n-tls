@@ -28,20 +28,23 @@ int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
-    /* s2n_config_disable_x509_validity_period_validation tests */
+    /* s2n_config_validate_x509_time tests */
     {
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_disable_x509_validity_period_validation(NULL), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_validate_x509_time(NULL, true), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_validate_x509_time(NULL, false), S2N_ERR_NULL);
 
-        /* s2n_config_disable_x509_validity_period_validation sets the proper state */
+        /* Ensure s2n_config_validate_x509_time sets the proper state */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_EQUAL(config->disable_x509_validity_period_validation, false);
+            EXPECT_EQUAL(config->validate_x509_time, true);
 
-            EXPECT_SUCCESS(s2n_config_disable_x509_validity_period_validation(config));
+            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, false));
+            EXPECT_EQUAL(config->validate_x509_time, false);
 
-            EXPECT_EQUAL(config->disable_x509_validity_period_validation, true);
+            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, true));
+            EXPECT_EQUAL(config->validate_x509_time, true);
         }
     }
 
@@ -50,38 +53,38 @@ int main(int argc, char *argv[])
         EXPECT_TRUE(s2n_libcrypto_supports_flag_no_check_time());
     }
 
-    /* Test disabling validity period validation
+    /* Test disabling x509 time validation.
      *
      * By default, validation should fail for certificates with invalid timestamps. However, if
-     * validity period validation is disabled, validation should succeed.
+     * x509 time validation is disabled, validation should succeed.
      *
-     * When validity period validation is disabled, s2n_config_set_wall_clock() will not set a
-     * custom time on the libcrypto, so this function cannot be used to set a fake time for
-     * testing. Instead, the test certificates themselves contain invalid timestamps.
+     * When time validation is disabled, s2n_config_set_wall_clock() will not set a custom time on
+     * the libcrypto, so this function cannot be used to set a fake time for testing. Instead, the
+     * test certificates themselves contain invalid timestamps.
      */
     {
         /* clang-format off */
         struct {
             const char *cert_pem_path;
             const char *key_pem_path;
-            bool disable_validity_period_validation;
+            bool validate_x509_time;
             s2n_error expected_error;
         } test_cases[] = {
             /* Validation should fail for a certificate that is not yet valid. */
             {
                 .cert_pem_path = S2N_NOT_YET_VALID_CERT_CHAIN,
                 .key_pem_path = S2N_NOT_YET_VALID_KEY,
-                .disable_validity_period_validation = false,
+                .validate_x509_time = true,
                 .expected_error = S2N_ERR_CERT_NOT_YET_VALID,
             },
 
-            /* Validation should succeed for a certificate that is not yet valid when validity
-             * period validation is disabled.
+            /* Validation should succeed for a certificate that is not yet valid when time
+             * validation is disabled.
              */
             {
                 .cert_pem_path = S2N_NOT_YET_VALID_CERT_CHAIN,
                 .key_pem_path = S2N_NOT_YET_VALID_KEY,
-                .disable_validity_period_validation = true,
+                .validate_x509_time = false,
                 .expected_error = S2N_ERR_OK,
             },
 
@@ -89,17 +92,17 @@ int main(int argc, char *argv[])
             {
                 .cert_pem_path = S2N_EXPIRED_CERT_CHAIN,
                 .key_pem_path = S2N_EXPIRED_KEY,
-                .disable_validity_period_validation = false,
+                .validate_x509_time = true,
                 .expected_error = S2N_ERR_CERT_EXPIRED,
             },
 
-            /* Validation should succeed for an expired certificate when validity period validation
-             * is disabled.
+            /* Validation should succeed for an expired certificate when time validation is
+             * disabled.
              */
             {
                 .cert_pem_path = S2N_EXPIRED_CERT_CHAIN,
                 .key_pem_path = S2N_EXPIRED_KEY,
-                .disable_validity_period_validation = true,
+                .validate_x509_time = false,
                 .expected_error = S2N_ERR_OK,
             },
         };
@@ -120,10 +123,7 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-
-            if (test_cases[i].disable_validity_period_validation) {
-                EXPECT_SUCCESS(s2n_config_disable_x509_validity_period_validation(config));
-            }
+            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, test_cases[i].validate_x509_time));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
@@ -162,10 +162,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_pem_path, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-
-            if (test_cases[i].disable_validity_period_validation) {
-                EXPECT_SUCCESS(s2n_config_disable_x509_validity_period_validation(config));
-            }
+            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, test_cases[i].validate_x509_time));
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
@@ -204,13 +201,10 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, test_cases[i].cert_pem_path, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+            EXPECT_SUCCESS(s2n_config_validate_x509_time(server_config, test_cases[i].validate_x509_time));
 
             /* Disable verify host validation for client auth */
             EXPECT_SUCCESS(s2n_config_set_verify_host_callback(server_config, s2n_verify_host_accept_everything, NULL));
-
-            if (test_cases[i].disable_validity_period_validation) {
-                EXPECT_SUCCESS(s2n_config_disable_x509_validity_period_validation(server_config));
-            }
 
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
