@@ -28,26 +28,6 @@ int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
-    /* s2n_config_validate_x509_time tests */
-    {
-        /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_validate_x509_time(NULL, true), S2N_ERR_NULL);
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_validate_x509_time(NULL, false), S2N_ERR_NULL);
-
-        /* Ensure s2n_config_validate_x509_time sets the proper state */
-        {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
-            EXPECT_EQUAL(config->validate_x509_time, true);
-
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, false));
-            EXPECT_EQUAL(config->validate_x509_time, false);
-
-            EXPECT_SUCCESS(s2n_config_validate_x509_time(config, true));
-            EXPECT_EQUAL(config->validate_x509_time, true);
-        }
-    }
-
     /* Test the NO_CHECK_TIME flag feature probe. The flag was added to AWS-LC in API version 19. */
     if (s2n_libcrypto_is_awslc() && s2n_libcrypto_awslc_api_version() > 19) {
         EXPECT_TRUE(s2n_libcrypto_supports_flag_no_check_time());
@@ -240,6 +220,55 @@ int main(int argc, char *argv[])
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(ret, expected_error);
             }
+        }
+    }
+
+    /* Ensure that certificate validation can fail for reasons other than time validation when time
+     * validation is disabled.
+     */
+    for (int trust_cert = 0; trust_cert <= 1; trust_cert += 1) {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 }, s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+
+        if (trust_cert) {
+            char cert_chain[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_x509_trust_store_add_pem(&trust_store, cert_chain));
+        }
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_validate_x509_time(config, false));
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+        EXPECT_SUCCESS(s2n_set_server_name(conn, "s2nTestServer"));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(conn, S2N_DEFAULT_TEST_CERT_CHAIN, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+        s2n_result ret = s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type,
+                &public_key_out);
+
+        if (trust_cert) {
+            EXPECT_OK(ret);
+        } else {
+            /* If the certificate was not added to the trust store, validation should fail even
+             * though time validation was disabled.
+             */
+            EXPECT_ERROR_WITH_ERRNO(ret, S2N_ERR_CERT_UNTRUSTED);
         }
     }
 

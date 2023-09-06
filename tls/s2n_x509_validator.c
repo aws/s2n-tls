@@ -507,7 +507,7 @@ static S2N_RESULT s2n_x509_validator_set_no_check_time_flag(struct s2n_x509_vali
     return S2N_RESULT_OK;
 }
 
-int s2n_disable_validity_period_validation_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
+int s2n_disable_time_validation_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
 {
     int err = X509_STORE_CTX_get_error(ctx);
     switch (err) {
@@ -518,10 +518,12 @@ int s2n_disable_validity_period_validation_ossl_verify_callback(int default_ossl
             break;
     }
 
-    /* If CRL validation is enabled, the CRL verify callback is set on the X509_STORE_CTX. If the
-     * validity period verify callback is set on the CTX, this will override the CRL verify
-     * callback. For simplicity, the CRL verify callback is called in addition to the validity
-     * period verify callback, ensuring both features can be enabled simultaneously.
+    /* If CRL validation is enabled, setting the time validation verify callback will override the
+     * CRL verify callback. The CRL verify callback is manually triggered to work around this
+     * issue.
+     *
+     * The CRL verify callback ignores validation errors exclusively for CRL timestamp fields. So,
+     * if CRL validation isn't enabled, the CRL verify callback is a no-op.
      */
     return s2n_crl_ossl_verify_callback(default_ossl_ret, ctx);
 }
@@ -549,7 +551,7 @@ static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connecti
         RESULT_GUARD(s2n_x509_validator_set_no_check_time_flag(validator));
     } else {
         X509_STORE_CTX_set_verify_cb(validator->store_ctx,
-                s2n_disable_validity_period_validation_ossl_verify_callback);
+                s2n_disable_time_validation_ossl_verify_callback);
     }
 
     return S2N_RESULT_OK;
@@ -586,7 +588,9 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
      * X509_STORE_CTX_set_time will override this flag. To prevent this, X509_STORE_CTX_set_time is
      * only called if time validation is enabled.
      */
-    if (conn->config->validate_x509_time) {
+    if (conn->config->disable_x509_time_validation) {
+        RESULT_GUARD(s2n_x509_validator_disable_time_validation(conn, validator));
+    } else {
         uint64_t current_sys_time = 0;
         RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
         if (sizeof(time_t) == 4) {
@@ -597,8 +601,6 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         /* this wants seconds not nanoseconds */
         time_t current_time = (time_t) (current_sys_time / ONE_SEC_IN_NANOS);
         X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
-    } else {
-        RESULT_GUARD(s2n_x509_validator_disable_time_validation(conn, validator));
     }
 
     int verify_ret = X509_verify_cert(validator->store_ctx);

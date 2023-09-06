@@ -990,7 +990,8 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  * disabling this validation. The validity period of a certificate corresponds to the range of time
  * in which the CA is guaranteed to maintain information regarding the certificate's revocation
  * status. As such, it may not be possible to obtain accurate revocation information for
- * certificates with invalid timestamps.
+ * certificates with invalid timestamps. Applications disabling this validation must implement
+ * some external method for limiting certificate lifetime.
  *
  * @param config The associated connection config.
  * @param validate Set to true to enable x509 time validation, set to false to disable. Defaults to true.
