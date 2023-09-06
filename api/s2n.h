@@ -986,11 +986,11 @@ S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config 
  * This API will disable this validity period validation, permitting negotiation with peers that
  * send expired certificates, or certificates that are not yet considered valid.
  *
- * Applications calling this API should seriously consider the security implications of disabling
- * this validation. The validity period of a certificate corresponds to the range of time in which
- * the CA is guaranteed to maintain information regarding the certificate's revocation status. As
- * such, it may not be possible to obtain accurate revocation information for certificates with an
- * invalid validity period.
+ * @warning Applications calling this API should seriously consider the security implications of
+ * disabling this validation. The validity period of a certificate corresponds to the range of time
+ * in which the CA is guaranteed to maintain information regarding the certificate's revocation
+ * status. As such, it may not be possible to obtain accurate revocation information for
+ * certificates with an invalid validity period.
  *
  * @param config The associated connection config.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.

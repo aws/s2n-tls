@@ -19,6 +19,7 @@
 #include <openssl/x509.h>
 #include <sys/socket.h>
 
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "tls/extensions/s2n_extension_list.h"
@@ -56,21 +57,14 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
  */
 #define MAX_32_TIMESTAMP_NANOS 2147483647 * ONE_SEC_IN_NANOS
 
+#define OSSL_VERIFY_CALLBACK_IGNORE_ERROR 1
+
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509_CRL) *, sk_X509_CRL_free);
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(GENERAL_NAME) *, GENERAL_NAMES_free);
 
 uint8_t s2n_x509_ocsp_stapling_supported(void)
 {
     return S2N_OCSP_STAPLING_SUPPORTED;
-}
-
-bool s2n_libcrypto_supports_flag_no_check_time()
-{
-#ifdef S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME
-    return true;
-#else
-    return false;
-#endif
 }
 
 void s2n_x509_trust_store_init_empty(struct s2n_x509_trust_store *store)
@@ -495,7 +489,6 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     return S2N_RESULT_OK;
 }
 
-#ifdef S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME
 static S2N_RESULT s2n_x509_validator_set_no_check_time_flag(struct s2n_x509_validator *validator)
 {
     RESULT_ENSURE_REF(validator);
@@ -504,17 +497,15 @@ static S2N_RESULT s2n_x509_validator_set_no_check_time_flag(struct s2n_x509_vali
     X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
     RESULT_ENSURE_REF(param);
 
+#ifdef S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME
     RESULT_GUARD_OSSL(X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_NO_CHECK_TIME),
             S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+#else
+    RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
+#endif
 
     return S2N_RESULT_OK;
 }
-#else
-static S2N_RESULT s2n_x509_validator_set_no_check_time_flag(struct s2n_x509_validator *validator)
-{
-    RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-#endif
 
 int s2n_disable_validity_period_validation_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
 {
@@ -522,16 +513,17 @@ int s2n_disable_validity_period_validation_ossl_verify_callback(int default_ossl
     switch (err) {
         case X509_V_ERR_CERT_NOT_YET_VALID:
         case X509_V_ERR_CERT_HAS_EXPIRED:
-            return 1;
+            return OSSL_VERIFY_CALLBACK_IGNORE_ERROR;
         default:
-            /* If CRL validation is enabled, the CRL verify callback is set on the X509_STORE_CTX.
-             * If the validity period verify callback is set on the CTX, this will override the
-             * CRL verify callback. For simplicity, the CRL verify callback is called in addition
-             * to the validity period verify callback, ensuring both features can be enabled
-             * simultaneously.
-             */
-            return s2n_crl_ossl_verify_callback(default_ossl_ret, ctx);
+            break;
     }
+
+    /* If CRL validation is enabled, the CRL verify callback is set on the X509_STORE_CTX. If the
+     * validity period verify callback is set on the CTX, this will override the CRL verify
+     * callback. For simplicity, the CRL verify callback is called in addition to the validity
+     * period verify callback, ensuring both features can be enabled simultaneously.
+     */
+    return s2n_crl_ossl_verify_callback(default_ossl_ret, ctx);
 }
 
 static S2N_RESULT s2n_x509_validator_disable_validity_period_validation(struct s2n_connection *conn,
@@ -587,6 +579,10 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
                 S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
     }
 
+    /* Disabling time validation may set a NO_CHECK_TIME flag on the X509_STORE_CTX. Calling
+     * X509_STORE_CTX_set_time will override this flag. To prevent this, X509_STORE_CTX_set_time is
+     * only called if time validation is enabled.
+     */
     if (conn->config->disable_x509_validity_period_validation) {
         RESULT_GUARD(s2n_x509_validator_disable_validity_period_validation(conn, validator));
     } else {

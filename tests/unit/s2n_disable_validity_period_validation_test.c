@@ -140,14 +140,14 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
             s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
+            s2n_result ret = s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len, &pkey_type,
+                    &public_key_out);
+
             s2n_error expected_error = test_cases[i].expected_error;
             if (expected_error == S2N_ERR_OK) {
-                EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
-                        &pkey_type, &public_key_out));
+                EXPECT_OK(ret);
             } else {
-                EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data,
-                                                chain_len, &pkey_type, &public_key_out),
-                        expected_error);
+                EXPECT_ERROR_WITH_ERRNO(ret, expected_error);
             }
         }
 
@@ -182,12 +182,13 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
+            int ret = s2n_negotiate_test_server_and_client(server_conn, client_conn);
+
             s2n_error expected_error = test_cases[i].expected_error;
             if (expected_error == S2N_ERR_OK) {
-                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_SUCCESS(ret);
             } else {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                        expected_error);
+                EXPECT_FAILURE_WITH_ERRNO(ret, expected_error);
             }
         }
 
@@ -237,12 +238,13 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
+            int ret = s2n_negotiate_test_server_and_client(server_conn, client_conn);
+
             s2n_error expected_error = test_cases[i].expected_error;
             if (expected_error == S2N_ERR_OK) {
-                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_SUCCESS(ret);
             } else {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                        expected_error);
+                EXPECT_FAILURE_WITH_ERRNO(ret, expected_error);
             }
         }
     }

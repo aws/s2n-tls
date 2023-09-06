@@ -592,10 +592,8 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
-        /* Enabling CRL validation and disabling certificate validity period validation can both
-         * set an X509_STORE verify callback. Ensure that the CRL verify callback functionality
-         * remains, and a CRL with an invalid nextUpdate field passes validation after validity
-         * period validation is disabled.
+        /* Ensure that validation succeeds for a CRL with an invalid nextUpdate field after time
+         * validation is disabled.
          */
         if (disable_time_validation) {
             EXPECT_SUCCESS(s2n_config_disable_x509_validity_period_validation(config));

@@ -191,3 +191,12 @@ unsigned long s2n_get_openssl_version(void)
 {
     return OPENSSL_VERSION_NUMBER;
 }
+
+bool s2n_libcrypto_supports_flag_no_check_time()
+{
+#ifdef S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME
+    return true;
+#else
+    return false;
+#endif
+}
