@@ -39,13 +39,16 @@ typedef enum {
 bool s2n_ktls_is_supported_on_platform();
 S2N_RESULT s2n_ktls_get_file_descriptor(struct s2n_connection *conn, s2n_ktls_mode ktls_mode, int *fd);
 
-S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, const struct iovec *msg_iov,
+int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len);
+S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct iovec *msg_iov,
         size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written);
-S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, uint8_t *buf,
+S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf,
         size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read);
 
 ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs,
         ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
+int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
+        const struct iovec *in, int in_count, size_t offs, size_t to_write);
 
 /* These functions will be part of the public API. */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
@@ -61,3 +64,4 @@ S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg
         void *send_ctx);
 S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg_fn recv_cb,
         void *recv_ctx);
+S2N_RESULT s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);

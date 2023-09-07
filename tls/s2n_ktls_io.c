@@ -183,12 +183,11 @@ S2N_RESULT s2n_ktls_get_control_data(struct msghdr *msg, int cmsg_type, uint8_t 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, const struct iovec *msg_iov,
+S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct iovec *msg_iov,
         size_t msg_iovlen, s2n_blocked_status *blocked, size_t *bytes_written)
 {
     RESULT_ENSURE_REF(bytes_written);
     RESULT_ENSURE_REF(blocked);
-    RESULT_ENSURE_REF(conn);
     RESULT_ENSURE(msg_iov != NULL || msg_iovlen == 0, S2N_ERR_NULL);
 
     *blocked = S2N_BLOCKED_ON_WRITE;
@@ -206,7 +205,7 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
     RESULT_GUARD(s2n_ktls_set_control_data(&msg, control_data, sizeof(control_data),
             S2N_TLS_SET_RECORD_TYPE, record_type));
 
-    ssize_t result = s2n_sendmsg_fn(conn->send_io_context, &msg);
+    ssize_t result = s2n_sendmsg_fn(io_context, &msg);
     if (result < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
             RESULT_BAIL(S2N_ERR_IO_BLOCKED);
@@ -219,13 +218,12 @@ S2N_RESULT s2n_ktls_sendmsg(struct s2n_connection *conn, uint8_t record_type, co
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, uint8_t *buf,
+S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf,
         size_t buf_len, s2n_blocked_status *blocked, size_t *bytes_read)
 {
     RESULT_ENSURE_REF(record_type);
     RESULT_ENSURE_REF(bytes_read);
     RESULT_ENSURE_REF(blocked);
-    RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(buf);
     /* Ensure that buf_len is > 0 since trying to receive 0 bytes does not
      * make sense and a return value of `0` from recvmsg is treated as EOF.
@@ -254,7 +252,7 @@ S2N_RESULT s2n_ktls_recvmsg(struct s2n_connection *conn, uint8_t *record_type, u
     msg.msg_controllen = sizeof(control_data);
     msg.msg_control = control_data;
 
-    ssize_t result = s2n_recvmsg_fn(conn->recv_io_context, &msg);
+    ssize_t result = s2n_recvmsg_fn(io_context, &msg);
     if (result < 0) {
         if (errno == EWOULDBLOCK || errno == EAGAIN) {
             RESULT_BAIL(S2N_ERR_IO_BLOCKED);
@@ -304,6 +302,7 @@ static S2N_RESULT s2n_ktls_new_iovecs_with_offset(const struct iovec *bufs,
 ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs,
         ssize_t count_in, ssize_t offs_in, s2n_blocked_status *blocked)
 {
+    POSIX_ENSURE_REF(conn);
     POSIX_ENSURE(count_in >= 0, S2N_ERR_INVALID_ARGUMENT);
     size_t count = count_in;
     POSIX_ENSURE(offs_in >= 0, S2N_ERR_INVALID_ARGUMENT);
@@ -319,7 +318,55 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
     }
 
     size_t bytes_written = 0;
-    POSIX_GUARD_RESULT(s2n_ktls_sendmsg(conn, TLS_APPLICATION_DATA, bufs, count,
-            blocked, &bytes_written));
+    POSIX_GUARD_RESULT(s2n_ktls_sendmsg(conn->send_io_context, TLS_APPLICATION_DATA,
+            bufs, count, blocked, &bytes_written));
     return bytes_written;
+}
+
+int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
+{
+    /* For now, all control records are assumed to be alerts.
+     * We can set the record_type on the io_context in the future.
+     */
+    const uint8_t record_type = TLS_ALERT;
+
+    const struct iovec iov = {
+        .iov_base = (void *) (uintptr_t) buf,
+        .iov_len = len,
+    };
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    size_t bytes_written = 0;
+
+    POSIX_GUARD_RESULT(s2n_ktls_sendmsg(io_context, record_type, &iov, 1,
+            &blocked, &bytes_written));
+
+    POSIX_ENSURE_LTE(bytes_written, len);
+    return bytes_written;
+}
+
+int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
+        const struct iovec *in, int in_count, size_t offs, size_t to_write)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(in_count > 0, S2N_ERR_INVALID_ARGUMENT);
+    size_t count = in_count;
+    POSIX_ENSURE_REF(in);
+
+    /* Currently, ktls only supports sending alerts.
+     * To also support handshake messages, we would need a way to track record_type.
+     * We could add a field to the send io context.
+     */
+    POSIX_ENSURE(content_type == TLS_ALERT, S2N_ERR_UNIMPLEMENTED);
+
+    /* When stuffers automatically resize, they allocate a potentially large
+     * chunk of memory to avoid repeated resizes.
+     * Since ktls only uses conn->out for control messages (alerts and eventually
+     * handshake messages), we expect infrequent small writes with conn->out
+     * freed in between. Since we're therefore more concerned with the size of
+     * the allocation than the frequency, use a more accurate size for each write.
+     */
+    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->out, to_write));
+
+    POSIX_GUARD(s2n_stuffer_writev_bytes(&conn->out, in, count, offs, to_write));
+    return to_write;
 }
