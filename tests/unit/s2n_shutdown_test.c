@@ -16,8 +16,10 @@
 #include "tls/s2n_shutdown.c"
 
 #include "s2n_test.h"
+#include "testlib/s2n_ktls_test_utils.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_alerts.h"
+#include "utils/s2n_socket.h"
 
 #define ALERT_LEN (sizeof(uint16_t))
 
@@ -614,7 +616,93 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
             EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
         };
-    }
+
+        /* Test: kTLS enabled */
+        {
+            /* Test: Successfully send alert */
+            {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_TRUE(conn->alert_sent);
+                EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+                EXPECT_OK(s2n_test_validate_ancillary(&out, TLS_ALERT, S2N_ALERT_LENGTH));
+                EXPECT_OK(s2n_test_validate_data(&out,
+                        close_notify_alert, sizeof(close_notify_alert)));
+
+                /* Repeating the shutdown does not resend the alert */
+                for (size_t i = 0; i < 5; i++) {
+                    EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
+                    EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                    EXPECT_TRUE(conn->alert_sent);
+                    EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+                }
+            };
+
+            /* Test: Successfully send alert after blocking */
+            {
+                /* One call does the partial write, the second blocks */
+                const size_t partial_write = 1;
+                const size_t second_write = sizeof(close_notify_alert) - partial_write;
+                EXPECT_TRUE(second_write > 0);
+
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+                EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+                EXPECT_SUCCESS(s2n_stuffer_free(&out.data_buffer));
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&out.data_buffer, partial_write));
+
+                /* One call does the partial write, the second blocks */
+                size_t expected_calls = 2;
+
+                /* Initial shutdown blocks */
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown_send(conn, &blocked),
+                        S2N_ERR_IO_BLOCKED);
+                EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+                EXPECT_TRUE(conn->alert_sent);
+                EXPECT_EQUAL(out.sendmsg_invoked_count, expected_calls);
+                EXPECT_OK(s2n_test_validate_ancillary(&out, TLS_ALERT, partial_write));
+                EXPECT_OK(s2n_test_validate_data(&out, close_notify_alert, partial_write));
+
+                /* Unblock the output stuffer */
+                out.data_buffer.growable = true;
+                expected_calls++;
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&out.ancillary_buffer));
+
+                /* Second shutdown succeeds */
+                EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_TRUE(conn->alert_sent);
+                EXPECT_EQUAL(out.sendmsg_invoked_count, expected_calls);
+                EXPECT_OK(s2n_test_validate_ancillary(&out, TLS_ALERT, second_write));
+                EXPECT_OK(s2n_test_validate_data(&out, close_notify_alert,
+                        sizeof(close_notify_alert)));
+
+                /* Repeating the shutdown does not resend the alert */
+                for (size_t i = 0; i < 5; i++) {
+                    EXPECT_SUCCESS(s2n_shutdown_send(conn, &blocked));
+                    EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                    EXPECT_TRUE(conn->alert_sent);
+                    EXPECT_EQUAL(out.sendmsg_invoked_count, expected_calls);
+                }
+            };
+        };
+    };
 
     END_TEST();
 }
