@@ -354,8 +354,8 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
 
     DEFER_CLEANUP(struct s2n_blob new_bufs = { 0 }, s2n_free_or_wipe);
     uint8_t new_bufs_mem[S2N_MAX_STACK_IOVECS_MEM] = { 0 };
+    POSIX_GUARD(s2n_blob_init(&new_bufs, new_bufs_mem, sizeof(new_bufs_mem)));
     if (offs > 0) {
-        POSIX_GUARD(s2n_blob_init(&new_bufs, new_bufs_mem, sizeof(new_bufs_mem)));
         POSIX_GUARD_RESULT(s2n_ktls_update_bufs_with_offset(&bufs, &count, offs, &new_bufs));
     }
 
