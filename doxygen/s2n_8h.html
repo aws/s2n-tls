@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.50-bb6052e2</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.50-f7930e58</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -403,6 +403,8 @@ Functions</h2></td></tr>
 <tr class="separator:a079022d5c18f4ffd64c1c6dedb3bbc66"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:affff244d7ed6f3b8d1f885df1b307f4e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#affff244d7ed6f3b8d1f885df1b307f4e">s2n_config_set_check_stapled_ocsp_response</a> (struct s2n_config *config, uint8_t check_ocsp)</td></tr>
 <tr class="separator:affff244d7ed6f3b8d1f885df1b307f4e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:abbdc139b4a68057aa0ce812b5f07138d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#abbdc139b4a68057aa0ce812b5f07138d">s2n_config_disable_x509_time_verification</a> (struct s2n_config *config)</td></tr>
+<tr class="separator:abbdc139b4a68057aa0ce812b5f07138d"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa9d89fb59987254fe2546881d172be18"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aa9d89fb59987254fe2546881d172be18">s2n_config_disable_x509_verification</a> (struct s2n_config *config)</td></tr>
 <tr class="separator:aa9d89fb59987254fe2546881d172be18"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:adbe1f248fa4510df373890a70f6f39b9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#adbe1f248fa4510df373890a70f6f39b9">s2n_config_set_max_cert_chain_depth</a> (struct s2n_config *config, uint16_t max_depth)</td></tr>
@@ -3493,6 +3495,35 @@ Safety</h1>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="abbdc139b4a68057aa0ce812b5f07138d" name="abbdc139b4a68057aa0ce812b5f07138d"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#abbdc139b4a68057aa0ce812b5f07138d">&#9670;&#160;</a></span>s2n_config_disable_x509_time_verification()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_disable_x509_time_verification </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *&#160;</td>
+          <td class="paramname"><em>config</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Disables timestamp validation for received certificates.</p>
+<p >By default, s2n-tls checks the notBefore and notAfter fields on the certificates it receives during the handshake. If the current date is not within the range of these fields for any certificate in the chain of trust, <code><a class="el" href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate()</a></code> will error. This validation is in accordance with RFC 5280, section 6.1.3 a.2: <a href="https://datatracker.ietf.org/doc/html/rfc5280#section-6.1.3">https://datatracker.ietf.org/doc/html/rfc5280#section-6.1.3</a>.</p>
+<p >This API will disable this timestamp validation, permitting negotiation with peers that send expired certificates, or certificates that are not yet considered valid.</p>
+<dl class="section warning"><dt>Warning</dt><dd>Applications calling this API should seriously consider the security implications of disabling this validation. The validity period of a certificate corresponds to the range of time in which the CA is guaranteed to maintain information regarding the certificate's revocation status. As such, it may not be possible to obtain accurate revocation information for certificates with invalid timestamps. Applications disabling this validation MUST implement some external method for limiting certificate lifetime.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">config</td><td>The associated connection config. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE on failure. </dd></dl>
 
 </div>
 </div>
