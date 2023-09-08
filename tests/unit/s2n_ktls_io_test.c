@@ -636,6 +636,9 @@ int main(int argc, char **argv)
                     s2n_ktls_sendv_with_offset(&conn, NULL, 1, 0, &blocked),
                     S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(&conn, NULL, 1, 1, &blocked),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(
                     s2n_ktls_sendv_with_offset(&conn, &test_iovec, 1, 0, NULL),
                     S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(

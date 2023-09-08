@@ -294,7 +294,9 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
 static S2N_RESULT s2n_ktls_update_bufs_with_offset(const struct iovec **bufs, size_t *count,
         size_t offs, struct s2n_blob *mem)
 {
-    RESULT_ENSURE(bufs != NULL || count == 0, S2N_ERR_NULL);
+    RESULT_ENSURE_REF(bufs);
+    RESULT_ENSURE_REF(count);
+    RESULT_ENSURE(*bufs != NULL || *count == 0, S2N_ERR_NULL);
     RESULT_ENSURE_REF(mem);
 
     size_t skipped = 0;
