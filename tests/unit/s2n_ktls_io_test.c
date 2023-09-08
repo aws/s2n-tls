@@ -1044,8 +1044,8 @@ int main(int argc, char **argv)
         /* Safety */
         {
             struct s2n_test_ktls_io_stuffer ctx = { 0 };
-            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(NULL, test_data, 1), S2N_ERR_IO);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, NULL, 1), S2N_ERR_IO);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(NULL, test_data, 1), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, NULL, 1), S2N_ERR_NULL);
         };
 
         /* Test: Basic write succeeds */

@@ -367,6 +367,9 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
 
 int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
 {
+    POSIX_ENSURE_REF(io_context);
+    POSIX_ENSURE_REF(buf);
+
     /* For now, all control records are assumed to be alerts.
      * We can set the record_type on the io_context in the future.
      */
