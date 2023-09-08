@@ -118,7 +118,7 @@ bool s2n_libcrypto_is_awslc()
 #endif
 }
 
-static uint64_t s2n_libcrypto_awslc_api_version(void)
+uint64_t s2n_libcrypto_awslc_api_version(void)
 {
 #if defined(OPENSSL_IS_AWSLC)
     return AWSLC_API_VERSION;
@@ -190,4 +190,13 @@ bool s2n_libcrypto_is_interned(void)
 unsigned long s2n_get_openssl_version(void)
 {
     return OPENSSL_VERSION_NUMBER;
+}
+
+bool s2n_libcrypto_supports_flag_no_check_time()
+{
+#ifdef S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME
+    return true;
+#else
+    return false;
+#endif
 }
