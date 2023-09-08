@@ -135,6 +135,12 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 /* Missing line endings between PEM encapsulation boundaries */
 #define S2N_MISSING_LINE_ENDINGS_CERT_CHAIN "../pems/rsa_2048_missing_line_endings_cert.pem"
 
+/* PEMs with invalid timestamp fields */
+#define S2N_EXPIRED_CERT_CHAIN       "../pems/rsa_2048_expired_cert.pem"
+#define S2N_EXPIRED_KEY              "../pems/rsa_2048_expired_key.pem"
+#define S2N_NOT_YET_VALID_CERT_CHAIN "../pems/rsa_2048_not_yet_valid_cert.pem"
+#define S2N_NOT_YET_VALID_KEY        "../pems/rsa_2048_not_yet_valid_key.pem"
+
 /* Illegally formatted PEMs */
 #define S2N_INVALID_HEADER_CERT_CHAIN  "../pems/rsa_2048_invalid_header_cert.pem"
 #define S2N_INVALID_TRAILER_CERT_CHAIN "../pems/rsa_2048_invalid_trailer_cert.pem"

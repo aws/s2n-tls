@@ -976,6 +976,30 @@ S2N_API extern int s2n_config_set_verify_host_callback(struct s2n_config *config
 S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
 
 /**
+ * Disables timestamp validation for received certificates.
+ *
+ * By default, s2n-tls checks the notBefore and notAfter fields on the certificates it receives
+ * during the handshake. If the current date is not within the range of these fields for any
+ * certificate in the chain of trust, `s2n_negotiate()` will error. This validation is in
+ * accordance with RFC 5280, section 6.1.3 a.2:
+ * https://datatracker.ietf.org/doc/html/rfc5280#section-6.1.3.
+ *
+ * This API will disable this timestamp validation, permitting negotiation with peers that send
+ * expired certificates, or certificates that are not yet considered valid.
+ *
+ * @warning Applications calling this API should seriously consider the security implications of
+ * disabling this validation. The validity period of a certificate corresponds to the range of time
+ * in which the CA is guaranteed to maintain information regarding the certificate's revocation
+ * status. As such, it may not be possible to obtain accurate revocation information for
+ * certificates with invalid timestamps. Applications disabling this validation MUST implement
+ * some external method for limiting certificate lifetime.
+ *
+ * @param config The associated connection config.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *config);
+
+/**
  * Turns off all X.509 validation during the negotiation phase of the connection. This should only
  * be used for testing or debugging purposes.
  *

@@ -962,5 +962,21 @@ int main(int argc, char **argv)
         }
     }
 
+    /* s2n_config_disable_x509_time_verification tests */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_disable_x509_time_verification(NULL), S2N_ERR_NULL);
+
+        /* Ensure s2n_config_disable_x509_time_verification sets the proper state */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_EQUAL(config->disable_x509_time_validation, false);
+
+            EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
+            EXPECT_EQUAL(config->disable_x509_time_validation, true);
+        }
+    }
+
     END_TEST();
 }
