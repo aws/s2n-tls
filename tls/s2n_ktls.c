@@ -41,11 +41,6 @@ static int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
     POSIX_BAIL(S2N_ERR_IO);
 }
 
-static int s2n_ktls_disabled_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    POSIX_BAIL(S2N_ERR_IO);
-}
-
 static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
@@ -244,6 +239,18 @@ static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktl
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+{
+    if (ktls_mode == S2N_KTLS_MODE_SEND) {
+        conn->ktls_send_enabled = true;
+        conn->send = s2n_ktls_send_cb;
+    } else {
+        conn->ktls_recv_enabled = true;
+        conn->recv = s2n_ktls_disabled_read;
+    }
+    return S2N_RESULT_OK;
+}
+
 /*
  * Since kTLS is an optimization, it is possible to continue operation
  * by using userspace TLS if kTLS is not supported.
@@ -265,10 +272,7 @@ int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND));
-
-    conn->ktls_send_enabled = true;
-    /* kTLS now handles I/O for the connection */
-    conn->send = s2n_ktls_disabled_write;
+    POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
 
     return S2N_SUCCESS;
 }
@@ -287,10 +291,7 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV));
-
-    conn->ktls_recv_enabled = true;
-    /* kTLS now handles I/O for the connection */
-    conn->recv = s2n_ktls_disabled_read;
+    POSIX_GUARD_RESULT(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
 
     return S2N_SUCCESS;
 }
