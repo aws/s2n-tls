@@ -25,6 +25,10 @@
 #endif
 #include <sys/socket.h>
 
+#ifdef S2N_LINUX_SENDFILE
+    #include <sys/sendfile.h>
+#endif
+
 #include "error/s2n_errno.h"
 #include "tls/s2n_ktls.h"
 #include "utils/s2n_result.h"
@@ -369,4 +373,35 @@ int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
 
     POSIX_GUARD(s2n_stuffer_writev_bytes(&conn->out, in, count, offs, to_write));
     return to_write;
+}
+
+int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t count,
+        size_t *bytes_written, s2n_blocked_status *blocked)
+{
+    POSIX_ENSURE_REF(blocked);
+    *blocked = S2N_BLOCKED_ON_WRITE;
+    POSIX_ENSURE_REF(bytes_written);
+    *bytes_written = 0;
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(conn->ktls_send_enabled, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+
+    int out_fd = 0;
+    POSIX_GUARD_RESULT(s2n_ktls_get_file_descriptor(conn, S2N_KTLS_MODE_SEND, &out_fd));
+
+#ifdef S2N_LINUX_SENDFILE
+    /* https://man7.org/linux/man-pages/man2/sendfile.2.html */
+    ssize_t result = sendfile(out_fd, in_fd, &offset, count);
+    if (result < 0) {
+        if (errno == EAGAIN || errno == EWOULDBLOCK) {
+            POSIX_BAIL(S2N_ERR_IO_BLOCKED);
+        }
+        POSIX_BAIL(S2N_ERR_IO);
+    }
+    *bytes_written = result;
+#else
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+#endif
+
+    *blocked = S2N_NOT_BLOCKED;
+    return S2N_SUCCESS;
 }
