@@ -81,7 +81,8 @@ int main(int argc, char **argv)
 
     const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key, s2n_cert_chain_and_key_ptr_free);
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+            s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
@@ -89,6 +90,20 @@ int main(int argc, char **argv)
     struct s2n_blob test_data_blob = { 0 };
     EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
     EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
+
+    DEFER_CLEANUP(struct s2n_test_iovecs test_iovecs = { 0 }, s2n_test_iovecs_free);
+    size_t test_iovecs_lens[20] = { 5, 6, 1, 10, 0 };
+    EXPECT_OK(s2n_test_new_iovecs(&test_iovecs, &test_data_blob, test_iovecs_lens,
+            s2n_array_len(test_iovecs_lens)));
+
+    const size_t test_offsets[] = {
+        0,
+        test_iovecs_lens[0],
+        test_iovecs_lens[0] + 1,
+        test_iovecs_lens[0] + test_iovecs_lens[1],
+        sizeof(test_data) - 1,
+        sizeof(test_data),
+    };
 
     uint8_t file_test_data[100] = { 0 };
     int file = open(argv[0], O_RDONLY);
@@ -190,51 +205,57 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
         }
 
+        /* Test: s2n_sendv */
+        for (size_t i = 0; i < 5; i++) {
+            int written = s2n_sendv(writer,
+                    test_iovecs.iovecs, test_iovecs.iovecs_count, &blocked);
+            EXPECT_EQUAL(written, sizeof(test_data));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+            uint8_t buffer[sizeof(test_data)] = { 0 };
+            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            EXPECT_EQUAL(read, sizeof(test_data));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+            EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
+        }
+
         /* Test: s2n_sendv_with_offset */
-        {
-            const size_t test_data_offset = 10;
-            const size_t offset = sizeof(file_test_data) + test_data_offset;
-            const size_t expected_written = sizeof(test_data) - test_data_offset;
+        for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
+            const size_t offset = test_offsets[offset_i];
+            const size_t expected_written = sizeof(test_data) - offset;
 
-            const struct iovec iovecs[] = {
-                { .iov_base = file_test_data, .iov_len = sizeof(file_test_data) },
-                { .iov_base = test_data, .iov_len = sizeof(test_data) },
-            };
+            int written = s2n_sendv_with_offset(writer,
+                    test_iovecs.iovecs, test_iovecs.iovecs_count, offset, &blocked);
+            EXPECT_EQUAL(written, expected_written);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
-            for (size_t i = 0; i < 5; i++) {
-                int written = s2n_sendv_with_offset(writer,
-                        iovecs, s2n_array_len(iovecs), offset, &blocked);
-                EXPECT_EQUAL(written, expected_written);
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            uint8_t buffer[sizeof(test_data)] = { 0 };
+            int read = s2n_recv(reader, buffer, expected_written, &blocked);
+            EXPECT_EQUAL(read, expected_written);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
-                uint8_t buffer[sizeof(test_data)] = { 0 };
-                int read = s2n_recv(reader, buffer, expected_written, &blocked);
-                EXPECT_EQUAL(read, expected_written);
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
-
-                EXPECT_BYTEARRAY_EQUAL(test_data + test_data_offset, buffer, read);
-            }
+            EXPECT_BYTEARRAY_EQUAL(test_data + offset, buffer, read);
         };
 
         /* Test: s2n_sendfile */
-        {
-            const off_t offset = 10;
-            const size_t expected_written = sizeof(file_test_data) - 10;
-            for (size_t i = 0; i < 5; i++) {
-                size_t written = 0;
-                EXPECT_SUCCESS(s2n_sendfile(writer, file, offset, expected_written,
-                        &written, &blocked));
-                EXPECT_EQUAL(written, expected_written);
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+        for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
+            const size_t offset = test_offsets[offset_i];
+            const size_t expected_written = sizeof(test_data) - offset;
 
-                uint8_t buffer[sizeof(file_test_data)] = { 0 };
-                int read = s2n_recv(reader, buffer, expected_written, &blocked);
-                EXPECT_EQUAL(read, expected_written);
-                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            size_t written = 0;
+            EXPECT_SUCCESS(s2n_sendfile(writer, file, offset, expected_written,
+                    &written, &blocked));
+            EXPECT_EQUAL(written, expected_written);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
-                EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
-            }
-        };
+            uint8_t buffer[sizeof(file_test_data)] = { 0 };
+            int read = s2n_recv(reader, buffer, expected_written, &blocked);
+            EXPECT_EQUAL(read, expected_written);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+            EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
+        }
 
         /* Test: s2n_shutdown */
         {
