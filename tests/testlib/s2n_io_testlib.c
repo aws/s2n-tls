@@ -14,8 +14,6 @@
  */
 
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_connection.h"
-#include "utils/s2n_bitmap.h"
 
 S2N_CLEANUP_RESULT s2n_test_iovecs_free(struct s2n_test_iovecs *in)
 {
