@@ -31,6 +31,7 @@
 
 #include "error/s2n_errno.h"
 #include "tls/s2n_ktls.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
@@ -403,5 +404,37 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
 #endif
 
     *blocked = S2N_NOT_BLOCKED;
+    return S2N_SUCCESS;
+}
+
+int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(record_type);
+
+    /* This method copies data into conn->in, so is intended for control messages
+     * rather than application data. However in some cases-- such as when attempting
+     * to read the close_notify alert during s2n_shutdown-- it may encounter application
+     * data. Set a reasonable conn->in size to avoid an excessive number of calls
+     * to recvmsg when reading a larger record.
+     */
+    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_DEFAULT_FRAGMENT_LENGTH));
+
+    struct s2n_stuffer record_stuffer = conn->in;
+    size_t len = s2n_stuffer_space_remaining(&record_stuffer);
+    uint8_t *buf = s2n_stuffer_raw_write(&record_stuffer, len);
+    POSIX_ENSURE_REF(buf);
+
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    size_t bytes_read = 0;
+
+    /* Since recvmsg is responsible for decrypting the record in ktls,
+     * we apply blinding to the recvmsg call.
+     */
+    WITH_ERROR_BLINDING(conn,
+            POSIX_GUARD_RESULT(s2n_ktls_recvmsg(conn->recv_io_context, record_type,
+                    buf, len, &blocked, &bytes_read)));
+
+    POSIX_GUARD(s2n_stuffer_skip_write(&conn->in, bytes_read));
     return S2N_SUCCESS;
 }

@@ -17,6 +17,7 @@
 #include "testlib/s2n_ktls_test_utils.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_ktls.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
 #define S2N_TEST_TO_SEND    10
@@ -899,6 +900,87 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_ktls_record_writev(conn, TLS_HANDSHAKE, &iov, 1, 0, to_write),
                     S2N_ERR_UNIMPLEMENTED);
+        };
+    };
+
+    /* Test: s2n_ktls_read_full_record */
+    {
+        const struct iovec test_iovec = {
+            .iov_base = test_data,
+            .iov_len = sizeof(test_data),
+        };
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        const size_t max_frag_len = S2N_DEFAULT_FRAGMENT_LENGTH;
+        /* Our test assumptions are wrong if this isn't true */
+        EXPECT_TRUE(max_frag_len < sizeof(test_data));
+
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            uint8_t record_type = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_read_full_record(NULL, &record_type),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_read_full_record(conn, NULL),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: Basic read succeeds */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
+            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
+
+            size_t written = 0;
+            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &test_iovec, 1, &blocked, &written));
+            EXPECT_EQUAL(written, sizeof(test_data));
+
+            uint8_t record_type = 0;
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_ALERT);
+
+            EXPECT_EQUAL(conn->in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), max_frag_len);
+            uint8_t *read = s2n_stuffer_raw_read(&conn->in, max_frag_len);
+            EXPECT_BYTEARRAY_EQUAL(read, test_data, max_frag_len);
+        };
+
+        /* Test: Small read succeeds */
+        {
+            const size_t small_frag_len = 10;
+            EXPECT_TRUE(small_frag_len < max_frag_len);
+            EXPECT_TRUE(small_frag_len < sizeof(test_data));
+            struct iovec small_test_iovec = test_iovec;
+            small_test_iovec.iov_len = small_frag_len;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
+            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
+
+            size_t written = 0;
+            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &small_test_iovec, 1, &blocked, &written));
+            EXPECT_EQUAL(written, small_frag_len);
+
+            uint8_t record_type = 0;
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_ALERT);
+
+            EXPECT_EQUAL(conn->in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), small_frag_len);
+            uint8_t *read = s2n_stuffer_raw_read(&conn->in, small_frag_len);
+            EXPECT_BYTEARRAY_EQUAL(read, test_data, small_frag_len);
         };
     };
 

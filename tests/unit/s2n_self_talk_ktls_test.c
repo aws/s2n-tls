@@ -23,6 +23,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_ktls.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
 /* There are issues with MacOS and FreeBSD so we define the constant ourselves.
@@ -116,6 +117,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
+    /* Even if we detected ktls support at compile time, enabling ktls
+     * can fail at runtime if the system is not properly configured.
+     */
+    bool ktls_send_supported = true;
+    bool ktls_recv_supported = true;
+
     /* Test enabling ktls for sending */
     {
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
@@ -144,18 +151,23 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.client));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
 
-        if (s2n_connection_ktls_enable_send(client) != S2N_SUCCESS) {
-            /* Even if we detected ktls support at compile time, enabling ktls
-             * can fail at runtime if the system is not properly configured.
-             */
+        if (s2n_connection_ktls_enable_send(client) == S2N_SUCCESS) {
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
+        } else {
             EXPECT_FALSE(ktls_expected);
-            END_TEST();
+            ktls_send_supported = false;
         }
-        EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
+
+        if (s2n_connection_ktls_enable_recv(client) == S2N_SUCCESS) {
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server));
+        } else {
+            EXPECT_FALSE(ktls_expected);
+            ktls_recv_supported = false;
+        }
     };
 
     /* Test sending with ktls */
-    for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+    for (size_t mode_i = 0; mode_i < s2n_array_len(modes) && ktls_send_supported; mode_i++) {
         const s2n_mode mode = modes[mode_i];
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
@@ -264,6 +276,71 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_shutdown(reader, &blocked));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(s2n_connection_check_io_status(reader, S2N_IO_CLOSED));
+        };
+    };
+
+    /* Test receiving with ktls */
+    for (size_t mode_i = 0; mode_i < s2n_array_len(modes) && ktls_recv_supported; mode_i++) {
+        const s2n_mode mode = modes[mode_i];
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+        /* The test negotiate method assumes non-blocking sockets */
+        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
+        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.client));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        struct s2n_connection *conns[] = {
+            [S2N_CLIENT] = client,
+            [S2N_SERVER] = server,
+        };
+        struct s2n_connection *reader = conns[mode];
+        struct s2n_connection *writer = conns[S2N_PEER_MODE(mode)];
+        EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Our IO methods are more predictable if they use blocking sockets. */
+        EXPECT_SUCCESS(s2n_fd_set_blocking(io_pair.server));
+        EXPECT_SUCCESS(s2n_fd_set_blocking(io_pair.client));
+
+        /* Test: s2n_recv not implemented yet */
+        {
+            uint8_t buffer[10] = { 0 };
+            int received = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            EXPECT_FAILURE_WITH_ERRNO(received, S2N_ERR_UNIMPLEMENTED);
+        }
+
+        /* Test: s2n_shutdown */
+        {
+            /* Send some application data for the reader to skip */
+            for (size_t i = 0; i < 3; i++) {
+                EXPECT_SUCCESS(s2n_send(writer, test_data, 10, &blocked));
+            }
+
+            /* Send the close_notify */
+            EXPECT_SUCCESS(s2n_shutdown_send(writer, &blocked));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+            /* Verify that the reader skips the application data and successfully
+             * receives the close_notify.
+             */
+            EXPECT_SUCCESS(s2n_shutdown(reader, &blocked));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(s2n_connection_check_io_status(reader, S2N_IO_CLOSED));
         };
     };
 
