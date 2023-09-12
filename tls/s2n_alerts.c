@@ -145,8 +145,15 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
 
 static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
 {
-    /* Only TLS1.2 considers the alert level. The alert level field is
-     * considered deprecated in TLS1.3. */
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *# All the alerts listed in Section 6.2 MUST be sent with
+     *# AlertLevel=fatal and MUST be treated as error alerts when received
+     *# regardless of the AlertLevel in the message.
+     *
+     * Only TLS1.2 considers the alert level. The alert level field is
+     * considered deprecated in TLS1.3.
+     */
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return level == S2N_TLS_ALERT_LEVEL_WARNING
                 && conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS;
@@ -224,8 +231,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /*
              *= https://tools.ietf.org/rfc/rfc8446#section-6
-             *# MUST be treated as error alerts when received
-             *# regardless of the AlertLevel in the message.  Unknown Alert types
+             *# Unknown Alert types
              *# MUST be treated as error alerts.
              *
              * All other alerts are treated as fatal errors.
@@ -289,6 +295,7 @@ S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn)
     /*
      *= https://tools.ietf.org/rfc/rfc8446#section-6.2
      *= type=exception
+     *= reason=Specific alerts could expose a side-channel attack vector.
      *# The phrases "terminate the connection with an X
      *# alert" and "abort the handshake with an X alert" mean that the
      *# implementation MUST send alert X if it sends any alert.
