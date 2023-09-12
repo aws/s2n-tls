@@ -222,7 +222,14 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
                 conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
-            /* All other alerts are treated as fatal errors */
+            /*
+             *= https://tools.ietf.org/rfc/rfc8446#section-6
+             *# MUST be treated as error alerts when received
+             *# regardless of the AlertLevel in the message.  Unknown Alert types
+             *# MUST be treated as error alerts.
+             *
+             * All other alerts are treated as fatal errors.
+             */
             POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
             s2n_atomic_flag_set(&conn->error_alert_received);
             POSIX_BAIL(S2N_ERR_ALERT);
@@ -279,8 +286,17 @@ S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn)
         return S2N_RESULT_OK;
     }
 
-    /* By default, s2n-tls sends a generic close_notify alert, even in
-     * response to fatal errors.
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-6.2
+     *= type=exception
+     *# The phrases "terminate the connection with an X
+     *# alert" and "abort the handshake with an X alert" mean that the
+     *# implementation MUST send alert X if it sends any alert.
+     *
+     * By default, s2n-tls sends a generic close_notify alert, even in
+     * response to fatal errors. This is done to avoid potential
+     * side-channel attacks since specific alerts could reveal information
+     * about why the error occured.
      */
     uint8_t code = S2N_TLS_ALERT_CLOSE_NOTIFY;
     uint8_t level = S2N_TLS_ALERT_LEVEL_WARNING;
