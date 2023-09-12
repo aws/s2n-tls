@@ -119,18 +119,29 @@ batch:
           S2N_LIBCRYPTO: 'awslc-fips'
           TESTS: valgrind
       identifier: s2nValgrindAwslcFips
-    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+    - identifier: s2nAsanOpenSSL111Coverage
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
-          GCC_VERSION: '6'
+          GCC_VERSION: '9'
           S2N_COVERAGE: 'true'
           S2N_LIBCRYPTO: 'openssl-1.1.1'
           TESTS: asan
-      identifier: s2nAsanOpenSSL111Coverage
+    - identifier: s2nAsanAwslc
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          GCC_VERSION: '9'
+          S2N_LIBCRYPTO: 'awslc'
+          TESTS: asan
     - identifier: s2nAsanOpenssl3
       buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
@@ -139,20 +150,20 @@ batch:
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           TESTS: asan
-          GCC_VERSION: '6'
+          GCC_VERSION: '9'
           S2N_LIBCRYPTO: 'openssl-3.0'
           BUILD_S2N: 'true'
-    - buildspec: codebuild/spec/buildspec_ubuntu.yml
+    - identifier: s2nAsanOpenssl102
+      buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
-          GCC_VERSION: '6'
+          GCC_VERSION: '9'
           S2N_LIBCRYPTO: 'openssl-1.0.2'
           TESTS: asan
-      identifier: s2nAsanOpenssl102
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
