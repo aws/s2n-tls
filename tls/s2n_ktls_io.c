@@ -431,9 +431,9 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
     /* Since recvmsg is responsible for decrypting the record in ktls,
      * we apply blinding to the recvmsg call.
      */
-    WITH_ERROR_BLINDING(conn,
-            POSIX_GUARD_RESULT(s2n_ktls_recvmsg(conn->recv_io_context, record_type,
-                    buf, len, &blocked, &bytes_read)));
+    s2n_result result = s2n_ktls_recvmsg(conn->recv_io_context, record_type,
+            buf, len, &blocked, &bytes_read);
+    WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(result));
 
     POSIX_GUARD(s2n_stuffer_skip_write(&conn->in, bytes_read));
     return S2N_SUCCESS;
