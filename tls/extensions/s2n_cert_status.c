@@ -80,7 +80,18 @@ int s2n_cert_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
     uint8_t type;
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &type));
     if (type != S2N_STATUS_REQUEST_OCSP) {
-        /* We only support OCSP */
+
+        /*
+         *= https://tools.ietf.org/rfc/rfc6066#section-8
+         *= type=exception
+         *= reason=For compatibility, we choose to ignore malformed extensions if they are optional
+         *# Clients requesting an OCSP response and receiving an OCSP response in
+         *# a "CertificateStatus" message MUST check the OCSP response and abort
+         *# the handshake if the response is not satisfactory with
+         *# bad_certificate_status_response(113) alert.
+         *
+         * We only support OCSP
+         */
         return S2N_SUCCESS;
     }
 

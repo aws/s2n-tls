@@ -111,6 +111,13 @@ int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_conne
      *# which it appears, it MUST abort the handshake with an
      *# "illegal_parameter" alert.
      *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.3.1
+     *= type=exception
+     *= reason=Incorrect implementations exist in the wild. Ignoring instead.
+     *# The client MUST check EncryptedExtensions for the
+     *# presence of any forbidden extensions and if any are found MUST abort
+     *# the handshake with an "illegal_parameter" alert.
+     *
      * If we want to enforce this restriction in the future, we can verify
      * that no parsed extensions exist without the "processed" flag set.
      */
@@ -142,7 +149,11 @@ static int s2n_extension_parse(struct s2n_stuffer *in, s2n_parsed_extension *par
 
     s2n_parsed_extension *parsed_extension = &parsed_extensions[extension_id];
 
-    /* Error if extension is a duplicate */
+    /*
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+     *# There MUST NOT be more than one extension of the
+     *# same type in a given extension block.
+     */
     POSIX_ENSURE(s2n_parsed_extension_is_empty(parsed_extension),
             S2N_ERR_DUPLICATE_EXTENSION);
 

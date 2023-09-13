@@ -26,6 +26,13 @@
 
 static int s2n_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension);
 
+/*
+ *= https://tools.ietf.org/rfc/rfc8446#4.2.3
+ *# If a server is authenticating via
+ *# a certificate and the client has not sent a "signature_algorithms"
+ *# extension, then the server MUST abort the handshake with a
+ *# "missing_extension" alert (see Section 9.2).
+ */
 const s2n_extension_type s2n_server_signature_algorithms_extension = {
     .iana_value = TLS_EXTENSION_SIGNATURE_ALGORITHMS,
     .is_response = false,
