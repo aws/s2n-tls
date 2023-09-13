@@ -13,10 +13,18 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+/* MacOS and BSD have completely different signatures for sendfile,
+ * and sendfile is provided by different headers.
+ * Test ONLY for the Linux version.
+ */
 
-#include "utils/s2n_result.h"
+#include <sys/sendfile.h>
 
-S2N_RESULT s2n_libcrypto_validate_runtime(void);
-
-bool s2n_libcrypto_supports_flag_no_check_time();
+int main()
+{
+    int out_fd = 0, in_fd = 0;
+    off_t offset = 0;
+    size_t count = 0;
+    ssize_t result = sendfile(out_fd, in_fd, &offset, count);
+    return 0;
+}

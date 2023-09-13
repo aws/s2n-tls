@@ -1,5 +1,8 @@
 ---
 version: 0.2
+env:
+  variables:
+    S2N_KTLS_TESTING_EXPECTED: true
 phases:
   install:
     commands:
