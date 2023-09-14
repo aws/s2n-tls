@@ -167,7 +167,11 @@ int main(int argc, char **argv)
     };
 
     /* Test sending with ktls */
-    for (size_t mode_i = 0; mode_i < s2n_array_len(modes) && ktls_send_supported; mode_i++) {
+    for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+        if (!ktls_send_supported) {
+            break;
+        }
+
         const s2n_mode mode = modes[mode_i];
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
@@ -281,7 +285,11 @@ int main(int argc, char **argv)
     };
 
     /* Test receiving with ktls */
-    for (size_t mode_i = 0; mode_i < s2n_array_len(modes) && ktls_recv_supported; mode_i++) {
+    for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+        if (!ktls_recv_supported) {
+            break;
+        }
+
         const s2n_mode mode = modes[mode_i];
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
