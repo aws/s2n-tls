@@ -143,17 +143,16 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
     return !s2n_connection_is_quic_enabled(conn);
 }
 
+/*
+ * In TLS1.3 all Alerts
+ *= https://tools.ietf.org/rfc/rfc8446#section-6
+ *# MUST be treated as error alerts when received
+ *# regardless of the AlertLevel in the message.
+ */
 static bool s2n_process_as_warning(struct s2n_connection *conn, uint8_t level, uint8_t type)
 {
-    /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
-     *# All the alerts listed in Section 6.2 MUST be sent with
-     *# AlertLevel=fatal and MUST be treated as error alerts when received
-     *# regardless of the AlertLevel in the message.
-     *
-     * Only TLS1.2 considers the alert level. The alert level field is
-     * considered deprecated in TLS1.3.
-     */
+    /* Only TLS1.2 considers the alert level. The alert level field is
+     * considered deprecated in TLS1.3. */
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return level == S2N_TLS_ALERT_LEVEL_WARNING
                 && conn->config->alert_behavior == S2N_ALERT_IGNORE_WARNINGS;
@@ -231,8 +230,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /*
              *= https://tools.ietf.org/rfc/rfc8446#section-6
-             *# Unknown Alert types
-             *# MUST be treated as error alerts.
+             *# Unknown Alert types MUST be treated as error alerts.
              *
              * All other alerts are treated as fatal errors.
              */
