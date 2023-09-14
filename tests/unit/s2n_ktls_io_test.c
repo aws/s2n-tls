@@ -952,7 +952,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(read, test_data, max_frag_len);
         };
 
-        /* Test: Small read succeeds */
+        /* Test: Receive does not completely fill the output buffer */
         {
             const size_t small_frag_len = 10;
             EXPECT_TRUE(small_frag_len < max_frag_len);
@@ -977,6 +977,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
             EXPECT_EQUAL(record_type, TLS_ALERT);
 
+            /* Verify that conn->in reflects the correct size of the "record"
+             * read and doesn't just assume the maximum read size.
+             */
             EXPECT_EQUAL(conn->in.blob.allocated, max_frag_len);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), small_frag_len);
             uint8_t *read = s2n_stuffer_raw_read(&conn->in, small_frag_len);

@@ -345,6 +345,9 @@ int main(int argc, char **argv)
 
             /* Verify that the reader skips the application data and successfully
              * receives the close_notify.
+             *
+             * The close_notify was sent after the application data, so if the
+             * close_notify was received, then the application data was also received.
              */
             EXPECT_SUCCESS(s2n_shutdown(reader, &blocked));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
