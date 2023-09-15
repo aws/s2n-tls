@@ -49,6 +49,7 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
         ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
 int s2n_ktls_record_writev(struct s2n_connection *conn, uint8_t content_type,
         const struct iovec *in, int in_count, size_t offs, size_t to_write);
+int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type);
 
 /* These functions will be part of the public API. */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn);

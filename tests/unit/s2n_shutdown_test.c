@@ -704,5 +704,140 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: ktls enabled */
+    {
+        /* Test: Successfully shutdown */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND));
+            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV));
+            EXPECT_OK(s2n_skip_handshake(client));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND));
+            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV));
+            EXPECT_OK(s2n_skip_handshake(server));
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_SUCCESS(s2n_shutdown_send(client, &blocked));
+            EXPECT_TRUE(client->alert_sent);
+
+            EXPECT_SUCCESS(s2n_shutdown(server, &blocked));
+            EXPECT_TRUE(server->alert_sent);
+            EXPECT_TRUE(s2n_connection_check_io_status(server, S2N_IO_CLOSED));
+        };
+
+        /* Test: Successfully shutdown after blocking */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND));
+            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV));
+            EXPECT_OK(s2n_skip_handshake(client));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND));
+            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV));
+            EXPECT_OK(s2n_skip_handshake(server));
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            /* Setup the client->server stuffer to not fit the entire close_notify */
+            EXPECT_SUCCESS(s2n_stuffer_free(&io_pair.server_in.data_buffer));
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&io_pair.server_in.data_buffer, 1));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client, &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+            EXPECT_FALSE(s2n_connection_check_io_status(client, S2N_IO_WRITABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(client, S2N_IO_READABLE));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(server, &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+            EXPECT_FALSE(s2n_connection_check_io_status(server, S2N_IO_WRITABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(server, S2N_IO_READABLE));
+
+            /* Reuse the client->server stuffer for the remaining close_notify */
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in.data_buffer));
+
+            EXPECT_SUCCESS(s2n_shutdown(client, &blocked));
+            EXPECT_SUCCESS(s2n_shutdown(server, &blocked));
+        };
+
+        /* Test: Skip application data when waiting for close_notify */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND));
+            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV));
+            EXPECT_OK(s2n_skip_handshake(client));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND));
+            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV));
+            EXPECT_OK(s2n_skip_handshake(server));
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(server, client, &io_pair));
+
+            /* Send some application data for shutdown to skip */
+            uint8_t app_data[] = "hello world";
+            size_t app_data_size = sizeof(app_data);
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            size_t app_data_count = 5;
+            for (size_t i = 0; i < app_data_count; i++) {
+                EXPECT_SUCCESS(s2n_send(client, app_data, app_data_size, &blocked));
+                EXPECT_SUCCESS(s2n_send(server, app_data, app_data_size, &blocked));
+            }
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.client_in, TLS_APPLICATION_DATA, app_data_size));
+            EXPECT_OK(s2n_test_validate_ancillary(&io_pair.server_in, TLS_APPLICATION_DATA, app_data_size));
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.client_in, app_data_count));
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.server_in, app_data_count));
+
+            /* Client's first shutdown blocks on reading the close_notify,
+             * but successfully writes the close_notify and skips all the app data.*/
+            EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(client, &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+            EXPECT_FALSE(s2n_connection_check_io_status(client, S2N_IO_WRITABLE));
+            EXPECT_TRUE(s2n_connection_check_io_status(client, S2N_IO_READABLE));
+            EXPECT_TRUE(client->alert_sent);
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.client_in, 0));
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.server_in, app_data_count + 1));
+
+            /* Server's first shutdown successfully skips all the app data
+             * and receives the close_notify */
+            EXPECT_SUCCESS(s2n_shutdown(server, &blocked));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(s2n_connection_check_io_status(server, S2N_IO_CLOSED));
+            EXPECT_TRUE(server->alert_sent);
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.client_in, 1));
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.server_in, 0));
+
+            /* Client's second shutdown successfully receives the close_notify */
+            EXPECT_SUCCESS(s2n_shutdown(client, &blocked));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(s2n_connection_check_io_status(client, S2N_IO_CLOSED));
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.client_in, 0));
+            EXPECT_OK(s2n_test_records_in_ancillary(&io_pair.server_in, 0));
+        };
+    };
+
     END_TEST();
 }
