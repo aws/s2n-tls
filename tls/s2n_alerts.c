@@ -228,11 +228,10 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
                 conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
-            /*
+            /* All other alerts are treated as fatal errors.
+             *
              *= https://tools.ietf.org/rfc/rfc8446#section-6
              *# Unknown Alert types MUST be treated as error alerts.
-             *
-             * All other alerts are treated as fatal errors.
              */
             POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
             s2n_atomic_flag_set(&conn->error_alert_received);
