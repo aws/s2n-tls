@@ -1160,6 +1160,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
          *
          * We may want to someday add an explicit error type for these errors.
          */
+        case S2N_ERR_CLOSED:
         case S2N_ERR_CANCELLED:
         case S2N_ERR_CIPHER_NOT_SUPPORTED:
         case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
