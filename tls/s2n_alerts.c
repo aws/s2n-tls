@@ -143,8 +143,7 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
     return !s2n_connection_is_quic_enabled(conn);
 }
 
-/*
- * In TLS1.3 all Alerts
+/* In TLS1.3 all Alerts
  *= https://tools.ietf.org/rfc/rfc8446#section-6
  *# MUST be treated as error alerts when received
  *# regardless of the AlertLevel in the message.
