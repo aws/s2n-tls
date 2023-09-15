@@ -32,6 +32,7 @@
 #include "error/s2n_errno.h"
 #include "tls/s2n_ktls.h"
 #include "tls/s2n_tls.h"
+#include "utils/s2n_io.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
@@ -213,13 +214,9 @@ S2N_RESULT s2n_ktls_sendmsg(void *io_context, uint8_t record_type, const struct 
     RESULT_GUARD(s2n_ktls_set_control_data(&msg, control_data, sizeof(control_data),
             S2N_TLS_SET_RECORD_TYPE, record_type));
 
-    ssize_t result = s2n_sendmsg_fn(io_context, &msg);
-    if (result < 0) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            RESULT_BAIL(S2N_ERR_IO_BLOCKED);
-        }
-        RESULT_BAIL(S2N_ERR_IO);
-    }
+    ssize_t result = 0;
+    S2N_IO_RETRY_EINTR(result, s2n_sendmsg_fn(io_context, &msg));
+    RESULT_GUARD(s2n_io_check_write_result(result));
 
     *blocked = S2N_NOT_BLOCKED;
     *bytes_written = result;
@@ -260,16 +257,9 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
     msg.msg_controllen = sizeof(control_data);
     msg.msg_control = control_data;
 
-    ssize_t result = s2n_recvmsg_fn(io_context, &msg);
-    if (result < 0) {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            RESULT_BAIL(S2N_ERR_IO_BLOCKED);
-        }
-        RESULT_BAIL(S2N_ERR_IO);
-    } else if (result == 0) {
-        /* The return value will be 0 when the socket reads EOF. */
-        RESULT_BAIL(S2N_ERR_CLOSED);
-    }
+    ssize_t result = 0;
+    S2N_IO_RETRY_EINTR(result, s2n_recvmsg_fn(io_context, &msg));
+    RESULT_GUARD(s2n_io_check_read_result(result));
 
     RESULT_GUARD(s2n_ktls_get_control_data(&msg, S2N_TLS_GET_RECORD_TYPE, record_type));
 
@@ -436,13 +426,9 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
 
 #ifdef S2N_LINUX_SENDFILE
     /* https://man7.org/linux/man-pages/man2/sendfile.2.html */
-    ssize_t result = sendfile(out_fd, in_fd, &offset, count);
-    if (result < 0) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            POSIX_BAIL(S2N_ERR_IO_BLOCKED);
-        }
-        POSIX_BAIL(S2N_ERR_IO);
-    }
+    ssize_t result = 0;
+    S2N_IO_RETRY_EINTR(result, sendfile(out_fd, in_fd, &offset, count));
+    POSIX_GUARD_RESULT(s2n_io_check_write_result(result));
     *bytes_written = result;
 #else
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
