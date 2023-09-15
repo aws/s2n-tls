@@ -457,6 +457,9 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(record_type);
 
+    /* If any unread data remains in conn->in, it must be application data that
+     * couldn't be returned due to the size of the application's provided buffer.
+     */
     if (s2n_stuffer_data_available(&conn->in)) {
         *record_type = TLS_APPLICATION_DATA;
         return S2N_SUCCESS;

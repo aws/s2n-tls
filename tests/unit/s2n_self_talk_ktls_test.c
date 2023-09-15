@@ -132,7 +132,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-    EXPECT_SUCCESS(s2n_config_set_recv_multi_record(config, true));
 
     /* Even if we detected ktls support at compile time, enabling ktls
      * can fail at runtime if the system is not properly configured.
@@ -391,8 +390,8 @@ int main(int argc, char **argv)
      * 2. Receive an alert while calling s2n_shutdown
      * 3. Receive "end of data" while calling s2n_recv (but this is an error)
      *
-     * We need a fresh connection to test each scenario. Wiping a connection isn't
-     * sufficient because we can't disable / reset ktls.
+     * We need a fresh socket pair to test each scenario. Reusing sockets isn't
+     * currently possible because we currently can't disable / reset ktls.
      */
     for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
         if (!ktls_recv_supported) {

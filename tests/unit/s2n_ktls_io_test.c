@@ -1167,7 +1167,7 @@ int main(int argc, char **argv)
             uint8_t record_type = 0;
             uint8_t *read = NULL;
 
-            /* Verify that our first read return conn->in, not the new record */
+            /* Verify that our first read returns conn->in, not the new record */
             EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
             EXPECT_EQUAL(record_type, TLS_APPLICATION_DATA);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), offset);
