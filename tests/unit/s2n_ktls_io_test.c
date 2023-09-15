@@ -911,12 +911,9 @@ int main(int argc, char **argv)
         };
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-        const size_t max_frag_len = S2N_KTLS_CONTROL_MESSAGE_MAX_FRAG_LEN;
-        const size_t app_data_max_frag_len = S2N_DEFAULT_FRAGMENT_LENGTH;
+        const size_t max_frag_len = S2N_DEFAULT_FRAGMENT_LENGTH;
         /* Our test assumptions are wrong if this isn't true */
         EXPECT_TRUE(max_frag_len < sizeof(test_data));
-        EXPECT_TRUE(app_data_max_frag_len < sizeof(test_data));
-        EXPECT_TRUE(app_data_max_frag_len + max_frag_len < sizeof(test_data));
 
         /* Safety */
         {
@@ -957,7 +954,7 @@ int main(int argc, char **argv)
 
         /* Test: Receive does not completely fill the output buffer */
         {
-            const size_t small_frag_len = 3;
+            const size_t small_frag_len = 10;
             EXPECT_TRUE(small_frag_len < max_frag_len);
             EXPECT_TRUE(small_frag_len < sizeof(test_data));
             struct iovec small_test_iovec = test_iovec;
@@ -987,44 +984,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), small_frag_len);
             uint8_t *read = s2n_stuffer_raw_read(&conn->in, small_frag_len);
             EXPECT_BYTEARRAY_EQUAL(read, test_data, small_frag_len);
-        };
-
-        /* Test: Receive resizes to handle application data */
-        {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-
-            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
-                    s2n_ktls_io_stuffer_pair_free);
-            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
-            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
-
-            size_t written = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_APPLICATION_DATA,
-                    &test_iovec, 1, &blocked, &written));
-            EXPECT_EQUAL(written, sizeof(test_data));
-
-            uint8_t record_type = 0;
-            uint8_t *read = NULL;
-
-            /* First read returns first fragment */
-            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
-            EXPECT_EQUAL(record_type, TLS_APPLICATION_DATA);
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), max_frag_len);
-            read = s2n_stuffer_raw_read(&conn->in, max_frag_len);
-            EXPECT_BYTEARRAY_EQUAL(read, test_data, max_frag_len);
-
-            /* Verify that conn->in was resized for future reads */
-            EXPECT_EQUAL(conn->in.blob.allocated, app_data_max_frag_len);
-            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-
-            /* Second read returns larger fragment */
-            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
-            EXPECT_EQUAL(record_type, TLS_APPLICATION_DATA);
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), app_data_max_frag_len);
-            read = s2n_stuffer_raw_read(&conn->in, app_data_max_frag_len);
-            EXPECT_BYTEARRAY_EQUAL(read, test_data + max_frag_len, app_data_max_frag_len);
         };
     };
 

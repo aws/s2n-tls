@@ -413,10 +413,12 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
     POSIX_ENSURE_REF(record_type);
 
     /* This method copies data into conn->in, so is intended for control messages
-     * rather than application data. Set a fragment size that should result in
-     * only one recvmsg call for any reasonably-sized control message.
+     * rather than application data. However in some cases-- such as when attempting
+     * to read the close_notify alert during s2n_shutdown-- it may encounter application
+     * data. Set a reasonable conn->in size to avoid an excessive number of calls
+     * to recvmsg when reading a larger record.
      */
-    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_KTLS_CONTROL_MESSAGE_MAX_FRAG_LEN));
+    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_DEFAULT_FRAGMENT_LENGTH));
 
     struct s2n_stuffer record_stuffer = conn->in;
     size_t len = s2n_stuffer_space_remaining(&record_stuffer);
@@ -432,15 +434,6 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
     s2n_result result = s2n_ktls_recvmsg(conn->recv_io_context, record_type,
             buf, len, &blocked, &bytes_read);
     WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(result));
-
-    /* While this method normally only handles control messages, during
-     * s2n_shutdown it may encounter unprocessed application data which needs to
-     * be discarded. In that case, resize the input buffer to reduce the number
-     * of recvmsg calls required to finish reading the application data.
-     */
-    if (*record_type == TLS_APPLICATION_DATA) {
-        POSIX_GUARD(s2n_stuffer_resize(&conn->in, S2N_DEFAULT_FRAGMENT_LENGTH));
-    }
 
     POSIX_GUARD(s2n_stuffer_skip_write(&conn->in, bytes_read));
     return S2N_SUCCESS;

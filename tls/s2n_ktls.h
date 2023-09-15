@@ -26,12 +26,6 @@
  */
 #include "tls/s2n_ktls_parameters.h"
 
-/* ktls currently only handles alerts and HelloRequests.
- * HelloRequests are empty handshake messages (just the header).
- */
-#define S2N_KTLS_CONTROL_MESSAGE_MAX_FRAG_LEN \
-    MAX(S2N_ALERT_LENGTH, TLS_HANDSHAKE_HEADER_LENGTH)
-
 /* A set of kTLS configurations representing the combination of sending
  * and receiving.
  */
