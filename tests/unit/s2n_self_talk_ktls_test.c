@@ -30,6 +30,22 @@
  * https://stackoverflow.com/a/34042435 */
 #define S2N_TEST_INADDR_LOOPBACK 0x7f000001 /* 127.0.0.1 */
 
+static S2N_RESULT s2n_setup_connections(struct s2n_connection *server,
+        struct s2n_connection *client, struct s2n_test_io_pair *io_pair)
+{
+    RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client, server, io_pair));
+
+    /* The test negotiate method assumes non-blocking sockets */
+    RESULT_GUARD_POSIX(s2n_fd_set_non_blocking(io_pair->server));
+    RESULT_GUARD_POSIX(s2n_fd_set_non_blocking(io_pair->client));
+    RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server, client));
+
+    /* Our IO methods are more predictable if they use blocking sockets. */
+    RESULT_GUARD_POSIX(s2n_fd_set_blocking(io_pair->server));
+    RESULT_GUARD_POSIX(s2n_fd_set_blocking(io_pair->client));
+    return S2N_RESULT_OK;
+}
+
 /* Unlike our other self-talk tests, this test cannot use AF_UNIX / AF_LOCAL.
  * For a real self-talk test we need real kernel support for kTLS, and only
  * AF_INET sockets support kTLS.
@@ -144,12 +160,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(ktls_expected);
             END_TEST();
         }
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
-
-        /* The test negotiate method assumes non-blocking sockets */
-        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
-        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.client));
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+        EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
         if (s2n_connection_ktls_enable_send(client) == S2N_SUCCESS) {
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
@@ -186,12 +197,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
-
-        /* The test negotiate method assumes non-blocking sockets */
-        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
-        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.client));
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+        EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
         struct s2n_connection *conns[] = {
             [S2N_CLIENT] = client,
@@ -202,10 +208,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_ktls_enable_send(writer));
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-
-        /* Our IO methods are more predictable if they use blocking sockets. */
-        EXPECT_SUCCESS(s2n_fd_set_blocking(io_pair.server));
-        EXPECT_SUCCESS(s2n_fd_set_blocking(io_pair.client));
 
         /* Test: s2n_send */
         for (size_t i = 0; i < 5; i++) {
@@ -296,20 +298,17 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client);
+        EXPECT_NOT_NULL(server);
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
-
-        /* The test negotiate method assumes non-blocking sockets */
-        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.server));
-        EXPECT_SUCCESS(s2n_fd_set_non_blocking(io_pair.client));
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+        EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
         struct s2n_connection *conns[] = {
             [S2N_CLIENT] = client,
@@ -321,19 +320,138 @@ int main(int argc, char **argv)
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-        /* Our IO methods are more predictable if they use blocking sockets. */
-        EXPECT_SUCCESS(s2n_fd_set_blocking(io_pair.server));
-        EXPECT_SUCCESS(s2n_fd_set_blocking(io_pair.client));
+        /* Test: s2n_recv with only application data */
+        for (size_t i = 0; i < 5; i++) {
+            int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+            EXPECT_EQUAL(written, sizeof(test_data));
 
-        /* Test: s2n_recv not implemented yet */
-        {
-            uint8_t buffer[10] = { 0 };
-            int received = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
-            EXPECT_FAILURE_WITH_ERRNO(received, S2N_ERR_UNIMPLEMENTED);
+            uint8_t buffer[sizeof(test_data)] = { 0 };
+            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            EXPECT_EQUAL(read, sizeof(test_data));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+            EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
         }
 
-        /* Test: s2n_shutdown */
+        /* Test: s2n_recv with interleaved control messages */
         {
+            const uint8_t test_record_type = TLS_CHANGE_CIPHER_SPEC;
+            uint8_t control_record_data[] = "control record data";
+            struct s2n_blob control_record = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&control_record, control_record_data,
+                    sizeof(control_record_data)));
+
+            for (size_t i = 0; i < 5; i++) {
+                EXPECT_OK(s2n_record_write(writer, test_record_type, &control_record));
+                EXPECT_SUCCESS(s2n_flush(writer, &blocked));
+
+                int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+                EXPECT_EQUAL(written, sizeof(test_data));
+
+                uint8_t buffer[sizeof(test_data)] = { 0 };
+                int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+                EXPECT_EQUAL(read, sizeof(test_data));
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+                EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
+            }
+        };
+
+        /* Test: s2n_recv with incorrectly encrypted application data
+         *
+         * This test closes the connection so should be the last test to use
+         * these connections.
+         */
+        {
+            /* Write a valid record of application data */
+            EXPECT_OK(s2n_record_write(writer, TLS_APPLICATION_DATA, &test_data_blob));
+            /* Wipe part of the encrypted record so that it is no longer valid */
+            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&writer->out, 10));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&writer->out, 10));
+            /* Actually send the modified record */
+            EXPECT_SUCCESS(s2n_flush(writer, &blocked));
+
+            uint8_t buffer[sizeof(test_data)] = { 0 };
+            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_IO);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+
+            /* This error is fatal and blinded */
+            EXPECT_TRUE(s2n_connection_check_io_status(reader, S2N_IO_CLOSED));
+            EXPECT_TRUE(s2n_connection_get_delay(reader) > 0);
+            EXPECT_TRUE(s2n_connection_get_delay(reader) < UINT64_MAX);
+        };
+    };
+
+    /* Test: s2n_shutdown
+     *
+     * There are three ways to trigger the read side of a TLS connection to close:
+     * 1. Receive an alert while calling s2n_recv
+     * 2. Receive an alert while calling s2n_shutdown
+     * 3. Receive "end of data" while calling s2n_recv (but this is an error)
+     *
+     * We need a fresh socket pair to test each scenario. Reusing sockets isn't
+     * currently possible because we currently can't disable / reset ktls.
+     */
+    for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+        if (!ktls_recv_supported) {
+            break;
+        }
+
+        const s2n_mode mode = modes[mode_i];
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+
+        struct s2n_connection *conns[] = {
+            [S2N_CLIENT] = client,
+            [S2N_SERVER] = server,
+        };
+        struct s2n_connection *reader = conns[mode];
+        struct s2n_connection *writer = conns[S2N_PEER_MODE(mode)];
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Test: Receive an alert while calling s2n_recv */
+        {
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+            EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
+
+            EXPECT_SUCCESS(s2n_shutdown_send(writer, &blocked));
+
+            uint8_t buffer[10] = { 0 };
+            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            EXPECT_EQUAL(read, 0);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(s2n_atomic_flag_test(&reader->close_notify_received));
+            EXPECT_FALSE(s2n_connection_check_io_status(reader, S2N_IO_READABLE));
+
+            EXPECT_SUCCESS(s2n_shutdown(reader, &blocked));
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_TRUE(s2n_connection_check_io_status(reader, S2N_IO_CLOSED));
+        };
+
+        EXPECT_SUCCESS(s2n_connection_wipe(server));
+        EXPECT_SUCCESS(s2n_connection_wipe(client));
+
+        /* Test: Receive an alert while calling s2n_shutdown */
+        {
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+            EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
+
             /* Send some application data for the reader to skip */
             for (size_t i = 0; i < 3; i++) {
                 EXPECT_SUCCESS(s2n_send(writer, test_data, 10, &blocked));
@@ -352,6 +470,28 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_shutdown(reader, &blocked));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_TRUE(s2n_connection_check_io_status(reader, S2N_IO_CLOSED));
+        };
+
+        EXPECT_SUCCESS(s2n_connection_wipe(server));
+        EXPECT_SUCCESS(s2n_connection_wipe(client));
+
+        /* Test: Receive "end of data" while calling s2n_recv */
+        {
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+            EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
+
+            EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, writer->mode));
+
+            uint8_t buffer[10] = { 0 };
+            int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+            EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_CLOSED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+
+            /* Error fatal but not blinded */
+            EXPECT_TRUE(s2n_connection_check_io_status(reader, S2N_IO_CLOSED));
+            EXPECT_EQUAL(s2n_connection_get_delay(reader), 0);
         };
     };
 

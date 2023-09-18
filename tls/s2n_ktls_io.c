@@ -457,12 +457,14 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(record_type);
 
-    /* This method copies data into conn->in, so is intended for control messages
-     * rather than application data. However in some cases-- such as when attempting
-     * to read the close_notify alert during s2n_shutdown-- it may encounter application
-     * data. Set a reasonable conn->in size to avoid an excessive number of calls
-     * to recvmsg when reading a larger record.
+    /* If any unread data remains in conn->in, it must be application data that
+     * couldn't be returned due to the size of the application's provided buffer.
      */
+    if (s2n_stuffer_data_available(&conn->in)) {
+        *record_type = TLS_APPLICATION_DATA;
+        return S2N_SUCCESS;
+    }
+
     POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_DEFAULT_FRAGMENT_LENGTH));
 
     struct s2n_stuffer record_stuffer = conn->in;
