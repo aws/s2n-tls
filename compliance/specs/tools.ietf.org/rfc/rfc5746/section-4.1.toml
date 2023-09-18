@@ -1,0 +1,37 @@
+target = "https://tools.ietf.org/rfc/rfc5746#section-4.1"
+
+# 4.1.  Client Considerations
+#
+# If a client offers the "renegotiation_info" extension or the
+# TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV and the server does not reply
+# with "renegotiation_info" in the ServerHello, then this indicates
+# that the server does not support secure renegotiation.  Because some
+# attacks (see Section 1) look like a single handshake to the client,
+# the client cannot determine whether or not the connection is under
+# attack.  Note, however, that merely because the server does not
+# acknowledge the extension does not mean that it is vulnerable; it
+# might choose to reject all renegotiations and simply not signal it.
+# However, it is not possible for the client to determine purely via
+# TLS mechanisms whether or not this is the case.
+# 
+# If clients wish to ensure that such attacks are impossible, they need
+# to terminate the connection immediately upon failure to receive the
+# extension without completing the handshake.  Such clients MUST
+# generate a fatal "handshake_failure" alert prior to terminating the
+# connection.  However, it is expected that many TLS servers that do
+# not support renegotiation (and thus are not vulnerable) will not
+# support this extension either, so in general, clients that implement
+# this behavior will encounter interoperability problems.  There is no
+# set of client behaviors that will guarantee security and achieve
+# maximum interoperability during the transition period.  Clients need
+# to choose one or the other preference when dealing with potentially
+# un-upgraded servers.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Such clients MUST
+generate a fatal "handshake_failure" alert prior to terminating the
+connection.
+'''
+

@@ -1,0 +1,70 @@
+target = "https://tools.ietf.org/rfc/rfc5746#section-3.5"
+
+# 3.5.  Client Behavior: Secure Renegotiation
+#
+# This text applies if the connection's "secure_renegotiation" flag is
+# set to TRUE (if it is set to FALSE, see Section 4.2).
+# 
+# o  The client MUST include the "renegotiation_info" extension in the
+#    ClientHello, containing the saved client_verify_data.  The SCSV
+#    MUST NOT be included.
+# 
+# o  When a ServerHello is received, the client MUST verify that the
+#    "renegotiation_info" extension is present; if it is not, the
+#    client MUST abort the handshake.
+# 
+# o  The client MUST then verify that the first half of the
+#    "renegotiated_connection" field is equal to the saved
+#    client_verify_data value, and the second half is equal to the
+#    saved server_verify_data value.  If they are not, the client MUST
+#    abort the handshake.
+# 
+# o  When the handshake has completed, the client needs to save the new
+#    client_verify_data and server_verify_data values.
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  The client MUST include the "renegotiation_info" extension in the
+ClientHello, containing the saved client_verify_data.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The SCSV
+MUST NOT be included.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  When a ServerHello is received, the client MUST verify that the
+"renegotiation_info" extension is present; if it is not, the
+client MUST abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  When a ServerHello is received, the client MUST verify that the
+"renegotiation_info" extension is present; if it is not, the
+client MUST abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  The client MUST then verify that the first half of the
+"renegotiated_connection" field is equal to the saved
+client_verify_data value, and the second half is equal to the
+saved server_verify_data value.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If they are not, the client MUST
+abort the handshake.
+'''
+

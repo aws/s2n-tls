@@ -1,0 +1,103 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-7.4.9"
+
+# 7.4.9.  Finished
+#
+# When this message will be sent:
+# 
+#    A Finished message is always sent immediately after a change
+#    cipher spec message to verify that the key exchange and
+#    authentication processes were successful.  It is essential that a
+#    change cipher spec message be received between the other handshake
+#    messages and the Finished message.
+# 
+# Meaning of this message:
+# 
+#    The Finished message is the first one protected with the just
+#    negotiated algorithms, keys, and secrets.  Recipients of Finished
+#    messages MUST verify that the contents are correct.  Once a side
+#    has sent its Finished message and received and validated the
+#    Finished message from its peer, it may begin to send and receive
+#    application data over the connection.
+# 
+# Structure of this message:
+# 
+#    struct {
+#        opaque verify_data[verify_data_length];
+#    } Finished;
+# 
+#    verify_data
+#       PRF(master_secret, finished_label, Hash(handshake_messages))
+#          [0..verify_data_length-1];
+# 
+#    finished_label
+#       For Finished messages sent by the client, the string
+#       "client finished".  For Finished messages sent by the server,
+#       the string "server finished".
+# 
+#    Hash denotes a Hash of the handshake messages.  For the PRF
+#    defined in Section 5, the Hash MUST be the Hash used as the basis
+#    for the PRF.  Any cipher suite which defines a different PRF MUST
+#    also define the Hash to use in the Finished computation.
+# 
+#    In previous versions of TLS, the verify_data was always 12 octets
+#    long.  In the current version of TLS, it depends on the cipher
+#    suite.  Any cipher suite which does not explicitly specify
+#    verify_data_length has a verify_data_length equal to 12.  This
+#    includes all existing cipher suites.  Note that this
+#    representation has the same encoding as with previous versions.
+#    Future cipher suites MAY specify other lengths but such length
+#    MUST be at least 12 bytes.
+# 
+#    handshake_messages
+#       All of the data from all messages in this handshake (not
+#       including any HelloRequest messages) up to, but not including,
+#       this message.  This is only data visible at the handshake layer
+#       and does not include record layer headers.  This is the
+#       concatenation of all the Handshake structures as defined in
+#       Section 7.4, exchanged thus far.
+# 
+# It is a fatal error if a Finished message is not preceded by a
+# ChangeCipherSpec message at the appropriate point in the handshake.
+# 
+# The value handshake_messages includes all handshake messages starting
+# at ClientHello up to, but not including, this Finished message.  This
+# may be different from handshake_messages in Section 7.4.8 because it
+# would include the CertificateVerify message (if sent).  Also, the
+# handshake_messages for the Finished message sent by the client will
+# be different from that for the Finished message sent by the server,
+# because the one that is sent second will include the prior one.
+# 
+# Note: ChangeCipherSpec messages, alerts, and any other record types
+# are not handshake messages and are not included in the hash
+# computations.  Also, HelloRequest messages are omitted from handshake
+# hashes.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Recipients of Finished
+messages MUST verify that the contents are correct.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For the PRF
+defined in Section 5, the Hash MUST be the Hash used as the basis
+for the PRF.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Any cipher suite which defines a different PRF MUST
+also define the Hash to use in the Finished computation.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Future cipher suites MAY specify other lengths but such length
+MUST be at least 12 bytes.
+'''
+
