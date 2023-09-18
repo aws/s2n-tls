@@ -1,0 +1,84 @@
+target = "https://tools.ietf.org/rfc/rfc8422#section-5.1.2"
+
+# 5.1.2.  Supported Point Formats Extension
+#
+#         enum {
+#             uncompressed (0),
+#             deprecated (1..2),
+#             reserved (248..255)
+#         } ECPointFormat;
+#         struct {
+#             ECPointFormat ec_point_format_list<1..2^8-1>
+#         } ECPointFormatList;
+# 
+# Three point formats were included in the definition of ECPointFormat
+# above.  This specification deprecates all but the uncompressed point
+# format.  Implementations of this document MUST support the
+# uncompressed format for all of their supported curves and MUST NOT
+# support other formats for curves defined in this specification.  For
+# backwards compatibility purposes, the point format list extension MAY
+# still be included and contain exactly one value: the uncompressed
+# point format (0).  RFC 4492 specified that if this extension is
+# missing, it means that only the uncompressed point format is
+# supported, so interoperability with implementations that support the
+# uncompressed format should work with or without the extension.
+# 
+# If the client sends the extension and the extension does not contain
+# the uncompressed point format, and the client has used the Supported
+# Groups extension to indicate support for any of the curves defined in
+# this specification, then the server MUST abort the handshake and
+# return an illegal_parameter alert.
+# 
+# The ECPointFormat name space (now titled "TLS EC Point Formats") is
+# maintained by IANA.  See Section 9 for information on how new value
+# assignments are added.
+# 
+# A client compliant with this specification that supports no other
+# curves MUST send the following octets; note that the first two octets
+# indicate the extension type (Supported Point Formats Extension):
+# 
+#         00 0B 00 02 01 00
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations of this document MUST support the
+uncompressed format for all of their supported curves and MUST NOT
+support other formats for curves defined in this specification.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations of this document MUST support the
+uncompressed format for all of their supported curves and MUST NOT
+support other formats for curves defined in this specification.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+For
+backwards compatibility purposes, the point format list extension MAY
+still be included and contain exactly one value: the uncompressed
+point format (0).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client sends the extension and the extension does not contain
+the uncompressed point format, and the client has used the Supported
+Groups extension to indicate support for any of the curves defined in
+this specification, then the server MUST abort the handshake and
+return an illegal_parameter alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A client compliant with this specification that supports no other
+curves MUST send the following octets; note that the first two octets
+indicate the extension type (Supported Point Formats Extension):
+'''
+
