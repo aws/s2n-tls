@@ -89,3 +89,5 @@ S2N_API int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_
  * not relied on for production logic.
  */
 S2N_API int s2n_error_get_alert(int error, uint8_t *alert);
+
+S2N_API int s2n_connection_process_post_handshake_message(struct s2n_connection *conn);

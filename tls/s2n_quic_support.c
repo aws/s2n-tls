@@ -90,6 +90,17 @@ int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_c
     return S2N_SUCCESS;
 }
 
+int s2n_connection_process_post_handshake_message(struct s2n_connection *conn)
+{
+    POSIX_ENSURE_REF(conn);
+
+    uint8_t message_type = 0;
+    POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
+    POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->in, message_type));
+
+    return S2N_SUCCESS;
+}
+
 /* When using QUIC, S2N reads unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N input buffers to match the results of using s2n_read_full_record.
  */
