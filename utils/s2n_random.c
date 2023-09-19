@@ -28,13 +28,17 @@
  * 700.  In glibc 2.11 and earlier, one obtains the definitions by
  * defining _GNU_SOURCE.
  *
- * # Relavent Links
+ * We use two feature probes to detect the need to perform this workaround.
+ * It is only applied if we can't get CLOEXEC without it and the build doesn't
+ * fail with _XOPEN_SOURCE being defined.
+ *
+ * # Relevent Links
  *
  * - POSIX.1-2017: https://pubs.opengroup.org/onlinepubs/9699919799
  * - https://stackoverflow.com/a/5724485
  * - https://stackoverflow.com/a/5583764
  */
-#ifndef _XOPEN_SOURCE
+#if !defined(S2N_CLOEXEC_SUPPORTED) && defined(S2N_CLOEXEC_XOPEN_SUPPORTED) && !defined(_XOPEN_SOURCE)
     #define _XOPEN_SOURCE 700
     #include <fcntl.h>
     #undef _XOPEN_SOURCE
