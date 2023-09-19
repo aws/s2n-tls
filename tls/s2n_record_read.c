@@ -109,8 +109,7 @@ int s2n_record_header_parse(
 
     /* Some servers send fragments that are above the maximum length (e.g.
      * Openssl 1.0.1), so we don't check if the fragment length is >
-     * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. The on-the-wire max is ~65k so
-     * process up to that limit instead.
+     * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. We allow up to 2^16.
      *
      *= https://tools.ietf.org/rfc/rfc8446#section-5.1
      *= type=exception
