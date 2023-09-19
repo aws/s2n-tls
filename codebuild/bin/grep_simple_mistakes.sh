@@ -18,7 +18,7 @@ FAILED=0
 # Grep for any instances of raw memcpy() function. s2n code should instead be
 # using one of the *_ENSURE_MEMCPY macros.
 #############################################
-S2N_FILES_ASSERT_NOT_USING_MEMCPY=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*"  -not -path "*/pq-crypto/*")
+S2N_FILES_ASSERT_NOT_USING_MEMCPY=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*"  -not -path "*/pq-crypto/*" -not -path "*/s2n_ensure.[ch]")
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCPY; do
   RESULT_NUM_LINES=`grep 'memcpy(' $file | wc -l`
   if [ "${RESULT_NUM_LINES}" != 0 ]; then

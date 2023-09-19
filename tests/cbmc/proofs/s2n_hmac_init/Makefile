@@ -62,5 +62,8 @@ UNWINDSET += __CPROVER_file_local_s2n_hmac_c_s2n_tls_hmac_init.5:129
 UNWINDSET += __CPROVER_file_local_s2n_hmac_c_s2n_tls_hmac_init.6:129
 UNWINDSET += __CPROVER_file_local_s2n_hmac_c_s2n_tls_hmac_init.8:129
 UNWINDSET += __CPROVER_file_local_s2n_hmac_c_s2n_tls_hmac_init.9:129
+UNWINDSET += __CPROVER_file_local_s2n_hmac_c_s2n_tls_hmac_init.10:129
+UNWINDSET += __CPROVER_file_local_s2n_hmac_c_s2n_tls_hmac_init.11:129
+UNWINDSET += __CPROVER_file_local_s2n_hmac_c_s2n_tls_hmac_init.12:129
 
 include ../Makefile.common
