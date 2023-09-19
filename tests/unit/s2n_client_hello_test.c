@@ -208,6 +208,52 @@ int main(int argc, char **argv)
         s2n_disable_tls13_in_test();
     };
 
+    /* Test getting supported versions from the client hello */
+    if (s2n_is_tls13_fully_supported()) {
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
+        /* TLS13 has supported versions in the client hello */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            uint8_t supported_versions[256] = { 0 };
+            uint8_t size_of_version_list = 0;
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io,
+                    &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_client_hello_get_extension_by_id(&server_conn->client_hello,
+                    S2N_EXTENSION_SUPPORTED_VERSIONS, supported_versions, sizeof(supported_versions)));
+            size_of_version_list = supported_versions[0];
+            /* No supported versions before the handshake is received */
+            EXPECT_EQUAL(0, size_of_version_list);
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_SUCCESS(s2n_client_hello_get_extension_by_id(&server_conn->client_hello,
+                    S2N_EXTENSION_SUPPORTED_VERSIONS, supported_versions, sizeof(supported_versions)));
+            size_of_version_list = supported_versions[0];
+            EXPECT_TRUE(size_of_version_list > 0);
+            bool found_tls13 = false;
+            const uint8_t tls13_bytes[] = { 0x03, 0x04 };
+            const size_t supported_version_size = sizeof(tls13_bytes);
+            for (uint16_t offset = 1; offset < size_of_version_list; offset += supported_version_size) {
+                if (memcmp(tls13_bytes, &supported_versions[offset], supported_version_size) == 0) {
+                    found_tls13 = true;
+                }
+            }
+            EXPECT_TRUE(found_tls13);
+        };
+        s2n_disable_tls13_in_test();
+    };
+
     /* Test generating session id */
     {
         const uint8_t test_session_id[S2N_TLS_SESSION_ID_MAX_LEN] = { 7 };

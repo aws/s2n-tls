@@ -96,6 +96,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_RECORD_LIMIT, "TLS record limit reached") \
     ERR_ENTRY(S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted") \
     ERR_ENTRY(S2N_ERR_CERT_REVOKED, "Certificate has been revoked by the CA") \
+    ERR_ENTRY(S2N_ERR_CERT_NOT_YET_VALID, "Certificate is not yet valid") \
     ERR_ENTRY(S2N_ERR_CERT_EXPIRED, "Certificate has expired") \
     ERR_ENTRY(S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported") \
     ERR_ENTRY(S2N_ERR_CERT_INVALID, "Certificate is invalid") \
@@ -299,6 +300,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_ENABLE_CRYPTO, "An error occurred when attempting to enable kTLS on socket.")  \
     ERR_ENTRY(S2N_ERR_KTLS_BAD_CMSG, "Error handling cmsghdr.")  \
     ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
+    ERR_ENTRY(S2N_ERR_TEST_ASSERTION, "Test assertion failed") \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

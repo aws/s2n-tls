@@ -135,6 +135,12 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 /* Missing line endings between PEM encapsulation boundaries */
 #define S2N_MISSING_LINE_ENDINGS_CERT_CHAIN "../pems/rsa_2048_missing_line_endings_cert.pem"
 
+/* PEMs with invalid timestamp fields */
+#define S2N_EXPIRED_CERT_CHAIN       "../pems/rsa_2048_expired_cert.pem"
+#define S2N_EXPIRED_KEY              "../pems/rsa_2048_expired_key.pem"
+#define S2N_NOT_YET_VALID_CERT_CHAIN "../pems/rsa_2048_not_yet_valid_cert.pem"
+#define S2N_NOT_YET_VALID_KEY        "../pems/rsa_2048_not_yet_valid_key.pem"
+
 /* Illegally formatted PEMs */
 #define S2N_INVALID_HEADER_CERT_CHAIN  "../pems/rsa_2048_invalid_header_cert.pem"
 #define S2N_INVALID_TRAILER_CERT_CHAIN "../pems/rsa_2048_invalid_trailer_cert.pem"
@@ -201,6 +207,18 @@ S2N_RESULT s2n_negotiate_test_server_and_client_until_message(struct s2n_connect
 int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, struct s2n_connection *client_conn);
 S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
         struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received);
+
+/* Testing only with easily constructed contiguous data buffers could hide errors.
+ * We should use iovecs where every buffer is allocated separately.
+ * These test methods construct separate io buffers from one contiguous buffer.
+ */
+struct s2n_test_iovecs {
+    struct iovec *iovecs;
+    size_t iovecs_count;
+};
+S2N_RESULT s2n_test_new_iovecs(struct s2n_test_iovecs *iovecs,
+        struct s2n_blob *data, const size_t *lens, size_t lens_count);
+S2N_CLEANUP_RESULT s2n_test_iovecs_free(struct s2n_test_iovecs *in);
 
 struct s2n_kem_kat_test_vector {
     const struct s2n_kem *kem;

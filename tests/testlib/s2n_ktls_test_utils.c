@@ -43,11 +43,12 @@ static S2N_RESULT s2n_test_ktls_update_prev_header_len(struct s2n_test_ktls_io_s
 
 ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *msg)
 {
+    errno = EINVAL;
     POSIX_ENSURE_REF(msg);
-    POSIX_ENSURE_REF(msg->msg_iov);
 
     struct s2n_test_ktls_io_stuffer *io_ctx = (struct s2n_test_ktls_io_stuffer *) io_context;
     POSIX_ENSURE_REF(io_ctx);
+    struct s2n_stuffer *data_buffer = &io_ctx->data_buffer;
     io_ctx->sendmsg_invoked_count++;
 
     uint8_t record_type = 0;
@@ -56,22 +57,20 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
 
     size_t total_len = 0;
     for (size_t count = 0; count < msg->msg_iovlen; count++) {
+        POSIX_ENSURE_REF(msg->msg_iov);
         uint8_t *buf = msg->msg_iov[count].iov_base;
-        POSIX_ENSURE_REF(buf);
         size_t len = msg->msg_iov[count].iov_len;
 
-        if (s2n_stuffer_write_bytes(&io_ctx->data_buffer, buf, len) < 0) {
-            /* This mock implementation only handles partial writes for msg_iovlen == 1.
-             *
-             * This simplifies the implementation and importantly doesn't limit our test
-             * coverage because partial writes are handled the same regardless of
-             * msg_iovlen. */
-            POSIX_ENSURE(msg->msg_iovlen == 1, S2N_ERR_SAFETY);
-
+        if (s2n_stuffer_write_bytes(data_buffer, buf, len) != S2N_SUCCESS) {
+            size_t partial_len = MIN(len, s2n_stuffer_space_remaining(data_buffer));
+            POSIX_GUARD(s2n_stuffer_write_bytes(data_buffer, buf, partial_len));
+            total_len += partial_len;
+            if (total_len) {
+                break;
+            }
             errno = EAGAIN;
             return -1;
         }
-
         total_len += len;
     }
     if (total_len) {
@@ -90,6 +89,7 @@ ssize_t s2n_test_ktls_sendmsg_io_stuffer(void *io_context, const struct msghdr *
  * are of the same type. */
 ssize_t s2n_test_ktls_recvmsg_io_stuffer(void *io_context, struct msghdr *msg)
 {
+    errno = EINVAL;
     POSIX_ENSURE_REF(msg);
     POSIX_ENSURE_REF(msg->msg_iov);
 
@@ -203,8 +203,8 @@ S2N_CLEANUP_RESULT s2n_ktls_io_stuffer_pair_free(struct s2n_test_ktls_io_stuffer
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io, uint8_t *expected_data,
-        uint16_t expected_len)
+S2N_RESULT s2n_test_validate_data(struct s2n_test_ktls_io_stuffer *ktls_io,
+        const uint8_t *expected_data, uint16_t expected_len)
 {
     RESULT_ENSURE_REF(ktls_io);
     RESULT_ENSURE_REF(expected_data);
@@ -231,5 +231,19 @@ S2N_RESULT s2n_test_validate_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&validate_ancillary_stuffer, &len));
     RESULT_ENSURE_EQ(len, expected_len);
 
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_test_records_in_ancillary(struct s2n_test_ktls_io_stuffer *ktls_io,
+        uint16_t expected_records)
+{
+    RESULT_ENSURE_REF(ktls_io);
+
+    size_t size = s2n_stuffer_data_available(&ktls_io->ancillary_buffer);
+    size_t records = size / S2N_TEST_KTLS_MOCK_HEADER_SIZE;
+    size_t extra = size % S2N_TEST_KTLS_MOCK_HEADER_SIZE;
+
+    RESULT_ENSURE_EQ(records, expected_records);
+    RESULT_ENSURE_EQ(extra, 0);
     return S2N_RESULT_OK;
 }

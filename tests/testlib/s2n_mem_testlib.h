@@ -17,6 +17,21 @@
 
 #include "utils/s2n_result.h"
 
-S2N_RESULT s2n_libcrypto_validate_runtime(void);
+struct s2n_mem_test_malloc {
+    void *ptr;
+    uint32_t requested;
+    uint32_t allocated;
+    bool freed;
+};
 
-bool s2n_libcrypto_supports_flag_no_check_time();
+struct s2n_mem_test_cb_scope {
+    uint8_t _reserve;
+};
+
+S2N_RESULT s2n_mem_test_init_callbacks(void *ctx);
+S2N_CLEANUP_RESULT s2n_mem_test_free_callbacks(void *ctx);
+S2N_RESULT s2n_mem_test_wipe_callbacks();
+
+S2N_RESULT s2n_mem_test_assert_malloc_count(uint32_t count);
+S2N_RESULT s2n_mem_test_assert_malloc(uint32_t requested);
+S2N_RESULT s2n_mem_test_assert_all_freed();

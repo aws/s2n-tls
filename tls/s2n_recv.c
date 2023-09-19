@@ -26,6 +26,7 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
@@ -59,6 +60,10 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
 int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2)
 {
     *isSSLv2 = 0;
+
+    if (conn->ktls_recv_enabled) {
+        return s2n_ktls_read_full_record(conn, record_type);
+    }
 
     /* If the record has already been decrypted, then leave it alone */
     if (conn->in_status == PLAINTEXT) {

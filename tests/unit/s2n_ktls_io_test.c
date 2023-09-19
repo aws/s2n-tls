@@ -15,8 +15,10 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_ktls_test_utils.h"
+#include "testlib/s2n_mem_testlib.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_ktls.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 
 #define S2N_TEST_TO_SEND    10
@@ -136,23 +138,22 @@ int main(int argc, char **argv)
     {
         /* Safety */
         {
-            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                    s2n_connection_ptr_free);
+            struct s2n_test_ktls_io_stuffer ctx = { 0 };
             struct iovec msg_iov_valid = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
 
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_sendmsg(NULL, test_record_type, &msg_iov_valid, 1, &blocked, &bytes_written),
+                    S2N_ERR_IO);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_ktls_sendmsg(&ctx, test_record_type, NULL, 1, &blocked, &bytes_written),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(server, test_record_type, NULL, 1, &blocked, &bytes_written),
+                    s2n_ktls_sendmsg(&ctx, test_record_type, &msg_iov_valid, 1, NULL, &bytes_written),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(server, test_record_type, &msg_iov_valid, 1, NULL, &bytes_written),
-                    S2N_ERR_NULL);
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(server, test_record_type, &msg_iov_valid, 1, &blocked, NULL),
+                    s2n_ktls_sendmsg(&ctx, test_record_type, &msg_iov_valid, 1, &blocked, NULL),
                     S2N_ERR_NULL);
         };
 
@@ -167,7 +168,8 @@ int main(int argc, char **argv)
             struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    &msg_iov, 1, &blocked, &bytes_written));
             EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -196,7 +198,8 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, msg_iov, S2N_TEST_MSG_IOVLEN, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    msg_iov, S2N_TEST_MSG_IOVLEN, &blocked, &bytes_written));
             EXPECT_EQUAL(bytes_written, total_sent);
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
@@ -226,7 +229,8 @@ int main(int argc, char **argv)
             size_t bytes_written = 0;
             for (size_t i = 0; i < blocked_invoked_count; i++) {
                 EXPECT_ERROR_WITH_ERRNO(
-                        s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written),
+                        s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                                &msg_iov, 1, &blocked, &bytes_written),
                         S2N_ERR_IO_BLOCKED);
                 EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
             }
@@ -234,7 +238,8 @@ int main(int argc, char **argv)
             /* enable growable to unblock write */
             /* cppcheck-suppress redundantAssignment */
             client_in.data_buffer.growable = true;
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    &msg_iov, 1, &blocked, &bytes_written));
             EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
 
             /* confirm sent data */
@@ -257,13 +262,15 @@ int main(int argc, char **argv)
 
             io_ctx.errno_code = EWOULDBLOCK;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written),
+                    s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                            &msg_iov, 1, &blocked, &bytes_written),
                     S2N_ERR_IO_BLOCKED);
 
             /* cppcheck-suppress redundantAssignment */
             io_ctx.errno_code = EAGAIN;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written),
+                    s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                            &msg_iov, 1, &blocked, &bytes_written),
                     S2N_ERR_IO_BLOCKED);
 
             EXPECT_EQUAL(io_ctx.invoked_count, 2);
@@ -282,7 +289,8 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written),
+                    s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                            &msg_iov, 1, &blocked, &bytes_written),
                     S2N_ERR_IO);
             /* Blocked status intentionally not reset to preserve legacy s2n_send behavior */
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
@@ -303,12 +311,14 @@ int main(int argc, char **argv)
             size_t bytes_written = 0;
 
             size_t iovlen_zero = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov, iovlen_zero, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    &msg_iov, iovlen_zero, &blocked, &bytes_written));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_EQUAL(bytes_written, 0);
 
             struct iovec msg_iov_len_zero = { .iov_base = test_data, .iov_len = 0 };
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov_len_zero, 1, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    &msg_iov_len_zero, 1, &blocked, &bytes_written));
             EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
             EXPECT_EQUAL(bytes_written, 0);
 
@@ -320,8 +330,7 @@ int main(int argc, char **argv)
     {
         /* Safety */
         {
-            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
+            struct s2n_test_ktls_io_stuffer ctx = { 0 };
             uint8_t recv_buf[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             uint8_t recv_record_type = 0;
@@ -329,23 +338,23 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_ktls_recvmsg(NULL, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    S2N_ERR_IO);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_ktls_recvmsg(&ctx, NULL, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, NULL, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(&ctx, &recv_record_type, NULL, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, NULL, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(&ctx, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, NULL, &bytes_read),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, NULL, &bytes_read),
-                    S2N_ERR_NULL);
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, NULL),
+                    s2n_ktls_recvmsg(&ctx, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, NULL),
                     S2N_ERR_NULL);
 
             size_t to_recv_zero = 0;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, to_recv_zero, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(&ctx, &recv_record_type, recv_buf, to_recv_zero, &blocked, &bytes_read),
                     S2N_ERR_SAFETY);
         };
 
@@ -362,13 +371,15 @@ int main(int argc, char **argv)
             struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    &msg_iov, 1, &blocked, &bytes_written));
             EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
 
             uint8_t recv_buf[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
             uint8_t recv_record_type = 0;
             size_t bytes_read = 0;
-            EXPECT_OK(s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read));
+            EXPECT_OK(s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                    recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read));
             EXPECT_BYTEARRAY_EQUAL(test_data, recv_buf, bytes_read);
             EXPECT_EQUAL(bytes_read, bytes_written);
 
@@ -394,7 +405,8 @@ int main(int argc, char **argv)
             /* recv should block since there is no data */
             for (size_t i = 0; i < blocked_invoked_count; i++) {
                 EXPECT_ERROR_WITH_ERRNO(
-                        s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                        s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                                recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                         S2N_ERR_IO_BLOCKED);
                 EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
             }
@@ -402,17 +414,20 @@ int main(int argc, char **argv)
             /* send data to unblock */
             struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             size_t bytes_written = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    &msg_iov, 1, &blocked, &bytes_written));
             EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
 
-            EXPECT_OK(s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read));
+            EXPECT_OK(s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                    recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read));
             EXPECT_BYTEARRAY_EQUAL(test_data, recv_buf, bytes_read);
             EXPECT_EQUAL(bytes_read, bytes_written);
 
             /* recv should block again since we have read all the data */
             for (size_t i = 0; i < blocked_invoked_count; i++) {
                 EXPECT_ERROR_WITH_ERRNO(
-                        s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                        s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                                recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                         S2N_ERR_IO_BLOCKED);
                 EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
             }
@@ -435,14 +450,16 @@ int main(int argc, char **argv)
 
             io_ctx.errno_code = EWOULDBLOCK;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                            recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
             /* cppcheck-suppress redundantAssignment */
             io_ctx.errno_code = EAGAIN;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                            recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_IO_BLOCKED);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
@@ -463,7 +480,8 @@ int main(int argc, char **argv)
             uint8_t recv_record_type = 0;
             size_t bytes_read = 0;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                            recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_IO);
             /* Blocked status intentionally not reset to preserve legacy s2n_send behavior */
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
@@ -483,7 +501,8 @@ int main(int argc, char **argv)
             uint8_t recv_record_type = 0;
             size_t bytes_read = 0;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                            recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_CLOSED);
             /* Blocked status intentionally not reset to preserve legacy s2n_send behavior */
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
@@ -506,20 +525,663 @@ int main(int argc, char **argv)
             struct iovec msg_iov = { .iov_base = test_data, .iov_len = S2N_TEST_TO_SEND };
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             size_t bytes_written = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(server, test_record_type, &msg_iov, 1, &blocked, &bytes_written));
+            EXPECT_OK(s2n_ktls_sendmsg(server->send_io_context, test_record_type,
+                    &msg_iov, 1, &blocked, &bytes_written));
             EXPECT_EQUAL(bytes_written, S2N_TEST_TO_SEND);
 
             uint8_t recv_buf[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = { 0 };
             uint8_t recv_record_type = 0;
             size_t bytes_read = 0;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_ktls_recvmsg(client, &recv_record_type, recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
+                    s2n_ktls_recvmsg(client->recv_io_context, &recv_record_type,
+                            recv_buf, S2N_TEST_TO_SEND, &blocked, &bytes_read),
                     S2N_ERR_KTLS_BAD_CMSG);
             /* Blocked status intentionally not reset to preserve legacy s2n_send behavior */
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
             EXPECT_EQUAL(io_pair.client_in.sendmsg_invoked_count, 1);
             EXPECT_EQUAL(io_pair.client_in.recvmsg_invoked_count, 1);
+        };
+    };
+
+    /* Test s2n_ktls_send */
+    {
+        const size_t test_iov_lens[] = { 10, 0, 1, 5, 100, 100, 10 };
+
+        /* Safety */
+        {
+            struct s2n_connection conn = { 0 };
+            s2n_blocked_status blocked = 0;
+            const struct iovec test_iovec = { .iov_base = &blocked, .iov_len = 1 };
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(NULL, &test_iovec, 1, 0, &blocked),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(&conn, NULL, 1, 0, &blocked),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(&conn, NULL, 1, 1, &blocked),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(&conn, &test_iovec, 1, 0, NULL),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(&conn, &test_iovec, -1, 0, &blocked),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(&conn, &test_iovec, 1, -1, &blocked),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: Basic send with single iovec */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                    s2n_ktls_io_stuffer_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+            const struct iovec test_iovec = {
+                .iov_base = test_data,
+                .iov_len = sizeof(test_data),
+            };
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_EQUAL(
+                    s2n_ktls_sendv_with_offset(conn, &test_iovec, 1, 0, &blocked),
+                    sizeof(test_data));
+
+            EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_OK(s2n_test_validate_ancillary(&out, TLS_APPLICATION_DATA, sizeof(test_data)));
+            EXPECT_OK(s2n_test_validate_data(&out, test_data, sizeof(test_data)));
+        };
+
+        /* Test: Handle IO error from sendmsg */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_test_ktls_io_fail_ctx io_ctx = { .errno_code = EINVAL };
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_fail, &io_ctx));
+
+            const struct iovec test_iovec = {
+                .iov_base = test_data,
+                .iov_len = sizeof(test_data),
+            };
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_sendv_with_offset(conn, &test_iovec, 1, 0, &blocked),
+                    S2N_ERR_IO);
+            EXPECT_EQUAL(io_ctx.invoked_count, 1);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        };
+
+        /* Test: Send nothing */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                    s2n_ktls_io_stuffer_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            const struct iovec test_iovec = {
+                .iov_base = test_data,
+                .iov_len = 0,
+            };
+
+            /* Send nothing with zero-length iovec array */
+            EXPECT_EQUAL(s2n_ktls_sendv_with_offset(conn, NULL, 0, 0, &blocked), 0);
+            EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_OK(s2n_test_records_in_ancillary(&out, 0));
+
+            /* Send nothing with iovec array with zero-length buffer */
+            EXPECT_EQUAL(s2n_ktls_sendv_with_offset(conn, &test_iovec, 1, 0, &blocked), 0);
+            EXPECT_EQUAL(out.sendmsg_invoked_count, 2);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_OK(s2n_test_records_in_ancillary(&out, 0));
+        };
+
+        /* Test: Send with multiple iovecs */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                    s2n_ktls_io_stuffer_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+            DEFER_CLEANUP(struct s2n_test_iovecs test_iovecs = { 0 }, s2n_test_iovecs_free);
+            EXPECT_OK(s2n_test_new_iovecs(&test_iovecs, &test_data_blob,
+                    test_iov_lens, s2n_array_len(test_iov_lens)));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            ssize_t result = s2n_ktls_sendv_with_offset(conn,
+                    test_iovecs.iovecs, test_iovecs.iovecs_count, 0, &blocked);
+            EXPECT_EQUAL(result, sizeof(test_data));
+
+            EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+            EXPECT_OK(s2n_test_validate_ancillary(&out, TLS_APPLICATION_DATA, sizeof(test_data)));
+            EXPECT_OK(s2n_test_validate_data(&out, test_data, sizeof(test_data)));
+        };
+
+        /* Test: Send with offset */
+        {
+            DEFER_CLEANUP(struct s2n_test_iovecs test_iovecs = { 0 }, s2n_test_iovecs_free);
+            EXPECT_OK(s2n_test_new_iovecs(&test_iovecs, &test_data_blob,
+                    test_iov_lens, s2n_array_len(test_iov_lens)));
+
+            size_t large_test_iov_lens[100] = { 0 };
+            EXPECT_MEMCPY_SUCCESS(large_test_iov_lens, test_iov_lens, sizeof(test_iov_lens));
+
+            DEFER_CLEANUP(struct s2n_test_iovecs large_test_iovecs = { 0 },
+                    s2n_test_iovecs_free);
+            EXPECT_OK(s2n_test_new_iovecs(&large_test_iovecs, &test_data_blob,
+                    large_test_iov_lens, s2n_array_len(large_test_iov_lens)));
+
+            /* Test: Send with invalid / too large offset */
+            {
+                const size_t bad_offset = sizeof(test_data) + 1;
+
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                ssize_t result = s2n_ktls_sendv_with_offset(conn, large_test_iovecs.iovecs,
+                        large_test_iovecs.iovecs_count, bad_offset, &blocked);
+                EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_INVALID_ARGUMENT);
+
+                EXPECT_EQUAL(out.sendmsg_invoked_count, 0);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_OK(s2n_test_records_in_ancillary(&out, 0));
+            };
+
+            /* Test: Send with offset equal to total data size */
+            {
+                const size_t offset = sizeof(test_data);
+
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                int written = s2n_ktls_sendv_with_offset(conn, large_test_iovecs.iovecs,
+                        large_test_iovecs.iovecs_count, offset, &blocked);
+                EXPECT_EQUAL(written, 0);
+
+                EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_OK(s2n_test_records_in_ancillary(&out, 0));
+            };
+
+            /* Test: Send with small iovecs array and all possible valid offsets */
+            for (size_t offset = 0; offset < sizeof(test_data); offset++) {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+                const size_t expected_sent = sizeof(test_data) - offset;
+                EXPECT_TRUE(expected_sent > 0);
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                ssize_t result = s2n_ktls_sendv_with_offset(conn,
+                        test_iovecs.iovecs, test_iovecs.iovecs_count, offset, &blocked);
+                EXPECT_EQUAL(result, expected_sent);
+
+                EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_OK(s2n_test_validate_ancillary(&out, TLS_APPLICATION_DATA, expected_sent));
+                EXPECT_OK(s2n_test_validate_data(&out, test_data + offset, expected_sent));
+            }
+
+            /* Test: Send with large iovecs array and all possible valid offsets */
+            for (size_t offset = 0; offset < sizeof(test_data); offset++) {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+                const size_t expected_sent = sizeof(test_data) - offset;
+                EXPECT_TRUE(expected_sent > 0);
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                ssize_t result = s2n_ktls_sendv_with_offset(conn, large_test_iovecs.iovecs,
+                        large_test_iovecs.iovecs_count, offset, &blocked);
+                EXPECT_EQUAL(result, expected_sent);
+
+                EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                EXPECT_OK(s2n_test_validate_ancillary(&out, TLS_APPLICATION_DATA, expected_sent));
+                EXPECT_OK(s2n_test_validate_data(&out, test_data + offset, expected_sent));
+            }
+        };
+
+        /* Test: Partial write */
+        {
+            DEFER_CLEANUP(struct s2n_test_iovecs test_iovecs = { 0 }, s2n_test_iovecs_free);
+            EXPECT_OK(s2n_test_new_iovecs(&test_iovecs, &test_data_blob,
+                    test_iov_lens, s2n_array_len(test_iov_lens)));
+
+            /* Test with all possible partial write lengths */
+            for (size_t size = 1; size < sizeof(test_data); size++) {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+                EXPECT_SUCCESS(s2n_stuffer_free(&out.data_buffer));
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&out.data_buffer, size));
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                ssize_t result = s2n_ktls_sendv_with_offset(conn,
+                        test_iovecs.iovecs, test_iovecs.iovecs_count, 0, &blocked);
+                EXPECT_EQUAL(result, size);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+                EXPECT_EQUAL(out.sendmsg_invoked_count, 1);
+                EXPECT_OK(s2n_test_validate_data(&out, test_data, size));
+            }
+        };
+
+        /* Test: IO would block */
+        {
+            DEFER_CLEANUP(struct s2n_test_iovecs test_iovecs = { 0 }, s2n_test_iovecs_free);
+            EXPECT_OK(s2n_test_new_iovecs(&test_iovecs, &test_data_blob,
+                    test_iov_lens, s2n_array_len(test_iov_lens)));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_test_ktls_io_fail_ctx io_ctx = { .errno_code = EAGAIN };
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_fail, &io_ctx));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            ssize_t result = s2n_ktls_sendv_with_offset(conn,
+                    test_iovecs.iovecs, test_iovecs.iovecs_count, 0, &blocked);
+            EXPECT_FAILURE_WITH_ERRNO(result, S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(io_ctx.invoked_count, 1);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_WRITE);
+        };
+
+        /* Test: Memory usage */
+        {
+            const size_t iov_lens[100] = { 10, 5, 0, 1, 100, 100, 10 };
+            const size_t small_iov_lens_count = 10;
+            const size_t large_iov_lens_count = s2n_array_len(iov_lens);
+
+            DEFER_CLEANUP(struct s2n_test_iovecs small_iovecs = { 0 }, s2n_test_iovecs_free);
+            EXPECT_OK(s2n_test_new_iovecs(&small_iovecs, &test_data_blob,
+                    iov_lens, small_iov_lens_count));
+
+            DEFER_CLEANUP(struct s2n_test_iovecs large_iovecs = { 0 }, s2n_test_iovecs_free);
+            EXPECT_OK(s2n_test_new_iovecs(&large_iovecs, &test_data_blob,
+                    iov_lens, large_iov_lens_count));
+
+            const size_t one_iovec_size = sizeof(struct iovec);
+            const size_t large_iovecs_size = large_iovecs.iovecs_count * one_iovec_size;
+
+            struct {
+                struct s2n_test_iovecs *iovecs;
+                size_t offset;
+                uint32_t expected_malloc;
+                uint32_t expected_malloc_count;
+            } test_cases[] = {
+                /* Small iovecs never require an allocation */
+                {
+                        .iovecs = &small_iovecs,
+                        .offset = 1,
+                        .expected_malloc_count = 0,
+                },
+                {
+                        .iovecs = &small_iovecs,
+                        .offset = iov_lens[0],
+                        .expected_malloc_count = 0,
+                },
+                {
+                        .iovecs = &small_iovecs,
+                        .offset = iov_lens[0] + 1,
+                        .expected_malloc_count = 0,
+                },
+                /* Large iovecs with offset evenly divisible by the iov_lens do
+                 * not require an alloc.
+                 * Example: { x, y, z }, offset=x -> { y, z }
+                 */
+                {
+                        .iovecs = &large_iovecs,
+                        .offset = iov_lens[0],
+                        .expected_malloc_count = 0,
+                },
+                {
+                        .iovecs = &large_iovecs,
+                        .offset = iov_lens[0] + iov_lens[1],
+                        .expected_malloc_count = 0,
+                },
+                /* Large iovecs with offset not evenly divisible by the iov_lens
+                 * modify an entry so require an alloc.
+                 * Example: { x, y, z }, offset=1 -> { x-1, y, z }
+                 */
+                {
+                        .iovecs = &large_iovecs,
+                        .offset = 1,
+                        .expected_malloc_count = 1,
+                        .expected_malloc = large_iovecs_size,
+                },
+                {
+                        .iovecs = &large_iovecs,
+                        .offset = iov_lens[0] + 1,
+                        .expected_malloc_count = 1,
+                        .expected_malloc = large_iovecs_size - one_iovec_size,
+                },
+                /* Large iovecs that become small iovecs when the offset
+                 * is applied do not require an alloc.
+                 */
+                {
+                        .iovecs = &large_iovecs,
+                        .offset = sizeof(test_data) - 1,
+                        .expected_malloc_count = 0,
+                },
+                /* No alloc if the entire large iovec is skipped */
+                {
+                        .iovecs = &large_iovecs,
+                        .offset = sizeof(test_data),
+                        .expected_malloc_count = 0,
+                },
+            };
+
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                struct iovec *iovecs = test_cases[i].iovecs->iovecs;
+                const size_t iovecs_count = test_cases[i].iovecs->iovecs_count;
+                const size_t offset = test_cases[i].offset;
+
+                const size_t expected_send = sizeof(test_data) - offset;
+
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
+                        s2n_ktls_io_stuffer_free);
+                EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &out));
+
+                /* Preemptively allocate sendmsg memory to avoid false positives */
+                EXPECT_SUCCESS(s2n_stuffer_resize(&out.data_buffer, expected_send));
+                EXPECT_SUCCESS(s2n_stuffer_resize(&out.ancillary_buffer, 100));
+
+                DEFER_CLEANUP(struct s2n_mem_test_cb_scope scope = { 0 },
+                        s2n_mem_test_free_callbacks);
+                EXPECT_OK(s2n_mem_test_init_callbacks(&scope));
+
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+                ssize_t result = s2n_ktls_sendv_with_offset(conn, iovecs, iovecs_count,
+                        offset, &blocked);
+                EXPECT_EQUAL(result, sizeof(test_data) - offset);
+
+                size_t malloc_count = test_cases[i].expected_malloc_count;
+                EXPECT_OK(s2n_mem_test_assert_malloc_count(malloc_count));
+                if (malloc_count) {
+                    EXPECT_OK(s2n_mem_test_assert_malloc(test_cases[i].expected_malloc));
+                }
+                EXPECT_OK(s2n_mem_test_assert_all_freed());
+            }
+        };
+    };
+
+    /* Test: s2n_ktls_send_cb */
+    {
+        /* It's safe to reuse a connection across tests because the connection
+         * isn't actually used by s2n_ktls_send_cb. It's just required for test
+         * setup methods.
+         */
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        /* Safety */
+        {
+            struct s2n_test_ktls_io_stuffer ctx = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(NULL, test_data, 1), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, NULL, 1), S2N_ERR_NULL);
+        };
+
+        /* Test: Basic write succeeds */
+        {
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer ctx = { 0 },
+                    s2n_ktls_io_stuffer_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer_send(conn, &ctx));
+
+            EXPECT_SUCCESS(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)));
+            EXPECT_EQUAL(ctx.sendmsg_invoked_count, 1);
+            EXPECT_OK(s2n_test_validate_ancillary(&ctx, TLS_ALERT, sizeof(test_data)));
+            EXPECT_OK(s2n_test_validate_data(&ctx, test_data, sizeof(test_data)));
+        };
+
+        /* Test: Errors passed on to caller */
+        {
+            struct s2n_test_ktls_io_fail_ctx ctx = { 0 };
+            EXPECT_OK(s2n_ktls_set_sendmsg_cb(conn, s2n_test_ktls_sendmsg_fail, &ctx));
+
+            ctx.errno_code = 1;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO);
+
+            ctx.errno_code = EINVAL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO);
+
+            ctx.errno_code = EAGAIN;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO_BLOCKED);
+
+            ctx.errno_code = EWOULDBLOCK;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_send_cb(&ctx, test_data, sizeof(test_data)),
+                    S2N_ERR_IO_BLOCKED);
+        };
+    };
+
+    /* Test: s2n_ktls_record_writev */
+    {
+        const size_t to_write = 10;
+
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            struct iovec iov = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_record_writev(NULL, 0, &iov, 1, 1, 1),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_record_writev(conn, 0, NULL, 1, 1, 1),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_record_writev(conn, 0, &iov, -1, 1, 1),
+                    S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* Test: Basic write succeeds */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            struct iovec iov = {
+                .iov_base = test_data,
+                .iov_len = sizeof(test_data),
+            };
+            EXPECT_EQUAL(s2n_ktls_record_writev(conn, TLS_ALERT, &iov, 1, 0, to_write), to_write);
+            EXPECT_EQUAL(conn->out.blob.allocated, to_write);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->out), to_write);
+            uint8_t *in_out = s2n_stuffer_raw_read(&conn->out, to_write);
+            EXPECT_BYTEARRAY_EQUAL(in_out, test_data, to_write);
+        };
+
+        /* Test: Only alerts currently supported */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            struct iovec iov = {
+                .iov_base = test_data,
+                .iov_len = sizeof(test_data),
+            };
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_ktls_record_writev(conn, TLS_HANDSHAKE, &iov, 1, 0, to_write),
+                    S2N_ERR_UNIMPLEMENTED);
+        };
+    };
+
+    /* Test: s2n_ktls_read_full_record */
+    {
+        const struct iovec test_iovec = {
+            .iov_base = test_data,
+            .iov_len = sizeof(test_data),
+        };
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        const size_t max_frag_len = S2N_DEFAULT_FRAGMENT_LENGTH;
+        /* Our test assumptions are wrong if this isn't true */
+        EXPECT_TRUE(max_frag_len < sizeof(test_data));
+
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            uint8_t record_type = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_read_full_record(NULL, &record_type),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_ktls_read_full_record(conn, NULL),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: Basic read succeeds */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
+            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
+
+            size_t written = 0;
+            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &test_iovec, 1, &blocked, &written));
+            EXPECT_EQUAL(written, sizeof(test_data));
+
+            uint8_t record_type = 0;
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_ALERT);
+
+            EXPECT_EQUAL(conn->in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), max_frag_len);
+            uint8_t *read = s2n_stuffer_raw_read(&conn->in, max_frag_len);
+            EXPECT_BYTEARRAY_EQUAL(read, test_data, max_frag_len);
+        };
+
+        /* Test: Receive does not completely fill the output buffer */
+        {
+            const size_t small_frag_len = 10;
+            EXPECT_TRUE(small_frag_len < max_frag_len);
+            EXPECT_TRUE(small_frag_len < sizeof(test_data));
+            struct iovec small_test_iovec = test_iovec;
+            small_test_iovec.iov_len = small_frag_len;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
+            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
+
+            size_t written = 0;
+            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &small_test_iovec, 1, &blocked, &written));
+            EXPECT_EQUAL(written, small_frag_len);
+
+            uint8_t record_type = 0;
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_ALERT);
+
+            /* Verify that conn->in reflects the correct size of the "record"
+             * read and doesn't just assume the maximum read size.
+             */
+            EXPECT_EQUAL(conn->in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), small_frag_len);
+            uint8_t *read = s2n_stuffer_raw_read(&conn->in, small_frag_len);
+            EXPECT_BYTEARRAY_EQUAL(read, test_data, small_frag_len);
+        };
+
+        /* Test: Receive drains conn->in before calling recvmsg again */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
+            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
+
+            /* Write half the test data into conn->in */
+            const size_t offset = sizeof(test_data) / 2;
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, test_data, offset));
+
+            /* Write the other half into a new record */
+            size_t written = 0;
+            struct iovec offset_iovec = {
+                .iov_base = test_data + offset,
+                .iov_len = sizeof(test_data) - offset,
+            };
+            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &offset_iovec, 1, &blocked, &written));
+            EXPECT_EQUAL(written, offset_iovec.iov_len);
+
+            uint8_t record_type = 0;
+            uint8_t *read = NULL;
+
+            /* Verify that our first read returns conn->in, not the new record */
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_APPLICATION_DATA);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), offset);
+            read = s2n_stuffer_raw_read(&conn->in, offset);
+            EXPECT_BYTEARRAY_EQUAL(read, test_data, offset);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+
+            /* Verify a second read returns the new record */
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_ALERT);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), offset_iovec.iov_len);
+            read = s2n_stuffer_raw_read(&conn->in, offset_iovec.iov_len);
+            EXPECT_BYTEARRAY_EQUAL(read, offset_iovec.iov_base, offset_iovec.iov_len);
         };
     };
 

@@ -853,11 +853,17 @@ int s2n_connection_use_corked_io(struct s2n_connection *conn)
 
 uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 {
+    if (conn->ktls_recv_enabled) {
+        return 0;
+    }
     return conn->wire_bytes_in;
 }
 
 uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
 {
+    if (conn->ktls_send_enabled) {
+        return 0;
+    }
     return conn->wire_bytes_out;
 }
 
@@ -1154,6 +1160,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
          *
          * We may want to someday add an explicit error type for these errors.
          */
+        case S2N_ERR_CLOSED:
         case S2N_ERR_CANCELLED:
         case S2N_ERR_CIPHER_NOT_SUPPORTED:
         case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
