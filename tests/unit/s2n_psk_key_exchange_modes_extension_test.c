@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "s2n.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_psk_key_exchange_modes.h"
@@ -244,6 +245,51 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_stuffer_free(&out));
     };
+
+    /* Test should send */
+    {
+        /* when neither resumption nor PSKs are enabled, the extension should not be sent */
+        {
+            DEFER_CLEANUP(struct s2n_config *no_resumption_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(no_resumption_config);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, no_resumption_config));
+
+            EXPECT_FALSE(s2n_psk_key_exchange_modes_extension.should_send(conn));
+        }
+
+        /* when session resumption is enabled, the extension should be sent */
+        {
+            DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(resumption_config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(resumption_config, true));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, resumption_config));
+
+            EXPECT_TRUE(s2n_psk_key_exchange_modes_extension.should_send(conn));
+        }
+
+        /* when a client is using out-of-band PSKs, the extension should be sent */
+        {
+            DEFER_CLEANUP(struct s2n_config *psk_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(psk_config);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, psk_config));
+
+            DEFER_CLEANUP(struct s2n_psk *psk = s2n_external_psk_new(), s2n_psk_free);
+            uint8_t identity[] = "alice";
+            uint8_t secret[] = "a secret";
+            EXPECT_SUCCESS(s2n_psk_set_identity(psk, identity, s2n_array_len(identity)));
+            EXPECT_SUCCESS(s2n_psk_set_secret(psk, secret, s2n_array_len(secret)));
+
+            EXPECT_SUCCESS(s2n_connection_append_psk(conn, psk));
+
+            EXPECT_TRUE(s2n_psk_key_exchange_modes_extension.should_send(conn));
+        }
+    }
 
     END_TEST();
 }
