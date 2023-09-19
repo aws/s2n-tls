@@ -152,7 +152,6 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
     POSIX_GUARD_RESULT(s2n_early_data_validate_recv(conn));
-    POSIX_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_UNIMPLEMENTED);
 
     while (size && s2n_connection_check_io_status(conn, S2N_IO_READABLE)) {
         int isSSLv2 = 0;
