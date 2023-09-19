@@ -1,5 +1,6 @@
 #/usr/bin/env bash
 
+duvet extract https://tools.ietf.org/rfc/rfc5246 # The Transport Layer Security (TLS) Protocol Version 1.2
 duvet extract https://tools.ietf.org/rfc/rfc5869 # HMAC-based Extract-and-Expand Key Derivation Function (HKDF)
 duvet extract https://tools.ietf.org/rfc/rfc8446 # The Transport Layer Security (TLS) Protocol Version 1.3
 duvet extract https://tools.ietf.org/rfc/rfc8448 # Example Handshake Traces for TLS 1.3

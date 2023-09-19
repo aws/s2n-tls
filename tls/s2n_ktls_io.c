@@ -31,6 +31,7 @@
 
 #include "error/s2n_errno.h"
 #include "tls/s2n_ktls.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
@@ -38,6 +39,9 @@
 /* record_type is of type uint8_t */
 #define S2N_KTLS_RECORD_TYPE_SIZE    (sizeof(uint8_t))
 #define S2N_KTLS_CONTROL_BUFFER_SIZE (CMSG_SPACE(S2N_KTLS_RECORD_TYPE_SIZE))
+
+#define S2N_MAX_STACK_IOVECS     16
+#define S2N_MAX_STACK_IOVECS_MEM (S2N_MAX_STACK_IOVECS * sizeof(struct iovec))
 
 /* Used to override sendmsg and recvmsg for testing. */
 static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg);
@@ -274,32 +278,73 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_ktls_new_iovecs_with_offset(const struct iovec *bufs,
-        size_t count, size_t offs, struct s2n_blob *mem)
+/* The iovec array `bufs` is constant and owned by the application.
+ *
+ * However, we need to apply the given offset to `bufs`. That may involve
+ * updating the iov_base and iov_len of entries in `bufs` to reflect the bytes
+ * already sent. Because `bufs` is constant, we need to instead copy `bufs` and
+ * modify the copy.
+ *
+ * Since one of the primary benefits of kTLS is that we avoid buffering application
+ * data and can pass application data as-is to the kernel, we try to limit the
+ * situations where we need to copy `bufs` and use stack memory where possible.
+ *
+ * Note: We are copying an array of iovecs here, NOT the scattered application
+ * data the iovecs reference. On Linux, the maximum data copied would be
+ * 1024 (IOV_MAX on Linux) * 16 (sizeof(struct iovec)) = ~16KB.
+ *
+ * To avoid any copies when using a large number of iovecs, applications should
+ * call s2n_sendv instead of s2n_sendv_with_offset.
+ */
+static S2N_RESULT s2n_ktls_update_bufs_with_offset(const struct iovec **bufs, size_t *count,
+        size_t offs, struct s2n_blob *mem)
 {
-    RESULT_ENSURE(bufs != NULL || count == 0, S2N_ERR_NULL);
+    RESULT_ENSURE_REF(bufs);
+    RESULT_ENSURE_REF(count);
+    RESULT_ENSURE(*bufs != NULL || *count == 0, S2N_ERR_NULL);
     RESULT_ENSURE_REF(mem);
 
-    RESULT_GUARD_POSIX(s2n_realloc(mem, sizeof(struct iovec) * count));
-    struct iovec *new_bufs = (struct iovec *) (void *) mem->data;
-    RESULT_ENSURE_REF(new_bufs);
+    size_t skipped = 0;
+    while (offs > 0) {
+        /* If we need to skip more iovecs than actually exist,
+         * then the offset is too large and therefore invalid.
+         */
+        RESULT_ENSURE(skipped < *count, S2N_ERR_INVALID_ARGUMENT);
 
-    for (size_t i = 0; i < count; i++) {
-        size_t old_len = bufs[i].iov_len;
-        if (offs < old_len) {
-            new_bufs[i].iov_base = (uint8_t *) bufs[i].iov_base + offs;
-            new_bufs[i].iov_len = old_len - offs;
-            offs = 0;
-        } else {
-            /* Zero any iovec skipped by the offset.
-             * We could change the count of the copy instead, but this is simpler. */
-            new_bufs[i].iov_base = NULL;
-            new_bufs[i].iov_len = 0;
-            offs -= old_len;
+        size_t iov_len = (*bufs)[skipped].iov_len;
+
+        /* This is the last iovec affected by the offset. */
+        if (offs < iov_len) {
+            break;
         }
+
+        offs -= iov_len;
+        skipped++;
     }
-    /* The offset cannot be greater than the total size of all iovecs */
-    RESULT_ENSURE(offs == 0, S2N_ERR_INVALID_ARGUMENT);
+
+    *count = (*count) - skipped;
+    if (*count == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    *bufs = &(*bufs)[skipped];
+    if (offs == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    size_t size = (*count) * (sizeof(struct iovec));
+    /* If possible, use the existing stack memory in `mem` for the copy.
+     * Otherwise, we need to allocate sufficient new heap memory. */
+    if (size > mem->size) {
+        RESULT_GUARD_POSIX(s2n_alloc(mem, size));
+    }
+
+    struct iovec *new_bufs = (struct iovec *) (void *) mem->data;
+    RESULT_CHECKED_MEMCPY(new_bufs, *bufs, size);
+    new_bufs[0].iov_base = (uint8_t *) new_bufs[0].iov_base + offs;
+    new_bufs[0].iov_len = new_bufs[0].iov_len - offs;
+    *bufs = new_bufs;
+
     return S2N_RESULT_OK;
 }
 
@@ -312,13 +357,11 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
     POSIX_ENSURE(offs_in >= 0, S2N_ERR_INVALID_ARGUMENT);
     size_t offs = offs_in;
 
-    DEFER_CLEANUP(struct s2n_blob new_bufs = { 0 }, s2n_free);
+    DEFER_CLEANUP(struct s2n_blob new_bufs = { 0 }, s2n_free_or_wipe);
+    uint8_t new_bufs_mem[S2N_MAX_STACK_IOVECS_MEM] = { 0 };
+    POSIX_GUARD(s2n_blob_init(&new_bufs, new_bufs_mem, sizeof(new_bufs_mem)));
     if (offs > 0) {
-        /* We can't modify the application-owned iovecs to reflect the offset.
-         * Therefore, we must alloc and modify a copy.
-         */
-        POSIX_GUARD_RESULT(s2n_ktls_new_iovecs_with_offset(bufs, count, offs, &new_bufs));
-        bufs = (const struct iovec *) (void *) new_bufs.data;
+        POSIX_GUARD_RESULT(s2n_ktls_update_bufs_with_offset(&bufs, &count, offs, &new_bufs));
     }
 
     size_t bytes_written = 0;
@@ -329,6 +372,9 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
 
 int s2n_ktls_send_cb(void *io_context, const uint8_t *buf, uint32_t len)
 {
+    POSIX_ENSURE_REF(io_context);
+    POSIX_ENSURE_REF(buf);
+
     /* For now, all control records are assumed to be alerts.
      * We can set the record_type on the io_context in the future.
      */
@@ -403,5 +449,39 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
 #endif
 
     *blocked = S2N_NOT_BLOCKED;
+    return S2N_SUCCESS;
+}
+
+int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(record_type);
+
+    /* If any unread data remains in conn->in, it must be application data that
+     * couldn't be returned due to the size of the application's provided buffer.
+     */
+    if (s2n_stuffer_data_available(&conn->in)) {
+        *record_type = TLS_APPLICATION_DATA;
+        return S2N_SUCCESS;
+    }
+
+    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_DEFAULT_FRAGMENT_LENGTH));
+
+    struct s2n_stuffer record_stuffer = conn->in;
+    size_t len = s2n_stuffer_space_remaining(&record_stuffer);
+    uint8_t *buf = s2n_stuffer_raw_write(&record_stuffer, len);
+    POSIX_ENSURE_REF(buf);
+
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+    size_t bytes_read = 0;
+
+    /* Since recvmsg is responsible for decrypting the record in ktls,
+     * we apply blinding to the recvmsg call.
+     */
+    s2n_result result = s2n_ktls_recvmsg(conn->recv_io_context, record_type,
+            buf, len, &blocked, &bytes_read);
+    WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(result));
+
+    POSIX_GUARD(s2n_stuffer_skip_write(&conn->in, bytes_read));
     return S2N_SUCCESS;
 }

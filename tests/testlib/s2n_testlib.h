@@ -208,6 +208,18 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
 S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_connection *server_conn,
         struct s2n_connection *client_conn, struct s2n_blob *early_data_to_send, struct s2n_blob *early_data_received);
 
+/* Testing only with easily constructed contiguous data buffers could hide errors.
+ * We should use iovecs where every buffer is allocated separately.
+ * These test methods construct separate io buffers from one contiguous buffer.
+ */
+struct s2n_test_iovecs {
+    struct iovec *iovecs;
+    size_t iovecs_count;
+};
+S2N_RESULT s2n_test_new_iovecs(struct s2n_test_iovecs *iovecs,
+        struct s2n_blob *data, const size_t *lens, size_t lens_count);
+S2N_CLEANUP_RESULT s2n_test_iovecs_free(struct s2n_test_iovecs *in);
+
 struct s2n_kem_kat_test_vector {
     const struct s2n_kem *kem;
     const char *kat_file;
