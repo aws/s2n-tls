@@ -46,6 +46,7 @@
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
+#include "utils/s2n_io.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -1267,11 +1268,9 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     POSIX_GUARD(s2n_stuffer_reserve_space(stuffer, len));
 
     int r = 0;
-    do {
-        errno = 0;
-        r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
-        S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_RECV_STUFFER_FROM_CONN);
-    } while (r < 0);
+    S2N_IO_RETRY_EINTR(r,
+            conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len));
+    POSIX_ENSURE(r >= 0, S2N_ERR_RECV_STUFFER_FROM_CONN);
 
     /* Record just how many bytes we have written */
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, r));
@@ -1289,14 +1288,12 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < len, S2N_ERR_STUFFER_OUT_OF_DATA);
 
     int w = 0;
-    do {
-        errno = 0;
-        w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
-        if (w < 0 && errno == EPIPE) {
-            conn->write_fd_broken = 1;
-        }
-        S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_SEND_STUFFER_TO_CONN);
-    } while (w < 0);
+    S2N_IO_RETRY_EINTR(w,
+            conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len));
+    if (w < 0 && errno == EPIPE) {
+        conn->write_fd_broken = 1;
+    }
+    POSIX_ENSURE(w >= 0, S2N_ERR_SEND_STUFFER_TO_CONN);
 
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, w));
     return w;
