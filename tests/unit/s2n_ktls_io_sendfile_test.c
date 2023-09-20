@@ -185,6 +185,34 @@ int main(int argc, char **argv)
         }
     };
 
+    /* Test: partial write */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        conn->ktls_send_enabled = true;
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        int write_fd = io_pair.server;
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, write_fd));
+
+        int buffer_size = 0;
+        socklen_t optlen = sizeof(buffer_size);
+        EXPECT_EQUAL(getsockopt(write_fd, SOL_SOCKET, SO_SNDBUF, &buffer_size, &optlen), 0);
+        EXPECT_TRUE(buffer_size > 0);
+
+        /* Try to write more data than the buffer can hold in a single sendfile call */
+        size_t bytes_to_write = buffer_size * 2;
+        size_t bytes_written = 0;
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        EXPECT_SUCCESS(s2n_sendfile(conn, ro_file, 0, bytes_to_write,
+                &bytes_written, &blocked));
+        EXPECT_TRUE(bytes_written > 0);
+        EXPECT_TRUE(bytes_written < bytes_to_write);
+        EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+    };
+
     EXPECT_EQUAL(close(ro_file), 0);
     END_TEST();
 }
