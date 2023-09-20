@@ -1139,6 +1139,50 @@ int main(int argc, char **argv)
             uint8_t *read = s2n_stuffer_raw_read(&conn->in, small_frag_len);
             EXPECT_BYTEARRAY_EQUAL(read, test_data, small_frag_len);
         };
+
+        /* Test: Receive drains conn->in before calling recvmsg again */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
+            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
+
+            /* Write half the test data into conn->in */
+            const size_t offset = sizeof(test_data) / 2;
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, test_data, offset));
+
+            /* Write the other half into a new record */
+            size_t written = 0;
+            struct iovec offset_iovec = {
+                .iov_base = test_data + offset,
+                .iov_len = sizeof(test_data) - offset,
+            };
+            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &offset_iovec, 1, &blocked, &written));
+            EXPECT_EQUAL(written, offset_iovec.iov_len);
+
+            uint8_t record_type = 0;
+            uint8_t *read = NULL;
+
+            /* Verify that our first read returns conn->in, not the new record */
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_APPLICATION_DATA);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), offset);
+            read = s2n_stuffer_raw_read(&conn->in, offset);
+            EXPECT_BYTEARRAY_EQUAL(read, test_data, offset);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
+
+            /* Verify a second read returns the new record */
+            EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+            EXPECT_EQUAL(record_type, TLS_ALERT);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), offset_iovec.iov_len);
+            read = s2n_stuffer_raw_read(&conn->in, offset_iovec.iov_len);
+            EXPECT_BYTEARRAY_EQUAL(read, offset_iovec.iov_base, offset_iovec.iov_len);
+        };
     };
 
     END_TEST();
