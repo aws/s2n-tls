@@ -502,6 +502,18 @@ int main(int argc, char **argv)
 
         /* Test: receive alert */
         {
+            /* Use a specific alert -- if we just use random data, we might
+             * stumble into a close_notify or user_canceled.
+             */
+            uint8_t alert_data[] = {
+                S2N_TLS_ALERT_LEVEL_FATAL,
+                S2N_TLS_ALERT_DECRYPT_ERROR,
+            };
+            const struct iovec alert_iovec = {
+                .iov_base = alert_data,
+                .iov_len = sizeof(alert_data),
+            };
+
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
@@ -513,10 +525,10 @@ int main(int argc, char **argv)
             struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
 
             size_t written = 0;
-            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &test_iovec, 1, &blocked, &written));
-            EXPECT_EQUAL(written, sizeof(test_data));
+            EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &alert_iovec, 1, &blocked, &written));
+            EXPECT_EQUAL(written, sizeof(alert_data));
 
-            uint8_t output[sizeof(test_data)] = { 0 };
+            uint8_t output[10] = { 0 };
             int read = s2n_recv(conn, output, sizeof(output), &blocked);
             EXPECT_FAILURE_WITH_ERRNO(read, S2N_ERR_ALERT);
             EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
