@@ -40,7 +40,6 @@ static bool s2n_psk_key_exchange_modes_should_send(struct s2n_connection *conn)
 {
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-4.2.9
-     *#
      *# Servers MUST NOT select a key exchange mode that is not listed by the
      *# client.  This extension also restricts the modes for use with PSK
      *# resumption.

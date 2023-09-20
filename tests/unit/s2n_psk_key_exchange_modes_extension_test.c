@@ -223,7 +223,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_psk_key_exchange_modes_should_send */
     {
-        /* when neither resumption nor PSKs are enabled, the extension should not be sent */
+        /* When neither resumption nor PSKs are enabled, the extension should not be sent. */
         {
             DEFER_CLEANUP(struct s2n_config *no_resumption_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(no_resumption_config);
@@ -234,7 +234,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_psk_key_exchange_modes_extension.should_send(conn));
         };
 
-        /* when session resumption is enabled, the extension should be sent */
+        /* When session resumption is enabled, the extension should be sent. */
         {
             DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(resumption_config);
@@ -246,7 +246,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_psk_key_exchange_modes_extension.should_send(conn));
         };
 
-        /* when a client is using out-of-band PSKs, the extension should be sent */
+        /* When a client is using out-of-band PSKs, the extension should be sent. */
         {
             DEFER_CLEANUP(struct s2n_config *psk_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(psk_config);
