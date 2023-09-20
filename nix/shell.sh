@@ -11,7 +11,7 @@ banner()
 
 
 function clean {
-    banner "Cleanup up ./build"
+    banner "Cleanup ./build"
     rm -rf ./build
 }
 
@@ -23,6 +23,7 @@ function configure {
           -DS2N_INSTALL_S2NC_S2ND=ON \
           -DS2N_INTEG_NIX=ON \
           -DBUILD_SHARED_LIBS=ON \
+          $S2N_CMAKE_OPTIONS \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
 }
 
