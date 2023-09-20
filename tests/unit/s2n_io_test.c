@@ -56,6 +56,16 @@ static void s2n_test_sig_handler(int signum)
     EXPECT_EQUAL(signum, S2N_TEST_SIGNAL);
 }
 
+static int s2n_fail_without_errno(uint8_t *counter)
+{
+    (*counter)++;
+    if (*counter > 10) {
+        /* To avoid an infinite loop on test case failure, eventually return success */
+        return 0;
+    }
+    return -1;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -101,6 +111,19 @@ int main(int argc, char **argv)
                 EXPECT_EQUAL(kill(pid, S2N_TEST_SIGNAL), 0);
             }
             EXPECT_EQUAL(status, EXIT_SUCCESS);
+        };
+
+        /* Handles IO methods that don't properly set errno */
+        {
+            /* Set errno to EINTR to try to trigger retry */
+            errno = EINTR;
+
+            uint8_t counter = 0;
+            int result = 0;
+            S2N_IO_RETRY_EINTR(result, s2n_fail_without_errno(&counter));
+            EXPECT_EQUAL(result, -1);
+            EXPECT_EQUAL(counter, 1);
+            EXPECT_EQUAL(errno, 0);
         };
     };
 

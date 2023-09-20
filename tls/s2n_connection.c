@@ -1267,7 +1267,6 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     POSIX_GUARD(s2n_stuffer_reserve_space(stuffer, len));
 
     int r = 0;
-    errno = 0;
     S2N_IO_RETRY_EINTR(r,
             conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len));
     POSIX_ENSURE(r >= 0, S2N_ERR_RECV_STUFFER_FROM_CONN);
@@ -1288,7 +1287,6 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < len, S2N_ERR_STUFFER_OUT_OF_DATA);
 
     int w = 0;
-    errno = 0;
     S2N_IO_RETRY_EINTR(w,
             conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len));
     if (w < 0 && errno == EPIPE) {

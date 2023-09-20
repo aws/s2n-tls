@@ -16,8 +16,12 @@
 
 #include "utils/s2n_result.h"
 
+/* While we shouldn't need to reset errno before executing `action`,
+ * we do so just in case action doesn't set errno properly on failure.
+ */
 #define S2N_IO_RETRY_EINTR(result, action) \
     do {                                   \
+        errno = 0;                         \
         result = action;                   \
     } while (result < 0 && errno == EINTR)
 
