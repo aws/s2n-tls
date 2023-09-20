@@ -34,6 +34,7 @@ loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
 only available on platforms that support execinfo." ON)
+option(S2N_DEBUG_OUTPUT_FILENAME "Enables behaviour to only print file basenames in debug output instead of absolute paths." OFF)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
@@ -188,6 +189,10 @@ endif()
 
 if(S2N_NO_PQ)
     add_definitions(-DS2N_NO_PQ)
+endif()
+
+if(S2N_DEBUG_OUTPUT_FILENAME)
+    add_definitions(-DS2N_DEBUG_OUTPUT_FILENAME)
 endif()
 
 # Whether to fail the build when compiling s2n's portable C code with non-portable assembly optimizations. Doing this

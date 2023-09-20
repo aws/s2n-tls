@@ -94,6 +94,11 @@ ifdef S2N_NO_PQ
 	DEFAULT_CFLAGS += -DS2N_NO_PQ
 endif
 
+# Debug output must print file basenames instead of absolute paths
+ifdef S2N_DEBUG_OUTPUT_FILENAME
+	DEFAULT_CFLAGS += -DS2N_DEBUG_OUTPUT_FILENAME
+endif
+
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION

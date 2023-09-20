@@ -327,7 +327,15 @@ extern __thread const char *s2n_debug_str;
 #define STRING_(s)     TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
 
-#define _S2N_DEBUG_LINE "Error encountered in " __FILE__ ":" STRING__LINE__
+#ifdef S2N_DEBUG_OUTPUT_FILENAME
+#ifdef __FILE_NAME__
+    #define _S2N_DEBUG_LINE "Error encountered in " __FILE_NAME__ ":" STRING__LINE__
+#else
+    #define _S2N_DEBUG_LINE "Error encountered in " __FILE__ ":" STRING__LINE__
+#endif /* __FILE_NAME__ */
+#else
+    #define _S2N_DEBUG_LINE "Error encountered in " __FILE__ ":" STRING__LINE__
+#endif /* S2N_DEBUG_OUTPUT_FILENAME */
 #define _S2N_ERROR(x)                    \
     do {                                 \
         s2n_debug_str = _S2N_DEBUG_LINE; \
