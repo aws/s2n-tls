@@ -1,6 +1,5 @@
 ---
 name: Compliance
-
 on:
   push:
     branches: [main]
@@ -15,12 +14,48 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1.0.7
+        id: toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Install duvet
+        uses: camshaft/install@v1
+        with:
+          crate: duvet
+
+      - name: Extract RFC spec data
+        working-directory: ./compliance
+        run: ./initialize_duvet.sh
+        shell: bash
+
+      - name: Check if there are uncommitted files
+        run: |
+          # If this fails you need to run `cd compliance && ./compliance/initialize_duvet.sh`
+          #
+          # Use 'git status --porcelain' instead of 'git diff --exit-code' since git diff
+          # only detects diffs but fails to detect new files.
+          git_status=$(git status --porcelain)
+          if [ -n "$git_status" ]; then
+            echo "Found uncommitted changes:"
+            echo "$git_status"
+            exit 1
+          fi
+        shell: bash
+
+      - name: Checkout s2n-quic
+        uses: actions/checkout@v3
         with:
           repository: aws/s2n-quic
           path: ./s2n-quic
           submodules: true
-      - uses: ./s2n-quic/.github/actions/duvet
+
+      - name: Run duvet action
+        uses: ./s2n-quic/.github/actions/duvet
         with:
           s2n-quic-dir: ./s2n-quic
           report-script: compliance/generate_report.sh
@@ -29,3 +64,4 @@ jobs:
           aws-s3-bucket-name: s2n-tls-ci-artifacts
           aws-s3-region: us-west-2
           cdn: https://d3fqnyekunr9xg.cloudfront.net
+
