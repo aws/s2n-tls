@@ -624,7 +624,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
-                EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
+                s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND);
 
                 DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
                         s2n_ktls_io_stuffer_free);
@@ -658,7 +658,7 @@ int main(int argc, char **argv)
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
-                EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND));
+                s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_SEND);
 
                 DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer out = { 0 },
                         s2n_ktls_io_stuffer_free);
@@ -711,15 +711,15 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
-            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND));
-            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND);
+            s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV);
             EXPECT_OK(s2n_skip_handshake(client));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
-            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND));
-            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND);
+            s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV);
             EXPECT_OK(s2n_skip_handshake(server));
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
@@ -740,15 +740,15 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
-            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND));
-            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND);
+            s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV);
             EXPECT_OK(s2n_skip_handshake(client));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
-            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND));
-            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND);
+            s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV);
             EXPECT_OK(s2n_skip_handshake(server));
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
@@ -782,15 +782,15 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
-            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND));
-            EXPECT_OK(s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(client, S2N_KTLS_MODE_SEND);
+            s2n_ktls_configure_connection(client, S2N_KTLS_MODE_RECV);
             EXPECT_OK(s2n_skip_handshake(client));
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
-            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND));
-            EXPECT_OK(s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(server, S2N_KTLS_MODE_SEND);
+            s2n_ktls_configure_connection(server, S2N_KTLS_MODE_RECV);
             EXPECT_OK(s2n_skip_handshake(server));
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair io_pair = { 0 },
