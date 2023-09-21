@@ -409,9 +409,9 @@ S2N_API extern const char *s2n_strerror_debug(int error, const char *lang);
 S2N_API extern const char *s2n_strerror_name(int error);
 
 /**
- * Translates an s2n_error code to a filename and line number
+ * Translates an s2n_error code to a filename and line number.
  *
- * @param error The error code to explain. Usually this is s2n_errno
+ * @param error The error code to explain. Usually this is s2n_errno.
  * @returns The error string.
  */
 S2N_API extern const char *s2n_strerror_source(int error);
