@@ -989,7 +989,7 @@ int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t 
     POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &supported_groups_extension->extension));
 
     uint16_t supported_groups_count = 0;
-    POSIX_GUARD_RESULT(s2n_client_supported_groups_parse_count(&extension_stuffer, &supported_groups_count));
+    POSIX_GUARD_RESULT(s2n_supported_groups_parse_count(&extension_stuffer, &supported_groups_count));
     POSIX_ENSURE_LTE(supported_groups_count, groups_count_max);
 
     for (size_t i = 0; i < supported_groups_count; i++) {

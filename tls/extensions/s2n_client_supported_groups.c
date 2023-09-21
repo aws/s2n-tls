@@ -78,7 +78,7 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_client_supported_groups_parse_count(struct s2n_stuffer *extension, uint16_t *count)
+S2N_RESULT s2n_supported_groups_parse_count(struct s2n_stuffer *extension, uint16_t *count)
 {
     RESULT_ENSURE_REF(count);
     *count = 0;
@@ -185,7 +185,7 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
     POSIX_ENSURE_REF(extension);
 
     uint16_t supported_groups_count = 0;
-    if (s2n_result_is_error(s2n_client_supported_groups_parse_count(extension, &supported_groups_count))) {
+    if (s2n_result_is_error(s2n_supported_groups_parse_count(extension, &supported_groups_count))) {
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
     }

@@ -51,7 +51,7 @@ int s2n_check_received_supported_groups_cb(struct s2n_connection *conn, void *ct
             s2n_array_len(received_groups), &received_groups_count));
 
     uint16_t sent_groups_count = 0;
-    EXPECT_OK(s2n_client_supported_groups_parse_count(context->sent_supported_groups_extension, &sent_groups_count));
+    EXPECT_OK(s2n_supported_groups_parse_count(context->sent_supported_groups_extension, &sent_groups_count));
     EXPECT_EQUAL(received_groups_count, sent_groups_count);
 
     for (size_t i = 0; i < received_groups_count; i++) {
