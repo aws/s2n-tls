@@ -88,9 +88,9 @@ S2N_RESULT s2n_client_supported_groups_parse_groups_count(struct s2n_stuffer *ex
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &supported_groups_list_size));
 
     RESULT_ENSURE_LTE(supported_groups_list_size, s2n_stuffer_data_available(extension));
-    RESULT_ENSURE_EQ(supported_groups_list_size % sizeof(uint16_t), 0);
+    RESULT_ENSURE_EQ(supported_groups_list_size % S2N_SUPPORTED_GROUP_SIZE, 0);
 
-    *count = supported_groups_list_size / 2;
+    *count = supported_groups_list_size / S2N_SUPPORTED_GROUP_SIZE;
 
     return S2N_RESULT_OK;
 }

@@ -973,13 +973,13 @@ int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extensi
     return S2N_SUCCESS;
 }
 
-int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *supported_groups,
-        uint16_t *supported_groups_count_out, uint16_t max_count)
+int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *groups,
+        uint16_t groups_count_max, uint16_t *groups_count_out)
 {
-    POSIX_ENSURE_REF(supported_groups_count_out);
-    *supported_groups_count_out = 0;
+    POSIX_ENSURE_REF(groups_count_out);
+    *groups_count_out = 0;
     POSIX_ENSURE_REF(ch);
-    POSIX_ENSURE_REF(supported_groups);
+    POSIX_ENSURE_REF(groups);
 
     s2n_parsed_extension *supported_groups_extension = NULL;
     POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SUPPORTED_GROUPS, &ch->extensions, &supported_groups_extension));
@@ -989,13 +989,13 @@ int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t 
 
     uint16_t supported_groups_count = 0;
     POSIX_GUARD_RESULT(s2n_client_supported_groups_parse_groups_count(&extension_stuffer, &supported_groups_count));
-    POSIX_ENSURE_LTE(supported_groups_count, max_count);
+    POSIX_ENSURE_LTE(supported_groups_count, groups_count_max);
 
     for (size_t i = 0; i < supported_groups_count; i++) {
-        POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &supported_groups[i]));
+        POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &groups[i]));
     }
 
-    *supported_groups_count_out = supported_groups_count;
+    *groups_count_out = supported_groups_count;
 
     return S2N_SUCCESS;
 }

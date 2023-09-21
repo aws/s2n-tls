@@ -128,6 +128,38 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
+    /* Test s2n_client_hello_has_extension with a zero-length extension */
+    for (int send_sct = 0; send_sct <= 1; send_sct++) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        /* The SCT extension is zero-length. */
+        if (send_sct) {
+            EXPECT_SUCCESS(s2n_config_set_ct_support_level(config, S2N_CT_SUPPORT_REQUEST));
+        }
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        EXPECT_SUCCESS(s2n_client_hello_send(client));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&client->handshake.io, &server->handshake.io,
+                s2n_stuffer_data_available(&client->handshake.io)));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server));
+
+        struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
+        EXPECT_NOT_NULL(client_hello);
+
+        /* Ensure that s2n_client_hello_has_extension knows that the SCT extension was received. */
+        bool exists = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &exists));
+        EXPECT_EQUAL(exists, send_sct);
+    }
+
     /* Test s2n_client_hello_get_raw_extension */
     {
         uint8_t data[] = {
