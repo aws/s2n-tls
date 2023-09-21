@@ -223,5 +223,6 @@ var searchData=
   ['s2n_5fstack_5ftraces_5fenabled_5fset_220',['s2n_stack_traces_enabled_set',['../s2n_8h.html#a997548b3339d0ee7d154911c733f2126',1,'s2n.h']]],
   ['s2n_5fstrerror_221',['s2n_strerror',['../s2n_8h.html#a57e354c1c73d75888997a81353ea616b',1,'s2n.h']]],
   ['s2n_5fstrerror_5fdebug_222',['s2n_strerror_debug',['../s2n_8h.html#abe953bd1887fbd7812beebc180639baa',1,'s2n.h']]],
-  ['s2n_5fstrerror_5fname_223',['s2n_strerror_name',['../s2n_8h.html#a114d3d3ce1bb2a59ee44434af04b068c',1,'s2n.h']]]
+  ['s2n_5fstrerror_5fname_223',['s2n_strerror_name',['../s2n_8h.html#a114d3d3ce1bb2a59ee44434af04b068c',1,'s2n.h']]],
+  ['s2n_5fstrerror_5fsource_224',['s2n_strerror_source',['../s2n_8h.html#a87f6086b173925bd39185c79538dfdf5',1,'s2n.h']]]
 ];
