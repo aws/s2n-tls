@@ -1417,7 +1417,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
      * If using TCP, read a record. If using QUIC, read a message. */
     if (s2n_connection_is_quic_enabled(conn)) {
         record_type = TLS_HANDSHAKE;
-        POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
+        POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &conn->handshake.io, &conn->in, &message_type));
     } else {
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
 

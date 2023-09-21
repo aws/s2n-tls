@@ -24,10 +24,23 @@
 /* We need access to some io logic */
 #include "tls/s2n_handshake_io.c"
 
+#define TEST_TICKET_AGE_ADD 0x01, 0x02, 0x03, 0x04
+#define TEST_LIFETIME       0x00, 0x01, 0x01, 0x01
+#define TEST_TICKET         0x01, 0xFF, 0x23
+
 static const uint8_t TEST_DATA[] = "test";
 static const size_t TEST_DATA_SIZE = sizeof(TEST_DATA);
 
 struct s2n_stuffer input_stuffer, output_stuffer;
+
+static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, struct s2n_session_ticket *ticket)
+{
+    uint8_t *count = (uint8_t *) ctx;
+    (*count)++;
+
+    return S2N_SUCCESS;
+}
+
 static S2N_RESULT s2n_setup_conn(struct s2n_connection *conn)
 {
     conn->actual_protocol_version = S2N_TLS13;
@@ -140,9 +153,13 @@ int main(int argc, char **argv)
         {
             struct s2n_connection conn = { 0 };
             uint8_t message_type = 0;
+            struct s2n_stuffer header = { 0 };
+            struct s2n_stuffer body = { 0 };
 
-            EXPECT_ERROR(s2n_quic_read_handshake_message(NULL, &message_type));
-            EXPECT_ERROR(s2n_quic_read_handshake_message(&conn, NULL));
+            EXPECT_ERROR(s2n_quic_read_handshake_message(NULL, &header, &body, &message_type));
+            EXPECT_ERROR(s2n_quic_read_handshake_message(&conn, NULL, &body, &message_type));
+            EXPECT_ERROR(s2n_quic_read_handshake_message(&conn, &header, NULL, &message_type));
+            EXPECT_ERROR(s2n_quic_read_handshake_message(&conn, &header, &body, NULL));
         };
 
         /* Reads basic handshake message */
@@ -160,7 +177,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
 
             uint8_t actual_message_type = 0;
-            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &conn->handshake.io, &conn->in, &actual_message_type));
 
             EXPECT_EQUAL(actual_message_type, expected_message_type);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), TLS_HANDSHAKE_HEADER_LENGTH);
@@ -184,7 +201,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
 
             uint8_t actual_message_type = 0;
-            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
+            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &conn->handshake.io, &conn->in, &actual_message_type),
                     S2N_ERR_IO_BLOCKED);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -205,7 +222,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE - 1));
 
             uint8_t actual_message_type = 0;
-            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
+            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &conn->handshake.io, &conn->in, &actual_message_type),
                     S2N_ERR_IO_BLOCKED);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -225,7 +242,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH + 1));
 
             uint8_t actual_message_type = 0;
-            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &actual_message_type),
+            EXPECT_ERROR_WITH_ERRNO(s2n_quic_read_handshake_message(conn, &conn->handshake.io, &conn->in, &actual_message_type),
                     S2N_ERR_BAD_MESSAGE);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
@@ -415,6 +432,49 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&output_stuffer));
         EXPECT_SUCCESS(s2n_config_free(config));
     };
+
+    /* Test: s2n_connection_process_post_handshake_message */
+    {
+        /* Safety checks */
+        EXPECT_FAILURE(s2n_connection_process_post_handshake_message(NULL));
+
+        /* Session ticket that can be parsed */
+        uint8_t ticket[] = {
+            TEST_LIFETIME,       /* ticket lifetime */
+            TEST_TICKET_AGE_ADD, /* ticket age add */
+            0x02,                /* nonce len */
+            0x00, 0x00,          /* nonce */
+            0x00, 0x03,          /* ticket len */
+            TEST_TICKET,         /* ticket */
+            0x00, 0x00,          /* extensions len */
+        };
+
+        /* Test: successfully reads and processes post-handshake message */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            uint8_t session_ticket_cb_count = 0;
+            EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, &session_ticket_cb_count));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Construct ST handshake message */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, TLS_SERVER_NEW_SESSION_TICKET));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, sizeof(ticket)));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket, sizeof(ticket)));
+
+            EXPECT_SUCCESS(s2n_connection_process_post_handshake_message(conn));
+
+            /* Callback was triggered */
+            EXPECT_EQUAL(session_ticket_cb_count, 1);
+        };
+    }
 
     END_TEST();
 }

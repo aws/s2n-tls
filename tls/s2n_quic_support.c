@@ -90,13 +90,23 @@ int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_c
     return S2N_SUCCESS;
 }
 
+/* Currently we need an API that quic can call to process post-handshake messages. Ideally
+ * we could re-use the s2n_recv API but that function needs to be refactored to support quic.
+ * For now we just call this API.
+ */
 int s2n_connection_process_post_handshake_message(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
     uint8_t message_type = 0;
-    POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
-    POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->in, message_type));
+    struct s2n_blob b = { 0 };
+    struct s2n_stuffer header = { 0 };
+    POSIX_GUARD(s2n_blob_init(&b, conn->post_handshake.header_in, sizeof(conn->post_handshake.header_in)));
+    POSIX_GUARD(s2n_stuffer_init(&header, &b));
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->post_handshake.in, 0));
+
+    POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &header, &conn->post_handshake.in, &message_type));
+    POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->post_handshake.in, message_type));
 
     return S2N_SUCCESS;
 }
@@ -104,21 +114,22 @@ int s2n_connection_process_post_handshake_message(struct s2n_connection *conn)
 /* When using QUIC, S2N reads unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N input buffers to match the results of using s2n_read_full_record.
  */
-S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type)
+S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, struct s2n_stuffer *header,
+        struct s2n_stuffer *message, uint8_t *message_type)
 {
     RESULT_ENSURE_REF(conn);
 
     /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
-    RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
+    RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(message, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
 
-    RESULT_GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
+    RESULT_GUARD(s2n_read_in_bytes(conn, header, TLS_HANDSHAKE_HEADER_LENGTH));
 
     uint32_t message_len;
-    RESULT_GUARD(s2n_handshake_parse_header(&conn->handshake.io, message_type, &message_len));
-    RESULT_GUARD_POSIX(s2n_stuffer_reread(&conn->handshake.io));
+    RESULT_GUARD(s2n_handshake_parse_header(header, message_type, &message_len));
+    RESULT_GUARD_POSIX(s2n_stuffer_reread(header));
 
     RESULT_ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
-    RESULT_GUARD(s2n_read_in_bytes(conn, &conn->in, message_len));
+    RESULT_GUARD(s2n_read_in_bytes(conn, message, message_len));
 
     return S2N_RESULT_OK;
 }

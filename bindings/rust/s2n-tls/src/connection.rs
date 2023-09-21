@@ -889,13 +889,6 @@ impl Connection {
         Ok(buffer)
     }
 
-    pub fn quic_process_post_handshake(&mut self) -> Result<(), Error> {
-        unsafe {
-            s2n_connection_process_post_handshake_message(self.connection.as_ptr()).into_result()
-        }?;
-        Ok(())
-    }
-
     /// # Safety
     ///
     /// The `context` pointer must live at least as long as the connection
