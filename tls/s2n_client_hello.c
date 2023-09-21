@@ -992,6 +992,9 @@ int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t 
     POSIX_ENSURE_LTE(supported_groups_count, groups_count_max);
 
     for (size_t i = 0; i < supported_groups_count; i++) {
+        /* s2n_stuffer_read_uint16 is used to read each of the supported groups in network-order
+         * endianness.
+         */
         POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &groups[i]));
     }
 
