@@ -34,8 +34,10 @@ jobs:
           aws-s3-region: us-west-2
           cdn: https://d3fqnyekunr9xg.cloudfront.net
 
-      # In order to accurately check if there are any uncommitted changes, cleanup any
-      # intermediate artifacts generated during the duvet run.
+      # The `duvet report` command generates some artifacts (specs folder) that
+      # interfere with detecting uncommitted files. This step cleans up those
+      # artifacts. Since the cleanup runs prior to the “Extract RFC spec data”
+      # phase, this is a safe operation.
       - name: Cleanup intermediate artifacts
         run: rm -r specs
         shell: bash
