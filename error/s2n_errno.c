@@ -30,7 +30,7 @@
 #endif
 
 __thread int s2n_errno;
-__thread const char *s2n_debug_str;
+__thread struct s2n_debug_info _s2n_debug_info = { .debug_str = "", .source = "" };
 
 /**
  * Returns the address of the thread-local `s2n_errno` variable
@@ -378,7 +378,17 @@ const char *s2n_strerror_debug(int error, const char *lang)
         return s2n_strerror(error, lang);
     }
 
-    return s2n_debug_str;
+    return _s2n_debug_info.debug_str;
+}
+
+const char *s2n_strerror_source(int error)
+{
+    /* No error, just return the no error string */
+    if (error == S2N_ERR_OK) {
+        return s2n_strerror(error, "EN");
+    }
+
+    return _s2n_debug_info.source;
 }
 
 int s2n_error_get_type(int error)
@@ -398,6 +408,12 @@ int s2n_stack_traces_enabled_set(bool newval)
 {
     s_s2n_stack_traces_enabled = newval;
     return S2N_SUCCESS;
+}
+
+void s2n_debug_info_reset(void)
+{
+    _s2n_debug_info.debug_str = "";
+    _s2n_debug_info.source = "";
 }
 
 #ifdef S2N_STACKTRACE
