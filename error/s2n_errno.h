@@ -323,8 +323,8 @@ typedef enum {
 #define S2N_DEBUG_STR_LEN 128
 
 struct s2n_debug_info {
-    const char* debug_str;
-    const char* file_line;
+    const char *debug_str;
+    const char *source;
 };
 
 extern __thread struct s2n_debug_info _s2n_debug_info;
@@ -345,16 +345,12 @@ extern __thread struct s2n_debug_info _s2n_debug_info;
 #define _S2N_DEBUG_LINE_PREFIX "Error encountered in "
 #define _S2N_DEBUG_LINE        _S2N_DEBUG_LINE_PREFIX __FILE__ ":" STRING__LINE__
 
-#define _S2N_DEBUG_INFO ((struct s2n_debug_info){ \
-        .debug_str = _S2N_DEBUG_LINE,             \
-        .file_line = _S2N_EXTRACT_BASENAME(_S2N_DEBUG_LINE) })
-
-#define _S2N_ERROR(x)                                                                 \
-    do {                                                                              \
-        _s2n_debug_info.debug_str = _S2N_DEBUG_LINE;                                  \
-        _s2n_debug_info.file_line = _S2N_EXTRACT_BASENAME(_s2n_debug_info.debug_str); \
-        s2n_errno = (x);                                                              \
-        s2n_calculate_stacktrace();                                                   \
+#define _S2N_ERROR(x)                                                              \
+    do {                                                                           \
+        _s2n_debug_info.debug_str = _S2N_DEBUG_LINE;                               \
+        _s2n_debug_info.source = _S2N_EXTRACT_BASENAME(_s2n_debug_info.debug_str); \
+        s2n_errno = (x);                                                           \
+        s2n_calculate_stacktrace();                                                \
     } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() \
     do {                           \
@@ -386,7 +382,7 @@ extern __thread struct s2n_debug_info _s2n_debug_info;
 
 /** Calculate and print stacktraces */
 struct s2n_stacktrace {
-    char** trace;
+    char **trace;
     int trace_size;
 };
 
@@ -394,7 +390,7 @@ bool s2n_stack_traces_enabled();
 int s2n_stack_traces_enabled_set(bool newval);
 
 int s2n_calculate_stacktrace(void);
-int s2n_print_stacktrace(FILE* fptr);
+int s2n_print_stacktrace(FILE *fptr);
 int s2n_free_stacktrace(void);
-int s2n_get_stacktrace(struct s2n_stacktrace* trace);
+int s2n_get_stacktrace(struct s2n_stacktrace *trace);
 void s2n_debug_info_reset(void);

@@ -115,7 +115,7 @@ extern "C" {
  * explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
  * A string containing human readable error name; can be generated with `s2n_strerror_name`.
  * A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
- * A string containing only the filename and line number can be generated with `s2n_strerror_file_line`.
+ * A string containing only the filename and line number can be generated with `s2n_strerror_source`.
  * This string is useful to include when reporting issues to the s2n-tls development team.
  *
  * @warning To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
@@ -414,7 +414,7 @@ S2N_API extern const char *s2n_strerror_name(int error);
  * @param error The error code to explain. Usually this is s2n_errno
  * @returns The error string.
  */
-S2N_API extern const char *s2n_strerror_file_line(int error);
+S2N_API extern const char *s2n_strerror_source(int error);
 
 /**
  * Opaque stack trace structure.

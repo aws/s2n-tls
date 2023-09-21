@@ -96,7 +96,7 @@ int main(void)
 
     /* Ensure the file/line information is returned as expected */
     s2n_result_ignore(test_function(false));
-    EXPECT_EQUAL(strcmp(s2n_strerror_file_line(S2N_ERR_SAFETY), "s2n_error_lookup_test.c:25"), 0);
+    EXPECT_EQUAL(strcmp(s2n_strerror_source(S2N_ERR_SAFETY), "s2n_error_lookup_test.c:25"), 0);
 
 /* constructs a debug string from a path */
 #define EXAMPLE_DEBUG_STR(path) (_S2N_EXTRACT_BASENAME(_S2N_DEBUG_LINE_PREFIX path))
