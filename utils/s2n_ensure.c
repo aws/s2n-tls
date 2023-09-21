@@ -17,10 +17,11 @@
 
 void *s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size)
 {
-    if (to == NULL || from == NULL) {
-        return NULL;
-    }
+    PTR_ENSURE_REF(to);
+    PTR_ENSURE_REF(from);
 
     /* use memmove instead of memcpy since it'll handle overlapping regions and not result in UB */
-    return memmove(to, from, size);
+    void *result = memmove(to, from, size);
+    PTR_ENSURE_REF(result);
+    return result;
 }

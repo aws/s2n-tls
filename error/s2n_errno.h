@@ -339,7 +339,7 @@ extern __thread struct s2n_debug_info _s2n_debug_info;
     #define _S2N_RSPLIT(subject, c)     (strrchr((subject), c) ? strrchr((subject), c) + 1 : (subject))
     #define _S2N_EXTRACT_BASENAME(path) _S2N_RSPLIT((path) + strlen(_S2N_DEBUG_LINE_PREFIX), '/')
 #else
-    #define _S2N_EXTRACT_BASENAME(path) ""
+    #define _S2N_EXTRACT_BASENAME(path) path
 #endif
 
 #define _S2N_DEBUG_LINE_PREFIX "Error encountered in "

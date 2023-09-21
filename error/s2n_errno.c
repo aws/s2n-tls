@@ -383,9 +383,9 @@ const char *s2n_strerror_debug(int error, const char *lang)
 
 const char *s2n_strerror_source(int error)
 {
-    /* No error, just return an empty string */
+    /* No error, just return the no error string */
     if (error == S2N_ERR_OK) {
-        return "";
+        return s2n_strerror(error, "EN");
     }
 
     return _s2n_debug_info.source;

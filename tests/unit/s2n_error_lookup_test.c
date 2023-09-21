@@ -19,6 +19,9 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
+/* constructs a debug string from a path */
+#define EXAMPLE_DEBUG_STR(path) (_S2N_EXTRACT_BASENAME(_S2N_DEBUG_LINE_PREFIX path))
+
 S2N_RESULT test_function(bool is_valid)
 {
     /* the line number of this check is important; tests below will fail if it changed */
@@ -96,10 +99,7 @@ int main(void)
 
     /* Ensure the file/line information is returned as expected */
     s2n_result_ignore(test_function(false));
-    EXPECT_EQUAL(strcmp(s2n_strerror_source(S2N_ERR_SAFETY), "s2n_error_lookup_test.c:25"), 0);
-
-/* constructs a debug string from a path */
-#define EXAMPLE_DEBUG_STR(path) (_S2N_EXTRACT_BASENAME(_S2N_DEBUG_LINE_PREFIX path))
+    EXPECT_EQUAL(strcmp(s2n_strerror_source(S2N_ERR_SAFETY), "s2n_error_lookup_test.c:28"), 0);
 
     EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("/absolute/path/to/file.c"), "file.c"), 0);
     EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("relative/path/to/file.c"), "file.c"), 0);
