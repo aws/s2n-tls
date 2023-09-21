@@ -227,6 +227,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *no_resumption_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(no_resumption_config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_resumption_config, false));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, no_resumption_config));
@@ -250,6 +251,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *psk_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(psk_config);
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(psk_config, false));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, psk_config));
