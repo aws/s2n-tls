@@ -1522,7 +1522,7 @@ S2N_API extern int s2n_client_hello_get_session_id_length(struct s2n_client_hell
 S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 /**
- * Retrieves the supported groups received from the peer in the supported groups extension.
+ * Retrieves the supported groups received from the client in the supported groups extension.
  *
  * IANA values for each of the received supported groups are written to the provided `groups`
  * array, and `groups_count` is set to the number of received supported groups.

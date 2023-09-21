@@ -154,10 +154,21 @@ int main(int argc, char **argv)
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
         EXPECT_NOT_NULL(client_hello);
 
-        /* Ensure that s2n_client_hello_has_extension knows that the SCT extension was received. */
-        bool exists = false;
-        EXPECT_SUCCESS(s2n_client_hello_has_extension(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &exists));
-        EXPECT_EQUAL(exists, send_sct);
+        s2n_parsed_extension *sct_extension = NULL;
+        int ret = s2n_client_hello_get_parsed_extension(S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &client_hello->extensions,
+                &sct_extension);
+
+        if (send_sct) {
+            /* Ensure that the extension was received. */
+            EXPECT_SUCCESS(ret);
+            POSIX_ENSURE_REF(sct_extension);
+
+            /* Ensure that the extension is zero-length. */
+            EXPECT_EQUAL(sct_extension->extension.size, 0);
+        } else {
+            /* The extension shouldn't have been received it wasn't requested. */
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_EXTENSION_NOT_RECEIVED);
+        }
     }
 
     /* Test s2n_client_hello_get_raw_extension */

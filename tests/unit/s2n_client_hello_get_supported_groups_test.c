@@ -30,8 +30,7 @@
 #define S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE (2 + S2N_TEST_SUPPORTED_GROUPS_LIST_SIZE)
 
 struct s2n_client_hello_context {
-    const struct s2n_security_policy *client_security_policy;
-    unsigned client_supports_pq : 1;
+    struct s2n_stuffer *sent_supported_groups_extension;
     int invoked_count;
 };
 
@@ -40,37 +39,28 @@ int s2n_check_received_supported_groups_cb(struct s2n_connection *conn, void *ct
     EXPECT_NOT_NULL(ctx);
 
     struct s2n_client_hello_context *context = (struct s2n_client_hello_context *) ctx;
+    EXPECT_NOT_NULL(context->sent_supported_groups_extension);
     context->invoked_count += 1;
 
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
     EXPECT_NOT_NULL(client_hello);
 
-    uint16_t supported_groups[S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT] = { 0 };
-    uint16_t supported_groups_count = 0;
-    EXPECT_SUCCESS(s2n_client_hello_get_supported_groups(client_hello, supported_groups,
-            s2n_array_len(supported_groups), &supported_groups_count));
+    uint16_t received_groups[S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT] = { 0 };
+    uint16_t received_groups_count = 0;
+    EXPECT_SUCCESS(s2n_client_hello_get_supported_groups(client_hello, received_groups,
+            s2n_array_len(received_groups), &received_groups_count));
 
-    const struct s2n_security_policy *security_policy = context->client_security_policy;
-    uint16_t expected_groups_count = security_policy->ecc_preferences->count;
-    if (context->client_supports_pq) {
-        expected_groups_count += security_policy->kem_preferences->tls13_kem_group_count;
-    }
-    EXPECT_EQUAL(supported_groups_count, expected_groups_count);
+    uint16_t sent_groups_count = 0;
+    EXPECT_OK(s2n_client_supported_groups_parse_count(context->sent_supported_groups_extension, &sent_groups_count));
+    EXPECT_EQUAL(received_groups_count, sent_groups_count);
 
-    size_t offset = 0;
-    for (size_t i = 0; i < security_policy->kem_preferences->tls13_kem_group_count; i++) {
-        if (!context->client_supports_pq) {
-            break;
-        }
+    for (size_t i = 0; i < received_groups_count; i++) {
+        uint16_t received_group = received_groups[i];
 
-        const struct s2n_kem_group *group = security_policy->kem_preferences->tls13_kem_groups[i];
-        EXPECT_EQUAL(supported_groups[i], group->iana_id);
-        offset += 1;
-    }
+        uint16_t sent_group = 0;
+        EXPECT_SUCCESS(s2n_stuffer_read_uint16(context->sent_supported_groups_extension, &sent_group));
 
-    for (size_t i = 0; i < security_policy->ecc_preferences->count; i++) {
-        const struct s2n_ecc_named_curve *curve = security_policy->ecc_preferences->ecc_curves[i];
-        EXPECT_EQUAL(supported_groups[offset + i], curve->iana_id);
+        EXPECT_EQUAL(received_group, sent_group);
     }
 
     return S2N_SUCCESS;
@@ -90,19 +80,18 @@ int main(int argc, char **argv)
         uint16_t supported_groups[S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT] = { 0 };
         uint16_t supported_groups_count = 0;
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_supported_groups(NULL, supported_groups,
-                                          s2n_array_len(supported_groups), &supported_groups_count),
-                S2N_ERR_NULL);
+        int ret = s2n_client_hello_get_supported_groups(NULL, supported_groups, s2n_array_len(supported_groups),
+                &supported_groups_count);
+        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_NULL);
         EXPECT_EQUAL(supported_groups_count, 0);
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_supported_groups(&client_hello, NULL,
-                                          s2n_array_len(supported_groups), &supported_groups_count),
-                S2N_ERR_NULL);
+        ret = s2n_client_hello_get_supported_groups(&client_hello, NULL, s2n_array_len(supported_groups),
+                &supported_groups_count);
+        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_NULL);
         EXPECT_EQUAL(supported_groups_count, 0);
 
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
-                                          s2n_array_len(supported_groups), NULL),
-                S2N_ERR_NULL);
+        ret = s2n_client_hello_get_supported_groups(&client_hello, supported_groups, s2n_array_len(supported_groups), NULL);
+        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_NULL);
         EXPECT_EQUAL(supported_groups_count, 0);
     }
 
@@ -129,9 +118,9 @@ int main(int argc, char **argv)
         uint16_t supported_groups_count = 0;
 
         /* Fail if the provided buffer is too small. */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
-                                          S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT - 1, &supported_groups_count),
-                S2N_ERR_SAFETY);
+        int ret = s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
+                S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT - 1, &supported_groups_count);
+        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_SAFETY);
         EXPECT_EQUAL(supported_groups_count, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_reread(&extension_stuffer));
@@ -148,9 +137,9 @@ int main(int argc, char **argv)
 
         uint16_t supported_groups[S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT] = { 0 };
         uint16_t supported_groups_count = 0;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
-                                          s2n_array_len(supported_groups), &supported_groups_count),
-                S2N_ERR_EXTENSION_NOT_RECEIVED);
+        int ret = s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
+                s2n_array_len(supported_groups), &supported_groups_count);
+        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_EXTENSION_NOT_RECEIVED);
     }
 
     /* Error if a supported groups extension wasn't received. */
@@ -250,9 +239,9 @@ int main(int argc, char **argv)
 
             uint16_t supported_groups[S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT] = { 0 };
             uint16_t supported_groups_count = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
-                                              s2n_array_len(supported_groups), &supported_groups_count),
-                    S2N_ERR_SAFETY);
+            int ret = s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
+                    s2n_array_len(supported_groups), &supported_groups_count);
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
             EXPECT_EQUAL(supported_groups_count, 0);
         }
@@ -272,9 +261,9 @@ int main(int argc, char **argv)
 
             uint16_t supported_groups[S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT] = { 0 };
             uint16_t supported_groups_count = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
-                                              s2n_array_len(supported_groups), &supported_groups_count),
-                    S2N_ERR_SAFETY);
+            int ret = s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
+                    s2n_array_len(supported_groups), &supported_groups_count);
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
             EXPECT_EQUAL(supported_groups_count, 0);
         }
@@ -360,8 +349,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
             struct s2n_client_hello_context context = {
-                .client_security_policy = client_config->security_policy,
-                .client_supports_pq = false,
                 .invoked_count = 0,
             };
             EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, s2n_check_received_supported_groups_cb,
@@ -383,12 +370,15 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_OK(s2n_negotiate_until_message(client_conn, &blocked, SERVER_HELLO));
 
-            /* PQ KEM groups are only sent in the supported groups extension if the client supports
-             * TLS 1.3 and PQ is enabled.
-             */
-            if (s2n_connection_get_protocol_version(client_conn) >= S2N_TLS13 && s2n_pq_is_enabled()) {
-                context.client_supports_pq = true;
-            }
+            uint8_t sent_supported_groups_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE];
+            struct s2n_blob sent_supported_groups_blob = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&sent_supported_groups_blob, sent_supported_groups_data,
+                    s2n_array_len(sent_supported_groups_data)));
+
+            struct s2n_stuffer sent_supported_groups_stuffer = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_init(&sent_supported_groups_stuffer, &sent_supported_groups_blob));
+            EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(client_conn, &sent_supported_groups_stuffer));
+            context.sent_supported_groups_extension = &sent_supported_groups_stuffer;
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
