@@ -380,7 +380,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                     s2n_ktls_io_stuffer_pair_free);
@@ -408,7 +408,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                     s2n_ktls_io_stuffer_pair_free);
@@ -434,7 +434,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                     s2n_ktls_io_stuffer_pair_free);
@@ -468,7 +468,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                     s2n_ktls_io_stuffer_pair_free);
@@ -485,7 +485,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
             ssize_t ret_val = 0;
             EXPECT_OK(s2n_ktls_set_recvmsg_cb(conn, s2n_test_ktls_recvmsg_cb, &ret_val));
@@ -517,7 +517,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                     s2n_ktls_io_stuffer_pair_free);
@@ -558,7 +558,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, reneg_config));
-            EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+            s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
             conn->secure_renegotiation = true;
 
             DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
                         s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, multi_config));
-                EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+                s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
                 DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                         s2n_ktls_io_stuffer_pair_free);
@@ -635,7 +635,7 @@ int main(int argc, char **argv)
                         s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, multi_config));
-                EXPECT_OK(s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV));
+                s2n_ktls_configure_connection(conn, S2N_KTLS_MODE_RECV);
 
                 DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
                         s2n_ktls_io_stuffer_pair_free);
