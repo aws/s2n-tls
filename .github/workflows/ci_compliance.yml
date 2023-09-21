@@ -34,6 +34,12 @@ jobs:
           aws-s3-region: us-west-2
           cdn: https://d3fqnyekunr9xg.cloudfront.net
 
+      # In order to accurately check if there are any uncommitted changes, cleanup any
+      # intermediate artifacts generated during the duvet run.
+      - name: Cleanup intermediate artifacts
+        run: rm -r specs
+        shell: bash
+
       - name: Extract RFC spec data
         working-directory: ./compliance
         run: ./initialize_duvet.sh
@@ -51,5 +57,7 @@ jobs:
             echo "Found uncommitted changes:"
             echo "$git_status"
             exit 1
+          else
+            echo "Workspace is clean"
           fi
         shell: bash
