@@ -1522,6 +1522,32 @@ S2N_API extern int s2n_client_hello_get_session_id_length(struct s2n_client_hell
 S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 /**
+ * Retrieves the supported groups received from the peer in the supported groups extension.
+ *
+ * IANA values for each of the received supported groups are written to the provided
+ * `supported_groups` array, and `supported_groups_count` is set to the number of received
+ * supported groups.
+ *
+ * `max_count` should be set to the maximum capacity of the `supported_groups` array. If
+ * `max_count` is less than the number of received supported groups, this function will error. To
+ * determine how large `supported_groups` should be in advance, use
+ * `s2n_client_hello_get_extension_length()` with the S2N_EXTENSION_SUPPORTED_GROUPS extension
+ * type, and divide the value by 2.
+ *
+ * If no supported groups extension was received from the peer, or the received supported groups
+ * extension is malformed, this function will error.
+ *
+ * @param ch A pointer to the ClientHello. Can be retrieved from a connection via
+ * `s2n_connection_get_client_hello()`.
+ * @param supported_groups The array to populate with the received supported groups.
+ * @param supported_groups_count Returns the number of received supported groups.
+ * @param max_count The maximum number of supported groups that can fit in the `supported_groups` array.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *supported_groups,
+        uint16_t *supported_groups_count, uint16_t max_count);
+
+/**
  * Sets the file descriptor for a s2n connection.
  *
  * @warning If the read end of the pipe is closed unexpectedly, writing to the pipe will raise a SIGPIPE signal.
