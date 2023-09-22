@@ -57,6 +57,10 @@ int s2n_check_received_supported_groups_cb(struct s2n_connection *conn, void *ct
     for (size_t i = 0; i < received_groups_count; i++) {
         uint16_t received_group = received_groups[i];
 
+        /* s2n_stuffer_read_uint16 is used to read each of the sent supported groups in
+         * network-order endianness, and compare them to the received supported groups which have
+         * already been converted to the machine's endianness.
+         */
         uint16_t sent_group = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(context->sent_supported_groups_extension, &sent_group));
 
@@ -73,6 +77,9 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
+    s2n_extension_type_id supported_groups_id = 0;
+    EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(S2N_EXTENSION_SUPPORTED_GROUPS, &supported_groups_id));
 
     /* Safety */
     {
@@ -99,9 +106,6 @@ int main(int argc, char **argv)
     {
         struct s2n_client_hello client_hello = { 0 };
 
-        s2n_extension_type_id supported_groups_id = 0;
-        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(S2N_EXTENSION_SUPPORTED_GROUPS, &supported_groups_id));
-
         uint8_t extension_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE] = { 0 };
         struct s2n_blob extension_blob = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
@@ -120,7 +124,7 @@ int main(int argc, char **argv)
         /* Fail if the provided buffer is too small. */
         int ret = s2n_client_hello_get_supported_groups(&client_hello, supported_groups,
                 S2N_TEST_SUPPORTED_GROUPS_LIST_COUNT - 1, &supported_groups_count);
-        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_SAFETY);
+        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_INSUFFICIENT_MEM_SIZE);
         EXPECT_EQUAL(supported_groups_count, 0);
 
         EXPECT_SUCCESS(s2n_stuffer_reread(&extension_stuffer));
@@ -199,9 +203,6 @@ int main(int argc, char **argv)
     {
         struct s2n_client_hello client_hello = { 0 };
 
-        s2n_extension_type_id supported_groups_id = 0;
-        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(S2N_EXTENSION_SUPPORTED_GROUPS, &supported_groups_id));
-
         s2n_parsed_extension *supported_groups_extension = &client_hello.extensions.parsed_extensions[supported_groups_id];
         supported_groups_extension->extension_type = S2N_EXTENSION_SUPPORTED_GROUPS;
 
@@ -246,7 +247,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(supported_groups_count, 0);
         }
 
-        /* Test parsing a groups list that contains a partial supported group */
+        /* Test parsing a groups list that contains a malformed supported group */
         {
             uint8_t extension_data[S2N_TEST_SUPPORTED_GROUPS_EXTENSION_SIZE] = { 0 };
             struct s2n_blob extension_blob = { 0 };
@@ -272,9 +273,6 @@ int main(int argc, char **argv)
     /* Ensure that the supported groups in the client hello are written to the output array. */
     {
         struct s2n_client_hello client_hello = { 0 };
-
-        s2n_extension_type_id supported_groups_id = 0;
-        EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(S2N_EXTENSION_SUPPORTED_GROUPS, &supported_groups_id));
 
         s2n_parsed_extension *supported_groups_extension = &client_hello.extensions.parsed_extensions[supported_groups_id];
         supported_groups_extension->extension_type = S2N_EXTENSION_SUPPORTED_GROUPS;
@@ -323,7 +321,7 @@ int main(int argc, char **argv)
      */
     {
         /* Test security policies with a range of different ECC curves and KEM groups. */
-        const char *versions[] = {
+        const char *policies[] = {
             "20170210",
             "20190801",
             "AWS-CRT-SDK-TLSv1.2-2023",
@@ -334,18 +332,18 @@ int main(int argc, char **argv)
             "test_all"
         };
 
-        for (int version_index = 0; version_index < s2n_array_len(versions); version_index++) {
-            const char *version = versions[version_index];
+        for (int version_index = 0; version_index < s2n_array_len(policies); version_index++) {
+            const char *policy = policies[version_index];
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, version));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, policy));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, version));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, policy));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
             struct s2n_client_hello_context context = {

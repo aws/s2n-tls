@@ -990,7 +990,7 @@ int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t 
 
     uint16_t supported_groups_count = 0;
     POSIX_GUARD_RESULT(s2n_supported_groups_parse_count(&extension_stuffer, &supported_groups_count));
-    POSIX_ENSURE_LTE(supported_groups_count, groups_count_max);
+    POSIX_ENSURE(supported_groups_count <= groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
 
     for (size_t i = 0; i < supported_groups_count; i++) {
         /* s2n_stuffer_read_uint16 is used to read each of the supported groups in network-order
