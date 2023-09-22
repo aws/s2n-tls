@@ -166,7 +166,7 @@ int main(int argc, char **argv)
             /* Ensure that the extension is zero-length. */
             EXPECT_EQUAL(sct_extension->extension.size, 0);
         } else {
-            /* The extension shouldn't have been received it wasn't requested. */
+            /* The extension shouldn't have been received because it wasn't requested. */
             EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_EXTENSION_NOT_RECEIVED);
         }
     }
