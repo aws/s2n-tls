@@ -1,0 +1,33 @@
+target = "https://tools.ietf.org/rfc/rfc8446#appendix-E.1.4"
+
+# E.1.4.  Exporter Independence
+#
+# The exporter_master_secret and early_exporter_master_secret are
+# derived to be independent of the traffic keys and therefore do not
+# represent a threat to the security of traffic encrypted with those
+# keys.  However, because these secrets can be used to compute any
+# exporter value, they SHOULD be erased as soon as possible.  If the
+# total set of exporter labels is known, then implementations SHOULD
+# pre-compute the inner Derive-Secret stage of the exporter computation
+# for all those labels, then erase the [early_]exporter_master_secret,
+# followed by each inner value as soon as it is known that it will not
+# be needed again.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+However, because these secrets can be used to compute any
+exporter value, they SHOULD be erased as soon as possible.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If the
+total set of exporter labels is known, then implementations SHOULD
+pre-compute the inner Derive-Secret stage of the exporter computation
+for all those labels, then erase the [early_]exporter_master_secret,
+followed by each inner value as soon as it is known that it will not
+be needed again.
+'''
+

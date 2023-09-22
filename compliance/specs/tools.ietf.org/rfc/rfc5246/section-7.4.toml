@@ -1,0 +1,67 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-7.4"
+
+# 7.4.  Handshake Protocol
+#
+# The TLS Handshake Protocol is one of the defined higher-level clients
+# of the TLS Record Protocol.  This protocol is used to negotiate the
+# secure attributes of a session.  Handshake messages are supplied to
+# the TLS record layer, where they are encapsulated within one or more
+# TLSPlaintext structures, which are processed and transmitted as
+# specified by the current active session state.
+# 
+#    enum {
+#        hello_request(0), client_hello(1), server_hello(2),
+#        certificate(11), server_key_exchange (12),
+#        certificate_request(13), server_hello_done(14),
+#        certificate_verify(15), client_key_exchange(16),
+#        finished(20), (255)
+#    } HandshakeType;
+# 
+#    struct {
+#        HandshakeType msg_type;    /* handshake type */
+#        uint24 length;             /* bytes in message */
+#        select (HandshakeType) {
+#            case hello_request:       HelloRequest;
+#            case client_hello:        ClientHello;
+#            case server_hello:        ServerHello;
+#            case certificate:         Certificate;
+#            case server_key_exchange: ServerKeyExchange;
+#            case certificate_request: CertificateRequest;
+#            case server_hello_done:   ServerHelloDone;
+#            case certificate_verify:  CertificateVerify;
+#            case client_key_exchange: ClientKeyExchange;
+#            case finished:            Finished;
+#        } body;
+#    } Handshake;
+# 
+# The handshake protocol messages are presented below in the order they
+# MUST be sent; sending handshake messages in an unexpected order
+# results in a fatal error.  Unneeded handshake messages can be
+# omitted, however.  Note one exception to the ordering: the
+# Certificate message is used twice in the handshake (from server to
+# client, then from client to server), but described only in its first
+# position.  The one message that is not bound by these ordering rules
+# is the HelloRequest message, which can be sent at any time, but which
+# SHOULD be ignored by the client if it arrives in the middle of a
+# handshake.
+# 
+# New handshake message types are assigned by IANA as described in
+# Section 12.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The handshake protocol messages are presented below in the order they
+MUST be sent; sending handshake messages in an unexpected order
+results in a fatal error.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The one message that is not bound by these ordering rules
+is the HelloRequest message, which can be sent at any time, but which
+SHOULD be ignored by the client if it arrives in the middle of a
+handshake.
+'''
+

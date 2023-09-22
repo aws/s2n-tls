@@ -30,7 +30,7 @@
 #endif
 
 __thread int s2n_errno;
-__thread const char *s2n_debug_str;
+__thread struct s2n_debug_info _s2n_debug_info = { .debug_str = "", .source = "" };
 
 /**
  * Returns the address of the thread-local `s2n_errno` variable
@@ -297,8 +297,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_HANDSHAKE_NOT_COMPLETE, "Operation is only allowed after the handshake is complete") \
     ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM, "kTLS is unsupported on this platform") \
     ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_CONN, "kTLS is unsupported for this connection") \
-    ERR_ENTRY(S2N_ERR_KTLS_ULP, "An error occurred when attempting to configure the socket for kTLS. Ensure the 'tls' kernel module is enabled.")  \
-    ERR_ENTRY(S2N_ERR_KTLS_ENABLE_CRYPTO, "An error occurred when attempting to enable kTLS on socket.")  \
+    ERR_ENTRY(S2N_ERR_KTLS_ENABLE, "An error occurred when attempting to enable kTLS on socket. Ensure the 'tls' kernel module is enabled.")  \
     ERR_ENTRY(S2N_ERR_KTLS_BAD_CMSG, "Error handling cmsghdr.")  \
     ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
     ERR_ENTRY(S2N_ERR_TEST_ASSERTION, "Test assertion failed") \
@@ -380,7 +379,17 @@ const char *s2n_strerror_debug(int error, const char *lang)
         return s2n_strerror(error, lang);
     }
 
-    return s2n_debug_str;
+    return _s2n_debug_info.debug_str;
+}
+
+const char *s2n_strerror_source(int error)
+{
+    /* No error, just return the no error string */
+    if (error == S2N_ERR_OK) {
+        return s2n_strerror(error, "EN");
+    }
+
+    return _s2n_debug_info.source;
 }
 
 int s2n_error_get_type(int error)
@@ -400,6 +409,12 @@ int s2n_stack_traces_enabled_set(bool newval)
 {
     s_s2n_stack_traces_enabled = newval;
     return S2N_SUCCESS;
+}
+
+void s2n_debug_info_reset(void)
+{
+    _s2n_debug_info.debug_str = "";
+    _s2n_debug_info.source = "";
 }
 
 #ifdef S2N_STACKTRACE

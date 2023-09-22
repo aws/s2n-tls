@@ -26,11 +26,13 @@
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_post_handshake.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_resume.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_blob.h"
+#include "utils/s2n_io.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
@@ -43,13 +45,8 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
         int r = s2n_connection_recv_stuffer(output, conn, remaining);
         if (r == 0) {
             s2n_atomic_flag_set(&conn->read_closed);
-            RESULT_BAIL(S2N_ERR_CLOSED);
-        } else if (r < 0) {
-            if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                RESULT_BAIL(S2N_ERR_IO_BLOCKED);
-            }
-            RESULT_BAIL(S2N_ERR_IO);
         }
+        RESULT_GUARD(s2n_io_check_read_result(r));
         conn->wire_bytes_in += r;
     }
 
@@ -59,6 +56,10 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
 int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2)
 {
     *isSSLv2 = 0;
+
+    if (conn->ktls_recv_enabled) {
+        return s2n_ktls_read_full_record(conn, record_type);
+    }
 
     /* If the record has already been decrypted, then leave it alone */
     if (conn->in_status == PLAINTEXT) {

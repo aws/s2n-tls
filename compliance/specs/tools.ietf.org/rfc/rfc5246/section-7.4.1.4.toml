@@ -1,0 +1,133 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-7.4.1.4"
+
+# 7.4.1.4.  Hello Extensions
+#
+# The extension format is:
+# 
+#    struct {
+#        ExtensionType extension_type;
+#        opaque extension_data<0..2^16-1>;
+#    } Extension;
+# 
+#    enum {
+#        signature_algorithms(13), (65535)
+#    } ExtensionType;
+# 
+# Here:
+# 
+# -  "extension_type" identifies the particular extension type.
+# 
+# -  "extension_data" contains information specific to the particular
+#    extension type.
+# 
+# The initial set of extensions is defined in a companion document
+# [TLSEXT].  The list of extension types is maintained by IANA as
+# described in Section 12.
+# 
+# An extension type MUST NOT appear in the ServerHello unless the same
+# extension type appeared in the corresponding ClientHello.  If a
+# client receives an extension type in ServerHello that it did not
+# request in the associated ClientHello, it MUST abort the handshake
+# with an unsupported_extension fatal alert.
+# 
+# Nonetheless, "server-oriented" extensions may be provided in the
+# future within this framework.  Such an extension (say, of type x)
+# would require the client to first send an extension of type x in a
+# ClientHello with empty extension_data to indicate that it supports
+# the extension type.  In this case, the client is offering the
+# capability to understand the extension type, and the server is taking
+# the client up on its offer.
+# 
+# When multiple extensions of different types are present in the
+# ClientHello or ServerHello messages, the extensions MAY appear in any
+# order.  There MUST NOT be more than one extension of the same type.
+# 
+# Finally, note that extensions can be sent both when starting a new
+# session and when requesting session resumption.  Indeed, a client
+# that requests session resumption does not in general know whether the
+# server will accept this request, and therefore it SHOULD send the
+# same extensions as it would send if it were not attempting
+# resumption.
+# 
+# In general, the specification of each extension type needs to
+# describe the effect of the extension both during full handshake and
+# session resumption.  Most current TLS extensions are relevant only
+# when a session is initiated: when an older session is resumed, the
+# server does not process these extensions in Client Hello, and does
+# not include them in Server Hello.  However, some extensions may
+# specify different behavior during session resumption.
+# 
+# There are subtle (and not so subtle) interactions that may occur in
+# this protocol between new features and existing features which may
+# result in a significant reduction in overall security.  The following
+# considerations should be taken into account when designing new
+# extensions:
+# 
+# -  Some cases where a server does not agree to an extension are error
+#    conditions, and some are simply refusals to support particular
+#    features.  In general, error alerts should be used for the former,
+#    and a field in the server extension response for the latter.
+# 
+# -  Extensions should, as far as possible, be designed to prevent any
+#    attack that forces use (or non-use) of a particular feature by
+#    manipulation of handshake messages.  This principle should be
+#    followed regardless of whether the feature is believed to cause a
+#    security problem.
+# 
+#    Often the fact that the extension fields are included in the
+#    inputs to the Finished message hashes will be sufficient, but
+#    extreme care is needed when the extension changes the meaning of
+#    messages sent in the handshake phase.  Designers and implementors
+#    should be aware of the fact that until the handshake has been
+#    authenticated, active attackers can modify messages and insert,
+#    remove, or replace extensions.
+# 
+# -  It would be technically possible to use extensions to change major
+#    aspects of the design of TLS; for example the design of cipher
+#    suite negotiation.  This is not recommended; it would be more
+#    appropriate to define a new version of TLS -- particularly since
+#    the TLS handshake algorithms have specific protection against
+#    version rollback attacks based on the version number, and the
+#    possibility of version rollback should be a significant
+#    consideration in any major design change.
+
+[[spec]]
+level = "MUST"
+quote = '''
+An extension type MUST NOT appear in the ServerHello unless the same
+extension type appeared in the corresponding ClientHello.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a
+client receives an extension type in ServerHello that it did not
+request in the associated ClientHello, it MUST abort the handshake
+with an unsupported_extension fatal alert.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+When multiple extensions of different types are present in the
+ClientHello or ServerHello messages, the extensions MAY appear in any
+order.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+There MUST NOT be more than one extension of the same type.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Indeed, a client
+that requests session resumption does not in general know whether the
+server will accept this request, and therefore it SHOULD send the
+same extensions as it would send if it were not attempting
+resumption.
+'''
+

@@ -1,0 +1,115 @@
+target = "https://tools.ietf.org/rfc/rfc8422#section-5.10"
+
+# 5.10.  ECDH, ECDSA, and RSA Computations
+#
+# All ECDH calculations for the NIST curves (including parameter and
+# key generation as well as the shared secret calculation) are
+# performed according to [IEEE.P1363] using the ECKAS-DH1 scheme with
+# the identity map as the Key Derivation Function (KDF) so that the
+# premaster secret is the x-coordinate of the ECDH shared secret
+# elliptic curve point represented as an octet string.  Note that this
+# octet string (Z in IEEE 1363 terminology), as output by FE2OSP (Field
+# 
+# Element to Octet String Conversion Primitive), has constant length
+# for any given field; leading zeros found in this octet string MUST
+# NOT be truncated.
+# 
+# (Note that this use of the identity KDF is a technicality.  The
+# complete picture is that ECDH is employed with a non-trivial KDF
+# because TLS does not directly use the premaster secret for anything
+# other than for computing the master secret.  In TLS 1.0 and 1.1, this
+# means that the MD5- and SHA-1-based TLS Pseudorandom Function (PRF)
+# serves as a KDF; in TLS 1.2, the KDF is determined by ciphersuite,
+# and it is conceivable that future TLS versions or new TLS extensions
+# introduced in the future may vary this computation.)
+# 
+# An ECDHE key exchange using X25519 (curve x25519) goes as follows:
+# (1) each party picks a secret key d uniformly at random and computes
+# the corresponding public key x = X25519(d, G); (2) parties exchange
+# their public keys and compute a shared secret as x_S = X25519(d,
+# x_peer); and (3), if either party obtains all-zeroes x_S, it MUST
+# abort the handshake (as required by definition of X25519 and X448).
+# ECDHE for X448 works similarly, replacing X25519 with X448 and x25519
+# with x448.  The derived shared secret is used directly as the
+# premaster secret, which is always exactly 32 bytes when ECDHE with
+# X25519 is used and 56 bytes when ECDHE with X448 is used.
+# 
+# All ECDSA computations MUST be performed according to ANSI X9.62 or
+# its successors.  Data to be signed/verified is hashed, and the result
+# runs directly through the ECDSA algorithm with no additional hashing.
+# A secure hash function such as SHA-256, SHA-384, or SHA-512 from
+# [FIPS.180-4] MUST be used.
+# 
+# All EdDSA computations MUST be performed according to [RFC8032] or
+# its successors.  Data to be signed/verified is run through the EdDSA
+# algorithm with no hashing (EdDSA will internally run the data through
+# the "prehash" function PH).  The context parameter for Ed448 MUST be
+# set to the empty string.
+# 
+# RFC 4492 anticipated the standardization of a mechanism for
+# specifying the required hash function in the certificate, perhaps in
+# the parameters field of the subjectPublicKeyInfo.  Such
+# standardization never took place, and as a result, SHA-1 is used in
+# TLS 1.1 and earlier (except for EdDSA, which uses identity function).
+# TLS 1.2 added a SignatureAndHashAlgorithm parameter to the
+# DigitallySigned struct, thus allowing agility in choosing the
+# signature hash.  EdDSA signatures MUST have HashAlgorithm of 8
+# (Intrinsic).
+# 
+# All RSA signatures must be generated and verified according to
+# Section 7.2 of [RFC8017].
+
+[[spec]]
+level = "MUST"
+quote = '''
+Element to Octet String Conversion Primitive), has constant length
+for any given field; leading zeros found in this octet string MUST
+NOT be truncated.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+An ECDHE key exchange using X25519 (curve x25519) goes as follows:
+(1) each party picks a secret key d uniformly at random and computes
+the corresponding public key x = X25519(d, G); (2) parties exchange
+their public keys and compute a shared secret as x_S = X25519(d,
+x_peer); and (3), if either party obtains all-zeroes x_S, it MUST
+abort the handshake (as required by definition of X25519 and X448).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+All ECDSA computations MUST be performed according to ANSI X9.62 or
+its successors.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A secure hash function such as SHA-256, SHA-384, or SHA-512 from
+[FIPS.180-4] MUST be used.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+All EdDSA computations MUST be performed according to [RFC8032] or
+its successors.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The context parameter for Ed448 MUST be
+set to the empty string.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+EdDSA signatures MUST have HashAlgorithm of 8
+(Intrinsic).
+'''
+
