@@ -30,19 +30,23 @@
  * Currently, s2n-tls supports ktls for only very limited scenarios:
  * - You must be using Linux. We have not tested with other kernels.
  * - Your kernel must support kTLS. For Linux, versions >4.13 should support kTLS.
+ * - The TLS kernel module must be enabled. While some environments enable the
+ *   module by default, most will require you to run `sudo modprobe tls`.
  * - You must negotiate TLS1.2. TLS1.3 support is blocked on kernel support for
  *   TLS KeyUpdate messages.
- * - You must negotiate AES128-GCM. Other ciphers will be supported soon.
+ * - You must negotiate AES128-GCM, which is the most preferred cipher suite
+ *   in the "default" security policy. Other ciphers are supported by the kernel,
+ *   but not implemented in s2n-tls yet.
  */
 
 /**
  * Enables sending using kTLS on a given connection.
  *
- * See above for the limitations on when kTLS can be enabled.
- *
- * This method must be called after the handshake completes. It may be called
- * after some application data is sent and received without kTLS, but there must
- * be no pending application data that requires flushing.
+ * See above for the limitations on when kTLS can be enabled. Additionally,
+ * s2n_connection_ktls_enable_send must be called after the handshake completes.
+ * It may be called after some application data is sent and received without kTLS,
+ * but there must be no pending application data that requires flushing. If these
+ * requirements are not met, enabling kTLS will fail with an error.
  *
  * After kTLS is enabled for sending, s2n_send, s2n_sendv, and s2n_sendv_with_offset
  * will use kTLS. kTLS should result in memory and CPU savings. s2n_sendfile will
@@ -68,11 +72,11 @@ S2N_API int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
 /**
  * Enables receiving using kTLS on a given connection.
  *
- * See above for the limitations on when kTLS can be enabled.
- *
- * This method must be called after the handshake completes. It may be called
- * after some application data is sent and received without kTLS, but there must
- * be no buffered application data that requires draining.
+ * See above for the limitations on when kTLS can be enabled. Additionally,
+ * s2n_connection_ktls_enable_recv must be called after the handshake completes.
+ * It may be called after some application data is sent and received without kTLS,
+ * but there must be no buffered application data that requires draining. If these
+ * requirements are not met, enabling kTLS will fail with an error.
  *
  * After kTLS is enabled for receiving, s2n_recv will use kTLS. This may result
  * in memory and CPU savings, but currently will still buffer and copy application data.
