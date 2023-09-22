@@ -901,6 +901,13 @@ impl Connection {
             .into_result()?;
         Ok(self)
     }
+
+    pub fn quic_process_post_handshake_message(&mut self) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_process_post_handshake_message(self.connection.as_ptr()).into_result()
+        }?;
+        Ok(self)
+    }
 }
 
 impl AsRef<Connection> for Connection {
