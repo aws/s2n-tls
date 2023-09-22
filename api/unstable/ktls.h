@@ -21,7 +21,7 @@
  * @file ktls.h
  *
  * The following APIs enable applications to use kernel TLS (kTLS), meaning that
- * enrypting and decrypting TLS records is handled by the kernel rather than by
+ * encrypting and decrypting TLS records is handled by the kernel rather than by
  * the s2n-tls library.
  *
  * The kTLS APIs are currently considered unstable. kTLS is a relatively new
