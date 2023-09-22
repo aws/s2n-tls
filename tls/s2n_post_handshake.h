@@ -32,3 +32,4 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn);
 S2N_RESULT s2n_post_handshake_recv(struct s2n_connection *conn);
 int s2n_post_handshake_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
 S2N_RESULT s2n_post_handshake_write_records(struct s2n_connection *conn, s2n_blocked_status *blocked);
+S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type);

@@ -90,26 +90,6 @@ int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_c
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_quic_read_post_handshake_message(struct s2n_connection *conn)
-{
-    RESULT_ENSURE_REF(conn);
-
-    /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
-    RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
-
-    RESULT_GUARD(s2n_read_in_bytes(conn, &conn->in, TLS_HANDSHAKE_HEADER_LENGTH));
-
-    uint32_t message_len = 0;
-    uint8_t message_type = 0;
-    RESULT_GUARD(s2n_handshake_parse_header(&conn->in, &message_type, &message_len));
-    RESULT_GUARD_POSIX(s2n_stuffer_reread(&conn->in));
-
-    RESULT_ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
-    RESULT_GUARD(s2n_read_in_bytes(conn, &conn->in, message_len + TLS_HANDSHAKE_HEADER_LENGTH));
-
-    return S2N_RESULT_OK;
-}
-
 /* Currently we need an API that quic can call to process post-handshake messages. Ideally
  * we could re-use the s2n_recv API but that function needs to be refactored to support quic.
  * For now we just call this API.
@@ -118,8 +98,12 @@ int s2n_connection_process_post_handshake_message(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    POSIX_GUARD_RESULT(s2n_quic_read_post_handshake_message(conn));
-    POSIX_GUARD_RESULT(s2n_post_handshake_message_recv(conn));
+    uint8_t message_type = 0;
+    POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
+
+    /* The only post-handshake messages we support from QUIC currently are session tickets */
+    POSIX_ENSURE(message_type == TLS_SERVER_NEW_SESSION_TICKET, S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->in, message_type));
 
     return S2N_SUCCESS;
 }

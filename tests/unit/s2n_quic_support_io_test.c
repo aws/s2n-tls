@@ -434,8 +434,10 @@ int main(int argc, char **argv)
         /* Safety checks */
         EXPECT_FAILURE(s2n_connection_process_post_handshake_message(NULL));
 
-        /* Session ticket that can be parsed */
-        uint8_t ticket[] = {
+        /* Parsable session ticket message */
+        uint8_t ticket_message[] = {
+            TLS_SERVER_NEW_SESSION_TICKET,
+            0x00, 0x00, 0x12,    /* message size */
             TEST_LIFETIME,       /* ticket lifetime */
             TEST_TICKET_AGE_ADD, /* ticket age add */
             0x02,                /* nonce len */
@@ -443,6 +445,23 @@ int main(int argc, char **argv)
             0x00, 0x03,          /* ticket len */
             TEST_TICKET,         /* ticket */
             0x00, 0x00,          /* extensions len */
+        };
+
+        /* Test: fails to read post-handshake message that is not a ST */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            /* Create a post-handshake message that isn't supported by quic */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, TLS_KEY_UPDATE));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_process_post_handshake_message(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
         };
 
         /* Test: successfully reads and processes post-handshake message */
@@ -461,9 +480,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
             /* Construct ST handshake message */
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, TLS_SERVER_NEW_SESSION_TICKET));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, sizeof(ticket)));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket, sizeof(ticket)));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message, sizeof(ticket_message)));
 
             EXPECT_SUCCESS(s2n_connection_process_post_handshake_message(conn));
 
@@ -472,9 +489,8 @@ int main(int argc, char **argv)
         };
 
         /* Test: successfully reads and processes fragmented post-handshake message */
-        {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
+        for (size_t i = 1; i < sizeof(ticket_message); i++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             uint8_t session_ticket_cb_count = 0;
@@ -486,16 +502,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
 
-            /* Construct ST handshake message */
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, TLS_SERVER_NEW_SESSION_TICKET));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, sizeof(ticket)));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket, sizeof(ticket)));
-
-            uint32_t message_len = s2n_stuffer_data_available(&stuffer);
-
-            /* Fake receiving a partial handshake message */
-            EXPECT_SUCCESS(s2n_stuffer_rewrite(&stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, 2));
+            /* Mock receiving a fragmented handshake message */
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message, i));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_process_post_handshake_message(conn), S2N_ERR_IO_BLOCKED);
 
@@ -503,7 +511,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(session_ticket_cb_count, 0);
 
             /* "Write" the rest of the message */
-            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, message_len - 2));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message + i, sizeof(ticket_message) - i));
 
             EXPECT_SUCCESS(s2n_connection_process_post_handshake_message(conn));
 
