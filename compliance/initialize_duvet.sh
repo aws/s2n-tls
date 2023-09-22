@@ -8,5 +8,3 @@ duvet extract https://tools.ietf.org/rfc/rfc7627 # Transport Layer Security (TLS
 duvet extract https://tools.ietf.org/rfc/rfc5746 # Transport Layer Security (TLS) Renegotiation Indication Extension
 duvet extract https://tools.ietf.org/rfc/rfc4492 # Elliptic Curve Cryptography (ECC) Cipher Suites for Transport Layer Security (TLS)
 duvet extract https://tools.ietf.org/rfc/rfc8422 # Elliptic Curve Cryptography (ECC) Cipher Suites for Transport Layer Security (TLS) Versions 1.2 and Earlier
-
-
