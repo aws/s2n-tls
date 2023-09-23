@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.51-73186098</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.51-5e232a64</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -487,6 +487,8 @@ Functions</h2></td></tr>
 <tr class="separator:a803cebda25d3d8beadfd2981bfc0faa2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae86458717edccfb2f58b86f3991af1a9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ae86458717edccfb2f58b86f3991af1a9">s2n_client_hello_get_session_id</a> (struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length)</td></tr>
 <tr class="separator:ae86458717edccfb2f58b86f3991af1a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a68a751eb59517406db2439a88e94d8d1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a68a751eb59517406db2439a88e94d8d1">s2n_client_hello_get_supported_groups</a> (struct s2n_client_hello *ch, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</td></tr>
+<tr class="separator:a68a751eb59517406db2439a88e94d8d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67962bf835ce5145d215a9ee8f4985d3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a67962bf835ce5145d215a9ee8f4985d3">s2n_connection_set_fd</a> (struct s2n_connection *conn, int fd)</td></tr>
 <tr class="separator:a67962bf835ce5145d215a9ee8f4985d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa75014bd12d682e91ab2812c2e92c16d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aa75014bd12d682e91ab2812c2e92c16d">s2n_connection_set_read_fd</a> (struct s2n_connection *conn, int readfd)</td></tr>
@@ -3158,6 +3160,60 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="a68a751eb59517406db2439a88e94d8d1" name="a68a751eb59517406db2439a88e94d8d1"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a68a751eb59517406db2439a88e94d8d1">&#9670;&#160;</a></span>s2n_client_hello_get_supported_groups()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_supported_groups </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t *&#160;</td>
+          <td class="paramname"><em>groups</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t&#160;</td>
+          <td class="paramname"><em>groups_count_max</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t *&#160;</td>
+          <td class="paramname"><em>groups_count</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Retrieves the supported groups received from the client in the supported groups extension.</p>
+<p >IANA values for each of the received supported groups are written to the provided <code>groups</code> array, and <code>groups_count</code> is set to the number of received supported groups.</p>
+<p ><code>groups_count_max</code> should be set to the maximum capacity of the <code>groups</code> array. If <code>groups_count_max</code> is less than the number of received supported groups, this function will error. To determine how large <code>groups</code> should be in advance, use <code><a class="el" href="s2n_8h.html#aba6709ea1bac503daf846990821d8f36">s2n_client_hello_get_extension_length()</a></code> with the S2N_EXTENSION_SUPPORTED_GROUPS extension type, and divide the value by 2.</p>
+<p >If no supported groups extension was received from the peer, or the received supported groups extension is malformed, this function will error.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>A pointer to the ClientHello. Can be retrieved from a connection via <code><a class="el" href="s2n_8h.html#ac0c64d96b5b9a4cb600a22157d6743e3">s2n_connection_get_client_hello()</a></code>. </td></tr>
+    <tr><td class="paramname">groups</td><td>The array to populate with the received supported groups. </td></tr>
+    <tr><td class="paramname">groups_count_max</td><td>The maximum number of supported groups that can fit in the <code>groups</code> array. </td></tr>
+    <tr><td class="paramname">groups_count</td><td>Returns the number of received supported groups. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure. </dd></dl>
 
 </div>
 </div>
