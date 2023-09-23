@@ -78,6 +78,25 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_supported_groups_parse_count(struct s2n_stuffer *extension, uint16_t *count)
+{
+    RESULT_ENSURE_REF(count);
+    *count = 0;
+    RESULT_ENSURE_REF(extension);
+
+    uint16_t supported_groups_list_size = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &supported_groups_list_size));
+
+    RESULT_ENSURE(supported_groups_list_size <= s2n_stuffer_data_available(extension),
+            S2N_ERR_INVALID_PARSED_EXTENSIONS);
+    RESULT_ENSURE(supported_groups_list_size % S2N_SUPPORTED_GROUP_SIZE == 0,
+            S2N_ERR_INVALID_PARSED_EXTENSIONS);
+
+    *count = supported_groups_list_size / S2N_SUPPORTED_GROUP_SIZE;
+
+    return S2N_RESULT_OK;
+}
+
 /* Populates the appropriate index of either the mutually_supported_curves or
  * mutually_supported_kem_groups array based on the received IANA ID. Will
  * ignore unrecognized IANA IDs (and return success). */
@@ -165,15 +184,14 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(extension);
 
-    uint16_t size_of_all;
-    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || (size_of_all % sizeof(uint16_t))) {
+    uint16_t supported_groups_count = 0;
+    if (s2n_result_is_error(s2n_supported_groups_parse_count(extension, &supported_groups_count))) {
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
     }
 
-    for (size_t i = 0; i < (size_of_all / sizeof(uint16_t)); i++) {
-        uint16_t iana_id;
+    for (size_t i = 0; i < supported_groups_count; i++) {
+        uint16_t iana_id = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &iana_id));
         POSIX_GUARD(s2n_client_supported_groups_recv_iana_id(conn, iana_id));
     }
