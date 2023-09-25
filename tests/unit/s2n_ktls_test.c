@@ -36,16 +36,22 @@ static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *
     return S2N_SUCCESS;
 }
 
-static int s2n_test_setsockopt_eexist_error(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_tcp_error(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
-    errno = EEXIST;
-    return S2N_FAILURE;
+    if (level == S2N_SOL_TCP) {
+        errno = EINVAL;
+        return -1;
+    }
+    return 0;
 }
 
-static int s2n_test_setsockopt_error(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_tls_error(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
-    errno = EINVAL;
-    return S2N_FAILURE;
+    if (level == S2N_SOL_TLS) {
+        errno = EINVAL;
+        return -1;
+    }
+    return 0;
 }
 
 static int s2n_test_setsockopt_tx(int fd, int level, int optname, const void *optval, socklen_t optlen)
@@ -184,28 +190,30 @@ int main(int argc, char **argv)
             EXPECT_TRUE(server_conn->ktls_recv_enabled);
         };
 
-        /* handle setsockopt error */
+        /* handle setsockopt error for S2N_SOL_TCP */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
-            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_eexist_error));
+            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tcp_error));
 
-            /* do expect an error when trying to set keys on the socket */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_ENABLE_CRYPTO);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_ENABLE_CRYPTO);
+            /* The error does not prevent us from enabling ktls */
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
         };
 
-        /* handle setsockopt EEXIST error from TCP_ULP call */
+        /* handle setsockopt error for S2N_SOL_TLS */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
-            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_error));
+            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_error));
 
-            /* do expect an error when trying to set keys on the socket */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_ULP);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_KTLS_ULP);
+            /* The error prevents us from enabling ktls */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn),
+                    S2N_ERR_KTLS_ENABLE);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn),
+                    S2N_ERR_KTLS_ENABLE);
         };
 
         /* Noop if kTLS is already enabled */

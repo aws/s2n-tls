@@ -26,6 +26,7 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_key_share.h"
 #include "tls/s2n_alerts.h"
@@ -863,7 +864,7 @@ int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type, &extension_type_id));
 
     s2n_parsed_extension *found_parsed_extension = &parsed_extension_list->parsed_extensions[extension_type_id];
-    POSIX_ENSURE_REF(found_parsed_extension->extension.data);
+    POSIX_ENSURE(found_parsed_extension->extension.data, S2N_ERR_EXTENSION_NOT_RECEIVED);
     POSIX_ENSURE(found_parsed_extension->extension_type == extension_type, S2N_ERR_INVALID_PARSED_EXTENSIONS);
 
     *parsed_extension = found_parsed_extension;
@@ -969,5 +970,36 @@ int s2n_client_hello_has_extension(struct s2n_client_hello *ch, uint16_t extensi
     if (extension.data != NULL) {
         *exists = true;
     }
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *groups,
+        uint16_t groups_count_max, uint16_t *groups_count_out)
+{
+    POSIX_ENSURE_REF(groups_count_out);
+    *groups_count_out = 0;
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(groups);
+
+    s2n_parsed_extension *supported_groups_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SUPPORTED_GROUPS, &ch->extensions, &supported_groups_extension));
+    POSIX_ENSURE_REF(supported_groups_extension);
+
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &supported_groups_extension->extension));
+
+    uint16_t supported_groups_count = 0;
+    POSIX_GUARD_RESULT(s2n_supported_groups_parse_count(&extension_stuffer, &supported_groups_count));
+    POSIX_ENSURE(supported_groups_count <= groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+
+    for (size_t i = 0; i < supported_groups_count; i++) {
+        /* s2n_stuffer_read_uint16 is used to read each of the supported groups in network-order
+         * endianness.
+         */
+        POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &groups[i]));
+    }
+
+    *groups_count_out = supported_groups_count;
+
     return S2N_SUCCESS;
 }

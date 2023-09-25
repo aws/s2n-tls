@@ -1,0 +1,128 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-6.2.1"
+
+# 6.2.1.  Fragmentation
+#
+# The record layer fragments information blocks into TLSPlaintext
+# records carrying data in chunks of 2^14 bytes or less.  Client
+# message boundaries are not preserved in the record layer (i.e.,
+# multiple client messages of the same ContentType MAY be coalesced
+# into a single TLSPlaintext record, or a single message MAY be
+# fragmented across several records).
+# 
+#    struct {
+#        uint8 major;
+#        uint8 minor;
+#    } ProtocolVersion;
+# 
+#    enum {
+#        change_cipher_spec(20), alert(21), handshake(22),
+#        application_data(23), (255)
+#    } ContentType;
+# 
+#    struct {
+#        ContentType type;
+#        ProtocolVersion version;
+#        uint16 length;
+#        opaque fragment[TLSPlaintext.length];
+#    } TLSPlaintext;
+# 
+# type
+#    The higher-level protocol used to process the enclosed fragment.
+# 
+# version
+#    The version of the protocol being employed.  This document
+#    describes TLS Version 1.2, which uses the version { 3, 3 }.  The
+#    version value 3.3 is historical, deriving from the use of {3, 1}
+#    for TLS 1.0.  (See Appendix A.1.)  Note that a client that
+#    supports multiple versions of TLS may not know what version will
+#    be employed before it receives the ServerHello.  See Appendix E
+#    for discussion about what record layer version number should be
+#    employed for ClientHello.
+# 
+# length
+#    The length (in bytes) of the following TLSPlaintext.fragment.  The
+#    length MUST NOT exceed 2^14.
+# 
+# fragment
+#    The application data.  This data is transparent and treated as an
+#    independent block to be dealt with by the higher-level protocol
+#    specified by the type field.
+# 
+# Implementations MUST NOT send zero-length fragments of Handshake,
+# Alert, or ChangeCipherSpec content types.  Zero-length fragments of
+# Application data MAY be sent as they are potentially useful as a
+# traffic analysis countermeasure.
+# 
+# Note: Data of different TLS record layer content types MAY be
+# interleaved.  Application data is generally of lower precedence for
+# transmission than other content types.  However, records MUST be
+# delivered to the network in the same order as they are protected by
+# the record layer.  Recipients MUST receive and process interleaved
+# application layer traffic during handshakes subsequent to the first
+# one on a connection.
+
+[[spec]]
+level = "MAY"
+quote = '''
+Client
+message boundaries are not preserved in the record layer (i.e.,
+multiple client messages of the same ContentType MAY be coalesced
+into a single TLSPlaintext record, or a single message MAY be
+fragmented across several records).
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Client
+message boundaries are not preserved in the record layer (i.e.,
+multiple client messages of the same ContentType MAY be coalesced
+into a single TLSPlaintext record, or a single message MAY be
+fragmented across several records).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The
+length MUST NOT exceed 2^14.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MUST NOT send zero-length fragments of Handshake,
+Alert, or ChangeCipherSpec content types.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Zero-length fragments of
+Application data MAY be sent as they are potentially useful as a
+traffic analysis countermeasure.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Note: Data of different TLS record layer content types MAY be
+interleaved.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+However, records MUST be
+delivered to the network in the same order as they are protected by
+the record layer.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Recipients MUST receive and process interleaved
+application layer traffic during handshakes subsequent to the first
+one on a connection.
+'''
+

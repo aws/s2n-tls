@@ -115,6 +115,7 @@ extern "C" {
  * explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
  * A string containing human readable error name; can be generated with `s2n_strerror_name`.
  * A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
+ * A string containing only the filename and line number can be generated with `s2n_strerror_source`.
  * This string is useful to include when reporting issues to the s2n-tls development team.
  *
  * @warning To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
@@ -406,6 +407,14 @@ S2N_API extern const char *s2n_strerror_debug(int error, const char *lang);
  * @returns The error string
  */
 S2N_API extern const char *s2n_strerror_name(int error);
+
+/**
+ * Translates an s2n_error code to a filename and line number.
+ *
+ * @param error The error code to explain. Usually this is s2n_errno.
+ * @returns The error string.
+ */
+S2N_API extern const char *s2n_strerror_source(int error);
 
 /**
  * Opaque stack trace structure.
@@ -1520,6 +1529,31 @@ S2N_API extern int s2n_client_hello_get_session_id_length(struct s2n_client_hell
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
+
+/**
+ * Retrieves the supported groups received from the client in the supported groups extension.
+ *
+ * IANA values for each of the received supported groups are written to the provided `groups`
+ * array, and `groups_count` is set to the number of received supported groups.
+ *
+ * `groups_count_max` should be set to the maximum capacity of the `groups` array. If
+ * `groups_count_max` is less than the number of received supported groups, this function will
+ * error. To determine how large `groups` should be in advance, use
+ * `s2n_client_hello_get_extension_length()` with the S2N_EXTENSION_SUPPORTED_GROUPS extension
+ * type, and divide the value by 2.
+ *
+ * If no supported groups extension was received from the peer, or the received supported groups
+ * extension is malformed, this function will error.
+ *
+ * @param ch A pointer to the ClientHello. Can be retrieved from a connection via
+ * `s2n_connection_get_client_hello()`.
+ * @param groups The array to populate with the received supported groups.
+ * @param groups_count_max The maximum number of supported groups that can fit in the `groups` array.
+ * @param groups_count Returns the number of received supported groups.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *groups,
+        uint16_t groups_count_max, uint16_t *groups_count);
 
 /**
  * Sets the file descriptor for a s2n connection.

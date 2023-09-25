@@ -1,0 +1,135 @@
+target = "https://tools.ietf.org/rfc/rfc7627#section-5.3"
+
+# 5.3.  Client and Server Behavior: Abbreviated Handshake
+#
+# The client SHOULD NOT offer an abbreviated handshake to resume a
+# session that does not use an extended master secret.  Instead, it
+# SHOULD offer a full handshake.
+# 
+# If the client chooses to offer an abbreviated handshake even for such
+# sessions in order to support legacy insecure resumption, then the
+# current connection is not protected by the mechanisms in this
+# document.  So, the client should follow the guidelines in Section 5.4
+# 
+# to avoid dangerous usage scenarios.  In particular, renegotiation is
+# no longer secure on this connection, even if the client and server
+# support the renegotiation indication extension [RFC5746].
+# 
+# When offering an abbreviated handshake, the client MUST send the
+# "extended_master_secret" extension in its ClientHello.
+# 
+# If a server receives a ClientHello for an abbreviated handshake
+# offering to resume a known previous session, it behaves as follows:
+# 
+# o  If the original session did not use the "extended_master_secret"
+#    extension but the new ClientHello contains the extension, then the
+#    server MUST NOT perform the abbreviated handshake.  Instead, it
+#    SHOULD continue with a full handshake (as described in
+#    Section 5.2) to negotiate a new session.
+# 
+# o  If the original session used the "extended_master_secret"
+#    extension but the new ClientHello does not contain it, the server
+#    MUST abort the abbreviated handshake.
+# 
+# o  If neither the original session nor the new ClientHello uses the
+#    extension, the server SHOULD abort the handshake.  If it continues
+#    with an abbreviated handshake in order to support legacy insecure
+#    resumption, the connection is no longer protected by the
+#    mechanisms in this document, and the server should follow the
+#    guidelines in Section 5.4.
+# 
+# o  If the new ClientHello contains the extension and the server
+#    chooses to continue the handshake, then the server MUST include
+#    the "extended_master_secret" extension in its ServerHello message.
+# 
+# If a client receives a ServerHello that accepts an abbreviated
+# handshake, it behaves as follows:
+# 
+# o  If the original session did not use the "extended_master_secret"
+#    extension but the new ServerHello contains the extension, the
+#    client MUST abort the handshake.
+# 
+# o  If the original session used the extension but the new ServerHello
+#    does not contain the extension, the client MUST abort the
+#    handshake.
+# 
+# If the client and server continue the abbreviated handshake, they
+# derive the connection keys for the new session as usual from the
+# master secret of the original session.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The client SHOULD NOT offer an abbreviated handshake to resume a
+session that does not use an extended master secret.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Instead, it
+SHOULD offer a full handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When offering an abbreviated handshake, the client MUST send the
+"extended_master_secret" extension in its ClientHello.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  If the original session did not use the "extended_master_secret"
+extension but the new ClientHello contains the extension, then the
+server MUST NOT perform the abbreviated handshake.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Instead, it
+SHOULD continue with a full handshake (as described in
+Section 5.2) to negotiate a new session.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  If the original session used the "extended_master_secret"
+extension but the new ClientHello does not contain it, the server
+MUST abort the abbreviated handshake.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+o  If neither the original session nor the new ClientHello uses the
+extension, the server SHOULD abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  If the new ClientHello contains the extension and the server
+chooses to continue the handshake, then the server MUST include
+the "extended_master_secret" extension in its ServerHello message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  If the original session did not use the "extended_master_secret"
+extension but the new ServerHello contains the extension, the
+client MUST abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+o  If the original session used the extension but the new ServerHello
+does not contain the extension, the client MUST abort the
+handshake.
+'''
+

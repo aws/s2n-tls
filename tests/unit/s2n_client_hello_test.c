@@ -128,6 +128,49 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
+    /* Test s2n_client_hello_has_extension with a zero-length extension */
+    for (int send_sct = 0; send_sct <= 1; send_sct++) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        /* The SCT extension is zero-length. */
+        if (send_sct) {
+            EXPECT_SUCCESS(s2n_config_set_ct_support_level(config, S2N_CT_SUPPORT_REQUEST));
+        }
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        EXPECT_SUCCESS(s2n_client_hello_send(client));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&client->handshake.io, &server->handshake.io,
+                s2n_stuffer_data_available(&client->handshake.io)));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server));
+
+        struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
+        EXPECT_NOT_NULL(client_hello);
+
+        s2n_parsed_extension *sct_extension = NULL;
+        int ret = s2n_client_hello_get_parsed_extension(S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &client_hello->extensions,
+                &sct_extension);
+
+        if (send_sct) {
+            /* Ensure that the extension was received. */
+            EXPECT_SUCCESS(ret);
+            POSIX_ENSURE_REF(sct_extension);
+
+            /* Ensure that the extension is zero-length. */
+            EXPECT_EQUAL(sct_extension->extension.size, 0);
+        } else {
+            /* The extension shouldn't have been received because it wasn't requested. */
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_EXTENSION_NOT_RECEIVED);
+        }
+    }
+
     /* Test s2n_client_hello_get_raw_extension */
     {
         uint8_t data[] = {
@@ -1129,7 +1172,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), 0);
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
         EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_EXTENSION_NOT_RECEIVED);
         free(ext_data);
         ext_data = NULL;
 

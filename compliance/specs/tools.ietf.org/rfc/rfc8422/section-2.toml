@@ -1,0 +1,82 @@
+target = "https://tools.ietf.org/rfc/rfc8422#section-2"
+
+# 2.  Key Exchange Algorithm
+#
+# This document defines three new ECC-based key exchange algorithms for
+# TLS.  All of them use Ephemeral ECDH (ECDHE) to compute the TLS
+# premaster secret, and they differ only in the mechanism (if any) used
+# to authenticate them.  The derivation of the TLS master secret from
+# the premaster secret and the subsequent generation of bulk
+# encryption/MAC keys and initialization vectors is independent of the
+# key exchange algorithm and not impacted by the introduction of ECC.
+# 
+# Table 1 summarizes the new key exchange algorithms.  All of these key
+# exchange algorithms provide forward secrecy if and only if fresh
+# ephemeral keys are generated and used, and also destroyed after use.
+# 
+#   +-------------+------------------------------------------------+
+#   | Algorithm   | Description                                    |
+#   +-------------+------------------------------------------------+
+#   | ECDHE_ECDSA | Ephemeral ECDH with ECDSA or EdDSA signatures. |
+#   | ECDHE_RSA   | Ephemeral ECDH with RSA signatures.            |
+#   | ECDH_anon   | Anonymous ephemeral ECDH, no signatures.       |
+#   +-------------+------------------------------------------------+
+# 
+#                 Table 1: ECC Key Exchange Algorithms
+# 
+# These key exchanges are analogous to DHE_DSS, DHE_RSA, and DH_anon,
+# respectively.
+# 
+# With ECDHE_RSA, a server can reuse its existing RSA certificate and
+# easily comply with a constrained client's elliptic curve preferences
+# (see Section 4).  However, the computational cost incurred by a
+# server is higher for ECDHE_RSA than for the traditional RSA key
+# exchange, which does not provide forward secrecy.
+# 
+# The anonymous key exchange algorithm does not provide authentication
+# of the server or the client.  Like other anonymous TLS key exchanges,
+# it is subject to man-in-the-middle attacks.  Applications using TLS
+# with this algorithm SHOULD provide authentication by other means.
+# 
+#        Client                                        Server
+#        ------                                        ------
+#        ClientHello          -------->
+#                                                 ServerHello
+#                                                Certificate*
+#                                          ServerKeyExchange*
+#                                        CertificateRequest*+
+#                             <--------       ServerHelloDone
+#        Certificate*+
+#        ClientKeyExchange
+#        CertificateVerify*+
+#        [ChangeCipherSpec]
+#        Finished             -------->
+#                                          [ChangeCipherSpec]
+#                             <--------              Finished
+#        Application Data     <------->      Application Data
+# 
+#             * message is not sent under some conditions
+#             + message is not sent unless client authentication
+#               is desired
+# 
+#          Figure 1: Message Flow in a Full TLS 1.2 Handshake
+# 
+# Figure 1 shows all messages involved in the TLS key establishment
+# protocol (aka full handshake).  The addition of ECC has direct impact
+# only on the ClientHello, the ServerHello, the server's Certificate
+# message, the ServerKeyExchange, the ClientKeyExchange, the
+# CertificateRequest, the client's Certificate message, and the
+# CertificateVerify.  Next, we describe the ECC key exchange algorithm
+# in greater detail in terms of the content and processing of these
+# messages.  For ease of exposition, we defer discussion of client
+# authentication and associated messages (identified with a '+' in
+# Figure 1) until Section 3 and of the optional ECC-specific extensions
+# (which impact the Hello messages) until Section 4.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Applications using TLS
+with this algorithm SHOULD provide authentication by other means.
+'''
+

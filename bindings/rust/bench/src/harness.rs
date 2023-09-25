@@ -506,8 +506,7 @@ mod tests {
             .try_init()
             .unwrap();
         session_resumption::<S2NConnection, S2NConnection>();
-        // https://github.com/aws/s2n-tls/issues/4124
-        // session_resumption::<S2NConnection, RustlsConnection>();
+        session_resumption::<S2NConnection, RustlsConnection>();
         session_resumption::<S2NConnection, OpenSslConnection>();
 
         session_resumption::<RustlsConnection, RustlsConnection>();

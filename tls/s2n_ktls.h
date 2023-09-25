@@ -62,4 +62,10 @@ S2N_RESULT s2n_ktls_set_sendmsg_cb(struct s2n_connection *conn, s2n_ktls_sendmsg
         void *send_ctx);
 S2N_RESULT s2n_ktls_set_recvmsg_cb(struct s2n_connection *conn, s2n_ktls_recvmsg_fn recv_cb,
         void *recv_ctx);
-S2N_RESULT s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
+void s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode ktls_mode);
+
+/* These functions will be part of the public API. */
+int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
+int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
+int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t count,
+        size_t *bytes_written, s2n_blocked_status *blocked);

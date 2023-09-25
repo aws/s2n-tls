@@ -1,0 +1,141 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-6.2.3.2"
+
+# 6.2.3.2.  CBC Block Cipher
+#
+# For block ciphers (such as 3DES or AES), the encryption and MAC
+# functions convert TLSCompressed.fragment structures to and from block
+# TLSCiphertext.fragment structures.
+# 
+#    struct {
+#        opaque IV[SecurityParameters.record_iv_length];
+#        block-ciphered struct {
+#            opaque content[TLSCompressed.length];
+#            opaque MAC[SecurityParameters.mac_length];
+#            uint8 padding[GenericBlockCipher.padding_length];
+#            uint8 padding_length;
+#        };
+#    } GenericBlockCipher;
+# 
+# The MAC is generated as described in Section 6.2.3.1.
+# 
+# IV
+#    The Initialization Vector (IV) SHOULD be chosen at random, and
+#    MUST be unpredictable.  Note that in versions of TLS prior to 1.1,
+#    there was no IV field, and the last ciphertext block of the
+#    previous record (the "CBC residue") was used as the IV.  This was
+#    changed to prevent the attacks described in [CBCATT].  For block
+#    ciphers, the IV length is of length
+#    SecurityParameters.record_iv_length, which is equal to the
+#    SecurityParameters.block_size.
+# 
+# padding
+#    Padding that is added to force the length of the plaintext to be
+#    an integral multiple of the block cipher's block length.  The
+#    padding MAY be any length up to 255 bytes, as long as it results
+#    in the TLSCiphertext.length being an integral multiple of the
+#    block length.  Lengths longer than necessary might be desirable to
+#    frustrate attacks on a protocol that are based on analysis of the
+#    lengths of exchanged messages.  Each uint8 in the padding data
+#    vector MUST be filled with the padding length value.  The receiver
+#    MUST check this padding and MUST use the bad_record_mac alert to
+#    indicate padding errors.
+# 
+# padding_length
+#    The padding length MUST be such that the total size of the
+#    GenericBlockCipher structure is a multiple of the cipher's block
+#    length.  Legal values range from zero to 255, inclusive.  This
+#    length specifies the length of the padding field exclusive of the
+#    padding_length field itself.
+# 
+# The encrypted data length (TLSCiphertext.length) is one more than the
+# sum of SecurityParameters.block_length, TLSCompressed.length,
+# SecurityParameters.mac_length, and padding_length.
+# 
+# Example: If the block length is 8 bytes, the content length
+# (TLSCompressed.length) is 61 bytes, and the MAC length is 20 bytes,
+# then the length before padding is 82 bytes (this does not include the
+# 
+# IV.  Thus, the padding length modulo 8 must be equal to 6 in order to
+# make the total length an even multiple of 8 bytes (the block length).
+# The padding length can be 6, 14, 22, and so on, through 254.  If the
+# padding length were the minimum necessary, 6, the padding would be 6
+# bytes, each containing the value 6.  Thus, the last 8 octets of the
+# GenericBlockCipher before block encryption would be xx 06 06 06 06 06
+# 06 06, where xx is the last octet of the MAC.
+# 
+# Note: With block ciphers in CBC mode (Cipher Block Chaining), it is
+# critical that the entire plaintext of the record be known before any
+# ciphertext is transmitted.  Otherwise, it is possible for the
+# attacker to mount the attack described in [CBCATT].
+# 
+# Implementation note: Canvel et al. [CBCTIME] have demonstrated a
+# timing attack on CBC padding based on the time required to compute
+# the MAC.  In order to defend against this attack, implementations
+# MUST ensure that record processing time is essentially the same
+# whether or not the padding is correct.  In general, the best way to
+# do this is to compute the MAC even if the padding is incorrect, and
+# only then reject the packet.  For instance, if the pad appears to be
+# incorrect, the implementation might assume a zero-length pad and then
+# compute the MAC.  This leaves a small timing channel, since MAC
+# performance depends to some extent on the size of the data fragment,
+# but it is not believed to be large enough to be exploitable, due to
+# the large block size of existing MACs and the small size of the
+# timing signal.
+
+[[spec]]
+level = "MUST"
+quote = '''
+IV
+The Initialization Vector (IV) SHOULD be chosen at random, and
+MUST be unpredictable.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+The
+padding MAY be any length up to 255 bytes, as long as it results
+in the TLSCiphertext.length being an integral multiple of the
+block length.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Each uint8 in the padding data
+vector MUST be filled with the padding length value.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The receiver
+MUST check this padding and MUST use the bad_record_mac alert to
+indicate padding errors.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The receiver
+MUST check this padding and MUST use the bad_record_mac alert to
+indicate padding errors.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+padding_length
+The padding length MUST be such that the total size of the
+GenericBlockCipher structure is a multiple of the cipher's block
+length.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In order to defend against this attack, implementations
+MUST ensure that record processing time is essentially the same
+whether or not the padding is correct.
+'''
+
