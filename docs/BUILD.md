@@ -1,6 +1,7 @@
 # Building s2n-tls
 
 To use s2n-tls, you must build the library from the source and then include it in your program.
+
 ## Requirements
 
 s2n-tls supports and tests on **x86** and **arm** architectures.
@@ -13,7 +14,7 @@ s2n-tls supports and tests on **x86** and **arm** architectures.
 
 | OS     | Distros |      |        |
 |--------|---------|------|--------|
-| Redhat | Fedora  | AL   |
+| Redhat | Fedora  | AL2  |
 | debian | ubuntu  |
 | *BSD   | free    | open | darwin |
 
@@ -126,7 +127,7 @@ The following CMake options are useful for configuring s2n-tls builds. Each opti
 
 - [**`CMAKE_BUILD_TYPE`**](https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html): Sets the build type.
   - `Release`: Produce an optimized s2n-tls library artifact without debug info. Use this option to build s2n-tls for use in production.
-  - `Debug`: Produce an unoptimized library artifact with debug info. Use this option for developing s2n-tls. The debug symbols produced with this build work with GDB and other utilities for debugging.
+  - `Debug`: Produce an unoptimized library artifact with debug info. Use this option for developing with s2n-tls. The debug symbols produced with this build work with GDB and other utilities for debugging.
 - [**`CMAKE_INSTALL_PREFIX`**](https://cmake.org/cmake/help/latest/variable/CMAKE_INSTALL_PREFIX.html): Specifies the install directory for the s2n-tls library artifacts. Default: `/usr/local`
 - [**`CMAKE_PREFIX_PATH`**](https://cmake.org/cmake/help/latest/variable/CMAKE_PREFIX_PATH.html): Specifies the directories that CMake will search for library dependencies. Use this option to link s2n-tls to a specific libcrypto. See [Building with a specific libcrypto](#building-with-a-specific-libcrypto) for more information.
 - [**`BUILD_SHARED_LIBS`**](https://cmake.org/cmake/help/latest/variable/BUILD_SHARED_LIBS.html): Specifies the type of s2n-tls library artifact produced by the build, either static or shared. Default: `OFF`, for a static library. Set to `ON`, for a shared library.
@@ -142,9 +143,9 @@ cmake . -LH
 s2n-tls requires a supported libcrypto library. A supported libcrypto must be linked to s2n-tls when building. 
 
 By default, s2n-tls searches for a system libcrypto to link with when building. 
-Override the default behavior by setting the `CMAKE_PREFIX_PATH` option to the the install directory of a supported libcrypto.
+Override the default behavior by setting the `CMAKE_PREFIX_PATH` option to the install directory of a supported libcrypto.
 
-## Supported libcrypto
+### Supported libcrypto
 
 s2n-tls supports the following libcrypto libraries:
 
