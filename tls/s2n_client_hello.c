@@ -551,7 +551,9 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         POSIX_GUARD(s2n_extensions_server_key_share_select(conn));
     }
 
-    /* for pre TLS 1.3 connections, protocol selection is not done in supported_versions extensions, so do it here */
+    /* For pre-TLS 1.3 connections, protocol selection may not be performed in the processing of a
+     * supported versions extension, so a version is selected here instead.
+     */
     if (conn->actual_protocol_version < S2N_TLS13) {
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
     }
