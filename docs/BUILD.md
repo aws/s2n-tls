@@ -1,3 +1,4 @@
+
 # Building s2n-tls
 
 To use s2n-tls, you must build the library from the source and then include it in your program.
@@ -8,28 +9,36 @@ s2n-tls supports and tests on **x86** and **arm** architectures.
 
 ### System requirements
 
-* 20GB RAM available
+* 20GB RAM available, recommended.
 
-### Supported OS and Distributions: 
+### Supported OS and Distributions 
 
-| OS     | Distros |      |        |
-|--------|---------|------|--------|
-| Redhat | Fedora  | AL2  |
-| debian | ubuntu  |
-| *BSD   | free    | open | darwin |
+We support current and LTS versions of Ubuntu and macOS distributions.
 
-s2n-tls does not support [Windows](https://github.com/aws/s2n-tls/issues/497).
+#### Linux
 
-<!-- We may want to move in this direction:
+We support current and standard security LTS Ubuntu distributions.
 
-### Redhat
+We do not support Linux distributions that are compatible with what we test. For your convenience, these are shown as "untested, unsupported" in our support matrix.
 
-#### Fedora
+| Distro | Support | Supported Versions |
+|--------|---------|---------|
+| Amazon Linux 2| Tested, supported | 2 |
+| Ubuntu | Tested, supported  | 22.04, 20.04|
+| BSD    | Untested, unsupported| none |
+| CentOS | Untested, unsupported | none |
+| Debian | Untested, unsupported | none |
+| Fedora | Untested, unsupported | none |
 
-| Version | Kernel |
-|---------|--------|
-| 37      | 6.0    |
-| 38      | 6.2    | -->
+#### macOS
+
+| Distro | Support | Supported Versions |
+|--------|---------|---------|
+| macOS  | Tested, supported | 14 - Sonoma, 13 - Ventura, 12 - Monterey |
+
+#### Windows
+
+s2n-tls does not support Windows. For more information, see the discussion in [issue 497](https://github.com/aws/s2n-tls/issues/497).
 
 
 ### Software requirements
@@ -39,7 +48,7 @@ Building s2n-tls requires:
 1. Git
 1. GCC or Clang
 1. CMake
-1. OpenSSL
+1. Libcrypto, such as OpenSSL
 1. Platform-specific build tools
 
 ## Building s2n-tls from the source
@@ -260,3 +269,4 @@ Consult the documentation for your platform for instructions on raising the defa
 ### Deactivate mlock()
 
 Deactivate s2n-tls's `mlock` behavior by setting the `S2N_DONT_MLOCK` environment variable set to 1. s2n-tls also reads this for unit tests. If you're having mlock failures, try setting `S2N_DONT_MLOCK=1`.
+
