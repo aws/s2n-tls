@@ -17,19 +17,13 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_preferences.h"
+#include "tls/s2n_ktls_parameters.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_socket.h"
 
 #define S2N_TEST_SEND_FD 66
 #define S2N_TEST_RECV_FD 55
-
-#if defined(S2N_KTLS_SUPPORTED)
-/* It's difficult to test this method via s2n_connection_ktls_enable_send/recv because
- * the key_material is populated via prf, which by definition produces "pseudo-random"
- * output */
-S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
-        struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info);
-#endif
 
 static int s2n_test_setsockopt_noop(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
@@ -90,7 +84,7 @@ static int s2n_test_setsockopt_rx(int fd, int level, int optname, const void *op
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn)
+static S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
@@ -107,35 +101,6 @@ S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn)
     conn->actual_protocol_version = S2N_TLS12;
     /* configure connection so that the handshake is complete */
     RESULT_GUARD(s2n_skip_handshake(conn));
-
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_test_generate_fake_crypto_params(struct s2n_connection *conn)
-{
-    RESULT_ENSURE_REF(conn);
-
-    struct s2n_blob test_data_blob = { 0 };
-
-    struct s2n_crypto_parameters *server_param = conn->server;
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, server_param->server_implicit_iv, sizeof(server_param->server_implicit_iv)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, server_param->server_sequence_number, sizeof(server_param->server_sequence_number)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, server_param->client_implicit_iv, sizeof(server_param->client_implicit_iv)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, server_param->client_sequence_number, sizeof(server_param->client_sequence_number)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
-
-    struct s2n_crypto_parameters *client_param = conn->client;
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, client_param->server_implicit_iv, sizeof(client_param->server_implicit_iv)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, client_param->server_sequence_number, sizeof(client_param->server_sequence_number)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, client_param->client_implicit_iv, sizeof(client_param->client_implicit_iv)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
-    RESULT_GUARD_POSIX(s2n_blob_init(&test_data_blob, client_param->client_sequence_number, sizeof(client_param->client_sequence_number)));
-    RESULT_GUARD(s2n_get_public_random_data(&test_data_blob));
 
     return S2N_RESULT_OK;
 }
@@ -161,22 +126,83 @@ int main(int argc, char **argv)
         END_TEST();
     }
 
-    /* Test ktls_supported ciphers */
+    /* Test set_ktls_info for ciphers */
     {
-        struct s2n_cipher cipher = s2n_aes128_gcm;
-        EXPECT_TRUE(cipher.ktls_supported);
+        struct s2n_crypto_parameters crypto_params = { 0 };
 
-        cipher = s2n_aes256_gcm;
-        EXPECT_FALSE(cipher.ktls_supported);
+        struct s2n_blob test_iv = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&test_iv, crypto_params.client_implicit_iv,
+                sizeof(crypto_params.client_implicit_iv)));
+        EXPECT_OK(s2n_get_public_random_data(&test_iv));
 
-        cipher = s2n_tls13_aes128_gcm;
-        EXPECT_FALSE(cipher.ktls_supported);
+        struct s2n_blob test_seq = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&test_seq, crypto_params.client_sequence_number,
+                sizeof(crypto_params.client_sequence_number)));
+        EXPECT_OK(s2n_get_public_random_data(&test_seq));
 
-        cipher = s2n_tls13_aes256_gcm;
-        EXPECT_FALSE(cipher.ktls_supported);
+        /* s2n_aes128_gcm */
+        {
+            DEFER_CLEANUP(struct s2n_blob test_key = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&test_key, s2n_aes128_gcm.key_material_size));
+            EXPECT_OK(s2n_get_public_random_data(&test_key));
 
-        cipher = s2n_chacha20_poly1305;
-        EXPECT_FALSE(cipher.ktls_supported);
+            struct s2n_ktls_crypto_info_inputs inputs = {
+                .key = test_key,
+                .iv = test_iv,
+                .seq = test_seq,
+            };
+
+            struct s2n_ktls_crypto_info crypto_info = { 0 };
+            EXPECT_OK(s2n_aes128_gcm.set_ktls_info(&inputs, &crypto_info));
+            EXPECT_EQUAL(crypto_info.value.size, sizeof(crypto_info.ciphers.aes_gcm_128));
+            EXPECT_EQUAL(crypto_info.value.data, (uint8_t *) &crypto_info.ciphers.aes_gcm_128);
+            s2n_ktls_crypto_info_tls12_aes_gcm_128 *value =
+                    (s2n_ktls_crypto_info_tls12_aes_gcm_128 *) crypto_info.value.data;
+
+            EXPECT_EQUAL(test_key.size, sizeof(value->key));
+            EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
+
+            EXPECT_TRUE(test_iv.size >= sizeof(value->iv));
+            EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->iv, sizeof(value->iv));
+
+            EXPECT_TRUE(test_iv.size >= sizeof(value->salt));
+            EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->salt, sizeof(value->salt));
+
+            EXPECT_TRUE(test_seq.size >= sizeof(value->rec_seq));
+            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->rec_seq, sizeof(value->rec_seq));
+        };
+
+        /* s2n_aes256_gcm */
+        {
+            DEFER_CLEANUP(struct s2n_blob test_key = { 0 }, s2n_free);
+            EXPECT_SUCCESS(s2n_alloc(&test_key, s2n_aes256_gcm.key_material_size));
+            EXPECT_OK(s2n_get_public_random_data(&test_key));
+
+            struct s2n_ktls_crypto_info_inputs inputs = {
+                .key = test_key,
+                .iv = test_iv,
+                .seq = test_seq,
+            };
+
+            struct s2n_ktls_crypto_info crypto_info = { 0 };
+            EXPECT_OK(s2n_aes256_gcm.set_ktls_info(&inputs, &crypto_info));
+            EXPECT_EQUAL(crypto_info.value.size, sizeof(crypto_info.ciphers.aes_gcm_256));
+            EXPECT_EQUAL(crypto_info.value.data, (uint8_t *) &crypto_info.ciphers.aes_gcm_256);
+            s2n_ktls_crypto_info_tls12_aes_gcm_256 *value =
+                    (s2n_ktls_crypto_info_tls12_aes_gcm_256 *) crypto_info.value.data;
+
+            EXPECT_EQUAL(test_key.size, sizeof(value->key));
+            EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
+
+            EXPECT_TRUE(test_iv.size >= sizeof(value->iv));
+            EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->iv, sizeof(value->iv));
+
+            EXPECT_TRUE(test_iv.size >= sizeof(value->salt));
+            EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->salt, sizeof(value->salt));
+
+            EXPECT_TRUE(test_seq.size >= sizeof(value->rec_seq));
+            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->rec_seq, sizeof(value->rec_seq));
+        };
     };
 
     /* Test s2n_connection_ktls_enable_recv/send */
@@ -263,7 +289,7 @@ int main(int argc, char **argv)
         {
             /* set kTLS unsupported cipher */
             struct s2n_cipher ktls_temp_unsupported_cipher = {
-                .ktls_supported = false,
+                .set_ktls_info = NULL,
             };
             struct s2n_record_algorithm ktls_temp_unsupported_record_alg = {
                 .cipher = &ktls_temp_unsupported_cipher,
@@ -352,70 +378,6 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(client), S2N_ERR_KTLS_RENEG);
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server));
         };
-    };
-
-    /* Test s2n_ktls_init_aes128_gcm_crypto_info */
-    {
-        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
-
-        /* prepare test data */
-        uint8_t test_data[S2N_MAX_KEY_BLOCK_LEN] = { 0 };
-        struct s2n_blob test_data_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
-        EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
-
-        /* copy test data to key_material */
-        struct s2n_key_material key_material = { 0 };
-        EXPECT_OK(s2n_key_material_init(&key_material, server_conn));
-        POSIX_CHECKED_MEMCPY(key_material.key_block, test_data, s2n_array_len(key_material.key_block));
-
-#if defined(S2N_KTLS_SUPPORTED)
-        struct tls12_crypto_info_aes_gcm_128 crypto_info = { 0 };
-
-        /* generate test data for crypto params: implicit_iv and sequence_number */
-        EXPECT_OK(s2n_test_generate_fake_crypto_params(server_conn));
-        struct s2n_crypto_parameters *server_param = server_conn->server;
-
-        /* Test crypto_info for happy case */
-        {
-            /* server should send with its own keys */
-            int ktls_mode = S2N_KTLS_MODE_SEND;
-            EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info));
-            EXPECT_EQUAL(memcmp(crypto_info.key, key_material.server_key.data, key_material.server_key.size), 0);
-            EXPECT_EQUAL(memcmp(crypto_info.iv, server_param->server_implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE), 0);
-            EXPECT_EQUAL(memcmp(crypto_info.salt, server_param->server_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE), 0);
-            EXPECT_EQUAL(memcmp(crypto_info.rec_seq, server_param->server_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE), 0);
-
-            /* server should recv with its peer's keys */
-            ktls_mode = S2N_KTLS_MODE_RECV;
-            EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info));
-            EXPECT_EQUAL(memcmp(crypto_info.key, key_material.client_key.data, key_material.client_key.size), 0);
-            EXPECT_EQUAL(memcmp(crypto_info.iv, server_param->client_implicit_iv, TLS_CIPHER_AES_GCM_128_IV_SIZE), 0);
-            EXPECT_EQUAL(memcmp(crypto_info.salt, server_param->client_implicit_iv, TLS_CIPHER_AES_GCM_128_SALT_SIZE), 0);
-            EXPECT_EQUAL(memcmp(crypto_info.rec_seq, server_param->client_sequence_number, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE), 0);
-
-            EXPECT_EQUAL(crypto_info.info.cipher_type, TLS_CIPHER_AES_GCM_128);
-            EXPECT_EQUAL(crypto_info.info.version, TLS_1_2_VERSION);
-        };
-
-        /* Test crypto_info for invalid cases */
-        {
-            int ktls_mode = S2N_KTLS_MODE_SEND;
-            server_conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_ERROR_WITH_ERRNO(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info),
-                    S2N_ERR_KTLS_UNSUPPORTED_CONN);
-
-            /* restore protocol version */
-            server_conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_OK(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info));
-
-            server_conn->secure->cipher_suite = &s2n_rsa_with_aes_256_gcm_sha384;
-            EXPECT_ERROR_WITH_ERRNO(s2n_ktls_init_aes128_gcm_crypto_info(server_conn, ktls_mode, &key_material, &crypto_info),
-                    S2N_ERR_KTLS_UNSUPPORTED_CONN);
-        };
-#endif
     };
 
     /* selftalk: Success case with a real TLS1.2 negotiated server and client */

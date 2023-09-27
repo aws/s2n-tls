@@ -421,3 +421,4 @@ int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **
 int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct s2n_cert_chain_and_key *cert_chain_and_key);
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);
+S2N_RESULT s2n_connection_get_secure_cipher(struct s2n_connection *conn, const struct s2n_cipher **cipher);
