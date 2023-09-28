@@ -9,7 +9,7 @@ jobs:
     if: contains(github.repository, 'aws/s2n-tls')
     runs-on: ubuntu-latest
     permissions:
-      pages: write
+      contents: write
     steps:
       - name: Check out repository
         uses: actions/checkout@v3
