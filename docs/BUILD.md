@@ -143,7 +143,10 @@ For help building a desired libcrypto on your platform, consult the build docume
 
 [AWS-LC](https://github.com/aws/aws-lc) is the recommended libcrypto to use with s2n-tls due to increased performance and security. See the [AWS-LC build documentation](https://github.com/aws/aws-lc/blob/main/BUILDING.md) for information on building AWS-LC.
 
-Use the `CMAKE_PREFIX_PATH` option to provide the location the AWS-LC library artifact and link it to the s2n-tls build.
+**AWS LC Options**
+
+- **`CMAKE_INSTALL_PREFIX`** : (path) Specifies the location to install AWS-LC. 
+- **`CMAKE_PREFIX_PATH`**: (path) Provides the location the AWS-LC library artifact and links it to the s2n-tls build. 
 
 ## Other build methods
 
