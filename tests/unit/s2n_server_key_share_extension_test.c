@@ -514,9 +514,7 @@ int main(int argc, char **argv)
         /* KEM groups with Test Vectors defined in /tests/unit/kats/tls13_server_hybrid_key_share_recv.kat */
         struct s2n_kem_group *test_kem_groups[] = {
             &s2n_secp256r1_kyber_512_r3,
-#if EVP_APIS_SUPPORTED
             &s2n_x25519_kyber_512_r3,
-#endif
         };
 
         const struct s2n_kem_preferences test_kem_prefs = {
