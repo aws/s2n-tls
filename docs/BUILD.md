@@ -11,36 +11,6 @@ s2n-tls supports and tests on **x86** and **arm** architectures.
 
 * 20GB RAM available, recommended.
 
-### Supported OS and Distributions 
-
-We support current and LTS versions of Ubuntu and macOS distributions.
-
-#### Linux
-
-We support current and standard security LTS Ubuntu distributions.
-
-We do not support Linux distributions that are compatible with what we test. For your convenience, these are shown as "untested, unsupported" in our support matrix.
-
-| Distro | Support | Supported Versions |
-|--------|---------|---------|
-| Amazon Linux 2| Tested, supported | 2 |
-| Ubuntu | Tested, supported  | 22.04, 20.04|
-| BSD    | Untested, unsupported| none |
-| CentOS | Untested, unsupported | none |
-| Debian | Untested, unsupported | none |
-| Fedora | Untested, unsupported | none |
-
-#### macOS
-
-| Distro | Support | Supported Versions |
-|--------|---------|---------|
-| macOS  | Tested, supported | 14 - Sonoma, 13 - Ventura, 12 - Monterey |
-
-#### Windows
-
-s2n-tls does not support Windows. For more information, see the discussion in [issue 497](https://github.com/aws/s2n-tls/issues/497).
-
-
 ### Software requirements
 
 Building s2n-tls requires:
