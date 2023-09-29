@@ -414,14 +414,11 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-            if (kem_group->available) {
-                EXPECT_SUCCESS(set_up_conns(client_conn, server_conn, test_vector->client_ecc_key,
-                        test_vector->server_ecc_key, kem_group, test_vector->pq_secret));
-            } else {
-                EXPECT_FAILURE(set_up_conns(client_conn, server_conn, test_vector->client_ecc_key,
-                        test_vector->server_ecc_key, kem_group, test_vector->pq_secret));
-                continue;
-            }
+            // Expect success here regardless of whether a given |kem_group| is
+            // available because we will fall back on ECDH if no KEMs are
+            // available.
+            EXPECT_SUCCESS(set_up_conns(client_conn, server_conn, test_vector->client_ecc_key,
+                    test_vector->server_ecc_key, kem_group, test_vector->pq_secret));
 
             /* Calculate the hybrid shared secret */
             DEFER_CLEANUP(struct s2n_blob client_calculated_shared_secret = { 0 }, s2n_free);

@@ -479,7 +479,7 @@ int main()
                          * iteration of the outer loop of this test (index i), we populate test_kem_groups[] with a
                          * different permutation of all_kem_groups[] to ensure we handle each kem_group key share
                          * correctly. */
-                        const struct s2n_kem_group *test_kem_groups[S2N_KEM_GROUPS_COUNT];
+                        struct s2n_kem_group *test_kem_groups[S2N_KEM_GROUPS_COUNT];
                         for (size_t j = 0; j < S2N_KEM_GROUPS_COUNT; j++) {
                             /* cppcheck-suppress moduloofone */
                             test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_KEM_GROUPS_COUNT];

@@ -577,6 +577,9 @@ int main(int argc, char **argv)
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
+                        if (!kem_group->available) {
+                            continue;
+                        }
                         struct s2n_connection *client_conn = NULL;
                         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                         client_conn->security_policy_override = &test_security_policy;
@@ -836,10 +839,10 @@ int main(int argc, char **argv)
                     conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
 
                     struct s2n_kem_group_params *server_params = &conn->kex_params.server_kem_group_params;
-                    if (i >= kem_pref->tls13_kem_group_count || !kem_pref->tls13_kem_groups[i]->available) {
+                    const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
+                    if (!kem_group->available) {
                         continue;
                     }
-                    const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
                     server_params->kem_group = kem_group;
                     server_params->kem_params.kem = kem_group->kem;
                     server_params->ecc_params.negotiated_curve = kem_group->curve;
