@@ -21,17 +21,13 @@ const struct s2n_kem *pq_kems_r3_2021_05[] = {
 };
 
 struct s2n_kem_group *pq_kem_groups_r3_2021_05[] = {
-#if EVP_APIS_SUPPORTED
     &s2n_x25519_kyber_512_r3,
-#endif
     &s2n_secp256r1_kyber_512_r3,
 };
 
 struct s2n_kem_group *pq_kem_groups_r3_2023_06[] = {
     &s2n_secp256r1_kyber_768_r3,
-#if EVP_APIS_SUPPORTED
     &s2n_x25519_kyber_768_r3,
-#endif
     &s2n_secp384r1_kyber_768_r3,
     &s2n_secp521r1_kyber_1024_r3,
     &s2n_secp256r1_kyber_512_r3,
@@ -115,10 +111,6 @@ int s2n_kem_groups_available_count(const struct s2n_kem_preferences *kem_prefere
         if (kem_preferences->tls13_kem_groups[i]->available) {
             count++;
         }
-        /*printf("FOOBAR\t%d\t%s\t%s\n",*/
-                /*kem_preferences->tls13_kem_groups[i]->available ? 1 : 0,*/
-                /*kem_preferences->tls13_kem_groups[i]->name, "");*/
     }
-        /*printf("---\n");*/
     return count;
 }

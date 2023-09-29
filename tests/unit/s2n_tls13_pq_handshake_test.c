@@ -233,18 +233,12 @@ int main()
 
     /* Kyber */
     struct s2n_kem_group *kyber_test_groups[] = {
-#if EVP_APIS_SUPPORTED
         &s2n_x25519_kyber_512_r3,
-#endif
         &s2n_secp256r1_kyber_512_r3,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
         &s2n_secp256r1_kyber_768_r3,
         &s2n_secp384r1_kyber_768_r3,
         &s2n_secp521r1_kyber_1024_r3,
-#endif
-#if EVP_APIS_SUPPORTED && defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
         &s2n_x25519_kyber_768_r3,
-#endif
     };
 
     const struct s2n_kem_preferences kyber_test_prefs_draft0 = {
@@ -279,10 +273,8 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20200310,
     };
 
-    const struct s2n_kem_group *kyber768_test_kem_groups[] = {
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+    struct s2n_kem_group *kyber768_test_kem_groups[] = {
         &s2n_secp384r1_kyber_768_r3,
-#endif
         &s2n_secp256r1_kyber_512_r3,
     };
 
@@ -302,10 +294,8 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20201021,
     };
 
-    const struct s2n_kem_group *kyber1024_test_kem_groups[] = {
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+    struct s2n_kem_group *kyber1024_test_kem_groups[] = {
         &s2n_secp521r1_kyber_1024_r3,
-#endif
         &s2n_secp256r1_kyber_512_r3,
     };
 
@@ -410,11 +400,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_3_2023_06_01,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
                 .expected_kem_group = &s2n_secp256r1_kyber_768_r3,
-#else
-                .expected_kem_group = &s2n_secp256r1_kyber_512_r3,
-#endif
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -422,11 +408,7 @@ int main()
         {
                 .client_policy = &kyber1024_test_policy,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
                 .expected_kem_group = &s2n_secp521r1_kyber_1024_r3,
-#else
-                .expected_kem_group = &s2n_secp256r1_kyber_512_r3,
-#endif
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -434,11 +416,7 @@ int main()
         {
                 .client_policy = &kyber768_test_policy,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
                 .expected_kem_group = &s2n_secp384r1_kyber_768_r3,
-#else
-                .expected_kem_group = &s2n_secp256r1_kyber_512_r3,
-#endif
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -590,6 +568,8 @@ int main()
             } else {
                 curve = expected_curve;
             }
+        } else if (!s2n_libcrypto_supports_kyber() && !kem_group->available) {
+            kem_group = &s2n_secp256r1_kyber_512_r3;
         }
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));

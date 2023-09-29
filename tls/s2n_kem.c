@@ -460,7 +460,5 @@ void s2n_kem_init()
         } else if (strcmp(group->curve->name, "x25519") == 0) {
             group->available &= s2n_is_evp_apis_supported();
         }
-        /*printf("BOOFAR\t%s\t%s\n", group->name, group->curve ? group->curve->name : "NO CURVE PTR!");*/
     }
-    /*printf("---\n");*/
 }

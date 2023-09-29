@@ -32,10 +32,8 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
     POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber512_r3_draft0_params));
     POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber512_r3_draft5_params));
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber768_r3_draft5_params));
     POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber1024_r3_draft5_params));
-#endif
     return S2N_SUCCESS;
 }
 

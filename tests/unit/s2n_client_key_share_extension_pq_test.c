@@ -485,7 +485,7 @@ int main()
                             test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_KEM_GROUPS_COUNT];
                         }
 
-                        const struct s2n_kem_preferences test_kem_prefs = {
+                        struct s2n_kem_preferences test_kem_prefs = {
                             .kem_count = 0,
                             .kems = NULL,
                             .tls13_kem_group_count = s2n_array_len(test_kem_groups),

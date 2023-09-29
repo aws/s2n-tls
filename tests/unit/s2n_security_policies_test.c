@@ -280,15 +280,15 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(security_policy->kem_preferences->kems);
         EXPECT_EQUAL(&s2n_kyber_512_r3, security_policy->kem_preferences->kems[0]);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2023_06);
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
-#elif defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(4, security_policy->kem_preferences->tls13_kem_group_count);
-#elif !defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
-#else
-        EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
-#endif
+        if (s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
+        } else if (s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(4, security_policy->kem_preferences->tls13_kem_group_count);
+        } else if (!s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+        } else {
+            EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+        }
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("KMS-TLS-1-0-2018-10", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
@@ -344,11 +344,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r3_2021_05);
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2021_05);
-#if EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
-#else
-        EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
-#endif
+        if (s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+        } else {
+            EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+        }
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TLS-1-0-2020-12", &security_policy));
@@ -359,11 +359,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r3_2021_05);
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2021_05);
-#if EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
-#else
-        EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
-#endif
+        if (s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+        } else {
+            EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+        }
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("PQ-TLS-1-1-2021-05-17", &security_policy));
@@ -484,15 +484,15 @@ int main(int argc, char **argv)
         EXPECT_NULL(security_policy->kem_preferences->kems);
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2023_06);
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
-#elif defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(4, security_policy->kem_preferences->tls13_kem_group_count);
-#elif !defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && EVP_APIS_SUPPORTED
-        EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
-#else
-        EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
-#endif
+        if (s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
+        } else if (s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(4, security_policy->kem_preferences->tls13_kem_group_count);
+        } else if (!s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+            EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+        } else {
+            EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+        }
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("20141001", &security_policy));
