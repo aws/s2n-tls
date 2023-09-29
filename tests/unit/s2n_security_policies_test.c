@@ -98,7 +98,6 @@ int main(int argc, char **argv)
                 } else {
                     EXPECT_FALSE(kem_group_is_supported);
                 }
-
             }
         }
 
