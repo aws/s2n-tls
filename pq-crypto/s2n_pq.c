@@ -16,7 +16,6 @@
 #include "s2n_pq.h"
 
 #include "crypto/s2n_openssl.h"
-#include "s2n_kyber_evp.h"
 
 static bool kyber512r3_avx2_bmi2_enabled = false;
 

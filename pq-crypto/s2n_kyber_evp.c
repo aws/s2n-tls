@@ -13,8 +13,6 @@
 * permissions and limitations under the License.
 */
 
-#include "s2n_kyber_evp.h"
-
 #include <openssl/evp.h>
 #include <stddef.h>
 
@@ -87,21 +85,37 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
 
     return S2N_SUCCESS;
 }
-#else
-int s2n_kyber_512_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, OUT uint8_t *secret_key)
+
+#elif !defined(S2N_NO_PQ) // Use interned Kyber512 implementation, otherwise bail.
+
+int s2n_kyber_512_r3_crypto_kem_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pk, OUT uint8_t *sk);
+int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
+        OUT uint8_t *secret_key)
 {
+    if (kem->kem_extension_id == TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3) {
+        return s2n_kyber_512_r3_crypto_kem_keypair(kem, public_key, secret_key);
+    }
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_kyber_512_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
+int s2n_kyber_512_r3_crypto_kem_enc(IN const struct s2n_kem *kem, OUT uint8_t *ct, OUT uint8_t *ss, IN const uint8_t *pk);
+int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
         IN const uint8_t *public_key)
 {
+    if (kem->kem_extension_id == TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3) {
+        return s2n_kyber_512_r3_crypto_kem_enc(kem, ciphertext, shared_secret, public_key);
+    }
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_kyber_512_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
+int s2n_kyber_512_r3_crypto_kem_dec(IN const struct s2n_kem *kem, OUT uint8_t *ss, IN const uint8_t *ct, IN const uint8_t *sk);
+int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
         IN const uint8_t *secret_key)
 {
+    if (kem->kem_extension_id == TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3) {
+        return s2n_kyber_512_r3_crypto_kem_dec(kem, shared_secret, ciphertext, secret_key);
+    }
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
+
 #endif

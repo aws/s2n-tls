@@ -25,10 +25,8 @@
  * hex-encoded bytes. This is how we would expect it to appear on the wire. */
 static struct s2n_kem_params kyber512_r3_draft0_params = { .kem = &s2n_kyber_512_r3, .len_prefixed = true };
 static struct s2n_kem_params kyber512_r3_draft5_params = { .kem = &s2n_kyber_512_r3, .len_prefixed = false };
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
 static struct s2n_kem_params kyber768_r3_draft5_params = { .kem = &s2n_kyber_768_r3, .len_prefixed = false };
 static struct s2n_kem_params kyber1024_r3_draft5_params = { .kem = &s2n_kyber_1024_r3, .len_prefixed = false };
-#endif
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
