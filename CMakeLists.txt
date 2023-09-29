@@ -528,6 +528,15 @@ if (BUILD_TESTING)
         endif()
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=${TSAN_OPTIONS})
     endif()
+    if(ASAN)
+        # Some of our unit tests intentionally include *.c files for testing,
+        # resulting in duplicate global values.
+        set(ASAN_OPTIONS detect_odr_violation=0)
+        if(DEFINED ENV{ASAN_OPTIONS})
+            set(ASAN_OPTIONS "${ASAN_OPTIONS} $ENV{ASAN_OPTIONS}")
+        endif()
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} ASAN_OPTIONS=${ASAN_OPTIONS})
+    endif()
     message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
 
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")

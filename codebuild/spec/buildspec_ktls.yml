@@ -1,8 +1,5 @@
 ---
 version: 0.2
-env:
-  variables:
-    S2N_KTLS_TESTING_EXPECTED: true
 phases:
   install:
     commands:
@@ -17,4 +14,10 @@ phases:
   build:
     commands:
       - codebuild-breakpoint
-      - ssh -p 2222 codebuild@localhost "cd s2n-tls; sudo modprobe tls; nix develop .#openssl111 --command bash -c 'source ./nix/shell.sh && clean && configure && build && unit'"
+      - |
+        ssh -p 2222 codebuild@localhost \
+            "cd s2n-tls; sudo modprobe tls; \
+            export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
+            export S2N_KTLS_TESTING_EXPECTED=1; \
+            nix develop .#openssl111 --command bash -c \
+                'source ./nix/shell.sh && clean && configure && build && unit'"
