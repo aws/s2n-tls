@@ -16,6 +16,7 @@
 #include "tls/s2n_ktls.h"
 
 #include "tls/s2n_prf.h"
+#include "tls/s2n_tls.h"
 
 /* Used for overriding setsockopt calls in testing */
 s2n_setsockopt_fn s2n_setsockopt = setsockopt;
@@ -49,6 +50,8 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
     RESULT_ENSURE_REF(cipher);
+    const struct s2n_config *config = conn->config;
+    RESULT_ENSURE_REF(config);
 
     RESULT_ENSURE(s2n_ktls_is_supported_on_platform(), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
 
@@ -65,6 +68,19 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
 
     /* Check if the cipher supports kTLS */
     RESULT_ENSURE(cipher->ktls_supported, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+
+    /* Renegotiation requires updating the keys, which kTLS doesn't currently support.
+     *
+     * Setting the renegotiation callback doesn't guarantee that a client will
+     * attempt to renegotiate. The callback can also be used to send warning alerts
+     * signaling that renegotiation was rejected. However, we can provide applications
+     * with a clearer signal earlier by preventing them from enabling ktls on a
+     * connection that MIGHT require renegotiation. We can relax this restriction
+     * later if necessary.
+     */
+    bool may_receive_hello_request = s2n_result_is_ok(s2n_client_hello_request_validate(conn));
+    bool may_renegotiate = may_receive_hello_request && config->renegotiate_request_cb;
+    RESULT_ENSURE(!may_renegotiate, S2N_ERR_KTLS_RENEG);
 
     /* kTLS I/O functionality is managed by s2n-tls. kTLS cannot be enabled if the
      * application sets custom I/O (managed_send_io == false means application has

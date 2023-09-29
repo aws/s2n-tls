@@ -140,6 +140,12 @@ S2N_RESULT s2n_test_generate_fake_crypto_params(struct s2n_connection *conn)
     return S2N_RESULT_OK;
 }
 
+static int s2n_test_reneg_cb(struct s2n_connection *conn, void *context,
+        s2n_renegotiate_response *response)
+{
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -326,6 +332,25 @@ int main(int argc, char **argv)
             /* expect success if connection is NOT using custom IO */
             server_conn->managed_recv_io = true;
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
+        };
+
+        /* Fail if renegotiation potentially supported */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+            EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb, NULL));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(client), S2N_ERR_KTLS_RENEG);
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server));
         };
     };
 
