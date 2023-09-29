@@ -28,7 +28,7 @@ int main()
     /* Need at least two KEM's available to test fallback */
     if (s2n_kem_groups_available_count(&kem_preferences_all) < 2) {
         END_TEST();
-        return;
+        return 0;
     }
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
