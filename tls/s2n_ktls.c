@@ -202,7 +202,6 @@ void s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode kt
 static S2N_RESULT s2n_connection_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
     RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
 
     int fd = 0;
