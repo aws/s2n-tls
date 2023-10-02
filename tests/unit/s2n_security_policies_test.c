@@ -93,7 +93,7 @@ int main(int argc, char **argv)
                         break;
                     }
                 }
-                if (s2n_pq_is_enabled()) {
+                if (s2n_pq_is_enabled() && kem_group->available) {
                     EXPECT_TRUE(kem_group_is_supported);
                 } else {
                     EXPECT_FALSE(kem_group_is_supported);
@@ -353,9 +353,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2021_05);
         if (s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+            EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
         } else {
-            EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+            EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
         }
 
         security_policy = NULL;
@@ -368,9 +368,9 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2021_05);
         if (s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(2, security_policy->kem_preferences->tls13_kem_group_count);
+            EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
         } else {
-            EXPECT_EQUAL(1, security_policy->kem_preferences->tls13_kem_group_count);
+            EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
         }
 
         security_policy = NULL;

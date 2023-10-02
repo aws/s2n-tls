@@ -407,6 +407,9 @@ int main(int argc, char **argv)
         for (int i = 0; i < s2n_array_len(all_test_vectors); i++) {
             const struct hybrid_test_vector *test_vector = all_test_vectors[i];
             const struct s2n_kem_group *kem_group = test_vector->kem_group;
+            if (!kem_group->available) {
+                continue;
+            }
 
             /* Set up connections */
             struct s2n_connection *client_conn = NULL;

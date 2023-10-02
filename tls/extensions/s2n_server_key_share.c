@@ -177,7 +177,8 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
 
     size_t kem_group_index = 0;
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-        if (named_group_iana == kem_pref->tls13_kem_groups[i]->iana_id) {
+        if (named_group_iana == kem_pref->tls13_kem_groups[i]->iana_id
+                && kem_pref->tls13_kem_groups[i]->available) {
             kem_group_index = i;
             break;
         }
