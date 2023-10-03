@@ -64,6 +64,9 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     /* Send KEM groups list first */
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 && s2n_pq_is_enabled()) {
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+            if (!kem_pref->tls13_kem_groups[i]->available) {
+                continue;
+            }
             POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
         }
     }

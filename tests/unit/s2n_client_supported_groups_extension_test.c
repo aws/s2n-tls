@@ -120,7 +120,7 @@ int main()
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             uint16_t expected_length = ecc_pref->count * sizeof(uint16_t);
             if (s2n_pq_is_enabled()) {
-                expected_length += kem_pref->tls13_kem_group_count * sizeof(uint16_t);
+                expected_length += s2n_kem_groups_available_count(kem_pref) * sizeof(uint16_t);
             }
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, expected_length);
@@ -128,6 +128,9 @@ int main()
             if (s2n_pq_is_enabled()) {
                 uint16_t kem_id;
                 for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                    if (!kem_pref->tls13_kem_groups[i]->available) {
+                        continue;
+                    }
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
                     EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
                 }
