@@ -529,7 +529,9 @@ if (BUILD_TESTING)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=${TSAN_OPTIONS})
     endif()
     if(ASAN)
-        # Some of our unit tests intentionally include *.c files for testing,
+        # "detect_odr_violation" detects violations of the "one definition rule",
+        # ensuring that symbols are only defined once.
+        # But some of our unit tests intentionally include *.c files for testing,
         # resulting in duplicate global values.
         set(ASAN_OPTIONS detect_odr_violation=0)
         if(DEFINED ENV{ASAN_OPTIONS})
