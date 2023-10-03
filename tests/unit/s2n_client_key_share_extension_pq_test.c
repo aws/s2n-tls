@@ -147,6 +147,7 @@ int main()
                         EXPECT_EQUAL(test_kem_groups[0], kem_pref->tls13_kem_groups[0]);
                         const struct s2n_kem_group *test_kem_group = kem_pref->tls13_kem_groups[0];
                         if (!test_kem_group->available) {
+                            EXPECT_SUCCESS(s2n_connection_free(conn));
                             continue;
                         }
 
