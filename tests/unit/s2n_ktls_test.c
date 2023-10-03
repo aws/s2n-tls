@@ -48,15 +48,12 @@ static int s2n_test_setsockopt_tls_error(int fd, int level, int optname, const v
     return 0;
 }
 
-static int s2n_test_setsockopt_tx(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
     POSIX_ENSURE_EQ(fd, S2N_TEST_SEND_FD);
-
     if (level == S2N_SOL_TLS) {
         POSIX_ENSURE_EQ(optname, S2N_TLS_TX);
-#if defined(S2N_KTLS_SUPPORTED)
         POSIX_ENSURE_EQ(optlen, sizeof(struct tls12_crypto_info_aes_gcm_128));
-#endif
     } else if (level == S2N_SOL_TCP) {
         POSIX_ENSURE_EQ(optname, S2N_TCP_ULP);
         POSIX_ENSURE_EQ(optlen, S2N_TLS_ULP_NAME_SIZE);
@@ -66,15 +63,12 @@ static int s2n_test_setsockopt_tx(int fd, int level, int optname, const void *op
     return S2N_SUCCESS;
 }
 
-static int s2n_test_setsockopt_rx(int fd, int level, int optname, const void *optval, socklen_t optlen)
+static int s2n_test_setsockopt_aes128_rx(int fd, int level, int optname, const void *optval, socklen_t optlen)
 {
     POSIX_ENSURE_EQ(fd, S2N_TEST_RECV_FD);
-
     if (level == S2N_SOL_TLS) {
         POSIX_ENSURE_EQ(optname, S2N_TLS_RX);
-#if defined(S2N_KTLS_SUPPORTED)
         POSIX_ENSURE_EQ(optlen, sizeof(struct tls12_crypto_info_aes_gcm_128));
-#endif
     } else if (level == S2N_SOL_TCP) {
         POSIX_ENSURE_EQ(optname, S2N_TCP_ULP);
         POSIX_ENSURE_EQ(optlen, S2N_TLS_ULP_NAME_SIZE);
@@ -82,6 +76,39 @@ static int s2n_test_setsockopt_rx(int fd, int level, int optname, const void *op
         POSIX_BAIL(S2N_ERR_SAFETY);
     }
     return S2N_SUCCESS;
+}
+
+struct s2n_test_setsockopt_expected_struct {
+    size_t count;
+    int fd;
+    int optname;
+    struct s2n_ktls_crypto_info_inputs crypto_info_inputs;
+} s2n_test_setsockopt_expected;
+
+static int s2n_test_setsockopt_tls_cb(int fd, int level,
+        int optname, const void *optval, socklen_t optlen)
+{
+    if (level == S2N_SOL_TLS) {
+        POSIX_ENSURE_EQ(0, s2n_test_setsockopt_expected.count);
+        POSIX_ENSURE_EQ(fd, s2n_test_setsockopt_expected.fd);
+        POSIX_ENSURE_EQ(optname, s2n_test_setsockopt_expected.optname);
+        POSIX_ENSURE_EQ(optval, &s2n_test_setsockopt_expected.crypto_info_inputs);
+        POSIX_ENSURE_EQ(optlen, sizeof(s2n_test_setsockopt_expected.crypto_info_inputs));
+        s2n_test_setsockopt_expected.count++;
+    }
+    return S2N_SUCCESS;
+}
+
+static S2N_RESULT s2n_test_setsockopt_set_ktls_info(struct s2n_ktls_crypto_info_inputs *inputs,
+        struct s2n_ktls_crypto_info *crypto_info)
+{
+    S2N_BLOB_EXPECT_EQUAL(inputs->iv, s2n_test_setsockopt_expected.crypto_info_inputs.iv);
+    S2N_BLOB_EXPECT_EQUAL(inputs->key, s2n_test_setsockopt_expected.crypto_info_inputs.key);
+    S2N_BLOB_EXPECT_EQUAL(inputs->seq, s2n_test_setsockopt_expected.crypto_info_inputs.seq);
+    RESULT_GUARD_POSIX(s2n_blob_init(&crypto_info->value,
+            (void *) &s2n_test_setsockopt_expected.crypto_info_inputs,
+            sizeof(s2n_test_setsockopt_expected.crypto_info_inputs)));
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_test_configure_connection_for_ktls(struct s2n_connection *conn)
@@ -213,11 +240,15 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
 
-            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tx));
+            const struct s2n_cipher *cipher = NULL;
+            EXPECT_OK(s2n_connection_get_secure_cipher(server_conn, &cipher));
+            EXPECT_EQUAL(cipher, &s2n_aes128_gcm);
+
+            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_tx));
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
             EXPECT_TRUE(server_conn->ktls_send_enabled);
 
-            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_rx));
+            EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_aes128_rx));
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
             EXPECT_TRUE(server_conn->ktls_recv_enabled);
         };
@@ -377,6 +408,111 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb, NULL));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(client), S2N_ERR_KTLS_RENEG);
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server));
+        }
+
+        /* Call setsockopt correctly to configure tls crypto */
+        {
+            struct s2n_cipher_suite test_cipher_suite = s2n_rsa_with_aes_256_gcm_sha384;
+            struct s2n_record_algorithm test_record_alg = *test_cipher_suite.record_alg;
+            test_cipher_suite.record_alg = &test_record_alg;
+            struct s2n_cipher test_cipher = *test_record_alg.cipher;
+            test_record_alg.cipher = &test_cipher;
+            test_cipher.set_ktls_info = s2n_test_setsockopt_set_ktls_info;
+
+            struct s2n_crypto_parameters crypto_params = { 0 };
+            crypto_params.cipher_suite = &test_cipher_suite;
+
+            struct s2n_blob server_iv = { 0 }, client_iv = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&server_iv, crypto_params.server_implicit_iv,
+                    sizeof(crypto_params.server_implicit_iv)));
+            EXPECT_SUCCESS(s2n_blob_init(&client_iv, crypto_params.client_implicit_iv,
+                    sizeof(crypto_params.client_implicit_iv)));
+            EXPECT_OK(s2n_get_public_random_data(&server_iv));
+            EXPECT_OK(s2n_get_public_random_data(&client_iv));
+
+            struct s2n_blob server_seq = { 0 }, client_seq = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&server_seq, crypto_params.server_sequence_number,
+                    sizeof(crypto_params.server_sequence_number)));
+            EXPECT_SUCCESS(s2n_blob_init(&client_seq, crypto_params.client_sequence_number,
+                    sizeof(crypto_params.client_sequence_number)));
+            EXPECT_OK(s2n_get_public_random_data(&server_seq));
+            EXPECT_OK(s2n_get_public_random_data(&client_seq));
+
+            /* Test server */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_OK(s2n_test_configure_connection_for_ktls(server));
+                EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_cb));
+                *(server->secure) = crypto_params;
+
+                struct s2n_key_material key_material = { 0 };
+                EXPECT_OK(s2n_prf_generate_key_material(server, &key_material));
+
+                /* Test server receive */
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                    .fd = S2N_TEST_RECV_FD,
+                    .optname = S2N_TLS_RX,
+                    .crypto_info_inputs = {
+                            .key = key_material.client_key,
+                            .iv = client_iv,
+                            .seq = client_seq,
+                    },
+                };
+                EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server));
+                EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
+
+                /* Test server send */
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                    .fd = S2N_TEST_SEND_FD,
+                    .optname = S2N_TLS_TX,
+                    .crypto_info_inputs = {
+                            .key = key_material.server_key,
+                            .iv = server_iv,
+                            .seq = server_seq,
+                    },
+                };
+                EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
+                EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
+            };
+
+            /* Test client */
+            {
+                DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
+                EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_cb));
+                *(client->secure) = crypto_params;
+
+                struct s2n_key_material key_material = { 0 };
+                EXPECT_OK(s2n_prf_generate_key_material(client, &key_material));
+
+                /* Test client receive */
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                    .fd = S2N_TEST_RECV_FD,
+                    .optname = S2N_TLS_RX,
+                    .crypto_info_inputs = {
+                            .key = key_material.server_key,
+                            .iv = server_iv,
+                            .seq = server_seq,
+                    },
+                };
+                EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(client));
+                EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
+
+                /* Test client send */
+                s2n_test_setsockopt_expected = (struct s2n_test_setsockopt_expected_struct){
+                    .fd = S2N_TEST_SEND_FD,
+                    .optname = S2N_TLS_TX,
+                    .crypto_info_inputs = {
+                            .key = key_material.client_key,
+                            .iv = client_iv,
+                            .seq = client_seq,
+                    },
+                };
+                EXPECT_SUCCESS(s2n_connection_ktls_enable_send(client));
+                EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
+            };
         };
     };
 
