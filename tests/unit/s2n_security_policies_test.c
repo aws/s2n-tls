@@ -287,14 +287,18 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2023_06);
         /* All supported kem groups should be in the preference list, but not all of them may be supported. */
         EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
-        if (s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(6, s2n_kem_groups_available_count(security_policy->kem_preferences));
-        } else if (s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(4, s2n_kem_groups_available_count(security_policy->kem_preferences));
-        } else if (!s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
+        if (s2n_pq_is_enabled()) {
+            if (s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+                EXPECT_EQUAL(6, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            } else if (s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
+                EXPECT_EQUAL(4, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            } else if (!s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+                EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            } else {
+                EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            }
         } else {
-            EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            EXPECT_EQUAL(0, s2n_kem_groups_available_count(security_policy->kem_preferences));
         }
 
         security_policy = NULL;
@@ -352,10 +356,12 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r3_2021_05);
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2021_05);
-        if (s2n_is_evp_apis_supported()) {
+        if (s2n_pq_is_enabled() && s2n_is_evp_apis_supported()) {
             EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
-        } else {
+        } else if (s2n_pq_is_enabled()) {
             EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
+        } else {
+            EXPECT_EQUAL(0, s2n_kem_groups_available_count(security_policy->kem_preferences));
         }
 
         security_policy = NULL;
@@ -367,10 +373,12 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->kems, pq_kems_r3_2021_05);
         EXPECT_NOT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2021_05);
-        if (s2n_is_evp_apis_supported()) {
+        if (s2n_pq_is_enabled() && s2n_is_evp_apis_supported()) {
             EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
-        } else {
+        } else if (s2n_pq_is_enabled()) {
             EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
+        } else {
+            EXPECT_EQUAL(0, s2n_kem_groups_available_count(security_policy->kem_preferences));
         }
 
         security_policy = NULL;
@@ -494,14 +502,18 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(security_policy->kem_preferences->tls13_kem_groups, pq_kem_groups_r3_2023_06);
         /* All supported kem groups should be in the preference list, but not all of them may be supported. */
         EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
-        if (s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(6, s2n_kem_groups_available_count(security_policy->kem_preferences));
-        } else if (s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(4, s2n_kem_groups_available_count(security_policy->kem_preferences));
-        } else if (!s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
+        if (s2n_pq_is_enabled()) {
+            if (s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+                EXPECT_EQUAL(6, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            } else if (s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
+                EXPECT_EQUAL(4, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            } else if (!s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+                EXPECT_EQUAL(2, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            } else {
+                EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            }
         } else {
-            EXPECT_EQUAL(1, s2n_kem_groups_available_count(security_policy->kem_preferences));
+            EXPECT_EQUAL(0, s2n_kem_groups_available_count(security_policy->kem_preferences));
         }
 
         security_policy = NULL;
