@@ -679,6 +679,9 @@ int main(int argc, char **argv)
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
+                        if (!kem_group->available) {
+                            continue;
+                        }
                         struct s2n_connection *client_conn;
                         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                         client_conn->security_policy_override = &test_security_policy;

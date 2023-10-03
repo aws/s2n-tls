@@ -146,6 +146,9 @@ int main()
                         EXPECT_EQUAL(kem_pref->tls13_kem_group_count, S2N_KEM_GROUPS_COUNT);
                         EXPECT_EQUAL(test_kem_groups[0], kem_pref->tls13_kem_groups[0]);
                         const struct s2n_kem_group *test_kem_group = kem_pref->tls13_kem_groups[0];
+                        if (!test_kem_group->available) {
+                            continue;
+                        }
 
                         DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
                         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&key_share_extension, MEM_FOR_EXTENSION));
@@ -484,6 +487,10 @@ int main()
                             test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_KEM_GROUPS_COUNT];
                         }
 
+                        if (!test_kem_groups[0]->available) {
+                            continue;
+                        }
+
                         struct s2n_kem_preferences test_kem_prefs = {
                             .kem_count = 0,
                             .kems = NULL,
@@ -568,7 +575,7 @@ int main()
                 /* Test that s2n_client_key_share_extension.recv selects the highest priority share,
                  * even if it appears last in the client's list of shares. */
                 /* Need at least two KEM's to test fallback */
-                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
+                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -578,7 +585,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
+                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
                         { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
@@ -617,7 +624,7 @@ int main()
                  * by the client / "mutually supported", and triggers a retry instead.
                  */
                 /* Need at least two KEM's to test fallback */
-                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
+                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -630,7 +637,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
+                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     struct s2n_kem_group_params client_pq_params = { .kem_group = kem_pref->tls13_kem_groups[0],
                         .kem_params = { .len_prefixed = len_prefixed } };
@@ -664,7 +671,7 @@ int main()
                  * by the client / "mutually supported", and chooses a lower priority curve instead.
                  */
                 /* Need at least two KEM's to test fallback */
-                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
+                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -677,7 +684,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
+                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
                         { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
@@ -715,7 +722,7 @@ int main()
                 /* Test that s2n_client_key_share_extension.recv ignores shares that can't be parsed,
                  * and continues to parse valid shares afterwards. */
                 /* Need at least two KEM's to test fallback */
-                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
+                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;
@@ -728,7 +735,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
+                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
                         { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
@@ -773,7 +780,7 @@ int main()
                 /* Test that s2n_client_key_share_extension.recv ignores shares that can't be parsed,
                  * and doesn't ignore / forget / overwrite valid shares already parsed. */
                 /* Need at least two KEM's to test fallback */
-                if (security_policy_all.kem_preferences->tls13_kem_group_count >= 2) {
+                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;
@@ -786,7 +793,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(kem_pref->tls13_kem_group_count >= 2);
+                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     struct s2n_kem_group_params client_pq_params[] = {
                         { .kem_group = kem_pref->tls13_kem_groups[0], .kem_params = { .len_prefixed = len_prefixed } },
