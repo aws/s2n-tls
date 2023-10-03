@@ -844,6 +844,7 @@ int main(int argc, char **argv)
                     struct s2n_kem_group_params *server_params = &conn->kex_params.server_kem_group_params;
                     const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
                     if (!kem_group->available) {
+                        EXPECT_SUCCESS(s2n_connection_free(conn));
                         continue;
                     }
                     server_params->kem_group = kem_group;
