@@ -53,7 +53,7 @@ static int s2n_test_setsockopt_aes128_tx(int fd, int level, int optname, const v
     POSIX_ENSURE_EQ(fd, S2N_TEST_SEND_FD);
     if (level == S2N_SOL_TLS) {
         POSIX_ENSURE_EQ(optname, S2N_TLS_TX);
-        POSIX_ENSURE_EQ(optlen, sizeof(struct tls12_crypto_info_aes_gcm_128));
+        POSIX_ENSURE_EQ(optlen, sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128));
     } else if (level == S2N_SOL_TCP) {
         POSIX_ENSURE_EQ(optname, S2N_TCP_ULP);
         POSIX_ENSURE_EQ(optlen, S2N_TLS_ULP_NAME_SIZE);
@@ -68,7 +68,7 @@ static int s2n_test_setsockopt_aes128_rx(int fd, int level, int optname, const v
     POSIX_ENSURE_EQ(fd, S2N_TEST_RECV_FD);
     if (level == S2N_SOL_TLS) {
         POSIX_ENSURE_EQ(optname, S2N_TLS_RX);
-        POSIX_ENSURE_EQ(optlen, sizeof(struct tls12_crypto_info_aes_gcm_128));
+        POSIX_ENSURE_EQ(optlen, sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128));
     } else if (level == S2N_SOL_TCP) {
         POSIX_ENSURE_EQ(optname, S2N_TCP_ULP);
         POSIX_ENSURE_EQ(optlen, S2N_TLS_ULP_NAME_SIZE);
