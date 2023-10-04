@@ -139,7 +139,7 @@ static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, cons
 
     POSIX_GUARD(s2n_connection_free(server_conn));
     s2n_errno = 0;
-    s2n_debug_str = NULL;
+    s2n_debug_info_reset();
 
     return S2N_SUCCESS;
 }

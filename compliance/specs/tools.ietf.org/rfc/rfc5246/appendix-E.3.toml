@@ -1,0 +1,55 @@
+target = "https://tools.ietf.org/rfc/rfc5246#appendix-E.3"
+
+# E.3.  Avoiding Man-in-the-Middle Version Rollback
+#
+# When TLS clients fall back to Version 2.0 compatibility mode, they
+# MUST use special PKCS#1 block formatting.  This is done so that TLS
+# servers will reject Version 2.0 sessions with TLS-capable clients.
+# 
+# When a client negotiates SSL 2.0 but also supports TLS, it MUST set
+# the right-hand (least-significant) 8 random bytes of the PKCS padding
+# (not including the terminal null of the padding) for the RSA
+# encryption of the ENCRYPTED-KEY-DATA field of the CLIENT-MASTER-KEY
+# to 0x03 (the other padding bytes are random).
+# 
+# When a TLS-capable server negotiates SSL 2.0 it SHOULD, after
+# decrypting the ENCRYPTED-KEY-DATA field, check that these 8 padding
+# bytes are 0x03.  If they are not, the server SHOULD generate a random
+# value for SECRET-KEY-DATA, and continue the handshake (which will
+# eventually fail since the keys will not match).  Note that reporting
+# the error situation to the client could make the server vulnerable to
+# attacks described in [BLEI].
+
+[[spec]]
+level = "MUST"
+quote = '''
+When TLS clients fall back to Version 2.0 compatibility mode, they
+MUST use special PKCS#1 block formatting.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When a client negotiates SSL 2.0 but also supports TLS, it MUST set
+the right-hand (least-significant) 8 random bytes of the PKCS padding
+(not including the terminal null of the padding) for the RSA
+encryption of the ENCRYPTED-KEY-DATA field of the CLIENT-MASTER-KEY
+to 0x03 (the other padding bytes are random).
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+When a TLS-capable server negotiates SSL 2.0 it SHOULD, after
+decrypting the ENCRYPTED-KEY-DATA field, check that these 8 padding
+bytes are 0x03.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If they are not, the server SHOULD generate a random
+value for SECRET-KEY-DATA, and continue the handshake (which will
+eventually fail since the keys will not match).
+'''
+

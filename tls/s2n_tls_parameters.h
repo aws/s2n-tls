@@ -65,9 +65,15 @@
 
 /* TLS 1.3 hybrid post-quantum definitions are from the proposed reserved range defined
  * in https://tools.ietf.org/html/draft-stebila-tls-hybrid-design. Values for interoperability are defined in
- * https://github.com/open-quantum-safe/openssl/blob/OQS-OpenSSL_1_1_1-stable/oqs-template/oqs-kem-info.md */
-#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3    0x2F39
-#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3 0x2F3A
+ * https://github.com/open-quantum-safe/oqs-provider/blob/main/oqs-template/oqs-kem-info.md and
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
+ */
+#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3     0x2F39
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3  0x2F3A
+#define TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3  0x2F3C
+#define TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3 0x2F3D
+#define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3     0x6399
+#define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_768_R3  0x639A
 
 /* From https://tools.ietf.org/html/rfc7507 */
 #define TLS_FALLBACK_SCSV                 0x56, 0x00

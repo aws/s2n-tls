@@ -66,6 +66,7 @@ struct s2n_config {
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     unsigned accept_mfl : 1;
     unsigned check_ocsp : 1;
+    unsigned disable_x509_time_validation : 1;
     unsigned disable_x509_validation : 1;
     unsigned max_verify_cert_chain_depth_set : 1;
     /* Whether to add dss cert type during a server certificate request.
@@ -151,6 +152,9 @@ struct s2n_config {
 
     s2n_crl_lookup_callback crl_lookup_cb;
     void *crl_lookup_ctx;
+
+    s2n_cert_validation_callback cert_validation_cb;
+    void *cert_validation_ctx;
 
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;

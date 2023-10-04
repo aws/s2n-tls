@@ -38,6 +38,9 @@ impl Overrides {
     }
 }
 
+unsafe impl Send for Overrides {}
+unsafe impl Sync for Overrides {}
+
 pub struct TestStream {
     stream: TcpStream,
     overrides: Arc<Overrides>,

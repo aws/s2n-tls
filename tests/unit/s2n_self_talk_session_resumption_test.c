@@ -498,14 +498,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* Test: A TLS1.3 client with a valid TLS1.2 ticket can fall back to a TLS1.3 connection
+    /* Test: A TLS1.3 client with a valid TLS1.2 ticket can fall back to a
+     * TLS1.3 connection.
      *
-     * This could occur when upgrading a fleet of TLS1.2 servers to TLS1.3
-     * without disabling session resumption.
+     * This scenario could occur when upgrading a fleet of TLS1.2 servers to
+     * TLS1.3 without disabling session resumption.
      */
     {
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        DEFER_CLEANUP(struct s2n_blob ticket = { 0 }, s2n_free);
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
         EXPECT_NOT_NULL(server_conn);
 
@@ -513,7 +515,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair = { 0 };
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -525,8 +527,8 @@ int main(int argc, char **argv)
 
         /* Store the TLS1.2 session ticket */
         size_t tls12_session_ticket_len = s2n_connection_get_session_length(client_conn);
-        uint8_t tls12_session_ticket[S2N_TLS12_SESSION_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+        EXPECT_SUCCESS(s2n_realloc(&ticket, tls12_session_ticket_len));
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, ticket.data, ticket.size));
 
         /* Prepare client and server for a second connection */
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -536,7 +538,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
         /* Client sets up a resumption connection with the received TLS1.2 session ticket data */
-        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, ticket.data, ticket.size));
         /* We want to ensure that ems is handled properly too */
         EXPECT_TRUE(client_conn->ems_negotiated);
 
@@ -549,9 +551,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        /* since TLS 1.3 was negotiated, and the client hasn't called recv yet
+         * there should be no session ticket available.
+         */
+        EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, ticket.data, ticket.size), 0);
     };
 
     /* HRR when issuing a session resumption ticket and when resuming a session */
@@ -737,7 +741,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_blob session_state = { 0 }, s2n_free);
 
         /* A quirk of the TLS1.2 session resumption behavior is that if a ticket is set
-         * on the connection using s2n_connection_set_session, s2n_connection_get_session 
+         * on the connection using s2n_connection_set_session, s2n_connection_get_session
          * will return a valid ticket, even before actually receiving a new session ticket
          * from the server. Here we test that behavior to ensure it is consistent. */
         for (size_t j = 0; j < s2n_array_len(client_config); j++) {

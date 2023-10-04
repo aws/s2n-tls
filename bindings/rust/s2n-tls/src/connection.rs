@@ -578,6 +578,15 @@ impl Connection {
         }
     }
 
+    /// Adds a session ticket from a previous TLS connection to create a resumed session
+    pub fn set_session_ticket(&mut self, session: &[u8]) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_session(self.connection.as_ptr(), session.as_ptr(), session.len())
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Sets a Waker on the connection context or clears it if `None` is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();
@@ -799,6 +808,32 @@ impl Connection {
             s2n_tls_hash_algorithm::NONE => None,
             hash_alg => Some(hash_alg.try_into()?),
         })
+    }
+
+    /// Provides access to the TLS-Exporter functionality.
+    ///
+    /// See https://datatracker.ietf.org/doc/html/rfc5705 and https://www.rfc-editor.org/rfc/rfc8446.
+    ///
+    /// This is currently only available with TLS 1.3 connections which have finished a handshake.
+    pub fn tls_exporter(
+        &self,
+        label: &[u8],
+        context: &[u8],
+        output: &mut [u8],
+    ) -> Result<(), Error> {
+        unsafe {
+            s2n_connection_tls_exporter(
+                self.connection.as_ptr(),
+                label.as_ptr(),
+                label.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+                context.as_ptr(),
+                context.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+                output.as_mut_ptr(),
+                output.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+            )
+            .into_result()
+            .map(|_| ())
+        }
     }
 }
 

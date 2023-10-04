@@ -44,6 +44,11 @@ static int s2n_test_crl_lookup_cb(struct s2n_crl_lookup *lookup, void *context)
     return S2N_SUCCESS;
 }
 
+static int s2n_test_cert_validation_cb(struct s2n_connection *conn, struct s2n_cert_validation_info *info, void *context)
+{
+    return S2N_SUCCESS;
+}
+
 static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 {
     return S2N_SUCCESS;
@@ -599,6 +604,33 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->crl_lookup_ctx, NULL);
     };
 
+    /* Test s2n_config_set_cert_validation_cb */
+    {
+        uint8_t context = 0;
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
+        /* Unset by default */
+        EXPECT_EQUAL(config->cert_validation_cb, NULL);
+        EXPECT_EQUAL(config->cert_validation_ctx, NULL);
+
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cert_validation_cb(NULL, s2n_test_cert_validation_cb, &context),
+                S2N_ERR_NULL);
+        EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, NULL, &context));
+        EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_cb, NULL));
+
+        /* Set */
+        EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, s2n_test_cert_validation_cb, &context));
+        EXPECT_EQUAL(config->cert_validation_cb, s2n_test_cert_validation_cb);
+        EXPECT_EQUAL(config->cert_validation_ctx, &context);
+
+        /* Unset */
+        EXPECT_SUCCESS(s2n_config_set_cert_validation_cb(config, NULL, NULL));
+        EXPECT_EQUAL(config->cert_validation_cb, NULL);
+        EXPECT_EQUAL(config->cert_validation_ctx, NULL);
+    };
+
     /* Test s2n_config_set_status_request_type */
     for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
         s2n_mode mode = modes[mode_i];
@@ -927,6 +959,22 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
                         S2N_ERR_CERT_UNTRUSTED);
             }
+        }
+    }
+
+    /* s2n_config_disable_x509_time_verification tests */
+    {
+        /* Safety */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_disable_x509_time_verification(NULL), S2N_ERR_NULL);
+
+        /* Ensure s2n_config_disable_x509_time_verification sets the proper state */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_EQUAL(config->disable_x509_time_validation, false);
+
+            EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
+            EXPECT_EQUAL(config->disable_x509_time_validation, true);
         }
     }
 

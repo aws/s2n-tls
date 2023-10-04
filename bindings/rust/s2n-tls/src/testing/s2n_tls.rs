@@ -39,7 +39,7 @@ impl Harness {
 }
 
 impl super::Connection for Harness {
-    fn poll<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>> {
+    fn poll_negotiate<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>> {
         let mut callback: Callback<Ctx> = Callback {
             context,
             err: None,
@@ -63,6 +63,33 @@ impl super::Connection for Harness {
                 }
                 Ok(()).into()
             }
+            Poll::Ready(Err(err)) => Err(err.into()).into(),
+            Poll::Pending => Poll::Pending,
+        }
+    }
+
+    fn poll_action<Ctx: Context, F>(&mut self, context: &mut Ctx, action: F) -> Poll<Result<()>>
+    where
+        F: FnOnce(&mut Connection) -> Poll<Result<usize, crate::error::Error>>,
+    {
+        let mut callback: Callback<Ctx> = Callback {
+            context,
+            err: None,
+            send_buffer: &mut self.send_buffer,
+        };
+
+        unsafe {
+            // Safety: the callback struct must live as long as the callbacks are
+            // set on on the connection
+            callback.set(&mut self.connection);
+        }
+
+        let result = action(&mut self.connection);
+
+        callback.unset(&mut self.connection)?;
+
+        match result {
+            Poll::Ready(Ok(_)) => Ok(()).into(),
             Poll::Ready(Err(err)) => Err(err.into()).into(),
             Poll::Pending => Poll::Pending,
         }

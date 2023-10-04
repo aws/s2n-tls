@@ -1,71 +1,14 @@
 # Using s2n-tls
 
-s2n-tls is a C library, and is built using Make. To clone the latest
-copy of s2n-tls from git use:
+## Building s2n-tls
 
-```shell
-git clone https://github.com/aws/s2n-tls.git
-cd s2n-tls
-```
+See the [s2n-tls build documentation](BUILD.md) for guidance on building s2n-tls for your platform.
 
-## Building s2n-tls with existing libcrypto
-### make Instructions
-To build s2n-tls with an existing libcrypto installation, store its root folder in the
-`LIBCRYPTO_ROOT` environment variable.
-```shell
-# /usr/local/ssl/lib should contain libcrypto.a
-LIBCRYPTO_ROOT=/usr/local/ssl make
-```
-### CMake Instructions
+## Consuming s2n-tls via. CMake
 
-Throughout this document, there are instructions for setting a `LIBCRYPTO_ROOT` environment variable, or setting install prefixes to `s2n/lib-crypto-root`. If you
-are using CMake that step is unnecessary. Just follow the instructions here to use any build of libcrypto.
-
-(Required): You need at least CMake version 3.0 to fully benefit from Modern CMake. See [this](https://www.youtube.com/watch?v=bsXLMQ6WgIk) for more information.
-
-(Optional): Set the CMake variable `CMAKE_PREFIX_PATH` to the location libcrypto is installed to. If you do not,
-the default installation on your machine will be used.
-
-(Optional): Set the CMake variable `BUILD_SHARED_LIBS=ON` to build shared libraries. The default is static.
-
-We recommend an out-of-source build. Suppose you have a directory `s2n` which contains the s2n-tls source code. At the same level
-we can create a directory called `s2n-build`
-
-For example, we can build and install shared libs using ninja as our build system, and the system libcrypto implementation.
-
-````shell
-mkdir s2n-build
-cd s2n-build
-cmake ../s2n-tls -DBUILD_SHARED_LIBS=ON -GNinja
-ninja
-ninja test
-sudo ninja install
-````
-
-For another example, we can prepare an Xcode project using static libs using a libcrypto implementation in the directory `$HOME/s2n-user/builds/libcrypto-impl`.
-
-````shell
-mkdir s2n-build
-cd s2n-build
-cmake ../s2n-tls -DCMAKE_INSTALL_PREFIX=$HOME/s2n-user/builds/libcrypto-impl -G "Xcode"
-# now open the project in Xcode and build from there, or use the Xcode CLI
-````
-
-Or, for unix style vanilla builds:
-
-````shell
-mkdir s2n-build
-cd s2n-build
-cmake ../s2n-build
-make
-make test
-sudo make install
-````
-
-### Consuming s2n-tls via. CMake
 s2n-tls ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n-tls in your project is:
 
-````shell
+````bash
 find_package(s2n)
 
 ....
@@ -76,188 +19,6 @@ target_link_libraries(yourExecutableOrLibrary AWS::s2n)
 And when invoking CMake for your project, do one of two things:
  1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n-tls build.
  2. If you have globally installed s2n-tls, do nothing, it will automatically be found.
-
-
-### 32 Bit Platforms
-s2n-tls does not support 32 bit builds. Our CI does not build or test on 32 bit platforms, so they may or may not work. If you run into a problem with 32 bit builds you can open an issue and we may or may not be able to help you. Note that we are unlikely to accept PRs for 32 bit issues at this time since we cannot properly test them. We hope to offer improved 32 bit support in the future, contingent upon updating our CI with coverage for 32 bit platforms.
-
-#### Cross Compiling for 32 Bit Platforms
-There is an example toolchain for 32 bit cross-compiling in `cmake/toolchains/32-bit.toolchain`.
-
-First, you will need access to a 32 bit version of libcrypto. Many linux distributions are [multi-arch](https://help.ubuntu.com/community/MultiArch) compatible which allows you to download 32 bit packages on a 64 bit platform. For Ubuntu this can be done with the following
-```
-# we're interested in i386 (32 bit) architectures
-dpkg --add-architecture i386
-
-# update apt so it knows to look for 32 bit packages
-apt update
-
-# install the 32 bit (i386) version of libcrypto
-apt install libssl-dev:i386
-```
-
-Then wipe out the build directory (to clear the cmake cache allowing for the new toolchain) and run
-```
-cmake . -Bbuild -DCMAKE_TOOLCHAIN_FILE=cmake/toolchains/32-bit.toolchain
-cmake --build ./build -j $(nproc)
-```
-
-## Building s2n-tls with Openssl
-
-We keep the build artifacts in the *-build directory:
-```shell
-cd libcrypto-build
-```
-
-### Download the desired Openssl version:
-Openssl 3.0.5
-```shell
-curl -L -o openssl.tar.gz https://github.com/openssl/openssl/archive/refs/tags/openssl-3.0.5.tar.gz
-tar -xzvf openssl-3.0.5.tar.gz
-cd `tar ztf openssl-3.0.5.tar.gz | head -n1 | cut -f1 -d/`
-```
-
-OpenSSL-1.1.1
-```shell
-curl -LO https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1.tar.gz
-tar -xzvf OpenSSL_1_1_1.tar.gz
-cd `tar ztf OpenSSL_1_1_1.tar.gz | head -n1 | cut -f1 -d/`
-```
-
-OpenSSL-1.0.2
-```shell
-curl -LO https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_0_2.tar.gz
-tar -xzvf OpenSSL_1_0_2.tar.gz
-cd `tar ztf OpenSSL_1_0_2.tar.gz | head -n1 | cut -f1 -d/`
-```
-
-### Build Openssl
-The following config command disables numerous Openssl features and algorithms which are not used
-by s2n-tls. A minimal feature-set can help prevent exposure to security vulnerabilities.
-
-OpenSSL-1.1.1 and OpenSSL-3.0.5
-```shell
-./config -fPIC no-shared              \
-        no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
-        no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
-        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
-        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
-        --prefix=`pwd`/../../libcrypto-root/
-
-make
-make install
-```
-
-OpenSSL-1.0.2. Mac Users should replace "./config" with "./Configure darwin64-x86_64-cc".
-```shell
-./config -fPIC no-shared              \
-        no-libunbound no-gmp no-jpake no-krb5 no-store    \
-        no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
-        no-hw no-mdc2 no-seed no-idea enable-ec_nistp_64_gcc_128 no-camellia\
-        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng                  \
-        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS      \
-        --prefix=`pwd`/../../libcrypto-root/
-
-make depend
-make
-make install
-```
-
-OpenSSL-1.1.1 32-bit
-```shell
-setarch i386 ./config -fPIC no-shared     \
-        -m32 no-md2 no-rc5 no-rfc3779 no-sctp no-ssl-trace no-zlib     \
-        no-hw no-mdc2 no-seed no-idea no-camellia\
-        no-bf no-ripemd no-dsa no-ssl2 no-ssl3 no-capieng     \
-        -DSSL_FORBID_ENULL -DOPENSSL_NO_DTLS1 -DOPENSSL_NO_HEARTBEATS   \
-        --prefix=`pwd`/../../libcrypto-root/
-```
-
-### Build s2n-tls
-```shell
-cd ../../ # root of project
-make
-```
-
-### Available algorithms
-Not all algorithms are available from all versions of Openssl:
-* ChaChaPoly is not supported before Openssl-1.1.1
-* RSA-PSS is not supported before Openssl-1.1.1
-* RC4 is not supported with Openssl-3.0 or later.
-
-## Building s2n-tls with LibreSSL
-
-To build s2n-tls with LibreSSL, do the following:
-
-```shell
-# We keep the build artifacts in the *-build directory
-cd libcrypto-build
-
-# Download the latest version of LibreSSL
-curl -O http://ftp.openbsd.org/pub/OpenBSD/LibreSSL/libressl-x.y.z.tar.gz
-tar -xzvf libressl-x.y.z.tar.gz
-
-# Build LibreSSL's libcrypto
-cd libressl-x.y.z
-./configure --prefix=`pwd`/../../libcrypto-root/
-make CFLAGS=-fPIC install
-
-# Build s2n-tls
-cd ../../
-make
-```
-
-once built, static and dynamic libraries for s2n-tls will be available in the lib/
-directory.
-
-## Building s2n-tls with BoringSSL
-
-To build s2n-tls with BoringSSL, you must check out a copy of the BoringSSL
-directly via git. This procedure has been tested with
-fb68d6c901b98ffe15b8890d00bc819bf44c5f01 of BoringSSL.
-
-```shell
-# We keep the build artifacts in the *-build directory
-cd libcrypto-build
-
-# Clone BoringSSL
-git clone https://boringssl.googlesource.com/boringssl
-
-# Build BoringSSL
-cd boringssl
-mkdir build
-cd build
-cmake -DCMAKE_C_FLAGS="-fPIC" ../
-make
-
-# Copy the built library and includes
-mkdir ../../../libcrypto-root/lib/
-cp crypto/libcrypto.a ../../../libcrypto-root/lib/
-cp -r ../include/ ../../../libcrypto-root/include
-
-# Build s2n-tls
-cd ../../../
-make
-```
-
-once built, static and dynamic libraries for s2n-tls will be available in the lib/
-directory.
-
-## mlock() and system limits
-
-Internally s2n-tls uses mlock() to prevent memory from being swapped to disk. The
-s2n-tls build tests may fail in some environments where the default limit on locked
-memory is too low. To check this limit, run:
-
-```shell
-ulimit -l
-```
-
-to raise the limit, consult the documentation for your platform.
-
-### Disabling mlock()
-To disable s2n-tls's mlock behavior, run your application with the `S2N_DONT_MLOCK` environment variable set.
-s2n-tls also reads this for unit tests. Try `S2N_DONT_MLOCK=1 make` if you're having mlock failures during unit tests.
 
 # s2n-tls API
 
@@ -568,11 +329,16 @@ how to handle C signals, or simply ignore the SIGPIPE signal by calling
 s2n-tls supports both blocking and non-blocking I/O.
 * In blocking mode, each s2n-tls I/O function will not return until it has completed
 the requested IO operation.
-* In non-blocking mode, an s2n-tls I/O function may return while there is
-still I/O pending. If **S2N_FAILURE** is returned, `s2n_error_get_type()`
-will report **S2N_ERR_T_BLOCKED**. The s2n_blocked_status parameter will be
-set to indicate which IO direction blocked. s2n-tls I/O functions should be called
-repeatedly until the **blocked** parameter is **S2N_NOT_BLOCKED**.
+* In non-blocking mode, s2n-tls I/O functions will immediately return, even if the socket couldn't
+send or receive all the requested data. In this case, the I/O function will return `S2N_FAILURE`,
+and `s2n_error_get_type()` will return `S2N_ERR_T_BLOCKED`. The I/O operation will have to be
+called again in order to send or receive the remaining requested data.
+
+Some s2n-tls I/O functions take a `blocked` argument. If an I/O function returns an
+`S2N_ERR_T_BLOCKED` error, the `blocked` argument will be set to a `s2n_blocked_status` value,
+indicating what s2n-tls is currently blocked on. Note that unless an I/O function returns
+`S2N_FAILURE` with an `S2N_ERR_T_BLOCKED` error, the `blocked` argument is meaningless, and should
+not be used in any application logic.
 
 Servers in particular usually prefer non-blocking mode. In blocking mode, a single connection
 blocks the thread while waiting for more IO. In non-blocking mode, multiple connections
@@ -640,9 +406,15 @@ provided application data. s2n-tls breaks the application data into fixed-sized
 records before encryption, and calls write for each record.
 [See the record size documentation for how record size may impact performance](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#record-sizes).
 
-To ensure that all data passed to `s2n_send()` is successfully sent, either call
-`s2n_send()` until its s2n_blocked_status parameter is **S2N_NOT_BLOCKED** or
-until the return values across all calls have added up to the length of the data.
+In non-blocking mode, `s2n_send()` will send data from the provided buffer and return the number of
+bytes sent, as long as the socket was able to send at least 1 byte. If no bytes could be sent on the
+socket, `s2n_send()` will return `S2N_FAILURE`, and `s2n_error_get_type()` will return
+`S2N_ERR_T_BLOCKED`. To ensure that all the provided data gets sent, applications should continue
+calling `s2n_send()` until the return values across all calls have added up to the length of the
+data, or until `s2n_send()` returns an `S2N_ERR_T_BLOCKED` error. After an `S2N_ERR_T_BLOCKED`
+error is returned, applications should call `s2n_send()` again only after the socket is
+able to send more data. This can be determined by using methods like
+[`poll`](https://linux.die.net/man/2/poll) or [`select`](https://linux.die.net/man/2/select).
 
 Unlike OpenSSL, repeated calls to `s2n_send()` should not duplicate the original
 parameters, but should update the inputs per the indication of size written.
@@ -665,11 +437,18 @@ the application-provided output buffer. It returns the number of bytes read, and
 may indicate a partial read even if blocking IO is used.
 It returns "0" to indicate that the peer has shutdown the connection.
 
-By default, `s2n_recv()` will return after reading a single TLS record.
-To instead read until the provided output buffer is full, call `s2n_recv()` until
-its s2n_blocked_status parameter is **S2N_NOT_BLOCKED**. Alternatively, use
-`s2n_config_set_recv_multi_record()` to configure s2n-tls to read multiple
-TLS records until the provided output buffer is full.
+By default, `s2n_recv()` will return after reading a single TLS record. `s2n_recv()` can be called
+repeatedly to read multiple records. To allow `s2n_recv()` to read multiple records with a single
+call, use `s2n_config_set_recv_multi_record()`.
+
+In non-blocking mode, `s2n_recv()` will read data into the provided buffer and return the number of
+bytes read, as long as at least 1 byte was read from the socket. If no bytes could be read from the
+socket, `s2n_recv()` will return `S2N_FAILURE`, and `s2n_error_get_type()` will return
+`S2N_ERR_T_BLOCKED`. To ensure that all data on the socket is properly received, applications
+should continue calling `s2n_recv()` until it returns an `S2N_ERR_T_BLOCKED` error. After an
+`S2N_ERR_T_BLOCKED` error is returned, applications should call `s2n_recv()` again only after the
+socket has received more data. This can be determined by using methods like 
+[`poll`](https://linux.die.net/man/2/poll) or [`select`](https://linux.die.net/man/2/select).
 
 Unlike OpenSSL, repeated calls to `s2n_recv()` should not duplicate the original parameters,
 but should update the inputs per the indication of size read.

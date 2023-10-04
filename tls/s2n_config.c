@@ -451,6 +451,13 @@ int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_
     return 0;
 }
 
+int s2n_config_disable_x509_time_verification(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+    config->disable_x509_time_validation = true;
+    return S2N_SUCCESS;
+}
+
 int s2n_config_disable_x509_verification(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
@@ -519,11 +526,15 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
+
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
+
     POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
          * default, etc. */
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
@@ -1114,6 +1125,16 @@ int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
     POSIX_ENSURE_REF(config);
 
     config->recv_multi_record = enabled;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cert_validation_callback cb, void *ctx)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->cert_validation_cb = cb;
+    config->cert_validation_ctx = ctx;
 
     return S2N_SUCCESS;
 }

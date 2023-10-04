@@ -46,6 +46,7 @@
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_compiler.h"
+#include "utils/s2n_io.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -853,11 +854,17 @@ int s2n_connection_use_corked_io(struct s2n_connection *conn)
 
 uint64_t s2n_connection_get_wire_bytes_in(struct s2n_connection *conn)
 {
+    if (conn->ktls_recv_enabled) {
+        return 0;
+    }
     return conn->wire_bytes_in;
 }
 
 uint64_t s2n_connection_get_wire_bytes_out(struct s2n_connection *conn)
 {
+    if (conn->ktls_send_enabled) {
+        return 0;
+    }
     return conn->wire_bytes_out;
 }
 
@@ -1154,6 +1161,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
          *
          * We may want to someday add an explicit error type for these errors.
          */
+        case S2N_ERR_CLOSED:
         case S2N_ERR_CANCELLED:
         case S2N_ERR_CIPHER_NOT_SUPPORTED:
         case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
@@ -1260,11 +1268,9 @@ int s2n_connection_recv_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     POSIX_GUARD(s2n_stuffer_reserve_space(stuffer, len));
 
     int r = 0;
-    do {
-        errno = 0;
-        r = conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len);
-        S2N_ERROR_IF(r < 0 && errno != EINTR, S2N_ERR_RECV_STUFFER_FROM_CONN);
-    } while (r < 0);
+    S2N_IO_RETRY_EINTR(r,
+            conn->recv(conn->recv_io_context, stuffer->blob.data + stuffer->write_cursor, len));
+    POSIX_ENSURE(r >= 0, S2N_ERR_RECV_STUFFER_FROM_CONN);
 
     /* Record just how many bytes we have written */
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, r));
@@ -1282,14 +1288,12 @@ int s2n_connection_send_stuffer(struct s2n_stuffer *stuffer, struct s2n_connecti
     S2N_ERROR_IF(s2n_stuffer_data_available(stuffer) < len, S2N_ERR_STUFFER_OUT_OF_DATA);
 
     int w = 0;
-    do {
-        errno = 0;
-        w = conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len);
-        if (w < 0 && errno == EPIPE) {
-            conn->write_fd_broken = 1;
-        }
-        S2N_ERROR_IF(w < 0 && errno != EINTR, S2N_ERR_SEND_STUFFER_TO_CONN);
-    } while (w < 0);
+    S2N_IO_RETRY_EINTR(w,
+            conn->send(conn->send_io_context, stuffer->blob.data + stuffer->read_cursor, len));
+    if (w < 0 && errno == EPIPE) {
+        conn->write_fd_broken = 1;
+    }
+    POSIX_ENSURE(w >= 0, S2N_ERR_SEND_STUFFER_TO_CONN);
 
     POSIX_GUARD(s2n_stuffer_skip_read(stuffer, w));
     return w;
@@ -1348,10 +1352,15 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(cert_chain_and_key);
+    POSIX_ENSURE_REF(cert_chain_and_key->cert_chain);
+
+    /* Ensure that cert_chain_and_key is empty BEFORE we modify it in any way.
+     * That includes before tying its cert_chain to DEFER_CLEANUP.
+     */
+    POSIX_ENSURE(cert_chain_and_key->cert_chain->head == NULL, S2N_ERR_INVALID_ARGUMENT);
 
     DEFER_CLEANUP(struct s2n_cert_chain *cert_chain = cert_chain_and_key->cert_chain, s2n_cert_chain_free_pointer);
     struct s2n_cert **insert = &cert_chain->head;
-    POSIX_ENSURE(*insert == NULL, S2N_ERR_INVALID_ARGUMENT);
 
     const struct s2n_x509_validator *validator = &conn->x509_validator;
     POSIX_ENSURE_REF(validator);

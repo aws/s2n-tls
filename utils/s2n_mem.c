@@ -232,6 +232,8 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE_REF(to);
+    POSIX_ENSURE_REF(from);
     POSIX_ENSURE_EQ(to->size, 0);
     POSIX_ENSURE_EQ(to->data, NULL);
     POSIX_ENSURE_NE(from->size, 0);
