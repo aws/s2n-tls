@@ -4,7 +4,7 @@
 use crate::{
     get_cert_path,
     harness::{
-        CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, TlsConnection,
+        CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, TlsConnection, TlsBenchConfig,
     },
     PemType::*,
 };
@@ -42,29 +42,13 @@ pub struct OpenSslConfig {
     session_ticket_storage: SessionTicketStorage,
 }
 
-impl TlsConnection for OpenSslConnection {
-    type Config = OpenSslConfig;
-
-    fn name() -> String {
-        let version_num = openssl::version::number() as u64;
-        let patch: u8 = (version_num >> 4) as u8;
-        let fix = (version_num >> 12) as u8;
-        let minor = (version_num >> 20) as u8;
-        let major = (version_num >> 28) as u8;
-        format!(
-            "openssl{}.{}.{}{}",
-            major,
-            minor,
-            fix,
-            (b'a' + patch - 1) as char
-        )
-    }
+impl TlsBenchConfig for OpenSslConfig {
 
     fn make_config(
         mode: Mode,
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
-    ) -> Result<Self::Config, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error>> {
         let cipher_suite = match crypto_config.cipher_suite {
             CipherSuite::AES_128_GCM_SHA256 => "TLS_AES_128_GCM_SHA256",
             CipherSuite::AES_256_GCM_SHA384 => "TLS_AES_256_GCM_SHA384",
@@ -139,11 +123,31 @@ impl TlsConnection for OpenSslConnection {
                 }
             }
         }
-        Ok(Self::Config {
+        Ok(Self {
             config: builder.build(),
             session_ticket_storage,
         })
     }
+}
+
+impl TlsConnection for OpenSslConnection {
+    type Config = OpenSslConfig;
+
+    fn name() -> String {
+        let version_num = openssl::version::number() as u64;
+        let patch: u8 = (version_num >> 4) as u8;
+        let fix = (version_num >> 12) as u8;
+        let minor = (version_num >> 20) as u8;
+        let major = (version_num >> 28) as u8;
+        format!(
+            "openssl{}.{}.{}{}",
+            major,
+            minor,
+            fix,
+            (b'a' + patch - 1) as char
+        )
+    }
+
 
     fn new_from_config(
         config: &Self::Config,
