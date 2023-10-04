@@ -94,9 +94,11 @@ int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_c
  * we could re-use the s2n_recv API but that function needs to be refactored to support quic.
  * For now we just call this API.
  */
-int s2n_connection_process_post_handshake_message(struct s2n_connection *conn)
+int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocked_status *blocked)
 {
     POSIX_ENSURE_REF(conn);
+
+    *blocked = S2N_BLOCKED_ON_READ;
 
     uint8_t message_type = 0;
     POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
@@ -104,6 +106,8 @@ int s2n_connection_process_post_handshake_message(struct s2n_connection *conn)
     /* The only post-handshake messages we support from QUIC currently are session tickets */
     POSIX_ENSURE(message_type == TLS_SERVER_NEW_SESSION_TICKET, S2N_ERR_UNSUPPORTED_WITH_QUIC);
     POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->in, message_type));
+
+    *blocked = S2N_NOT_BLOCKED;
 
     return S2N_SUCCESS;
 }

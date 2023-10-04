@@ -429,10 +429,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     };
 
-    /* Test: s2n_connection_process_post_handshake_message */
+    /* Test: s2n_recv_quic_post_handshake_message */
     {
         /* Safety checks */
-        EXPECT_FAILURE(s2n_connection_process_post_handshake_message(NULL));
+        s2n_blocked_status blocked = 0;
+        EXPECT_FAILURE(s2n_recv_quic_post_handshake_message(NULL, &blocked));
 
         /* Parsable session ticket message */
         uint8_t ticket_message[] = {
@@ -461,7 +462,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_process_post_handshake_message(conn), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+            s2n_blocked_status blocked = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv_quic_post_handshake_message(conn, &blocked), S2N_ERR_UNSUPPORTED_WITH_QUIC);
         };
 
         /* Test: successfully reads and processes post-handshake message */
@@ -482,7 +484,8 @@ int main(int argc, char **argv)
             /* Construct ST handshake message */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message, sizeof(ticket_message)));
 
-            EXPECT_SUCCESS(s2n_connection_process_post_handshake_message(conn));
+            s2n_blocked_status blocked = 0;
+            EXPECT_SUCCESS(s2n_recv_quic_post_handshake_message(conn, &blocked));
 
             /* Callback was triggered */
             EXPECT_EQUAL(session_ticket_cb_count, 1);
@@ -505,7 +508,9 @@ int main(int argc, char **argv)
             /* Mock receiving a fragmented handshake message */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message, i));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_process_post_handshake_message(conn), S2N_ERR_IO_BLOCKED);
+            s2n_blocked_status blocked = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv_quic_post_handshake_message(conn, &blocked), S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
 
             /* Callback was not triggered */
             EXPECT_EQUAL(session_ticket_cb_count, 0);
@@ -513,7 +518,7 @@ int main(int argc, char **argv)
             /* "Write" the rest of the message */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, ticket_message + i, sizeof(ticket_message) - i));
 
-            EXPECT_SUCCESS(s2n_connection_process_post_handshake_message(conn));
+            EXPECT_SUCCESS(s2n_recv_quic_post_handshake_message(conn, &blocked));
 
             /* Callback was triggered */
             EXPECT_EQUAL(session_ticket_cb_count, 1);
