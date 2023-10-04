@@ -257,10 +257,7 @@ int s2n_hkdf_expand_label(struct s2n_hmac_state *hmac, s2n_hmac_algorithm alg, c
     struct s2n_blob hkdf_label_blob = { 0 };
     struct s2n_stuffer hkdf_label = { 0 };
 
-    /* RFC8446 specifies that labels must be 12 characters or less, to avoid
-    ** incurring two hash rounds.
-    */
-    POSIX_ENSURE_LTE(label->size, 12);
+    POSIX_ENSURE_LTE(label->size, S2N_MAX_HKDF_EXPAND_LABEL_LENGTH);
 
     POSIX_GUARD(s2n_blob_init(&hkdf_label_blob, hkdf_label_buf, sizeof(hkdf_label_buf)));
     POSIX_GUARD(s2n_stuffer_init(&hkdf_label, &hkdf_label_blob));
