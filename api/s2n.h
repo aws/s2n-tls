@@ -2871,6 +2871,20 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 
 /**
+ * Provides access to the TLS-Exporter functionality.
+ *
+ * See https://datatracker.ietf.org/doc/html/rfc5705 and https://www.rfc-editor.org/rfc/rfc8446.
+ *
+ * @note This is currently only available with TLS 1.3 connections which have finished a handshake.
+ *
+ * @param conn A pointer to the connection
+ * @returns A POSIX error signal. If an error was returned, the value contained in `output` should be considered invalid.
+ */
+S2N_API extern int s2n_connection_tls_exporter(struct s2n_connection *conn,
+        const uint8_t *label, uint32_t label_length, const uint8_t *context, uint32_t context_length,
+        uint8_t *output, uint32_t output_length);
+
+/**
  * Returns the IANA value for the connection's negotiated cipher suite.
  *
  * The value is returned in the form of `first,second`, in order to closely match
