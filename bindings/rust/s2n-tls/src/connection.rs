@@ -903,8 +903,10 @@ impl Connection {
     }
 
     pub fn quic_process_post_handshake_message(&mut self) -> Result<&mut Self, Error> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         unsafe {
-            s2n_recv_quic_post_handshake_message(self.connection.as_ptr()).into_result()
+            s2n_recv_quic_post_handshake_message(self.connection.as_ptr(), &mut blocked)
+                .into_result()
         }?;
         Ok(self)
     }
