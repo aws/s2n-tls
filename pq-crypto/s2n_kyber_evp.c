@@ -97,7 +97,7 @@ int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pu
         OUT uint8_t *secret_key)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    if (kem->kem_extension_id == TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3) {
+    if (kem == &s2n_kyber_512_r3) {
         return s2n_kyber_512_r3_crypto_kem_keypair(kem, public_key, secret_key);
     }
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
@@ -108,7 +108,7 @@ int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphert
         IN const uint8_t *public_key)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    if (kem->kem_extension_id == TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3) {
+    if (kem == &s2n_kyber_512_r3) {
         return s2n_kyber_512_r3_crypto_kem_enc(kem, ciphertext, shared_secret, public_key);
     }
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
@@ -119,7 +119,7 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
         IN const uint8_t *secret_key)
 {
     POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    if (kem->kem_extension_id == TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3) {
+    if (kem == &s2n_kyber_512_r3) {
         return s2n_kyber_512_r3_crypto_kem_dec(kem, shared_secret, ciphertext, secret_key);
     }
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);

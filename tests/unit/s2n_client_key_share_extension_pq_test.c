@@ -255,9 +255,9 @@ int main()
                         conn->handshake.message_number = HELLO_RETRY_MSG_NO;
                         conn->actual_protocol_version_established = 1;
                         uint8_t chosen_index = 0;
-                        for (int i = kem_pref->tls13_kem_group_count - 1; i > 0; i--) {
-                            if (kem_pref->tls13_kem_groups[i]->available) {
-                                chosen_index = i;
+                        for (int j = kem_pref->tls13_kem_group_count - 1; j > 0; j--) {
+                            if (kem_pref->tls13_kem_groups[j]->available) {
+                                chosen_index = j;
                                 break;
                             }
                         }
