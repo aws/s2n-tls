@@ -565,9 +565,17 @@ int main()
                         EXPECT_NOT_NULL(received_pq_params->ecc_params.evp_pkey);
                         EXPECT_TRUE(s2n_public_ecc_keys_are_equal(&received_pq_params->ecc_params, &sent_pq_params->ecc_params));
 
-                        EXPECT_EQUAL(received_pq_params->kem_params.kem, test_kem_prefs.tls13_kem_groups[0]->kem);
+                        struct s2n_kem_group *kem_group = NULL;
+                        for (size_t i = 0; i < server_kem_pref->tls13_kem_group_count; i++) {
+                            if (server_kem_pref->tls13_kem_groups[i]->available) {
+                                kem_group = server_kem_pref->tls13_kem_groups[i];
+                                break;
+                            }
+                        }
+                        EXPECT_NOT_NULL(kem_group);
+                        EXPECT_EQUAL(received_pq_params->kem_params.kem, kem_group->kem);
                         EXPECT_NOT_NULL(received_pq_params->kem_params.public_key.data);
-                        EXPECT_EQUAL(received_pq_params->kem_params.public_key.size, test_kem_prefs.tls13_kem_groups[0]->kem->public_key_length);
+                        EXPECT_EQUAL(received_pq_params->kem_params.public_key.size, kem_group->kem->public_key_length);
                         EXPECT_BYTEARRAY_EQUAL(received_pq_params->kem_params.public_key.data, pq_key_share_copy.data,
                                 sent_pq_params->kem_group->kem->public_key_length);
 

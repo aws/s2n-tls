@@ -186,7 +186,17 @@ int main(int argc, char **argv)
                 POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
 
-                conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                /* Select the highest priority available KEM group */
+                struct s2n_kem_group *kem_group = NULL;
+                for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                    if (kem_pref->tls13_kem_groups[i]->available) {
+                        kem_group = kem_pref->tls13_kem_groups[i];
+                        break;
+                    }
+                }
+                EXPECT_NOT_NULL(kem_group);
+
+                conn->kex_params.server_kem_group_params.kem_group = kem_group;
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_DISABLED);
@@ -204,18 +214,28 @@ int main(int argc, char **argv)
                     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
-                    conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                    /* Select the highest priority available KEM group */
+                    struct s2n_kem_group *kem_group = NULL;
+                    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                        if (kem_pref->tls13_kem_groups[i]->available) {
+                            kem_group = kem_pref->tls13_kem_groups[i];
+                            break;
+                        }
+                    }
+                    EXPECT_NOT_NULL(kem_group);
+
+                    conn->kex_params.server_kem_group_params.kem_group = kem_group;
                     EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
                     struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
-                    client_params->kem_group = kem_pref->tls13_kem_groups[0];
-                    client_params->kem_params.kem = kem_pref->tls13_kem_groups[0]->kem;
-                    client_params->ecc_params.negotiated_curve = kem_pref->tls13_kem_groups[0]->curve;
+                    client_params->kem_group = kem_group;
+                    client_params->kem_params.kem = kem_group->kem;
+                    client_params->ecc_params.negotiated_curve = kem_group->curve;
 
                     EXPECT_NULL(client_params->ecc_params.evp_pkey);
                     EXPECT_NULL(client_params->kem_params.private_key.data);
 
-                    kem_public_key_size public_key_size = kem_pref->tls13_kem_groups[0]->kem->public_key_length;
+                    kem_public_key_size public_key_size = kem_group->kem->public_key_length;
                     EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, public_key_size));
 
                     EXPECT_OK(s2n_kem_generate_keypair(&client_params->kem_params));

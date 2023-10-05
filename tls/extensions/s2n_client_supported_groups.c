@@ -130,7 +130,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
 
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_kem_group = kem_pref->tls13_kem_groups[i];
-        if (iana_id == supported_kem_group->iana_id) {
+        if (supported_kem_group->available && iana_id == supported_kem_group->iana_id) {
             conn->kex_params.mutually_supported_kem_groups[i] = supported_kem_group;
             return S2N_SUCCESS;
         }
@@ -163,7 +163,7 @@ static int s2n_choose_supported_group(struct s2n_connection *conn)
      * populated with anything. */
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *candidate_kem_group = conn->kex_params.mutually_supported_kem_groups[i];
-        if (candidate_kem_group != NULL) {
+        if (candidate_kem_group != NULL && candidate_kem_group->available) {
             conn->kex_params.server_kem_group_params.kem_group = candidate_kem_group;
             conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = candidate_kem_group->curve;
             conn->kex_params.server_kem_group_params.kem_params.kem = candidate_kem_group->kem;

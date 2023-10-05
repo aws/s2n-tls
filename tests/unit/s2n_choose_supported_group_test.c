@@ -225,9 +225,18 @@ int main()
 
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
-            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, kem_pref->tls13_kem_groups[0]);
-            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, kem_pref->tls13_kem_groups[0]->curve);
-            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, kem_pref->tls13_kem_groups[0]->kem);
+            /* Select the highest priority available KEM group */
+            struct s2n_kem_group *kem_group = NULL;
+            for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                if (kem_pref->tls13_kem_groups[i]->available) {
+                    kem_group = kem_pref->tls13_kem_groups[i];
+                    break;
+                }
+            }
+            EXPECT_NOT_NULL(kem_group);
+            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, kem_group);
+            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, kem_group->curve);
+            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, kem_group->kem);
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
