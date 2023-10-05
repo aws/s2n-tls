@@ -1594,3 +1594,14 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
 
     return false;
 }
+
+S2N_RESULT s2n_connection_get_secure_cipher(struct s2n_connection *conn, const struct s2n_cipher **cipher)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    *cipher = conn->secure->cipher_suite->record_alg->cipher;
+    return S2N_RESULT_OK;
+}

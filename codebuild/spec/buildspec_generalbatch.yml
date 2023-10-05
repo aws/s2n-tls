@@ -367,3 +367,11 @@ batch:
         compute-type: BUILD_GENERAL1_LARGE
         image: aws/codebuild/standard:7.0
         privileged-mode: true
+    - identifier: ktlsASAN
+      buildspec: codebuild/spec/buildspec_ktls.yml
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        image: aws/codebuild/standard:7.0
+        privileged-mode: true
+        variables:
+            S2N_CMAKE_OPTIONS: "-DASAN=ON"

@@ -301,6 +301,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_BAD_CMSG, "Error handling cmsghdr.")  \
     ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
     ERR_ENTRY(S2N_ERR_TEST_ASSERTION, "Test assertion failed") \
+    ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \
