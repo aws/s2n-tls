@@ -144,7 +144,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     POSIX_ENSURE_REF(kem_pref);
 
-    if (s2n_kem_groups_available_count(kem_pref)) {
+    if (kem_pref->tls13_kem_group_count == 0) {
         return S2N_SUCCESS;
     }
 
@@ -175,21 +175,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
          **/
         client_params->kem_group = server_group;
     } else {
-        client_params->kem_group = NULL;
-        for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-            printf("NOT HRR! KEM GROUP: %s\tAVAILABLE: %s\n",
-                    kem_pref->tls13_kem_groups[i]->name,
-                    kem_pref->tls13_kem_groups[i]->available ? "y" : "n");
-            if (kem_pref->tls13_kem_groups[i]->available) {
-                client_params->kem_group = kem_pref->tls13_kem_groups[i];
-                break;
-            }
-        }
-        /* Ignore unsupported KEM groups */
-        if (client_params->kem_group == NULL) {
-            printf("NO AVAILABLE KEM GROUP FOUND\n");
-            return S2N_SUCCESS;
-        }
+        client_params->kem_group = kem_pref->tls13_kem_groups[0];
         client_params->kem_params.len_prefixed = s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_pref);
     }
 
@@ -325,9 +311,6 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_group = kem_pref->tls13_kem_groups[i];
         POSIX_ENSURE_REF(supported_group);
-        if (!supported_group->available) {
-            continue;
-        }
 
         /* Stop if we reach the current highest priority share.
          * Any share of lower priority is discarded.

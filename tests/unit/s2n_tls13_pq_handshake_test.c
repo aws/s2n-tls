@@ -81,12 +81,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     /* Assert that the server chose the correct group */
     if (expected_kem_group) {
         /* Client should always determine whether the Hybrid KEM used len_prefixed format, and server should match client's behavior. */
-        printf("len_prefix_expected: %s\tclient_conn: %s\n",
-                len_prefix_expected ? "y" : "n",
-                client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed ? "y" : "n");
-        printf("expected_kem_group: %s\tclient_conn: %s\n",
-                expected_kem_group ? expected_kem_group->name : "n",
-                server_conn->kex_params.server_kem_group_params.kem_group ? server_conn->kex_params.server_kem_group_params.kem_group->name : "n");
         POSIX_ENSURE_EQ(len_prefix_expected, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
         POSIX_ENSURE_EQ(len_prefix_expected, s2n_tls13_client_must_use_hybrid_kem_length_prefix(client_sec_policy->kem_preferences));
         POSIX_ENSURE_EQ(server_conn->kex_params.client_kem_group_params.kem_params.len_prefixed, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
@@ -574,23 +568,9 @@ int main()
             } else {
                 curve = expected_curve;
             }
-        } else if (kem_group != NULL && !kem_group->available) {
-            kem_group = s2n_is_evp_apis_supported() ? &s2n_x25519_kyber_512_r3 : &s2n_secp256r1_kyber_512_r3;
+        } else if (!s2n_libcrypto_supports_kyber() && !kem_group->available) {
+            kem_group = &s2n_secp256r1_kyber_512_r3;
         }
-
-        printf("CASE: %lu\n", i);
-        printf("EXPECTED: %s\n", kem_group ? kem_group->name : "null");
-        for (int j = 0; j < client_policy->kem_preferences->tls13_kem_group_count; j++) {
-            printf("CLIENT GROUP %s\tAVAIL?\t%s\n",
-                    client_policy->kem_preferences->tls13_kem_groups[j]->name,
-                    client_policy->kem_preferences->tls13_kem_groups[j]->available ? "y" : "n");
-        }
-        for (int j = 0; j < server_policy->kem_preferences->tls13_kem_group_count; j++) {
-            printf("SERVER GROUP %s\tAVAIL?\t%s\n",
-                    server_policy->kem_preferences->tls13_kem_groups[j]->name,
-                    server_policy->kem_preferences->tls13_kem_groups[j]->available ? "y" : "n");
-        }
-
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));
     }

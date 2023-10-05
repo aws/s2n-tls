@@ -70,6 +70,9 @@ int main(int argc, char **argv)
         if (s2n_pq_is_enabled() && s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
             EXPECT_TRUE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3));
             EXPECT_TRUE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3));
+        } else {
+            EXPECT_FALSE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3));
+            EXPECT_FALSE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3));
         }
     };
 

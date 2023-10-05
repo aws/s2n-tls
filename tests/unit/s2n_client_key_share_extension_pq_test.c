@@ -254,13 +254,7 @@ int main()
                         conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
                         conn->handshake.message_number = HELLO_RETRY_MSG_NO;
                         conn->actual_protocol_version_established = 1;
-                        uint8_t chosen_index = 0;
-                        for (int i = kem_pref->tls13_kem_group_count - 1; i > 0; i--) {
-                            if (kem_pref->tls13_kem_groups[i]->available) {
-                                chosen_index = i;
-                                break;
-                            }
-                        }
+                        uint8_t chosen_index = kem_pref->tls13_kem_group_count - 1;
                         EXPECT_NOT_EQUAL(chosen_index, 0);
                         const struct s2n_kem_group *negotiated_kem_group = kem_pref->tls13_kem_groups[chosen_index];
                         conn->kex_params.server_kem_group_params.kem_group = negotiated_kem_group;
