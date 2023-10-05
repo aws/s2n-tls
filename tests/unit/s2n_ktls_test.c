@@ -444,7 +444,8 @@ int main(int argc, char **argv)
                         s2n_connection_ptr_free);
                 EXPECT_OK(s2n_test_configure_connection_for_ktls(server));
                 EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_cb));
-                *(server->secure) = crypto_params;
+                EXPECT_OK(s2n_crypto_parameters_free(&server->secure));
+                server->secure = &crypto_params;
 
                 struct s2n_key_material key_material = { 0 };
                 EXPECT_OK(s2n_prf_generate_key_material(server, &key_material));
@@ -474,6 +475,7 @@ int main(int argc, char **argv)
                 };
                 EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server));
                 EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
+                server->secure = NULL;
             };
 
             /* Test client */
@@ -482,7 +484,8 @@ int main(int argc, char **argv)
                         s2n_connection_ptr_free);
                 EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
                 EXPECT_OK(s2n_ktls_set_setsockopt_cb(s2n_test_setsockopt_tls_cb));
-                *(client->secure) = crypto_params;
+                EXPECT_OK(s2n_crypto_parameters_free(&client->secure));
+                client->secure = &crypto_params;
 
                 struct s2n_key_material key_material = { 0 };
                 EXPECT_OK(s2n_prf_generate_key_material(client, &key_material));
@@ -512,6 +515,7 @@ int main(int argc, char **argv)
                 };
                 EXPECT_SUCCESS(s2n_connection_ktls_enable_send(client));
                 EXPECT_EQUAL(s2n_test_setsockopt_expected.count, 1);
+                client->secure = NULL;
             };
         };
     };
