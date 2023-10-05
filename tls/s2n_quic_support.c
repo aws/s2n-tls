@@ -101,6 +101,13 @@ int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocke
     *blocked = S2N_BLOCKED_ON_READ;
 
     uint8_t message_type = 0;
+    /* This function uses the stuffer conn->handshake.io to read in the header. This stuffer is also used 
+     * for sending post-handshake messages. This could cause a concurrency issue if we start both sending
+     * and receiving post-handshake messages while quic is enabled. Currently there's no post-handshake
+     * message that is both sent and received in quic (servers only send session tickets
+     * and clients only receive session tickets.) Therefore it is safe for us
+     * to use the stuffer here.
+     */
     POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
 
     /* The only post-handshake messages we support from QUIC currently are session tickets */
