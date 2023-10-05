@@ -23,6 +23,7 @@
 #include <openssl/rsa.h>
 
 #include "crypto/s2n_crypto.h"
+#include "crypto/s2n_ktls_crypto.h"
 #include "utils/s2n_blob.h"
 
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
@@ -81,12 +82,13 @@ struct s2n_cipher {
         struct s2n_composite_cipher comp;
     } io;
     uint8_t key_material_size;
-    bool ktls_supported;
     uint8_t (*is_available)(void);
     int (*init)(struct s2n_session_key *key);
     int (*set_decryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
     int (*set_encryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
     int (*destroy_key)(struct s2n_session_key *key);
+    S2N_RESULT (*set_ktls_info)(struct s2n_ktls_crypto_info_inputs *inputs,
+            struct s2n_ktls_crypto_info *crypto_info);
 };
 
 int s2n_session_key_alloc(struct s2n_session_key *key);

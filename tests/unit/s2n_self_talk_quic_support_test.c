@@ -18,7 +18,7 @@
 #include "tls/s2n_quic_support.h"
 
 #define S2N_MODE_COUNT        2
-#define S2N_SECRET_TYPE_COUNT 5
+#define S2N_SECRET_TYPE_COUNT 6
 
 static const uint8_t CLIENT_TRANSPORT_PARAMS[] = "client transport params";
 static const uint8_t SERVER_TRANSPORT_PARAMS[] = "server transport params";

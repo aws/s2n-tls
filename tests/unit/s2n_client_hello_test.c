@@ -1469,6 +1469,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
+        /* We have to update the client's security policy after it sends the ClientHello.
+         * The client sends all signature algorithms in its security policy, and
+         * won't accept any signature algorithm it receives that's not in its security policy.
+         * So we need to change the security policy between sending and receiving.
+         */
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
+        client_config->security_policy = &security_policy_20190214;
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         EXPECT_EQUAL(server_conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
