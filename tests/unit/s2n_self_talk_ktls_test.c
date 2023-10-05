@@ -22,6 +22,7 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_ktls.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
@@ -90,7 +91,7 @@ int main(int argc, char **argv)
     /* ktls is complicated to enable. We should ensure that it's actually enabled
      * where we think we're testing it.
      */
-    bool ktls_expected = (getenv("S2N_KTLS_TESTING_EXPECTED") != NULL);
+    const bool ktls_expected = (getenv("S2N_KTLS_TESTING_EXPECTED") != NULL);
 
     if (!s2n_ktls_is_supported_on_platform() && !ktls_expected) {
         END_TEST();
@@ -494,6 +495,106 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_connection_get_delay(reader), 0);
         };
     };
+
+    /* Test: all supported ciphers */
+    if (ktls_send_supported || ktls_recv_supported) {
+        struct {
+            const struct s2n_cipher *cipher;
+            struct s2n_cipher_suite *cipher_suite;
+        } test_cases[] = {
+            { .cipher = &s2n_aes128_gcm, .cipher_suite = &s2n_ecdhe_rsa_with_aes_128_gcm_sha256 },
+            { .cipher = &s2n_aes256_gcm, .cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384 },
+        };
+
+        /* Ensure that all supported ciphers are tested */
+        for (size_t i = 0; i < cipher_preferences_test_all.count; i++) {
+            struct s2n_cipher_suite *cipher_suite = cipher_preferences_test_all.suites[i];
+            if (cipher_suite->record_alg == NULL) {
+                continue;
+            }
+
+            const struct s2n_cipher *cipher = cipher_suite->record_alg->cipher;
+            EXPECT_NOT_NULL(cipher);
+            if (!cipher->set_ktls_info) {
+                continue;
+            }
+
+            bool cipher_tested = false;
+            for (size_t j = 0; j < s2n_array_len(test_cases); j++) {
+                if (test_cases[j].cipher != cipher) {
+                    cipher_tested = true;
+                    break;
+                }
+            }
+            EXPECT_TRUE(cipher_tested);
+        }
+
+        for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+            s2n_mode mode = modes[mode_i];
+            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                struct s2n_cipher_suite *cipher_suite = test_cases[i].cipher_suite;
+                EXPECT_NOT_NULL(cipher_suite);
+                EXPECT_EQUAL(test_cases[i].cipher, cipher_suite->record_alg->cipher);
+
+                struct s2n_cipher_preferences preferences = {
+                    .suites = &cipher_suite,
+                    .count = 1,
+                };
+                struct s2n_security_policy policy = *config->security_policy;
+                policy.cipher_preferences = &preferences;
+
+                DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client);
+                EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+                client->security_policy_override = &policy;
+
+                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server);
+                EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+                client->security_policy_override = &policy;
+
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+                EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+                EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+
+                struct s2n_connection *conns[] = {
+                    [S2N_CLIENT] = client,
+                    [S2N_SERVER] = server,
+                };
+                struct s2n_connection *ktls_conn = conns[mode];
+                struct s2n_connection *other_conn = conns[S2N_PEER_MODE(mode)];
+                s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+                /* Not all ciphers are supported by all environments, so
+                 * ktls_send_supported is not sufficient for this test.
+                 */
+                if (s2n_connection_ktls_enable_send(ktls_conn) == S2N_SUCCESS) {
+                    uint8_t buffer[sizeof(test_data)] = { 0 };
+                    int written = s2n_send(ktls_conn, test_data, sizeof(test_data), &blocked);
+                    EXPECT_EQUAL(written, sizeof(test_data));
+                    int read = s2n_recv(other_conn, buffer, sizeof(buffer), &blocked);
+                    EXPECT_EQUAL(read, sizeof(test_data));
+                } else {
+                    EXPECT_FALSE(ktls_expected);
+                }
+
+                /* Not all ciphers are supported by all environments, so
+                 * ktls_recv_supported is not sufficient for this test.
+                 */
+                if (s2n_connection_ktls_enable_recv(ktls_conn) == S2N_SUCCESS) {
+                    uint8_t buffer[sizeof(test_data)] = { 0 };
+                    int written = s2n_send(other_conn, test_data, sizeof(test_data), &blocked);
+                    EXPECT_EQUAL(written, sizeof(test_data));
+                    int read = s2n_recv(ktls_conn, buffer, sizeof(buffer), &blocked);
+                    EXPECT_EQUAL(read, sizeof(test_data));
+                } else {
+                    EXPECT_FALSE(ktls_expected);
+                }
+            }
+        }
+    }
 
     END_TEST();
 }
