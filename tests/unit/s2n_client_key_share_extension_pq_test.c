@@ -692,7 +692,8 @@ int main()
                     EXPECT_NOT_NULL(kem_group0);
 
                     struct s2n_kem_group_params client_pq_params = {
-                        .kem_group = kem_group0, .kem_params = { .len_prefixed = len_prefixed }
+                        .kem_group = kem_group0,
+                        .kem_params = { .len_prefixed = len_prefixed }
                     };
 
                     struct s2n_stuffer key_share_extension = { 0 };

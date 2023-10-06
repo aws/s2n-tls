@@ -16,8 +16,8 @@
 #include <openssl/evp.h>
 #include <stddef.h>
 
-#include "pq-crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
