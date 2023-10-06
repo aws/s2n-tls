@@ -334,12 +334,6 @@ static int s2n_server_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_server_key_share_recv_ecc(conn, negotiated_named_group_iana, extension));
     } else if (s2n_kem_preferences_includes_tls13_kem_group(kem_pref, negotiated_named_group_iana)) {
         POSIX_GUARD(s2n_server_key_share_recv_pq_hybrid(conn, negotiated_named_group_iana, extension));
-    } else if (!s2n_pq_is_enabled() && negotiated_named_group_iana >= TLS_PQ_KEM_GROUP_ID_START) {
-        /* |s2n_kem_preferences_includes_tls13_kem_group| will return false if
-         * PQ is disabled and thus no KEM groups are supported, so check
-         * whether the IANA name we've recieved indicates PQ KEM and return an
-         * appropriate error. */
-        POSIX_BAIL(S2N_ERR_PQ_DISABLED);
     } else {
         POSIX_BAIL(S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
     }

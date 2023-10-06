@@ -69,7 +69,6 @@
  * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
  */
 #define TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3     0x2F39
-#define TLS_PQ_KEM_GROUP_ID_START                   TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3
 #define TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3  0x2F3A
 #define TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3  0x2F3C
 #define TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3 0x2F3D
