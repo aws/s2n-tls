@@ -15,6 +15,7 @@
 
 #include "tls/s2n_ktls.h"
 
+#include "crypto/s2n_ktls_crypto.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_tls.h"
 
@@ -45,11 +46,6 @@ static int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
 static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
-    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
-    RESULT_ENSURE_REF(cipher);
     const struct s2n_config *config = conn->config;
     RESULT_ENSURE_REF(config);
 
@@ -67,7 +63,10 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
     /* Check if the cipher supports kTLS */
-    RESULT_ENSURE(cipher->ktls_supported, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE(cipher->set_ktls_info, S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
     /* Renegotiation requires updating the keys, which kTLS doesn't currently support.
      *
@@ -137,66 +136,49 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
     return S2N_RESULT_OK;
 }
 
-#if defined(S2N_KTLS_SUPPORTED)
-S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
-        struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info)
+static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+        struct s2n_ktls_crypto_info *crypto_info)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->client);
-    RESULT_ENSURE_REF(conn->server);
-    RESULT_ENSURE_REF(key_material);
-    RESULT_ENSURE_REF(crypto_info);
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
-    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
-    RESULT_ENSURE_REF(cipher);
+    struct s2n_crypto_parameters *secure = conn->secure;
+    RESULT_ENSURE_REF(secure);
 
-    RESULT_ENSURE(cipher == &s2n_aes128_gcm, S2N_ERR_KTLS_UNSUPPORTED_CONN);
-    RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
-    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_128;
-    crypto_info->info.version = TLS_1_2_VERSION;
+    /* In order to avoid storing the encryption keys on the connection, we instead
+     * regenerate them when required by ktls.
+     *
+     * s2n_key_material also includes an IV, but we should use the IV stored
+     * on the connection instead. Some record algorithms (like CBC) mutate the
+     * "implicit_iv" when writing records, so the IV may change after generation.
+     */
+    struct s2n_key_material key_material = { 0 };
+    RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
 
-    /* set values based on mode of operation */
-    struct s2n_blob *key = NULL;
-    struct s2n_blob implicit_iv = { 0 };
-    struct s2n_blob sequence_number = { 0 };
+    bool is_sending_key = (ktls_mode == S2N_KTLS_MODE_SEND);
+    s2n_mode key_mode = (is_sending_key) ? conn->mode : S2N_PEER_MODE(conn->mode);
 
-    bool server_sending = (conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND);
-    bool client_receiving = (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV);
-    if (server_sending || client_receiving) {
-        /* If server is sending or client is receiving then use server key material */
-        key = &key_material->server_key;
-        RESULT_GUARD_POSIX(s2n_blob_init(&implicit_iv, conn->server->server_implicit_iv, sizeof(conn->server->server_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->server->server_sequence_number, sizeof(conn->server->server_sequence_number)));
+    struct s2n_ktls_crypto_info_inputs inputs = { 0 };
+    if (key_mode == S2N_CLIENT) {
+        inputs.key = key_material.client_key;
+        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
+                secure->client_implicit_iv, sizeof(secure->client_implicit_iv)));
+        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.seq,
+                secure->client_sequence_number, sizeof(secure->client_sequence_number)));
     } else {
-        key = &key_material->client_key;
-        RESULT_GUARD_POSIX(s2n_blob_init(&implicit_iv, conn->client->client_implicit_iv, sizeof(conn->client->client_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->client->client_sequence_number, sizeof(conn->client->client_sequence_number)));
+        inputs.key = key_material.server_key;
+        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
+                secure->server_implicit_iv, sizeof(secure->server_implicit_iv)));
+        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.seq,
+                secure->server_sequence_number, sizeof(secure->server_sequence_number)));
     }
 
-    /* The salt is the first 4 bytes of the IV.
-     *
-     *= https://www.rfc-editor.org/rfc/rfc4106#section-4
-     *# The salt field is a four-octet value that is assigned at the
-     *# beginning of the security association, and then remains constant
-     *# for the life of the security association.
-     */
-    RESULT_ENSURE_GTE(implicit_iv.size, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->salt, implicit_iv.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
-
-    RESULT_ENSURE_GTE(implicit_iv.size, TLS_CIPHER_AES_GCM_128_IV_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->iv, implicit_iv.data, TLS_CIPHER_AES_GCM_128_IV_SIZE);
-
-    RESULT_ENSURE_EQ(sequence_number.size, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, sequence_number.data, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-
-    RESULT_ENSURE_EQ(key->size, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->key, key->data, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_REF(cipher->set_ktls_info);
+    RESULT_GUARD(cipher->set_ktls_info(&inputs, crypto_info));
 
     return S2N_RESULT_OK;
 }
-#endif
 
 /* This method intentionally returns void because it may NOT perform any fallible
  * operations. See s2n_connection_ktls_enable.
@@ -233,24 +215,15 @@ static S2N_RESULT s2n_connection_ktls_enable(struct s2n_connection *conn, s2n_kt
      */
     s2n_setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
 
-    /* In order to avoid storing the keys on the connection, we instead regenerate them. */
-    struct s2n_key_material key_material = { 0 };
-    RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
-
     int tls_tx_rx_mode = 0;
     RESULT_GUARD(s2n_ktls_get_io_mode(ktls_mode, &tls_tx_rx_mode));
 
-#if defined(S2N_KTLS_SUPPORTED)
-    /* Only AES_128_GCM for TLS 1.2 is supported at the moment. */
-    struct tls12_crypto_info_aes_gcm_128 crypto_info = { 0 };
-    RESULT_GUARD(s2n_ktls_init_aes128_gcm_crypto_info(conn, ktls_mode, &key_material, &crypto_info));
+    struct s2n_ktls_crypto_info crypto_info = { 0 };
+    RESULT_GUARD(s2n_ktls_crypto_info_init(conn, ktls_mode, &crypto_info));
 
     /* If this call succeeds, then ktls is enabled for that io mode and will be offloaded */
-    int ret = s2n_setsockopt(fd, S2N_SOL_TLS, tls_tx_rx_mode, &crypto_info, sizeof(crypto_info));
+    int ret = s2n_setsockopt(fd, S2N_SOL_TLS, tls_tx_rx_mode, crypto_info.value.data, crypto_info.value.size);
     RESULT_ENSURE(ret == 0, S2N_ERR_KTLS_ENABLE);
-#else
-    RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
-#endif
 
     /* At this point, ktls is enabled on the socket for the requested IO mode.
      * No further fallible operations may be performed, or else the caller may
