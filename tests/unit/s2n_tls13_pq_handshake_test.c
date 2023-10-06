@@ -218,9 +218,9 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     return S2N_SUCCESS;
 }
 
-int prefers_x25519_over_secp256r1(struct s2n_security_policy *policy) {
+int prefers_x25519_over_secp256r1(const struct s2n_security_policy *policy) {
     for (int i = 0; i < policy->kem_preferences->tls13_kem_group_count; i++) {
-        struct s2n_kem_group *kem_group = policy->kem_preferences->tls13_kem_groups;
+        const struct s2n_kem_group *kem_group = policy->kem_preferences->tls13_kem_groups;
         if (!kem_group->available) {
             continue;
         }
