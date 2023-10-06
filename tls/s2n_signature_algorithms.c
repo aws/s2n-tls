@@ -220,7 +220,6 @@ int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signat
         };
         return S2N_SUCCESS;
     }
-
 }
 
 int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
