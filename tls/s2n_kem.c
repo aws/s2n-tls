@@ -445,10 +445,7 @@ void s2n_kem_init()
 {
     for (size_t i = 0; i < s2n_array_len(ALL_SUPPORTED_KEM_GROUPS); i++) {
         struct s2n_kem_group *group = ALL_SUPPORTED_KEM_GROUPS[i];
-        group->available = s2n_pq_is_enabled();
-        if (!group->available) {
-            continue;
-        }
+        group->available = true;
         /* Only Kyber768+ requires s2n_libcrypto_supports_kyber() */
         /* TODO: remove the conditional guard when we remove the interned Kyber512 impl. */
         if (strcmp(group->kem->name, "kyber512r3") != 0) {
