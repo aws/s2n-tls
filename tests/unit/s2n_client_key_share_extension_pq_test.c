@@ -569,9 +569,9 @@ int main()
                         EXPECT_TRUE(s2n_public_ecc_keys_are_equal(&received_pq_params->ecc_params, &sent_pq_params->ecc_params));
 
                         struct s2n_kem_group *kem_group = NULL;
-                        for (size_t i = 0; i < server_kem_pref->tls13_kem_group_count; i++) {
-                            if (server_kem_pref->tls13_kem_groups[i]->available) {
-                                kem_group = server_kem_pref->tls13_kem_groups[i];
+                        for (size_t j = 0; j < server_kem_pref->tls13_kem_group_count; j++) {
+                            if (server_kem_pref->tls13_kem_groups[j]->available) {
+                                kem_group = server_kem_pref->tls13_kem_groups[j];
                                 break;
                             }
                         }
