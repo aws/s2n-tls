@@ -492,7 +492,6 @@ int main()
                          * correctly. */
                         struct s2n_kem_group *test_kem_groups[S2N_KEM_GROUPS_COUNT];
                         for (size_t j = 0; j < S2N_KEM_GROUPS_COUNT; j++) {
-                            /* cppcheck-suppress moduloofone */
                             test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_KEM_GROUPS_COUNT];
                         }
 
