@@ -182,7 +182,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
                 break;
             }
         }
-        /* Ignore unsupported KEM groups */
+        /* Ignore unavailable KEM groups */
         if (client_params->kem_group == NULL) {
             return S2N_SUCCESS;
         }

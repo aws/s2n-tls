@@ -417,8 +417,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
-            /* Expect success here regardless of whether a given |kem_group| is
-             * available because we will fall back on ECDH if no KEMs are
+            /* Expect success here regardless of whether a given kem_group is
+             * available because we will fall back to ECDH if no KEM groups are
              * available. */
             EXPECT_SUCCESS(set_up_conns(client_conn, server_conn, test_vector->client_ecc_key,
                     test_vector->server_ecc_key, kem_group, test_vector->pq_secret));

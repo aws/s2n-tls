@@ -85,7 +85,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(len_prefix_expected, s2n_tls13_client_must_use_hybrid_kem_length_prefix(client_sec_policy->kem_preferences));
         POSIX_ENSURE_EQ(server_conn->kex_params.client_kem_group_params.kem_params.len_prefixed, client_conn->kex_params.client_kem_group_params.kem_params.len_prefixed);
 
-        printf("KEM GROUP: %s %s\n", expected_kem_group->name, server_conn->kex_params.server_kem_group_params.kem_group->name);
         POSIX_ENSURE_EQ(expected_kem_group, server_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
