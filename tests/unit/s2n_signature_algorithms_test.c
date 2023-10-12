@@ -904,8 +904,8 @@ int main(int argc, char **argv)
             .count = s2n_array_len(sha256_schemes),
             .signature_schemes = sha256_schemes,
         };
-        for(size_t i = 0; i < sha256_preferences.count; i++) {
-            for(size_t j = 0; j < defaults_preferences.count; j++) {
+        for (size_t i = 0; i < sha256_preferences.count; i++) {
+            for (size_t j = 0; j < defaults_preferences.count; j++) {
                 EXPECT_NOT_EQUAL(sha256_preferences.signature_schemes[i]->iana_value,
                         defaults_preferences.signature_schemes[j]->iana_value);
             }
@@ -915,8 +915,8 @@ int main(int argc, char **argv)
             .count = s2n_array_len(sha384_schemes),
             .signature_schemes = sha384_schemes,
         };
-        for(size_t i = 0; i < sha384_preferences.count; i++) {
-            for(size_t j = 0; j < defaults_preferences.count; j++) {
+        for (size_t i = 0; i < sha384_preferences.count; i++) {
+            for (size_t j = 0; j < defaults_preferences.count; j++) {
                 EXPECT_NOT_EQUAL(sha384_preferences.signature_schemes[i]->iana_value,
                         defaults_preferences.signature_schemes[j]->iana_value);
             }
