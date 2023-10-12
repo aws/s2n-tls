@@ -89,3 +89,8 @@ S2N_API int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_
  * not relied on for production logic.
  */
 S2N_API int s2n_error_get_alert(int error, uint8_t *alert);
+
+/* Attempts to read and process a post-handshake message from QUIC. This function
+ * should be called when post-handshake messages in QUIC have been received.
+ */
+S2N_API int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocked_status *blocked);
