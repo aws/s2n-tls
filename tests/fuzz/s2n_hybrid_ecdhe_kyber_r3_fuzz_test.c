@@ -55,7 +55,7 @@ static int setup_connection(struct s2n_connection *server_conn, struct s2n_kem_p
     server_conn->kex_params.server_ecc_evp_params.evp_pkey = NULL;
     server_conn->kex_params.kem_params.kem = &s2n_kyber_512_r3;
     server_conn->secure->cipher_suite = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
-    server_conn->handshake_params.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
+    server_conn->handshake_params.server_cert_sig_scheme = &s2n_rsa_pkcs1_sha384;
 
     POSIX_GUARD(s2n_dup(&params->private_key, &server_conn->kex_params.kem_params.private_key));
     POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.server_ecc_evp_params));

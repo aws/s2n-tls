@@ -22,6 +22,15 @@
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
+const struct s2n_signature_scheme s2n_null_sig_scheme = {
+    .iana_value = 0,
+    .hash_alg = S2N_HASH_NONE,
+    .sig_alg = S2N_SIGNATURE_ANONYMOUS,
+    .libcrypto_nid = 0,
+    .signature_curve = NULL,
+    .maximum_protocol_version = 0,
+};
+
 /* RSA PKCS1 */
 const struct s2n_signature_scheme s2n_rsa_pkcs1_md5_sha1 = {
     .iana_value = TLS_SIGNATURE_SCHEME_PRIVATE_INTERNAL_RSA_PKCS1_MD5_SHA1,
