@@ -140,7 +140,7 @@ impl CryptoConfig {
     }
 }
 
-/// The TlsBenchConfig trait allows a us to map benchmarking parameters to a
+/// The TlsBenchConfig trait allows us to map benchmarking parameters to
 /// a configuration object
 pub trait TlsBenchConfig: Sized {
     /// Make a config with given parameters
