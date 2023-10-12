@@ -54,6 +54,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
         POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &conn->handshake_params.server_cert_sig_scheme));
     }
     const struct s2n_signature_scheme *active_sig_scheme = conn->handshake_params.server_cert_sig_scheme;
+    POSIX_ENSURE_REF(active_sig_scheme);
 
     /* FIPS specifically allows MD5 for <TLS1.2 */
     if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
@@ -258,6 +259,7 @@ int s2n_server_key_send(struct s2n_connection *conn)
     struct s2n_hash_state *signature_hash = &conn->handshake.hashes->hash_workspace;
     const struct s2n_kex *key_exchange = conn->secure->cipher_suite->key_exchange_alg;
     const struct s2n_signature_scheme *sig_scheme = conn->handshake_params.server_cert_sig_scheme;
+    POSIX_ENSURE_REF(sig_scheme);
     struct s2n_stuffer *out = &conn->handshake.io;
     struct s2n_blob data_to_sign = { 0 };
 

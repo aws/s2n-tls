@@ -328,7 +328,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
 
-        /* In this case it doesn't matter if we use conn_sig_scheme or client_cert_sig_scheme as they are currently equal */
+        /* In this case it doesn't matter if we use server_cert_sig_scheme or client_cert_sig_scheme as they are currently equal */
         struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
         verifying_conn->handshake_params.server_cert_sig_scheme = &test_scheme;
         test_scheme.hash_alg = S2N_HASH_SHA1;
