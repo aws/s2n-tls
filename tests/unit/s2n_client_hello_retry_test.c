@@ -186,14 +186,7 @@ int main(int argc, char **argv)
                 POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
 
-                /* Select the highest priority available KEM group */
-                struct s2n_kem_group *kem_group = NULL;
-                for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                    if (kem_pref->tls13_kem_groups[i]->available) {
-                        kem_group = kem_pref->tls13_kem_groups[i];
-                        break;
-                    }
-                }
+                struct s2n_kem_group *kem_group = s2n_get_highest_priority_kem_group(kem_pref);
                 EXPECT_NOT_NULL(kem_group);
 
                 conn->kex_params.server_kem_group_params.kem_group = kem_group;
@@ -214,14 +207,7 @@ int main(int argc, char **argv)
                     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
-                    /* Select the highest priority available KEM group */
-                    struct s2n_kem_group *kem_group = NULL;
-                    for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                        if (kem_pref->tls13_kem_groups[i]->available) {
-                            kem_group = kem_pref->tls13_kem_groups[i];
-                            break;
-                        }
-                    }
+                    struct s2n_kem_group *kem_group = s2n_get_highest_priority_kem_group(kem_pref);
                     EXPECT_NOT_NULL(kem_group);
 
                     conn->kex_params.server_kem_group_params.kem_group = kem_group;

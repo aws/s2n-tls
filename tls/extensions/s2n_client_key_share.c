@@ -175,13 +175,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
          **/
         client_params->kem_group = server_group;
     } else {
-        client_params->kem_group = NULL;
-        for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-            if (kem_pref->tls13_kem_groups[i]->available) {
-                client_params->kem_group = kem_pref->tls13_kem_groups[i];
-                break;
-            }
-        }
+        client_params->kem_group = s2n_get_highest_priority_kem_group(kem_pref);
         /* Ignore unavailable KEM groups */
         if (client_params->kem_group == NULL) {
             return S2N_SUCCESS;

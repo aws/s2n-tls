@@ -567,13 +567,7 @@ int main()
                         EXPECT_NOT_NULL(received_pq_params->ecc_params.evp_pkey);
                         EXPECT_TRUE(s2n_public_ecc_keys_are_equal(&received_pq_params->ecc_params, &sent_pq_params->ecc_params));
 
-                        struct s2n_kem_group *kem_group = NULL;
-                        for (size_t j = 0; j < test_kem_prefs.tls13_kem_group_count; j++) {
-                            if (test_kem_prefs.tls13_kem_groups[j]->available) {
-                                kem_group = test_kem_prefs.tls13_kem_groups[j];
-                                break;
-                            }
-                        }
+                        struct s2n_kem_group *kem_group = s2n_get_highest_priority_kem_group(&test_kem_prefs);
                         EXPECT_NOT_NULL(kem_group);
                         EXPECT_EQUAL(received_pq_params->kem_params.kem, kem_group->kem);
                         EXPECT_NOT_NULL(received_pq_params->kem_params.public_key.data);
@@ -605,16 +599,13 @@ int main()
                     EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = NULL;
+                    const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
                     const struct s2n_kem_group *kem_group1 = NULL;
                     for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                         const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available) {
-                            if (kem_group0 == NULL) {
-                                kem_group0 = kem_group;
-                            } else if (kem_group1 == NULL) {
-                                kem_group1 = kem_group;
-                            }
+                        if (kem_group->available && kem_group != kem_group0) {
+                            kem_group1 = kem_group;
+                            break;
                         }
                     }
                     EXPECT_NOT_NULL(kem_group0);
@@ -679,15 +670,7 @@ int main()
                     EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     /* Select the highest priority available KEM group */
-                    const struct s2n_kem_group *kem_group0 = NULL;
-                    for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                        const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available) {
-                            if (kem_group0 == NULL) {
-                                kem_group0 = kem_group;
-                            }
-                        }
-                    }
+                    const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
                     EXPECT_NOT_NULL(kem_group0);
 
                     struct s2n_kem_group_params client_pq_params = {
@@ -746,16 +729,13 @@ int main()
                     EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = NULL;
+                    const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
                     const struct s2n_kem_group *kem_group1 = NULL;
                     for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                         const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available) {
-                            if (kem_group0 == NULL) {
-                                kem_group0 = kem_group;
-                            } else if (kem_group1 == NULL) {
-                                kem_group1 = kem_group;
-                            }
+                        if (kem_group->available && kem_group != kem_group0) {
+                            kem_group1 = kem_group;
+                            break;
                         }
                     }
                     EXPECT_NOT_NULL(kem_group0);
@@ -813,16 +793,13 @@ int main()
                     EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = NULL;
+                    const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
                     const struct s2n_kem_group *kem_group1 = NULL;
                     for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                         const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available) {
-                            if (kem_group0 == NULL) {
-                                kem_group0 = kem_group;
-                            } else if (kem_group1 == NULL) {
-                                kem_group1 = kem_group;
-                            }
+                        if (kem_group->available && kem_group != kem_group0) {
+                            kem_group1 = kem_group;
+                            break;
                         }
                     }
                     EXPECT_NOT_NULL(kem_group0);
@@ -886,16 +863,13 @@ int main()
                     EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = NULL;
+                    const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
                     const struct s2n_kem_group *kem_group1 = NULL;
                     for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                         const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available) {
-                            if (kem_group0 == NULL) {
-                                kem_group0 = kem_group;
-                            } else if (kem_group1 == NULL) {
-                                kem_group1 = kem_group;
-                            }
+                        if (kem_group->available && kem_group != kem_group0) {
+                            kem_group1 = kem_group;
+                            break;
                         }
                     }
                     EXPECT_NOT_NULL(kem_group0);

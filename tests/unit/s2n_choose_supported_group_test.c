@@ -225,14 +225,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
-            /* Select the highest priority available KEM group */
-            struct s2n_kem_group *kem_group = NULL;
-            for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                if (kem_pref->tls13_kem_groups[i]->available) {
-                    kem_group = kem_pref->tls13_kem_groups[i];
-                    break;
-                }
-            }
+            struct s2n_kem_group *kem_group = s2n_get_highest_priority_kem_group(kem_pref);
             EXPECT_NOT_NULL(kem_group);
             EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, kem_group);
             EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, kem_group->curve);
@@ -270,15 +263,9 @@ int main()
                 EXPECT_NULL(server_conn->kex_params.mutually_supported_kem_groups[i]);
             }
 
-            struct s2n_kem_group *chosen_group = NULL;
-            for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                if (kem_pref->tls13_kem_groups[i]->available) {
-                    chosen_group = kem_pref->tls13_kem_groups[i];
-                    server_conn->kex_params.mutually_supported_kem_groups[i] = chosen_group;
-                    break;
-                }
-            }
+            struct s2n_kem_group *chosen_group = s2n_get_highest_priority_kem_group(kem_pref);
             EXPECT_NOT_NULL(chosen_group);
+            server_conn->kex_params.mutually_supported_kem_groups[0] = chosen_group;
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
             EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, chosen_group);
