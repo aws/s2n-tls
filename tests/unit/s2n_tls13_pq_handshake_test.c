@@ -217,7 +217,7 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     return S2N_SUCCESS;
 }
 
-static int prefers_x25519_over_secp256r1(const struct s2n_security_policy *policy)
+static bool s2n_prefers_x25519_over_secp256r1(const struct s2n_security_policy *policy)
 {
     for (int i = 0; i < policy->kem_preferences->tls13_kem_group_count; i++) {
         struct s2n_kem_group *kem_group = (struct s2n_kem_group *) policy->kem_preferences->tls13_kem_groups[i];
@@ -225,13 +225,13 @@ static int prefers_x25519_over_secp256r1(const struct s2n_security_policy *polic
             continue;
         }
         if (kem_group->curve == &s2n_ecc_curve_secp256r1) {
-            return 0;
+            return false;
         }
         if (kem_group->curve == &s2n_ecc_curve_x25519) {
-            return 1;
+            return true;
         }
     }
-    return 0;
+    return false;
 }
 
 int main()
@@ -586,7 +586,7 @@ int main()
                 curve = expected_curve;
             }
         } else if (kem_group != NULL && !kem_group->available) {
-            kem_group = prefers_x25519_over_secp256r1(client_policy) ? &s2n_x25519_kyber_512_r3 : &s2n_secp256r1_kyber_512_r3;
+            kem_group = s2n_prefers_x25519_over_secp256r1(client_policy) ? &s2n_x25519_kyber_512_r3 : &s2n_secp256r1_kyber_512_r3;
         }
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));

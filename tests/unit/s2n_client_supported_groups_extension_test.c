@@ -186,15 +186,7 @@ int main()
                 { &test_pq_security_policy_kyber, &test_pq_security_policy_kyber },
 
             };
-            /* Expected KEM group to be negotiated - corresponds to test_policy_overrides array */
-            struct s2n_kem_group *expected_negotiated_kem_group[] = {
-                &s2n_secp256r1_kyber_512_r3,
-            };
-            if (s2n_libcrypto_supports_kyber()) {
-                expected_negotiated_kem_group[0] = &s2n_secp256r1_kyber_768_r3;
-            }
 
-            EXPECT_EQUAL(s2n_array_len(test_policy_overrides), s2n_array_len(expected_negotiated_kem_group));
             for (size_t i = 0; i < s2n_array_len(test_policy_overrides); i++) {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_connection *client_conn;
@@ -238,9 +230,11 @@ int main()
                 } else {
                     EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
                     EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group[i]);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group[i]->curve);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group[i]->kem);
+                    struct s2n_kem_group *expected_negotiated_kem_group = s2n_get_highest_priority_kem_group(&server_kem_pref);
+                    EXPECT_NOT_NULL(expected_negotiated_kem_group);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group->curve);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group->kem);
                 }
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));

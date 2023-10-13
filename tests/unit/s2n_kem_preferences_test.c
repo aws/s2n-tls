@@ -36,6 +36,7 @@ int main(int argc, char **argv)
             &s2n_secp256r1_kyber_512_r3,
             &s2n_x25519_kyber_512_r3,
             &s2n_secp384r1_kyber_768_r3,
+            &s2n_secp256r1_kyber_768_r3,
             &s2n_x25519_kyber_768_r3,
             &s2n_secp521r1_kyber_1024_r3,
         };
