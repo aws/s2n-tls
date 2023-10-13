@@ -241,9 +241,9 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
         /* If server has one mutually supported KEM group and multiple mutually supported ECC, the KEM
-         * group should be chosen. */
-        /* Need at least two available KEM's to test fallback. */
-        if (s2n_kem_groups_available_count(&kem_preferences_all) > 1) {
+         * group should be chosen.
+         * Need at least two available KEM's to test fallback. */
+        if (s2n_kem_groups_available_count(&kem_preferences_all) >= 1) {
             struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             server_conn->security_policy_override = &test_pq_security_policy;
@@ -274,11 +274,11 @@ int main()
             for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                 if (kem_pref->tls13_kem_groups[i]->available) {
                     chosen_group = kem_pref->tls13_kem_groups[i];
+                    server_conn->kex_params.mutually_supported_kem_groups[i] = chosen_group;
                     break;
                 }
             }
             EXPECT_NOT_NULL(chosen_group);
-            server_conn->kex_params.mutually_supported_kem_groups[1] = chosen_group;
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
             EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, chosen_group);

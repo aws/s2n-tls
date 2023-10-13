@@ -125,4 +125,23 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
+#else
+
+int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, OUT uint8_t *secret_key)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
+int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
+        IN const uint8_t *public_key)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
+int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
+        IN const uint8_t *secret_key)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
 #endif

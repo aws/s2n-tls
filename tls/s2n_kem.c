@@ -23,25 +23,6 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-#if defined(S2N_NO_PQ)
-int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, OUT uint8_t *secret_key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
-        IN const uint8_t *public_key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
-        IN const uint8_t *secret_key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-#endif
-
 /* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 
 const struct s2n_kem s2n_kyber_512_r3 = {
@@ -441,7 +422,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     return S2N_SUCCESS;
 }
 
-void s2n_kem_init()
+S2N_RESULT s2n_kem_init()
 {
     for (size_t i = 0; i < s2n_array_len(ALL_SUPPORTED_KEM_GROUPS); i++) {
         struct s2n_kem_group *group = ALL_SUPPORTED_KEM_GROUPS[i];
@@ -458,4 +439,5 @@ void s2n_kem_init()
             group->available &= s2n_is_evp_apis_supported();
         }
     }
+    return S2N_RESULT_OK;
 }

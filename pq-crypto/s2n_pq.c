@@ -99,8 +99,8 @@ bool s2n_pq_is_enabled()
 #if defined(S2N_NO_PQ)
     return false;
 #else
-    /* TODO: Also require s2n_libcrypto_is_awslc() when we remove s2n's Kyber512 implementation */
-    return !s2n_is_in_fips_mode();
+    /* TODO: Require s2n_libcrypto_is_awslc() when we remove s2n's Kyber512 implementation */
+    return true;
 #endif
 }
 
