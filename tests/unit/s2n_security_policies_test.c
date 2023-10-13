@@ -610,6 +610,10 @@ int main(int argc, char **argv)
             "PQ-TLS-1-2-2023-04-09",
             "PQ-TLS-1-2-2023-04-10",
             "PQ-TLS-1-3-2023-06-01",
+            "PQ-TLS-1-2-2023-10-07",
+            "PQ-TLS-1-2-2023-10-08",
+            "PQ-TLS-1-2-2023-10-09",
+            "PQ-TLS-1-2-2023-10-10",
         };
         for (size_t i = 0; i < s2n_array_len(tls13_security_policy_strings); i++) {
             security_policy = NULL;
