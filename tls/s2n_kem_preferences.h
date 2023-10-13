@@ -57,4 +57,4 @@ bool s2n_tls13_client_must_use_hybrid_kem_length_prefix(const struct s2n_kem_pre
 
 int s2n_kem_groups_available_count(const struct s2n_kem_preferences *kem_preferences);
 
-struct s2n_kem_group* s2n_get_highest_priority_kem_group(const struct s2n_kem_preferences *kem_preferences);
+struct s2n_kem_group *s2n_get_highest_priority_kem_group(const struct s2n_kem_preferences *kem_preferences);
