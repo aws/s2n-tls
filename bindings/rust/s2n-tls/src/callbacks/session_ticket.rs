@@ -56,3 +56,8 @@ impl SessionTicket {
         Ok(())
     }
 }
+
+// A trait to give session tickets to new TLS connections
+pub trait SessionTicketProvider: 'static + Send + Sync {
+    fn provide_session_ticket(&self) -> Option<Vec<u8>>;
+}

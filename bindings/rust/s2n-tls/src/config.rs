@@ -527,6 +527,17 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn set_session_ticket_provider<T: 'static + SessionTicketProvider>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        // Store callback in context
+        let handler = Box::new(handler);
+        let context = self.config.context_mut();
+        context.session_ticket_provider = Some(handler);
+        Ok(self)
+    }
+
     /// Set a callback function triggered by operations requiring the private key.
     ///
     /// See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#private-key-operation-related-calls
@@ -736,6 +747,7 @@ pub(crate) struct Context {
     pub(crate) private_key_callback: Option<Box<dyn PrivateKeyCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     pub(crate) session_ticket_callback: Option<Box<dyn SessionTicketCallback>>,
+    pub(crate) session_ticket_provider: Option<Box<dyn SessionTicketProvider>>,
     pub(crate) wall_clock: Option<Box<dyn WallClock>>,
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
 }
@@ -752,6 +764,7 @@ impl Default for Context {
             private_key_callback: None,
             verify_host_callback: None,
             session_ticket_callback: None,
+            session_ticket_provider: None,
             wall_clock: None,
             monotonic_clock: None,
         }

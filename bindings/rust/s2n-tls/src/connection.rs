@@ -196,6 +196,13 @@ impl Connection {
                 "s2n_connection_set_config was successful"
             };
 
+            let context = config.context();
+            if let Some(callback) = &context.session_ticket_provider {
+                if let Some(ticket) = callback.provide_session_ticket() {
+                    self.set_session_ticket(&ticket)?;
+                }
+            }
+
             // Setting the config on the connection creates one additional reference to the config
             // so do not drop so prevent Rust from calling `drop()` at the end of this function.
             mem::forget(config);
