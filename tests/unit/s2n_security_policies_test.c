@@ -87,17 +87,12 @@ int main(int argc, char **argv)
 
                 bool kem_group_is_supported = false;
                 for (size_t j = 0; j < kem_preferences_all.tls13_kem_group_count; j++) {
-                    if (kem_group->iana_id == kem_preferences_all.tls13_kem_groups[j]->iana_id
-                            && kem_preferences_all.tls13_kem_groups[j]->available) {
+                    if (kem_group->iana_id == kem_preferences_all.tls13_kem_groups[j]->iana_id) {
                         kem_group_is_supported = true;
                         break;
                     }
                 }
-                if (kem_group->available) {
-                    EXPECT_TRUE(kem_group_is_supported);
-                } else {
-                    EXPECT_FALSE(kem_group_is_supported);
-                }
+                EXPECT_TRUE(kem_group_is_supported);
             }
         }
 
