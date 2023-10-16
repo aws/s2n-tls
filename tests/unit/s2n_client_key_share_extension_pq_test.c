@@ -713,7 +713,7 @@ int main()
                     server_conn->actual_protocol_version = S2N_TLS13;
                     server_conn->security_policy_override = &security_policy_all;
 
-                    /* Do NOT mark group highest priority available KEM group as mutually supported */
+                    /* Do NOT mark the highest priority available KEM group as mutually supported */
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
                     for (int i = 0; i < sizeof(server_conn->kex_params.mutually_supported_kem_groups); i++) {
                         if (server_conn->kex_params.mutually_supported_kem_groups[i]
