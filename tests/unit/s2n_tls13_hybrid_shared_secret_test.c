@@ -407,7 +407,8 @@ int main(int argc, char **argv)
         for (int i = 0; i < s2n_array_len(all_test_vectors); i++) {
             const struct hybrid_test_vector *test_vector = all_test_vectors[i];
             const struct s2n_kem_group *kem_group = test_vector->kem_group;
-            if (!kem_group->available) {
+            /* Skip |kem_group| if unavailable due to lack of curve support. */
+            if (!kem_group->available && kem_group->curve->name == NULL) {
                 continue;
             }
 
