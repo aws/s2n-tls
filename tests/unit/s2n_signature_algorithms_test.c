@@ -26,7 +26,7 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
 
-#define LENGTH       3
+#define LENGTH       (s2n_array_len(test_signature_schemes))
 #define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
 
 #define RSA_CIPHER_SUITE   &s2n_ecdhe_rsa_with_aes_128_cbc_sha
@@ -37,6 +37,8 @@ const struct s2n_signature_scheme *const test_signature_schemes[] = {
     &s2n_ecdsa_secp384r1_sha384,
     &s2n_rsa_pkcs1_sha256,
     &s2n_rsa_pkcs1_sha224,
+    &s2n_rsa_pkcs1_sha1,
+    &s2n_ecdsa_sha1,
 };
 
 const struct s2n_signature_preferences test_preferences = {
@@ -56,6 +58,8 @@ int main(int argc, char **argv)
     struct s2n_cert_chain_and_key *ecdsa_cert_chain;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
+
+    struct s2n_cert_chain_and_key *certs[] = { ecdsa_cert_chain, rsa_cert_chain };
 
     /* s2n_supported_sig_schemes_count & s2n_supported_sig_scheme_list_size */
     {
@@ -226,27 +230,27 @@ int main(int argc, char **argv)
         struct s2n_stuffer choice = { 0 };
         s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
 
-        struct s2n_signature_scheme result;
-
         /* Test: successfully choose valid signature */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             s2n_stuffer_wipe(&choice);
             s2n_stuffer_write_uint16(&choice, s2n_rsa_pkcs1_sha256.iana_value);
 
             EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha256.iana_value);
-            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha256, sizeof(struct s2n_signature_scheme));
+            EXPECT_EQUAL(result, &s2n_rsa_pkcs1_sha256);
         };
 
         /* Test: don't negotiate invalid signatures (protocol not high enough) */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             s2n_stuffer_wipe(&choice);
             s2n_stuffer_write_uint16(&choice, s2n_ecdsa_secp384r1_sha384.iana_value);
 
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_ecdsa_secp384r1_sha384.iana_value);
-            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_ecdsa_secp384r1_sha384, sizeof(struct s2n_signature_scheme));
+            EXPECT_EQUAL(result, &s2n_ecdsa_secp384r1_sha384);
 
             s2n_stuffer_reread(&choice);
             conn->actual_protocol_version = S2N_TLS12;
@@ -256,13 +260,14 @@ int main(int argc, char **argv)
 
         /* Test: don't negotiate invalid signatures (protocol too high) */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             s2n_stuffer_wipe(&choice);
             s2n_stuffer_write_uint16(&choice, s2n_rsa_pkcs1_sha224.iana_value);
 
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha224.iana_value);
-            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha224, sizeof(struct s2n_signature_scheme));
+            EXPECT_EQUAL(result, &s2n_rsa_pkcs1_sha224);
 
             s2n_stuffer_reread(&choice);
             conn->actual_protocol_version = S2N_TLS13;
@@ -311,19 +316,17 @@ int main(int argc, char **argv)
         struct s2n_stuffer choice = { 0 };
         s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
 
-        struct s2n_signature_scheme result;
+        const struct s2n_signature_scheme *result = NULL;
 
         conn->actual_protocol_version = S2N_TLS13;
         s2n_stuffer_write_uint16(&choice, s2n_ecdsa_sha384.iana_value);
         EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
-        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_secp384r1_sha384.iana_value);
-        EXPECT_BYTEARRAY_EQUAL(&result, &s2n_ecdsa_secp384r1_sha384, sizeof(struct s2n_signature_scheme));
+        EXPECT_EQUAL(result, &s2n_ecdsa_secp384r1_sha384);
 
         conn->actual_protocol_version = S2N_TLS12;
         s2n_stuffer_write_uint16(&choice, s2n_ecdsa_sha384.iana_value);
         EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
-        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha384.iana_value);
-        EXPECT_BYTEARRAY_EQUAL(&result, &s2n_ecdsa_sha384, sizeof(struct s2n_signature_scheme));
+        EXPECT_EQUAL(result, &s2n_ecdsa_sha384);
 
         s2n_connection_free(conn);
         s2n_config_free(config);
@@ -356,8 +359,6 @@ int main(int argc, char **argv)
 
             config->security_policy = &test_security_policy;
 
-            struct s2n_signature_scheme result = { 0 };
-
             /*
              * For pre-TLS1.2, always choose either RSA or ECDSA depending on the auth method.
              * Only use RSA-SHA1 if forced to by FIPS.
@@ -369,31 +370,35 @@ int main(int argc, char **argv)
                 {
                     /* Choose RSA for an RSA cipher suite. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_rsa_pkcs1_md5_sha1);
                     };
 
                     /* Choose ECDSA for a ECDSA cipher suite. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
                     };
 
                     /* Ignore the type of the client certificate. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
                     };
 
                     /* When in doubt, choose RSA. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_rsa_pkcs1_md5_sha1);
                     };
                 };
 
@@ -401,24 +406,27 @@ int main(int argc, char **argv)
                 {
                     /* Choose RSA for an RSA certificate */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
-                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_md5_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_rsa_pkcs1_md5_sha1);
                     };
 
                     /* Choose ECDSA for a ECDSA certificate */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
                     };
 
                     /* Ignore the auth type of the cipher suite */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
                     };
                 };
             };
@@ -433,31 +441,35 @@ int main(int argc, char **argv)
                 {
                     /* Choose RSA for an RSA cipher suite. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_rsa_pkcs1_sha1);
                     };
 
                     /* Choose ECDSA for a ECDSA cipher suite. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
                     };
 
                     /* Ignore the type of the client certificate. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
                     };
 
                     /* When in doubt, choose RSA. */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_SERVER));
-                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_rsa_pkcs1_sha1);
                     };
                 };
 
@@ -465,24 +477,66 @@ int main(int argc, char **argv)
                 {
                     /* Choose RSA for an RSA certificate */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
-                        EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_rsa_pkcs1_sha1);
                     };
 
                     /* Choose ECDSA for a ECDSA certificate */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
                     };
 
                     /* Ignore the auth type of the cipher suite */
                     {
+                        const struct s2n_signature_scheme *result = NULL;
                         conn->secure->cipher_suite = RSA_CIPHER_SUITE;
                         conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
                         EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &result, S2N_CLIENT));
-                        EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha1.iana_value);
+                        EXPECT_EQUAL(result, &s2n_ecdsa_sha1);
+                    };
+                };
+
+                /* Do not fall back to a default if not allowed by security policy */
+                {
+                    const struct s2n_signature_scheme *const no_defaults[] = {
+                        &s2n_ecdsa_secp384r1_sha384,
+                        &s2n_rsa_pkcs1_sha256,
+                        &s2n_rsa_pkcs1_sha224,
+                    };
+
+                    const struct s2n_signature_preferences no_defaults_preferences = {
+                        .count = s2n_array_len(no_defaults),
+                        .signature_schemes = test_signature_schemes,
+                    };
+
+                    struct s2n_security_policy no_defaults_security_policy = {
+                        .minimum_protocol_version = security_policy->minimum_protocol_version,
+                        .cipher_preferences = security_policy->cipher_preferences,
+                        .kem_preferences = security_policy->kem_preferences,
+                        .signature_preferences = &no_defaults_preferences,
+                        .ecc_preferences = security_policy->ecc_preferences,
+                    };
+                    conn->security_policy_override = &no_defaults_security_policy;
+
+                    /* Client / RSA */
+                    {
+                        const struct s2n_signature_scheme *actual = NULL;
+                        conn->secure->cipher_suite = RSA_CIPHER_SUITE;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &actual, S2N_SERVER));
+                        EXPECT_EQUAL(actual, &s2n_null_sig_scheme);
+                    };
+
+                    /* Server / ECDSA */
+                    {
+                        const struct s2n_signature_scheme *actual = NULL;
+                        conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
+                        EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &actual, S2N_CLIENT));
+                        EXPECT_EQUAL(actual, &s2n_null_sig_scheme);
                     };
                 };
             };
@@ -515,17 +569,17 @@ int main(int argc, char **argv)
 
         config->security_policy = &test_security_policy;
 
-        struct s2n_signature_scheme result;
-
         /* Test: no peer list */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS10;
-            struct s2n_signature_scheme default_scheme = s2n_ecdsa_sha1;
+            const struct s2n_signature_scheme *default_scheme = &s2n_ecdsa_sha1;
 
             /* Choose default if NULL peer list */
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, NULL, &result));
-            EXPECT_EQUAL(result.iana_value, default_scheme.iana_value);
+            EXPECT_EQUAL(result, default_scheme);
 
             /* Choose default if empty peer list */
             struct s2n_sig_scheme_list peer_list = {
@@ -533,7 +587,7 @@ int main(int argc, char **argv)
                 .iana_list = { 0 },
             };
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-            EXPECT_EQUAL(result.iana_value, default_scheme.iana_value);
+            EXPECT_EQUAL(result, default_scheme);
 
             /* If we cannot find a match in TLS1.3, allow defaults for success */
             conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
@@ -543,6 +597,8 @@ int main(int argc, char **argv)
 
         /* Test: no shared valid signature schemes, using TLS1.3. Server picks preferred */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 
@@ -556,36 +612,41 @@ int main(int argc, char **argv)
 
             /* behavior is that we fallback to a preferred signature algorithm */
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_ecdsa_sha384.iana_value);
+            EXPECT_EQUAL(result, &s2n_ecdsa_secp384r1_sha384);
         };
 
         /* Test: no shared valid signature schemes, using TLS1.2 */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS12;
 
             /* Peer list contains no signature schemes that we support */
             struct s2n_sig_scheme_list peer_list = {
                 .len = 1,
-                .iana_list = { 0 },
+                .iana_list = { 1 },
             };
 
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
 
             /* Verify that we did not choose the peer's offered signature scheme */
-            EXPECT_NOT_EQUAL(result.iana_value, peer_list.iana_list[0]);
+            EXPECT_NOT_NULL(result);
+            EXPECT_NOT_EQUAL(result->iana_value, peer_list.iana_list[0]);
 
             /* Verify that we chose the default signature scheme, even though it wasn't in
              * the peer's offered list. This proves that when we share no signature schemes
              * with the peer, then calling s2n_choose_sig_scheme_from_peer_preference_list
              * is equivalent to calling s2n_choose_default_sig_scheme. */
-            struct s2n_signature_scheme default_scheme;
+            const struct s2n_signature_scheme *default_scheme = NULL;
             EXPECT_SUCCESS(s2n_choose_default_sig_scheme(conn, &default_scheme, S2N_SERVER));
-            EXPECT_EQUAL(result.iana_value, default_scheme.iana_value);
+            EXPECT_EQUAL(result, default_scheme);
         };
 
         /* Test: choose valid signature from peer list */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             conn->secure->cipher_suite = RSA_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS12;
 
@@ -600,12 +661,13 @@ int main(int argc, char **argv)
             };
 
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha256.iana_value);
-            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha256, sizeof(struct s2n_signature_scheme));
+            EXPECT_EQUAL(result, &s2n_rsa_pkcs1_sha256);
         };
 
         /* Test: invalid scheme, because wrong protocol version */
         {
+            const struct s2n_signature_scheme *result = NULL;
+
             conn->secure->cipher_suite = RSA_CIPHER_SUITE;
 
             struct s2n_sig_scheme_list peer_list = {
@@ -615,8 +677,7 @@ int main(int argc, char **argv)
 
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_rsa_pkcs1_sha224.iana_value);
-            EXPECT_BYTEARRAY_EQUAL(&result, &s2n_rsa_pkcs1_sha224, sizeof(struct s2n_signature_scheme));
+            EXPECT_EQUAL(result, &s2n_rsa_pkcs1_sha224);
 
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
@@ -728,11 +789,11 @@ int main(int argc, char **argv)
             s2n_stuffer_growable_alloc(&choice, STUFFER_SIZE);
             s2n_stuffer_write_uint16(&choice, s2n_rsa_pss_rsae_sha256.iana_value);
 
-            struct s2n_signature_scheme result;
+            const struct s2n_signature_scheme *result = NULL;
 
             if (s2n_is_rsa_pss_signing_supported()) {
                 EXPECT_SUCCESS(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result));
-                EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
+                EXPECT_EQUAL(result, &s2n_rsa_pss_rsae_sha256);
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_get_and_validate_negotiated_signature_scheme(conn, &choice, &result),
                         S2N_ERR_INVALID_SIGNATURE_SCHEME);
@@ -749,11 +810,11 @@ int main(int argc, char **argv)
                 .iana_list = { s2n_rsa_pss_rsae_sha256.iana_value },
             };
 
-            struct s2n_signature_scheme result;
+            const struct s2n_signature_scheme *result = NULL;
 
             if (s2n_is_rsa_pss_signing_supported()) {
                 EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-                EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
+                EXPECT_EQUAL(result, &s2n_rsa_pss_rsae_sha256);
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result),
                         S2N_ERR_INVALID_SIGNATURE_SCHEME);
@@ -794,10 +855,9 @@ int main(int argc, char **argv)
 
         config->security_policy = &test_security_policy;
 
-        struct s2n_signature_scheme result;
-
         /* Test: no shared valid signature schemes, using TLS1.3. Server cant pick preferred */
         {
+            const struct s2n_signature_scheme *result = NULL;
             conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 
@@ -816,6 +876,7 @@ int main(int argc, char **argv)
 
         /* Test: no shared valid signature schemes, using TLS1.3. Server picks a preferred */
         {
+            const struct s2n_signature_scheme *result = NULL;
             conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             conn->actual_protocol_version = S2N_TLS13;
 
@@ -828,12 +889,163 @@ int main(int argc, char **argv)
 
             /* behavior is that we fallback to a preferred signature algorithm */
             EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &peer_list, &result));
-            EXPECT_EQUAL(result.iana_value, s2n_rsa_pss_rsae_sha256.iana_value);
+            EXPECT_EQUAL(result, &s2n_rsa_pss_rsae_sha256);
         };
 
         s2n_connection_free(conn);
         s2n_config_free(config);
     }
+
+    /* Self-Talk tests: default signature schemes */
+    {
+        const struct s2n_signature_scheme *const default_schemes[] = {
+            &s2n_rsa_pkcs1_sha1,
+            &s2n_ecdsa_sha1
+        };
+
+        const struct s2n_signature_scheme *const sha256_schemes[] = {
+            &s2n_rsa_pkcs1_sha256,
+            &s2n_ecdsa_sha256
+        };
+
+        const struct s2n_signature_scheme *const sha384_schemes[] = {
+            &s2n_rsa_pkcs1_sha384,
+            &s2n_ecdsa_sha384
+        };
+
+        const struct s2n_signature_preferences defaults_preferences = {
+            .count = s2n_array_len(default_schemes),
+            .signature_schemes = default_schemes,
+        };
+
+        const struct s2n_signature_preferences sha256_preferences = {
+            .count = s2n_array_len(sha256_schemes),
+            .signature_schemes = sha256_schemes,
+        };
+        for (size_t i = 0; i < sha256_preferences.count; i++) {
+            for (size_t j = 0; j < defaults_preferences.count; j++) {
+                EXPECT_NOT_EQUAL(sha256_preferences.signature_schemes[i]->iana_value,
+                        defaults_preferences.signature_schemes[j]->iana_value);
+            }
+        }
+
+        const struct s2n_signature_preferences sha384_preferences = {
+            .count = s2n_array_len(sha384_schemes),
+            .signature_schemes = sha384_schemes,
+        };
+        for (size_t i = 0; i < sha384_preferences.count; i++) {
+            for (size_t j = 0; j < defaults_preferences.count; j++) {
+                EXPECT_NOT_EQUAL(sha384_preferences.signature_schemes[i]->iana_value,
+                        defaults_preferences.signature_schemes[j]->iana_value);
+            }
+        }
+
+        /* The policy needs to negotiate TLS1.2 and forward secret kex */
+        struct s2n_security_policy defaults_policy = security_policy_20190214;
+        defaults_policy.signature_preferences = &defaults_preferences;
+        struct s2n_security_policy sha256_policy = security_policy_20190214;
+        sha256_policy.signature_preferences = &sha256_preferences;
+        struct s2n_security_policy sha384_policy = security_policy_20190214;
+        sha384_policy.signature_preferences = &sha384_preferences;
+
+        /* Self-Talk test: client and server can negotiate without any defaults */
+        for (size_t cert_i = 0; cert_i < s2n_array_len(certs); cert_i++) {
+            /* Setup config */
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
+
+            /* Setup connections */
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            /* Create nonblocking pipes */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Client and server security policies should match but include no defaults */
+            client_conn->security_policy_override = &sha256_policy;
+            server_conn->security_policy_override = &sha256_policy;
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        };
+
+        /* Self-Talk test: server does not fallback to unsupported defaults */
+        for (size_t cert_i = 0; cert_i < s2n_array_len(certs); cert_i++) {
+            /* Setup config */
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
+
+            /* Setup connections */
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            /* Create nonblocking pipes */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Client and server security policies should have no signature schemes
+             * in common, and not include the default signature schemes.
+             */
+            client_conn->security_policy_override = &sha256_policy;
+            server_conn->security_policy_override = &sha384_policy;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        };
+
+        /* Self-Talk test: client does not accept unsupported defaults */
+        for (size_t cert_i = 0; cert_i < s2n_array_len(certs); cert_i++) {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
+
+            /* Setup connections */
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            /* Create nonblocking pipes */
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            /* Client and server security policies should have no signature schemes in common.
+             * Server should include the default policies.
+             */
+            client_conn->security_policy_override = &sha256_policy;
+            server_conn->security_policy_override = &defaults_policy;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
+        };
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));

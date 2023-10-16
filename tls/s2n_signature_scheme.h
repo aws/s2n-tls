@@ -39,6 +39,8 @@ struct s2n_signature_preferences {
     const struct s2n_signature_scheme *const *signature_schemes;
 };
 
+extern const struct s2n_signature_scheme s2n_null_sig_scheme;
+
 /* RSA PKCS1 */
 /* s2n_rsa_pkcs1_md5_sha1 is not in any preference list, but it is needed since it's the default for TLS 1.0 and 1.1 if
  * no SignatureScheme is sent. */

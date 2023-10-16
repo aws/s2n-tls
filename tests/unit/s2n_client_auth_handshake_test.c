@@ -47,8 +47,8 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     client_conn->server_protocol_version = S2N_TLS13;
     client_conn->client_protocol_version = S2N_TLS13;
     client_conn->actual_protocol_version = S2N_TLS13;
-    client_conn->handshake_params.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
-    client_conn->handshake_params.client_cert_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+    client_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_secp256r1_sha256;
+    client_conn->handshake_params.client_cert_sig_scheme = &s2n_ecdsa_secp256r1_sha256;
     client_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     if (!no_cert) {
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -58,7 +58,7 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     server_conn->server_protocol_version = S2N_TLS13;
     server_conn->client_protocol_version = S2N_TLS13;
     server_conn->actual_protocol_version = S2N_TLS13;
-    server_conn->handshake_params.conn_sig_scheme = s2n_ecdsa_secp256r1_sha256;
+    server_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_secp256r1_sha256;
     server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
     if (no_cert) {

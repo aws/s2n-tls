@@ -90,6 +90,35 @@ int s2n_connection_set_secret_callback(struct s2n_connection *conn, s2n_secret_c
     return S2N_SUCCESS;
 }
 
+/* Currently we need an API that quic can call to process post-handshake messages. Ideally
+ * we could re-use the s2n_recv API but that function needs to be refactored to support quic.
+ * For now we just call this API.
+ */
+int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocked_status *blocked)
+{
+    POSIX_ENSURE_REF(conn);
+
+    *blocked = S2N_BLOCKED_ON_READ;
+
+    uint8_t message_type = 0;
+    /* This function uses the stuffer conn->handshake.io to read in the header. This stuffer is also used 
+     * for sending post-handshake messages. This could cause a concurrency issue if we start both sending
+     * and receiving post-handshake messages while quic is enabled. Currently there's no post-handshake
+     * message that is both sent and received in quic (servers only send session tickets
+     * and clients only receive session tickets.) Therefore it is safe for us
+     * to use the stuffer here.
+     */
+    POSIX_GUARD_RESULT(s2n_quic_read_handshake_message(conn, &message_type));
+
+    /* The only post-handshake messages we support from QUIC currently are session tickets */
+    POSIX_ENSURE(message_type == TLS_SERVER_NEW_SESSION_TICKET, S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    POSIX_GUARD_RESULT(s2n_post_handshake_process(conn, &conn->in, message_type));
+
+    *blocked = S2N_NOT_BLOCKED;
+
+    return S2N_SUCCESS;
+}
+
 /* When using QUIC, S2N reads unencrypted handshake messages instead of encrypted records.
  * This method sets up the S2N input buffers to match the results of using s2n_read_full_record.
  */

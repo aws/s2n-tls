@@ -17,6 +17,7 @@
 #include <openssl/evp.h>
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_ktls_crypto.h"
 #include "tls/s2n_crypto.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
@@ -376,6 +377,74 @@ static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 
 #endif
 
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_ktls_info(struct s2n_ktls_crypto_info_inputs *in,
+        struct s2n_ktls_crypto_info *out)
+{
+    RESULT_ENSURE_REF(in);
+    RESULT_ENSURE_REF(out);
+
+    s2n_ktls_crypto_info_tls12_aes_gcm_128 *crypto_info = &out->ciphers.aes_gcm_128;
+    crypto_info->info.version = TLS_1_2_VERSION;
+    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_128;
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->key), in->key.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->key, in->key.data, sizeof(crypto_info->key));
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->iv), in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->iv, in->iv.data, sizeof(crypto_info->iv));
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->rec_seq), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, in->seq.data, sizeof(crypto_info->rec_seq));
+
+    /* The salt is a prefix of the IV
+     *
+     *= https://www.rfc-editor.org/rfc/rfc4106#section-4
+     *# The salt field is a four-octet value that is assigned at the
+     *# beginning of the security association, and then remains constant
+     *# for the life of the security association.
+     */
+    RESULT_ENSURE_LTE(sizeof(crypto_info->salt), in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->salt, in->iv.data, sizeof(crypto_info->salt));
+
+    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+            sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128)));
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_ktls_info(
+        struct s2n_ktls_crypto_info_inputs *in, struct s2n_ktls_crypto_info *out)
+{
+    RESULT_ENSURE_REF(in);
+    RESULT_ENSURE_REF(out);
+
+    s2n_ktls_crypto_info_tls12_aes_gcm_256 *crypto_info = &out->ciphers.aes_gcm_256;
+    crypto_info->info.version = TLS_1_2_VERSION;
+    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_256;
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->key), in->key.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->key, in->key.data, sizeof(crypto_info->key));
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->iv), in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->iv, in->iv.data, sizeof(crypto_info->iv));
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->rec_seq), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, in->seq.data, sizeof(crypto_info->rec_seq));
+
+    /* The salt is a prefix of the IV
+     *
+     *= https://www.rfc-editor.org/rfc/rfc4106#section-4
+     *# The salt field is a four-octet value that is assigned at the
+     *# beginning of the security association, and then remains constant
+     *# for the life of the security association.
+     */
+    RESULT_ENSURE_LTE(sizeof(crypto_info->salt), in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->salt, in->iv.data, sizeof(crypto_info->salt));
+
+    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+            sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_256)));
+    return S2N_RESULT_OK;
+}
+
 const struct s2n_cipher s2n_aes128_gcm = {
     .key_material_size = S2N_TLS_AES_128_GCM_KEY_LEN,
     .type = S2N_AEAD,
@@ -390,7 +459,7 @@ const struct s2n_cipher s2n_aes128_gcm = {
     .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key,
     .set_decryption_key = s2n_aead_cipher_aes128_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
-    .ktls_supported = true,
+    .set_ktls_info = s2n_aead_cipher_aes128_gcm_set_ktls_info,
 };
 
 const struct s2n_cipher s2n_aes256_gcm = {
@@ -407,6 +476,7 @@ const struct s2n_cipher s2n_aes256_gcm = {
     .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key,
     .set_decryption_key = s2n_aead_cipher_aes256_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
+    .set_ktls_info = s2n_aead_cipher_aes256_gcm_set_ktls_info,
 };
 
 /* TLS 1.3 GCM ciphers */
