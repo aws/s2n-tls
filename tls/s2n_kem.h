@@ -90,7 +90,7 @@ extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
 
 #define S2N_KEM_GROUPS_COUNT 6
-extern struct s2n_kem_group * const ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
+extern struct s2n_kem_group *const ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
 struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
