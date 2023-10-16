@@ -93,14 +93,14 @@ extern const struct s2n_kem s2n_kyber_1024_r3;
 extern struct s2n_kem_group *const ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
-struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
-struct s2n_kem_group s2n_secp256r1_kyber_768_r3;
-struct s2n_kem_group s2n_secp384r1_kyber_768_r3;
-struct s2n_kem_group s2n_secp521r1_kyber_1024_r3;
+extern struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
+extern struct s2n_kem_group s2n_secp256r1_kyber_768_r3;
+extern struct s2n_kem_group s2n_secp384r1_kyber_768_r3;
+extern struct s2n_kem_group s2n_secp521r1_kyber_1024_r3;
 
 /* x25519 KEM Groups */
-struct s2n_kem_group s2n_x25519_kyber_512_r3;
-struct s2n_kem_group s2n_x25519_kyber_768_r3;
+extern struct s2n_kem_group s2n_x25519_kyber_512_r3;
+extern struct s2n_kem_group s2n_x25519_kyber_768_r3;
 
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
