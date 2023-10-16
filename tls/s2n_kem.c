@@ -132,7 +132,7 @@ struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
     .kem = &s2n_kyber_768_r3,
 };
 
-struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
+struct s2n_kem_group * const ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_secp256r1_kyber_512_r3,
     &s2n_x25519_kyber_512_r3,
     &s2n_secp256r1_kyber_768_r3,
