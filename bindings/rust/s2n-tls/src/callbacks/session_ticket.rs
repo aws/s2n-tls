@@ -15,11 +15,6 @@ pub trait SessionTicketCallback: 'static + Send + Sync {
     fn on_session_ticket(&self, connection: &mut Connection, session_ticket: &SessionTicket);
 }
 
-// A trait to give session tickets to new TLS connections
-pub trait SessionTicketProvider: 'static + Send + Sync {
-    fn provide_session_ticket(&self) -> Option<Vec<u8>>;
-}
-
 pub struct SessionTicket(s2n_session_ticket);
 
 impl SessionTicket {
