@@ -92,7 +92,6 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
 
 #elif !defined(S2N_NO_PQ) /* Use interned Kyber512 implementation, otherwise bail. */
 
-int s2n_kyber_512_r3_crypto_kem_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pk, OUT uint8_t *sk);
 int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
         OUT uint8_t *secret_key)
 {
@@ -103,7 +102,6 @@ int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pu
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_kyber_512_r3_crypto_kem_enc(IN const struct s2n_kem *kem, OUT uint8_t *ct, OUT uint8_t *ss, IN const uint8_t *pk);
 int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
         IN const uint8_t *public_key)
 {
@@ -114,7 +112,6 @@ int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphert
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-int s2n_kyber_512_r3_crypto_kem_dec(IN const struct s2n_kem *kem, OUT uint8_t *ss, IN const uint8_t *ct, IN const uint8_t *sk);
 int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
         IN const uint8_t *secret_key)
 {

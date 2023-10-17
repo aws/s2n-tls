@@ -150,6 +150,9 @@ S2N_RESULT s2n_kem_init(void);
 #define S2N_KYBER_512_R3_SECRET_KEY_BYTES    1632
 #define S2N_KYBER_512_R3_CIPHERTEXT_BYTES    768
 #define S2N_KYBER_512_R3_SHARED_SECRET_BYTES 32
+int s2n_kyber_512_r3_crypto_kem_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pk, OUT uint8_t *sk);
+int s2n_kyber_512_r3_crypto_kem_enc(IN const struct s2n_kem *kem, OUT uint8_t *ct, OUT uint8_t *ss, IN const uint8_t *pk);
+int s2n_kyber_512_r3_crypto_kem_dec(IN const struct s2n_kem *kem, OUT uint8_t *ss, IN const uint8_t *ct, IN const uint8_t *sk);
 
 /* kyber768r3 */
 #define S2N_KYBER_768_R3_PUBLIC_KEY_BYTES    1184
