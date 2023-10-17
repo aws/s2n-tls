@@ -151,8 +151,6 @@ pub trait TlsBenchConfig: Sized {
 }
 
 /// The TlsConnection object can be created from a corresponding config type.
-/// Any "purpose specific" config creation should be implemented on the config
-/// rather than the connection to separate configuration vs implementation.
 pub trait TlsConnection: Sized {
     /// Library-specific config struct
     type Config;
