@@ -1269,7 +1269,7 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
             avail_count++;
         }
     }
-    POSIX_ENSURE(s2n_kem_groups_available_count(kem_preferences) == avail_count, S2N_ERR_INVALID_STATE);
+    POSIX_ENSURE(s2n_kem_preferences_groups_available(kem_preferences) == avail_count, S2N_ERR_INVALID_STATE);
 
     /* The PQ KEM extension is applicable only to TLS 1.2 */
     if (pq_kem_extension_required) {

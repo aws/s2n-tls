@@ -26,7 +26,7 @@ int main()
     BEGIN_TEST();
 
     /* Need at least two KEM's available to test fallback */
-    if (s2n_kem_groups_available_count(&kem_preferences_all) < 2) {
+    if (s2n_kem_preferences_groups_available(&kem_preferences_all) < 2) {
         END_TEST();
         return 0;
     }

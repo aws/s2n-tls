@@ -101,7 +101,7 @@ bool s2n_tls13_client_must_use_hybrid_kem_length_prefix(const struct s2n_kem_pre
     return kem_pref && (kem_pref->tls13_pq_hybrid_draft_revision == 0);
 }
 
-int s2n_kem_groups_available_count(const struct s2n_kem_preferences *kem_preferences)
+int s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_preferences)
 {
     if (kem_preferences == NULL) {
         return 0;

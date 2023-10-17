@@ -228,7 +228,7 @@ int main()
 
                     /* Test sending key share in response to HRR */
                     /* Need at least two KEM's to test ClientHelloRetry fallback */
-                    if (s2n_kem_groups_available_count(test_security_policy.kem_preferences) >= 2) {
+                    if (s2n_kem_preferences_groups_available(test_security_policy.kem_preferences) >= 2) {
                         struct s2n_connection *conn;
                         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                         conn->security_policy_override = &test_security_policy;
@@ -586,7 +586,7 @@ int main()
                 /* Test that s2n_client_key_share_extension.recv selects the highest priority share,
                  * even if it appears last in the client's list of shares. */
                 /* Need at least two KEM's to test fallback */
-                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
+                if (s2n_kem_preferences_groups_available(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -596,7 +596,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
+                    EXPECT_TRUE(s2n_kem_preferences_groups_available(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
                     const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
@@ -648,7 +648,7 @@ int main()
                  * by the client / "mutually supported", and triggers a retry instead.
                  */
                 /* Need at least two KEM's to test fallback */
-                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
+                if (s2n_kem_preferences_groups_available(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -667,7 +667,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
+                    EXPECT_TRUE(s2n_kem_preferences_groups_available(kem_pref) >= 2);
 
                     /* Select the highest priority available KEM group */
                     const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
@@ -707,7 +707,7 @@ int main()
                  * by the client / "mutually supported", and chooses a lower priority curve instead.
                  */
                 /* Need at least two KEM's to test fallback */
-                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
+                if (s2n_kem_preferences_groups_available(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->actual_protocol_version = S2N_TLS13;
@@ -726,7 +726,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
+                    EXPECT_TRUE(s2n_kem_preferences_groups_available(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
                     const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
@@ -777,7 +777,7 @@ int main()
                 /* Test that s2n_client_key_share_extension.recv ignores shares that can't be parsed,
                  * and continues to parse valid shares afterwards. */
                 /* Need at least two KEM's to test fallback */
-                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
+                if (s2n_kem_preferences_groups_available(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;
@@ -790,7 +790,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
+                    EXPECT_TRUE(s2n_kem_preferences_groups_available(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
                     const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
@@ -847,7 +847,7 @@ int main()
                 /* Test that s2n_client_key_share_extension.recv ignores shares that can't be parsed,
                  * and doesn't ignore / forget / overwrite valid shares already parsed. */
                 /* Need at least two KEM's to test fallback */
-                if (s2n_kem_groups_available_count(security_policy_all.kem_preferences) >= 2) {
+                if (s2n_kem_preferences_groups_available(security_policy_all.kem_preferences) >= 2) {
                     struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
                     EXPECT_NOT_NULL(server_conn);
                     server_conn->security_policy_override = &security_policy_all;
@@ -860,7 +860,7 @@ int main()
                     const struct s2n_kem_preferences *kem_pref = NULL;
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
-                    EXPECT_TRUE(s2n_kem_groups_available_count(kem_pref) >= 2);
+                    EXPECT_TRUE(s2n_kem_preferences_groups_available(kem_pref) >= 2);
 
                     /* Select the two highest priority available KEM groups */
                     const struct s2n_kem_group *kem_group0 = s2n_get_highest_priority_kem_group(kem_pref);
