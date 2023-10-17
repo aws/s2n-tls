@@ -143,7 +143,6 @@ impl CryptoConfig {
 /// The TlsBenchConfig trait allows us to map benchmarking parameters to
 /// a configuration object
 pub trait TlsBenchConfig: Sized {
-    /// Make a config with given parameters
     fn make_config(
         mode: Mode,
         crypto_config: CryptoConfig,
