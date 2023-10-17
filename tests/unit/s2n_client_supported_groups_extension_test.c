@@ -230,7 +230,7 @@ int main()
                 } else {
                     EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
                     EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
-                    struct s2n_kem_group *expected_negotiated_kem_group = s2n_get_highest_priority_kem_group(server_kem_pref);
+                    struct s2n_kem_group *expected_negotiated_kem_group = s2n_kem_preferences_get_highest_priority_group(server_kem_pref);
                     EXPECT_NOT_NULL(expected_negotiated_kem_group);
                     EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group);
                     EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group->curve);

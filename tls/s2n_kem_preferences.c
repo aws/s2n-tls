@@ -115,7 +115,7 @@ int s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_p
     return count;
 }
 
-struct s2n_kem_group *s2n_get_highest_priority_kem_group(const struct s2n_kem_preferences *kem_preferences)
+struct s2n_kem_group *s2n_kem_preferences_get_highest_priority_group(const struct s2n_kem_preferences *kem_preferences)
 {
     for (size_t i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
         if (kem_preferences->tls13_kem_groups[i]->available) {
