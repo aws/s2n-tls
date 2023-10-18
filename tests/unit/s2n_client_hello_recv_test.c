@@ -453,7 +453,7 @@ int main(int argc, char **argv)
         server_conn->psk_params.chosen_psk = &chosen_psk;
         EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
 
-        EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.iana_value, 0);
+        EXPECT_EQUAL(server_conn->handshake_params.server_cert_sig_scheme->iana_value, 0);
         EXPECT_NULL(server_conn->handshake_params.our_chain_and_key);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));

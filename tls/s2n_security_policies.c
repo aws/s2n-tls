@@ -615,6 +615,42 @@ const struct s2n_security_policy security_policy_pq_tls_1_3_2023_06_01 = {
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
+/* Same as security_policy_pq_tls_1_2_2023_04_07, but with updated KEM prefs */
+const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_07 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_1_2021_05_21,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
+/* Same as security_policy_pq_tls_1_2_2023_04_08, but with updated KEM prefs */
+const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_08 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_22,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
+/* Same as security_policy_pq_tls_1_2_2023_04_09, but with updated KEM prefs */
+const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_09 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_24,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
+/* Same as security_policy_pq_tls_1_2_2023_04_10, but with updated KEM prefs */
+const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_10 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_pq_tls_1_0_2021_05_26,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
+    .signature_preferences = &s2n_signature_preferences_20200207,
+    .ecc_preferences = &s2n_ecc_preferences_20200310,
+};
+
 const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_kms_fips_tls_1_2_2018_10,
@@ -960,6 +996,10 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "PQ-TLS-1-2-2023-04-09", .security_policy = &security_policy_pq_tls_1_2_2023_04_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-2-2023-04-10", .security_policy = &security_policy_pq_tls_1_2_2023_04_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "PQ-TLS-1-3-2023-06-01", .security_policy = &security_policy_pq_tls_1_3_2023_06_01, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-2-2023-10-07", .security_policy = &security_policy_pq_tls_1_2_2023_10_07, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-2-2023-10-08", .security_policy = &security_policy_pq_tls_1_2_2023_10_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-2-2023-10-09", .security_policy = &security_policy_pq_tls_1_2_2023_10_09, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "PQ-TLS-1-2-2023-10-10", .security_policy = &security_policy_pq_tls_1_2_2023_10_10, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20140601", .security_policy = &security_policy_20140601, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20141001", .security_policy = &security_policy_20141001, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20150202", .security_policy = &security_policy_20150202, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
