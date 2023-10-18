@@ -236,7 +236,9 @@ int main()
         /* If server has one mutually supported KEM group and multiple mutually supported ECC, the KEM
          * group should be chosen.
          * Need at least two available KEM's to test fallback. */
-        if (s2n_kem_preferences_groups_available(&kem_preferences_all) >= 1) {
+        uint32_t available_groups = 0;
+        EXPECT_OK(s2n_kem_preferences_groups_available(&kem_preferences_all, &available_groups));
+        if (available_groups >= 1) {
             struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             server_conn->security_policy_override = &test_pq_security_policy;

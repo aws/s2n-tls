@@ -55,6 +55,6 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
 
 bool s2n_tls13_client_must_use_hybrid_kem_length_prefix(const struct s2n_kem_preferences *kem_pref);
 
-int s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_preferences);
-
 struct s2n_kem_group *s2n_kem_preferences_get_highest_priority_group(const struct s2n_kem_preferences *kem_preferences);
+
+S2N_RESULT s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_preferences, uint32_t *groups_available);

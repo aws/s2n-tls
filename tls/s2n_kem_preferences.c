@@ -101,18 +101,19 @@ bool s2n_tls13_client_must_use_hybrid_kem_length_prefix(const struct s2n_kem_pre
     return kem_pref && (kem_pref->tls13_pq_hybrid_draft_revision == 0);
 }
 
-int s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_preferences)
+S2N_RESULT s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_preferences, uint32_t *groups_available)
 {
-    if (kem_preferences == NULL) {
-        return 0;
-    }
-    int count = 0;
+    RESULT_ENSURE_REF(kem_preferences);
+    RESULT_ENSURE_REF(groups_available);
+
+    uint32_t count = 0;
     for (int i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
         if (kem_preferences->tls13_kem_groups[i]->available) {
             count++;
         }
     }
-    return count;
+    *groups_available = count;
+    return S2N_RESULT_OK;
 }
 
 struct s2n_kem_group *s2n_kem_preferences_get_highest_priority_group(const struct s2n_kem_preferences *kem_preferences)

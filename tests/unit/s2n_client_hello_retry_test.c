@@ -255,7 +255,9 @@ int main(int argc, char **argv)
                 };
                 /* Test PQ KEM success case for s2n_server_hello_retry_recv. */
                 /* Need at least two KEM's to test fallback */
-                if (s2n_kem_preferences_groups_available(test_security_policy.kem_preferences) >= 2) {
+                uint32_t available_groups = 0;
+                EXPECT_OK(s2n_kem_preferences_groups_available(test_security_policy.kem_preferences, &available_groups));
+                if (available_groups >= 2) {
                     struct s2n_config *config;
                     struct s2n_connection *conn;
 
