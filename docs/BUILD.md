@@ -1,4 +1,3 @@
-
 # Building s2n-tls
 
 To use s2n-tls, you must build the library from the source and then include it in your program.
@@ -6,6 +5,8 @@ To use s2n-tls, you must build the library from the source and then include it i
 ## Requirements
 
 s2n-tls supports and tests on **x86** and **arm** architectures.
+
+s2n-tls does not currently support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
 
 ### System requirements
 
@@ -15,10 +16,9 @@ s2n-tls supports and tests on **x86** and **arm** architectures.
 
 Building s2n-tls requires:
 
-1. Git
 1. GCC or Clang
 1. CMake
-1. Libcrypto, such as OpenSSL
+1. Libcrypto, such as AWS-LC or OpenSSL
 1. Platform-specific build tools
 
 ## Building s2n-tls from the source
@@ -65,7 +65,7 @@ brew install cmake
 brew install openssl@3
 
 # build s2n-tls
-cmake . -Bbuild \
+cmake . -B build \
     -D CMAKE_BUILD_TYPE=Release \
     -D CMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@3|grep libcrypto.dylib))) \
     -D CMAKE_INSTALL_PREFIX=./s2n-tls-install
@@ -143,11 +143,6 @@ For help building a desired libcrypto on your platform, consult the build docume
 
 [AWS-LC](https://github.com/aws/aws-lc) is the recommended libcrypto to use with s2n-tls due to increased performance and security. See the [AWS-LC build documentation](https://github.com/aws/aws-lc/blob/main/BUILDING.md) for information on building AWS-LC.
 
-**AWS LC Options**
-
-- **`CMAKE_INSTALL_PREFIX`** : (path) Specifies the location to install AWS-LC. 
-- **`CMAKE_PREFIX_PATH`**: (path) Provides the location the AWS-LC library artifact and links it to the s2n-tls build. 
-
 ## Other build methods
 
 ### Ninja build system
@@ -163,7 +158,7 @@ sudo apt update
 sudo apt install ninja-build
 
 # build s2n-tls with ninja
-cmake . -Bbuild -GNinja \
+cmake . -B build -G Ninja \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
 ninja -C build -j $(nproc)
@@ -242,4 +237,3 @@ Consult the documentation for your platform for instructions on raising the defa
 ### Deactivate mlock()
 
 Deactivate s2n-tls's `mlock` behavior by setting the `S2N_DONT_MLOCK` environment variable set to 1. s2n-tls also reads this for unit tests. If you're having mlock failures, try setting `S2N_DONT_MLOCK=1`.
-
