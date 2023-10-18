@@ -28,14 +28,14 @@
 
 const struct s2n_kem_group *s2n_get_highest_priority_shared_kem_group(const struct s2n_kem_preferences *client_prefs, const struct s2n_kem_preferences *server_prefs)
 {
-    POSIX_ENSURE_REF(client_prefs);
-    POSIX_ENSURE_REF(server_prefs);
+    PTR_ENSURE_REF(client_prefs);
+    PTR_ENSURE_REF(server_prefs);
     for (int i = 0; i < client_prefs->tls13_kem_group_count; i++) {
         for (int j = 0; j < server_prefs->tls13_kem_group_count; j++) {
             const struct s2n_kem_group *client_group = client_prefs->tls13_kem_groups[i];
             const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[j];
-            POSIX_ENSURE_REF(client_group);
-            POSIX_ENSURE_REF(server_group);
+            PTR_ENSURE_REF(client_group);
+            PTR_ENSURE_REF(server_group);
             if (client_group->available && server_group->available && client_group->available == server_group->available) {
                 return client_group;
             }
