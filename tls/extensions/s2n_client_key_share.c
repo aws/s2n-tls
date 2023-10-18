@@ -178,10 +178,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
         client_params->kem_group = server_group;
     } else {
         client_params->kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-        /* Ignore unavailable KEM groups */
-        if (client_params->kem_group == NULL) {
-            return S2N_SUCCESS;
-        }
+        POSIX_ENSURE_REF(client_params->kem_group);
         client_params->kem_params.len_prefixed = s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_pref);
     }
 

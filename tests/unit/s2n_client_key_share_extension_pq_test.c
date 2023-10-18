@@ -36,6 +36,7 @@
 
 static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, struct s2n_kem_group_params *kem_group_params);
 static int s2n_copy_pq_share(struct s2n_stuffer *from, struct s2n_blob *to, const struct s2n_kem_group *kem_group, bool len_prefixed);
+static int s2n_get_two_highest_piority_kem_groups(const struct s2n_kem_preferences *kem_pref, const struct s2n_kem_group **kem_group0, const struct s2n_kem_group **kem_group1);
 
 int main()
 {
@@ -603,15 +604,9 @@ int main()
                     EXPECT_TRUE(groups_available >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-                    const struct s2n_kem_group *kem_group1 = NULL;
-                    for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                        const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available && kem_group != kem_group0) {
-                            kem_group1 = kem_group;
-                            break;
-                        }
-                    }
+                    const struct s2n_kem_group *kem_group0;
+                    const struct s2n_kem_group *kem_group1;
+                    EXPECT_SUCCESS(s2n_get_two_highest_piority_kem_groups(kem_pref, &kem_group0, &kem_group1));
                     EXPECT_NOT_NULL(kem_group0);
                     EXPECT_NOT_NULL(kem_group1);
 
@@ -673,7 +668,7 @@ int main()
                     EXPECT_SUCCESS(s2n_connection_get_kem_preferences(server_conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
                     EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &groups_available));
-                    EXPECT_TRUE(kem_pref >= 2);
+                    EXPECT_TRUE(groups_available >= 2);
 
                     /* Select the highest priority available KEM group */
                     const struct s2n_kem_group *kem_group0 = s2n_kem_preferences_get_highest_priority_group(kem_pref);
@@ -737,15 +732,9 @@ int main()
                     EXPECT_TRUE(groups_available >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-                    const struct s2n_kem_group *kem_group1 = NULL;
-                    for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                        const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available && kem_group != kem_group0) {
-                            kem_group1 = kem_group;
-                            break;
-                        }
-                    }
+                    const struct s2n_kem_group *kem_group0;
+                    const struct s2n_kem_group *kem_group1;
+                    EXPECT_SUCCESS(s2n_get_two_highest_piority_kem_groups(kem_pref, &kem_group0, &kem_group1));
                     EXPECT_NOT_NULL(kem_group0);
                     EXPECT_NOT_NULL(kem_group1);
 
@@ -803,15 +792,9 @@ int main()
                     EXPECT_TRUE(groups_available >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-                    const struct s2n_kem_group *kem_group1 = NULL;
-                    for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                        const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available && kem_group != kem_group0) {
-                            kem_group1 = kem_group;
-                            break;
-                        }
-                    }
+                    const struct s2n_kem_group *kem_group0;
+                    const struct s2n_kem_group *kem_group1;
+                    EXPECT_SUCCESS(s2n_get_two_highest_piority_kem_groups(kem_pref, &kem_group0, &kem_group1));
                     EXPECT_NOT_NULL(kem_group0);
                     EXPECT_NOT_NULL(kem_group1);
 
@@ -875,15 +858,9 @@ int main()
                     EXPECT_TRUE(groups_available >= 2);
 
                     /* Select the two highest priority available KEM groups */
-                    const struct s2n_kem_group *kem_group0 = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-                    const struct s2n_kem_group *kem_group1 = NULL;
-                    for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
-                        const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                        if (kem_group->available && kem_group != kem_group0) {
-                            kem_group1 = kem_group;
-                            break;
-                        }
-                    }
+                    const struct s2n_kem_group *kem_group0;
+                    const struct s2n_kem_group *kem_group1;
+                    EXPECT_SUCCESS(s2n_get_two_highest_piority_kem_groups(kem_pref, &kem_group0, &kem_group1));
                     EXPECT_NOT_NULL(kem_group0);
                     EXPECT_NOT_NULL(kem_group1);
 
@@ -990,4 +967,23 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
 
     return S2N_SUCCESS;
+}
+
+static int s2n_get_two_highest_piority_kem_groups(const struct s2n_kem_preferences *kem_pref, const struct s2n_kem_group **kem_group0, const struct s2n_kem_group **kem_group1)
+{
+    POSIX_ENSURE_REF(kem_pref);
+    POSIX_ENSURE_REF(kem_group0);
+    POSIX_ENSURE_REF(kem_group1);
+    *kem_group0 = s2n_kem_preferences_get_highest_priority_group(kem_pref);
+    if (*kem_group0 == NULL) {
+        return S2N_FAILURE;
+    }
+    for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
+        if (kem_group->available && kem_group != *kem_group0) {
+            *kem_group1 = kem_group;
+            return S2N_SUCCESS;
+        }
+    }
+    return S2N_FAILURE;
 }
