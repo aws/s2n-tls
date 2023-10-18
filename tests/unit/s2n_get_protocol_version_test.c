@@ -44,6 +44,19 @@ static int s2n_override_supported_versions_cb(struct s2n_connection *conn, void 
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_write_protocol_version(struct s2n_stuffer *stuffer, uint8_t version)
+{
+    RESULT_ENSURE_REF(stuffer);
+
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+    protocol_version[0] = version / 10;
+    protocol_version[1] = version % 10;
+
+    RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(stuffer, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -110,13 +123,9 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_client_hello_send(client));
 
                 /* Overwrite the client hello version according to the test case. */
-                uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-                protocol_version[0] = client_hello_version / 10;
-                protocol_version[1] = client_hello_version % 10;
-
                 struct s2n_stuffer *hello_stuffer = &client->handshake.io;
                 EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-                EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+                EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
                 EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
 
                 EXPECT_SUCCESS(s2n_client_hello_recv(server));
@@ -194,12 +203,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client));
 
             /* Overwrite the client hello version according to the test case. */
-            uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-            protocol_version[0] = client_hello_version / 10;
-            protocol_version[1] = client_hello_version % 10;
-
             EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+            EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
             EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
 
             EXPECT_SUCCESS(s2n_client_hello_recv(server));
@@ -249,7 +254,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(client), server_version);
     }
 
-    /* Test get_client_protocol_version fallback behavior on TLS 1.2 servers */
+    /* Ensure that TLS 1.2 servers report the client hello version if a client protocol version
+     * can't be determined by processing the supported versions extension.
+     */
     for (uint8_t client_hello_version = S2N_SSLv3; client_hello_version <= S2N_TLS12; client_hello_version++) {
         /* Report the client hello version if the supported versions extension is malformed */
         for (uint8_t send_valid_extension = 0; send_valid_extension <= 1; send_valid_extension++) {
@@ -295,12 +302,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client));
 
             /* Overwrite the client hello version according to the test case. */
-            uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-            protocol_version[0] = client_hello_version / 10;
-            protocol_version[1] = client_hello_version % 10;
-
             EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+            EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
             EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
 
             EXPECT_SUCCESS(s2n_client_hello_recv(server));
@@ -366,12 +369,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_hello_send(client));
 
             /* Overwrite the client hello version according to the test case. */
-            uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-            protocol_version[0] = client_hello_version / 10;
-            protocol_version[1] = client_hello_version % 10;
-
             EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-            EXPECT_SUCCESS(s2n_stuffer_write_bytes(hello_stuffer, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+            EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
             EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
 
             EXPECT_SUCCESS(s2n_client_hello_recv(server));
