@@ -6,8 +6,8 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, S2NConnection,
-    SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    harness::TlsBenchConfig, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup,
+    Mode, S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -17,14 +17,17 @@ use pprof::criterion::{Output, PProfProfiler};
 use std::error::Error;
 use strum::IntoEnumIterator;
 
-fn bench_throughput_for_library<T: TlsConnection>(
+fn bench_throughput_for_library<T>(
     bench_group: &mut BenchmarkGroup<WallTime>,
     shared_buf: &mut [u8],
     cipher_suite: CipherSuite,
-) {
+) where
+    T: TlsConnection,
+    T::Config: TlsBenchConfig,
+{
     let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
-    let client_config = T::make_config(Mode::Client, crypto_config, HandshakeType::default());
-    let server_config = T::make_config(Mode::Server, crypto_config, HandshakeType::default());
+    let client_config = T::Config::make_config(Mode::Client, crypto_config, HandshakeType::default());
+    let server_config = T::Config::make_config(Mode::Server, crypto_config, HandshakeType::default());
 
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
