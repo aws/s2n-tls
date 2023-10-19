@@ -226,11 +226,15 @@ int main()
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
             struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-            EXPECT_NOT_NULL(kem_group);
-            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, kem_group);
-            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, kem_group->curve);
-            EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, kem_group->kem);
-            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            if (s2n_pq_is_enabled()) {
+                EXPECT_NOT_NULL(kem_group);
+                EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, kem_group);
+                EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, kem_group->curve);
+                EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, kem_group->kem);
+                EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            } else {
+                EXPECT_NULL(kem_group);
+            }
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
         /* If server has one mutually supported KEM group and multiple mutually supported ECC, the KEM

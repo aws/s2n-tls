@@ -186,10 +186,7 @@ int main(int argc, char **argv)
                 POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                 EXPECT_NOT_NULL(kem_pref);
 
-                struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-                EXPECT_NOT_NULL(kem_group);
-
-                conn->kex_params.server_kem_group_params.kem_group = kem_group;
+                conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
                 EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_DISABLED);
