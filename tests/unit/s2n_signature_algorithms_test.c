@@ -661,7 +661,7 @@ int main(int argc, char **argv)
 
         /* Verify no duplicates - some preferences contain duplicates, but only
          * one should be valid at a time. */
-        uint16_t iana, other_iana;
+        uint16_t iana = 0, other_iana = 0;
         for (size_t a = 0; a < signatures.len; a++) {
             iana = signatures.iana_list[a];
             for (int b = 0; b < signatures.len; b++) {

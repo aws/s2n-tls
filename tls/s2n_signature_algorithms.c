@@ -31,8 +31,10 @@ static S2N_RESULT s2n_signature_scheme_validate_for_send(struct s2n_connection *
 {
     RESULT_ENSURE_REF(conn);
 
-    /* We don't know what protocol version we will eventually negotiate,
-     * but we know that it won't be any higher. */
+    /* If no protocol has been negotiated yet, the actual_protocol_version will
+     * be equivalent to the client_protocol_version and represent the highest
+     * version supported.
+     */
     RESULT_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
     /* QUIC only supports TLS1.3 */
