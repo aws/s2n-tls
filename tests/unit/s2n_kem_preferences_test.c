@@ -80,8 +80,6 @@ int main(int argc, char **argv)
         } else {
             EXPECT_FALSE(s2n_secp256r1_kyber_512_r3.available);
         }
-
-
     };
 
     END_TEST();
