@@ -6,8 +6,8 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode, S2NConnection,
-    SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    harness::TlsBenchConfig, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup,
+    Mode, S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -16,16 +16,19 @@ use pprof::criterion::{Output, PProfProfiler};
 use std::error::Error;
 use strum::IntoEnumIterator;
 
-fn bench_handshake_for_library<T: TlsConnection>(
+fn bench_handshake_for_library<T>(
     bench_group: &mut BenchmarkGroup<WallTime>,
     handshake_type: HandshakeType,
     kx_group: KXGroup,
     sig_type: SigType,
-) {
+) where
+    T: TlsConnection,
+    T::Config: TlsBenchConfig,
+{
     // make configs before benching to reuse
     let crypto_config = CryptoConfig::new(CipherSuite::default(), kx_group, sig_type);
-    let client_config = T::make_config(Mode::Client, crypto_config, handshake_type);
-    let server_config = T::make_config(Mode::Server, crypto_config, handshake_type);
+    let client_config = T::Config::make_config(Mode::Client, crypto_config, handshake_type);
+    let server_config = T::Config::make_config(Mode::Server, crypto_config, handshake_type);
 
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
     // only include negotiation and not config/connection initialization
