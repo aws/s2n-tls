@@ -57,6 +57,35 @@ S2N_RESULT s2n_write_protocol_version(struct s2n_stuffer *stuffer, uint8_t versi
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_write_test_supported_versions_extension(struct s2n_blob *supported_versions_blob, uint8_t version)
+{
+    RESULT_ENSURE_REF(supported_versions_blob);
+
+    struct s2n_stuffer supported_versions_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&supported_versions_stuffer, supported_versions_blob));
+
+    /* Write the length byte. */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&supported_versions_stuffer, 2));
+    /* Write the supported version. */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&supported_versions_stuffer, version / 10));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&supported_versions_stuffer, version % 10));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_write_malformed_supported_versions_extension(struct s2n_blob *supported_versions_blob)
+{
+    RESULT_ENSURE_REF(supported_versions_blob);
+
+    struct s2n_stuffer supported_versions_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init(&supported_versions_stuffer, supported_versions_blob));
+
+    /* Write an invalid length byte. */
+    RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&supported_versions_stuffer, 11));
+
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -91,16 +120,8 @@ int main(int argc, char **argv)
 
                 uint8_t supported_versions_data[3] = { 0 };
                 struct s2n_blob supported_versions_blob = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&supported_versions_blob, supported_versions_data,
-                        s2n_array_len(supported_versions_data)));
-                struct s2n_stuffer supported_versions_stuffer = { 0 };
-                EXPECT_SUCCESS(s2n_stuffer_init(&supported_versions_stuffer, &supported_versions_blob));
-
-                /* Write the length byte. */
-                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, 2));
-                /* Write the supported version. */
-                POSIX_GUARD(s2n_stuffer_write_uint8(&supported_versions_stuffer, client_supported_version / 10));
-                POSIX_GUARD(s2n_stuffer_write_uint8(&supported_versions_stuffer, client_supported_version % 10));
+                EXPECT_SUCCESS(s2n_blob_init(&supported_versions_blob, supported_versions_data, sizeof(supported_versions_data)));
+                EXPECT_OK(s2n_write_test_supported_versions_extension(&supported_versions_blob, client_supported_version));
 
                 /* The override_supported_versions client hello callback is used to overwrite the
                  * supported versions extension before the extension is processed.
@@ -199,10 +220,10 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server);
             EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
 
-            struct s2n_stuffer *hello_stuffer = &client->handshake.io;
             EXPECT_SUCCESS(s2n_client_hello_send(client));
 
             /* Overwrite the client hello version according to the test case. */
+            struct s2n_stuffer *hello_stuffer = &client->handshake.io;
             EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
             EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
             EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
@@ -254,140 +275,102 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(client), server_version);
     }
 
-    /* Ensure that TLS 1.2 servers report the client hello version if a client protocol version
-     * can't be determined by processing the supported versions extension.
+    /* Ensure that TLS 1.2 servers report the client hello version as the client protocol version
+     * if a malformed supported versions extension was received
      */
     for (uint8_t client_hello_version = S2N_SSLv3; client_hello_version <= S2N_TLS12; client_hello_version++) {
-        /* Report the client hello version if the supported versions extension is malformed */
-        for (uint8_t send_valid_extension = 0; send_valid_extension <= 1; send_valid_extension++) {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
 
-            uint8_t supported_versions_data[3] = { 0 };
-            struct s2n_blob supported_versions_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&supported_versions_blob, supported_versions_data,
-                    s2n_array_len(supported_versions_data)));
-            struct s2n_stuffer supported_versions_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_stuffer_init(&supported_versions_stuffer, &supported_versions_blob));
+        uint8_t supported_versions_data[1] = { 0 };
+        struct s2n_blob supported_versions_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&supported_versions_blob, supported_versions_data, sizeof(supported_versions_data)));
+        EXPECT_OK(s2n_write_malformed_supported_versions_extension(&supported_versions_blob));
 
-            /* Write the length byte. */
-            if (send_valid_extension) {
-                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, 2));
-            } else {
-                /* Create a malformed supported versions extension by writing an invalid length
-                 * byte. */
-                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, 11));
-            }
-            /* Write the supported version. */
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, S2N_TLS13 / 10));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, S2N_TLS13 % 10));
+        struct s2n_override_extension_ctx context = {
+            .extension_blob = supported_versions_blob
+        };
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_override_supported_versions_cb, &context));
 
-            struct s2n_override_extension_ctx context = {
-                .extension_blob = supported_versions_blob
-            };
-            EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_override_supported_versions_cb, &context));
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
-            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(client);
-            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
-            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server);
-            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_client_hello_send(client));
 
-            struct s2n_stuffer *hello_stuffer = &client->handshake.io;
-            EXPECT_SUCCESS(s2n_client_hello_send(client));
+        /* Overwrite the client hello version according to the test case. */
+        struct s2n_stuffer *hello_stuffer = &client->handshake.io;
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
+        EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
+        EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
 
-            /* Overwrite the client hello version according to the test case. */
-            EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-            EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
-            EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server));
+        EXPECT_EQUAL(context.invoked_count, 1);
 
-            EXPECT_SUCCESS(s2n_client_hello_recv(server));
-            EXPECT_EQUAL(context.invoked_count, 1);
+        /* Ensure that a supported versions extension was received. */
+        bool supported_versions_received = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&server->client_hello, S2N_EXTENSION_SUPPORTED_VERSIONS,
+                &supported_versions_received));
+        EXPECT_TRUE(supported_versions_received);
 
-            if (send_valid_extension) {
-                /* TLS 1.3 was written to the supported versions extension. If a valid extension was
-                 * sent, the reported client protocol version should be TLS 1.3.
-                 */
-                EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), S2N_TLS13);
-            } else {
-                /* The reported client protocol version should fall back to the client hello version
-                 * if the supported versions extension is malformed.
-                 */
-                EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), client_hello_version);
-            }
-        }
+        EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), client_hello_version);
+    }
 
-        /* Report the client hello version if an invalid supported version was received */
-        for (uint8_t send_valid_version = 0; send_valid_version <= 1; send_valid_version++) {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
+    /* Ensure that TLS 1.2 servers report the client hello version as the client protocol version
+     * if an invalid supported version is received
+     */
+    for (uint8_t client_hello_version = S2N_SSLv3; client_hello_version <= S2N_TLS12; client_hello_version++) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
 
-            uint8_t supported_versions_data[3] = { 0 };
-            struct s2n_blob supported_versions_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&supported_versions_blob, supported_versions_data,
-                    s2n_array_len(supported_versions_data)));
-            struct s2n_stuffer supported_versions_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_stuffer_init(&supported_versions_stuffer, &supported_versions_blob));
+        uint8_t invalid_supported_version = S2N_TLS13 + 10;
 
-            /* Write the length byte. */
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, 2));
+        uint8_t supported_versions_data[3] = { 0 };
+        struct s2n_blob supported_versions_blob = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&supported_versions_blob, supported_versions_data, sizeof(supported_versions_data)));
+        EXPECT_OK(s2n_write_test_supported_versions_extension(&supported_versions_blob, invalid_supported_version));
 
-            uint8_t valid_supported_version = S2N_TLS13;
-            uint8_t invalid_supported_version = S2N_TLS13 + 10;
+        struct s2n_override_extension_ctx context = {
+            .extension_blob = supported_versions_blob
+        };
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_override_supported_versions_cb, &context));
 
-            uint8_t supported_version = invalid_supported_version;
-            if (send_valid_version) {
-                supported_version = valid_supported_version;
-            }
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
-            /* Write the supported version. */
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, supported_version / 10));
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&supported_versions_stuffer, supported_version % 10));
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
-            struct s2n_override_extension_ctx context = {
-                .extension_blob = supported_versions_blob
-            };
-            EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_override_supported_versions_cb, &context));
+        struct s2n_stuffer *hello_stuffer = &client->handshake.io;
+        EXPECT_SUCCESS(s2n_client_hello_send(client));
 
-            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(client);
-            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        /* Overwrite the client hello version according to the test case. */
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
+        EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
+        EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
 
-            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                    s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(server);
-            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server));
+        EXPECT_EQUAL(context.invoked_count, 1);
 
-            struct s2n_stuffer *hello_stuffer = &client->handshake.io;
-            EXPECT_SUCCESS(s2n_client_hello_send(client));
+        /* Ensure that a supported versions extension was received. */
+        bool supported_versions_received = false;
+        EXPECT_SUCCESS(s2n_client_hello_has_extension(&server->client_hello, S2N_EXTENSION_SUPPORTED_VERSIONS,
+                &supported_versions_received));
+        EXPECT_TRUE(supported_versions_received);
 
-            /* Overwrite the client hello version according to the test case. */
-            EXPECT_SUCCESS(s2n_stuffer_rewrite(hello_stuffer));
-            EXPECT_OK(s2n_write_protocol_version(hello_stuffer, client_hello_version));
-            EXPECT_SUCCESS(s2n_stuffer_write(&server->handshake.io, &hello_stuffer->blob));
-
-            EXPECT_SUCCESS(s2n_client_hello_recv(server));
-            EXPECT_EQUAL(context.invoked_count, 1);
-
-            if (send_valid_version) {
-                /* If a valid supported version was sent, the version should be reported regardless
-                 * of the client hello version.
-                 */
-                EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), valid_supported_version);
-            } else {
-                /* The reported client protocol version should fall back to the client hello
-                 * version if the received supported version is invalid.
-                 */
-                EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), client_hello_version);
-            }
-        }
+        EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), client_hello_version);
     }
 
     END_TEST();
