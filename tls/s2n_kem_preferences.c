@@ -75,7 +75,7 @@ const struct s2n_kem_preferences kem_preferences_null = {
     .tls13_pq_hybrid_draft_revision = 0
 };
 
-/* Determines if query_iana_id corresponds to an available tls13_kem_group for these KEM preferences. */
+/* Determines if query_iana_id corresponds to a tls13_kem_group for these KEM preferences. */
 bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,
         uint16_t query_iana_id)
 {
@@ -84,8 +84,7 @@ bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferenc
     }
 
     for (size_t i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
-        if (query_iana_id == kem_preferences->tls13_kem_groups[i]->iana_id
-                && kem_preferences->tls13_kem_groups[i]->available) {
+        if (query_iana_id == kem_preferences->tls13_kem_groups[i]->iana_id) {
             return true;
         }
     }

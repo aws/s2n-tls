@@ -50,9 +50,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
     const struct s2n_kem_group *expected_kem_group = s2n_get_highest_priority_shared_kem_group(client_sec_policy->kem_preferences, server_sec_policy->kem_preferences);
-    if ((expected_kem_group == NULL) == (expected_curve == NULL)) {
-        printf("FOOBAR %p %p\n", expected_kem_group, expected_curve);
-    }
     POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
 
     /* Set up connections */
