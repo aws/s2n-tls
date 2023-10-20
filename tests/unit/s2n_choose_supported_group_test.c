@@ -239,7 +239,7 @@ int main()
         };
         /* If server has one mutually supported KEM group and multiple mutually supported ECC, the KEM
          * group should be chosen.
-         * Need at least two available KEM's to test fallback. */
+         * Need at least one available KEM to test fallback. */
         uint32_t available_groups = 0;
         EXPECT_OK(s2n_kem_preferences_groups_available(&kem_preferences_all, &available_groups));
         if (available_groups >= 1) {
