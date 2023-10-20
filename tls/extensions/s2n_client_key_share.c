@@ -145,7 +145,7 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     POSIX_ENSURE_REF(kem_pref);
 
     uint32_t available_groups = 0;
-    POSIX_ENSURE(s2n_result_is_ok(s2n_kem_preferences_groups_available(kem_pref, &available_groups)), S2N_ERR_INVALID_STATE);
+    POSIX_GUARD_RESULT(s2n_kem_preferences_groups_available(kem_pref, &available_groups));
     if (available_groups == 0) {
         return S2N_SUCCESS;
     }
