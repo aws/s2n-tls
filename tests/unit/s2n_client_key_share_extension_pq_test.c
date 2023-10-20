@@ -975,9 +975,7 @@ static int s2n_get_two_highest_piority_kem_groups(const struct s2n_kem_preferenc
     POSIX_ENSURE_REF(kem_group0);
     POSIX_ENSURE_REF(kem_group1);
     *kem_group0 = s2n_kem_preferences_get_highest_priority_group(kem_pref);
-    if (*kem_group0 == NULL) {
-        return S2N_FAILURE;
-    }
+    POSIX_ENSURE_REF(*kem_group0);
     for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
         if (kem_group->available && kem_group != *kem_group0) {
