@@ -172,7 +172,7 @@ int s2n_cert_req_send(struct s2n_connection *conn)
     }
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        POSIX_GUARD(s2n_send_supported_sig_scheme_list(conn, out));
+        POSIX_GUARD_RESULT(s2n_signature_algorithms_supported_list_send(conn, out));
     }
 
     /* RFC 5246 7.4.4 - If the certificate_authorities list is empty, then the
