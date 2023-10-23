@@ -40,6 +40,5 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
         const struct s2n_signature_scheme **chosen_sig_scheme);
 
 int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);
-int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out);
-int s2n_supported_sig_schemes_count(struct s2n_connection *conn);
-int s2n_supported_sig_scheme_list_size(struct s2n_connection *conn);
+S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *conn,
+        struct s2n_stuffer *out);
