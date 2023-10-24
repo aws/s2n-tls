@@ -1,25 +1,25 @@
 use bench::{
-    CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection, SigType, TlsConnPair,
-    TlsConnection,
+    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, S2NConnection,
+    SigType, TlsConnPair, TlsConnection,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
 };
 
-fn bench_handshake_pair<T: TlsConnection>(
-    bench_group: &mut BenchmarkGroup<WallTime>,
-    sig_type: SigType,
-) {
+fn bench_handshake_pair<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
+where
+    T: TlsConnection,
+    T::Config: TlsBenchConfig,
+{
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
     // only include negotiation and not config/connection initialization
     for handshake in [HandshakeType::Resumption, HandshakeType::ServerAuth] {
         bench_group.bench_function(format!("{:?}-{}", handshake, T::name()), |b| {
             b.iter_batched_ref(
                 || {
-                    TlsConnPair::<T, T>::new(
+                    TlsConnPair::<T, T>::new_bench_pair(
                         CryptoConfig::new(CipherSuite::default(), KXGroup::default(), sig_type),
                         handshake,
-                        Default::default(),
                     )
                 },
                 |conn_pair_res| {
@@ -33,18 +33,18 @@ fn bench_handshake_pair<T: TlsConnection>(
     }
 }
 
-fn bench_handshake_server_1rtt<T: TlsConnection>(
-    bench_group: &mut BenchmarkGroup<WallTime>,
-    sig_type: SigType,
-) {
+fn bench_handshake_server_1rtt<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
+where
+    T: TlsConnection,
+    T::Config: TlsBenchConfig,
+{
     for handshake in [HandshakeType::Resumption, HandshakeType::ServerAuth] {
         bench_group.bench_function(format!("{:?}-{}", handshake, T::name()), |b| {
             b.iter_batched_ref(
                 || {
-                    let pair = TlsConnPair::<T, T>::new(
+                    let pair = TlsConnPair::<T, T>::new_bench_pair(
                         CryptoConfig::new(CipherSuite::default(), KXGroup::default(), sig_type),
                         handshake,
-                        Default::default(),
                     )
                     .unwrap();
                     let (mut c, s) = pair.split();
