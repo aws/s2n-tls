@@ -1974,6 +1974,36 @@ int main(int argc, char **argv)
     {
         const char *non_root_cert_path = S2N_RSA_2048_PKCS1_LEAF_CERT;
 
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+        /* Ensure that the test certificate isn't self-signed, and is therefore not a root.
+         *
+         * The X509_get_extension_flags API wasn't added to OpenSSL until 1.1.0.
+         */
+        {
+            const char *non_root_key_path = S2N_RSA_2048_PKCS1_KEY;
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, non_root_cert_path, non_root_key_path));
+            struct s2n_cert *cert = NULL;
+            EXPECT_SUCCESS(s2n_cert_chain_get_cert(chain_and_key, &cert, 0));
+            EXPECT_NOT_NULL(cert);
+
+            /* Use the s2n_cert to convert the PEM to ASN.1. */
+            const uint8_t *asn1_data = NULL;
+            uint32_t asn1_len = 0;
+            EXPECT_SUCCESS(s2n_cert_get_der(cert, &asn1_data, &asn1_len));
+            EXPECT_NOT_NULL(asn1_data);
+
+            /* Parse the ASN.1 data with the libcrypto */
+            X509 *x509 = d2i_X509(NULL, &asn1_data, asn1_len);
+            EXPECT_NOT_NULL(x509);
+
+            /* Ensure that the self-signed flag isn't set */
+            uint32_t extension_flags = X509_get_extension_flags(x509);
+            EXPECT_EQUAL(extension_flags & EXFLAG_SS, 0);
+        }
+#endif
+
         /* Test s2n_config_set_verification_ca_location */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -1998,18 +2028,6 @@ int main(int argc, char **argv)
             s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
             EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
                     &public_key_out));
-
-#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-            /* Ensure that the test certificate isn't self-signed, and is therefore not a root.
-             *
-             * The X509_get_extension_flags API wasn't added to OpenSSL until 1.1.0.
-             */
-            EXPECT_EQUAL(sk_X509_num(validator.cert_chain_from_wire), 1);
-            X509 *test_cert = sk_X509_value(validator.cert_chain_from_wire, 0);
-            EXPECT_NOT_NULL(test_cert);
-            uint32_t extension_flags = X509_get_extension_flags(test_cert);
-            EXPECT_EQUAL(extension_flags & EXFLAG_SS, 0);
-#endif
         }
 
         /* Test s2n_config_add_pem_to_trust_store */
