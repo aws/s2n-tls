@@ -64,8 +64,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(server_conn, &io));
         EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
 
-        EXPECT_EQUAL(server_conn->handshake_params.client_sig_hash_algs.len,
-                s2n_supported_sig_schemes_count(client_conn));
+        EXPECT_TRUE(server_conn->handshake_params.client_sig_hash_algs.len > 0);
 
         s2n_stuffer_free(&io);
         s2n_connection_free(client_conn);
@@ -93,7 +92,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
         EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
         EXPECT_FAILURE(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
-                &conn->handshake_params.conn_sig_scheme));
+                &conn->handshake_params.server_cert_sig_scheme));
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -121,8 +120,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
         EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
         EXPECT_SUCCESS(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.client_sig_hash_algs,
-                &conn->handshake_params.conn_sig_scheme));
-        EXPECT_EQUAL(conn->handshake_params.conn_sig_scheme.iana_value, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384);
+                &conn->handshake_params.server_cert_sig_scheme));
+        EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme->iana_value, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384);
 
         EXPECT_SUCCESS(s2n_stuffer_free(&signature_algorithms_extension));
         EXPECT_SUCCESS(s2n_connection_free(conn));

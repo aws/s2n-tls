@@ -26,27 +26,31 @@
 #include "tls/s2n_signature_scheme.h"
 #include "utils/s2n_safety.h"
 
-static int s2n_signature_scheme_valid_to_offer(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
+static S2N_RESULT s2n_signature_scheme_validate_for_send(struct s2n_connection *conn,
+        const struct s2n_signature_scheme *scheme)
 {
-    POSIX_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn);
 
-    /* We don't know what protocol version we will eventually negotiate, but we know that it won't be any higher. */
-    POSIX_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
+    /* If no protocol has been negotiated yet, the actual_protocol_version will
+     * be equivalent to the client_protocol_version and represent the highest
+     * version supported.
+     */
+    RESULT_ENSURE_GTE(conn->actual_protocol_version, scheme->minimum_protocol_version);
 
     /* QUIC only supports TLS1.3 */
     if (s2n_connection_is_quic_enabled(conn) && scheme->maximum_protocol_version) {
-        POSIX_ENSURE_GTE(scheme->maximum_protocol_version, S2N_TLS13);
+        RESULT_ENSURE_GTE(scheme->maximum_protocol_version, S2N_TLS13);
     }
 
     if (!s2n_is_rsa_pss_signing_supported()) {
-        POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_RSAE);
+        RESULT_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_RSAE);
     }
 
     if (!s2n_is_rsa_pss_certs_supported()) {
-        POSIX_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
+        RESULT_ENSURE_NE(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
     }
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, const struct s2n_signature_scheme *scheme)
@@ -54,7 +58,7 @@ static int s2n_signature_scheme_valid_to_accept(struct s2n_connection *conn, con
     POSIX_ENSURE_REF(scheme);
     POSIX_ENSURE_REF(conn);
 
-    POSIX_GUARD(s2n_signature_scheme_valid_to_offer(conn, scheme));
+    POSIX_GUARD_RESULT(s2n_signature_scheme_validate_for_send(conn, scheme));
 
     if (scheme->maximum_protocol_version != S2N_UNKNOWN_PROTOCOL_VERSION) {
         POSIX_ENSURE_LTE(conn->actual_protocol_version, scheme->maximum_protocol_version);
@@ -83,7 +87,7 @@ static int s2n_is_signature_scheme_usable(struct s2n_connection *conn, const str
 }
 
 static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
-        struct s2n_signature_scheme *chosen_scheme_out)
+        const struct s2n_signature_scheme **chosen_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
@@ -105,7 +109,7 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
             uint16_t their_iana_val = peer_wire_prefs->iana_list[j];
 
             if (candidate->iana_value == their_iana_val) {
-                *chosen_scheme_out = *candidate;
+                *chosen_scheme_out = candidate;
                 return S2N_SUCCESS;
             }
         }
@@ -116,7 +120,8 @@ static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_sch
 }
 
 /* similar to s2n_choose_sig_scheme() without matching client's preference */
-int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *chosen_scheme_out)
+int s2n_tls13_default_sig_scheme(struct s2n_connection *conn,
+        const struct s2n_signature_scheme **chosen_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
@@ -135,7 +140,7 @@ int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signatu
             continue;
         }
 
-        *chosen_scheme_out = *candidate;
+        *chosen_scheme_out = candidate;
         return S2N_SUCCESS;
     }
 
@@ -143,7 +148,7 @@ int s2n_tls13_default_sig_scheme(struct s2n_connection *conn, struct s2n_signatu
 }
 
 int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn, struct s2n_stuffer *in,
-        struct s2n_signature_scheme *chosen_sig_scheme)
+        const struct s2n_signature_scheme **chosen_sig_scheme)
 {
     uint16_t actual_iana_val;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &actual_iana_val));
@@ -160,7 +165,7 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
         }
 
         if (candidate->iana_value == actual_iana_val) {
-            *chosen_sig_scheme = *candidate;
+            *chosen_sig_scheme = candidate;
             return S2N_SUCCESS;
         }
     }
@@ -168,7 +173,8 @@ int s2n_get_and_validate_negotiated_signature_scheme(struct s2n_connection *conn
     POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
 
-int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signature_scheme *sig_scheme_out, s2n_mode signer)
+int s2n_choose_default_sig_scheme(struct s2n_connection *conn,
+        const struct s2n_signature_scheme **sig_scheme_out, s2n_mode signer)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
@@ -194,7 +200,7 @@ int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signat
 
     if (conn->actual_protocol_version < S2N_TLS12) {
         /* Before TLS1.2, signature algorithms were fixed, not chosen / negotiated. */
-        *sig_scheme_out = *default_sig_scheme;
+        *sig_scheme_out = default_sig_scheme;
         return S2N_SUCCESS;
     } else {
         /* If we attempt to negotiate a default in TLS1.2, we should ensure that
@@ -205,7 +211,7 @@ int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signat
         POSIX_ENSURE_REF(signature_preferences);
         for (size_t i = 0; i < signature_preferences->count; i++) {
             if (signature_preferences->signature_schemes[i]->iana_value == default_sig_scheme->iana_value) {
-                *sig_scheme_out = *default_sig_scheme;
+                *sig_scheme_out = default_sig_scheme;
                 return S2N_SUCCESS;
             }
         }
@@ -214,21 +220,19 @@ int s2n_choose_default_sig_scheme(struct s2n_connection *conn, struct s2n_signat
          * is actually necessary.
          * If no valid default exists, set an unusable, invalid empty scheme.
          */
-        *sig_scheme_out = (struct s2n_signature_scheme){
-            .hash_alg = S2N_HASH_NONE,
-            .sig_alg = S2N_SIGNATURE_ANONYMOUS,
-        };
+        *sig_scheme_out = &s2n_null_sig_scheme;
         return S2N_SUCCESS;
     }
 }
 
-int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
-        struct s2n_signature_scheme *sig_scheme_out)
+int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
+        struct s2n_sig_scheme_list *peer_wire_prefs,
+        const struct s2n_signature_scheme **sig_scheme_out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(sig_scheme_out);
 
-    struct s2n_signature_scheme chosen_scheme = { 0 };
+    const struct s2n_signature_scheme *chosen_scheme = &s2n_null_sig_scheme;
     if (conn->actual_protocol_version < S2N_TLS13) {
         POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme, conn->mode));
     } else {
@@ -246,42 +250,25 @@ int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
     return S2N_SUCCESS;
 }
 
-int s2n_send_supported_sig_scheme_list(struct s2n_connection *conn, struct s2n_stuffer *out)
+S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     const struct s2n_signature_preferences *signature_preferences = NULL;
-    POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
-    POSIX_ENSURE_REF(signature_preferences);
+    RESULT_GUARD_POSIX(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    RESULT_ENSURE_REF(signature_preferences);
 
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, s2n_supported_sig_scheme_list_size(conn)));
+    struct s2n_stuffer_reservation size = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(out, &size));
 
     for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *const scheme = signature_preferences->signature_schemes[i];
-        if (0 == s2n_signature_scheme_valid_to_offer(conn, scheme)) {
-            POSIX_GUARD(s2n_stuffer_write_uint16(out, scheme->iana_value));
+        RESULT_ENSURE_REF(scheme);
+        if (s2n_result_is_ok(s2n_signature_scheme_validate_for_send(conn, scheme))) {
+            RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(out, scheme->iana_value));
         }
     }
+    RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&size));
 
-    return 0;
-}
-
-int s2n_supported_sig_scheme_list_size(struct s2n_connection *conn)
-{
-    return s2n_supported_sig_schemes_count(conn) * TLS_SIGNATURE_SCHEME_LEN;
-}
-
-int s2n_supported_sig_schemes_count(struct s2n_connection *conn)
-{
-    const struct s2n_signature_preferences *signature_preferences = NULL;
-    POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
-    POSIX_ENSURE_REF(signature_preferences);
-
-    uint8_t count = 0;
-    for (size_t i = 0; i < signature_preferences->count; i++) {
-        if (0 == s2n_signature_scheme_valid_to_offer(conn, signature_preferences->signature_schemes[i])) {
-            count++;
-        }
-    }
-    return count;
+    return S2N_RESULT_OK;
 }
 
 int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs)

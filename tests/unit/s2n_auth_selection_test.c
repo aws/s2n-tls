@@ -53,7 +53,7 @@ static int s2n_test_auth_combo(struct s2n_connection *conn,
     conn->secure->cipher_suite = cipher_suite;
 
     POSIX_GUARD(s2n_is_sig_scheme_valid_for_auth(conn, sig_scheme));
-    conn->handshake_params.conn_sig_scheme.sig_alg = sig_scheme->sig_alg;
+    conn->handshake_params.server_cert_sig_scheme = sig_scheme;
 
     POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &actual_cert_chain));
     POSIX_ENSURE_EQ(actual_cert_chain, expected_cert_chain);
@@ -303,38 +303,48 @@ int main(int argc, char **argv)
         /* Requested cert chain exists */
         s2n_connection_set_config(conn, all_certs_config);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
+        struct s2n_signature_scheme test_sig_scheme = { 0 };
+        conn->handshake_params.server_cert_sig_scheme = &test_sig_scheme;
+
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
         EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
+        /* cppcheck-suppress redundantAssignment */
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
         EXPECT_SUCCESS_IF_RSA_PSS_CERTS_SUPPORTED(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_EQUAL(chosen_certs, rsa_pss_cert_chain);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
+        /* cppcheck-suppress redundantAssignment */
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
         EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_EQUAL(chosen_certs, rsa_cert_chain);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
+        /* cppcheck-suppress redundantAssignment */
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
         EXPECT_SUCCESS(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_EQUAL(chosen_certs, ecdsa_cert_chain);
 
         /* Requested cert chain does NOT exist */
         s2n_connection_set_config(conn, no_certs_config);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
+        /* cppcheck-suppress redundantAssignment */
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_RSA;
         EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_NULL(chosen_certs);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
+        /* cppcheck-suppress redundantAssignment */
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_PSS;
         EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_NULL(chosen_certs);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
+        /* cppcheck-suppress redundantAssignment */
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_RSA_PSS_RSAE;
         EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_NULL(chosen_certs);
 
-        conn->handshake_params.conn_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
+        /* cppcheck-suppress redundantAssignment */
+        test_sig_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
         EXPECT_FAILURE(s2n_select_certs_for_server_auth(conn, &chosen_certs));
         EXPECT_NULL(chosen_certs);
 
