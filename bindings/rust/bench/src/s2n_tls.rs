@@ -63,60 +63,12 @@ pub struct S2NConfig {
     ticket_storage: SessionTicketStorage,
 }
 
-pub struct S2NConnection {
-    // Pin<Box<T>> is to ensure long-term *mut to IO buffers remains valid
-    connected_buffer: Pin<Box<ConnectedBuffer>>,
-    connection: Connection,
-    handshake_completed: bool,
-}
-
-impl S2NConnection {
-    /// Unsafe callback for custom IO C API
-    ///
-    /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
-    /// reduce overhead and outside noise with a local buffer for benchmarking
-    unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut ConnectedBuffer);
-        let data = core::slice::from_raw_parts(data, len as _);
-        context.write(data).unwrap() as _
-    }
-
-    /// Unsafe callback for custom IO C API
-    unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut ConnectedBuffer);
-        let data = core::slice::from_raw_parts_mut(data, len as _);
-        context.flush().unwrap();
-        match context.read(data) {
-            Err(err) => {
-                // s2n-tls requires the callback to set errno if blocking happens
-                if let ErrorKind::WouldBlock = err.kind() {
-                    errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
-                    -1
-                } else {
-                    panic!("{err:?}");
-                }
-            }
-            Ok(len) => len as _,
-        }
-    }
-
-    pub fn connection(&self) -> &Connection {
-        &self.connection
-    }
-}
-
-impl TlsConnection for S2NConnection {
-    type Config = S2NConfig;
-
-    fn name() -> String {
-        "s2n-tls".to_string()
-    }
-
+impl crate::harness::TlsBenchConfig for S2NConfig {
     fn make_config(
         mode: Mode,
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
-    ) -> Result<Self::Config, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error>> {
         // these security policies negotiate the given cipher suite and key
         // exchange group as their top choice
         let security_policy = match (crypto_config.cipher_suite, crypto_config.kx_group) {
@@ -197,6 +149,56 @@ impl TlsConnection for S2NConnection {
             config: builder.build()?,
             ticket_storage: session_ticket_storage,
         })
+    }
+}
+
+pub struct S2NConnection {
+    // Pin<Box<T>> is to ensure long-term *mut to IO buffers remains valid
+    connected_buffer: Pin<Box<ConnectedBuffer>>,
+    connection: Connection,
+    handshake_completed: bool,
+}
+
+impl S2NConnection {
+    /// Unsafe callback for custom IO C API
+    ///
+    /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
+    /// reduce overhead and outside noise with a local buffer for benchmarking
+    unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
+        let context = &mut *(context as *mut ConnectedBuffer);
+        let data = core::slice::from_raw_parts(data, len as _);
+        context.write(data).unwrap() as _
+    }
+
+    /// Unsafe callback for custom IO C API
+    unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
+        let context = &mut *(context as *mut ConnectedBuffer);
+        let data = core::slice::from_raw_parts_mut(data, len as _);
+        context.flush().unwrap();
+        match context.read(data) {
+            Err(err) => {
+                // s2n-tls requires the callback to set errno if blocking happens
+                if let ErrorKind::WouldBlock = err.kind() {
+                    errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
+                    -1
+                } else {
+                    panic!("{err:?}");
+                }
+            }
+            Ok(len) => len as _,
+        }
+    }
+
+    pub fn connection(&self) -> &Connection {
+        &self.connection
+    }
+}
+
+impl TlsConnection for S2NConnection {
+    type Config = S2NConfig;
+
+    fn name() -> String {
+        "s2n-tls".to_string()
     }
 
     fn new_from_config(
