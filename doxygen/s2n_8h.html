@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.55-e76363e8</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.55-80db0095</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -5845,13 +5845,14 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Gets the client certificate chain and places it in the <code>der_cert_chain_out</code> buffer. <code>cert_chain_len</code> is updated to match the size the chain buffer.</p>
-<dl class="section warning"><dt>Warning</dt><dd>The buffers share a lifetime with the s2n_connection object.</dd></dl>
+<p >Gets the raw certificate chain received from the client.</p>
+<p >The retrieved certificate chain has the format described by the TLS 1.2 RFC: <a href="https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.2">https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.2</a>. Each certificate is a DER-encoded ASN.1 X.509, prepended by a 3 byte network-endian length value. Note that this format is used regardless of the connection's protocol version.</p>
+<dl class="section warning"><dt>Warning</dt><dd>The buffer pointed to by <code>cert_chain_out</code> shares its lifetime with the s2n_connection object.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
-    <tr><td class="paramname">der_cert_chain_out</td><td>A uint8_t pointer. This will be updated to point to the client certificate chain. </td></tr>
-    <tr><td class="paramname">cert_chain_len</td><td>A pointer to a uint32_t. This will be updated to match the size of the buffer <code>der_cert_chain_out</code> points to. </td></tr>
+    <tr><td class="paramname">cert_chain_out</td><td>A pointer that's set to the client certificate chain. </td></tr>
+    <tr><td class="paramname">cert_chain_len</td><td>A pointer that's set to the size of the <code>cert_chain_out</code> buffer. </td></tr>
   </table>
   </dd>
 </dl>
