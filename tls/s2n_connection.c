@@ -32,6 +32,7 @@
 #include "crypto/s2n_openssl_x509.h"
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_client_server_name.h"
+#include "tls/extensions/s2n_client_supported_versions.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_handshake.h"
@@ -938,9 +939,57 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
     return conn->kex_params.client_kem_group_params.kem_group->name;
 }
 
+static S2N_RESULT s2n_connection_get_client_supported_version(struct s2n_connection *conn,
+        uint8_t *client_supported_version)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_EQ(conn->mode, S2N_SERVER);
+
+    struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
+    RESULT_ENSURE_REF(client_hello);
+
+    s2n_parsed_extension *supported_versions_extension = NULL;
+    RESULT_GUARD_POSIX(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SUPPORTED_VERSIONS, &client_hello->extensions,
+            &supported_versions_extension));
+    RESULT_ENSURE_REF(supported_versions_extension);
+
+    struct s2n_stuffer supported_versions_stuffer = { 0 };
+    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&supported_versions_stuffer, &supported_versions_extension->extension));
+
+    uint8_t client_protocol_version = s2n_unknown_protocol_version;
+    uint8_t actual_protocol_version = s2n_unknown_protocol_version;
+    RESULT_GUARD_POSIX(s2n_extensions_client_supported_versions_process(conn, &supported_versions_stuffer,
+            &client_protocol_version, &actual_protocol_version));
+
+    RESULT_ENSURE_NE(client_protocol_version, s2n_unknown_protocol_version);
+
+    *client_supported_version = client_protocol_version;
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_connection_get_client_protocol_version(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+
+    /* For backwards compatibility, the client_protocol_version field isn't updated via the
+     * supported versions extension on TLS 1.2 servers. See
+     * https://github.com/aws/s2n-tls/issues/4240.
+     *
+     * The extension is processed here to ensure that TLS 1.2 servers report the same client
+     * protocol version to applications as TLS 1.3 servers.
+     */
+    if (conn->mode == S2N_SERVER && conn->server_protocol_version <= S2N_TLS12) {
+        uint8_t client_supported_version = s2n_unknown_protocol_version;
+        s2n_result result = s2n_connection_get_client_supported_version(conn, &client_supported_version);
+
+        /* If the extension wasn't received, or if a client protocol version couldn't be determined
+         * after processing the extension, the extension is ignored.
+         */
+        if (s2n_result_is_ok(result)) {
+            return client_supported_version;
+        }
+    }
 
     return conn->client_protocol_version;
 }

@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+DEFINE_POINTER_CLEANUP_FUNC(X509 *, X509_free);
+
 static int mock_time(void *data, uint64_t *timestamp)
 {
     *timestamp = *(uint64_t *) data;
@@ -1969,6 +1971,129 @@ int main(int argc, char **argv)
             s2n_config_free(cfg);
         };
     };
+
+    /* Ensure that non-root certificates added to the trust store are trusted */
+    {
+        const char *non_root_cert_path = S2N_RSA_2048_PKCS1_LEAF_CERT;
+
+#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+        /* Ensure that the test certificate isn't self-signed, and is therefore not a root.
+         *
+         * The X509_get_extension_flags API wasn't added to OpenSSL until 1.1.0.
+         */
+        {
+            const char *non_root_key_path = S2N_RSA_2048_PKCS1_KEY;
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, non_root_cert_path, non_root_key_path));
+            struct s2n_cert *cert = NULL;
+            EXPECT_SUCCESS(s2n_cert_chain_get_cert(chain_and_key, &cert, 0));
+            EXPECT_NOT_NULL(cert);
+
+            /* Use the s2n_cert to convert the PEM to ASN.1. */
+            const uint8_t *asn1_data = NULL;
+            uint32_t asn1_len = 0;
+            EXPECT_SUCCESS(s2n_cert_get_der(cert, &asn1_data, &asn1_len));
+            EXPECT_NOT_NULL(asn1_data);
+
+            /* Parse the ASN.1 data with the libcrypto */
+            DEFER_CLEANUP(X509 *x509 = d2i_X509(NULL, &asn1_data, asn1_len), X509_free_pointer);
+            EXPECT_NOT_NULL(x509);
+
+            /* Ensure that the self-signed flag isn't set */
+            uint32_t extension_flags = X509_get_extension_flags(x509);
+            EXPECT_EQUAL(extension_flags & EXFLAG_SS, 0);
+        }
+#endif
+
+        /* Test s2n_config_set_verification_ca_location */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, non_root_cert_path, NULL));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+            EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, non_root_cert_path, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                    &public_key_out));
+        }
+
+        /* Test s2n_config_add_pem_to_trust_store */
+        {
+            char non_root_cert_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_read_test_pem(non_root_cert_path, non_root_cert_pem, S2N_MAX_TEST_PEM_SIZE));
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, non_root_cert_pem));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+            EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, non_root_cert_path, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                    &public_key_out));
+        }
+
+        /* Test system trust store
+         *
+         * This test uses the SSL_CERT_FILE environment variable to override the system trust store
+         * location, which isn't supported by LibreSSL.
+         */
+        if (!s2n_libcrypto_is_libressl()) {
+            /* Override the system cert file with the non-root test cert. */
+            EXPECT_SUCCESS(setenv("SSL_CERT_FILE", non_root_cert_path, 1));
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(connection);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
+            EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem(connection, non_root_cert_path, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                    &public_key_out));
+
+            EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE"));
+        }
+    }
 
     END_TEST();
 }
