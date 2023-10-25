@@ -125,13 +125,6 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
         POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
     }
 
-    /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
-     * without a trust anchor. However if you call this function, the assumption is you trust ca_file or path and if a certificate
-     * is encountered that's in that path, it should be trusted. The following flag tells libcrypto to not care that the cert
-     * is missing a root anchor. */
-    unsigned long flags = X509_V_FLAG_PARTIAL_CHAIN;
-    X509_STORE_set_flags(store->trust_store, flags);
-
     return 0;
 }
 
@@ -602,6 +595,13 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         time_t current_time = (time_t) (current_sys_time / ONE_SEC_IN_NANOS);
         X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
     }
+
+    /* It's assumed that if a valid certificate chain is received with an issuer that's present in
+     * the trust store, the certificate chain should be trusted. This should be the case even if
+     * the issuer in the trust store isn't a root certificate. Setting the PARTIAL_CHAIN flag
+     * allows the libcrypto to trust certificates in the trust store that aren't root certificates.
+     */
+    X509_STORE_CTX_set_flags(validator->store_ctx, X509_V_FLAG_PARTIAL_CHAIN);
 
     int verify_ret = X509_verify_cert(validator->store_ctx);
     if (verify_ret <= 0) {
