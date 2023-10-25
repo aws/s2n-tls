@@ -16,6 +16,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
+DEFINE_POINTER_CLEANUP_FUNC(X509 *, X509_free);
+
 static int mock_time(void *data, uint64_t *timestamp)
 {
     *timestamp = *(uint64_t *) data;
@@ -1995,7 +1997,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(asn1_data);
 
             /* Parse the ASN.1 data with the libcrypto */
-            X509 *x509 = d2i_X509(NULL, &asn1_data, asn1_len);
+            DEFER_CLEANUP(X509 *x509 = d2i_X509(NULL, &asn1_data, asn1_len), X509_free_pointer);
             EXPECT_NOT_NULL(x509);
 
             /* Ensure that the self-signed flag isn't set */
