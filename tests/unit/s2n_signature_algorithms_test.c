@@ -250,49 +250,48 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
-            conn->security_policy_override = &test_security_policy;
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
-            const struct s2n_signature_scheme *unsupported = &s2n_rsa_pkcs1_sha512;
-            const struct s2n_signature_preferences *prefs = test_security_policy.signature_preferences;
-            for (size_t i = 0; i < prefs->count; i++) {
-                EXPECT_NOT_EQUAL(prefs->signature_schemes[i]->iana_value,
-                        unsupported->iana_value);
-            }
-
-            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, unsupported->iana_value));
-            EXPECT_ERROR_WITH_ERRNO(s2n_signature_algorithm_recv(conn, &input),
-                    S2N_ERR_INVALID_SIGNATURE_SCHEME);
-        };
-
-        /* Test: don't negotiate default signature scheme not allowed by security policy */
-        {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                    s2n_connection_ptr_free);
-            conn->security_policy_override = &test_security_policy;
-
-            DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-
-            const struct s2n_signature_scheme *unsupported_schemes[] = {
-                &s2n_rsa_pkcs1_sha512,
-                &s2n_ecdsa_sha224,
-                /* Also test legacy default */
+            const struct s2n_signature_scheme *const test_schemes[] = {
+                &s2n_rsa_pkcs1_sha256,
+                &s2n_ecdsa_sha256,
+                /* Include legacy defaults to ensure no exceptions made for defaults */
                 &s2n_rsa_pkcs1_md5_sha1,
+                &s2n_ecdsa_sha1,
+            };
+            const struct s2n_signature_scheme *const supported_schemes[] = {
+                &s2n_ecdsa_sha384,
             };
 
-            const struct s2n_signature_preferences *prefs = test_security_policy.signature_preferences;
-            for (size_t i = 0; i < s2n_array_len(unsupported_schemes); i++) {
-                for (size_t j = 0; j < prefs->count; j++) {
-                    EXPECT_NOT_EQUAL(unsupported_schemes[i]->iana_value,
-                            prefs->signature_schemes[j]->iana_value);
-                }
+            struct s2n_security_policy test_policy = test_security_policy;
+            struct s2n_signature_preferences test_prefs = {
+                .signature_schemes = supported_schemes,
+                .count = s2n_array_len(supported_schemes),
+            };
+            test_policy.signature_preferences = &test_prefs;
 
-                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, unsupported_schemes[i]->iana_value));
+            struct s2n_security_policy control_policy = test_security_policy;
+            struct s2n_signature_preferences control_prefs = {
+                .signature_schemes = test_schemes,
+                .count = s2n_array_len(test_schemes),
+            };
+            control_policy.signature_preferences = &control_prefs;
+
+            /* Signature algorithms not allowed by policy rejected */
+            conn->security_policy_override = &test_policy;
+            for (size_t i = 0; i < s2n_array_len(test_schemes); i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, test_schemes[i]->iana_value));
                 EXPECT_ERROR_WITH_ERRNO(s2n_signature_algorithm_recv(conn, &input),
                         S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            }
+
+            /* Signature algorithms allowed by policy accepted */
+            conn->security_policy_override = &control_policy;
+            for (size_t i = 0; i < s2n_array_len(test_schemes); i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, test_schemes[i]->iana_value));
+                EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
             }
         };
 
