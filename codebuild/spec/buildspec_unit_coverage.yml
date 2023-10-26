@@ -14,8 +14,8 @@
 version: 0.2
 
 env:
-  parameter-store:
-    CODECOV_TOKEN : codecov-upload-token
+#  parameter-store:
+#    CODECOV_TOKEN : codecov-upload-token
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
