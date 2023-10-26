@@ -172,10 +172,11 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             conn->security_policy_override = &test_security_policy;
+            conn->actual_protocol_version = S2N_TLS12;
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha256.iana_value);
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha256.iana_value));
 
             EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
             EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, &s2n_rsa_pkcs1_sha256);
@@ -186,12 +187,11 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             conn->security_policy_override = &test_security_policy;
-            /* Unlike clients, servers begin with actual_protocol_version unset */
             conn->actual_protocol_version = S2N_TLS12;
 
             DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-            s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha256.iana_value);
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha256.iana_value));
 
             EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
             EXPECT_EQUAL(conn->handshake_params.client_cert_sig_scheme, &s2n_rsa_pkcs1_sha256);
@@ -262,7 +262,7 @@ int main(int argc, char **argv)
                         unsupported->iana_value);
             }
 
-            s2n_stuffer_write_uint16(&input, unsupported->iana_value);
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, unsupported->iana_value));
             EXPECT_ERROR_WITH_ERRNO(s2n_signature_algorithm_recv(conn, &input),
                     S2N_ERR_INVALID_SIGNATURE_SCHEME);
         };
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
                             prefs->signature_schemes[j]->iana_value);
                 }
 
-                s2n_stuffer_write_uint16(&input, unsupported_schemes[i]->iana_value);
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, unsupported_schemes[i]->iana_value));
                 EXPECT_ERROR_WITH_ERRNO(s2n_signature_algorithm_recv(conn, &input),
                         S2N_ERR_INVALID_SIGNATURE_SCHEME);
             }
@@ -306,12 +306,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
             conn->actual_protocol_version = S2N_TLS12;
-            s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha224.iana_value);
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha224.iana_value));
             EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
             EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, &s2n_rsa_pkcs1_sha224);
 
             conn->actual_protocol_version = S2N_TLS13;
-            s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha224.iana_value);
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha224.iana_value));
             EXPECT_ERROR_WITH_ERRNO(s2n_signature_algorithm_recv(conn, &input),
                     S2N_ERR_INVALID_SIGNATURE_SCHEME);
         };
@@ -345,12 +345,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
         conn->actual_protocol_version = S2N_TLS13;
-        s2n_stuffer_write_uint16(&input, s2n_ecdsa_sha384.iana_value);
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_ecdsa_sha384.iana_value));
         EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
         EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, &s2n_ecdsa_secp384r1_sha384);
 
         conn->actual_protocol_version = S2N_TLS12;
-        s2n_stuffer_write_uint16(&input, s2n_ecdsa_sha384.iana_value);
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_ecdsa_sha384.iana_value));
         EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
         EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, &s2n_ecdsa_sha384);
     };
