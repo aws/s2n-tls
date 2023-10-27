@@ -74,7 +74,8 @@ static int s2n_client_supported_versions_send(struct s2n_connection *conn, struc
     return S2N_SUCCESS;
 }
 
-static int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension)
+int s2n_extensions_client_supported_versions_process(struct s2n_connection *conn, struct s2n_stuffer *extension,
+        uint8_t *client_protocol_version_out, uint8_t *actual_protocol_version_out)
 {
     uint8_t highest_supported_version = conn->server_protocol_version;
     uint8_t minimum_supported_version = s2n_unknown_protocol_version;
@@ -85,8 +86,8 @@ static int s2n_extensions_client_supported_versions_process(struct s2n_connectio
     S2N_ERROR_IF(size_of_version_list != s2n_stuffer_data_available(extension), S2N_ERR_BAD_MESSAGE);
     S2N_ERROR_IF(size_of_version_list % S2N_TLS_PROTOCOL_VERSION_LEN != 0, S2N_ERR_BAD_MESSAGE);
 
-    conn->client_protocol_version = s2n_unknown_protocol_version;
-    conn->actual_protocol_version = s2n_unknown_protocol_version;
+    uint8_t client_protocol_version = s2n_unknown_protocol_version;
+    uint8_t actual_protocol_version = s2n_unknown_protocol_version;
 
     for (int i = 0; i < size_of_version_list; i += S2N_TLS_PROTOCOL_VERSION_LEN) {
         uint8_t client_version_parts[S2N_TLS_PROTOCOL_VERSION_LEN];
@@ -101,7 +102,7 @@ static int s2n_extensions_client_supported_versions_process(struct s2n_connectio
 
         uint16_t client_version = (client_version_parts[0] * 10) + client_version_parts[1];
 
-        conn->client_protocol_version = MAX(client_version, conn->client_protocol_version);
+        client_protocol_version = MAX(client_version, client_protocol_version);
 
         if (client_version > highest_supported_version) {
             continue;
@@ -113,27 +114,58 @@ static int s2n_extensions_client_supported_versions_process(struct s2n_connectio
 
         /* We ignore the client's preferred order and instead choose
          * the highest version that both client and server support. */
-        conn->actual_protocol_version = MAX(client_version, conn->actual_protocol_version);
+        actual_protocol_version = MAX(client_version, actual_protocol_version);
     }
 
-    POSIX_ENSURE(conn->client_protocol_version != s2n_unknown_protocol_version, S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
-    POSIX_ENSURE(conn->actual_protocol_version != s2n_unknown_protocol_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    *client_protocol_version_out = client_protocol_version;
+    *actual_protocol_version_out = actual_protocol_version;
 
     return S2N_SUCCESS;
 }
 
-static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
+static S2N_RESULT s2n_client_supported_versions_recv_impl(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(extension);
+
+    RESULT_GUARD_POSIX(s2n_extensions_client_supported_versions_process(conn, extension, &conn->client_protocol_version,
+            &conn->actual_protocol_version));
+
+    RESULT_ENSURE(conn->client_protocol_version != s2n_unknown_protocol_version, S2N_ERR_UNKNOWN_PROTOCOL_VERSION);
+    RESULT_ENSURE(conn->actual_protocol_version != s2n_unknown_protocol_version, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+    return S2N_RESULT_OK;
+}
+
+static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
+{
+    /* For backwards compatibility, the supported versions extension isn't used for protocol
+     * version selection if the server doesn't support TLS 1.3. This ensures that TLS 1.2 servers
+     * experience no behavior change due to processing the TLS 1.3 extension. See
+     * https://github.com/aws/s2n-tls/issues/4240.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.1
+     *= type=exception
+     *= reason=The client hello legacy version is used for version selection on TLS 1.2 servers for backwards compatibility
+     *# If this extension is present in the ClientHello, servers MUST NOT use
+     *# the ClientHello.legacy_version value for version negotiation and MUST
+     *# use only the "supported_versions" extension to determine client
+     *# preferences.
+     */
     if (s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
         return S2N_SUCCESS;
     }
 
-    int result = s2n_extensions_client_supported_versions_process(conn, in);
-    if (result != S2N_SUCCESS) {
+    s2n_result result = s2n_client_supported_versions_recv_impl(conn, extension);
+    if (s2n_result_is_error(result)) {
+        conn->client_protocol_version = s2n_unknown_protocol_version;
+        conn->actual_protocol_version = s2n_unknown_protocol_version;
+
         s2n_queue_reader_unsupported_protocol_version_alert(conn);
         POSIX_ENSURE(s2n_errno != S2N_ERR_SAFETY, S2N_ERR_BAD_MESSAGE);
     }
-    POSIX_GUARD(result);
+    POSIX_GUARD_RESULT(result);
+
     return S2N_SUCCESS;
 }
 
