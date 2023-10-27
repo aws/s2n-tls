@@ -33,14 +33,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
 
     struct s2n_stuffer *in = &conn->handshake.io;
 
-    if (conn->actual_protocol_version < S2N_TLS12) {
-        POSIX_GUARD(s2n_choose_default_sig_scheme(conn,
-                &conn->handshake_params.client_cert_sig_scheme, S2N_CLIENT));
-    } else {
-        /* Verify the SigScheme picked by the Client was in the preference list we sent (or is the default SigScheme) */
-        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in,
-                &conn->handshake_params.client_cert_sig_scheme));
-    }
+    POSIX_GUARD_RESULT(s2n_signature_algorithm_recv(conn, in));
     const struct s2n_signature_scheme *chosen_sig_scheme = conn->handshake_params.client_cert_sig_scheme;
     POSIX_ENSURE_REF(chosen_sig_scheme);
 
