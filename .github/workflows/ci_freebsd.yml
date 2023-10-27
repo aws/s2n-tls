@@ -15,11 +15,13 @@ jobs:
       - uses: actions/checkout@v3
       - name: Build and test in FreeBSD
         id: test
-        uses: vmactions/freebsd-vm@v0.3.0
+        uses: cross-platform-actions/action@v0.20.0
         with:
-          prepare: pkg install -y ninja cmake
+          operating_system: freebsd
+          version: '13.2'
           run: |
             freebsd-version
+            sudo pkg install -y ninja cmake
             .github/s2n_bsd.sh
       - name: Upload test results
         if: ${{ failure() }}
