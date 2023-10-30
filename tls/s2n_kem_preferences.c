@@ -20,12 +20,12 @@ const struct s2n_kem *pq_kems_r3_2021_05[] = {
     &s2n_kyber_512_r3,
 };
 
-struct s2n_kem_group *pq_kem_groups_r3_2021_05[] = {
+const struct s2n_kem_group *pq_kem_groups_r3_2021_05[] = {
     &s2n_x25519_kyber_512_r3,
     &s2n_secp256r1_kyber_512_r3,
 };
 
-struct s2n_kem_group *pq_kem_groups_r3_2023_06[] = {
+const struct s2n_kem_group *pq_kem_groups_r3_2023_06[] = {
     &s2n_secp256r1_kyber_768_r3,
     &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
@@ -107,7 +107,7 @@ S2N_RESULT s2n_kem_preferences_groups_available(const struct s2n_kem_preferences
 
     uint32_t count = 0;
     for (int i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
-        if (kem_preferences->tls13_kem_groups[i]->available) {
+        if (s2n_kem_group_is_available(kem_preferences->tls13_kem_groups[i])) {
             count++;
         }
     }
@@ -115,11 +115,11 @@ S2N_RESULT s2n_kem_preferences_groups_available(const struct s2n_kem_preferences
     return S2N_RESULT_OK;
 }
 
-struct s2n_kem_group *s2n_kem_preferences_get_highest_priority_group(const struct s2n_kem_preferences *kem_preferences)
+const struct s2n_kem_group *s2n_kem_preferences_get_highest_priority_group(const struct s2n_kem_preferences *kem_preferences)
 {
     PTR_ENSURE_REF(kem_preferences);
     for (size_t i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
-        if (kem_preferences->tls13_kem_groups[i]->available) {
+        if (s2n_kem_group_is_available(kem_preferences->tls13_kem_groups[i])) {
             return kem_preferences->tls13_kem_groups[i];
         }
     }

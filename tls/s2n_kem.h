@@ -76,7 +76,6 @@ struct s2n_kem_group {
     uint16_t iana_id;
     const struct s2n_ecc_named_curve *curve;
     const struct s2n_kem *kem;
-    bool available; /* defaults to false per C99 spec */
 };
 
 struct s2n_kem_group_params {
@@ -90,17 +89,17 @@ extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
 
 #define S2N_KEM_GROUPS_COUNT 6
-extern struct s2n_kem_group *const ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
+extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
-extern struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
-extern struct s2n_kem_group s2n_secp256r1_kyber_768_r3;
-extern struct s2n_kem_group s2n_secp384r1_kyber_768_r3;
-extern struct s2n_kem_group s2n_secp521r1_kyber_1024_r3;
+extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
+extern const struct s2n_kem_group s2n_secp256r1_kyber_768_r3;
+extern const struct s2n_kem_group s2n_secp384r1_kyber_768_r3;
+extern const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3;
 
 /* x25519 KEM Groups */
-extern struct s2n_kem_group s2n_x25519_kyber_512_r3;
-extern struct s2n_kem_group s2n_x25519_kyber_768_r3;
+extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
+extern const struct s2n_kem_group s2n_x25519_kyber_768_r3;
 
 S2N_RESULT s2n_kem_generate_keypair(struct s2n_kem_params *kem_params);
 S2N_RESULT s2n_kem_encapsulate(struct s2n_kem_params *kem_params, struct s2n_blob *ciphertext);
@@ -120,7 +119,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
-S2N_RESULT s2n_kem_init(void);
+uint8_t s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 
 /* The following are API signatures for PQ KEMs as defined by NIST. All functions return 0
  * on success, and !0 on failure. Avoid calling these functions directly within s2n. Instead,

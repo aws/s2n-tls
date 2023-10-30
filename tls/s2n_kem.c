@@ -111,49 +111,49 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
  * || ECC key share (variable bytes)
  * || size of PQ key share (2 bytes)
  * || PQ key share (variable bytes) */
-struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
+const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .name = "secp256r1_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_512_r3,
 };
 
-struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
+const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
     .name = "SecP256r1Kyber768Draft00",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_768_r3,
 };
 
-struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
+const struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
     .name = "secp384r1_kyber-768-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp384r1,
     .kem = &s2n_kyber_768_r3,
 };
 
-struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
+const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
     .name = "secp521r1_kyber-1024-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3,
     .curve = &s2n_ecc_curve_secp521r1,
     .kem = &s2n_kyber_1024_r3,
 };
 
-struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
+const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
     .name = "x25519_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_512_r3,
 };
 
-struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
+const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
     .name = "X25519Kyber768Draft00",
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_768_r3,
 };
 
-struct s2n_kem_group *const ALL_SUPPORTED_KEM_GROUPS[] = {
+const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_secp256r1_kyber_512_r3,
     &s2n_x25519_kyber_512_r3,
     &s2n_secp256r1_kyber_768_r3,
@@ -443,22 +443,19 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_kem_init()
+uint8_t s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
 {
-    for (size_t i = 0; i < s2n_array_len(ALL_SUPPORTED_KEM_GROUPS); i++) {
-        struct s2n_kem_group *group = ALL_SUPPORTED_KEM_GROUPS[i];
-        group->available = s2n_pq_is_enabled();
-        /* Only Kyber768+ requires s2n_libcrypto_supports_kyber() */
-        /* TODO: remove the conditional guard when we remove the interned Kyber512 impl. */
-        if (strcmp(group->kem->name, "kyber512r3") != 0) {
-            group->available &= s2n_libcrypto_supports_kyber();
-        }
-        /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
-        if (group->curve == NULL || group->curve->name == NULL) {
-            group->available = false;
-        } else if (strcmp(group->curve->name, "x25519") == 0) {
-            group->available &= s2n_is_evp_apis_supported();
-        }
+    uint8_t available = s2n_pq_is_enabled();
+    /* Only Kyber768+ requires s2n_libcrypto_supports_kyber() */
+    /* TODO: remove the conditional guard when we remove the interned Kyber512 impl. */
+    if (kem_group->kem != &s2n_kyber_512_r3) {
+        available &= s2n_libcrypto_supports_kyber();
     }
-    return S2N_RESULT_OK;
+    /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
+    if (kem_group->curve == NULL) {
+        available = false;
+    } else if (kem_group->curve == &s2n_ecc_curve_x25519) {
+        available &= s2n_is_evp_apis_supported();
+    }
+    return available;
 }

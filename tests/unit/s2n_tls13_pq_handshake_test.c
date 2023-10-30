@@ -36,7 +36,8 @@ const struct s2n_kem_group *s2n_get_highest_priority_shared_kem_group(const stru
             const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[j];
             PTR_ENSURE_REF(client_group);
             PTR_ENSURE_REF(server_group);
-            if (client_group->available && server_group->available && client_group->available == server_group->available) {
+            if (s2n_kem_group_is_available(client_group) && s2n_kem_group_is_available(server_group)
+                    && s2n_kem_group_is_available(client_group) == s2n_kem_group_is_available(server_group)) {
                 return client_group;
             }
         }
@@ -251,7 +252,7 @@ int main()
      * array, the supported_groups extension won't get sent and the handshake won't complete as expected. */
 
     /* Kyber */
-    struct s2n_kem_group *kyber_test_groups[] = {
+    const struct s2n_kem_group *kyber_test_groups[] = {
         &s2n_x25519_kyber_512_r3,
         &s2n_secp256r1_kyber_512_r3,
         &s2n_secp256r1_kyber_768_r3,
@@ -292,7 +293,7 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20200310,
     };
 
-    struct s2n_kem_group *kyber768_test_kem_groups[] = {
+    const struct s2n_kem_group *kyber768_test_kem_groups[] = {
         &s2n_secp384r1_kyber_768_r3,
         &s2n_secp256r1_kyber_512_r3,
     };
@@ -313,7 +314,7 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20201021,
     };
 
-    struct s2n_kem_group *kyber1024_test_kem_groups[] = {
+    const struct s2n_kem_group *kyber1024_test_kem_groups[] = {
         &s2n_secp521r1_kyber_1024_r3,
         &s2n_secp256r1_kyber_512_r3,
     };

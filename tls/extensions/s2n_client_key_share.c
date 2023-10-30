@@ -316,7 +316,7 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         POSIX_ENSURE_REF(supported_group);
 
         /* Skip if the group is not available */
-        if (!supported_group->available) {
+        if (!s2n_kem_group_is_available(supported_group)) {
             continue;
         }
 

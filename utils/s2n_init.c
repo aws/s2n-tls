@@ -80,7 +80,6 @@ int s2n_init(void)
     POSIX_GUARD_RESULT(s2n_pq_init());
     POSIX_GUARD_RESULT(s2n_tls13_empty_transcripts_init());
     POSIX_GUARD_RESULT(s2n_atomic_init());
-    POSIX_GUARD_RESULT(s2n_kem_init());
 
     if (atexit_cleanup) {
         POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);

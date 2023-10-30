@@ -204,7 +204,7 @@ int main(int argc, char **argv)
                     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
-                    struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
+                    const struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
                     EXPECT_NOT_NULL(kem_group);
 
                     conn->kex_params.server_kem_group_params.kem_group = kem_group;

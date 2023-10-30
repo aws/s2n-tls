@@ -111,7 +111,7 @@ int main()
                      * iteration of the outer loop of this test (index i), we populate test_kem_groups[] with a
                      * different permutation of all_kem_groups[] to ensure we handle each kem_group key share
                      * correctly. */
-                    struct s2n_kem_group *test_kem_groups[S2N_KEM_GROUPS_COUNT];
+                    const struct s2n_kem_group *test_kem_groups[S2N_KEM_GROUPS_COUNT];
                     for (size_t j = 0; j < S2N_KEM_GROUPS_COUNT; j++) {
                         test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_KEM_GROUPS_COUNT];
                     }
@@ -150,7 +150,7 @@ int main()
                         const struct s2n_kem_group *test_kem_group = kem_pref->tls13_kem_groups[0];
 
                         /* Skip permutations that start with unavailable KEM group */
-                        if (!test_kem_group->available) {
+                        if (!s2n_kem_group_is_available(test_kem_group)) {
                             EXPECT_SUCCESS(s2n_connection_free(conn));
                             continue;
                         }
@@ -261,7 +261,7 @@ int main()
                         conn->actual_protocol_version_established = 1;
                         uint8_t chosen_index = 0;
                         for (int j = kem_pref->tls13_kem_group_count - 1; j > 0; j--) {
-                            if (kem_pref->tls13_kem_groups[j]->available) {
+                            if (s2n_kem_group_is_available(kem_pref->tls13_kem_groups[j])) {
                                 chosen_index = j;
                                 break;
                             }
@@ -493,13 +493,13 @@ int main()
                          * iteration of the outer loop of this test (index i), we populate test_kem_groups[] with a
                          * different permutation of all_kem_groups[] to ensure we handle each kem_group key share
                          * correctly. */
-                        struct s2n_kem_group *test_kem_groups[S2N_KEM_GROUPS_COUNT];
+                        const struct s2n_kem_group *test_kem_groups[S2N_KEM_GROUPS_COUNT];
                         for (size_t j = 0; j < S2N_KEM_GROUPS_COUNT; j++) {
                             test_kem_groups[j] = ALL_SUPPORTED_KEM_GROUPS[(j + i) % S2N_KEM_GROUPS_COUNT];
                         }
 
                         /* Skip permutations that start with unavailable KEM group */
-                        if (!test_kem_groups[0]->available) {
+                        if (!s2n_kem_group_is_available(test_kem_groups[0])) {
                             continue;
                         }
 
@@ -570,7 +570,7 @@ int main()
                         EXPECT_NOT_NULL(received_pq_params->ecc_params.evp_pkey);
                         EXPECT_TRUE(s2n_public_ecc_keys_are_equal(&received_pq_params->ecc_params, &sent_pq_params->ecc_params));
 
-                        struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(&test_kem_prefs);
+                        const struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(&test_kem_prefs);
                         EXPECT_NOT_NULL(kem_group);
                         EXPECT_EQUAL(received_pq_params->kem_params.kem, kem_group->kem);
                         EXPECT_NOT_NULL(received_pq_params->kem_params.public_key.data);
@@ -658,7 +658,7 @@ int main()
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
                     for (int i = 0; i < sizeof(server_conn->kex_params.mutually_supported_kem_groups); i++) {
                         if (server_conn->kex_params.mutually_supported_kem_groups[i]
-                                && server_conn->kex_params.mutually_supported_kem_groups[i]->available) {
+                                && s2n_kem_group_is_available(server_conn->kex_params.mutually_supported_kem_groups[i])) {
                             server_conn->kex_params.mutually_supported_kem_groups[i] = NULL;
                             break;
                         }
@@ -719,7 +719,7 @@ int main()
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
                     for (int i = 0; i < sizeof(server_conn->kex_params.mutually_supported_kem_groups); i++) {
                         if (server_conn->kex_params.mutually_supported_kem_groups[i]
-                                && server_conn->kex_params.mutually_supported_kem_groups[i]->available) {
+                                && s2n_kem_group_is_available(server_conn->kex_params.mutually_supported_kem_groups[i])) {
                             server_conn->kex_params.mutually_supported_kem_groups[i] = NULL;
                             break;
                         }
@@ -978,7 +978,7 @@ static int s2n_get_two_highest_piority_kem_groups(const struct s2n_kem_preferenc
     POSIX_ENSURE_REF(*kem_group0);
     for (int i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-        if (kem_group->available && kem_group != *kem_group0) {
+        if (s2n_kem_group_is_available(kem_group) && kem_group != *kem_group0) {
             *kem_group1 = kem_group;
             return S2N_SUCCESS;
         }

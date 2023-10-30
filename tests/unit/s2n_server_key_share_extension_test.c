@@ -512,7 +512,7 @@ int main(int argc, char **argv)
 
     {
         /* KEM groups with Test Vectors defined in /tests/unit/kats/tls13_server_hybrid_key_share_recv.kat */
-        struct s2n_kem_group *test_kem_groups[] = {
+        const struct s2n_kem_group *test_kem_groups[] = {
             &s2n_secp256r1_kyber_512_r3,
             &s2n_x25519_kyber_512_r3,
         };
@@ -577,7 +577,7 @@ int main(int argc, char **argv)
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
-                        if (!kem_group->available) {
+                        if (!s2n_kem_group_is_available(kem_group)) {
                             continue;
                         }
                         struct s2n_connection *client_conn = NULL;
@@ -679,7 +679,7 @@ int main(int argc, char **argv)
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
-                        if (!kem_group->available) {
+                        if (!s2n_kem_group_is_available(kem_group)) {
                             continue;
                         }
                         struct s2n_connection *client_conn;
@@ -843,7 +843,7 @@ int main(int argc, char **argv)
 
                     struct s2n_kem_group_params *server_params = &conn->kex_params.server_kem_group_params;
                     const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                    if (!kem_group->available) {
+                    if (!s2n_kem_group_is_available(kem_group)) {
                         EXPECT_SUCCESS(s2n_connection_free(conn));
                         continue;
                     }
@@ -917,7 +917,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                 struct s2n_kem_group_params *server_params = &conn->kex_params.server_kem_group_params;
                 const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
-                if (!kem_group->available) {
+                if (!s2n_kem_group_is_available(kem_group)) {
                     continue;
                 }
 
