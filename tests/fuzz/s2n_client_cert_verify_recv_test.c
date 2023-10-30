@@ -132,7 +132,7 @@ int s2n_fuzz_init(int *argc, char **argv[])
     POSIX_ENSURE(s2n_config_get_num_default_certs(server_config) != 0, S2N_ERR_NUM_DEFAULT_CERTIFICATES);
     struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(server_config);
     POSIX_ENSURE_REF(cert);
-    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert->cert_chain->head->raw));
+    POSIX_GUARD_RESULT(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &cert->cert_chain->head->raw));
 
     return S2N_SUCCESS;
 }

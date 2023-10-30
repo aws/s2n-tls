@@ -1806,7 +1806,7 @@ int main(int argc, char **argv)
         /* Expect to return S2N_CERT_ERR_UNTRUSTED */
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
                                         &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+                S2N_ERR_DECODE_CERTIFICATE);
 
         s2n_stuffer_free(&chain_stuffer);
         s2n_connection_free(connection);
