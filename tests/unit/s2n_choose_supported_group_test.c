@@ -225,7 +225,7 @@ int main()
 
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
 
-            struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
+            const struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
             if (s2n_pq_is_enabled()) {
                 EXPECT_NOT_NULL(kem_group);
                 EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, kem_group);
@@ -269,7 +269,7 @@ int main()
                 EXPECT_NULL(server_conn->kex_params.mutually_supported_kem_groups[i]);
             }
 
-            struct s2n_kem_group *chosen_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
+            const struct s2n_kem_group *chosen_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
             EXPECT_NOT_NULL(chosen_group);
             server_conn->kex_params.mutually_supported_kem_groups[0] = chosen_group;
             EXPECT_SUCCESS(s2n_choose_supported_group(server_conn));
