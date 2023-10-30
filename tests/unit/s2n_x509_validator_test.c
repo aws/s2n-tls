@@ -1816,7 +1816,7 @@ int main(int argc, char **argv)
 
     /* Test unknown curve in cert validator for negative case */
     if (s2n_libcrypto_is_awslc()) {
-        struct s2n_x509_validator validator = { 0 };
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
         EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
