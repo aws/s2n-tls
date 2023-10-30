@@ -3391,6 +3391,27 @@ S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_d
  */
 S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
 
+/**
+ * Retrieves the list of supported groups configured by the security policy associated with `config`.
+ *
+ * IANA values for each of the supported groups are written to the provided `groups` array, and `groups_count` is
+ * set to the number of written supported groups.
+ *
+ * `groups_count_max` should be set to the maximum capacity of the `groups` array. If `groups_count_max` is less
+ * than the number of supported groups configured by the security policy, this function will error.
+ *
+ * Note that this API retrieves the supported groups from a local security policy. To instead get the supported
+ * groups sent by the client, use the `s2n_client_hello_get_supported_groups()` API.
+ *
+ * @param config A pointer to the s2n_config object from which the supported groups will be retrieved.
+ * @param groups The array to populate with the supported groups.
+ * @param groups_count_max The maximum number of supported groups that can fit in the `groups` array.
+ * @param groups_count Set to the number of supported groups written to `groups`.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
+        uint16_t *groups_count);
+
 #ifdef __cplusplus
 }
 #endif
