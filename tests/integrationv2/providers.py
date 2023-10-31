@@ -472,16 +472,6 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_cipher(cls, cipher, with_curve=None):
-        if "openssl-1.0.2" in get_flag(S2N_PROVIDER_VERSION) and with_curve is not None:
-            invalid_ciphers = [
-                Ciphers.ECDHE_RSA_AES128_SHA,
-                Ciphers.ECDHE_RSA_AES256_SHA,
-                Ciphers.ECDHE_RSA_AES128_SHA256,
-                Ciphers.ECDHE_RSA_AES256_SHA384,
-                Ciphers.ECDHE_RSA_AES128_GCM_SHA256,
-                Ciphers.ECDHE_RSA_AES256_GCM_SHA384,
-            ]
-
         return True
 
     def _is_openssl_11(self) -> None:
