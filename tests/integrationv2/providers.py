@@ -482,11 +482,6 @@ class OpenSSL(Provider):
                 Ciphers.ECDHE_RSA_AES256_GCM_SHA384,
             ]
 
-            # OpenSSL 1.0.2 and 1.0.2-FIPS can't find a shared cipher with S2N
-            # when P-384 is used, but I can't find any reason why.
-            if with_curve is Curves.P384 and cipher in invalid_ciphers:
-                return False
-
         return True
 
     def _is_openssl_11(self) -> None:
