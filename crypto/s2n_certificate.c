@@ -36,7 +36,7 @@ int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     POSIX_ENSURE_REF(cert);
     cert->pkey_type = pkey_type;
-    POSIX_GUARD(s2n_pkey_setup_for_type(&cert->public_key, pkey_type));
+    POSIX_GUARD_RESULT(s2n_pkey_setup_for_type(&cert->public_key, pkey_type));
     return 0;
 }
 
@@ -127,7 +127,7 @@ int s2n_cert_chain_and_key_set_private_key_from_stuffer(struct s2n_cert_chain_an
     key_blob.data = s2n_stuffer_raw_read(key_out_stuffer, key_blob.size);
     POSIX_ENSURE_REF(key_blob.data);
 
-    POSIX_GUARD(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type));
+    POSIX_GUARD_RESULT(s2n_asn1der_to_private_key(cert_and_key->private_key, &key_blob, type));
     return S2N_SUCCESS;
 }
 
@@ -364,7 +364,7 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &head->raw));
+    POSIX_GUARD_RESULT(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type, &head->raw));
     POSIX_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     POSIX_GUARD(s2n_cert_set_cert_type(head, pkey_type));
 
