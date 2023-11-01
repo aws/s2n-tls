@@ -119,7 +119,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
-uint8_t s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
+bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 
 /* The following are API signatures for PQ KEMs as defined by NIST. All functions return 0
  * on success, and !0 on failure. Avoid calling these functions directly within s2n. Instead,
