@@ -82,14 +82,11 @@ int main()
         /* Define various PQ security policies to test different configurations */
 
         /* Kyber */
-        const struct s2n_kem_group *test_kem_groups_kyber[] = {
-            &s2n_secp256r1_kyber_512_r3,
-        };
         const struct s2n_kem_preferences test_kem_prefs_kyber = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(test_kem_groups_kyber),
-            .tls13_kem_groups = test_kem_groups_kyber,
+            .tls13_kem_group_count = kem_preferences_all.tls13_kem_group_count,
+            .tls13_kem_groups = kem_preferences_all.tls13_kem_groups,
         };
         const struct s2n_security_policy test_pq_security_policy_kyber = {
             .minimum_protocol_version = S2N_SSLv3,
@@ -122,8 +119,10 @@ int main()
             uint16_t length;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             uint16_t expected_length = ecc_pref->count * sizeof(uint16_t);
+            uint32_t available_groups = 0;
             if (s2n_pq_is_enabled()) {
-                expected_length += kem_pref->tls13_kem_group_count * sizeof(uint16_t);
+                EXPECT_OK(s2n_kem_preferences_groups_available(kem_pref, &available_groups));
+                expected_length += available_groups * sizeof(uint16_t);
             }
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, expected_length);
@@ -131,6 +130,9 @@ int main()
             if (s2n_pq_is_enabled()) {
                 uint16_t kem_id;
                 for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+                    if (!s2n_kem_group_is_available(kem_pref->tls13_kem_groups[i])) {
+                        continue;
+                    }
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &kem_id));
                     EXPECT_EQUAL(kem_id, kem_pref->tls13_kem_groups[i]->iana_id);
                 }
@@ -180,19 +182,14 @@ int main()
         };
         /* Test recv - in each case, the security policy overrides allow for a successful PQ handshake */
         {
-#define NUM_PQ_TEST_POLICY_OVERRIDES 1
             /* Security policy overrides: {client_policy, server_policy} */
-            const struct s2n_security_policy *test_policy_overrides[NUM_PQ_TEST_POLICY_OVERRIDES][2] = {
+            const struct s2n_security_policy *test_policy_overrides[][2] = {
                 /* Client sends Kyber; server supports Kyber */
                 { &test_pq_security_policy_kyber, &test_pq_security_policy_kyber },
 
             };
-            /* Expected KEM group to be negotiated - corresponds to test_policy_overrides array */
-            const struct s2n_kem_group *expected_negotiated_kem_group[NUM_PQ_TEST_POLICY_OVERRIDES] = {
-                &s2n_secp256r1_kyber_512_r3,
-            };
 
-            for (size_t i = 0; i < NUM_PQ_TEST_POLICY_OVERRIDES; i++) {
+            for (size_t i = 0; i < s2n_array_len(test_policy_overrides); i++) {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_connection *client_conn;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -234,9 +231,12 @@ int main()
                     }
                 } else {
                     EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group[i]);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group[i]->curve);
-                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group[i]->kem);
+                    EXPECT_NOT_NULL(server_conn->kex_params.server_kem_group_params.kem_group);
+                    const struct s2n_kem_group *expected_negotiated_kem_group = s2n_kem_preferences_get_highest_priority_group(server_kem_pref);
+                    EXPECT_NOT_NULL(expected_negotiated_kem_group);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_group, expected_negotiated_kem_group);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve, expected_negotiated_kem_group->curve);
+                    EXPECT_EQUAL(server_conn->kex_params.server_kem_group_params.kem_params.kem, expected_negotiated_kem_group->kem);
                 }
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));

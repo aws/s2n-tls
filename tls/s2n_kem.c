@@ -23,112 +23,66 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-/* If S2N_NO_PQ is set or linked libcrypto doesn't support Kyber, bail on KEM calls.
- * These should never be called.
- */
-int s2n_kyber_kem_keypair_not_supported(IN const struct s2n_kem *kem, OUT uint8_t *pk, OUT uint8_t *sk)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-int s2n_kyber_kem_enc_not_supported(IN const struct s2n_kem *kem, OUT uint8_t *ct, OUT uint8_t *ss,
-        IN const uint8_t *pk)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-int s2n_kyber_kem_dec_not_supported(IN const struct s2n_kem *kem, OUT uint8_t *ss, IN const uint8_t *ct,
-        IN const uint8_t *sk)
+#if defined(S2N_NO_PQ) /* If S2N_NO_PQ, pq-crypto won't be compiled so define relevant stubs here. */
+
+int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, OUT uint8_t *secret_key)
 {
     POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
 
-#if defined(S2N_NO_PQ)
-/* If S2N_NO_PQ was defined at compile time, the PQ KEM code will have been entirely excluded
- * from compilation. We define stubs of these functions here to error if they are called. */
-int s2n_kyber_512_r3_crypto_kem_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pk, OUT uint8_t *sk)
+int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
+        IN const uint8_t *public_key)
 {
-    return s2n_kyber_kem_keypair_not_supported(kem, pk, sk);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
-int s2n_kyber_512_r3_crypto_kem_enc(IN const struct s2n_kem *kem, OUT uint8_t *ct, OUT uint8_t *ss,
-        IN const uint8_t *pk)
+
+int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
+        IN const uint8_t *secret_key)
 {
-    return s2n_kyber_kem_enc_not_supported(kem, ct, ss, pk);
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
 }
-int s2n_kyber_512_r3_crypto_kem_dec(IN const struct s2n_kem *kem, OUT uint8_t *ss, IN const uint8_t *ct,
-        IN const uint8_t *sk)
-{
-    return s2n_kyber_kem_dec_not_supported(kem, ss, ct, sk);
-}
+
 #endif
 
 /* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 
 const struct s2n_kem s2n_kyber_512_r3 = {
     .name = "kyber512r3",
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
-    .kem_nid = NID_KYBER512_R3,
-#else
-    .kem_nid = NID_undef,
-#endif
+    .kem_nid = S2N_NID_KYBER512,
     .kem_extension_id = TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
     .public_key_length = S2N_KYBER_512_R3_PUBLIC_KEY_BYTES,
     .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !defined(S2N_NO_PQ)
     .generate_keypair = &s2n_kyber_evp_generate_keypair,
     .encapsulate = &s2n_kyber_evp_encapsulate,
     .decapsulate = &s2n_kyber_evp_decapsulate,
-#else
-    .generate_keypair = &s2n_kyber_512_r3_crypto_kem_keypair,
-    .encapsulate = &s2n_kyber_512_r3_crypto_kem_enc,
-    .decapsulate = &s2n_kyber_512_r3_crypto_kem_dec,
-#endif
 };
 
 const struct s2n_kem s2n_kyber_768_r3 = {
     .name = "kyber768r3",
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
-    .kem_nid = NID_KYBER768_R3,
-#else
-    .kem_nid = NID_undef,
-#endif
+    .kem_nid = S2N_NID_KYBER768,
     .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
     .public_key_length = S2N_KYBER_768_R3_PUBLIC_KEY_BYTES,
     .private_key_length = S2N_KYBER_768_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_768_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_768_R3_CIPHERTEXT_BYTES,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !defined(S2N_NO_PQ)
     .generate_keypair = &s2n_kyber_evp_generate_keypair,
     .encapsulate = &s2n_kyber_evp_encapsulate,
     .decapsulate = &s2n_kyber_evp_decapsulate,
-#else
-    .generate_keypair = &s2n_kyber_kem_keypair_not_supported,
-    .encapsulate = &s2n_kyber_kem_enc_not_supported,
-    .decapsulate = &s2n_kyber_kem_dec_not_supported,
-#endif
 };
 
 const struct s2n_kem s2n_kyber_1024_r3 = {
     .name = "kyber1024r3",
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
-    .kem_nid = NID_KYBER1024_R3,
-#else
-    .kem_nid = NID_undef,
-#endif
+    .kem_nid = S2N_NID_KYBER1024,
     .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
     .public_key_length = S2N_KYBER_1024_R3_PUBLIC_KEY_BYTES,
     .private_key_length = S2N_KYBER_1024_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_1024_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_1024_R3_CIPHERTEXT_BYTES,
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !defined(S2N_NO_PQ)
     .generate_keypair = &s2n_kyber_evp_generate_keypair,
     .encapsulate = &s2n_kyber_evp_encapsulate,
     .decapsulate = &s2n_kyber_evp_decapsulate,
-#else
-    .generate_keypair = &s2n_kyber_kem_keypair_not_supported,
-    .encapsulate = &s2n_kyber_kem_enc_not_supported,
-    .decapsulate = &s2n_kyber_kem_dec_not_supported,
-#endif
 };
 
 const struct s2n_kem *tls12_kyber_kems[] = {
@@ -199,21 +153,13 @@ const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
     .kem = &s2n_kyber_768_r3,
 };
 
-const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT] = {
+const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_secp256r1_kyber_512_r3,
-/* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
-#if EVP_APIS_SUPPORTED
     &s2n_x25519_kyber_512_r3,
-#endif
-/* Kyber 768+ is only available from libcrypto */
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     &s2n_secp256r1_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
     &s2n_secp521r1_kyber_1024_r3,
-#endif
-#if EVP_APIS_SUPPORTED && defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     &s2n_x25519_kyber_768_r3,
-#endif
 };
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
@@ -495,4 +441,24 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     POSIX_GUARD_RESULT(s2n_kem_decapsulate(kem_params, &ciphertext));
 
     return S2N_SUCCESS;
+}
+
+bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
+{
+    if (kem_group == NULL) {
+        return false;
+    }
+    bool available = s2n_pq_is_enabled();
+    /* Only Kyber768+ requires s2n_libcrypto_supports_kyber() */
+    /* TODO: remove the conditional guard when we remove the interned Kyber512 impl. */
+    if (kem_group->kem != &s2n_kyber_512_r3) {
+        available &= s2n_libcrypto_supports_kyber();
+    }
+    /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
+    if (kem_group->curve == NULL) {
+        available = false;
+    } else if (kem_group->curve == &s2n_ecc_curve_x25519) {
+        available &= s2n_is_evp_apis_supported();
+    }
+    return available;
 }
