@@ -445,6 +445,9 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
 
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
 {
+    if (kem_group == NULL) {
+        return false;
+    }
     bool available = s2n_pq_is_enabled();
     /* Only Kyber768+ requires s2n_libcrypto_supports_kyber() */
     /* TODO: remove the conditional guard when we remove the interned Kyber512 impl. */
