@@ -1007,25 +1007,37 @@ int main(int argc, char **argv)
 
         /* Error if the provided supported groups array is too small */
         {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
+            /* Test a policy with and without PQ kem groups */
+            const char *policies[] = {
+                "20170210",
+                "PQ-TLS-1-2-2023-10-07",
+            };
 
-            const struct s2n_security_policy *security_policy = config->security_policy;
-            EXPECT_NOT_NULL(security_policy);
-            uint16_t policy_groups_count = security_policy->ecc_preferences->count;
-            EXPECT_TRUE(policy_groups_count > 0);
+            for (size_t i = 0; i < s2n_array_len(policies); i++) {
+                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+                EXPECT_NOT_NULL(config);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policies[i]));
 
-            uint16_t supported_groups[S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT] = { 0 };
-            uint16_t supported_groups_count = 11;
-            int ret = s2n_config_get_supported_groups(config, supported_groups, policy_groups_count - 1,
-                    &supported_groups_count);
-            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-            EXPECT_EQUAL(supported_groups_count, 0);
+                uint32_t policy_groups_count = 0;
+                EXPECT_OK(s2n_kem_preferences_groups_available(config->security_policy->kem_preferences,
+                        &policy_groups_count));
+                policy_groups_count += config->security_policy->ecc_preferences->count;
+                EXPECT_TRUE(policy_groups_count > 0);
 
-            EXPECT_SUCCESS(s2n_config_get_supported_groups(config, supported_groups, policy_groups_count,
-                    &supported_groups_count));
-            EXPECT_EQUAL(supported_groups_count, policy_groups_count);
+                uint16_t supported_groups[S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT] = { 0 };
+                uint16_t supported_groups_count = 11;
+
+                for (size_t invalid_count = 0; invalid_count < policy_groups_count; invalid_count++) {
+                    int ret = s2n_config_get_supported_groups(config, supported_groups, invalid_count,
+                            &supported_groups_count);
+                    EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+                    EXPECT_EQUAL(supported_groups_count, 0);
+                }
+
+                EXPECT_SUCCESS(s2n_config_get_supported_groups(config, supported_groups, policy_groups_count,
+                        &supported_groups_count));
+                EXPECT_EQUAL(supported_groups_count, policy_groups_count);
+            }
         }
 
         /* s2n_config_get_supported_groups should produce the same supported groups as sent in the
@@ -1035,10 +1047,9 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *security_policy = security_policy_selection[policy_idx].security_policy;
             EXPECT_NOT_NULL(security_policy);
 
-            uint16_t expected_groups_count = security_policy->ecc_preferences->count;
-            if (s2n_pq_is_enabled()) {
-                expected_groups_count += security_policy->kem_preferences->tls13_kem_group_count;
-            }
+            uint32_t expected_groups_count = 0;
+            EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &expected_groups_count));
+            expected_groups_count += security_policy->ecc_preferences->count;
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);

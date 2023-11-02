@@ -220,7 +220,6 @@ int main(int argc, char **argv)
         .expected_server_traffic_secret = &aes_256_secp256r1_kyber512r3_server_secret,
     };
 
-#if EVP_APIS_SUPPORTED
     /* All x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
     S2N_BLOB_FROM_HEX(x25519_secret, X25519_SHARED_SECRET);
 
@@ -254,9 +253,7 @@ int main(int argc, char **argv)
         .expected_client_traffic_secret = &aes_256_x25519_kyber512r3_client_secret,
         .expected_server_traffic_secret = &aes_256_x25519_kyber512r3_server_secret,
     };
-#endif
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     S2N_BLOB_FROM_HEX(secp256r1_kyber768r3_hybrid_secret, SECP256R1_KYBER768R3_HYBRID_SECRET);
 
     S2N_BLOB_FROM_HEX(secp384r1_secret, SECP384R1_SHARED_SECRET);
@@ -356,9 +353,7 @@ int main(int argc, char **argv)
         .expected_client_traffic_secret = &aes_256_secp521r1_kyber1024r3_client_secret,
         .expected_server_traffic_secret = &aes_256_secp521r1_kyber1024r3_server_secret,
     };
-#endif
 
-#if EVP_APIS_SUPPORTED && defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     S2N_BLOB_FROM_HEX(x25519_kyber768r3_hybrid_secret, X25519_KYBER768R3_HYBRID_SECRET);
     S2N_BLOB_FROM_HEX(aes_128_x25519_kyber768r3_client_secret, AES_128_X25519_KYBER768R3_CLIENT_TRAFFIC_SECRET);
     S2N_BLOB_FROM_HEX(aes_128_x25519_kyber768r3_server_secret, AES_128_X25519_KYBER768R3_SERVER_TRAFFIC_SECRET);
@@ -389,36 +384,33 @@ int main(int argc, char **argv)
         .expected_client_traffic_secret = &aes_256_x25519_kyber768r3_client_secret,
         .expected_server_traffic_secret = &aes_256_x25519_kyber768r3_server_secret,
     };
-#endif
 
     const struct hybrid_test_vector *all_test_vectors[] = {
         &aes_128_sha_256_secp256r1_kyber512r3_vector,
         &aes_256_sha_384_secp256r1_kyber512r3_vector,
-#if EVP_APIS_SUPPORTED
         &aes_128_sha_256_x25519_kyber512r3_vector,
         &aes_256_sha_384_x25519_kyber512r3_vector,
-#endif
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
         &aes_128_sha_256_secp256r1_kyber768r3_vector,
         &aes_256_sha_384_secp256r1_kyber768r3_vector,
         &aes_128_sha_256_secp384r1_kyber768r3_vector,
         &aes_256_sha_384_secp384r1_kyber768r3_vector,
         &aes_128_sha_256_secp521r1_kyber1024r3_vector,
         &aes_256_sha_384_secp521r1_kyber1024r3_vector,
-#endif
-#if EVP_APIS_SUPPORTED && defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
         &aes_128_sha_256_x25519_kyber768r3_vector,
         &aes_256_sha_384_x25519_kyber768r3_vector,
-#endif
     };
 
-    EXPECT_EQUAL(s2n_array_len(all_test_vectors), (2 * S2N_SUPPORTED_KEM_GROUPS_COUNT));
+    EXPECT_EQUAL(s2n_array_len(all_test_vectors), (2 * S2N_KEM_GROUPS_COUNT));
 
     {
         /* Happy cases for computing the hybrid shared secret and client & server traffic secrets */
         for (int i = 0; i < s2n_array_len(all_test_vectors); i++) {
             const struct hybrid_test_vector *test_vector = all_test_vectors[i];
             const struct s2n_kem_group *kem_group = test_vector->kem_group;
+            /* Skip |kem_group| if unavailable due to lack of curve support. */
+            if (!s2n_kem_group_is_available(kem_group) && kem_group->curve->name == NULL) {
+                continue;
+            }
 
             /* Set up connections */
             struct s2n_connection *client_conn = NULL;
@@ -426,6 +418,9 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
+            /* Expect success here regardless of whether a given kem_group is
+             * available because we will fall back to ECDH if no KEM groups are
+             * available. */
             EXPECT_SUCCESS(set_up_conns(client_conn, server_conn, test_vector->client_ecc_key,
                     test_vector->server_ecc_key, kem_group, test_vector->pq_secret));
 

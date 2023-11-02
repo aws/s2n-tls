@@ -1155,27 +1155,29 @@ int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups,
     const struct s2n_ecc_preferences *ecc_preferences = security_policy->ecc_preferences;
     POSIX_ENSURE_REF(ecc_preferences);
 
-    uint16_t kem_group_count = 0;
-    if (s2n_pq_is_enabled()) {
-        kem_group_count = kem_preferences->tls13_kem_group_count;
-    }
-    uint16_t ecc_curve_count = ecc_preferences->count;
-    uint16_t total_group_count = kem_group_count + ecc_curve_count;
-    POSIX_ENSURE(total_group_count <= groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-
-    for (size_t i = 0; i < kem_group_count; i++) {
+    uint16_t groups_count = 0;
+    for (uint8_t i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *kem_group = kem_preferences->tls13_kem_groups[i];
         POSIX_ENSURE_REF(kem_group);
-        groups[i] = kem_group->iana_id;
+        if (!s2n_kem_group_is_available(kem_group)) {
+            continue;
+        }
+
+        POSIX_ENSURE(groups_count < groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        groups[groups_count] = kem_group->iana_id;
+        groups_count += 1;
     }
 
-    for (size_t i = 0; i < ecc_curve_count; i++) {
+    for (uint8_t i = 0; i < ecc_preferences->count; i++) {
         const struct s2n_ecc_named_curve *ecc_curve = ecc_preferences->ecc_curves[i];
         POSIX_ENSURE_REF(ecc_curve);
-        groups[kem_group_count + i] = ecc_curve->iana_id;
+
+        POSIX_ENSURE(groups_count < groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        groups[groups_count] = ecc_curve->iana_id;
+        groups_count += 1;
     }
 
-    *groups_count_out = total_group_count;
+    *groups_count_out = groups_count;
 
     return S2N_SUCCESS;
 }
