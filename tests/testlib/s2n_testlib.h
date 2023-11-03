@@ -151,6 +151,9 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_WEIRD_DASHES_CERT_CHAIN    "../pems/rsa_2048_weird_dashes_cert.pem"
 #define S2N_NO_DASHES_CERT_CHAIN       "../pems/rsa_2048_no_dashes_cert.pem"
 
+/* Certificate with unusual curve not supported by awslc */
+#define S2N_BRAINPOOL_CURVE_CERT "../pems/ecdsa_brainpoolP512t1_cert.pem"
+
 /* OCSP Stapled Response Testing files */
 #define S2N_OCSP_SERVER_CERT              "../pems/ocsp/server_cert.pem"
 #define S2N_OCSP_SERVER_CERT_EARLY_EXPIRE "../pems/ocsp/server_cert_early_expire.pem"

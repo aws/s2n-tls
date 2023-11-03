@@ -85,7 +85,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     if (named_curve != NULL && s2n_ecc_preferences_includes_curve(ecc_pref, named_curve->iana_id)) {
         selected_group_in_supported_groups = true;
     }
-    if (kem_group != NULL && s2n_kem_preferences_includes_tls13_kem_group(kem_pref, kem_group->iana_id)) {
+    if (kem_group != NULL && s2n_kem_group_is_available(kem_group) && s2n_kem_preferences_includes_tls13_kem_group(kem_pref, kem_group->iana_id)) {
         selected_group_in_supported_groups = true;
     }
 
