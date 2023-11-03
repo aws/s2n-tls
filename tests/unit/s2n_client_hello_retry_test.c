@@ -168,24 +168,10 @@ int main(int argc, char **argv)
         };
 
         {
-            const struct s2n_kem_group *test_kem_groups[] = {
-                &s2n_secp256r1_kyber_512_r3,
-#if EVP_APIS_SUPPORTED
-                &s2n_x25519_kyber_512_r3,
-#endif
-            };
-
-            const struct s2n_kem_preferences test_kem_prefs = {
-                .kem_count = 0,
-                .kems = NULL,
-                .tls13_kem_group_count = s2n_array_len(test_kem_groups),
-                .tls13_kem_groups = test_kem_groups,
-            };
-
             const struct s2n_security_policy test_security_policy = {
                 .minimum_protocol_version = S2N_SSLv3,
                 .cipher_preferences = &cipher_preferences_test_all_tls13,
-                .kem_preferences = &test_kem_prefs,
+                .kem_preferences = &kem_preferences_all,
                 .signature_preferences = &s2n_signature_preferences_20200207,
                 .ecc_preferences = &s2n_ecc_preferences_20200310,
             };
@@ -218,18 +204,21 @@ int main(int argc, char **argv)
                     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
                     EXPECT_NOT_NULL(kem_pref);
 
-                    conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
+                    const struct s2n_kem_group *kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
+                    EXPECT_NOT_NULL(kem_group);
+
+                    conn->kex_params.server_kem_group_params.kem_group = kem_group;
                     EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
                     struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
-                    client_params->kem_group = kem_pref->tls13_kem_groups[0];
-                    client_params->kem_params.kem = kem_pref->tls13_kem_groups[0]->kem;
-                    client_params->ecc_params.negotiated_curve = kem_pref->tls13_kem_groups[0]->curve;
+                    client_params->kem_group = kem_group;
+                    client_params->kem_params.kem = kem_group->kem;
+                    client_params->ecc_params.negotiated_curve = kem_group->curve;
 
                     EXPECT_NULL(client_params->ecc_params.evp_pkey);
                     EXPECT_NULL(client_params->kem_params.private_key.data);
 
-                    kem_public_key_size public_key_size = kem_pref->tls13_kem_groups[0]->kem->public_key_length;
+                    kem_public_key_size public_key_size = kem_group->kem->public_key_length;
                     EXPECT_SUCCESS(s2n_alloc(&client_params->kem_params.public_key, public_key_size));
 
                     EXPECT_OK(s2n_kem_generate_keypair(&client_params->kem_params));
@@ -263,7 +252,9 @@ int main(int argc, char **argv)
                 };
                 /* Test PQ KEM success case for s2n_server_hello_retry_recv. */
                 /* Need at least two KEM's to test fallback */
-                if (test_security_policy.kem_preferences->tls13_kem_group_count >= 2) {
+                uint32_t available_groups = 0;
+                EXPECT_OK(s2n_kem_preferences_groups_available(test_security_policy.kem_preferences, &available_groups));
+                if (available_groups >= 2) {
                     struct s2n_config *config;
                     struct s2n_connection *conn;
 

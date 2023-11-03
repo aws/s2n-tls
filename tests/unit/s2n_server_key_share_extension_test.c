@@ -514,9 +514,7 @@ int main(int argc, char **argv)
         /* KEM groups with Test Vectors defined in /tests/unit/kats/tls13_server_hybrid_key_share_recv.kat */
         const struct s2n_kem_group *test_kem_groups[] = {
             &s2n_secp256r1_kyber_512_r3,
-#if EVP_APIS_SUPPORTED
             &s2n_x25519_kyber_512_r3,
-#endif
         };
 
         const struct s2n_kem_preferences test_kem_prefs = {
@@ -538,8 +536,8 @@ int main(int argc, char **argv)
         const struct s2n_kem_preferences test_all_supported_kem_prefs = {
             .kem_count = 0,
             .kems = NULL,
-            .tls13_kem_group_count = S2N_SUPPORTED_KEM_GROUPS_COUNT,
-            .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
+            .tls13_kem_group_count = kem_preferences_all.tls13_kem_group_count,
+            .tls13_kem_groups = kem_preferences_all.tls13_kem_groups,
             .tls13_pq_hybrid_draft_revision = 0
         };
 
@@ -547,26 +545,6 @@ int main(int argc, char **argv)
             .minimum_protocol_version = S2N_SSLv3,
             .cipher_preferences = &cipher_preferences_test_all_tls13,
             .kem_preferences = &test_all_supported_kem_prefs,
-            .signature_preferences = &s2n_signature_preferences_20200207,
-            .ecc_preferences = &s2n_ecc_preferences_20200310,
-        };
-
-        const struct s2n_kem_group *kem_groups_kyber[] = {
-            &s2n_secp256r1_kyber_512_r3,
-        };
-
-        const struct s2n_kem_preferences kem_prefs_kyber = {
-            .kem_count = 0,
-            .kems = NULL,
-            .tls13_kem_group_count = s2n_array_len(kem_groups_kyber),
-            .tls13_kem_groups = kem_groups_kyber,
-            .tls13_pq_hybrid_draft_revision = 0
-        };
-
-        const struct s2n_security_policy security_policy_kyber = {
-            .minimum_protocol_version = S2N_SSLv3,
-            .cipher_preferences = &cipher_preferences_test_all_tls13,
-            .kem_preferences = &kem_prefs_kyber,
             .signature_preferences = &s2n_signature_preferences_20200207,
             .ecc_preferences = &s2n_ecc_preferences_20200310,
         };
@@ -599,6 +577,9 @@ int main(int argc, char **argv)
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
+                        if (!s2n_kem_group_is_available(kem_group)) {
+                            continue;
+                        }
                         struct s2n_connection *client_conn = NULL;
                         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                         client_conn->security_policy_override = &test_security_policy;
@@ -698,6 +679,9 @@ int main(int argc, char **argv)
                 {
                     for (size_t i = 0; i < s2n_array_len(test_kem_groups); i++) {
                         const struct s2n_kem_group *kem_group = test_kem_groups[i];
+                        if (!s2n_kem_group_is_available(kem_group)) {
+                            continue;
+                        }
                         struct s2n_connection *client_conn;
                         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                         client_conn->security_policy_override = &test_security_policy;
@@ -802,7 +786,7 @@ int main(int argc, char **argv)
             }
 
             if (s2n_pq_is_enabled()) {
-                conn->security_policy_override = &security_policy_kyber;
+                conn->security_policy_override = &test_all_supported_kems_security_policy;
 
                 EXPECT_FAILURE(s2n_server_key_share_send_check_pq_hybrid(conn));
                 conn->kex_params.server_kem_group_params.kem_params.kem = &s2n_kyber_512_r3;
@@ -841,7 +825,7 @@ int main(int argc, char **argv)
         /* Test s2n_server_key_share_extension.send sends key share success (PQ) */
         if (s2n_pq_is_enabled()) {
             for (int len_prefixed = 0; len_prefixed < 2; len_prefixed++) {
-                for (size_t i = 0; i < S2N_SUPPORTED_KEM_GROUPS_COUNT; i++) {
+                for (size_t i = 0; i < S2N_KEM_GROUPS_COUNT; i++) {
                     struct s2n_connection *conn = NULL;
                     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                     conn->security_policy_override = &test_all_supported_kems_security_policy;
@@ -859,6 +843,10 @@ int main(int argc, char **argv)
 
                     struct s2n_kem_group_params *server_params = &conn->kex_params.server_kem_group_params;
                     const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
+                    if (!s2n_kem_group_is_available(kem_group)) {
+                        EXPECT_SUCCESS(s2n_connection_free(conn));
+                        continue;
+                    }
                     server_params->kem_group = kem_group;
                     server_params->kem_params.kem = kem_group->kem;
                     server_params->ecc_params.negotiated_curve = kem_group->curve;
@@ -929,6 +917,9 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
                 struct s2n_kem_group_params *server_params = &conn->kex_params.server_kem_group_params;
                 const struct s2n_kem_group *kem_group = kem_pref->tls13_kem_groups[i];
+                if (!s2n_kem_group_is_available(kem_group)) {
+                    continue;
+                }
 
                 server_params->kem_group = kem_group;
                 server_params->kem_params.kem = kem_group->kem;
