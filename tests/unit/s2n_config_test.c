@@ -1026,7 +1026,6 @@ int main(int argc, char **argv)
 
                 uint16_t supported_groups[S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT] = { 0 };
                 uint16_t supported_groups_count = 11;
-
                 for (size_t invalid_count = 0; invalid_count < policy_groups_count; invalid_count++) {
                     int ret = s2n_config_get_supported_groups(config, supported_groups, invalid_count,
                             &supported_groups_count);
@@ -1040,8 +1039,8 @@ int main(int argc, char **argv)
             }
         }
 
-        /* s2n_config_get_supported_groups should produce the same supported groups as sent in the
-         * supported groups extension
+        /* The groups produced by s2n_config_get_supported_groups should match the groups produced
+         * by a connection that's configured to send its entire list of supported groups
          */
         for (size_t policy_idx = 0; security_policy_selection[policy_idx].version != NULL; policy_idx++) {
             const struct s2n_security_policy *security_policy = security_policy_selection[policy_idx].security_policy;

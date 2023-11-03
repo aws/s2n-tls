@@ -3394,6 +3394,10 @@ S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_d
 /**
  * Retrieves the list of supported groups configured by the security policy associated with `config`.
  *
+ * The retrieved list of groups will contain all of the supported groups for a security policy that are compatible
+ * with the build of s2n-tls. For instance, PQ kem groups that are not supported by the linked libcrypto will not
+ * be written. Otherwise, all of the supported groups configured for the security policy will be written.
+ *
  * IANA values for each of the supported groups are written to the provided `groups` array, and `groups_count` is
  * set to the number of written supported groups.
  *
