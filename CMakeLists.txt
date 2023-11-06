@@ -563,6 +563,8 @@ if (BUILD_TESTING)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
         add_test(NAME ${test_case_name} COMMAND $<TARGET_FILE:${test_case_name}> WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/unit)
+        # fail any test that takes more than 256 seconds
+        set_property(TEST ${test_case_name} PROPERTY TIMEOUT 256)
         set_property(TEST ${test_case_name} PROPERTY LABELS "unit")
         set_property(TEST ${test_case_name} PROPERTY ENVIRONMENT ${UNIT_TEST_ENVS})
 
