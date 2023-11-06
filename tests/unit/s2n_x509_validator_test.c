@@ -1803,15 +1803,51 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
-        /* Expect to return S2N_CERT_ERR_UNTRUSTED */
-        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len,
-                                        &pkey_type, &public_key_out),
-                S2N_ERR_CERT_UNTRUSTED);
+        EXPECT_ERROR_WITH_ERRNO(
+                s2n_x509_validator_validate_cert_chain(&validator,
+                        connection, chain_data, chain_len, &pkey_type, &public_key_out),
+                S2N_ERR_DECODE_CERTIFICATE);
 
         s2n_stuffer_free(&chain_stuffer);
         s2n_connection_free(connection);
         s2n_pkey_free(&public_key_out);
         s2n_x509_validator_wipe(&validator);
+    };
+
+    /* Test unknown curve in cert validator for negative case */
+    if (s2n_libcrypto_is_awslc()) {
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        char pem_str[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        EXPECT_SUCCESS(s2n_read_test_pem(S2N_BRAINPOOL_CURVE_CERT, pem_str, sizeof(pem_str)));
+
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_set_cert_chain(chain_and_key, pem_str));
+
+        DEFER_CLEANUP(struct s2n_stuffer message = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&message, 0));
+        EXPECT_SUCCESS(s2n_send_cert_chain(conn, &message, chain_and_key));
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&message, 3));
+
+        uint32_t chain_len = s2n_stuffer_data_available(&message);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&message, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_ERROR_WITH_ERRNO(
+                s2n_x509_validator_validate_cert_chain(&validator,
+                        conn, chain_data, chain_len, &pkey_type, &public_key_out),
+                S2N_ERR_DECODE_CERTIFICATE);
     };
 
     /* Test validator trusts a SHA-1 signature in a certificate chain if certificate validation is off */

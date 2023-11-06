@@ -620,17 +620,17 @@ int s2n_connection_set_send_cb(struct s2n_connection *conn, s2n_send_fn send)
     return S2N_SUCCESS;
 }
 
-int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len)
+int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **cert_chain_out, uint32_t *cert_chain_len)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(der_cert_chain_out);
+    POSIX_ENSURE_REF(cert_chain_out);
     POSIX_ENSURE_REF(cert_chain_len);
     POSIX_ENSURE_REF(conn->handshake_params.client_cert_chain.data);
 
-    *der_cert_chain_out = conn->handshake_params.client_cert_chain.data;
+    *cert_chain_out = conn->handshake_params.client_cert_chain.data;
     *cert_chain_len = conn->handshake_params.client_cert_chain.size;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const struct s2n_cipher_preferences **cipher_preferences)

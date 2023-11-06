@@ -64,6 +64,9 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     /* Send KEM groups list first */
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 && s2n_pq_is_enabled()) {
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+            if (!s2n_kem_group_is_available(kem_pref->tls13_kem_groups[i])) {
+                continue;
+            }
             POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
         }
     }
@@ -127,7 +130,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
 
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_kem_group = kem_pref->tls13_kem_groups[i];
-        if (iana_id == supported_kem_group->iana_id) {
+        if (s2n_kem_group_is_available(supported_kem_group) && iana_id == supported_kem_group->iana_id) {
             conn->kex_params.mutually_supported_kem_groups[i] = supported_kem_group;
             return S2N_SUCCESS;
         }
@@ -160,7 +163,7 @@ static int s2n_choose_supported_group(struct s2n_connection *conn)
      * populated with anything. */
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *candidate_kem_group = conn->kex_params.mutually_supported_kem_groups[i];
-        if (candidate_kem_group != NULL) {
+        if (candidate_kem_group != NULL && s2n_kem_group_is_available(candidate_kem_group)) {
             conn->kex_params.server_kem_group_params.kem_group = candidate_kem_group;
             conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = candidate_kem_group->curve;
             conn->kex_params.server_kem_group_params.kem_params.kem = candidate_kem_group->kem;

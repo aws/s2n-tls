@@ -31,6 +31,16 @@ typedef uint16_t kem_ciphertext_key_size;
 #define IN  /* Indicates a necessary function input */
 #define OUT /* Indicates a function output */
 
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+    #define S2N_NID_KYBER512  NID_KYBER512_R3
+    #define S2N_NID_KYBER768  NID_KYBER768_R3
+    #define S2N_NID_KYBER1024 NID_KYBER1024_R3
+#else
+    #define S2N_NID_KYBER512  NID_undef
+    #define S2N_NID_KYBER768  NID_undef
+    #define S2N_NID_KYBER1024 NID_undef
+#endif
+
 struct s2n_kem {
     const char *name;
     int kem_nid;
@@ -78,19 +88,8 @@ extern const struct s2n_kem s2n_kyber_512_r3;
 extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
 
-/* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
-/* Kyber758+ requires S2N_LIBCRYPTO_SUPPORTS_KYBER */
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && EVP_APIS_SUPPORTED
-    #define S2N_SUPPORTED_KEM_GROUPS_COUNT 6
-#elif defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !EVP_APIS_SUPPORTED
-    #define S2N_SUPPORTED_KEM_GROUPS_COUNT 4
-#elif !defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && EVP_APIS_SUPPORTED
-    #define S2N_SUPPORTED_KEM_GROUPS_COUNT 2
-#else
-    #define S2N_SUPPORTED_KEM_GROUPS_COUNT 1
-#endif
-
-extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_SUPPORTED_KEM_GROUPS_COUNT];
+#define S2N_KEM_GROUPS_COUNT 6
+extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
 extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
@@ -120,6 +119,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
+bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 
 /* The following are API signatures for PQ KEMs as defined by NIST. All functions return 0
  * on success, and !0 on failure. Avoid calling these functions directly within s2n. Instead,
