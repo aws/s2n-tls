@@ -268,9 +268,9 @@ def test_s2nc_to_s2nd_pq_handshake(managed_process, protocol, certificate, clien
         assert_s2n_negotiation_parameters(results, expected_result)
 
 
-@pytest.mark.parametrize("s2n_policy", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name)
-@pytest.mark.parametrize("awslc_group", [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00], ids=get_parameter_name)
-def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_policy, awslc_group):
+@pytest.mark.parametrize("s2n_client_policy", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name)
+@pytest.mark.parametrize("awslc_server_group", [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00], ids=get_parameter_name)
+def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_client_policy, awslc_server_group):
 
     if not pq_enabled():
         pytest.skip("PQ not enabled")
@@ -292,7 +292,7 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_policy, awslc_group):
         mode=Provider.ClientMode,
         port=port,
         insecure=True,
-        cipher=s2n_policy,
+        cipher=s2n_client_policy,
         env_overrides=s2n_env_vars,
         protocol=Protocols.TLS13)
 
@@ -301,27 +301,22 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_policy, awslc_group):
         port=port,
         protocol=Protocols.TLS13,
         env_overrides=awslc_env_vars,
-        curve=Curves.from_name(awslc_group.oqs_name))
+        curve=Curves.from_name(awslc_server_group.oqs_name))
 
     awslc_server = managed_process(BoringSSL, awslc_server_options, timeout=5)
     s2n_client = managed_process(S2N, s2nc_client_options, timeout=5)
-    expected_result = EXPECTED_RESULTS.get((s2n_policy, awslc_group), None)
-    tests_passed = 0
+    expected_result = EXPECTED_RESULTS.get((s2n_client_policy, awslc_server_group), None)
 
-    for s2n_results in s2n_client.get_results():
-        assert_s2n_negotiation_parameters(s2n_results, expected_result)
-        tests_passed += 1
+    awslc_result = next(awslc_server.get_results())
+    assert_awslc_negotiation_parameters(awslc_result, expected_result)
 
-    for awslc_results in awslc_server.get_results():
-        assert_awslc_negotiation_parameters(awslc_results, expected_result)
-        tests_passed += 1
-
-    assert tests_passed is 2
+    s2nd_result = next(s2n_client.get_results())
+    assert_s2n_negotiation_parameters(s2nd_result, expected_result)
 
 
-@pytest.mark.parametrize("s2n_policy", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name)
-@pytest.mark.parametrize("awslc_group", [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00], ids=get_parameter_name)
-def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_policy, awslc_group):
+@pytest.mark.parametrize("s2n_server_policy", [Ciphers.PQ_TLS_1_3_2023_06_01], ids=get_parameter_name)
+@pytest.mark.parametrize("awslc_client_group", [KemGroups.SecP256r1Kyber768Draft00, KemGroups.X25519Kyber768Draft00], ids=get_parameter_name)
+def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_client_group):
 
     if not pq_enabled():
         pytest.skip("PQ not enabled")
@@ -343,7 +338,7 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_policy, awslc_group):
         mode=Provider.ServerMode,
         port=port,
         insecure=True,
-        cipher=s2n_policy,
+        cipher=s2n_server_policy,
         env_overrides=s2n_env_vars,
         protocol=Protocols.TLS13)
 
@@ -352,23 +347,17 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_policy, awslc_group):
         port=port,
         protocol=Protocols.TLS13,
         env_overrides=awslc_env_vars,
-        curve=Curves.from_name(awslc_group.oqs_name))
+        curve=Curves.from_name(awslc_client_group.oqs_name))
 
     s2nd_server = managed_process(S2N, s2nd_server_options, timeout=5)
     awslc_client = managed_process(BoringSSL, awslc_client_options, timeout=5)
-    expected_result = EXPECTED_RESULTS.get((s2n_policy, awslc_group), None)
-    tests_passed = 0
+    expected_result = EXPECTED_RESULTS.get((s2n_server_policy, awslc_client_group), None)
 
-    for awslc_results in awslc_client.get_results():
-        assert_awslc_negotiation_parameters(awslc_results, expected_result)
-        tests_passed += 1
+    awslc_result = next(awslc_client.get_results())
+    assert_awslc_negotiation_parameters(awslc_result, expected_result)
 
-    for s2nd_results in s2nd_server.get_results():
-        assert_s2n_negotiation_parameters(s2nd_results, expected_result)
-        tests_passed += 1
-
-    assert tests_passed is 2
-
+    s2nd_result = next(s2nd_server.get_results())
+    assert_s2n_negotiation_parameters(s2nd_result, expected_result)
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
