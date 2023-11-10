@@ -22,3 +22,6 @@ subjectAltName = @alt_names
 
 [alt_names]
 DNS = localhost
+
+[ usr_cert ]
+basicConstraints=CA:TRUE # prev value was FALSE
