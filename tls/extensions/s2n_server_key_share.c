@@ -15,7 +15,7 @@
 
 #include "tls/extensions/s2n_server_key_share.h"
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"

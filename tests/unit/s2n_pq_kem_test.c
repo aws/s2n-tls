@@ -17,7 +17,7 @@
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_openssl.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
@@ -36,13 +36,7 @@ static const struct s2n_kem_test_vector test_vectors[] = {
             .asm_is_enabled = s2n_pq_no_asm_available,
             .enable_asm = s2n_pq_noop_asm,
             .disable_asm = s2n_pq_noop_asm,
-    },
-    {
-            .kem = &s2n_kyber_512_r3,
-            .asm_is_enabled = s2n_kyber512r3_is_avx2_bmi2_enabled,
-            .enable_asm = s2n_try_enable_kyber512r3_opt_avx2_bmi2,
-            .disable_asm = s2n_disable_kyber512r3_opt_avx2_bmi2,
-    },
+    }
 };
 
 /* EXPECT_SUCCESS checks explicitly function_call != -1; the PQ KEM functions may return
@@ -102,7 +96,7 @@ int main()
                 EXPECT_BYTEARRAY_NOT_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
             }
         } else {
-#if defined(S2N_NO_PQ)
+#if !defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
             EXPECT_FAILURE_WITH_ERRNO(kem->generate_keypair(kem, public_key.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
             EXPECT_FAILURE_WITH_ERRNO(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data), S2N_ERR_UNIMPLEMENTED);
             EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data), S2N_ERR_UNIMPLEMENTED);

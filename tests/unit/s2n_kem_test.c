@@ -15,7 +15,7 @@
 #include "tls/s2n_kem.h"
 
 #include "crypto/s2n_ecc_evp.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tests/s2n_test.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_cipher_preferences.h"

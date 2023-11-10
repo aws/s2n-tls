@@ -28,7 +28,7 @@
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 /* clang-format on */
 
 #define HELLO_RETRY_MSG_NO 1

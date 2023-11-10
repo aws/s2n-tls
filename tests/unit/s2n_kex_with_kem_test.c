@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tests/s2n_test.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_key_exchange.h"

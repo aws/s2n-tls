@@ -89,11 +89,6 @@ ifdef S2N_TEST_IN_FIPS_MODE
     DEFAULT_CFLAGS += -DS2N_TEST_IN_FIPS_MODE
 endif
 
-# Don't compile PQ related source code
-ifdef S2N_NO_PQ
-	DEFAULT_CFLAGS += -DS2N_NO_PQ
-endif
-
 CFLAGS += ${DEFAULT_CFLAGS}
 
 ifdef GCC_VERSION

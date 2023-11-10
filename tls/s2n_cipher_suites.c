@@ -19,7 +19,7 @@
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_psk.h"
