@@ -15,8 +15,8 @@
 
 #include "tls/extensions/s2n_client_key_share.h"
 
-#include "error/s2n_errno.h"
 #include "crypto/s2n_pq.h"
+#include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_kem_preferences.h"

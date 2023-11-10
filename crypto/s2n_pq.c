@@ -19,7 +19,7 @@
 
 bool s2n_libcrypto_supports_kyber()
 {
-  /* S2N_LIBCRYPTO_SUPPORTS_KYBER will auto-detected and enabled if
+    /* S2N_LIBCRYPTO_SUPPORTS_KYBER will auto-detected and #defined if
    * ./tests/features/S2N_LIBCRYPTO_SUPPORTS_KYBER.c returns 1 */
 #if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     return true;
@@ -30,5 +30,5 @@ bool s2n_libcrypto_supports_kyber()
 
 bool s2n_pq_is_enabled()
 {
-  return s2n_libcrypto_supports_kyber();
+    return s2n_libcrypto_supports_kyber();
 }

@@ -16,8 +16,8 @@
 #include <openssl/evp.h>
 #include <stddef.h>
 
-#include "error/s2n_errno.h"
 #include "crypto/s2n_pq.h"
+#include "error/s2n_errno.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
@@ -90,7 +90,7 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
     return S2N_SUCCESS;
 }
 
-#else /* If !S2N_LIBCRYPTO_SUPPORTS_KYBER, pq-crypto won't be compiled so define relevant stubs here. */
+#else /* If !S2N_LIBCRYPTO_SUPPORTS_KYBER, we won't have a Kyber impl so define relevant stubs here. */
 
 int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
         OUT uint8_t *secret_key)

@@ -14,8 +14,8 @@
  */
 #include <stdbool.h>
 
-#include "error/s2n_errno.h"
 #include "crypto/s2n_pq.h"
+#include "error/s2n_errno.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_server_extensions.h"
 #include "tls/s2n_tls.h"

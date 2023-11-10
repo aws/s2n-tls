@@ -37,6 +37,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
         POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber768_r3_draft5_params));
         POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber1024_r3_draft5_params));
     }
+
     return S2N_SUCCESS;
 }
 
