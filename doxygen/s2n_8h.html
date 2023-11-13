@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.56-1a586491</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.56-b82a5d4a</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -755,6 +755,8 @@ Functions</h2></td></tr>
 <tr class="separator:a23b80aded2ad1f434662ae5b76f176f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a675dc5ad09b3950ef36c62f4a43a7414"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a675dc5ad09b3950ef36c62f4a43a7414">s2n_offered_early_data_accept</a> (struct s2n_offered_early_data *early_data)</td></tr>
 <tr class="separator:a675dc5ad09b3950ef36c62f4a43a7414"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad1465c4cb90a8956a26a32aa8e53808c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad1465c4cb90a8956a26a32aa8e53808c">s2n_config_get_supported_groups</a> (struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</td></tr>
+<tr class="separator:ad1465c4cb90a8956a26a32aa8e53808c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -3786,6 +3788,61 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="ad1465c4cb90a8956a26a32aa8e53808c" name="ad1465c4cb90a8956a26a32aa8e53808c"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad1465c4cb90a8956a26a32aa8e53808c">&#9670;&#160;</a></span>s2n_config_get_supported_groups()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_get_supported_groups </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *&#160;</td>
+          <td class="paramname"><em>config</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t *&#160;</td>
+          <td class="paramname"><em>groups</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t&#160;</td>
+          <td class="paramname"><em>groups_count_max</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t *&#160;</td>
+          <td class="paramname"><em>groups_count</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Retrieves the list of supported groups configured by the security policy associated with <code>config</code>.</p>
+<p >The retrieved list of groups will contain all of the supported groups for a security policy that are compatible with the build of s2n-tls. For instance, PQ kem groups that are not supported by the linked libcrypto will not be written. Otherwise, all of the supported groups configured for the security policy will be written. This API can be used with the <a class="el" href="s2n_8h.html#a68a751eb59517406db2439a88e94d8d1">s2n_client_hello_get_supported_groups()</a> API as a means of comparing compatibility between a client and server.</p>
+<p >IANA values for each of the supported groups are written to the provided <code>groups</code> array, and <code>groups_count</code> is set to the number of written supported groups.</p>
+<p ><code>groups_count_max</code> should be set to the maximum capacity of the <code>groups</code> array. If <code>groups_count_max</code> is less than the number of supported groups configured by the security policy, this function will error.</p>
+<p >Note that this API retrieves only the groups from a security policy that are available to negotiate via the supported groups extension, and does not return TLS 1.2 PQ kem groups that are negotiated in the supported PQ kem parameters extension.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">config</td><td>A pointer to the s2n_config object from which the supported groups will be retrieved. </td></tr>
+    <tr><td class="paramname">groups</td><td>The array to populate with the supported groups. </td></tr>
+    <tr><td class="paramname">groups_count_max</td><td>The maximum number of supported groups that can fit in the <code>groups</code> array. </td></tr>
+    <tr><td class="paramname">groups_count</td><td>Set to the number of supported groups written to <code>groups</code>. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure. </dd></dl>
 
 </div>
 </div>

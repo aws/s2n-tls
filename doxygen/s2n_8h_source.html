@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.56-1a586491</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.3.56-b82a5d4a</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -805,9 +805,12 @@ $(function() {
 <div class="line"><a id="l03385" name="l03385"></a><span class="lineno"> 3385</span> </div>
 <div class="line"><a id="l03392" name="l03392"></a><span class="lineno"><a class="line" href="s2n_8h.html#a675dc5ad09b3950ef36c62f4a43a7414"> 3392</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a675dc5ad09b3950ef36c62f4a43a7414">s2n_offered_early_data_accept</a>(<span class="keyword">struct</span> s2n_offered_early_data *early_data);</div>
 <div class="line"><a id="l03393" name="l03393"></a><span class="lineno"> 3393</span> </div>
-<div class="line"><a id="l03394" name="l03394"></a><span class="lineno"> 3394</span><span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a id="l03395" name="l03395"></a><span class="lineno"> 3395</span>}</div>
-<div class="line"><a id="l03396" name="l03396"></a><span class="lineno"> 3396</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l03419" name="l03419"></a><span class="lineno"><a class="line" href="s2n_8h.html#ad1465c4cb90a8956a26a32aa8e53808c"> 3419</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#ad1465c4cb90a8956a26a32aa8e53808c">s2n_config_get_supported_groups</a>(<span class="keyword">struct</span> s2n_config *config, uint16_t *groups, uint16_t groups_count_max,</div>
+<div class="line"><a id="l03420" name="l03420"></a><span class="lineno"> 3420</span>        uint16_t *groups_count);</div>
+<div class="line"><a id="l03421" name="l03421"></a><span class="lineno"> 3421</span> </div>
+<div class="line"><a id="l03422" name="l03422"></a><span class="lineno"> 3422</span><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a id="l03423" name="l03423"></a><span class="lineno"> 3423</span>}</div>
+<div class="line"><a id="l03424" name="l03424"></a><span class="lineno"> 3424</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="as2n_8h_html_a012950b0841dad53f4ce0b7bd9892757"><div class="ttname"><a href="s2n_8h.html#a012950b0841dad53f4ce0b7bd9892757">s2n_config_set_session_state_lifetime</a></div><div class="ttdeci">S2N_API int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs)</div></div>
 <div class="ttc" id="as2n_8h_html_a01514c68f7b4d7926f6435e4beec8de0"><div class="ttname"><a href="s2n_8h.html#a01514c68f7b4d7926f6435e4beec8de0">s2n_connection_append_psk</a></div><div class="ttdeci">S2N_API int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk)</div></div>
 <div class="ttc" id="as2n_8h_html_a03486ad1c3bd4bfbea168e696c23b880"><div class="ttname"><a href="s2n_8h.html#a03486ad1c3bd4bfbea168e696c23b880">s2n_async_pkey_op_get_input</a></div><div class="ttdeci">S2N_API int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len)</div></div>
@@ -1031,6 +1034,7 @@ $(function() {
 <div class="ttc" id="as2n_8h_html_ac894d4595895577e79f0e6b4d0be4477"><div class="ttname"><a href="s2n_8h.html#ac894d4595895577e79f0e6b4d0be4477">s2n_cert_get_x509_extension_value_length</a></div><div class="ttdeci">S2N_API int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_t *oid, uint32_t *ext_value_len)</div></div>
 <div class="ttc" id="as2n_8h_html_acbf7cc68d71dd8d960ff078b3a21792f"><div class="ttname"><a href="s2n_8h.html#acbf7cc68d71dd8d960ff078b3a21792f">s2n_cache_delete_callback</a></div><div class="ttdeci">int(* s2n_cache_delete_callback)(struct s2n_connection *conn, void *, const void *key, uint64_t key_size)</div><div class="ttdef"><b>Definition:</b> s2n.h:353</div></div>
 <div class="ttc" id="as2n_8h_html_acc34cfe4ca708912cf9309cc98000c08"><div class="ttname"><a href="s2n_8h.html#acc34cfe4ca708912cf9309cc98000c08">s2n_connection_get_session_id_length</a></div><div class="ttdeci">S2N_API int s2n_connection_get_session_id_length(struct s2n_connection *conn)</div></div>
+<div class="ttc" id="as2n_8h_html_ad1465c4cb90a8956a26a32aa8e53808c"><div class="ttname"><a href="s2n_8h.html#ad1465c4cb90a8956a26a32aa8e53808c">s2n_config_get_supported_groups</a></div><div class="ttdeci">S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</div></div>
 <div class="ttc" id="as2n_8h_html_ad2220ac8657a5417ee02e8da3b7789b1"><div class="ttname"><a href="s2n_8h.html#ad2220ac8657a5417ee02e8da3b7789b1">s2n_stack_traces_enabled</a></div><div class="ttdeci">S2N_API bool s2n_stack_traces_enabled(void)</div></div>
 <div class="ttc" id="as2n_8h_html_ad2985adfcaa565bf3cf35edb4ae4f854"><div class="ttname"><a href="s2n_8h.html#ad2985adfcaa565bf3cf35edb4ae4f854">s2n_connection_set_client_auth_type</a></div><div class="ttdeci">S2N_API int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_auth_type)</div></div>
 <div class="ttc" id="as2n_8h_html_ad2a3ba62c0029c622de99c7edbddfb9c"><div class="ttname"><a href="s2n_8h.html#ad2a3ba62c0029c622de99c7edbddfb9c">s2n_connection_get_ctx</a></div><div class="ttdeci">S2N_API void * s2n_connection_get_ctx(struct s2n_connection *conn)</div></div>
