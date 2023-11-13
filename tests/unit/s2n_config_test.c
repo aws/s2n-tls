@@ -19,14 +19,18 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_fips.h"
+#include "pq-crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "unstable/npn.h"
+
+#define S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT 30
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
@@ -975,6 +979,110 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
             EXPECT_EQUAL(config->disable_x509_time_validation, true);
+        }
+    }
+
+    /* Test s2n_config_get_supported_groups */
+    {
+        /* Safety */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            uint16_t supported_groups[S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT] = { 0 };
+            uint16_t supported_groups_count = 0;
+
+            int ret = s2n_config_get_supported_groups(NULL, supported_groups, s2n_array_len(supported_groups),
+                    &supported_groups_count);
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_NULL);
+            EXPECT_EQUAL(supported_groups_count, 0);
+
+            ret = s2n_config_get_supported_groups(config, NULL, s2n_array_len(supported_groups), &supported_groups_count);
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_NULL);
+            EXPECT_EQUAL(supported_groups_count, 0);
+
+            ret = s2n_config_get_supported_groups(config, supported_groups, s2n_array_len(supported_groups), NULL);
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_NULL);
+            EXPECT_EQUAL(supported_groups_count, 0);
+        }
+
+        /* Error if the provided supported groups array is too small */
+        {
+            /* Test a policy with and without PQ kem groups */
+            const char *policies[] = {
+                "20170210",
+                "PQ-TLS-1-2-2023-10-07",
+            };
+
+            for (size_t i = 0; i < s2n_array_len(policies); i++) {
+                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+                EXPECT_NOT_NULL(config);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, policies[i]));
+
+                uint32_t policy_groups_count = 0;
+                EXPECT_OK(s2n_kem_preferences_groups_available(config->security_policy->kem_preferences,
+                        &policy_groups_count));
+                policy_groups_count += config->security_policy->ecc_preferences->count;
+                EXPECT_TRUE(policy_groups_count > 0);
+
+                uint16_t supported_groups[S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT] = { 0 };
+                uint16_t supported_groups_count = 11;
+                for (size_t invalid_count = 0; invalid_count < policy_groups_count; invalid_count++) {
+                    int ret = s2n_config_get_supported_groups(config, supported_groups, invalid_count,
+                            &supported_groups_count);
+                    EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+                    EXPECT_EQUAL(supported_groups_count, 0);
+                }
+
+                EXPECT_SUCCESS(s2n_config_get_supported_groups(config, supported_groups, policy_groups_count,
+                        &supported_groups_count));
+                EXPECT_EQUAL(supported_groups_count, policy_groups_count);
+            }
+        }
+
+        /* The groups produced by s2n_config_get_supported_groups should match the groups produced
+         * by a connection that's configured to send its entire list of supported groups
+         */
+        for (size_t policy_idx = 0; security_policy_selection[policy_idx].version != NULL; policy_idx++) {
+            const struct s2n_security_policy *security_policy = security_policy_selection[policy_idx].security_policy;
+            EXPECT_NOT_NULL(security_policy);
+
+            uint32_t expected_groups_count = 0;
+            EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &expected_groups_count));
+            expected_groups_count += security_policy->ecc_preferences->count;
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            config->security_policy = security_policy;
+
+            uint16_t supported_groups[S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT] = { 0 };
+            uint16_t supported_groups_count = 0;
+            EXPECT_SUCCESS(s2n_config_get_supported_groups(config, supported_groups, s2n_array_len(supported_groups),
+                    &supported_groups_count));
+            EXPECT_EQUAL(supported_groups_count, expected_groups_count);
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            /* PQ kem groups aren't sent in the supported groups extension before TLS 1.3. */
+            conn->actual_protocol_version = S2N_TLS13;
+
+            DEFER_CLEANUP(struct s2n_stuffer extension_stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension_stuffer, 0));
+            EXPECT_SUCCESS(s2n_client_supported_groups_extension.send(conn, &extension_stuffer));
+
+            uint16_t extension_groups_count = 0;
+            EXPECT_OK(s2n_supported_groups_parse_count(&extension_stuffer, &extension_groups_count));
+            EXPECT_EQUAL(extension_groups_count, expected_groups_count);
+
+            for (size_t i = 0; i < supported_groups_count; i++) {
+                /* s2n_stuffer_read_uint16 is used to read each of the supported groups in
+                 * network-order endianness.
+                 */
+                uint16_t group_iana = 0;
+                POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &group_iana));
+
+                EXPECT_EQUAL(group_iana, supported_groups[i]);
+            }
         }
     }
 
