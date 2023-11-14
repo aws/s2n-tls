@@ -123,6 +123,11 @@ fn build_vendored() {
         }
     }
 
+    // only enable debug info if we're not optimizing for size
+    if !["s", "z"].contains(&env("OPT_LEVEL").as_str()) {
+        build.define("S2N_DEBUG_INFO", "1");
+    }
+
     if !pq {
         build.define("S2N_NO_PQ", "1");
     }

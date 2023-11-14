@@ -157,7 +157,7 @@ int benchmark_negotiate(struct s2n_connection *conn, int fd, benchmark::State& s
     if (s2n_ret != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
             fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
-                    s2n_strerror(s2n_errno, "EN"),
+                    s2n_strerror_name(s2n_errno),
                     s2n_strerror_debug(s2n_errno, "EN"));
             fprintf(stderr, "Alert: %d\n",
                     s2n_connection_get_alert(conn));

@@ -304,12 +304,17 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
     /* clang-format on */
 
-#define ERR_STR_CASE(ERR, str) \
-    case ERR:                  \
-        return str;
 #define ERR_NAME_CASE(ERR, str) \
     case ERR:                   \
         return #ERR;
+
+#ifdef S2N_DEBUG_INFO
+    #define ERR_STR_CASE(ERR, str) \
+        case ERR:                  \
+            return str;
+#else
+    #define ERR_STR_CASE(ERR, str) ERR_NAME_CASE(ERR, str)
+#endif
 
 const char *s2n_strerror(int error, const char *lang)
 {

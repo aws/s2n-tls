@@ -135,7 +135,7 @@ def test_client_auth_with_s2n_server_using_nonmatching_certs(managed_process, pr
     for results in server.get_results():
         assert results.exception is None
         assert results.exit_code != 0
-        assert b'Certificate is untrusted' in results.stderr
+        assert b'S2N_ERR_CERT_UNTRUSTED' in results.stderr
         assert b'Error: Mutual Auth was required, but not negotiated' in results.stderr
         assert_s2n_handshake_complete(results, protocol, provider, False)
 

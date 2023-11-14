@@ -335,25 +335,42 @@ extern __thread struct s2n_debug_info _s2n_debug_info;
 #define STRING_(s)     TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
 
+#define _S2N_RSPLIT(subject, c) (strrchr((subject), c) ? strrchr((subject), c) + 1 : (subject))
+
 /* gets the basename of a file path */
 /* _S2N_EXTRACT_BASENAME("Error encountered in /path/to/my/file.c") -> "file.c" */
 #if !(defined(CBMC) || defined(__TIMING_CONTRACTS__))
-    #define _S2N_RSPLIT(subject, c)     (strrchr((subject), c) ? strrchr((subject), c) + 1 : (subject))
     #define _S2N_EXTRACT_BASENAME(path) _S2N_RSPLIT((path) + strlen(_S2N_DEBUG_LINE_PREFIX), '/')
 #else
     #define _S2N_EXTRACT_BASENAME(path) path
 #endif
 
 #define _S2N_DEBUG_LINE_PREFIX "Error encountered in "
-#define _S2N_DEBUG_LINE        _S2N_DEBUG_LINE_PREFIX __FILE__ ":" STRING__LINE__
 
-#define _S2N_ERROR(x)                                                              \
-    do {                                                                           \
-        _s2n_debug_info.debug_str = _S2N_DEBUG_LINE;                               \
-        _s2n_debug_info.source = _S2N_EXTRACT_BASENAME(_s2n_debug_info.debug_str); \
-        s2n_errno = (x);                                                           \
-        s2n_calculate_stacktrace();                                                \
-    } while (0)
+#ifdef S2N_DEBUG_INFO
+    #define _S2N_DEBUG_LINE _S2N_DEBUG_LINE_PREFIX __FILE__ ":" STRING__LINE__
+#else
+    #define _S2N_DEBUG_LINE _S2N_DEBUG_LINE_PREFIX "s2n-tls. Enable S2N_DEBUG_INFO for more information."
+#endif
+
+#ifdef S2N_DEBUG_INFO
+    #define _S2N_ERROR(x)                                                              \
+        do {                                                                           \
+            _s2n_debug_info.debug_str = _S2N_DEBUG_LINE;                               \
+            _s2n_debug_info.source = _S2N_EXTRACT_BASENAME(_s2n_debug_info.debug_str); \
+            s2n_errno = (x);                                                           \
+            s2n_calculate_stacktrace();                                                \
+        } while (0)
+#else
+    #define _S2N_ERROR(x)                                        \
+        do {                                                     \
+            _s2n_debug_info.debug_str = _S2N_DEBUG_LINE;         \
+            _s2n_debug_info.source = _S2N_RSPLIT(__FILE__, '/'); \
+            s2n_errno = (x);                                     \
+            s2n_calculate_stacktrace();                          \
+        } while (0)
+#endif
+
 #define S2N_ERROR_PRESERVE_ERRNO() \
     do {                           \
         return -1;                 \

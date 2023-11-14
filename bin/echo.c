@@ -53,7 +53,12 @@ const char *sig_hash_strs[] = {
 
 void print_s2n_error(const char *app_error)
 {
-    fprintf(stderr, "[%d] %s: '%s' : '%s'\n", getpid(), app_error, s2n_strerror(s2n_errno, "EN"),
+    fprintf(stderr,
+            "[%d] %s: '%s' (%s) : '%s'\n",
+            getpid(),
+            app_error,
+            s2n_strerror(s2n_errno, "EN"),
+            s2n_strerror_name(s2n_errno),
             s2n_strerror_debug(s2n_errno, "EN"));
 }
 
@@ -262,9 +267,7 @@ int negotiate(struct s2n_connection *conn, int fd)
     s2n_blocked_status blocked;
     while (s2n_negotiate(conn, &blocked) != S2N_SUCCESS) {
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            fprintf(stderr, "Failed to negotiate: '%s'. %s\n",
-                    s2n_strerror(s2n_errno, "EN"),
-                    s2n_strerror_debug(s2n_errno, "EN"));
+            print_s2n_error("Failed to negotiate");
             if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_ALERT) {
                 fprintf(stderr, "Alert: %d\n",
                         s2n_connection_get_alert(conn));
@@ -312,8 +315,7 @@ int renegotiate(struct s2n_connection *conn, int fd, bool wait_for_more_data)
         }
 
         if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-            fprintf(stderr, "Failed to renegotiate: '%s'. %s\n", s2n_strerror(s2n_errno, NULL),
-                    s2n_strerror_debug(s2n_errno, NULL));
+            print_s2n_error("Failed to renegotiate");
             if (s2n_error_get_type(s2n_errno) == S2N_ERR_T_ALERT) {
                 fprintf(stderr, "Alert: %d\n", s2n_connection_get_alert(conn));
             }
@@ -337,8 +339,7 @@ void send_data(struct s2n_connection *conn, int sockfd, const char *data, uint64
         ssize_t bytes_written = s2n_send(conn, data_ptr, send_len, blocked);
         if (bytes_written < 0) {
             if (s2n_error_get_type(s2n_errno) != S2N_ERR_T_BLOCKED) {
-                fprintf(stderr, "Error writing to connection: '%s'\n",
-                        s2n_strerror(s2n_errno, "EN"));
+                print_s2n_error("Error writing to connection");
                 exit(1);
             }
 
@@ -389,7 +390,7 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
                             fprintf(stderr, "Received alert: %d\n", s2n_connection_get_alert(conn));
                             break;
                         default:
-                            fprintf(stderr, "Error reading from connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                            print_s2n_error("Error reading from connection");
                             break;
                     }
                     exit(1);
