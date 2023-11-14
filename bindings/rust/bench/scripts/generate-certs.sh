@@ -35,6 +35,15 @@ cert-gen () {
     mkdir -p $dir_name
     cd $dir_name
 
+    # The "basicConstraints" and "keyUsage" extensions are necessary for CA
+    # certificates that sign other certificates. Normally the openssl x509 tool
+    # will ignore the extensions requests in the .csr, but by using the
+    # copy_extensions=copyall flag we can pass the extensions from the .csr on
+    # to the final public certificate.
+
+    # The advantage of manually specifying the extensions is that there is no
+    # dependency on any openssl config files
+
     echo "generating CA private key and certificate"
     openssl req -new -noenc -x509 \
             -newkey $key_family \
@@ -71,7 +80,8 @@ cert-gen () {
             -pkeyopt $argname$key_size \
             -keyout client-key.pem \
             -out client.csr \
-            -config ../config/client.cnf
+            -subj "/C=US/CN=client" \
+            -addext "subjectAltName = DNS:localhost"
 
     echo "generating intermediate certificate and signing it"
     openssl x509 -days 65536 \
@@ -96,8 +106,7 @@ cert-gen () {
             -CA ca-cert.pem \
             -CAkey ca-key.pem \
             -CAcreateserial -out client-cert.pem \
-            -extensions req_ext \
-            -extfile ../config/client.cnf
+            -copy_extensions=copyall
 
     touch server-chain.pem
     cat server-cert.pem >> server-chain.pem
@@ -113,6 +122,7 @@ cert-gen () {
 
     echo "cleaning up temporary files"
     rm server.csr
+    rm intermediate.csr
     rm client.csr
     rm ca-key.pem
 

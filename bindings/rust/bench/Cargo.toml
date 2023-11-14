@@ -50,5 +50,13 @@ name = "graph_perf"
 required-features = ["historical-perf"]
 
 [[bench]]
+name = "handshake"
+harness = false
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[[bench]]
 name = "resumption"
 harness = false

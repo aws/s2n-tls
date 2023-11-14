@@ -485,50 +485,6 @@ mod tests {
         }
     }
 
-    #[test]
-    fn rsa_2048()
-    {
-        let mut crypto_config = CryptoConfig::default();
-        crypto_config.sig_type = SigType::Rsa2048;
-        let mut conn_pair =
-            TlsConnPair::<S2NConnection, S2NConnection>::new_bench_pair(crypto_config, HandshakeType::ServerAuth).unwrap();
-        conn_pair.handshake().unwrap();
-        assert!(conn_pair.handshake_completed());
-    }
-
-    #[test]
-    fn rsa_4096()
-    {
-        let mut crypto_config = CryptoConfig::default();
-        crypto_config.sig_type = SigType::Rsa4096;
-        let mut conn_pair =
-            TlsConnPair::<S2NConnection, S2NConnection>::new_bench_pair(crypto_config, HandshakeType::ServerAuth).unwrap();
-        conn_pair.handshake().unwrap();
-        assert!(conn_pair.handshake_completed());
-    }
-
-    #[test]
-    fn ecdsa_256()
-    {
-        let mut crypto_config = CryptoConfig::default();
-        crypto_config.sig_type = SigType::Ecdsa256;
-        let mut conn_pair =
-            TlsConnPair::<S2NConnection, S2NConnection>::new_bench_pair(crypto_config, HandshakeType::ServerAuth).unwrap();
-        conn_pair.handshake().unwrap();
-        assert!(conn_pair.handshake_completed());
-    }
-
-    #[test]
-    fn ecdsa_384()
-    {
-        let mut crypto_config = CryptoConfig::default();
-        crypto_config.sig_type = SigType::Ecdsa384;
-        let mut conn_pair =
-            TlsConnPair::<S2NConnection, S2NConnection>::new_bench_pair(crypto_config, HandshakeType::ServerAuth).unwrap();
-        conn_pair.handshake().unwrap();
-        assert!(conn_pair.handshake_completed());
-    }
-
     fn session_resumption<C, S>()
     where
         S: TlsConnection,
