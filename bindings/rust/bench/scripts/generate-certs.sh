@@ -62,8 +62,8 @@ cert-gen () {
             -pkeyopt $argname$key_size \
             -keyout server-key.pem \
             -out server.csr \
-            -config ../config/server.cnf \
-            -subj "/C=US/CN=leaf"
+            -subj "/C=US/CN=leaf" \
+            -addext "subjectAltName = DNS:localhost"
 
     echo "generating client private key and CSR"
     openssl req  -new -noenc \
@@ -88,8 +88,7 @@ cert-gen () {
             -CA intermediate-cert.pem \
             -CAkey intermediate-key.pem \
             -CAcreateserial -out server-cert.pem \
-            -extensions req_ext \
-            -extfile ../config/server.cnf
+            -copy_extensions=copyall
 
     echo "generating client certificate and signing it"
     openssl x509 -days 65536 \
