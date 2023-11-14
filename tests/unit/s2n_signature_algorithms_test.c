@@ -83,15 +83,13 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_cert_chain_and_key *rsa_cert_chain;
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_cert_chain = NULL,
+            s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-    struct s2n_cert_chain_and_key *rsa_pss_cert_chain;
-    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
-            S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
-
-    struct s2n_cert_chain_and_key *ecdsa_cert_chain;
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL,
+            s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
@@ -202,7 +200,6 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert_chain));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_pss_cert_chain));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert_chain));
 
         /* Clients can only configure one certificate */
@@ -520,80 +517,72 @@ int main(int argc, char **argv)
                         S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
 
                 /* Succeeds for pss */
-                pkcs1_tls13_scheme.sig_alg = s2n_rsa_pss_rsae_sha256.sig_alg;
-                EXPECT_OK(s2n_signature_algorithm_select(conn));
+                if (s2n_is_rsa_pss_signing_supported()) {
+                    pkcs1_tls13_scheme.sig_alg = s2n_rsa_pss_rsae_sha256.sig_alg;
+                    EXPECT_OK(s2n_signature_algorithm_select(conn));
+                }
             };
 
-            /* Test: rsa-pss certs not allowed in <TLS1.3 */
+            /* Test: no rsa certs */
             {
-                /* No rsa-pss-pss signature schemes for TLS1.2 actually exist.
-                 * Create one for testing.
-                 */
-                struct s2n_signature_scheme pss_pss_tls12_scheme = s2n_rsa_pss_rsae_sha256;
-                pss_pss_tls12_scheme.sig_alg = s2n_rsa_pss_pss_sha256.sig_alg;
-                const struct s2n_signature_scheme *invalid = &pss_pss_tls12_scheme;
+                const struct s2n_signature_scheme *scheme = &s2n_rsa_pkcs1_sha256;
 
-                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
                         s2n_connection_ptr_free);
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure->cipher_suite = RSA_CIPHER_SUITE;
-                EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
 
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
-                        &invalid, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
-                        &invalid, 1));
+                        &scheme, 1));
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+                        &scheme, 1));
 
-                /* Fails for rsa-pss-pss */
+                /* Fails for default config with no certs */
                 EXPECT_ERROR_WITH_ERRNO(
                         s2n_signature_algorithm_select(conn),
                         S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
 
-                /* Succeeds for TLS1.3 */
-                conn->actual_protocol_version = S2N_TLS13;
-                conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
-                EXPECT_OK(s2n_signature_algorithm_select(conn));
+                /* Fails for config with ecdsa cert */
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, client_ecdsa_config));
+                EXPECT_ERROR_WITH_ERRNO(
+                        s2n_signature_algorithm_select(conn),
+                        S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
 
-                /* Succeeds for TLS1.2 and rsa-pss-rsae */
-                conn->actual_protocol_version = S2N_TLS12;
-                conn->secure->cipher_suite = RSA_CIPHER_SUITE;
-                pss_pss_tls12_scheme.sig_alg = s2n_rsa_pss_rsae_sha256.sig_alg;
+                /* Succeeds for config with rsa cert */
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, client_rsa_config));
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
             };
 
-            /* Test: no certs exist for scheme */
+            /* Test: no ecdsa certs */
             {
-                /* Test one scheme for each cert type */
-                const struct s2n_signature_scheme *test_schemes[] = {
-                    &s2n_ecdsa_secp384r1_sha384,
-                    &s2n_rsa_pss_rsae_sha256,
-                    &s2n_rsa_pss_pss_sha256,
-                };
-                for (size_t i = 0; i < s2n_array_len(test_schemes); i++) {
-                    const struct s2n_signature_scheme *scheme = test_schemes[i];
+                const struct s2n_signature_scheme *scheme = &s2n_ecdsa_sha384;
 
-                    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                            s2n_connection_ptr_free);
-                    /* Test with TLS1.3 to avoid needing to match the cipher suite */
-                    conn->actual_protocol_version = S2N_TLS13;
-                    conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                conn->actual_protocol_version = S2N_TLS12;
+                conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
 
-                    struct s2n_local_sig_schemes_context local_context = { 0 };
-                    EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
-                            &scheme, 1));
-                    EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
-                            &scheme, 1));
+                struct s2n_local_sig_schemes_context local_context = { 0 };
+                EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
+                        &scheme, 1));
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+                        &scheme, 1));
 
-                    /* Fails for default config with no certs */
-                    EXPECT_ERROR_WITH_ERRNO(
-                            s2n_signature_algorithm_select(conn),
-                            S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
+                /* Fails for default config with no certs */
+                EXPECT_ERROR_WITH_ERRNO(
+                        s2n_signature_algorithm_select(conn),
+                        S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
 
-                    /* Succeeds for config that includes all certs */
-                    EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
-                    EXPECT_OK(s2n_signature_algorithm_select(conn));
-                }
+                /* Fails for config with rsa cert */
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, client_rsa_config));
+                EXPECT_ERROR_WITH_ERRNO(
+                        s2n_signature_algorithm_select(conn),
+                        S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
+
+                /* Succeeds for config with ecdsa cert */
+                EXPECT_SUCCESS(s2n_connection_set_config(conn, client_ecdsa_config));
+                EXPECT_OK(s2n_signature_algorithm_select(conn));
             };
 
             /* Test: ecdsa cert exists, but for wrong curve.
@@ -695,13 +684,15 @@ int main(int argc, char **argv)
         /* Test: no schemes offered by the peer */
         {
             const struct s2n_signature_scheme *ecdsa_not_default_tls12 = &s2n_ecdsa_sha384;
-            const struct s2n_signature_scheme *rsa_not_default = &s2n_rsa_pss_rsae_sha256;
+            const struct s2n_signature_scheme *ecdsa_not_default_tls13 = &s2n_ecdsa_secp384r1_sha384;
+            const struct s2n_signature_scheme *rsa_not_default = &s2n_rsa_pkcs1_sha256;
 
             /* Test: defaults allowed by security policy */
             {
                 /* We should need to skip valid non-default schemes to choose the defaults */
                 const struct s2n_signature_scheme *schemes_with_defaults[] = {
                     ecdsa_not_default_tls12,
+                    ecdsa_not_default_tls13,
                     rsa_not_default,
                     rsa_default,
                     ecdsa_default
@@ -731,13 +722,14 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
-                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, rsa_not_default);
+                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default_tls13);
             }
 
             /* Test: defaults not allowed by security policy */
             {
                 const struct s2n_signature_scheme *schemes_without_defaults[] = {
                     ecdsa_not_default_tls12,
+                    ecdsa_not_default_tls13,
                     rsa_not_default,
                     /* Add some more, less preferred non-defaults.
                      * We only choose the most preferred though. */
@@ -770,7 +762,7 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
-                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, rsa_not_default);
+                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default_tls13);
             };
 
             /* Test: skip invalid fallback candidates to choose valid one */
@@ -809,6 +801,7 @@ int main(int argc, char **argv)
          */
         {
             const struct s2n_signature_scheme *ecdsa_not_default_tls12 = &s2n_ecdsa_sha384;
+            const struct s2n_signature_scheme *ecdsa_not_default_tls13 = &s2n_ecdsa_secp384r1_sha384;
             const struct s2n_signature_scheme *rsa_not_default = &s2n_rsa_pss_rsae_sha256;
 
             /* Test: TLS1.2 chooses defaults */
@@ -820,6 +813,7 @@ int main(int argc, char **argv)
                 const struct s2n_signature_scheme *local_schemes[] = {
                     invalid_scheme,
                     ecdsa_not_default_tls12,
+                    ecdsa_not_default_tls13,
                     rsa_not_default,
                     rsa_default,
                     ecdsa_default
@@ -856,9 +850,9 @@ int main(int argc, char **argv)
                 /* We should need to skip valid non-default schemes to choose the defaults */
                 const struct s2n_signature_scheme *local_schemes[] = {
                     ecdsa_not_default_tls12,
-                    rsa_not_default,
                     rsa_default,
-                    ecdsa_default
+                    ecdsa_default,
+                    ecdsa_not_default_tls13
                 };
                 const struct s2n_signature_scheme *peer_schemes[] = {
                     ecdsa_not_default_tls12,
@@ -880,7 +874,7 @@ int main(int argc, char **argv)
                         peer_schemes, s2n_array_len(peer_schemes)));
 
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
-                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, rsa_not_default);
+                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default_tls13);
             };
         };
     };
@@ -1193,7 +1187,7 @@ int main(int argc, char **argv)
             } else {
                 EXPECT_ERROR_WITH_ERRNO(
                         s2n_signature_algorithm_select(conn),
-                        S2N_ERR_INVALID_SIGNATURE_SCHEME);
+                        S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
             }
         };
     };
@@ -1415,9 +1409,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         };
     };
-
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_cert_chain));
-    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain));
 
     END_TEST();
 
