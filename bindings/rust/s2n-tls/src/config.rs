@@ -754,3 +754,15 @@ impl Default for Context {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ensure the config context is send and sync
+    #[test]
+    fn context_send_sync_test() {
+        fn assert_send_sync<T: 'static + Send + Sync>() {}
+        assert_send_sync::<Context>();
+    }
+}

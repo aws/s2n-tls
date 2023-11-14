@@ -942,3 +942,15 @@ impl Drop for Connection {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ensure the config context is send and sync
+    #[test]
+    fn context_send_test() {
+        fn assert_send<T: 'static + Send>() {}
+        assert_send::<Context>();
+    }
+}
