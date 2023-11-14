@@ -46,22 +46,58 @@ cert-gen () {
             -subj "/C=US/CN=root"
 
     echo "generating intermediate private key and CSR"
-    openssl req  -new -nodes -newkey $key_family -pkeyopt $argname$key_size -keyout intermediate-key.pem -out intermediate.csr -subj "/C=US/CN=branch" -addext "basicConstraints = critical,CA:true" -addext "keyUsage = critical,keyCertSign"
+    openssl req  -new -noenc \
+            -newkey $key_family \
+            -pkeyopt $argname$key_size \
+            -keyout intermediate-key.pem \
+            -out intermediate.csr \
+            -subj "/C=US/CN=branch" \
+            -addext "basicConstraints = critical,CA:true" \
+            -addext "keyUsage = critical,keyCertSign"
 
     echo "generating server private key and CSR"
-    openssl req  -new -nodes -newkey $key_family -pkeyopt $argname$key_size -keyout server-key.pem -out server.csr -config ../config/server.cnf -subj "/C=US/CN=leaf"
+    openssl req  -new -noenc \
+            -newkey $key_family \
+            -pkeyopt $argname$key_size \
+            -keyout server-key.pem \
+            -out server.csr \
+            -config ../config/server.cnf \
+            -subj "/C=US/CN=leaf"
 
     echo "generating client private key and CSR"
-    openssl req  -new -nodes -newkey $key_family -pkeyopt $argname$key_size -keyout client-key.pem -out client.csr -config ../config/client.cnf
+    openssl req  -new -noenc \
+            -newkey $key_family \
+            -pkeyopt $argname$key_size \
+            -keyout client-key.pem \
+            -out client.csr \
+            -config ../config/client.cnf
 
     echo "generating intermediate certificate and signing it"
-    openssl x509 -days 65536 -req -in intermediate.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out intermediate-cert.pem -copy_extensions=copyall
+    openssl x509 -days 65536 \
+            -req -in intermediate.csr \
+            -CA ca-cert.pem \
+            -CAkey ca-key.pem \
+            -CAcreateserial \
+            -out intermediate-cert.pem \
+            -copy_extensions=copyall
 
     echo "generating server certificate and signing it"
-    openssl x509 -days 65536 -req -in server.csr -CA intermediate-cert.pem -CAkey intermediate-key.pem -CAcreateserial -out server-cert.pem -extensions req_ext -extfile ../config/server.cnf
+    openssl x509 -days 65536 \
+            -req -in server.csr \
+            -CA intermediate-cert.pem \
+            -CAkey intermediate-key.pem \
+            -CAcreateserial -out server-cert.pem \
+            -extensions req_ext \
+            -extfile ../config/server.cnf
 
     echo "generating client certificate and signing it"
-    openssl x509 -days 65536 -req -in client.csr -CA ca-cert.pem -CAkey ca-key.pem -CAcreateserial -out client-cert.pem -extensions req_ext -extfile ../config/client.cnf
+    openssl x509 -days 65536 \
+            -req -in client.csr \
+            -CA ca-cert.pem \
+            -CAkey ca-key.pem \
+            -CAcreateserial -out client-cert.pem \
+            -extensions req_ext \
+            -extfile ../config/client.cnf
 
     touch server-chain.pem
     cat server-cert.pem >> server-chain.pem
