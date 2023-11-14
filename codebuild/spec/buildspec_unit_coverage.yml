@@ -27,7 +27,6 @@ phases:
     # LLVM complains about corrupt coverage information
     # for static targets, so compile to a shared lib
     # instead.
-      - cmake --version
       - |
         cmake . -Bbuild \
           -DCOVERAGE=ON \
