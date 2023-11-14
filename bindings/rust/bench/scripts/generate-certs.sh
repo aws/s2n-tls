@@ -42,8 +42,9 @@ cert-gen () {
             -keyout  ca-key.pem \
             -out ca-cert.pem \
             -days 65536 \
-            -config ../config/ca.cnf \
-            -subj "/C=US/CN=root"
+            -subj "/C=US/CN=root" \
+            -addext "basicConstraints = critical,CA:true" \
+            -addext "keyUsage = critical,keyCertSign"
 
     echo "generating intermediate private key and CSR"
     openssl req  -new -noenc \
