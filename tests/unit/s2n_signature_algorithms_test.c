@@ -375,10 +375,10 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
+            struct s2n_local_sig_schemes_context local_context = { 0 };
 
             /* Local order preferred */
             {
-                struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         order, s2n_array_len(order)));
                 EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
@@ -390,7 +390,6 @@ int main(int argc, char **argv)
 
             /* Local order preferred, even when reversed */
             {
-                struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         reversed_order, s2n_array_len(reversed_order)));
                 EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
