@@ -125,13 +125,6 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
         POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
     }
 
-    /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
-     * without a trust anchor. However if you call this function, the assumption is you trust ca_file or path and if a certificate
-     * is encountered that's in that path, it should be trusted. The following flag tells libcrypto to not care that the cert
-     * is missing a root anchor. */
-    unsigned long flags = X509_V_FLAG_PARTIAL_CHAIN;
-    X509_STORE_set_flags(store->trust_store, flags);
-
     return 0;
 }
 
@@ -603,6 +596,13 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
     }
 
+    /* It's assumed that if a valid certificate chain is received with an issuer that's present in
+     * the trust store, the certificate chain should be trusted. This should be the case even if
+     * the issuer in the trust store isn't a root certificate. Setting the PARTIAL_CHAIN flag
+     * allows the libcrypto to trust certificates in the trust store that aren't root certificates.
+     */
+    X509_STORE_CTX_set_flags(validator->store_ctx, X509_V_FLAG_PARTIAL_CHAIN);
+
     int verify_ret = X509_verify_cert(validator->store_ctx);
     if (verify_ret <= 0) {
         int ossl_error = X509_STORE_CTX_get_error(validator->store_ctx);
@@ -645,8 +645,7 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
     struct s2n_blob asn1_cert = { 0 };
     RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
-    RESULT_ENSURE(s2n_asn1der_to_public_key_and_type(public_key, pkey_type, &asn1_cert) == 0,
-            S2N_ERR_CERT_UNTRUSTED);
+    RESULT_GUARD(s2n_asn1der_to_public_key_and_type(public_key, pkey_type, &asn1_cert));
 
     /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
     if (conn->actual_protocol_version >= S2N_TLS13) {

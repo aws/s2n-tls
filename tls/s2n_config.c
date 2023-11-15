@@ -21,6 +21,7 @@
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hkdf.h"
 #include "error/s2n_errno.h"
+#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_ktls.h"
@@ -1135,6 +1136,48 @@ int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cert_valida
 
     config->cert_validation_cb = cb;
     config->cert_validation_ctx = ctx;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
+        uint16_t *groups_count_out)
+{
+    POSIX_ENSURE_REF(groups_count_out);
+    *groups_count_out = 0;
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(groups);
+
+    const struct s2n_security_policy *security_policy = config->security_policy;
+    POSIX_ENSURE_REF(security_policy);
+    const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
+    POSIX_ENSURE_REF(kem_preferences);
+    const struct s2n_ecc_preferences *ecc_preferences = security_policy->ecc_preferences;
+    POSIX_ENSURE_REF(ecc_preferences);
+
+    uint16_t groups_count = 0;
+    for (uint8_t i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *kem_group = kem_preferences->tls13_kem_groups[i];
+        POSIX_ENSURE_REF(kem_group);
+        if (!s2n_kem_group_is_available(kem_group)) {
+            continue;
+        }
+
+        POSIX_ENSURE(groups_count < groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        groups[groups_count] = kem_group->iana_id;
+        groups_count += 1;
+    }
+
+    for (uint8_t i = 0; i < ecc_preferences->count; i++) {
+        const struct s2n_ecc_named_curve *ecc_curve = ecc_preferences->ecc_curves[i];
+        POSIX_ENSURE_REF(ecc_curve);
+
+        POSIX_ENSURE(groups_count < groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        groups[groups_count] = ecc_curve->iana_id;
+        groups_count += 1;
+    }
+
+    *groups_count_out = groups_count;
 
     return S2N_SUCCESS;
 }

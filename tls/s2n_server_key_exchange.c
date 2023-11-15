@@ -48,11 +48,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     struct s2n_kex_raw_server_data kex_data = { 0 };
     POSIX_GUARD_RESULT(s2n_kex_server_key_recv_read_data(key_exchange, conn, &data_to_verify, &kex_data));
 
-    /* Add common signature data */
-    if (conn->actual_protocol_version == S2N_TLS12) {
-        /* Verify the SigScheme picked by the Server was in the preference list we sent (or is the default SigScheme) */
-        POSIX_GUARD(s2n_get_and_validate_negotiated_signature_scheme(conn, in, &conn->handshake_params.server_cert_sig_scheme));
-    }
+    POSIX_GUARD_RESULT(s2n_signature_algorithm_recv(conn, in));
     const struct s2n_signature_scheme *active_sig_scheme = conn->handshake_params.server_cert_sig_scheme;
     POSIX_ENSURE_REF(active_sig_scheme);
 

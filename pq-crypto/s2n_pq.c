@@ -16,7 +16,6 @@
 #include "s2n_pq.h"
 
 #include "crypto/s2n_openssl.h"
-#include "s2n_kyber_evp.h"
 
 static bool kyber512r3_avx2_bmi2_enabled = false;
 
@@ -100,8 +99,8 @@ bool s2n_pq_is_enabled()
 #if defined(S2N_NO_PQ)
     return false;
 #else
-    /* aws-lc is currently the only supported FIPS library known to support PQ. */
-    return s2n_libcrypto_is_awslc() || (!s2n_is_in_fips_mode());
+    /* TODO: Require s2n_libcrypto_is_awslc() when we remove s2n's Kyber512 implementation */
+    return true;
 #endif
 }
 

@@ -2127,14 +2127,18 @@ S2N_API extern int s2n_connection_get_client_auth_type(struct s2n_connection *co
 S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_auth_type);
 
 /**
- * Gets the client certificate chain and places it in the `der_cert_chain_out` buffer. `cert_chain_len` is updated
- * to match the size the chain buffer.
+ * Gets the raw certificate chain received from the client.
  *
- * @warning The buffers share a lifetime with the s2n_connection object.
+ * The retrieved certificate chain has the format described by the TLS 1.2 RFC:
+ * https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.2. Each certificate is a DER-encoded ASN.1 X.509,
+ * prepended by a 3 byte network-endian length value. Note that this format is used regardless of the connection's
+ * protocol version.
+ *
+ * @warning The buffer pointed to by `cert_chain_out` shares its lifetime with the s2n_connection object.
  *
  * @param conn A pointer to the s2n_connection object
- * @param der_cert_chain_out A uint8_t pointer. This will be updated to point to the client certificate chain.
- * @param cert_chain_len A pointer to a uint32_t. This will be updated to match the size of the buffer `der_cert_chain_out` points to.
+ * @param cert_chain_out A pointer that's set to the client certificate chain.
+ * @param cert_chain_len A pointer that's set to the size of the `cert_chain_out` buffer.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
@@ -3386,6 +3390,34 @@ S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_d
  * @returns A POSIX error signal. If success, the client's early data will be accepted.
  */
 S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
+
+/**
+ * Retrieves the list of supported groups configured by the security policy associated with `config`.
+ *
+ * The retrieved list of groups will contain all of the supported groups for a security policy that are compatible
+ * with the build of s2n-tls. For instance, PQ kem groups that are not supported by the linked libcrypto will not
+ * be written. Otherwise, all of the supported groups configured for the security policy will be written. This API
+ * can be used with the s2n_client_hello_get_supported_groups() API as a means of comparing compatibility between
+ * a client and server.
+ *
+ * IANA values for each of the supported groups are written to the provided `groups` array, and `groups_count` is
+ * set to the number of written supported groups.
+ *
+ * `groups_count_max` should be set to the maximum capacity of the `groups` array. If `groups_count_max` is less
+ * than the number of supported groups configured by the security policy, this function will error.
+ *
+ * Note that this API retrieves only the groups from a security policy that are available to negotiate via the
+ * supported groups extension, and does not return TLS 1.2 PQ kem groups that are negotiated in the supported PQ
+ * kem parameters extension.
+ *
+ * @param config A pointer to the s2n_config object from which the supported groups will be retrieved.
+ * @param groups The array to populate with the supported groups.
+ * @param groups_count_max The maximum number of supported groups that can fit in the `groups` array.
+ * @param groups_count Set to the number of supported groups written to `groups`.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
+        uint16_t *groups_count);
 
 #ifdef __cplusplus
 }
