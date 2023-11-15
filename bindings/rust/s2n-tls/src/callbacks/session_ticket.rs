@@ -11,7 +11,7 @@ use crate::{
 };
 
 /// A trait to retrieve session tickets from the connection
-pub trait SessionTicketCallback: Send + Sync + 'static {
+pub trait SessionTicketCallback: 'static + Send + Sync {
     fn on_session_ticket(&self, connection: &mut Connection, session_ticket: &SessionTicket);
 }
 
