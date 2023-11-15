@@ -567,7 +567,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_init(&iana_stuffer, &iana_blob));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&iana_stuffer, test_security_policy.kem_preferences->tls13_kem_groups[0]->iana_id));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &iana_stuffer), S2N_ERR_PQ_DISABLED);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &iana_stuffer), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 
                 EXPECT_SUCCESS(s2n_connection_free(client_conn));
             }
@@ -782,7 +782,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             if (!s2n_pq_is_enabled()) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_PQ_DISABLED);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
             }
 
             if (s2n_pq_is_enabled()) {
