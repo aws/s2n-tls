@@ -494,6 +494,9 @@ impl Builder {
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
+        // enable session tickets automatically
+        self.enable_session_tickets(true)?;
+
         // Define C callback function that can be set on the s2n_config struct
         unsafe extern "C" fn session_ticket_cb(
             conn_ptr: *mut s2n_connection,
