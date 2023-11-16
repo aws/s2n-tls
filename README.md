@@ -111,6 +111,8 @@ In addition to code reviews, s2n-tls is subject to regular static analysis, fuzz
 
 s2n-tls includes positive and negative unit tests and end-to-end test cases.
 
+Unit test coverage can be viewed [here](https://dx1inn44oyl7n.cloudfront.net/main/index.html). Note that this represents unit coverage for a particular build. Since that build won't necessarily support all s2n-tls features, test coverage may be artificially lowered.
+
 ##### Erase on read
 s2n-tls encrypts or erases plaintext data as quickly as possible. For example, decrypted data buffers are erased as they are read by the application.
 
