@@ -109,7 +109,7 @@ impl Drop for PrivateKeyOperation {
     }
 }
 
-pub trait PrivateKeyCallback {
+pub trait PrivateKeyCallback: 'static + Send + Sync {
     fn handle_operation(
         &self,
         connection: &mut Connection,
