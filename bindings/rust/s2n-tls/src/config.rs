@@ -780,13 +780,10 @@ impl Default for Context {
 /// # Safety: This trait is polled to completion at the beginning of the
 /// [connection::poll_negotiate](`crate::connection::poll_negotiate()`) function.
 /// Therefore, negotiation of the TLS connection will not begin until the Future has completed.
-///
-///
 pub trait ConnectionInitializer: 'static + Send + Sync {
     /// The application can return an `Ok(None)` to resolve the callback
     /// synchronously or return an `Ok(Some(ConnectionFuture))` if it wants to
     /// run some asynchronous task before resolving the callback.
-    ///
     fn initialize_connection(
         &self,
         connection: &mut crate::connection::Connection,
