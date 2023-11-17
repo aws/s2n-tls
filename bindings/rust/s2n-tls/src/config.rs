@@ -775,12 +775,12 @@ impl Default for Context {
 
 /// A trait executed asynchronously before a new connection negotiates TLS.
 ///
-/// Used for dynamic configuration of a specific connection. Note that this trait
+/// Used for dynamic configuration of a specific connection.
 ///
-/// <div class="warning">This trait is polled to completion inside of the
-/// [connection::poll_negotiate function].(`crate::connection::poll_negotiate()`)
+/// # Safety: This trait is polled to completion at the beginning of the
+/// [connection::poll_negotiate](`crate::connection::poll_negotiate()`) function.
 /// Therefore, negotiation of the TLS connection will not begin until the Future has completed.
-/// </div>
+///
 ///
 pub trait ConnectionInitializer: 'static + Send + Sync {
     /// The application can return an `Ok(None)` to resolve the callback
