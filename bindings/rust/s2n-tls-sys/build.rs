@@ -255,8 +255,6 @@ struct Libcrypto {
 
 impl Default for Libcrypto {
     fn default() -> Self {
-        let mut results = vec![];
-
         for (name, value) in std::env::vars() {
             if let Some(version) = name.strip_prefix("DEP_AWS_LC_") {
                 if let Some(version) = version.strip_suffix("_INCLUDE") {
@@ -268,23 +266,17 @@ impl Default for Libcrypto {
                     let include = value;
                     let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
 
-                    let libcrypto = Self {
+                    return Self {
                         version,
                         link,
                         include,
                         root,
                     };
-
-                    results.push(libcrypto);
                 }
             }
         }
 
-        // pick the latest version
-        results.sort();
-        results
-            .pop()
-            .unwrap_or_else(|| panic!("missing DEP_AWS_LC paths"))
+        panic!("missing DEP_AWS_LC paths");
     }
 }
 
