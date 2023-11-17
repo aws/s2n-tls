@@ -773,11 +773,15 @@ impl Default for Context {
     }
 }
 
-/// A trait executed before a new connection negotiates TLS.
+/// A trait executed asynchronously before a new connection negotiates TLS.
 ///
-/// Used for any dynamic configuration of the connection.
-/// Use in conjunction with
-/// [config::Builder::set_connection_initializer](`crate::config::Builder::set_connection_initializer()`).
+/// Used for dynamic configuration of a specific connection. Note that this trait
+///
+/// <div class="warning">This trait is polled to completion inside of the
+/// [connection::poll_negotiate function].(`crate::connection::poll_negotiate()`)
+/// Therefore, negotiation of the TLS connection will not begin until the Future has completed.
+/// </div>
+///
 pub trait ConnectionInitializer: 'static + Send + Sync {
     /// The application can return an `Ok(None)` to resolve the callback
     /// synchronously or return an `Ok(Some(ConnectionFuture))` if it wants to
