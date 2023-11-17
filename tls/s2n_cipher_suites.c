@@ -1276,19 +1276,15 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 continue;
             }
 
-            /* TLS 1.3 does not include key exchange in cipher suites */
-            if (match->minimum_required_tls_version < S2N_TLS13) {
-                /* If the kex is not supported continue to the next candidate */
-                bool kex_supported = false;
-                POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
-                if (!kex_supported) {
-                    continue;
-                }
-
-                /* If the kex is not configured correctly continue to the next candidate */
-                if (s2n_result_is_error(s2n_configure_kex(match, conn))) {
-                    continue;
-                }
+            /* If the kex is not supported continue to the next candidate */
+            bool kex_supported = false;
+            POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
+            if (!kex_supported) {
+                continue;
+            }
+            /* If the kex is not configured correctly continue to the next candidate */
+            if (s2n_result_is_error(s2n_configure_kex(match, conn))) {
+                continue;
             }
 
             /**

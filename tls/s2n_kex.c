@@ -25,6 +25,14 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
+static S2N_RESULT s2n_check_tls13(const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn, bool *is_supported)
+{
+    RESULT_ENSURE_REF(is_supported);
+    *is_supported = (s2n_connection_get_protocol_version(conn) >= S2N_TLS13);
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_check_rsa_key(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
     RESULT_ENSURE_REF(cipher_suite);
@@ -157,14 +165,6 @@ static S2N_RESULT s2n_kex_configure_noop(const struct s2n_cipher_suite *cipher_s
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_kex_unsupported(const struct s2n_cipher_suite *cipher_suite,
-        struct s2n_connection *conn, bool *is_supported)
-{
-    RESULT_ENSURE_REF(is_supported);
-    *is_supported = false;
-    return S2N_RESULT_OK;
-}
-
 static int s2n_kex_server_key_recv_read_data_unimplemented(struct s2n_connection *conn,
         struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *kex_data)
 {
@@ -250,7 +250,7 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
 
 const struct s2n_kex s2n_tls13_kex = {
     .is_ephemeral = true,
-    .connection_supported = &s2n_kex_unsupported,
+    .connection_supported = &s2n_check_tls13,
     .configure_connection = &s2n_kex_configure_noop,
     .server_key_recv_read_data = &s2n_kex_server_key_recv_read_data_unimplemented,
     .server_key_recv_parse_data = &s2n_kex_server_key_recv_parse_data_unimplemented,
