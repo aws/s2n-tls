@@ -248,6 +248,11 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .prf = &s2n_hybrid_prf_master_secret,
 };
 
+/* TLS1.3 key exchange is implemented differently from previous versions and does
+ * not currently require most of the functionality offered by s2n_kex.
+ * This structure primarily acts as a placeholder, so its methods are either
+ * noops or unimplemented.
+ */
 const struct s2n_kex s2n_tls13_kex = {
     .is_ephemeral = true,
     .connection_supported = &s2n_check_tls13,
