@@ -23,13 +23,13 @@ cargo bench --bench handshake --bench throughput -- --profile-time 5
 rm -rf .cargo
 ```
 
-## Setup 
+## Setup
 
-Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `scripts/generate-certs.sh`. 
+Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `scripts/generate-certs.sh`.
 
-Dependencies are the same as with s2n-tls. Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments. 
+Dependencies are the same as with s2n-tls. Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments.
 
-To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `scripts/install-aws-lc.sh` to install AWS-LC for the bench crate. To then run the benchmarks with AWS-LC, use Cargo with either the flag `--config aws-lc-config/s2n.toml` or `--config aws-lc-config/rustls.toml` (or both). You can also append these configs to `.cargo/config.toml` to let Cargo automatically detect the settings without specifying the flags each time.  
+To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `scripts/install-aws-lc.sh` to install AWS-LC for the bench crate. To then run the benchmarks with AWS-LC, use Cargo with either the flag `--config aws-lc-config/s2n.toml` or `--config aws-lc-config/rustls.toml` (or both). You can also append these configs to `.cargo/config.toml` to let Cargo automatically detect the settings without specifying the flags each time.
 
 ### Features
 
@@ -37,7 +37,7 @@ Default features (`rustls` and `openssl`) can be disabled by running the benches
 
 ## Performance benchmarks
 
-The handshake and throughput benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`. 
+The handshake and throughput benchmarks can be run with the `cargo bench` command. Criterion will auto-generate an HTML report in `target/criterion/`.
 
 Throughput benchmarks measure round-trip throughput with the client and server connections in the same thread for symmetry. In practice, a machine would either host only the client or only the server and use multiple threads, so throughput for a single connection could theoretically be up to ~4x higher than the values from the benchmarks (when run on the same machine).
 
@@ -74,9 +74,24 @@ heaptrack target/release/memory (pair|client|server) (s2n-tls|rustls|openssl)
 
 To do historical benchmarks, run `scripts/bench-past.sh`. This will checkout old versions of s2n-tls back to v1.3.16 in `target/` and run benchmarks on those with the `historical-perf` feature, disabling Rustls and OpenSSL benches.
 
+## PKI Structure
+```
+   ┌────root──────┐
+   │              │
+   │              │
+   ▼              │
+ branch           │
+   │              │
+   │              │
+   │              │
+   ▼              ▼
+ leaf            client
+```
+`generate-certs.sh` will generate 4 certificates for each key type, with the signing relationships that are indicated in the diagram above. This cert chain length was chosen because it matches the cert chain length used by public AWS services.
+
 ### Caveats
 
-The last version benched is v1.3.16, since before that, the s2n-tls Rust bindings have a different API and would thus require a different bench harness to test. 
+The last version benched is v1.3.16, since before that, the s2n-tls Rust bindings have a different API and would thus require a different bench harness to test.
 
 v1.3.30-1.3.37 are not benched because of depedency issues when generating the Rust bindings. However, versions before and after are benched, so the overall trend in performance can still be seen without the data from these versions.
 
@@ -87,7 +102,7 @@ Because these benches take a longer time to generate (>30 min), we include the r
 Notes:
 - Two sets of parameters for the handshake couldn't be benched before 1.3.40, since security policies that negotiated those policies as their top choice did not exist before then.
 - There is no data from 1.3.30 to 1.3.37 because those versions have a dependency issue that cause the Rust bindings not to build. However, there is data before and after that period, so the performance for those versions can be inferred via interpolation.
-- The improvement in throughput in 1.3.28 was most likely caused by the addition of LTO to the default Rust bindings build. 
+- The improvement in throughput in 1.3.28 was most likely caused by the addition of LTO to the default Rust bindings build.
 - Since the benches are run over a long time, noise on the machine can cause variability, and background processes can cause spikes.
 - The variability can be seen with throughput especially because it is calculated as the inverse of time taken.
 
@@ -97,11 +112,11 @@ Notes:
 
 ## Implementation details
 
-We use Rust bindings for s2n-tls and OpenSSL. All of our benchmarks are run in Rust on a single thread for consistency. 
+We use Rust bindings for s2n-tls and OpenSSL. All of our benchmarks are run in Rust on a single thread for consistency.
 
 ### IO
 
-To remove external factors, we use custom IO with our benchmarks, bypassing the networking layer and having the client and server connections transfer data to each other via a local buffer. 
+To remove external factors, we use custom IO with our benchmarks, bypassing the networking layer and having the client and server connections transfer data to each other via a local buffer.
 
 ### Certificate generation
 
