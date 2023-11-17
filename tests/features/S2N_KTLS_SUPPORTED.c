@@ -23,8 +23,11 @@ int main()
     /* Struct defined when kTLS support was added to linux
      * https://github.com/torvalds/linux/blob/3c4d7559159bfe1e3b94df3a657b2cda3a34e218/include/uapi/linux/tls.h
      */
-    struct tls12_crypto_info_aes_gcm_128 aes_crypto_info;
-    struct tls_crypto_info crypto_info;
+    struct tls12_crypto_info_aes_gcm_128 aes_crypto_info_128 = { 0 };
+    int aes_gcm_128_cipher_type = TLS_CIPHER_AES_GCM_128;
+    struct tls12_crypto_info_aes_gcm_256 aes_crypto_info_256 = { 0 };
+    int aes_gcm_256_cipher_type = TLS_CIPHER_AES_GCM_256;
+    struct tls_crypto_info crypto_info = { 0 };
 
     int get_record_type = TLS_GET_RECORD_TYPE;
     int set_record_type = TLS_SET_RECORD_TYPE;
