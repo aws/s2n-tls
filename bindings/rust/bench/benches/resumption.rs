@@ -67,7 +67,7 @@ where
 /// s2n-tls?".
 pub fn bench_resumption(c: &mut Criterion) {
     // compare resumption savings across both client and server
-    for sig_type in [SigType::Rsa2048, SigType::Ecdsa384] {
+    for sig_type in [SigType::Rsa2048, SigType::Ecdsa256] {
         let mut bench_group = c.benchmark_group(format!("resumption-pair-{:?}", sig_type));
         bench_handshake_pair::<S2NConnection>(&mut bench_group, sig_type);
     }

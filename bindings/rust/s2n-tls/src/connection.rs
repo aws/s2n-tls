@@ -63,12 +63,6 @@ impl fmt::Debug for Connection {
 /// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
-/// # Safety
-///
-/// All C methods that mutate the s2n_connection are wrapped
-/// in Rust methods that require a mutable reference.
-unsafe impl Sync for Connection {}
-
 impl Connection {
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
@@ -940,5 +934,17 @@ impl Drop for Connection {
             // cleanup connection
             let _ = s2n_connection_free(self.connection.as_ptr()).into_result();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ensure the connection context is send
+    #[test]
+    fn context_send_test() {
+        fn assert_send<T: 'static + Send>() {}
+        assert_send::<Context>();
     }
 }

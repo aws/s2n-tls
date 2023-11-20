@@ -494,6 +494,9 @@ impl Builder {
         &mut self,
         handler: T,
     ) -> Result<&mut Self, Error> {
+        // enable session tickets automatically
+        self.enable_session_tickets(true)?;
+
         // Define C callback function that can be set on the s2n_config struct
         unsafe extern "C" fn session_ticket_cb(
             conn_ptr: *mut s2n_connection,
@@ -752,5 +755,17 @@ impl Default for Context {
             wall_clock: None,
             monotonic_clock: None,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ensure the config context is send and sync
+    #[test]
+    fn context_send_sync_test() {
+        fn assert_send_sync<T: 'static + Send + Sync>() {}
+        assert_send_sync::<Context>();
     }
 }
