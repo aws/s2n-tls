@@ -14,6 +14,7 @@
  */
 
 #include <string.h>
+#include <sys/param.h>
 
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
@@ -204,5 +205,82 @@ int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, 
     POSIX_GUARD(s2n_stuffer_init(stuffer, &data_blob));
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
 
+    return S2N_SUCCESS;
+}
+
+/* If we call va_start or va_copy there MUST be a matching call to va_end,
+ * so we should use DEFER_CLEANUP with our va_lists.
+ * Unfortunately, some environments implement va_list in unexpected ways
+ * (for example, as an array).
+ * To avoid any surprises, just wrap the va_list in our own struct.
+ */
+struct s2n_va_list {
+    va_list va_list;
+};
+
+static void s2n_va_list_cleanup(struct s2n_va_list *list)
+{
+    if (list) {
+        va_end(list->va_list);
+    }
+}
+
+int s2n_stuffer_vnprintf(struct s2n_stuffer *stuffer, uint32_t max_size,
+        const char *format, va_list vargs_in)
+{
+    POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
+    POSIX_ENSURE_REF(format);
+
+    /* vsnprintf consumes the va_list, so copy it first */
+    DEFER_CLEANUP(struct s2n_va_list vargs_1 = { 0 }, s2n_va_list_cleanup);
+    va_copy(vargs_1.va_list, vargs_in);
+
+    /* The first call to vsnprintf calculates the size of the formatted string.
+     * str_len does not include the one byte vsnprintf requires for a trailing '\0',
+     * so we need one more byte.
+     */
+    int str_len = vsnprintf(NULL, 0, format, vargs_1.va_list);
+    POSIX_ENSURE_GTE(str_len, 0);
+    POSIX_ENSURE_LT((unsigned int) str_len, UINT32_MAX);
+    uint32_t mem_size = MIN((uint32_t) str_len + 1, max_size);
+
+    bool previously_tainted = stuffer->tainted;
+    char *str = s2n_stuffer_raw_write(stuffer, mem_size);
+    stuffer->tainted = previously_tainted;
+    POSIX_GUARD_PTR(str);
+
+    /* vsnprintf again consumes the va_list, so copy it first */
+    DEFER_CLEANUP(struct s2n_va_list vargs_2 = { 0 }, s2n_va_list_cleanup);
+    va_copy(vargs_2.va_list, vargs_in);
+
+    /* This time, vsnprintf actually writes the formatted string */
+    int written = vsnprintf(str, mem_size, format, vargs_2.va_list);
+    POSIX_ENSURE_GTE(written, 0);
+
+    /* We don't actually use c-strings, so erase the final '\0' */
+    POSIX_GUARD(s2n_stuffer_wipe_n(stuffer, 1));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs)
+{
+    POSIX_GUARD(s2n_stuffer_vnprintf(stuffer, UINT32_MAX, format, vargs));
+    return S2N_SUCCESS;
+}
+
+int s2n_stuffer_printf(struct s2n_stuffer *stuffer, const char *format, ...)
+{
+    DEFER_CLEANUP(struct s2n_va_list vargs = { 0 }, s2n_va_list_cleanup);
+    va_start(vargs.va_list, format);
+    POSIX_GUARD(s2n_stuffer_vprintf(stuffer, format, vargs.va_list));
+    return S2N_SUCCESS;
+}
+
+int s2n_stuffer_nprintf(struct s2n_stuffer *stuffer, uint32_t max, const char *format, ...)
+{
+    DEFER_CLEANUP(struct s2n_va_list vargs = { 0 }, s2n_va_list_cleanup);
+    va_start(vargs.va_list, format);
+    POSIX_GUARD(s2n_stuffer_vnprintf(stuffer, max, format, vargs.va_list));
     return S2N_SUCCESS;
 }
