@@ -12,7 +12,9 @@ use s2n_tls_sys::*;
 use std::{
     ffi::{c_void, CString},
     path::Path,
+    pin::Pin,
     sync::atomic::{AtomicUsize, Ordering},
+    task::Poll,
     time::{Duration, SystemTime},
 };
 
@@ -489,6 +491,17 @@ impl Builder {
         Ok(self)
     }
 
+    pub fn set_connection_initializer<T: 'static + ConnectionInitializer>(
+        &mut self,
+        handler: T,
+    ) -> Result<&mut Self, Error> {
+        // Store callback in config context
+        let handler = Box::new(handler);
+        let context = self.config.context_mut();
+        context.connection_initializer = Some(handler);
+        Ok(self)
+    }
+
     /// Sets a custom callback which provides access to session tickets when they arrive
     pub fn set_session_ticket_callback<T: 'static + SessionTicketCallback>(
         &mut self,
@@ -736,6 +749,7 @@ pub(crate) struct Context {
     pub(crate) private_key_callback: Option<Box<dyn PrivateKeyCallback>>,
     pub(crate) verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     pub(crate) session_ticket_callback: Option<Box<dyn SessionTicketCallback>>,
+    pub(crate) connection_initializer: Option<Box<dyn ConnectionInitializer>>,
     pub(crate) wall_clock: Option<Box<dyn WallClock>>,
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
 }
@@ -752,8 +766,81 @@ impl Default for Context {
             private_key_callback: None,
             verify_host_callback: None,
             session_ticket_callback: None,
+            connection_initializer: None,
             wall_clock: None,
             monotonic_clock: None,
+        }
+    }
+}
+
+/// A trait executed asynchronously before a new connection negotiates TLS.
+///
+/// Used for dynamic configuration of a specific connection.
+///
+/// # Safety: This trait is polled to completion at the beginning of the
+/// [connection::poll_negotiate](`crate::connection::poll_negotiate()`) function.
+/// Therefore, negotiation of the TLS connection will not begin until the Future has completed.
+pub trait ConnectionInitializer: 'static + Send + Sync {
+    /// The application can return an `Ok(None)` to resolve the callback
+    /// synchronously or return an `Ok(Some(ConnectionFuture))` if it wants to
+    /// run some asynchronous task before resolving the callback.
+    fn initialize_connection(
+        &self,
+        connection: &mut crate::connection::Connection,
+    ) -> ConnectionFutureResult;
+}
+
+impl<A: ConnectionInitializer, B: ConnectionInitializer> ConnectionInitializer for (A, B) {
+    fn initialize_connection(
+        &self,
+        connection: &mut crate::connection::Connection,
+    ) -> ConnectionFutureResult {
+        let a = self.0.initialize_connection(connection)?;
+        let b = self.1.initialize_connection(connection)?;
+        match (a, b) {
+            (None, None) => Ok(None),
+            (None, Some(fut)) => Ok(Some(fut)),
+            (Some(fut), None) => Ok(Some(fut)),
+            (Some(fut_a), Some(fut_b)) => Ok(Some(Box::pin(ConcurrentConnectionFuture::new([
+                fut_a, fut_b,
+            ])))),
+        }
+    }
+}
+
+struct ConcurrentConnectionFuture<const N: usize> {
+    futures: [Option<Pin<Box<dyn ConnectionFuture>>>; N],
+}
+
+impl<const N: usize> ConcurrentConnectionFuture<N> {
+    fn new(futures: [Pin<Box<dyn ConnectionFuture>>; N]) -> Self {
+        let futures = futures.map(Some);
+        Self { futures }
+    }
+}
+
+impl<const N: usize> ConnectionFuture for ConcurrentConnectionFuture<N> {
+    fn poll(
+        mut self: std::pin::Pin<&mut Self>,
+        connection: &mut crate::connection::Connection,
+        ctx: &mut core::task::Context,
+    ) -> std::task::Poll<Result<(), Error>> {
+        let mut is_pending = false;
+        for container in self.futures.iter_mut() {
+            if let Some(future) = container.as_mut() {
+                match future.as_mut().poll(connection, ctx) {
+                    Poll::Ready(result) => {
+                        result?;
+                        *container = None;
+                    }
+                    Poll::Pending => is_pending = true,
+                }
+            }
+        }
+        if is_pending {
+            Poll::Pending
+        } else {
+            Poll::Ready(Ok(()))
         }
     }
 }

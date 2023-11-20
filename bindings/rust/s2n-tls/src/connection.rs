@@ -414,6 +414,14 @@ impl Connection {
     /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
+            if let Some(config) = self.config() {
+                if let Some(callback) = config.context().connection_initializer.as_ref() {
+                    let future = callback.initialize_connection(self);
+                    AsyncCallback::trigger(future, self);
+                }
+            }
+        }
 
         loop {
             // check if an async task exists and poll it to completion
@@ -836,6 +844,7 @@ struct Context {
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
+    connection_initialized: bool,
 }
 
 impl Context {
@@ -845,6 +854,7 @@ impl Context {
             waker: None,
             async_callback: None,
             verify_host_callback: None,
+            connection_initialized: false,
         }
     }
 }
