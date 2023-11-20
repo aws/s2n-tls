@@ -19,6 +19,17 @@ set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 
+string(TOUPPER "${CMAKE_BUILD_TYPE}" uppercase_CMAKE_BUILD_TYPE)
+# minimize the artifact size of we've been configured with MinSizeRel
+if(uppercase_CMAKE_BUILD_TYPE STREQUAL "MINSIZEREL")
+    message(STATUS "Configuring for minimal artifact size")
+    set(S2N_DEBUG_INFO_DEFAULT OFF)
+    set(S2N_STACKTRACE_DEFAULT OFF)
+else()
+    set(S2N_DEBUG_INFO_DEFAULT ON)
+    set(S2N_STACKTRACE_DEFAULT ON)
+endif()
+
 option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
 for older compilers or uncommon platforms." OFF)
 option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
@@ -33,13 +44,14 @@ version of libcrypto by interning the code and hiding symbols. This also enables
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
 option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
-only available on platforms that support execinfo." ON)
+only available on platforms that support execinfo." ${S2N_STACKTRACE_DEFAULT})
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
+option(S2N_DEBUG_INFO "Enables debugging information" ${S2N_DEBUG_INFO_DEFAULT})
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -128,6 +140,11 @@ endif()
 # Compiling the unit tests rely on S2N_TEST_IN_FIPS_MODE to be set correctly
 if(S2N_FIPS)
     add_definitions(-DS2N_TEST_IN_FIPS_MODE)
+endif()
+
+if(S2N_DEBUG_INFO)
+    message(STATUS "Enabling debug info")
+    add_definitions(-DS2N_DEBUG_INFO)
 endif()
 
 file(GLOB S2N_HEADERS

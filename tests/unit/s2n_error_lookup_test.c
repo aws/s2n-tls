@@ -99,7 +99,11 @@ int main(void)
 
     /* Ensure the file/line information is returned as expected */
     s2n_result_ignore(test_function(false));
+#ifdef S2N_DEBUG_INFO
     EXPECT_EQUAL(strcmp(s2n_strerror_source(S2N_ERR_SAFETY), "s2n_error_lookup_test.c:28"), 0);
+#else
+    EXPECT_EQUAL(strcmp(s2n_strerror_source(S2N_ERR_SAFETY), "s2n_error_lookup_test.c"), 0);
+#endif
 
     EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("/absolute/path/to/file.c"), "file.c"), 0);
     EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("relative/path/to/file.c"), "file.c"), 0);
@@ -110,7 +114,11 @@ int main(void)
     EXPECT_SUCCESS(s2n_cleanup());
 
     EXPECT_EQUAL(strcmp(s2n_strerror_name(S2N_ERR_OK), "S2N_ERR_OK"), 0);
+#ifdef S2N_DEBUG_INFO
     EXPECT_EQUAL(strcmp(s2n_strerror(S2N_ERR_OK, "EN"), "no error"), 0);
+#else
+    EXPECT_EQUAL(strcmp(s2n_strerror(S2N_ERR_OK, "EN"), "S2N_ERR_OK"), 0);
+#endif
 
     END_TEST();
 }
