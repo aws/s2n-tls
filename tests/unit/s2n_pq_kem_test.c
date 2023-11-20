@@ -23,14 +23,10 @@
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 
-struct s2n_kem_test_vector {
-    const struct s2n_kem *kem;
-};
-
-static const struct s2n_kem_test_vector test_vectors[] = {
-    {
-            .kem = &s2n_kyber_512_r3,
-    }
+static const struct s2n_kem *test_vectors[] = {
+    &s2n_kyber_512_r3,
+    &s2n_kyber_768_r3,
+    &s2n_kyber_1024_r3,
 };
 
 /* EXPECT_SUCCESS checks explicitly function_call != -1; the PQ KEM functions may return
@@ -50,8 +46,7 @@ int main()
 #endif
 
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
-        const struct s2n_kem_test_vector vector = test_vectors[i];
-        const struct s2n_kem *kem = vector.kem;
+        const struct s2n_kem *kem = test_vectors[i];
 
         DEFER_CLEANUP(struct s2n_blob public_key = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&public_key, kem->public_key_length));
