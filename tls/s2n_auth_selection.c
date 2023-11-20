@@ -88,7 +88,9 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
      * Therefore, if a cipher suite uses a non-ephemeral kex, then any signature
      * algorithm that requires RSA-PSS certificates is not valid.
      */
-    if (cipher_suite->key_exchange_alg != NULL && !cipher_suite->key_exchange_alg->is_ephemeral) {
+    const struct s2n_kex *kex = cipher_suite->key_exchange_alg;
+    POSIX_ENSURE_REF(kex);
+    if (!kex->is_ephemeral) {
         POSIX_ENSURE_NE(cert_type_for_sig_alg, S2N_PKEY_TYPE_RSA_PSS);
     }
 

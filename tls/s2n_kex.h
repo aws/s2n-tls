@@ -40,6 +40,7 @@ extern const struct s2n_kex s2n_rsa;
 extern const struct s2n_kex s2n_dhe;
 extern const struct s2n_kex s2n_ecdhe;
 extern const struct s2n_kex s2n_hybrid_ecdhe_kem;
+extern const struct s2n_kex s2n_tls13_kex;
 
 S2N_RESULT s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported);
 S2N_RESULT s2n_configure_kex(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn);

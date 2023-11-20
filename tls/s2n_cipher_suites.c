@@ -698,7 +698,7 @@ struct s2n_cipher_suite s2n_tls13_aes_128_gcm_sha256 = {
     .available = 0,
     .name = "TLS_AES_128_GCM_SHA256",
     .iana_value = { TLS_AES_128_GCM_SHA256 },
-    .key_exchange_alg = NULL,
+    .key_exchange_alg = &s2n_tls13_kex,
     .auth_method = S2N_AUTHENTICATION_METHOD_TLS13,
     .record_alg = NULL,
     .all_record_algs = { &s2n_tls13_record_alg_aes128_gcm },
@@ -712,7 +712,7 @@ struct s2n_cipher_suite s2n_tls13_aes_256_gcm_sha384 = {
     .available = 0,
     .name = "TLS_AES_256_GCM_SHA384",
     .iana_value = { TLS_AES_256_GCM_SHA384 },
-    .key_exchange_alg = NULL,
+    .key_exchange_alg = &s2n_tls13_kex,
     .auth_method = S2N_AUTHENTICATION_METHOD_TLS13,
     .record_alg = NULL,
     .all_record_algs = { &s2n_tls13_record_alg_aes256_gcm },
@@ -726,7 +726,7 @@ struct s2n_cipher_suite s2n_tls13_chacha20_poly1305_sha256 = {
     .available = 0,
     .name = "TLS_CHACHA20_POLY1305_SHA256",
     .iana_value = { TLS_CHACHA20_POLY1305_SHA256 },
-    .key_exchange_alg = NULL,
+    .key_exchange_alg = &s2n_tls13_kex,
     .auth_method = S2N_AUTHENTICATION_METHOD_TLS13,
     .record_alg = NULL,
     .all_record_algs = { &s2n_tls13_record_alg_chacha20_poly1305 },
@@ -1276,19 +1276,15 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
                 continue;
             }
 
-            /* TLS 1.3 does not include key exchange in cipher suites */
-            if (match->minimum_required_tls_version < S2N_TLS13) {
-                /* If the kex is not supported continue to the next candidate */
-                bool kex_supported = false;
-                POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
-                if (!kex_supported) {
-                    continue;
-                }
-
-                /* If the kex is not configured correctly continue to the next candidate */
-                if (s2n_result_is_error(s2n_configure_kex(match, conn))) {
-                    continue;
-                }
+            /* If the kex is not supported continue to the next candidate */
+            bool kex_supported = false;
+            POSIX_GUARD_RESULT(s2n_kex_supported(match, conn, &kex_supported));
+            if (!kex_supported) {
+                continue;
+            }
+            /* If the kex is not configured correctly continue to the next candidate */
+            if (s2n_result_is_error(s2n_configure_kex(match, conn))) {
+                continue;
             }
 
             /**
