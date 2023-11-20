@@ -39,8 +39,8 @@ struct FeatureDetector<'a> {
 }
 
 impl<'a> FeatureDetector<'a> {
-    pub fn new(out_dir: &'a Path) -> Self {
-        let builder = builder();
+    pub fn new(out_dir: &'a Path, libcrypto: &Libcrypto) -> Self {
+        let builder = builder(libcrypto);
         Self { builder, out_dir }
     }
 
@@ -89,7 +89,9 @@ impl<'a> FeatureDetector<'a> {
 }
 
 fn build_vendored() {
-    let mut build = builder();
+    let libcrypto = Libcrypto::default();
+
+    let mut build = builder(&libcrypto);
 
     let pq = option_env("CARGO_FEATURE_PQ").is_some();
 
@@ -129,7 +131,7 @@ fn build_vendored() {
 
     let out_dir = PathBuf::from(env("OUT_DIR"));
 
-    let features = FeatureDetector::new(&out_dir);
+    let features = FeatureDetector::new(&out_dir, &libcrypto);
 
     let mut feature_names = std::fs::read_dir("lib/tests/features")
         .expect("missing features directory")
@@ -171,7 +173,7 @@ fn build_vendored() {
     build.compile("s2n-tls");
 
     // tell rust we're linking with libcrypto
-    println!("cargo:rustc-link-lib=crypto");
+    println!("cargo:rustc-link-lib={}", libcrypto.link);
 
     // let consumers know where to find our header files
     let include_dir = out_dir.join("include");
@@ -180,12 +182,11 @@ fn build_vendored() {
     println!("cargo:include={}", include_dir.display());
 }
 
-fn builder() -> cc::Build {
+fn builder(libcrypto: &Libcrypto) -> cc::Build {
     let mut build = cc::Build::new();
 
     build
-        // pull the include path from the openssl-sys dependency
-        .include(env("DEP_OPENSSL_INCLUDE"))
+        .include(&libcrypto.include)
         .include("lib")
         .include("lib/api")
         .flag("-std=c11")
@@ -205,16 +206,10 @@ fn builder() -> cc::Build {
 fn build_cmake() {
     let mut config = cmake::Config::new("lib");
 
-    // sometimes openssl-sys decides not to set this value so we may need to set it anyway
-    if option_env("DEP_OPENSSL_ROOT").is_none() {
-        let include = env("DEP_OPENSSL_INCLUDE");
-        if let Some(root) = Path::new(&include).parent() {
-            std::env::set_var("DEP_OPENSSL_ROOT", root);
-        }
-    }
+    let libcrypto = Libcrypto::default();
 
     config
-        .register_dep("openssl")
+        .register_dep(&format!("aws_lc_{}", libcrypto.version))
         .configure_arg("-DBUILD_TESTING=off");
 
     if option_env("CARGO_FEATURE_PQ").is_none() {
@@ -238,7 +233,7 @@ fn build_cmake() {
     println!("cargo:include={}", dst.join("include").display());
 
     // tell rust we're linking with libcrypto
-    println!("cargo:rustc-link-lib=crypto");
+    println!("cargo:rustc-link-lib={}", libcrypto.link);
 
     fn search(path: PathBuf) -> Option<PathBuf> {
         if path.exists() {
@@ -247,6 +242,41 @@ fn build_cmake() {
         } else {
             None
         }
+    }
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+struct Libcrypto {
+    version: String,
+    link: String,
+    include: String,
+    root: String,
+}
+
+impl Default for Libcrypto {
+    fn default() -> Self {
+        for (name, value) in std::env::vars() {
+            if let Some(version) = name.strip_prefix("DEP_AWS_LC_") {
+                if let Some(version) = version.strip_suffix("_INCLUDE") {
+                    let version = version.to_string();
+
+                    eprintln!("cargo:rerun-if-env-changed={}", name);
+
+                    let link = format!("aws_lc_{version}_crypto");
+                    let include = value;
+                    let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
+
+                    return Self {
+                        version,
+                        link,
+                        include,
+                        root,
+                    };
+                }
+            }
+        }
+
+        panic!("missing DEP_AWS_LC paths");
     }
 }
 
