@@ -20,6 +20,7 @@
 
 typedef enum {
     S2N_PERFECT_FORWARD_SECRECY = 0,
+    S2N_FIPS_140_3,
     S2N_SECURITY_RULES_COUNT,
 } s2n_security_rule_id;
 
@@ -42,6 +43,7 @@ struct s2n_security_rule {
     S2N_RESULT (*validate_sig_scheme)(const struct s2n_signature_scheme *sig_scheme, bool *valid);
     S2N_RESULT (*validate_cert_sig_scheme)(const struct s2n_signature_scheme *sig_scheme, bool *valid);
     S2N_RESULT (*validate_curve)(const struct s2n_ecc_named_curve *curve, bool *valid);
+    S2N_RESULT (*validate_version)(uint8_t version, bool *valid);
 };
 
 S2N_RESULT s2n_security_policy_validate_security_rules(
