@@ -227,6 +227,30 @@ if [[ -n $S2N_ENSURE_WITH_INVALID_ERROR_CODE ]]; then
 fi
 
 #############################################
+# Assert policy rule flags used correctly
+#############################################
+SECURITY_POLICY_FLAGS=$(grep "rules = " tls/s2n_security_policies.c)
+CORRECT_FLAGS_REGEX="rules = ([ |]*S2N_[A-Z_]+_FLAG)+,"
+INCORRECT_FLAGS=$(echo "$SECURITY_POLICY_FLAGS" | grep -Ev "$CORRECT_FLAGS_REGEX")
+if [[ -n $INCORRECT_FLAGS ]]; then
+  FAILED=1
+  printf "\e[1;34mSecurity policies require the _FLAG version of security rules:\e[0m\n"
+  printf "$INCORRECT_FLAGS\n\n"
+else
+  EXPECTED_CORRECT_FLAGS=$(echo "$SECURITY_POLICY_FLAGS" | wc -l)
+  if [[ $EXPECTED_CORRECT_FLAGS < 10 ]]; then
+    FAILED=1
+    printf "\e[1;34mOnly found $EXPECTED_CORRECT_FLAGS flags\e[0m\n"
+  fi
+  CORRECT_FLAGS=$(echo "$SECURITY_POLICY_FLAGS" | grep -E "$CORRECT_FLAGS_REGEX")
+  ACTUAL_CORRECT_FLAGS=$(echo "$CORRECT_FLAGS" | wc -l)
+  if [[ $EXPECTED_CORRECT_FLAGS != $ACTUAL_CORRECT_FLAGS ]]; then
+    FAILED=1
+    printf "\e[1;34mExpected $EXPECTED_CORRECT_FLAGS flags but found $ACTUAL_CORRECT_FLAGS:\e[0m\n"
+  fi
+fi
+
+#############################################
 # REPORT FINAL RESULTS
 #############################################
 if [ $FAILED == 1 ]; then

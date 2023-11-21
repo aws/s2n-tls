@@ -23,9 +23,9 @@ typedef enum {
     S2N_SECURITY_RULES_COUNT,
 } s2n_security_rule_id;
 
-#define TO_FLAG(rule) rule##_FLAG = (1 << (rule))
+#define S2N_SECURITY_RULE_TO_FLAG(rule) rule##_FLAG = (1 << (rule))
 typedef enum {
-    TO_FLAG(S2N_PERFECT_FORWARD_SECRECY),
+    S2N_SECURITY_RULE_TO_FLAG(S2N_PERFECT_FORWARD_SECRECY),
 } s2n_security_flag;
 
 struct s2n_security_rule_result {
