@@ -19,8 +19,9 @@
 
 bool s2n_libcrypto_supports_kyber()
 {
-    /* S2N_LIBCRYPTO_SUPPORTS_KYBER will auto-detected and #defined if
-   * ./tests/features/S2N_LIBCRYPTO_SUPPORTS_KYBER.c returns 1 */
+    /* S2N_LIBCRYPTO_SUPPORTS_KYBER will be auto-detected and #defined if
+     * ./tests/features/S2N_LIBCRYPTO_SUPPORTS_KYBER.c successfully compiles
+     */
 #if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
     return true;
 #else
