@@ -359,6 +359,7 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
     s2nd_result = next(s2nd_server.get_results())
     assert_s2n_negotiation_parameters(s2nd_result, expected_result)
 
+
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("cipher", [Ciphers.PQ_TLS_1_0_2020_12], ids=get_parameter_name)
