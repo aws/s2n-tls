@@ -107,29 +107,27 @@ int main(int argc, char **argv)
             }
         }
 
-        if (!has_tls_13_cipher) {
-            continue;
-        }
+        if (has_tls_13_cipher) {
+            bool has_tls_13_sig_alg = false;
+            bool has_rsa_pss = false;
 
-        bool has_tls_13_sig_alg = false;
-        bool has_rsa_pss = false;
+            for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
+                int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
+                int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
+                s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
 
-        for (size_t i = 0; i < security_policy->signature_preferences->count; i++) {
-            int min = security_policy->signature_preferences->signature_schemes[i]->minimum_protocol_version;
-            int max = security_policy->signature_preferences->signature_schemes[i]->maximum_protocol_version;
-            s2n_signature_algorithm sig_alg = security_policy->signature_preferences->signature_schemes[i]->sig_alg;
+                if (min == S2N_TLS13 || max >= S2N_TLS13) {
+                    has_tls_13_sig_alg = true;
+                }
 
-            if (min == S2N_TLS13 || max >= S2N_TLS13) {
-                has_tls_13_sig_alg = true;
+                if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
+                    has_rsa_pss = true;
+                }
             }
 
-            if (sig_alg == S2N_SIGNATURE_RSA_PSS_PSS || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE) {
-                has_rsa_pss = true;
-            }
+            EXPECT_TRUE(has_tls_13_sig_alg);
+            EXPECT_TRUE(has_rsa_pss);
         }
-
-        EXPECT_TRUE(has_tls_13_sig_alg);
-        EXPECT_TRUE(has_rsa_pss);
     }
 
     const struct s2n_security_policy *security_policy = NULL;
