@@ -413,7 +413,7 @@ int main(int argc, char **argv)
         {
             /* Test: scheme not valid for higher protocol version */
             {
-                /* Valid TLS1.3 ECDSA sig schemes include associated curves  */
+                /* Valid TLS1.3 ECDSA sig schemes include associated curves */
                 const struct s2n_signature_scheme *invalid = &s2n_ecdsa_sha256;
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
@@ -1213,7 +1213,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
                     peer_schemes, s2n_array_len(peer_schemes)));
 
-            /* Both PCKS1 and PSS supported */
+            /* Both PKCS1 and PSS supported */
             const struct s2n_signature_scheme *local_schemes[] = {
                 &s2n_rsa_pkcs1_sha224,
                 &s2n_rsa_pss_rsae_sha256,
