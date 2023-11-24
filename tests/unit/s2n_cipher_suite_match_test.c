@@ -16,7 +16,7 @@
 #include <string.h>
 
 #include "crypto/s2n_ecc_evp.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"

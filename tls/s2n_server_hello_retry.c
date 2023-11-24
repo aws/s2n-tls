@@ -14,8 +14,8 @@
  */
 #include <stdbool.h>
 
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_server_extensions.h"
 #include "tls/s2n_tls.h"
@@ -102,7 +102,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     if (kem_group != NULL) {
         /* If PQ is disabled, the client should not have sent any PQ IDs
          * in the supported_groups list of the initial ClientHello */
-        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
         new_key_share_requested = (kem_group != conn->kex_params.client_kem_group_params.kem_group);
     }
 

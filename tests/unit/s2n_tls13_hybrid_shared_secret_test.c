@@ -18,7 +18,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_ecc_evp.h"
 #include "crypto/s2n_hash.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
 #include "tls/s2n_cipher_suites.h"
