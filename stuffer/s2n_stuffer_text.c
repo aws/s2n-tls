@@ -242,6 +242,12 @@ int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list
     POSIX_ENSURE_GTE(str_len, 0);
     int mem_size = str_len + 1;
 
+    /* 'tainted' indicates that pointers to the contents of the stuffer exist,
+     * so resizing / reallocated the stuffer will invalidate those pointers.
+     * However, we do no resize the stuffer in this method after creating `str`
+     * and `str` does not live beyond this method, so ignore `str` for the
+     * purposes of tracking 'tainted'.
+     */
     bool previously_tainted = stuffer->tainted;
     char *str = s2n_stuffer_raw_write(stuffer, mem_size);
     stuffer->tainted = previously_tainted;
@@ -258,6 +264,7 @@ int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list
     /* We don't actually use c-strings, so erase the final '\0' */
     POSIX_GUARD(s2n_stuffer_wipe_n(stuffer, 1));
 
+    POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
 }
 
