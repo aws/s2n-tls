@@ -170,14 +170,11 @@ int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, 
  * - They write bytes, not strings. They do not write a final '\0'. Unfortunately,
  *   they do still require enough space for a final '\0'-- we'd have to reimplement
  *   sprintf to avoid that.
- * - vprintf/vnprintf do not consume their vargs. They call va_copy before using
- *   the varg argument, so they can be called repeatedly with the same vargs.
- * - nprintf/vnprintf do not return the actual size of the formatted string.
+ * - vprintf does not consume the vargs. It calls va_copy before using
+ *   the varg argument, so can be called repeatedly with the same vargs.
  */
 int s2n_stuffer_printf(struct s2n_stuffer *stuffer, const char *format, ...);
-int s2n_stuffer_nprintf(struct s2n_stuffer *stuffer, uint32_t max, const char *format, ...);
 int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs);
-int s2n_stuffer_vnprintf(struct s2n_stuffer *stuffer, uint32_t max, const char *format, va_list vargs);
 
 /* Read a private key from a PEM encoded stuffer to an ASN1/DER encoded one */
 int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type);

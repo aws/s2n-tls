@@ -30,9 +30,10 @@ typedef enum {
 
 struct s2n_security_rule_result {
     bool found_error;
-    bool output_truncated;
+    bool write_output;
     struct s2n_stuffer output;
 };
+S2N_RESULT s2n_security_rule_result_init_output(struct s2n_security_rule_result *result);
 S2N_CLEANUP_RESULT s2n_security_rule_result_free(struct s2n_security_rule_result *result);
 
 struct s2n_security_policy;

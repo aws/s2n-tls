@@ -202,6 +202,22 @@ int main(int argc, char **argv)
          * I think it's worthwhile to clearly verify the output.
          */
         {
+            /* Test: Writes no output if output not enabled */
+            {
+                struct s2n_security_policy test_policy = valid_policy;
+                test_policy.ecc_preferences = &invalid_ecc_prefs;
+
+                DEFER_CLEANUP(struct s2n_security_rule_result result = { 0 },
+                        s2n_security_rule_result_free);
+
+                EXPECT_OK(s2n_security_rule_validate_policy(
+                        &test_rule, &test_policy, &result));
+                EXPECT_TRUE(result.found_error);
+
+                size_t output_size = s2n_stuffer_data_available(&result.output);
+                EXPECT_EQUAL(output_size, 0);
+            };
+
             /* Test: Writes single line of output */
             {
                 struct s2n_security_policy test_policy = valid_policy;
@@ -211,7 +227,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_security_rule_result result = { 0 },
                         s2n_security_rule_result_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&result.output, 100));
+                EXPECT_OK(s2n_security_rule_result_init_output(&result));
 
                 EXPECT_OK(s2n_security_rule_validate_policy(
                         &test_rule, &test_policy, &result));
@@ -234,7 +250,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_security_rule_result result = { 0 },
                         s2n_security_rule_result_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&result.output, 100));
+                EXPECT_OK(s2n_security_rule_result_init_output(&result));
 
                 EXPECT_OK(s2n_security_rule_validate_policy(
                         &test_rule, &test_policy, &result));
@@ -259,7 +275,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_security_rule_result result = { 0 },
                         s2n_security_rule_result_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&result.output, 100));
+                EXPECT_OK(s2n_security_rule_result_init_output(&result));
 
                 EXPECT_OK(s2n_security_rule_validate_policy(
                         &test_rule, &test_policy, &result));
@@ -280,7 +296,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_security_rule_result result = { 0 },
                         s2n_security_rule_result_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&result.output, 100));
+                EXPECT_OK(s2n_security_rule_result_init_output(&result));
 
                 EXPECT_OK(s2n_security_rule_validate_policy(
                         &test_rule, &security_policy_test_all, &result));
@@ -291,55 +307,6 @@ int main(int argc, char **argv)
                 uint8_t *output_bytes = s2n_stuffer_raw_read(&result.output, expected_prefix_size);
                 EXPECT_NOT_NULL(output_bytes);
                 EXPECT_BYTEARRAY_EQUAL(output_bytes, expected_prefix, expected_prefix_size);
-            };
-
-            /* Test: Truncates output if insufficient memory for output */
-            {
-                const char full_output[] =
-                        "Test Rule: policy unnamed: curve: secp384r1 (#1)\n";
-                const size_t full_output_size = strlen(full_output);
-                struct {
-                    uint32_t mem_size;
-                    const char expected_output[sizeof(full_output)];
-                } test_cases[] = {
-                    /* No truncation if sufficient space */
-                    {
-                            .mem_size = full_output_size,
-                            .expected_output = "Test Rule: policy unnamed: curve: secp384r1 (#1)\n" },
-                    /* Truncate if necessary */
-                    {
-                            .mem_size = full_output_size - 1,
-                            .expected_output = "Test Rule: policy unnamed: curve: secp384r1 ...\n" },
-                    /* Print only the truncation message */
-                    {
-                            .mem_size = strlen("...\n"),
-                            .expected_output = "...\n" },
-                    /* Truncate the truncation message */
-                    {
-                            .mem_size = 3,
-                            .expected_output = "..\n" },
-                    { .mem_size = 1,
-                            .expected_output = "\n" },
-                };
-
-                struct s2n_security_policy test_policy = valid_policy;
-                test_policy.ecc_preferences = &invalid_ecc_prefs;
-
-                for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-                    DEFER_CLEANUP(struct s2n_security_rule_result result = { 0 },
-                            s2n_security_rule_result_free);
-                    EXPECT_SUCCESS(s2n_stuffer_alloc(&result.output, test_cases[i].mem_size));
-
-                    EXPECT_OK(s2n_security_rule_validate_policy(
-                            &test_rule, &test_policy, &result));
-                    EXPECT_TRUE(result.found_error);
-
-                    size_t output_size = s2n_stuffer_data_available(&result.output);
-                    EXPECT_EQUAL(output_size, test_cases[i].mem_size);
-                    uint8_t *output_bytes = s2n_stuffer_raw_read(&result.output, test_cases[i].mem_size);
-                    EXPECT_NOT_NULL(output_bytes);
-                    EXPECT_BYTEARRAY_EQUAL(test_cases[i].expected_output, output_bytes, output_size);
-                }
             };
         };
     };

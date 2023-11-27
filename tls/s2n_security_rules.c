@@ -22,43 +22,6 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-#define TRUNCATED_STR     "..."
-#define TRUNCATED_STR_LEN (sizeof(TRUNCATED_STR) - 1)
-
-static S2N_RESULT s2n_security_rule_result_write_output(struct s2n_security_rule_result *result,
-        bool condition, const char *format, va_list vargs)
-{
-    RESULT_ENSURE_REF(result);
-    if (result->output_truncated) {
-        return S2N_RESULT_OK;
-    }
-
-    if (s2n_stuffer_vprintf(&result->output, format, vargs) != S2N_SUCCESS) {
-        /* If we failed to write the full message, then our stuffer isn't growable
-         * and doesn't have sufficient space. We'll need to truncate.
-         */
-        result->output_truncated = true;
-
-        /* Write as much of the full message as possible */
-        uint32_t space_remaining = s2n_stuffer_space_remaining(&result->output);
-        RESULT_GUARD_POSIX(s2n_stuffer_vnprintf(&result->output, space_remaining, format, vargs));
-
-        /* Overwrite the end of the message to indicate the truncation.
-         * We don't want readers to think they have the whole message.
-         */
-        uint32_t to_rewrite = MIN(s2n_stuffer_data_available(&result->output), TRUNCATED_STR_LEN);
-        RESULT_GUARD_POSIX(s2n_stuffer_wipe_n(&result->output, to_rewrite));
-        RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&result->output, (const uint8_t *) TRUNCATED_STR, to_rewrite));
-    }
-
-    /* The stuffer_printf methods always allow space for one extra char due to
-     * the '\0' written by the underlying snprintf method.
-     * We use that extra char for a newline.
-     */
-    RESULT_GUARD_POSIX(s2n_stuffer_write_char(&result->output, '\n'));
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_security_rule_result_process(struct s2n_security_rule_result *result,
         bool condition, const char *format, ...)
 {
@@ -68,10 +31,14 @@ static S2N_RESULT s2n_security_rule_result_process(struct s2n_security_rule_resu
     }
     result->found_error = true;
 
+    if (!result->write_output) {
+        return S2N_RESULT_OK;
+    }
+
     va_list vargs;
     va_start(vargs, format);
-    /* A failure writing the output shouldn't cause the entire validation to fail */
-    s2n_result_ignore(s2n_security_rule_result_write_output(result, condition, format, vargs));
+    RESULT_GUARD_POSIX(s2n_stuffer_vprintf(&result->output, format, vargs));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_char(&result->output, '\n'));
     va_end(vargs);
     return S2N_RESULT_OK;
 }
@@ -220,10 +187,21 @@ S2N_RESULT s2n_security_policy_validate_security_rules(
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_security_rule_result_init_output(struct s2n_security_rule_result *result)
+{
+    /* For the expected, happy case, the rule isn't violated, so nothing is written
+     * to the stuffer, so no memory is allocated.
+     */
+    RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&result->output, 0));
+    result->write_output = true;
+    return S2N_RESULT_OK;
+}
+
 S2N_CLEANUP_RESULT s2n_security_rule_result_free(struct s2n_security_rule_result *result)
 {
     if (result) {
         RESULT_GUARD_POSIX(s2n_stuffer_free(&result->output));
     }
+    *result = (struct s2n_security_rule_result) { 0 };
     return S2N_RESULT_OK;
 }

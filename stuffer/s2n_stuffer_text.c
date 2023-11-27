@@ -225,8 +225,7 @@ static void s2n_va_list_cleanup(struct s2n_va_list *list)
     }
 }
 
-int s2n_stuffer_vnprintf(struct s2n_stuffer *stuffer, uint32_t max_size,
-        const char *format, va_list vargs_in)
+int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs_in)
 {
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(format);
@@ -241,8 +240,7 @@ int s2n_stuffer_vnprintf(struct s2n_stuffer *stuffer, uint32_t max_size,
      */
     int str_len = vsnprintf(NULL, 0, format, vargs_1.va_list);
     POSIX_ENSURE_GTE(str_len, 0);
-    POSIX_ENSURE_LT((unsigned int) str_len, UINT32_MAX);
-    uint32_t mem_size = MIN((uint32_t) str_len + 1, max_size);
+    int mem_size = str_len + 1;
 
     bool previously_tainted = stuffer->tainted;
     char *str = s2n_stuffer_raw_write(stuffer, mem_size);
@@ -263,24 +261,10 @@ int s2n_stuffer_vnprintf(struct s2n_stuffer *stuffer, uint32_t max_size,
     return S2N_SUCCESS;
 }
 
-int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs)
-{
-    POSIX_GUARD(s2n_stuffer_vnprintf(stuffer, UINT32_MAX, format, vargs));
-    return S2N_SUCCESS;
-}
-
 int s2n_stuffer_printf(struct s2n_stuffer *stuffer, const char *format, ...)
 {
     DEFER_CLEANUP(struct s2n_va_list vargs = { 0 }, s2n_va_list_cleanup);
     va_start(vargs.va_list, format);
     POSIX_GUARD(s2n_stuffer_vprintf(stuffer, format, vargs.va_list));
-    return S2N_SUCCESS;
-}
-
-int s2n_stuffer_nprintf(struct s2n_stuffer *stuffer, uint32_t max, const char *format, ...)
-{
-    DEFER_CLEANUP(struct s2n_va_list vargs = { 0 }, s2n_va_list_cleanup);
-    va_start(vargs.va_list, format);
-    POSIX_GUARD(s2n_stuffer_vnprintf(stuffer, max, format, vargs.va_list));
     return S2N_SUCCESS;
 }

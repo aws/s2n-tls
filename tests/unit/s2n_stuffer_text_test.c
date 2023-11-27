@@ -162,7 +162,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(memcmp("not a line", token.blob.data, s2n_stuffer_data_available(&token)));
     };
 
-    /* Test s2n_stuffer_printf and s2n_stuffer_nprintf */
+    /* Test s2n_stuffer_printf */
     {
         const char *format_str = "str (%s) and int (%i)";
         const char *str_arg = "hello";
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
         const size_t expected_len = strlen(expected_str);
         const size_t mem_size = expected_len + 1;
 
-        /* Verify expected_str */
+        /* Sanity check: Verify expected_str matches snprintf output */
         {
             char result_str[100] = { 0 };
             int result_len = snprintf(result_str, sizeof(result_str),
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(expected_str, result_str, result_len);
         }
 
-        /* Print formatted message */
+        /* Test: Print formatted message */
         {
             DEFER_CLEANUP(struct s2n_stuffer test = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_alloc(&test, mem_size));
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_str, expected_len);
         };
 
-        /* Print formatted message with no arguments */
+        /* Test: Print formatted message with no arguments */
         {
             const char no_args_str[] = "hello world";
             const size_t no_args_str_len = strlen(no_args_str);
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(actual_bytes, no_args_str, no_args_str_len);
         };
 
-        /* Message too large for fixed size stuffer */
+        /* Test: Message too large for fixed size stuffer */
         {
             DEFER_CLEANUP(struct s2n_stuffer test = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_alloc(&test, mem_size - 1));
@@ -219,7 +219,7 @@ int main(int argc, char **argv)
                     S2N_ERR_STUFFER_IS_FULL);
         };
 
-        /* Message too large for growable stuffer */
+        /* Test: Message too large for growable stuffer */
         {
             DEFER_CLEANUP(struct s2n_stuffer test = { 0 }, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&test, 0));
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(test.blob.allocated > 0);
         };
 
-        /* Multiple writes */
+        /* Test: Multiple writes */
         {
             const char full_str[] = "hello world";
             const size_t full_str_size = strlen(full_str);
@@ -267,51 +267,6 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_printf(&test, "hello"));
             EXPECT_TRUE(test.tainted);
-        };
-
-        /* Maximum size respected */
-        {
-            DEFER_CLEANUP(struct s2n_stuffer test = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&test, 0));
-
-            uint32_t max_size = 1;
-            uint32_t write_size = 0;
-            EXPECT_SUCCESS(s2n_stuffer_nprintf(&test, max_size, format_str, str_arg, int_arg));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&test), write_size);
-
-            max_size = 2;
-            /* The underlying snprintf method reserves 1 byte for the final '\0' */
-            write_size = max_size - 1;
-            EXPECT_SUCCESS(s2n_stuffer_nprintf(&test, max_size, format_str, str_arg, int_arg));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&test), write_size);
-            uint8_t *actual_bytes = s2n_stuffer_raw_read(&test, write_size);
-            EXPECT_NOT_NULL(actual_bytes);
-            EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_str, write_size);
-
-            max_size = expected_len - 1;
-            /* The underlying snprintf method reserves 1 byte for the final '\0' */
-            write_size = max_size - 1;
-            EXPECT_SUCCESS(s2n_stuffer_nprintf(&test, max_size, format_str, str_arg, int_arg));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&test), write_size);
-            actual_bytes = s2n_stuffer_raw_read(&test, write_size);
-            EXPECT_NOT_NULL(actual_bytes);
-            EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_str, write_size);
-
-            max_size = expected_len;
-            /* The underlying snprintf method reserves 1 byte for the final '\0' */
-            write_size = max_size - 1;
-            EXPECT_SUCCESS(s2n_stuffer_nprintf(&test, max_size, format_str, str_arg, int_arg));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&test), write_size);
-            actual_bytes = s2n_stuffer_raw_read(&test, write_size);
-            EXPECT_NOT_NULL(actual_bytes);
-            EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_str, write_size);
-
-            max_size = expected_len + 1;
-            EXPECT_SUCCESS(s2n_stuffer_nprintf(&test, max_size, format_str, str_arg, int_arg));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&test), expected_len);
-            actual_bytes = s2n_stuffer_raw_read(&test, expected_len);
-            EXPECT_NOT_NULL(actual_bytes);
-            EXPECT_BYTEARRAY_EQUAL(actual_bytes, expected_str, expected_len);
         };
     };
 
