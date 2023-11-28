@@ -37,9 +37,10 @@ static S2N_RESULT s2n_security_rule_result_process(struct s2n_security_rule_resu
 
     va_list vargs;
     va_start(vargs, format);
-    RESULT_GUARD_POSIX(s2n_stuffer_vprintf(&result->output, format, vargs));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_char(&result->output, '\n'));
+    int ret = s2n_stuffer_vprintf(&result->output, format, vargs);
     va_end(vargs);
+    RESULT_GUARD_POSIX(ret);
+    RESULT_GUARD_POSIX(s2n_stuffer_write_char(&result->output, '\n'));
     return S2N_RESULT_OK;
 }
 
