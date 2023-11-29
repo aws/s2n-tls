@@ -80,6 +80,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_DECODE_PRIVATE_KEY, "error decoding private key") \
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_ALGORITHM, "Invalid signature algorithm") \
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_SCHEME, "Invalid signature scheme") \
+    ERR_ENTRY(S2N_ERR_NO_VALID_SIGNATURE_SCHEME, "Unable to negotiate a supported signature scheme") \
     ERR_ENTRY(S2N_ERR_CBC_VERIFY, "Failed CBC verification") \
     ERR_ENTRY(S2N_ERR_DH_COPYING_PUBLIC_KEY, "error copying Diffie-Hellman public key") \
     ERR_ENTRY(S2N_ERR_SIGN, "error signing data") \
