@@ -15,7 +15,7 @@
 
 #include "tls/s2n_kex.h"
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_client_key_exchange.h"
@@ -24,6 +24,14 @@
 #include "tls/s2n_server_key_exchange.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
+
+static S2N_RESULT s2n_check_tls13(const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn, bool *is_supported)
+{
+    RESULT_ENSURE_REF(is_supported);
+    *is_supported = (s2n_connection_get_protocol_version(conn) >= S2N_TLS13);
+    return S2N_RESULT_OK;
+}
 
 static S2N_RESULT s2n_check_rsa_key(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
@@ -113,7 +121,7 @@ static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite,
     RESULT_ENSURE_REF(cipher_suite);
     RESULT_ENSURE_REF(conn);
 
-    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
     RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_preferences));
@@ -135,11 +143,6 @@ static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite,
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_no_op_configure(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn)
-{
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_check_hybrid_ecdhe_kem(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)
 {
     RESULT_ENSURE_REF(cipher_suite);
@@ -156,6 +159,34 @@ static S2N_RESULT s2n_check_hybrid_ecdhe_kem(const struct s2n_cipher_suite *ciph
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_kex_configure_noop(const struct s2n_cipher_suite *cipher_suite,
+        struct s2n_connection *conn)
+{
+    return S2N_RESULT_OK;
+}
+
+static int s2n_kex_server_key_recv_read_data_unimplemented(struct s2n_connection *conn,
+        struct s2n_blob *data_to_verify, struct s2n_kex_raw_server_data *kex_data)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
+static int s2n_kex_server_key_recv_parse_data_unimplemented(struct s2n_connection *conn,
+        struct s2n_kex_raw_server_data *kex_data)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
+static int s2n_kex_io_unimplemented(struct s2n_connection *conn, struct s2n_blob *data_to_sign)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
+static int s2n_kex_prf_unimplemented(struct s2n_connection *conn, struct s2n_blob *premaster_secret)
+{
+    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+}
+
 const struct s2n_kex s2n_kem = {
     .is_ephemeral = true,
     .connection_supported = &s2n_check_kem,
@@ -165,15 +196,16 @@ const struct s2n_kex s2n_kem = {
     .server_key_send = &s2n_kem_server_key_send,
     .client_key_recv = &s2n_kem_client_key_recv,
     .client_key_send = &s2n_kem_client_key_send,
+    .prf = &s2n_kex_prf_unimplemented,
 };
 
 const struct s2n_kex s2n_rsa = {
     .is_ephemeral = false,
     .connection_supported = &s2n_check_rsa_key,
-    .configure_connection = &s2n_no_op_configure,
-    .server_key_recv_read_data = NULL,
-    .server_key_recv_parse_data = NULL,
-    .server_key_send = NULL,
+    .configure_connection = &s2n_kex_configure_noop,
+    .server_key_recv_read_data = &s2n_kex_server_key_recv_read_data_unimplemented,
+    .server_key_recv_parse_data = &s2n_kex_server_key_recv_parse_data_unimplemented,
+    .server_key_send = &s2n_kex_io_unimplemented,
     .client_key_recv = &s2n_rsa_client_key_recv,
     .client_key_send = &s2n_rsa_client_key_send,
     .prf = &s2n_prf_calculate_master_secret,
@@ -182,7 +214,7 @@ const struct s2n_kex s2n_rsa = {
 const struct s2n_kex s2n_dhe = {
     .is_ephemeral = true,
     .connection_supported = &s2n_check_dhe,
-    .configure_connection = &s2n_no_op_configure,
+    .configure_connection = &s2n_kex_configure_noop,
     .server_key_recv_read_data = &s2n_dhe_server_key_recv_read_data,
     .server_key_recv_parse_data = &s2n_dhe_server_key_recv_parse_data,
     .server_key_send = &s2n_dhe_server_key_send,
@@ -194,7 +226,7 @@ const struct s2n_kex s2n_dhe = {
 const struct s2n_kex s2n_ecdhe = {
     .is_ephemeral = true,
     .connection_supported = &s2n_check_ecdhe,
-    .configure_connection = &s2n_no_op_configure,
+    .configure_connection = &s2n_kex_configure_noop,
     .server_key_recv_read_data = &s2n_ecdhe_server_key_recv_read_data,
     .server_key_recv_parse_data = &s2n_ecdhe_server_key_recv_parse_data,
     .server_key_send = &s2n_ecdhe_server_key_send,
@@ -214,6 +246,23 @@ const struct s2n_kex s2n_hybrid_ecdhe_kem = {
     .client_key_recv = &s2n_hybrid_client_key_recv,
     .client_key_send = &s2n_hybrid_client_key_send,
     .prf = &s2n_hybrid_prf_master_secret,
+};
+
+/* TLS1.3 key exchange is implemented differently from previous versions and does
+ * not currently require most of the functionality offered by s2n_kex.
+ * This structure primarily acts as a placeholder, so its methods are either
+ * noops or unimplemented.
+ */
+const struct s2n_kex s2n_tls13_kex = {
+    .is_ephemeral = true,
+    .connection_supported = &s2n_check_tls13,
+    .configure_connection = &s2n_kex_configure_noop,
+    .server_key_recv_read_data = &s2n_kex_server_key_recv_read_data_unimplemented,
+    .server_key_recv_parse_data = &s2n_kex_server_key_recv_parse_data_unimplemented,
+    .server_key_send = &s2n_kex_io_unimplemented,
+    .client_key_recv = &s2n_kex_io_unimplemented,
+    .client_key_send = &s2n_kex_io_unimplemented,
+    .prf = &s2n_kex_prf_unimplemented,
 };
 
 S2N_RESULT s2n_kex_supported(const struct s2n_cipher_suite *cipher_suite, struct s2n_connection *conn, bool *is_supported)

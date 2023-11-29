@@ -13,17 +13,16 @@
 * permissions and limitations under the License.
 */
 
-#include "s2n_kyber_evp.h"
-
 #include <openssl/evp.h>
 #include <stddef.h>
 
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !defined(S2N_NO_PQ)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
@@ -87,21 +86,25 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
 
     return S2N_SUCCESS;
 }
-#else
-int s2n_kyber_512_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, OUT uint8_t *secret_key)
+
+#else /* If !S2N_LIBCRYPTO_SUPPORTS_KYBER, we won't have a Kyber impl so define relevant stubs here. */
+
+int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
+        OUT uint8_t *secret_key)
 {
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 }
 
-int s2n_kyber_512_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
+int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
         IN const uint8_t *public_key)
 {
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 }
 
-int s2n_kyber_512_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
+int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
         IN const uint8_t *secret_key)
 {
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 }
+
 #endif

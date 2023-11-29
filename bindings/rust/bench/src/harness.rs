@@ -25,7 +25,7 @@ impl PemType {
     fn get_filename(&self) -> &str {
         match self {
             PemType::ServerKey => "server-key.pem",
-            PemType::ServerCertChain => "server-cert.pem",
+            PemType::ServerCertChain => "server-chain.pem",
             PemType::ClientKey => "client-key.pem",
             PemType::ClientCertChain => "client-cert.pem",
             PemType::CACert => "ca-cert.pem",
@@ -40,6 +40,7 @@ pub enum SigType {
     Rsa4096,
     #[default]
     Ecdsa384,
+    Ecdsa256,
 }
 
 impl SigType {
@@ -49,6 +50,7 @@ impl SigType {
             SigType::Rsa3072 => "rsa3072",
             SigType::Rsa4096 => "rsa4096",
             SigType::Ecdsa384 => "ecdsa384",
+            SigType::Ecdsa256 => "ecdsa256",
         }
     }
 }

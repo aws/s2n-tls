@@ -13,11 +13,23 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "s2n_pq.h"
 
-#include "utils/s2n_result.h"
+#include "crypto/s2n_openssl.h"
 
-typedef S2N_RESULT (*s2n_get_random_bytes_callback)(uint8_t *buffer, uint32_t num_bytes);
+bool s2n_libcrypto_supports_kyber()
+{
+    /* S2N_LIBCRYPTO_SUPPORTS_KYBER will be auto-detected and #defined if
+     * ./tests/features/S2N_LIBCRYPTO_SUPPORTS_KYBER.c successfully compiles
+     */
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+    return true;
+#else
+    return false;
+#endif
+}
 
-S2N_RESULT s2n_get_random_bytes(uint8_t *buffer, uint32_t num_bytes);
-S2N_RESULT s2n_set_rand_bytes_callback_for_testing(s2n_get_random_bytes_callback rand_bytes_callback);
+bool s2n_pq_is_enabled()
+{
+    return s2n_libcrypto_supports_kyber();
+}

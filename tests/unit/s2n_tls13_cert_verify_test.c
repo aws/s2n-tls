@@ -93,10 +93,10 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
             EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
             EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.client_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
         }
 
@@ -171,10 +171,10 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
             EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, verifying_conn->handshake_params.our_chain_and_key->private_key));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
             EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.client_public_key, verifying_conn->handshake_params.our_chain_and_key->private_key));
         }
         /* Initialize send hash with hello */
@@ -240,9 +240,9 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
         }
 
         /* Initialize send hash with hello */
@@ -312,9 +312,9 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
         EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
         } else {
-            EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.client_public_key, &pkey_type, &b));
         }
 
         /* Hash initialization */

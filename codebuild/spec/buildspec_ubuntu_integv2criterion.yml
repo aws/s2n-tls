@@ -20,7 +20,6 @@ batch:
           S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
-          XDIST_WORKERS: 2
           RUST_BACKTRACE: 1
     - identifier: s2nIntegrationv2WellKnownEndpoints
       debug-session: true
@@ -33,7 +32,6 @@ batch:
           S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
-          XDIST_WORKERS: 2
           ARTIFACT_BUCKET: s3://s2n-tls-logs/release
           ARTIFACT_FILE: integv2criterion
       depend-on:

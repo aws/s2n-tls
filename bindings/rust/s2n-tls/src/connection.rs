@@ -63,12 +63,6 @@ impl fmt::Debug for Connection {
 /// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
-/// # Safety
-///
-/// All C methods that mutate the s2n_connection are wrapped
-/// in Rust methods that require a mutable reference.
-unsafe impl Sync for Connection {}
-
 impl Connection {
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
@@ -420,6 +414,14 @@ impl Connection {
     /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
+            if let Some(config) = self.config() {
+                if let Some(callback) = config.context().connection_initializer.as_ref() {
+                    let future = callback.initialize_connection(self);
+                    AsyncCallback::trigger(future, self);
+                }
+            }
+        }
 
         loop {
             // check if an async task exists and poll it to completion
@@ -842,6 +844,7 @@ struct Context {
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
+    connection_initialized: bool,
 }
 
 impl Context {
@@ -851,6 +854,7 @@ impl Context {
             waker: None,
             async_callback: None,
             verify_host_callback: None,
+            connection_initialized: false,
         }
     }
 }
@@ -940,5 +944,17 @@ impl Drop for Connection {
             // cleanup connection
             let _ = s2n_connection_free(self.connection.as_ptr()).into_result();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ensure the connection context is send
+    #[test]
+    fn context_send_test() {
+        fn assert_send<T: 'static + Send>() {}
+        assert_send::<Context>();
     }
 }
