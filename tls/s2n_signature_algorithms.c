@@ -215,6 +215,9 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
     for (size_t i = 0; i < signature_preferences->count; i++) {
         const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
 
+        /* Validates that a signature is valid to choose,
+         * including that it's allowed by the current protocol version.
+         */
         if (!s2n_signature_scheme_is_valid_for_recv(conn, candidate)) {
             continue;
         }
