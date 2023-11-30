@@ -1,0 +1,46 @@
+target = "https://tools.ietf.org/rfc/rfc7627#section-4"
+
+# 4.  The Extended Master Secret
+#
+# When the extended master secret extension is negotiated in a full
+# handshake, the "master_secret" is computed as
+# 
+# master_secret = PRF(pre_master_secret, "extended master secret",
+#                     session_hash)
+#                     [0..47];
+# 
+# The extended master secret computation differs from that described in
+# [RFC5246] in the following ways:
+# 
+# o  The "extended master secret" label is used instead of "master
+#    secret".
+# 
+# o  The "session_hash" is used instead of the "ClientHello.random" and
+#    "ServerHello.random".
+# 
+# The "session_hash" depends upon a handshake log that includes
+# "ClientHello.random" and "ServerHello.random", in addition to
+# ciphersuites, key exchange information, and certificates (if any)
+# from the client and server.  Consequently, the extended master secret
+# depends upon the choice of all these session parameters.
+# 
+# This design reflects the recommendation that keys should be bound to
+# the security contexts that compute them [SP800-108].  The technique
+# of mixing a hash of the key exchange messages into master key
+# derivation is already used in other well-known protocols such as
+# Secure Shell (SSH) [RFC4251].
+# 
+# Clients and servers SHOULD NOT accept handshakes that do not use the
+# extended master secret, especially if they rely on features like
+# compound authentication that fall into the vulnerable cases described
+# in Section 6.1.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients and servers SHOULD NOT accept handshakes that do not use the
+extended master secret, especially if they rely on features like
+compound authentication that fall into the vulnerable cases described
+in Section 6.1.
+'''
+

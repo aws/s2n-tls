@@ -161,7 +161,7 @@
  * * The size of the data pointed to by both the `destination` and `source` parameters,
  *   shall be at least `len` bytes.
  */
-#define RESULT_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), RESULT_GUARD_PTR)
+#define RESULT_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), RESULT_ENSURE_REF)
 
 /**
  * Performs a safer memset
@@ -357,7 +357,7 @@
  * * The size of the data pointed to by both the `destination` and `source` parameters,
  *   shall be at least `len` bytes.
  */
-#define POSIX_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), POSIX_GUARD_PTR)
+#define POSIX_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), POSIX_ENSURE_REF)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -563,7 +563,7 @@
  * * The size of the data pointed to by both the `destination` and `source` parameters,
  *   shall be at least `len` bytes.
  */
-#define PTR_CHECKED_MEMCPY(destination, source, len)          __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), PTR_GUARD)
+#define PTR_CHECKED_MEMCPY(destination, source, len)          __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), PTR_ENSURE_REF)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.

@@ -5,9 +5,11 @@
 mod tests {
     use crate::{
         callbacks::{SessionTicket, SessionTicketCallback},
+        config::ConnectionInitializer,
         connection,
         testing::{s2n_tls::*, *},
     };
+    use futures_test::task::noop_waker;
     use std::{error::Error, sync::Mutex, time::SystemTime};
 
     #[derive(Default, Clone)]
@@ -29,6 +31,18 @@ mod tests {
             if ptr.is_none() {
                 *ptr = Some(data);
             }
+        }
+    }
+
+    impl ConnectionInitializer for SessionTicketHandler {
+        fn initialize_connection(
+            &self,
+            connection: &mut crate::connection::Connection,
+        ) -> crate::callbacks::ConnectionFutureResult {
+            if let Some(ticket) = (*self.stored_ticket).lock().unwrap().as_deref() {
+                connection.set_session_ticket(ticket)?;
+            }
+            Ok(None)
         }
     }
 
@@ -56,7 +70,8 @@ mod tests {
             .enable_session_tickets(true)?
             .set_session_ticket_callback(handler.clone())?
             .trust_pem(keypair.cert())?
-            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+            .set_connection_initializer(handler.clone())?;
         let client_config = client_config_builder.build()?;
 
         // create and configure a server connection
@@ -67,7 +82,10 @@ mod tests {
 
         // create a client connection
         let mut client = connection::Connection::new_client();
+
+        // Client needs a waker due to its use of an async callback
         client
+            .set_waker(Some(&noop_waker()))?
             .set_config(client_config.clone())
             .expect("Unable to set client config");
 
@@ -93,13 +111,8 @@ mod tests {
         // create a client connection with a resumption ticket
         let mut client = connection::Connection::new_client();
 
-        let ticket = (*handler.stored_ticket)
-            .lock()
-            .unwrap()
-            .clone()
-            .expect("Ticket should not be None");
         client
-            .set_session_ticket(&ticket)?
+            .set_waker(Some(&noop_waker()))?
             .set_config(client_config)
             .expect("Unable to set client config");
 
@@ -134,6 +147,7 @@ mod tests {
         client_config_builder
             .enable_session_tickets(true)?
             .set_session_ticket_callback(handler.clone())?
+            .set_connection_initializer(handler.clone())?
             .trust_pem(keypair.cert())?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
             .set_security_policy(&security::DEFAULT_TLS13)?;
@@ -148,6 +162,7 @@ mod tests {
         // create a client connection
         let mut client = connection::Connection::new_client();
         client
+            .set_waker(Some(&noop_waker()))?
             .set_config(client_config.clone())
             .expect("Unable to set client config");
 
@@ -175,16 +190,10 @@ mod tests {
             .set_config(server_config)
             .expect("Failed to bind config to server connection");
 
-        let ticket = (*handler.stored_ticket)
-            .lock()
-            .unwrap()
-            .clone()
-            .expect("Ticket should not be None");
-
         // create a client connection with a resumption ticket
         let mut client = connection::Connection::new_client();
         client
-            .set_session_ticket(&ticket)?
+            .set_waker(Some(&noop_waker()))?
             .set_config(client_config)
             .expect("Unable to set client config");
 

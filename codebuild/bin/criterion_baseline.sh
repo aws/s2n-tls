@@ -19,7 +19,6 @@ source codebuild/bin/utils.sh
 # Disable PQ
 export S2N_NO_PQ=1
 # Limit the number of child processes in the test run
-export XDIST_WORKERS=2
 export RUST_BACKTRACE=1
 export TOX_TEST_NAME="$INTEGV2_TEST"
 

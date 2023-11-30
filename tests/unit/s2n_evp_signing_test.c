@@ -52,7 +52,7 @@ static S2N_RESULT s2n_test_hash_init(struct s2n_hash_state *hash_state, s2n_hash
 static S2N_RESULT s2n_setup_public_key(struct s2n_pkey *public_key, struct s2n_cert_chain_and_key *chain)
 {
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(public_key, &pkey_type,
+    EXPECT_OK(s2n_asn1der_to_public_key_and_type(public_key, &pkey_type,
             &chain->cert_chain->head->raw));
     EXPECT_EQUAL(pkey_type, chain->cert_chain->head->pkey_type);
     return S2N_RESULT_OK;

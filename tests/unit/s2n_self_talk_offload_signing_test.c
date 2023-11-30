@@ -55,13 +55,13 @@ static S2N_RESULT s2n_async_pkey_sign(struct s2n_cert_chain_and_key *complete_ch
 
     /* Get signature algorithm */
     s2n_tls_signature_algorithm sig_alg = 0;
-    struct s2n_signature_scheme *sig_scheme = NULL;
+    const struct s2n_signature_scheme *sig_scheme = NULL;
     if (pkey_op_conn->mode == S2N_CLIENT) {
         RESULT_GUARD_POSIX(s2n_connection_get_selected_client_cert_signature_algorithm(pkey_op_conn, &sig_alg));
-        sig_scheme = &pkey_op_conn->handshake_params.client_cert_sig_scheme;
+        sig_scheme = pkey_op_conn->handshake_params.client_cert_sig_scheme;
     } else {
         RESULT_GUARD_POSIX(s2n_connection_get_selected_signature_algorithm(pkey_op_conn, &sig_alg));
-        sig_scheme = &pkey_op_conn->handshake_params.conn_sig_scheme;
+        sig_scheme = pkey_op_conn->handshake_params.server_cert_sig_scheme;
     }
 
     /* These are our "external" / "offloaded" operations.

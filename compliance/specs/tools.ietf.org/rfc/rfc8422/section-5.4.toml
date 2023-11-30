@@ -1,0 +1,173 @@
+target = "https://tools.ietf.org/rfc/rfc8422#section-5.4"
+
+# 5.4.  Server Key Exchange
+#
+# When this message is sent:
+# 
+# This message is sent when using the ECDHE_ECDSA, ECDHE_RSA, and
+# ECDH_anon key exchange algorithms.
+# 
+# Meaning of this message:
+# 
+# This message is used to convey the server's ephemeral ECDH public key
+# (and the corresponding elliptic curve domain parameters) to the
+# client.
+# 
+# The ECCurveType enum used to have values for explicit prime and for
+# explicit char2 curves.  Those values are now deprecated, so only one
+# value remains:
+# 
+# Structure of this message:
+# 
+#         enum {
+#             deprecated (1..2),
+#             named_curve (3),
+#             reserved(248..255)
+#         } ECCurveType;
+# 
+# The value named_curve indicates that a named curve is used.  This
+# option is now the only remaining format.
+# 
+# Values 248 through 255 are reserved for private use.
+# 
+# The ECCurveType name space (now titled "TLS EC Curve Types") is
+# maintained by IANA.  See Section 9 for information on how new value
+# assignments are added.
+# 
+# RFC 4492 had a specification for an ECCurve structure and an
+# ECBasisType structure.  Both of these are omitted now because they
+# were only used with the now deprecated explicit curves.
+# 
+#         struct {
+#             opaque point <1..2^8-1>;
+#         } ECPoint;
+# 
+# point: This is the byte string representation of an elliptic curve
+# point following the conversion routine in Section 4.3.6 of
+# [ANSI.X9-62.2005].  This byte string may represent an elliptic curve
+# point in uncompressed, compressed, or hybrid format, but this
+# specification deprecates all but the uncompressed format.  For the
+# NIST curves, the format is repeated in Section 5.4.1 for convenience.
+# For the X25519 and X448 curves, the only valid representation is the
+# one specified in [RFC7748], a 32- or 56-octet representation of the u
+# value of the point.  This structure MUST NOT be used with Ed25519 and
+# Ed448 public keys.
+# 
+#         struct {
+#             ECCurveType    curve_type;
+#             select (curve_type) {
+#                 case named_curve:
+#                     NamedCurve namedcurve;
+#             };
+#         } ECParameters;
+# 
+# curve_type: This identifies the type of the elliptic curve domain
+# parameters.
+# 
+# namedCurve: Specifies a recommended set of elliptic curve domain
+# parameters.  All those values of NamedCurve are allowed that refer to
+# a curve capable of Diffie-Hellman.  With the deprecation of the
+# explicit curves, this now includes all of the NamedCurve values.
+# 
+#         struct {
+#             ECParameters    curve_params;
+#             ECPoint         public;
+#         } ServerECDHParams;
+# 
+# curve_params: Specifies the elliptic curve domain parameters
+# associated with the ECDH public key.
+# 
+# public: The ephemeral ECDH public key.
+# 
+# The ServerKeyExchange message is extended as follows.
+# 
+#         enum {
+#             ec_diffie_hellman
+#         } KeyExchangeAlgorithm;
+# 
+# o  ec_diffie_hellman: Indicates the ServerKeyExchange message
+#    contains an ECDH public key.
+# 
+#    select (KeyExchangeAlgorithm) {
+#        case ec_diffie_hellman:
+#            ServerECDHParams    params;
+#            Signature           signed_params;
+#    } ServerKeyExchange;
+# 
+# o  params: Specifies the ECDH public key and associated domain
+#    parameters.
+# 
+# o  signed_params: A hash of the params, with the signature
+#    appropriate to that hash applied.  The private key corresponding
+#    to the certified public key in the server's Certificate message is
+#    used for signing.
+# 
+#      enum {
+#          ecdsa(3),
+#          ed25519(7)
+#          ed448(8)
+#      } SignatureAlgorithm;
+#      select (SignatureAlgorithm) {
+#         case ecdsa:
+#              digitally-signed struct {
+#                  opaque sha_hash[sha_size];
+#              };
+#         case ed25519,ed448:
+#              digitally-signed struct {
+#                  opaque rawdata[rawdata_size];
+#              };
+#      } Signature;
+#    ServerKeyExchange.signed_params.sha_hash
+#        SHA(ClientHello.random + ServerHello.random +
+#                               ServerKeyExchange.params);
+#    ServerKeyExchange.signed_params.rawdata
+#        ClientHello.random + ServerHello.random +
+#                               ServerKeyExchange.params;
+# 
+# NOTE: SignatureAlgorithm is "rsa" for the ECDHE_RSA key exchange
+# algorithm and "anonymous" for ECDH_anon.  These cases are defined in
+# TLS.  SignatureAlgorithm is "ecdsa" or "eddsa" for ECDHE_ECDSA.
+# 
+# ECDSA signatures are generated and verified as described in
+# Section 5.10.  SHA, in the above template for sha_hash, may denote a
+# hash algorithm other than SHA-1.  As per ANSI X9.62, an ECDSA
+# signature consists of a pair of integers, r and s.  The digitally-
+# signed element is encoded as an opaque vector <0..2^16-1>, the
+# contents of which are the DER encoding corresponding to the following
+# ASN.1 notation.
+# 
+#            Ecdsa-Sig-Value ::= SEQUENCE {
+#                r       INTEGER,
+#                s       INTEGER
+#            }
+# 
+# EdDSA signatures in both the protocol and in certificates that
+# conform to [RFC8410] are generated and verified according to
+# [RFC8032].  The digitally-signed element is encoded as an opaque
+# vector <0..2^16-1>, the contents of which include the octet string
+# output of the EdDSA signing algorithm.
+# 
+# Actions of the sender:
+# 
+# The server selects elliptic curve domain parameters and an ephemeral
+# ECDH public key corresponding to these parameters according to the
+# ECKAS-DH1 scheme from IEEE 1363 [IEEE.P1363].  It conveys this
+# information to the client in the ServerKeyExchange message using the
+# format defined above.
+# 
+# Actions of the receiver:
+# 
+# The client verifies the signature (when present) and retrieves the
+# server's elliptic curve domain parameters and ephemeral ECDH public
+# key from the ServerKeyExchange message.  (A possible reason for a
+# fatal handshake failure is that the client's capabilities for
+# handling elliptic curves and point formats are exceeded; cf.
+# Section 5.1.)
+
+[[spec]]
+level = "MUST"
+quote = '''
+This structure MUST NOT be used with Ed25519 and
+Ed448 public keys.
+'''
+

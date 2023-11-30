@@ -28,7 +28,7 @@ if [[ -z "$S2N_ROOT" ]]; then
     S2N_ROOT=../..
 fi
 
-FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/pq-crypto ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
+FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
 
 # Outputs fuzz coverage results if the FUZZ_COVERAGE environment variable is set

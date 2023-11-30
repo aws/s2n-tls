@@ -17,6 +17,17 @@
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "utils/s2n_safety.h"
+
+/* constructs a debug string from a path */
+#define EXAMPLE_DEBUG_STR(path) (_S2N_EXTRACT_BASENAME(_S2N_DEBUG_LINE_PREFIX path))
+
+S2N_RESULT test_function(bool is_valid)
+{
+    /* the line number of this check is important; tests below will fail if it changed */
+    RESULT_ENSURE(is_valid, S2N_ERR_SAFETY);
+    return S2N_RESULT_OK;
+}
 
 int main(void)
 {
@@ -85,6 +96,15 @@ int main(void)
     /* And ensure that we get an error in non-existing classes of errors */
     EXPECT_EQUAL(strcmp(s2n_strerror_name((S2N_ERR_T_USAGE + 1) << S2N_ERR_NUM_VALUE_BITS), "Internal s2n error"), 0);
     EXPECT_EQUAL(strcmp(s2n_strerror((S2N_ERR_T_USAGE + 1) << S2N_ERR_NUM_VALUE_BITS, "EN"), "Internal s2n error"), 0);
+
+    /* Ensure the file/line information is returned as expected */
+    s2n_result_ignore(test_function(false));
+    EXPECT_EQUAL(strcmp(s2n_strerror_source(S2N_ERR_SAFETY), "s2n_error_lookup_test.c:28"), 0);
+
+    EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("/absolute/path/to/file.c"), "file.c"), 0);
+    EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("relative/path/to/file.c"), "file.c"), 0);
+    EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("path / with / spaces /file.c"), "file.c"), 0);
+    EXPECT_EQUAL(strcmp(EXAMPLE_DEBUG_STR("file.c"), "file.c"), 0);
 
     /* Test that lookup works even after s2n_cleanup */
     EXPECT_SUCCESS(s2n_cleanup());

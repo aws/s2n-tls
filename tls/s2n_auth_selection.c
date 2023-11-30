@@ -88,7 +88,9 @@ static int s2n_is_sig_alg_valid_for_cipher_suite(s2n_signature_algorithm sig_alg
      * Therefore, if a cipher suite uses a non-ephemeral kex, then any signature
      * algorithm that requires RSA-PSS certificates is not valid.
      */
-    if (cipher_suite->key_exchange_alg != NULL && !cipher_suite->key_exchange_alg->is_ephemeral) {
+    const struct s2n_kex *kex = cipher_suite->key_exchange_alg;
+    POSIX_ENSURE_REF(kex);
+    if (!kex->is_ephemeral) {
         POSIX_ENSURE_NE(cert_type_for_sig_alg, S2N_PKEY_TYPE_RSA_PSS);
     }
 
@@ -221,9 +223,11 @@ int s2n_is_cert_type_valid_for_auth(struct s2n_connection *conn, s2n_pkey_type c
 int s2n_select_certs_for_server_auth(struct s2n_connection *conn, struct s2n_cert_chain_and_key **chosen_certs)
 {
     POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->handshake_params.server_cert_sig_scheme);
+    s2n_signature_algorithm sig_alg = conn->handshake_params.server_cert_sig_scheme->sig_alg;
 
-    s2n_pkey_type cert_type;
-    POSIX_GUARD(s2n_get_cert_type_for_sig_alg(conn->handshake_params.conn_sig_scheme.sig_alg, &cert_type));
+    s2n_pkey_type cert_type = 0;
+    POSIX_GUARD(s2n_get_cert_type_for_sig_alg(sig_alg, &cert_type));
 
     *chosen_certs = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     S2N_ERROR_IF(*chosen_certs == NULL, S2N_ERR_CERT_TYPE_UNSUPPORTED);

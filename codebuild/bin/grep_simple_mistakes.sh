@@ -18,7 +18,7 @@ FAILED=0
 # Grep for any instances of raw memcpy() function. s2n code should instead be
 # using one of the *_ENSURE_MEMCPY macros.
 #############################################
-S2N_FILES_ASSERT_NOT_USING_MEMCPY=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*"  -not -path "*/pq-crypto/*")
+S2N_FILES_ASSERT_NOT_USING_MEMCPY=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*")
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCPY; do
   RESULT_NUM_LINES=`grep 'memcpy(' $file | wc -l`
   if [ "${RESULT_NUM_LINES}" != 0 ]; then
@@ -180,7 +180,7 @@ done
 ## Assert that there are no new uses of S2N_ERROR_IF
 # TODO add crypto, tls (see https://github.com/aws/s2n-tls/issues/2635)
 #############################################
-S2N_ERROR_IF_FREE="bin error pq-crypto scram stuffer utils tests"
+S2N_ERROR_IF_FREE="bin error scram stuffer utils tests"
 for dir in $S2N_ERROR_IF_FREE; do
   files=$(find "$dir" -type f -name "*.c" -path "*")
   for file in $files; do
