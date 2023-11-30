@@ -61,7 +61,7 @@ jobs:
 
   # our benchmark testing includes interop tests between s2n-tls, rustls, and
   # openssl
-  bench-tests:
+  harness-interop-tests:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
