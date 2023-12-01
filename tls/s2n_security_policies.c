@@ -180,7 +180,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
@@ -188,7 +188,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls10,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
@@ -196,7 +196,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls11,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
@@ -204,7 +204,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls12,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 /* CloudFront viewer facing */
