@@ -204,7 +204,6 @@ The following chart maps the security policy version to protocol version and cip
 |        20150214         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |       |
 |        20150202         |    X   |    X   |    X   |        |    X    |         |            |   X  |     |  X  |       |
 |        20141001         |    X   |    X   |    X   |        |    X    |         |            |   X  |  X  |  X  |       |
-|        20140601         |    X   |    X   |    X   |        |    X    |         |            |   X  |  X  |  X  |       |
 |        20190120         |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |
 |        20190121         |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |
 |        20190122         |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |
@@ -256,7 +255,6 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |   20150214    |     X     |       |       X      |         |
 |   20150202    |     X     |       |       X      |         |
 |   20141001    |     X     |       |       X      |         |
-|   20140601    |     X     |       |       X      |         |
 |   20190120    |     X     |       |       X      |         |
 |   20190121    |     X     |       |       X      |         |
 |   20190122    |     X     |       |       X      |         |
@@ -288,7 +286,6 @@ legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotia
 |   20150214    |           |           |        |
 |   20150202    |           |           |        |
 |   20141001    |           |           |        |
-|   20140601    |           |           |        |
 |   20190120    |     X     |     X     |        |
 |   20190121    |     X     |     X     |        |
 |   20190122    |     X     |     X     |        |
