@@ -278,6 +278,9 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_client_policy, awslc_se
     if "awslc" not in get_flag(S2N_PROVIDER_VERSION):
         pytest.skip("s2n must be compiled with awslc libcrypto in order to test PQ TLS compatibility")
 
+    if "fips" in get_flag(S2N_PROVIDER_VERSION):
+        pytest.skip("No FIPS validated version of AWS-LC has support for negotiating Hybrid PQ TLS yet")
+
     port = next(available_ports)
 
     s2n_env_vars = dict()
@@ -323,6 +326,9 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
 
     if "awslc" not in get_flag(S2N_PROVIDER_VERSION):
         pytest.skip("s2n must be compiled with awslc libcrypto in order to test PQ TLS compatibility")
+
+    if "fips" in get_flag(S2N_PROVIDER_VERSION):
+        pytest.skip("No FIPS validated version of AWS-LC has support for negotiating Hybrid PQ TLS yet")
 
     port = next(available_ports)
 
