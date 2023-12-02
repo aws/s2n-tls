@@ -15,7 +15,7 @@
 
 #include <stdint.h>
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_supported_groups.h"

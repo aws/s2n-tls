@@ -6,7 +6,7 @@ import itertools
 
 
 from constants import TEST_CERT_DIRECTORY
-from global_flags import get_flag, S2N_NO_PQ, S2N_FIPS_MODE
+from global_flags import get_flag, S2N_PROVIDER_VERSION
 
 
 def data_bytes(n_bytes):
@@ -33,7 +33,7 @@ def pq_enabled():
     """
     Returns true or false to indicate whether PQ crypto is enabled in s2n
     """
-    return not (get_flag(S2N_NO_PQ, False) or get_flag(S2N_FIPS_MODE, False))
+    return "awslc" in get_flag(S2N_PROVIDER_VERSION)
 
 
 class AvailablePorts(object):

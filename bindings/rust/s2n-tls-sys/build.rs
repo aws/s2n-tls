@@ -93,6 +93,8 @@ fn build_vendored() {
 
     let mut build = builder(&libcrypto);
 
+    // TODO: update rust bindings to handle no pq-crypto dir
+
     let pq = option_env("CARGO_FEATURE_PQ").is_some();
 
     // TODO each pq section needs to be built separately since it

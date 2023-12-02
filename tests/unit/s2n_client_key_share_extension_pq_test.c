@@ -28,7 +28,7 @@
 #include "testlib/s2n_testlib.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 /* clang-format on */
 
 #define HELLO_RETRY_MSG_NO 1
@@ -941,7 +941,7 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
     POSIX_ENSURE_REF(kem_group_params);
 
     /* This function should never be called when PQ is disabled */
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
     POSIX_ENSURE_REF(kem_group);

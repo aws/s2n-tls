@@ -19,7 +19,6 @@ cp -r \
   ../../api \
   ../../crypto \
   ../../error \
-  ../../pq-crypto \
   ../../stuffer \
   ../../tls \
   ../../utils \

@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
                 conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_PQ_DISABLED);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             } else {

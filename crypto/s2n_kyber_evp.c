@@ -16,13 +16,13 @@
 #include <openssl/evp.h>
 #include <stddef.h>
 
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/s2n_pq.h"
 #include "tls/s2n_kem.h"
 #include "utils/s2n_safety.h"
 #include "utils/s2n_safety_macros.h"
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER) && !defined(S2N_NO_PQ)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
@@ -30,7 +30,6 @@ DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
         OUT uint8_t *secret_key)
 {
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     DEFER_CLEANUP(EVP_PKEY_CTX *kyber_pkey_ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_KEM, NULL), EVP_PKEY_CTX_free_pointer);
     POSIX_GUARD_PTR(kyber_pkey_ctx);
     POSIX_GUARD_OSSL(EVP_PKEY_CTX_kem_set_params(kyber_pkey_ctx, kem->kem_nid), S2N_ERR_PQ_CRYPTO);
@@ -53,7 +52,6 @@ int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pu
 int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
         IN const uint8_t *public_key)
 {
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     DEFER_CLEANUP(EVP_PKEY *kyber_pkey = EVP_PKEY_kem_new_raw_public_key(kem->kem_nid, public_key, kem->public_key_length), EVP_PKEY_free_pointer);
     POSIX_GUARD_PTR(kyber_pkey);
 
@@ -74,7 +72,6 @@ int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphert
 int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
         IN const uint8_t *private_key)
 {
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
     DEFER_CLEANUP(EVP_PKEY *kyber_pkey = EVP_PKEY_kem_new_raw_secret_key(kem->kem_nid, private_key, kem->private_key_length), EVP_PKEY_free_pointer);
     POSIX_GUARD_PTR(kyber_pkey);
 
@@ -90,36 +87,24 @@ int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_
     return S2N_SUCCESS;
 }
 
-#elif !defined(S2N_NO_PQ) /* Use interned Kyber512 implementation, otherwise bail. */
+#else /* If !S2N_LIBCRYPTO_SUPPORTS_KYBER, we won't have a Kyber impl so define relevant stubs here. */
 
 int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
         OUT uint8_t *secret_key)
 {
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    if (kem == &s2n_kyber_512_r3) {
-        return s2n_kyber_512_r3_crypto_kem_keypair(kem, public_key, secret_key);
-    }
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 }
 
 int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
         IN const uint8_t *public_key)
 {
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    if (kem == &s2n_kyber_512_r3) {
-        return s2n_kyber_512_r3_crypto_kem_enc(kem, ciphertext, shared_secret, public_key);
-    }
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 }
 
 int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
         IN const uint8_t *secret_key)
 {
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
-    if (kem == &s2n_kyber_512_r3) {
-        return s2n_kyber_512_r3_crypto_kem_dec(kem, shared_secret, ciphertext, secret_key);
-    }
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
+    POSIX_BAIL(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 }
 
 #endif
