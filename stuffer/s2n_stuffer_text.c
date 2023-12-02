@@ -210,8 +210,10 @@ int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, 
 
 /* If we call va_start or va_copy there MUST be a matching call to va_end,
  * so we should use DEFER_CLEANUP with our va_lists.
- * Unfortunately, some environments implement va_list in unexpected ways
- * (for example, as an array).
+ * Unfortunately, some environments implement va_list in ways that don't
+ * act as expected when passed by reference. For example, because va_end is
+ * a macro it may expect va_list to be an array (maybe to call sizeof),
+ * but passing va_list by reference will cause it to decay to a pointer instead.
  * To avoid any surprises, just wrap the va_list in our own struct.
  */
 struct s2n_va_list {
