@@ -37,4 +37,9 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
+# We abstract these functions because manual inspection demonstrates they are unreachable.
+# We never shrink the stuffer in this method, only grow it.
+REMOVE_FUNCTION_BODY += s2n_blob_slice
+REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
+
 include ../Makefile.common

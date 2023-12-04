@@ -23,6 +23,8 @@
 
 void s2n_stuffer_printf_harness()
 {
+    nondet_s2n_mem_init();
+
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
@@ -31,7 +33,7 @@ void s2n_stuffer_printf_harness()
     /* CBMC defines va_list as void** */
     size_t va_list_len;
     __CPROVER_assume(va_list_len >= 0);
-    __CPROVER_assume(va_list_len < sizeof(format));
+    __CPROVER_assume(va_list_len < MAX_STRING_LEN);
     void** va_list_mem = malloc(sizeof(void*) * va_list_len);
 
     /* Store the stuffer to compare after the write */

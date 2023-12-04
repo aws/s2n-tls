@@ -247,7 +247,7 @@ int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list
 
     /* 'tainted' indicates that pointers to the contents of the stuffer exist,
      * so resizing / reallocated the stuffer will invalidate those pointers.
-     * However, we do no resize the stuffer in this method after creating `str`
+     * However, we do not resize the stuffer in this method after creating `str`
      * and `str` does not live beyond this method, so ignore `str` for the
      * purposes of tracking 'tainted'.
      */
