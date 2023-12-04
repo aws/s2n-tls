@@ -613,14 +613,14 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
             __asm__ __volatile__(
                     ".byte 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.i386_fields.u_low), "=qm"(success_low)
+                    : "=&a"(output.i386_fields.u_low), "=qm"(success_low)
                     :
                     : "cc");
 
             __asm__ __volatile__(
                     ".byte 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.i386_fields.u_high), "=qm"(success_high)
+                    : "=&a"(output.i386_fields.u_high), "=qm"(success_high)
                     :
                     : "cc");
             /* cppcheck-suppress knownConditionTrueFalse */
@@ -644,7 +644,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
             __asm__ __volatile__(
                     ".byte 0x48, 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.u64), "=qm"(success)
+                    : "=&a"(output.u64), "=qm"(success)
                     :
                     : "cc");
     #endif /* defined(__i386__) */
