@@ -20,6 +20,7 @@
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_kem_preferences.h"
+#include "tls/s2n_security_rules.h"
 #include "tls/s2n_signature_scheme.h"
 
 /* Kept up-to-date by s2n_security_policies_test */
@@ -69,6 +70,7 @@ struct s2n_security_policy {
      * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
      */
     const struct s2n_ecc_preferences *ecc_preferences;
+    s2n_security_flag rules;
 };
 
 struct s2n_security_policy_selection {
@@ -188,3 +190,4 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
+S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy, const char **version);

@@ -180,7 +180,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
@@ -188,7 +188,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls10 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls10,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
@@ -196,7 +196,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls11 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls11,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
@@ -204,7 +204,7 @@ const struct s2n_security_policy security_policy_cloudfront_upstream_tls12 = {
     .cipher_preferences = &cipher_preferences_cloudfront_upstream_tls12,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20140601,
-    .ecc_preferences = &s2n_ecc_preferences_20140601,
+    .ecc_preferences = &s2n_ecc_preferences_20230623,
 };
 
 /* CloudFront viewer facing */
@@ -1296,4 +1296,17 @@ S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signa
      * all rsa_pss signature schemes. */
     RESULT_ENSURE(rsa_pss_scheme_count == NUM_RSA_PSS_SCHEMES || rsa_pss_scheme_count == 0, S2N_ERR_INVALID_SECURITY_POLICY);
     return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy, const char **version)
+{
+    RESULT_ENSURE_REF(version);
+    *version = NULL;
+    for (uint8_t i = 0; security_policy_selection[i].version != NULL; i++) {
+        if (security_policy_selection[i].security_policy == security_policy) {
+            *version = security_policy_selection[i].version;
+            return S2N_RESULT_OK;
+        }
+    }
+    RESULT_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
 }

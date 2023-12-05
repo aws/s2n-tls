@@ -21,6 +21,7 @@
 #include "error/s2n_errno.h"
 #include "tls/s2n_auth_selection.h"
 #include "tls/s2n_cipher_suites.h"
+#include "tls/s2n_connection.h"
 #include "tls/s2n_kex.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
@@ -88,86 +89,14 @@ static bool s2n_signature_scheme_is_valid_for_recv(struct s2n_connection *conn,
     return s2n_result_is_ok(s2n_signature_scheme_validate_for_recv(conn, scheme));
 }
 
-static int s2n_is_signature_scheme_usable(struct s2n_connection *conn, const struct s2n_signature_scheme *candidate)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(candidate);
-
-    POSIX_GUARD_RESULT(s2n_signature_scheme_validate_for_recv(conn, candidate));
-    POSIX_GUARD(s2n_is_sig_scheme_valid_for_auth(conn, candidate));
-
-    return S2N_SUCCESS;
-}
-
-static int s2n_choose_sig_scheme(struct s2n_connection *conn, struct s2n_sig_scheme_list *peer_wire_prefs,
-        const struct s2n_signature_scheme **chosen_scheme_out)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    const struct s2n_signature_preferences *signature_preferences = NULL;
-    POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
-    POSIX_ENSURE_REF(signature_preferences);
-
-    struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
-    POSIX_ENSURE_REF(cipher_suite);
-
-    for (size_t i = 0; i < signature_preferences->count; i++) {
-        const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
-
-        if (s2n_is_signature_scheme_usable(conn, candidate) != S2N_SUCCESS) {
-            continue;
-        }
-
-        for (size_t j = 0; j < peer_wire_prefs->len; j++) {
-            uint16_t their_iana_val = peer_wire_prefs->iana_list[j];
-
-            if (candidate->iana_value == their_iana_val) {
-                *chosen_scheme_out = candidate;
-                return S2N_SUCCESS;
-            }
-        }
-    }
-
-    /* do not error even if there's no match */
-    return S2N_SUCCESS;
-}
-
-/* similar to s2n_choose_sig_scheme() without matching client's preference */
-int s2n_tls13_default_sig_scheme(struct s2n_connection *conn,
-        const struct s2n_signature_scheme **chosen_scheme_out)
-{
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-
-    const struct s2n_signature_preferences *signature_preferences = NULL;
-    POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
-    POSIX_ENSURE_REF(signature_preferences);
-
-    struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
-    POSIX_ENSURE_REF(cipher_suite);
-
-    for (size_t i = 0; i < signature_preferences->count; i++) {
-        const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
-
-        if (s2n_is_signature_scheme_usable(conn, candidate) != S2N_SUCCESS) {
-            continue;
-        }
-
-        *chosen_scheme_out = candidate;
-        return S2N_SUCCESS;
-    }
-
-    POSIX_BAIL(S2N_ERR_INVALID_SIGNATURE_SCHEME);
-}
-
 static S2N_RESULT s2n_signature_algorithms_get_legacy_default(struct s2n_connection *conn,
-        const struct s2n_signature_scheme **default_sig_scheme)
+        s2n_mode signer, const struct s2n_signature_scheme **default_sig_scheme)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(default_sig_scheme);
 
     s2n_authentication_method auth_method = 0;
-    if (conn->mode == S2N_SERVER) {
+    if (signer == S2N_CLIENT) {
         RESULT_GUARD_POSIX(s2n_get_auth_method_for_cert_type(
                 conn->handshake_params.client_cert_pkey_type, &auth_method));
     } else {
@@ -189,7 +118,8 @@ S2N_RESULT s2n_signature_algorithm_recv(struct s2n_connection *conn, struct s2n_
     RESULT_ENSURE_REF(conn);
 
     const struct s2n_signature_scheme **chosen_sig_scheme = NULL;
-    if (conn->mode == S2N_SERVER) {
+    s2n_mode peer_mode = S2N_PEER_MODE(conn->mode);
+    if (peer_mode == S2N_CLIENT) {
         chosen_sig_scheme = &conn->handshake_params.client_cert_sig_scheme;
     } else {
         chosen_sig_scheme = &conn->handshake_params.server_cert_sig_scheme;
@@ -197,7 +127,7 @@ S2N_RESULT s2n_signature_algorithm_recv(struct s2n_connection *conn, struct s2n_
 
     /* Before TLS1.2, signature algorithms were fixed instead of negotiated */
     if (conn->actual_protocol_version < S2N_TLS12) {
-        return s2n_signature_algorithms_get_legacy_default(conn, chosen_sig_scheme);
+        return s2n_signature_algorithms_get_legacy_default(conn, peer_mode, chosen_sig_scheme);
     }
 
     uint16_t iana_value = 0;
@@ -226,81 +156,173 @@ S2N_RESULT s2n_signature_algorithm_recv(struct s2n_connection *conn, struct s2n_
     RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_SCHEME);
 }
 
-int s2n_choose_default_sig_scheme(struct s2n_connection *conn,
-        const struct s2n_signature_scheme **sig_scheme_out, s2n_mode signer)
+static S2N_RESULT s2n_signature_algorithms_validate_supported_by_peer(
+        struct s2n_connection *conn, uint16_t iana)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(conn->secure);
-    POSIX_ENSURE_REF(sig_scheme_out);
+    RESULT_ENSURE_REF(conn);
 
-    s2n_authentication_method auth_method = 0;
-    if (signer == S2N_CLIENT) {
-        POSIX_GUARD(s2n_get_auth_method_for_cert_type(conn->handshake_params.client_cert_pkey_type, &auth_method));
+    const struct s2n_sig_scheme_list *peer_list = NULL;
+    if (conn->mode == S2N_CLIENT) {
+        peer_list = &conn->handshake_params.server_sig_hash_algs;
     } else {
-        POSIX_ENSURE_REF(conn->secure->cipher_suite);
-        auth_method = conn->secure->cipher_suite->auth_method;
+        peer_list = &conn->handshake_params.client_sig_hash_algs;
     }
 
-    /* Default our signature digest algorithms.
-     * For >=TLS 1.2 this default may be overridden by the signature_algorithms extension.
-     */
-    const struct s2n_signature_scheme *default_sig_scheme = &s2n_rsa_pkcs1_md5_sha1;
-    if (auth_method == S2N_AUTHENTICATION_ECDSA) {
-        default_sig_scheme = &s2n_ecdsa_sha1;
-    } else if (conn->actual_protocol_version >= S2N_TLS12) {
-        default_sig_scheme = &s2n_rsa_pkcs1_sha1;
-    }
-
-    if (conn->actual_protocol_version < S2N_TLS12) {
-        /* Before TLS1.2, signature algorithms were fixed, not chosen / negotiated. */
-        *sig_scheme_out = default_sig_scheme;
-        return S2N_SUCCESS;
-    } else {
-        /* If we attempt to negotiate a default in TLS1.2, we should ensure that
-         * default is allowed by the local security policy.
-         */
-        const struct s2n_signature_preferences *signature_preferences = NULL;
-        POSIX_GUARD(s2n_connection_get_signature_preferences(conn, &signature_preferences));
-        POSIX_ENSURE_REF(signature_preferences);
-        for (size_t i = 0; i < signature_preferences->count; i++) {
-            if (signature_preferences->signature_schemes[i]->iana_value == default_sig_scheme->iana_value) {
-                *sig_scheme_out = default_sig_scheme;
-                return S2N_SUCCESS;
-            }
+    for (size_t i = 0; i < peer_list->len; i++) {
+        if (peer_list->iana_list[i] == iana) {
+            return S2N_RESULT_OK;
         }
-        /* We cannot bail with an error here because existing logic assumes
-         * that this method should always succeed and calls it even when no default
-         * is actually necessary.
-         * If no valid default exists, set an unusable, invalid empty scheme.
-         */
-        *sig_scheme_out = &s2n_null_sig_scheme;
-        return S2N_SUCCESS;
     }
+
+    RESULT_BAIL(S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
 }
 
-int s2n_choose_sig_scheme_from_peer_preference_list(struct s2n_connection *conn,
-        struct s2n_sig_scheme_list *peer_wire_prefs,
-        const struct s2n_signature_scheme **sig_scheme_out)
+static bool s2n_signature_algorithm_is_supported_by_peer(
+        struct s2n_connection *conn, uint16_t iana)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(sig_scheme_out);
+    return s2n_result_is_ok(s2n_signature_algorithms_validate_supported_by_peer(conn, iana));
+}
 
-    const struct s2n_signature_scheme *chosen_scheme = &s2n_null_sig_scheme;
-    if (conn->actual_protocol_version < S2N_TLS13) {
-        POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &chosen_scheme, conn->mode));
+S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+    struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
+    RESULT_ENSURE_REF(cipher_suite);
+
+    const struct s2n_signature_scheme **chosen_sig_scheme = NULL;
+    if (conn->mode == S2N_CLIENT) {
+        chosen_sig_scheme = &conn->handshake_params.client_cert_sig_scheme;
     } else {
-        /* Pick a default signature algorithm in TLS 1.3 https://tools.ietf.org/html/rfc8446#section-4.4.2.2 */
-        POSIX_GUARD(s2n_tls13_default_sig_scheme(conn, &chosen_scheme));
+        chosen_sig_scheme = &conn->handshake_params.server_cert_sig_scheme;
     }
 
-    /* SignatureScheme preference list was first added in TLS 1.2. It will be empty in older TLS versions. */
-    if (conn->actual_protocol_version >= S2N_TLS12 && peer_wire_prefs != NULL && peer_wire_prefs->len > 0) {
-        /* Use a best effort approach to selecting a signature scheme matching client's preferences */
-        POSIX_GUARD(s2n_choose_sig_scheme(conn, peer_wire_prefs, &chosen_scheme));
+    /* Before TLS1.2, signature algorithms were fixed instead of negotiated */
+    if (conn->actual_protocol_version < S2N_TLS12) {
+        RESULT_GUARD(s2n_signature_algorithms_get_legacy_default(conn, conn->mode, chosen_sig_scheme));
+        return S2N_RESULT_OK;
     }
 
-    *sig_scheme_out = chosen_scheme;
-    return S2N_SUCCESS;
+    const struct s2n_signature_preferences *signature_preferences = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_signature_preferences(conn, &signature_preferences));
+    RESULT_ENSURE_REF(signature_preferences);
+
+    const struct s2n_signature_scheme *fallback_candidate = NULL;
+
+    /* We use local preference order, not peer preference order, so we iterate
+     * over the local preferences instead of over the options offered by the peer.
+     */
+    for (size_t i = 0; i < signature_preferences->count; i++) {
+        const struct s2n_signature_scheme *candidate = signature_preferences->signature_schemes[i];
+
+        /* Validates that a signature is valid to choose,
+         * including that it's allowed by the current protocol version.
+         */
+        if (!s2n_signature_scheme_is_valid_for_recv(conn, candidate)) {
+            continue;
+        }
+
+        if (s2n_is_sig_scheme_valid_for_auth(conn, candidate) != S2N_SUCCESS) {
+            continue;
+        }
+
+        /* s2n-tls first attempts to choose a signature algorithm offered by the peer.
+         * However, if that is not possible, we will attempt to continue the handshake
+         * anyway with an algorithm not offered by the peer. This fallback behavior
+         * is allowed by the RFC for TLS1.3 servers and partially allowed for TLS1.2
+         * servers that don't receive the signature_algorithms extension, but is
+         * otherwise an intentional deviation from the RFC.
+         *
+         * TLS1.3 servers:
+         *= https://www.rfc-editor.org/rfc/rfc8446.html#section-4.4.3
+         *# If the CertificateVerify message is sent by a server, the signature
+         *# algorithm MUST be one offered in the client's "signature_algorithms"
+         *# extension unless no valid certificate chain can be produced without
+         *# unsupported algorithms
+         *
+         * TLS1.3 clients:
+         *= https://www.rfc-editor.org/rfc/rfc8446.html#section-4.4.3
+         *= type=exception
+         *= reason=Compatibility with hypothetical faulty peers
+         *# If sent by a client, the signature algorithm used in the signature
+         *# MUST be one of those present in the supported_signature_algorithms
+         *# field of the "signature_algorithms" extension in the
+         *# CertificateRequest message.
+         *
+         * TLS1.2 servers:
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.3
+         *= type=exception
+         *= reason=Compatibility with known faulty peers
+         *# If the client has offered the "signature_algorithms" extension, the
+         *# signature algorithm and hash algorithm MUST be a pair listed in that
+         *# extension.
+         *
+         * TLS1.2 clients:
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.8
+         *= type=exception
+         *= reason=Compatibility with hypothetical faulty peers
+         *# The hash and signature algorithms used in the signature MUST be
+         *# one of those present in the supported_signature_algorithms field
+         *# of the CertificateRequest message.
+         */
+        bool is_peer_supported = s2n_signature_algorithm_is_supported_by_peer(
+                conn, candidate->iana_value);
+        if (is_peer_supported) {
+            *chosen_sig_scheme = candidate;
+            return S2N_RESULT_OK;
+        }
+
+        /**
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
+         *# If the client does not send the signature_algorithms extension, the
+         *# server MUST do the following:
+         *#
+         *# -  If the negotiated key exchange algorithm is one of (RSA, DHE_RSA,
+         *#    DH_RSA, RSA_PSK, ECDH_RSA, ECDHE_RSA), behave as if client had
+         *#    sent the value {sha1,rsa}.
+         *#
+         *# -  If the negotiated key exchange algorithm is one of (DHE_DSS,
+         *#    DH_DSS), behave as if the client had sent the value {sha1,dsa}.
+         *#
+         *# -  If the negotiated key exchange algorithm is one of (ECDH_ECDSA,
+         *#    ECDHE_ECDSA), behave as if the client had sent value {sha1,ecdsa}.
+         *
+         * The default scheme for DSA is not used because s2n-tls does not support DSA certificates.
+         *
+         * These defaults are only relevant for TLS1.2, since TLS1.3 does not allow SHA1.
+         */
+        bool is_default = (candidate == &s2n_ecdsa_sha1 || candidate == &s2n_rsa_pkcs1_sha1);
+
+        /* If we ultimately cannot choose any algorithm offered by the peer,
+         * we will attempt negotiation with an algorithm not offered by the peer.
+         *
+         * The TLS1.2 RFC specifies default algorithms for use when no signature_algorithms
+         * extension is sent-- see the definition of is_default above.
+         *
+         * s2n-tls has encountered clients in the wild that support the TLS1.2
+         * default algorithms but do not include them in their signature_algorithms
+         * extension, likely due to a misreading of the RFC. So s2n-tls attempts
+         * to use the TLS1.2 defaults even when the client sends the signature_algorithms
+         * extension, and always treats them as the most preferred fallback option.
+         *
+         * If the TLS1.2 defaults are not possible-- for example, because TLS1.3
+         * or the security policy forbids SHA1-- we fallback to our own most
+         * preferred algorithm. In most cases a correctly implemented peer will reject
+         * this fallback, but the only alternative is to kill the connection here.
+         */
+        if (is_default) {
+            fallback_candidate = candidate;
+        } else if (fallback_candidate == NULL) {
+            fallback_candidate = candidate;
+        }
+    }
+
+    if (fallback_candidate) {
+        *chosen_sig_scheme = fallback_candidate;
+    } else {
+        RESULT_BAIL(S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
+    }
+    return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *conn, struct s2n_stuffer *out)
