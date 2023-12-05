@@ -263,7 +263,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |   20200207    |           |   X   |              |    X    |
 |    rfc9151    |     X     |   X   |              |    X    |
 
-Note that the legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algorithms will be supported in CertificateVerify messages only if TLS1.2 has been negotiated and the security policy allows them.
+Note that legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algorithms will be supported only if TLS1.2 has been negotiated and the security policy allows them.
 
 ### Chart: Security policy version to supported curves/groups
 
