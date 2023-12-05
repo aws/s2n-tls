@@ -187,32 +187,31 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 The following chart maps the security policy version to protocol version and ciphersuites supported.
 
-|         version         | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3 | AES-CBC | AES-GCM | CHACHAPOLY | 3DES | RC4 | DHE | ECDHE |
-|-------------------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|
-|         default         |    X   |    X   |    X   |        |    X    |    X    |      X     |      |     |     |   X   |
-|      default_tls13      |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |
-|      default_fips       |        |        |    X   |        |    X    |    X    |            |      |     |  X  |   X   |
-|        20190214         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |   X   |
-|        20170718         |    X   |    X   |    X   |        |    X    |    X    |            |      |     |     |   X   |
-|        20170405         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |
-|        20170328         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |   X   |
-|        20170210         |    X   |    X   |    X   |        |    X    |    X    |      X     |      |     |     |   X   |
-|        20160824         |    X   |    X   |    X   |        |    X    |    X    |            |      |     |     |   X   |
-|        20160804         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |
-|        20160411         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |
-|        20150306         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |
-|        20150214         |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |       |
-|        20150202         |    X   |    X   |    X   |        |    X    |         |            |   X  |     |  X  |       |
-|        20141001         |    X   |    X   |    X   |        |    X    |         |            |   X  |  X  |  X  |       |
-|        20190120         |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |
-|        20190121         |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |
-|        20190122         |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |
-|        20190801         |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |
-|        20190802         |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |
-|        20200207         |        |        |        |    X   |         |    X    |      X     |      |     |     |   X   |
-|        20230317         |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |
-|         rfc9151         |        |        |    X   |    X   |         |    X    |            |      |     |  X  |   X   |
-| CloudFront-TLS-1-2-2021 |        |        |    X   |    X   |         |    X    |      X     |      |     |     |   X   |
+|    version    | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3 | AES-CBC | AES-GCM | CHACHAPOLY | 3DES | RC4 | DHE | ECDHE | RSA kx |
+|---------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|--------|
+|   20230317    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
+|    default    |    X   |    X   |    X   |        |    X    |    X    |      X     |      |     |     |   X   |    X   |
+| default_tls13 |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
+| default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |  X  |   X   |        |
+|   20190214    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |   X   |    X   |
+|   20170718    |    X   |    X   |    X   |        |    X    |    X    |            |      |     |     |   X   |    X   |
+|   20170405    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |    X   |
+|   20170328    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |   X   |    X   |
+|   20170210    |    X   |    X   |    X   |        |    X    |    X    |      X     |      |     |     |   X   |    X   |
+|   20160824    |    X   |    X   |    X   |        |    X    |    X    |            |      |     |     |   X   |    X   |
+|   20160804    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |    X   |
+|   20160411    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |    X   |
+|   20150306    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |    X   |
+|   20150214    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |       |    X   |
+|   20150202    |    X   |    X   |    X   |        |    X    |         |            |   X  |     |  X  |       |    X   |
+|   20141001    |    X   |    X   |    X   |        |    X    |         |            |   X  |  X  |  X  |       |    X   |
+|   20190120    |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |    X   |
+|   20190121    |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |    X   |
+|   20190122    |    X   |    X   |    X   |        |    X    |    X    |      X     |   X  |     |     |   X   |    X   |
+|   20190801    |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
+|   20190802    |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
+|   20200207    |        |        |        |    X   |         |    X    |      X     |      |     |     |   X   |        |
+|    rfc9151    |        |        |    X   |    X   |         |    X    |            |      |     |  X  |   X   |    X   |
 
 The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 In general, customers prefer to use numbered versions for production use cases to prevent impact from library updates.
@@ -240,6 +239,7 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 
 |    version    | RSA PKCS1 | ECDSA | SHA-1 Legacy | RSA PSS |
 |---------------|-----------|-------|--------------|---------|
+|   20230317    |     X     |   X   |              |    X    |
 |    default    |     X     |       |       X      |         |
 | default_tls13 |     X     |   X   |       X      |    X    |
 | default_fips  |     X     |   X   |              |         |
@@ -261,16 +261,15 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |   20190801    |     X     |   X   |       X      |    X    |
 |   20190802    |     X     |   X   |       X      |    X    |
 |   20200207    |           |   X   |              |    X    |
-|   20230317    |     X     |   X   |              |    X    |
 |    rfc9151    |     X     |   X   |              |    X    |
 
-Note that the default_tls13 security policy will never support legacy SHA-1 algorithms in TLS1.3, but will support
-legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotiated.
+Note that the legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algorithms will be supported in CertificateVerify messages only if TLS1.2 has been negotiated and the security policy allows them.
 
 ### Chart: Security policy version to supported curves/groups
 
 |    version    | secp256r1 | secp384r1 | x25519 |
 |---------------|-----------|-----------|--------|
+|   20230317    |     X     |     X     |        |
 |    default    |     X     |     X     |        |
 | default_tls13 |     X     |     X     |    X   |
 | default_fips  |     X     |     X     |        |
@@ -292,7 +291,6 @@ legacy SHA-1 algorithms in CertificateVerify messages if TLS1.2 has been negotia
 |   20190801    |     X     |     X     |    X   |
 |   20190802    |     X     |     X     |        |
 |   20200207    |     X     |     X     |    X   |
-|   20230317    |     X     |     X     |        |
 |    rfc9151    |           |     X     |        |
 
 ## Sending and Receiving
