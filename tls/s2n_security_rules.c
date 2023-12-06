@@ -147,43 +147,17 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_security_policy_get_security_rules(
-        const struct s2n_security_policy *policy, const struct s2n_security_rule **rules,
-        size_t max_rules_count, size_t *rules_count)
-{
-    RESULT_ENSURE_REF(policy);
-    RESULT_ENSURE_REF(rules_count);
-    *rules_count = 0;
-
-    size_t flags = policy->rules;
-    size_t count = 0;
-    for (size_t rule = 0; rule < S2N_SECURITY_RULES_COUNT; rule++) {
-        bool is_set = flags % 2;
-        flags = flags >> 1;
-
-        if (!is_set) {
-            continue;
-        }
-
-        RESULT_ENSURE_INCLUSIVE_RANGE(0, rule, s2n_array_len(security_rule_definitions));
-        RESULT_ENSURE_LT(count, max_rules_count);
-        rules[count] = &security_rule_definitions[rule];
-        count++;
-    }
-
-    *rules_count = count;
-    return S2N_RESULT_OK;
-}
-
 S2N_RESULT s2n_security_policy_validate_security_rules(
         const struct s2n_security_policy *policy, struct s2n_security_rule_result *result)
 {
-    const struct s2n_security_rule *rules[S2N_SECURITY_RULES_COUNT] = { 0 };
-    size_t rules_count = 0;
-    RESULT_GUARD(s2n_security_policy_get_security_rules(policy,
-            rules, s2n_array_len(rules), &rules_count));
-    for (size_t i = 0; i < rules_count; i++) {
-        RESULT_GUARD(s2n_security_rule_validate_policy(rules[i], policy, result));
+    RESULT_ENSURE_REF(policy);
+    for (size_t rule_id = 0; rule_id < s2n_array_len(policy->rules); rule_id++) {
+        if (!policy->rules[rule_id]) {
+            continue;
+        }
+        RESULT_ENSURE_LT(rule_id, s2n_array_len(security_rule_definitions));
+        const struct s2n_security_rule *rule = &security_rule_definitions[rule_id];
+        RESULT_GUARD(s2n_security_rule_validate_policy(rule, policy, result));
     }
     return S2N_RESULT_OK;
 }
