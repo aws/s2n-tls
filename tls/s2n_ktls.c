@@ -55,6 +55,16 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     /* kTLS enable should only be called once the handshake has completed. */
     RESULT_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
+    /* For now, only allow TLS1.3 for testing.
+     *
+     * TLS1.3 is potentially more dangerous to enable than TLS1.2, since the kernel
+     * does not currently support updating TLS keys and therefore will fail if
+     * KeyUpdate messages are encountered.
+     */
+    if (!s2n_in_test()) {
+        RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    }
+
     /* Check if the cipher supports kTLS */
     const struct s2n_cipher *cipher = NULL;
     RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
