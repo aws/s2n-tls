@@ -333,7 +333,7 @@ int main(int argc, char **argv)
 
         /* Test: valid policy passes */
         {
-            test_policy.rules = S2N_PERFECT_FORWARD_SECRECY_FLAG;
+            test_policy.rules[S2N_PERFECT_FORWARD_SECRECY] = true;
             test_policy.cipher_preferences = &forward_secret_prefs;
 
             struct s2n_security_rule_result result = { 0 };
@@ -343,7 +343,7 @@ int main(int argc, char **argv)
 
         /* Test: invalid policy fails */
         {
-            test_policy.rules = S2N_PERFECT_FORWARD_SECRECY_FLAG;
+            test_policy.rules[S2N_PERFECT_FORWARD_SECRECY] = true;
             test_policy.cipher_preferences = &not_forward_secret_prefs;
 
             struct s2n_security_rule_result result = { 0 };
@@ -353,7 +353,7 @@ int main(int argc, char **argv)
 
         /* Test: valid policy without rule passes */
         {
-            test_policy.rules = 0;
+            test_policy.rules[S2N_PERFECT_FORWARD_SECRECY] = false;
             test_policy.cipher_preferences = &forward_secret_prefs;
 
             struct s2n_security_rule_result result = { 0 };
@@ -363,7 +363,7 @@ int main(int argc, char **argv)
 
         /* Test: invalid policy without rule passes */
         {
-            test_policy.rules = 0;
+            test_policy.rules[S2N_PERFECT_FORWARD_SECRECY] = false;
             test_policy.cipher_preferences = &not_forward_secret_prefs;
 
             struct s2n_security_rule_result result = { 0 };
