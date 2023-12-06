@@ -13,8 +13,8 @@
  * permissions and limitations under the License.
  */
 
-#include "tls/s2n_tls13_handshake.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_result.h"
 
 /* The state machine refers to the "master" secret as the "application" secret.

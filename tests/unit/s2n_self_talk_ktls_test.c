@@ -43,7 +43,7 @@ static S2N_RESULT s2n_setup_connections(struct s2n_connection *server,
     /* Real sockets are sometimes slow.
      * Assume blocking will occur but is always recoverable.
      */
-    while(true) {
+    while (true) {
         int result = s2n_negotiate_test_server_and_client(server, client);
         if (result == S2N_SUCCESS) {
             break;
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
     };
 
     /* Test receiving with ktls + TLS1.3 */
-    if (ktls_recv_supported) {
+    if (ktls_recv_supported && s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
@@ -433,10 +433,12 @@ int main(int argc, char **argv)
         {
             const uint8_t test_record_type = TLS_HANDSHAKE;
             uint8_t control_record_data[10 + TLS_HANDSHAKE_HEADER_LENGTH] = {
-                    /* handshake message type */
-                    TLS_SERVER_NEW_SESSION_TICKET,
-                    /* handshake message size */
-                    0x00, 0x00, 10,
+                /* handshake message type */
+                TLS_SERVER_NEW_SESSION_TICKET,
+                /* handshake message size */
+                0x00,
+                0x00,
+                10,
             };
             struct s2n_blob control_record = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&control_record, control_record_data,
@@ -606,12 +608,18 @@ int main(int argc, char **argv)
             EXPECT_TRUE(cipher_tested);
         }
 
-        for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
-            s2n_mode mode = modes[mode_i];
-            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-                struct s2n_cipher_suite *cipher_suite = test_cases[i].cipher_suite;
-                EXPECT_NOT_NULL(cipher_suite);
-                EXPECT_EQUAL(test_cases[i].cipher, cipher_suite->record_alg->cipher);
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            struct s2n_cipher_suite *cipher_suite = test_cases[i].cipher_suite;
+            EXPECT_NOT_NULL(cipher_suite);
+            EXPECT_EQUAL(test_cases[i].cipher, cipher_suite->record_alg->cipher);
+
+            if (cipher_suite->minimum_required_tls_version >= S2N_TLS13
+                    && !s2n_is_tls13_fully_supported()) {
+                continue;
+            }
+
+            for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+                s2n_mode mode = modes[mode_i];
 
                 struct s2n_cipher_preferences preferences = {
                     .suites = &cipher_suite,

@@ -148,7 +148,7 @@ static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktl
     bool is_sending_key = (ktls_mode == S2N_KTLS_MODE_SEND);
     s2n_mode key_mode = (is_sending_key) ? conn->mode : S2N_PEER_MODE(conn->mode);
 
-    switch(conn->actual_protocol_version) {
+    switch (conn->actual_protocol_version) {
         case S2N_TLS12:
             RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
             break;
