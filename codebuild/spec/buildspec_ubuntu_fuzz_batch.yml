@@ -1,0 +1,57 @@
+version: 0.2
+batch:
+  build-list:
+    - identifier: s2nFuzzerOpenSSL111Coverage
+      env:
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild20231205
+        privileged-mode: true
+        variables:
+          CODECOV_IO_UPLOAD: true
+          FUZZ_COVERAGE: true
+          FUZZ_TIMEOUT_SEC: 60
+          LATEST_CLANG: true
+          S2N_LIBCRYPTO: openssl-1.1.1
+          TESTS: fuzz
+    - identifier: s2nFuzzerOpenSSL102FIPS 
+      env:
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild20231205
+        privileged-mode: true
+        variables:
+          FUZZ_TIMEOUT_SEC: 60
+          LATEST_CLANG: true
+          S2N_LIBCRYPTO: openssl-1.0.2-fips
+          TESTS: fuzz
+      
+
+env:
+  variables:
+    # CODEBUILD_ is a reserved namespace.
+    CB_BIN_DIR: "./codebuild/bin"
+
+phases:
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
+      - touch tests/fuzz/placeholder_results.txt tests/fuzz/placeholder_output.txt
+  build:
+    commands:
+      - $CB_BIN_DIR/s2n_codebuild.sh
+artifacts:
+  files:
+    - "./tests/fuzz/corpus/$FUZZ_TESTS/*"
+  name: fuzz-corpus-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
+  discard-paths: no
+  secondary-artifacts:
+    logs:
+      files:
+        - "./tests/fuzz/**/*_results.txt"
+        - "./tests/fuzz/**/*_output.txt"
+        - "./coverage/fuzz/**"
+      name: fuzz-cov-logs-$FUZZ_TESTS-$(date +%Y%m%d)-$CODEBUILD_BUILD_NUMBER
+      discard-paths: no
