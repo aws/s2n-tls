@@ -29,10 +29,10 @@ use std::{
 
 /// Custom callback for verifying hostnames. Rustls requires checking hostnames,
 /// so this is to make a fair comparison
-struct HostNameHandler<'a> {
-    expected_server_name: &'a str,
+struct HostNameHandler {
+    expected_server_name: &'static str,
 }
-impl VerifyHostNameCallback for HostNameHandler<'_> {
+impl VerifyHostNameCallback for HostNameHandler {
     fn verify_host_name(&self, hostname: &str) -> bool {
         self.expected_server_name == hostname
     }
