@@ -11,6 +11,7 @@
 set -e
 
 # go to directory certs are located
+mkdir -p "$(dirname "$0")"/../certs
 pushd "$(dirname "$0")"/../certs > /dev/null
 
 # Generates certs with given algorithms and bits in $1$2/, ex. ec384/
