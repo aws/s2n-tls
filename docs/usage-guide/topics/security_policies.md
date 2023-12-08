@@ -4,6 +4,11 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 `s2n_config_set_cipher_preferences()` sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.
 
+## Supported TLS Versions
+
+Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.
+**Note:** s2n-tls does not support SSL2.0 for sending and receiving encrypted data, but does accept SSL2.0 hello messages.
+
 ### Chart: Security Policy Version To Protocol Version And Ciphersuites
 
 The following chart maps the security policy version to protocol version and ciphersuites supported.
