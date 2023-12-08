@@ -16,10 +16,19 @@
 #include <fcntl.h>
 #include <sys/socket.h>
 
+#include "crypto/s2n_sequence.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_ktls.h"
 #include "utils/s2n_random.h"
+
+static S2N_RESULT s2n_test_get_seq_num(struct s2n_connection *conn, uint64_t *seq_num_out)
+{
+    struct s2n_blob seq_num = { 0 };
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
+    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, seq_num_out));
+    return S2N_RESULT_OK;
+}
 
 int main(int argc, char **argv)
 {
@@ -211,6 +220,43 @@ int main(int argc, char **argv)
         EXPECT_TRUE(bytes_written > 0);
         EXPECT_TRUE(bytes_written < bytes_to_write);
         EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+    };
+
+    /* Test: key encryption limit tracked */
+    {
+        struct s2n_record_algorithm test_record_alg = *s2n_tls13_aes_128_gcm_sha256.record_alg;
+        test_record_alg.encryption_limit = 0;
+        struct s2n_cipher_suite test_cipher_suite = s2n_tls13_aes_128_gcm_sha256;
+        test_cipher_suite.record_alg = &test_record_alg;
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        conn->ktls_send_enabled = true;
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, io_pair.server));
+
+        /* Test: The sequence number starts at 0 */
+        uint64_t seq_num = 1;
+        EXPECT_OK(s2n_test_get_seq_num(conn, &seq_num));
+        EXPECT_EQUAL(seq_num, 0);
+
+        /* Test: The sequence number tracks data sent */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        size_t bytes_written = 0;
+        EXPECT_SUCCESS(s2n_sendfile(conn, ro_file, 0, sizeof(test_data),
+                &bytes_written, &blocked));
+        EXPECT_OK(s2n_test_get_seq_num(conn, &seq_num));
+        EXPECT_TRUE(seq_num > 0);
+
+        /* Test: Enforce the encryption limit */
+        EXPECT_NOT_NULL(conn->secure);
+        conn->secure->cipher_suite = &test_cipher_suite;
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_sendfile(conn, ro_file, 0, sizeof(test_data), &bytes_written, &blocked),
+                S2N_ERR_KTLS_KEY_LIMIT);
     };
 
     EXPECT_EQUAL(close(ro_file), 0);

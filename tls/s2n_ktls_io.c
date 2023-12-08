@@ -29,6 +29,7 @@
     #include <sys/sendfile.h>
 #endif
 
+#include "crypto/s2n_sequence.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_ktls.h"
 #include "tls/s2n_tls.h"
@@ -268,6 +269,46 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
     return S2N_RESULT_OK;
 }
 
+/* ktls does not support updating keys, so we should kill the connection when the
+ * key encryption limit is reached. We could get the actual sequence number from
+ * the kernel with getsockopt, but that requires a surprisingly expensive syscall.
+ *
+ * Instead, we track the estimated sequence number and enforce the limit based
+ * on that estimate.
+ */
+static S2N_RESULT s2n_ktls_enforce_estimated_record_limit(
+        struct s2n_connection *conn, size_t bytes_written)
+{
+    RESULT_ENSURE_REF(conn);
+    if (bytes_written == 0) {
+        return S2N_RESULT_OK;
+    }
+
+    struct s2n_blob seq_num = { 0 };
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
+
+    /* The RFC states the encryption limits in terms of "full-size records" sent.
+     * We can estimate the number of "full-sized records" sent by assuming that
+     * all records are full-sized.
+     */
+    do {
+        RESULT_GUARD_POSIX(s2n_increment_sequence_number(&seq_num));
+        bytes_written -= MIN(bytes_written, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+    } while (bytes_written > 0);
+
+    uint64_t next_seq_num = 0;
+    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, &next_seq_num));
+    RESULT_ENSURE_GT(next_seq_num, 0);
+    uint64_t curr_seq_num = next_seq_num - 1;
+
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    uint64_t encryption_limit = conn->secure->cipher_suite->record_alg->encryption_limit;
+    RESULT_ENSURE(curr_seq_num <= encryption_limit, S2N_ERR_KTLS_KEY_LIMIT);
+    return S2N_RESULT_OK;
+}
+
 /* The iovec array `bufs` is constant and owned by the application.
  *
  * However, we need to apply the given offset to `bufs`. That may involve
@@ -357,6 +398,7 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
     size_t bytes_written = 0;
     POSIX_GUARD_RESULT(s2n_ktls_sendmsg(conn->send_io_context, TLS_APPLICATION_DATA,
             bufs, count, blocked, &bytes_written));
+    POSIX_GUARD_RESULT(s2n_ktls_enforce_estimated_record_limit(conn, bytes_written));
     return bytes_written;
 }
 
@@ -435,6 +477,8 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
 #endif
 
     *blocked = S2N_NOT_BLOCKED;
+
+    POSIX_GUARD_RESULT(s2n_ktls_enforce_estimated_record_limit(conn, *bytes_written));
     return S2N_SUCCESS;
 }
 
