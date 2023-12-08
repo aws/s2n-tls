@@ -67,12 +67,7 @@ int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked
     POSIX_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
     struct s2n_blob sequence_number = { 0 };
-    if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    } else {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
-    }
-
+    POSIX_GUARD_RESULT(s2n_connection_get_sequence_number(conn, conn->mode, &sequence_number));
     POSIX_GUARD(s2n_check_record_limit(conn, &sequence_number));
 
     if (s2n_atomic_flag_test(&conn->key_update_pending)) {

@@ -1666,3 +1666,26 @@ S2N_RESULT s2n_connection_get_secure_cipher(struct s2n_connection *conn, const s
     *cipher = conn->secure->cipher_suite->record_alg->cipher;
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_connection_get_sequence_number(struct s2n_connection *conn,
+        s2n_mode mode, struct s2n_blob *seq_num)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(seq_num);
+    RESULT_ENSURE_REF(conn->secure);
+
+    switch (mode) {
+        case S2N_CLIENT:
+            RESULT_GUARD_POSIX(s2n_blob_init(seq_num, conn->secure->client_sequence_number,
+                    sizeof(conn->secure->client_sequence_number)));
+            break;
+        case S2N_SERVER:
+            RESULT_GUARD_POSIX(s2n_blob_init(seq_num, conn->secure->server_sequence_number,
+                    sizeof(conn->secure->server_sequence_number)));
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_SAFETY);
+    }
+
+    return S2N_RESULT_OK;
+}
