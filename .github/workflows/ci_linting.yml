@@ -78,7 +78,7 @@ jobs:
       - name: checkout
         uses: actions/checkout@v3
       - name: pep8 exp
-        uses: harrisonkaiser/autopep8_action@python-latest
+        uses: lrstewart/autopep8_action@python-latest
         with:
           dry: true
           checkpath: ./tests/integrationv2/*.py
