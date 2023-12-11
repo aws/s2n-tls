@@ -141,7 +141,7 @@ then
         # The word "Copyright" should appear at least once in the first 3 lines of every file
         if head -3 "$file" | grep -q "Copyright";
         then
-	    (( ++SUCCESS_COUNT ))
+	    SUCCESS_COUNT=$((SUCCESS_COUNT+1))
 	    file=`printf "%s" "$file" | grep -o "s2n-tls/.*"`
             printf "\nNew copyright header found:\n%s\n" "$file"
         fi
@@ -167,9 +167,9 @@ for file in $S2N_FILES; do
     # The word "Copyright" should appear at least once in the first 3 lines of every file
     if head -3 "$file" | grep -q "Copyright";
     then
-	(( ++SUCCESS_COUNT ))
+	SUCCESS_COUNT=$((SUCCESS_COUNT+1))
     else
-	(( ++FAIL_COUNT ))
+	FAIL_COUNT=$((FAIL_COUNT+1))
 	file=`printf "%s" "$file" | grep -o "s2n-tls/.*"`
         printf "\n%s\n%s\n" "Copyright Check Failed:" "$file"
     fi
