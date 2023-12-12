@@ -175,15 +175,12 @@ static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktl
         inputs.key = key_material.client_key;
         RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
                 secure->client_implicit_iv, sizeof(secure->client_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.seq,
-                secure->client_sequence_number, sizeof(secure->client_sequence_number)));
     } else {
         inputs.key = key_material.server_key;
         RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
                 secure->server_implicit_iv, sizeof(secure->server_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.seq,
-                secure->server_sequence_number, sizeof(secure->server_sequence_number)));
     }
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, key_mode, &inputs.seq));
 
     const struct s2n_cipher *cipher = NULL;
     RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));

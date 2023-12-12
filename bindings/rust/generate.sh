@@ -38,6 +38,11 @@ pushd generate
 cargo run -- ../s2n-tls-sys
 popd
 
+if [ "$1" == "--skip-tests" ]; then
+    echo "skipping tests"
+    exit;
+fi;
+
 # make sure everything builds and passes sanity checks
 pushd s2n-tls-sys
 cargo test

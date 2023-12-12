@@ -59,6 +59,29 @@ jobs:
           ./generate.sh
           ldd target/debug/integration | grep libs2n.so
 
+  # our benchmark testing includes interop tests between s2n-tls, rustls, and
+  # openssl
+  harness-interop-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        id: toolchain
+        with:
+          toolchain: stable
+          override: true
+
+      - name: generate bindings
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
+
+      - name: generate test certs
+        run: ${{env.ROOT_PATH}}/bench/scripts/generate-certs.sh
+
+      - name: bench tests
+        working-directory: ${{env.ROOT_PATH}}/bench
+        run: cargo test
+
   generate-openssl-102:
     runs-on: ubuntu-latest
     steps:
