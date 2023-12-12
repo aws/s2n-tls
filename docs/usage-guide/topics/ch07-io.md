@@ -102,7 +102,7 @@ connections aborted while active.
 A single call to `s2n_send()` may involve multiple system calls to write the
 provided application data. s2n-tls breaks the application data into fixed-sized
 records before encryption, and calls write for each record.
-[See the record size documentation for how record size may impact performance](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#record-sizes).
+[See the record size documentation for how record size may impact performance](./ch08-record-sizes.md).
 
 In non-blocking mode, `s2n_send()` will send data from the provided buffer and return the number of
 bytes sent, as long as the socket was able to send at least 1 byte. If no bytes could be sent on the

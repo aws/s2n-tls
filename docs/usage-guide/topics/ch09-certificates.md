@@ -2,7 +2,7 @@
 
 TLS uses certificates to authenticate the server (and optionally the client). The handshake will fail if the client cannot verify the server’s certificate.
 
-Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using [session resumption](./resumption.md) or [pre-shared keys](./preshared_keys.md).
+Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using [session resumption](./ch11-resumption.md) or [pre-shared keys](./ch13-preshared-keys.md).
 
 ## Configuring the Trust Store
 

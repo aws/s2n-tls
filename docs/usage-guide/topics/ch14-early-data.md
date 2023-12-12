@@ -24,7 +24,7 @@ To send early data, your application should call `s2n_send_early_data()` before 
 
 `s2n_connection_get_remaining_early_data_size()` can be called to check how much more early data the client is allowed to send. If `s2n_send_early_data()` exceeds the allowed maximum, s2n-tls returns a usage error.
 
-Like other IO functions, `s2n_send_early_data()` can potentially fail repeatedly with a blocking error before it eventually succeeds: see [I/O Functions](./io.md) for more information. An application can stop calling `s2n_send_early_data()` at any time, even if the function has not returned success yet. If `s2n_send_early_data()` does return success, the connection is ready to complete the handshake and begin sending normal data. However, `s2n_send_early_data()` can continue to be called to send more early data if desired.
+Like other IO functions, `s2n_send_early_data()` can potentially fail repeatedly with a blocking error before it eventually succeeds: see [I/O Functions](./ch07-io.md) for more information. An application can stop calling `s2n_send_early_data()` at any time, even if the function has not returned success yet. If `s2n_send_early_data()` does return success, the connection is ready to complete the handshake and begin sending normal data. However, `s2n_send_early_data()` can continue to be called to send more early data if desired.
 
 Once a client finishes sending early data, you should call `s2n_negotiate()` to complete the handshake just as you would for a handshake that did not include early data.
 
@@ -54,7 +54,7 @@ while (s2n_negotiate(client_conn, &blocked) != S2N_SUCCESS) {
 
 To receive early data, your application should call `s2n_recv_early_data()` before it calls `s2n_negotiate()`.
 
-Like other S2N IO functions, `s2n_recv_early_data()` can potentially fail repeatedly with a blocking error before it eventually succeeds: see [I/O Functions](./io.md) for more information. Once `s2n_recv_early_data()` has been called, it must be called until it returns success. If an application stops calling `s2n_recv_early_data()` early, some early data may be left unread and cause later calls to `s2n_negotiate()` to return fatal errors. Calling `s2n_recv_early_data()` again after it returns success is possible but has no effect on the connection.
+Like other S2N IO functions, `s2n_recv_early_data()` can potentially fail repeatedly with a blocking error before it eventually succeeds: see [I/O Functions](./ch07-io.md) for more information. Once `s2n_recv_early_data()` has been called, it must be called until it returns success. If an application stops calling `s2n_recv_early_data()` early, some early data may be left unread and cause later calls to `s2n_negotiate()` to return fatal errors. Calling `s2n_recv_early_data()` again after it returns success is possible but has no effect on the connection.
 
 Once a server has read all early data, you should call `s2n_negotiate()` to complete the handshake just as you would for a handshake that did not include early data.
 

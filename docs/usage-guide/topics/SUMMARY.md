@@ -13,5 +13,5 @@
 - [Examining the Client Hello](./ch10-client-hello.md)
 - [Session Resumption](./ch11-resumption.md)
 - [Offloading Private Key Operations](./ch12-private-key-ops.md)
-- [Pre-shared Keys](./ch13-preshared_keys.md)
+- [Pre-shared Keys](./ch13-preshared-keys.md)
 - [Early Data](./ch14-early-data.md)
