@@ -395,7 +395,7 @@ static S2N_RESULT s2n_tls12_aead_cipher_aes128_gcm_set_ktls_info(
     /* TLS1.2 uses partially explicit nonces. That means that although part of the
      * nonce is still fixed and implicit (the salt), the remainder is explicit
      * (written into the record) and must be unique per record. The RFC5288 suggests
-     * using the sequence number, which is how s2n-tls implements its nonces.
+     * using the sequence number as the explicit part.
      *
      * Therefore, ktls expects the salt to contain the iv derived from the secret
      * and should generate the remainder of the nonce per-record.
@@ -409,8 +409,7 @@ static S2N_RESULT s2n_tls12_aead_cipher_aes128_gcm_set_ktls_info(
     RESULT_CHECKED_MEMCPY(crypto_info->salt, in->iv.data, sizeof(crypto_info->salt));
 
     /* Because TLS1.2 uses partially explicit nonces, the kernel should not
-     * make use of the iv in crypto_info but instead use the current sequence number,
-     * updated with each record sent.
+     * use the iv in crypto_info but instead use a unique value for each record.
      *
      * As of this commit, Openssl has chosen to set the TLS1.2 IV to random
      * bytes when sending and all zeroes when receiving:
