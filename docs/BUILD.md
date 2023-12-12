@@ -68,7 +68,7 @@ cmake --install build
 
 Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
 
-## Consuming s2n-tls via. CMake
+## Consuming s2n-tls via CMake
 
 s2n-tls ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n-tls in your project is:
 
