@@ -39,7 +39,18 @@ static S2N_RESULT s2n_setup_connections(struct s2n_connection *server,
     /* The test negotiate method assumes non-blocking sockets */
     RESULT_GUARD_POSIX(s2n_fd_set_non_blocking(io_pair->server));
     RESULT_GUARD_POSIX(s2n_fd_set_non_blocking(io_pair->client));
-    RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server, client));
+
+    /* Real sockets are sometimes slow.
+     * Assume blocking will occur but is always recoverable.
+     */
+    while (true) {
+        int result = s2n_negotiate_test_server_and_client(server, client);
+        if (result == S2N_SUCCESS) {
+            break;
+        } else if (s2n_errno != S2N_ERR_IO_BLOCKED) {
+            RESULT_GUARD_POSIX(result);
+        }
+    };
 
     /* Our IO methods are more predictable if they use blocking sockets. */
     RESULT_GUARD_POSIX(s2n_fd_set_blocking(io_pair->server));
@@ -336,6 +347,9 @@ int main(int argc, char **argv)
 
         /* Test: s2n_recv with interleaved control messages */
         {
+            /* TLS1.3 and TLS1.2 have different expectations for control messages */
+            EXPECT_EQUAL(reader->actual_protocol_version, S2N_TLS12);
+
             const uint8_t test_record_type = TLS_CHANGE_CIPHER_SPEC;
             uint8_t control_record_data[] = "control record data";
             struct s2n_blob control_record = { 0 };
@@ -381,6 +395,69 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_check_io_status(reader, S2N_IO_CLOSED));
             EXPECT_TRUE(s2n_connection_get_delay(reader) > 0);
             EXPECT_TRUE(s2n_connection_get_delay(reader) < UINT64_MAX);
+        };
+    };
+
+    /* Test receiving with ktls + TLS1.3 */
+    if (ktls_recv_supported && s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, "default_tls13"));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
+        EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
+        EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
+
+        struct s2n_connection *reader = client;
+        struct s2n_connection *writer = server;
+        EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Test: s2n_recv with interleaved control messages.
+         *
+         * TLS1.3 record parsing is more strict and requires actual handshake
+         * messages. Currently, s2n-tls does not fully parse NewSessionTicket
+         * handshake messages if not using tickets, so they make a good test case.
+         */
+        {
+            const uint8_t test_record_type = TLS_HANDSHAKE;
+            uint8_t control_record_data[10 + TLS_HANDSHAKE_HEADER_LENGTH] = {
+                /* handshake message type */
+                TLS_SERVER_NEW_SESSION_TICKET,
+                /* handshake message size */
+                0x00,
+                0x00,
+                10,
+            };
+            struct s2n_blob control_record = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&control_record, control_record_data,
+                    sizeof(control_record_data)));
+
+            for (size_t i = 0; i < 5; i++) {
+                EXPECT_OK(s2n_record_write(writer, test_record_type, &control_record));
+                EXPECT_SUCCESS(s2n_flush(writer, &blocked));
+
+                int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+                EXPECT_EQUAL(written, sizeof(test_data));
+
+                uint8_t buffer[sizeof(test_data)] = { 0 };
+                int read = s2n_recv(reader, buffer, sizeof(buffer), &blocked);
+                EXPECT_EQUAL(read, sizeof(test_data));
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+
+                EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
+            }
         };
     };
 
@@ -504,6 +581,8 @@ int main(int argc, char **argv)
         } test_cases[] = {
             { .cipher = &s2n_aes128_gcm, .cipher_suite = &s2n_ecdhe_rsa_with_aes_128_gcm_sha256 },
             { .cipher = &s2n_aes256_gcm, .cipher_suite = &s2n_ecdhe_rsa_with_aes_256_gcm_sha384 },
+            { .cipher = &s2n_tls13_aes128_gcm, .cipher_suite = &s2n_tls13_aes_128_gcm_sha256 },
+            { .cipher = &s2n_tls13_aes256_gcm, .cipher_suite = &s2n_tls13_aes_256_gcm_sha384 },
         };
 
         /* Ensure that all supported ciphers are tested */
@@ -529,18 +608,24 @@ int main(int argc, char **argv)
             EXPECT_TRUE(cipher_tested);
         }
 
-        for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
-            s2n_mode mode = modes[mode_i];
-            for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-                struct s2n_cipher_suite *cipher_suite = test_cases[i].cipher_suite;
-                EXPECT_NOT_NULL(cipher_suite);
-                EXPECT_EQUAL(test_cases[i].cipher, cipher_suite->record_alg->cipher);
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            struct s2n_cipher_suite *cipher_suite = test_cases[i].cipher_suite;
+            EXPECT_NOT_NULL(cipher_suite);
+            EXPECT_EQUAL(test_cases[i].cipher, cipher_suite->record_alg->cipher);
+
+            if (cipher_suite->minimum_required_tls_version >= S2N_TLS13
+                    && !s2n_is_tls13_fully_supported()) {
+                continue;
+            }
+
+            for (size_t mode_i = 0; mode_i < s2n_array_len(modes); mode_i++) {
+                s2n_mode mode = modes[mode_i];
 
                 struct s2n_cipher_preferences preferences = {
                     .suites = &cipher_suite,
                     .count = 1,
                 };
-                struct s2n_security_policy policy = *config->security_policy;
+                struct s2n_security_policy policy = security_policy_test_all;
                 policy.cipher_preferences = &preferences;
 
                 DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
@@ -553,7 +638,7 @@ int main(int argc, char **argv)
                         s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(server);
                 EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-                client->security_policy_override = &policy;
+                server->security_policy_override = &policy;
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));

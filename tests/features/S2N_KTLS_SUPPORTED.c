@@ -20,17 +20,18 @@
 
 int main()
 {
-    /* Struct defined when kTLS support was added to linux
+    /* Initially ktls only supported AES-128 and TLS1.2:
      * https://github.com/torvalds/linux/blob/3c4d7559159bfe1e3b94df3a657b2cda3a34e218/include/uapi/linux/tls.h
+     *
+     * However, for simplicity our ktls probe will also require AES-256 and TLS1.3.
+     * If this prevents some customers from using ktls, we can split our single ktls
+     * feature probe into more fine-grained feature probes.
      */
+    int versions[] = { TLS_1_2_VERSION, TLS_1_3_VERSION };
+    int cipher_types[] = { TLS_CIPHER_AES_GCM_128, TLS_CIPHER_AES_GCM_256 };
+
     struct tls12_crypto_info_aes_gcm_128 aes_crypto_info_128 = { 0 };
-    int aes_gcm_128_cipher_type = TLS_CIPHER_AES_GCM_128;
     struct tls12_crypto_info_aes_gcm_256 aes_crypto_info_256 = { 0 };
-    int aes_gcm_256_cipher_type = TLS_CIPHER_AES_GCM_256;
-    struct tls_crypto_info crypto_info = { 0 };
-
-    int get_record_type = TLS_GET_RECORD_TYPE;
-    int set_record_type = TLS_SET_RECORD_TYPE;
-
+    int operations[] = { TLS_GET_RECORD_TYPE, TLS_SET_RECORD_TYPE };
     return 0;
 }
