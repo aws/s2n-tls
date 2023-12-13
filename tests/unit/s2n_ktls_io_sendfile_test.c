@@ -233,6 +233,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         conn->ktls_send_enabled = true;
+        conn->actual_protocol_version = S2N_TLS13;
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));

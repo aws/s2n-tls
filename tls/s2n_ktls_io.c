@@ -269,9 +269,10 @@ S2N_RESULT s2n_ktls_recvmsg(void *io_context, uint8_t *record_type, uint8_t *buf
     return S2N_RESULT_OK;
 }
 
-/* ktls does not support updating keys, so we should kill the connection when the
- * key encryption limit is reached. We could get the actual sequence number from
- * the kernel with getsockopt, but that requires a surprisingly expensive syscall.
+/* ktls does not currently support updating keys, so we should kill the connection
+ * when the key encryption limit is reached. We could get the current record
+ * sequence number from the kernel with getsockopt, but that requires a surprisingly
+ * expensive syscall.
  *
  * Instead, we track the estimated sequence number and enforce the limit based
  * on that estimate.
@@ -280,7 +281,7 @@ static S2N_RESULT s2n_ktls_enforce_estimated_record_limit(
         struct s2n_connection *conn, size_t bytes_written)
 {
     RESULT_ENSURE_REF(conn);
-    if (bytes_written == 0) {
+    if (conn->actual_protocol_version < S2N_TLS13) {
         return S2N_RESULT_OK;
     }
 
@@ -291,21 +292,19 @@ static S2N_RESULT s2n_ktls_enforce_estimated_record_limit(
      * We can estimate the number of "full-sized records" sent by assuming that
      * all records are full-sized.
      */
-    do {
+    while (bytes_written > 0) {
         RESULT_GUARD_POSIX(s2n_increment_sequence_number(&seq_num));
         bytes_written -= MIN(bytes_written, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
-    } while (bytes_written > 0);
+    }
 
-    uint64_t next_seq_num = 0;
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, &next_seq_num));
-    RESULT_ENSURE_GT(next_seq_num, 0);
-    uint64_t curr_seq_num = next_seq_num - 1;
+    uint64_t records_sent = 0;
+    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, &records_sent));
 
     RESULT_ENSURE_REF(conn->secure);
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
     RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
     uint64_t encryption_limit = conn->secure->cipher_suite->record_alg->encryption_limit;
-    RESULT_ENSURE(curr_seq_num <= encryption_limit, S2N_ERR_KTLS_KEY_LIMIT);
+    RESULT_ENSURE(records_sent <= encryption_limit, S2N_ERR_KTLS_KEY_LIMIT);
     return S2N_RESULT_OK;
 }
 
@@ -398,6 +397,11 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
     size_t bytes_written = 0;
     POSIX_GUARD_RESULT(s2n_ktls_sendmsg(conn->send_io_context, TLS_APPLICATION_DATA,
             bufs, count, blocked, &bytes_written));
+
+    /* Unlike s2n_sendfile, here we could calculate the number of bytes to be sent
+     * before actually sending them. However, we instead choose to maintain consistent
+     * behavior across our send methods and always check for the limit after the send.
+     */
     POSIX_GUARD_RESULT(s2n_ktls_enforce_estimated_record_limit(conn, bytes_written));
     return bytes_written;
 }
@@ -478,6 +482,17 @@ int s2n_sendfile(struct s2n_connection *conn, int in_fd, off_t offset, size_t co
 
     *blocked = S2N_NOT_BLOCKED;
 
+    /* Because we pass the input file descriptor to the kernel without examining
+     * it, we don't know how many bytes actually need to be sent. We therefore
+     * can't verify that the send is safe with respect to the encryption limit
+     * before sending the records. Instead, we raise a fatal error afterwards if
+     * the send violated the encryption limit.
+     *
+     * An application should treat S2N_ERR_KTLS_KEY_LIMIT as a very high severity
+     * error, as it indicates that the application is violating the requirements
+     * for using TLS1.3 with ktls without a kernel patch to enable KeyUpdates,
+     * and is therefore operating unsafely.
+     */
     POSIX_GUARD_RESULT(s2n_ktls_enforce_estimated_record_limit(conn, *bytes_written));
     return S2N_SUCCESS;
 }

@@ -84,12 +84,10 @@ ssize_t s2n_test_ktls_recvmsg_io_stuffer_and_ctrunc(void *io_context, struct msg
     return ret;
 }
 
-static S2N_RESULT s2n_assert_seq_num_equal(struct s2n_connection *conn, uint64_t expected)
+static S2N_RESULT s2n_assert_seq_num_equal(struct s2n_blob actual_blob, uint64_t expected)
 {
-    struct s2n_blob seq_num = { 0 };
     uint64_t actual = 0;
-    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num, &actual));
+    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&actual_blob, &actual));
     RESULT_ENSURE(actual == expected, S2N_ERR_TEST_ASSERTION);
     return S2N_RESULT_OK;
 }
@@ -1227,38 +1225,83 @@ int main(int argc, char **argv)
             conn->ktls_send_enabled = true;
             EXPECT_NOT_NULL(conn->secure);
             conn->secure->cipher_suite = &test_cipher_suite;
+            conn->actual_protocol_version = S2N_TLS13;
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-            /* Test: All connections start with zero records sent */
-            uint64_t expected_seq_num = 0;
-            EXPECT_OK(s2n_assert_seq_num_equal(conn, expected_seq_num));
+            /* Test: Sequence number tracked correctly */
+            {
+                DEFER_CLEANUP(struct s2n_blob seq_num = { 0 }, s2n_blob_zero);
+                EXPECT_OK(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
 
-            /* Test: Send one minimum sized record */
-            EXPECT_EQUAL(s2n_send(conn, large_test_data, 1, &blocked), 1);
-            expected_seq_num++;
-            EXPECT_OK(s2n_assert_seq_num_equal(conn, expected_seq_num));
+                /* Test: All connections start with zero records sent */
+                uint64_t expected_seq_num = 0;
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
 
-            /* Test: Send one maximum sized record */
-            EXPECT_EQUAL(
-                    s2n_send(conn, large_test_data, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &blocked),
-                    S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
-            expected_seq_num++;
-            EXPECT_OK(s2n_assert_seq_num_equal(conn, expected_seq_num));
+                /* Test: Send no data */
+                EXPECT_EQUAL(s2n_send(conn, large_test_data, 0, &blocked), 0);
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
 
-            /* Test: Send multiple records */
-            EXPECT_EQUAL(
-                    s2n_send(conn, large_test_data, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 1, &blocked),
-                    S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 1);
-            expected_seq_num += 2;
-            EXPECT_OK(s2n_assert_seq_num_equal(conn, expected_seq_num));
+                /* Test: Send one minimum sized record */
+                expected_seq_num++;
+                EXPECT_EQUAL(s2n_send(conn, large_test_data, 1, &blocked), 1);
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
 
-            /* Test: Send enough data to hit the encryption limit */
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
-                    S2N_ERR_KTLS_KEY_LIMIT);
-            expected_seq_num += large_test_data_records;
-            EXPECT_OK(s2n_assert_seq_num_equal(conn, expected_seq_num));
+                /* Test: Send one maximum sized record */
+                expected_seq_num++;
+                EXPECT_EQUAL(
+                        s2n_send(conn, large_test_data, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH, &blocked),
+                        S2N_TLS_MAXIMUM_FRAGMENT_LENGTH);
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
+
+                /* Test: Send multiple records */
+                expected_seq_num += 2;
+                EXPECT_EQUAL(
+                        s2n_send(conn, large_test_data, S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 1, &blocked),
+                        S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 1);
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
+
+                /* Test: Send enough data to hit the encryption limit */
+                expected_seq_num += large_test_data_records;
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                        S2N_ERR_KTLS_KEY_LIMIT);
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
+            };
+
+            /* Test: Exact encryption limit boundary */
+            {
+                DEFER_CLEANUP(struct s2n_blob seq_num = { 0 }, s2n_blob_zero);
+                EXPECT_OK(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
+
+                /* Send enough records to hit but not exceed the encryption limit */
+                for (size_t i = 0; i < test_encryption_limit; i++) {
+                    EXPECT_EQUAL(s2n_send(conn, large_test_data, 1, &blocked), 1);
+                }
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit));
+
+                /* One more record should exceed the encryption limit */
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, 1, &blocked),
+                        S2N_ERR_KTLS_KEY_LIMIT);
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit + 1));
+            };
+
+            /* Test: Limit not tracked with TLS1.2 */
+            {
+                conn->actual_protocol_version = S2N_TLS12;
+
+                DEFER_CLEANUP(struct s2n_blob seq_num = { 0 }, s2n_blob_zero);
+                EXPECT_OK(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
+
+                EXPECT_EQUAL(s2n_send(conn, large_test_data, 1, &blocked), 1);
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, 0));
+
+                EXPECT_EQUAL(
+                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                        sizeof(large_test_data));
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, 0));
+            };
         }
     };
 
