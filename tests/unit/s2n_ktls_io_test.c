@@ -1262,7 +1262,6 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, expected_seq_num));
 
                 /* Test: Send enough data to hit the encryption limit */
-                expected_seq_num += large_test_data_records;
                 EXPECT_FAILURE_WITH_ERRNO(
                         s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
                         S2N_ERR_KTLS_KEY_LIMIT);
@@ -1284,23 +1283,37 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(
                         s2n_send(conn, large_test_data, 1, &blocked),
                         S2N_ERR_KTLS_KEY_LIMIT);
-                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit + 1));
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit));
             };
 
             /* Test: Limit not tracked with TLS1.2 */
             {
-                conn->actual_protocol_version = S2N_TLS12;
-
                 DEFER_CLEANUP(struct s2n_blob seq_num = { 0 }, s2n_blob_zero);
                 EXPECT_OK(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num));
 
-                EXPECT_EQUAL(s2n_send(conn, large_test_data, 1, &blocked), 1);
-                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, 0));
-
+                /* Sequence number not incremented with TLS1.2 */
+                conn->actual_protocol_version = S2N_TLS12;
                 EXPECT_EQUAL(
                         s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
                         sizeof(large_test_data));
                 EXPECT_OK(s2n_assert_seq_num_equal(seq_num, 0));
+
+                /* Sequence number incremented with TLS1.3 */
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_EQUAL(
+                        s2n_send(conn, large_test_data, sizeof(large_test_data), &blocked),
+                        sizeof(large_test_data));
+                EXPECT_OK(s2n_assert_seq_num_equal(seq_num, test_encryption_limit));
+
+                /* Passing the limit with TLS1.3 is an error */
+                conn->actual_protocol_version = S2N_TLS13;
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_send(conn, large_test_data, 1, &blocked),
+                        S2N_ERR_KTLS_KEY_LIMIT);
+
+                /* Passing the limit with TLS1.2 is NOT an error */
+                conn->actual_protocol_version = S2N_TLS12;
+                EXPECT_EQUAL(s2n_send(conn, large_test_data, 1, &blocked), 1);
             };
         }
     };

@@ -387,6 +387,57 @@ int main(int argc, char **argv)
     CHECK_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 99);
     CHECK_OVF(s2n_add_overflow, uint32_t, 100, ACTUAL_MAX - 1);
 
+    /* Test: S2N_ADD_IS_OVERFLOW_SAFE */
+    {
+        const size_t num = 100;
+
+        uint64_t success_test_values[][3] = {
+            { 0, 0, 0 },
+            { 1, 0, 1 },
+            { 0, 0, UINT8_MAX },
+            { 1, 1, UINT8_MAX },
+            { UINT8_MAX, 0, UINT8_MAX },
+            { UINT8_MAX - num, num, UINT8_MAX },
+            { UINT8_MAX / 2, UINT8_MAX / 2, UINT8_MAX },
+            { 1, 1, UINT64_MAX },
+            { UINT64_MAX, 0, UINT64_MAX },
+            { UINT64_MAX - num, num, UINT64_MAX },
+            { UINT64_MAX / 2, UINT64_MAX / 2, UINT64_MAX },
+        };
+        for (size_t i = 0; i < s2n_array_len(success_test_values); i++) {
+            uint64_t v1 = success_test_values[i][0];
+            uint64_t v2 = success_test_values[i][1];
+            uint64_t max = success_test_values[i][2];
+            EXPECT_TRUE(S2N_ADD_IS_OVERFLOW_SAFE(v1, v2, max));
+            EXPECT_TRUE(S2N_ADD_IS_OVERFLOW_SAFE(v2, v1, max));
+        }
+
+        uint64_t failure_test_values[][3] = {
+            { 1, 0, 0 },
+            { UINT8_MAX, 0, 0 },
+            { UINT64_MAX, 0, UINT8_MAX },
+            { UINT64_MAX, UINT64_MAX, UINT8_MAX },
+            { UINT8_MAX, 1, UINT8_MAX },
+            { UINT8_MAX - 1, UINT8_MAX - 1, UINT8_MAX },
+            { UINT16_MAX, 1, UINT16_MAX },
+            { UINT64_MAX, 1, UINT64_MAX },
+            { UINT8_MAX, num, UINT8_MAX },
+            { UINT16_MAX, num, UINT16_MAX },
+            { UINT64_MAX, num, UINT64_MAX },
+            { UINT8_MAX, UINT8_MAX, UINT8_MAX },
+            { UINT16_MAX, UINT16_MAX, UINT16_MAX },
+            { UINT64_MAX, UINT64_MAX, UINT64_MAX },
+            { UINT64_MAX - num, UINT64_MAX - num, UINT64_MAX },
+        };
+        for (size_t i = 0; i < s2n_array_len(failure_test_values); i++) {
+            uint64_t v1 = failure_test_values[i][0];
+            uint64_t v2 = failure_test_values[i][1];
+            uint64_t max = failure_test_values[i][2];
+            EXPECT_FALSE(S2N_ADD_IS_OVERFLOW_SAFE(v1, v2, max));
+            EXPECT_FALSE(S2N_ADD_IS_OVERFLOW_SAFE(v2, v1, max));
+        }
+    }
+
     END_TEST();
     return 0;
 }
