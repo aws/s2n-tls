@@ -81,10 +81,12 @@ jobs:
         id: autopep8
         uses: peter-evans/autopep8@v2
         with:
-          args: --recursive --diff --exit-code ./tests/integrationv2
+          args: --diff --exit-code .
       - name: Check exit code
         if: steps.autopep8.outputs.exit-code != 0
-        run: exit 1
+        run: |
+            echo "Run 'autopep8 --in-place .' to fix"
+            exit 1
   clang-format:
     runs-on: ubuntu-latest
     steps:
