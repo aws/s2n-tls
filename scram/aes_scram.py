@@ -12,27 +12,19 @@ DEBUG_ENABLED = True
 # (Eg "0x0001", 0x00 is the MSB and 0x01 is the LSB, meaning 0x0001 == 1)
 ENDIANNESS = 'big'
 
-# Convert Integer value to byte string
-
 
 def byteStr(val, numBytes):
     return val.to_bytes(numBytes, ENDIANNESS)
-
-# Debug Print Byte String to Standard Out
 
 
 def debugByteStr(debugStr, byteStrVal):
     if DEBUG_ENABLED:
         print(debugStr + ": 0x" + byteStrVal.hex().upper())
 
-# Debug Print Integer value to Standard Out
-
 
 def debugInt(debugStr, intVal):
     if DEBUG_ENABLED:
         print(debugStr + ": " + str(intVal))
-
-# Generate a random Key
 
 
 def scram_generate_key():
