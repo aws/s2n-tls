@@ -107,7 +107,7 @@ S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t co
         ssize_t offs, ssize_t *total_size_out)
 {
     RESULT_ENSURE_REF(total_size_out);
-    if (count) {
+    if (count > 0) {
         RESULT_ENSURE_REF(bufs);
     }
 
@@ -115,12 +115,12 @@ S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t co
     for (ssize_t i = 0; i < count; i++) {
         size_t iov_len = bufs[i].iov_len;
         /* Account for any offset */
-        if (offs) {
+        if (offs > 0) {
             size_t offs_consumed = MIN((size_t) offs, iov_len);
             iov_len -= offs_consumed;
             offs -= offs_consumed;
         }
-        RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(total_size, iov_len, SSIZE_MAX),
+        RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(total_size, iov_len, SIZE_MAX),
                 S2N_ERR_INVALID_ARGUMENT);
         total_size += iov_len;
     }
@@ -130,6 +130,7 @@ S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t co
      */
     RESULT_ENSURE(offs == 0, S2N_ERR_INVALID_ARGUMENT);
 
+    RESULT_ENSURE(total_size <= SSIZE_MAX, S2N_ERR_INVALID_ARGUMENT);
     *total_size_out = total_size;
     return S2N_RESULT_OK;
 }

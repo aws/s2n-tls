@@ -616,13 +616,28 @@ int main(int argc, char **argv)
 
         /* Safety */
         {
+            const struct iovec test_buf = { 0 };
             ssize_t out = 0;
+
+            /* Check null safety */
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_sendv_with_offset_total_size(NULL, 0, 0, NULL),
+                    s2n_sendv_with_offset_total_size(&test_buf, 1, 0, NULL),
                     S2N_ERR_NULL);
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_sendv_with_offset_total_size(NULL, 1, 0, &out),
                     S2N_ERR_NULL);
+
+            /* Check negative safety */
+            EXPECT_OK(s2n_sendv_with_offset_total_size(NULL, -1, 0, &out));
+            EXPECT_EQUAL(out, 0);
+            EXPECT_OK(s2n_sendv_with_offset_total_size(&test_buf, -1, 0, &out));
+            EXPECT_EQUAL(out, 0);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(NULL, 0, -1, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(&test_buf, 1, -1, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
         }
 
         /* No iovecs */
@@ -715,13 +730,22 @@ int main(int argc, char **argv)
          * should ensure that the inputs don't cause unexpected behavior.
          */
         {
-            const struct iovec test_bufs[] = {
+            ssize_t out = 0;
+
+            const struct iovec test_bufs_ssize[] = {
+                { .iov_len = SSIZE_MAX },
+                { .iov_len = 1 },
+            };
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_sendv_with_offset_total_size(test_bufs_ssize, s2n_array_len(test_bufs_ssize), 0, &out),
+                    S2N_ERR_INVALID_ARGUMENT);
+
+            const struct iovec test_bufs_size[] = {
                 { .iov_len = SIZE_MAX },
                 { .iov_len = 1 },
             };
-            ssize_t out = 0;
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_sendv_with_offset_total_size(test_bufs, s2n_array_len(test_bufs), 0, &out),
+                    s2n_sendv_with_offset_total_size(test_bufs_size, s2n_array_len(test_bufs_size), 0, &out),
                     S2N_ERR_INVALID_ARGUMENT);
         }
     };
