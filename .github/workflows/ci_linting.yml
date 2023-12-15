@@ -77,11 +77,16 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v3
-      - name: pep8 exp
-        uses: lrstewart/autopep8_action@python-latest
+      - name: Run autopep8
+        id: autopep8
+        uses: peter-evans/autopep8@v2
         with:
-          dry: true
-          checkpath: ./tests/integrationv2/*.py
+          args: --diff --exit-code .
+      - name: Check exit code
+        if: steps.autopep8.outputs.exit-code != 0
+        run: |
+            echo "Run 'autopep8 --in-place .' to fix"
+            exit 1
   clang-format:
     runs-on: ubuntu-latest
     steps:
