@@ -18,6 +18,7 @@
 #include "crypto/s2n_ktls_crypto.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_key_schedule.h"
 
 /* Used for overriding setsockopt calls in testing */
 s2n_setsockopt_fn s2n_setsockopt = setsockopt;
@@ -54,13 +55,15 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     /* kTLS enable should only be called once the handshake has completed. */
     RESULT_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
-    /* TODO support TLS 1.3
+    /* For now, only allow TLS1.3 for testing.
      *
-     * TLS 1.3 support requires sending the KeyUpdate message when the cryptographic
-     * key usage limits are met. However, this is currently only possible by applying a
-     * kernel patch to support this functionality.
+     * TLS1.3 is potentially more dangerous to enable than TLS1.2, since the kernel
+     * does not currently support updating TLS keys and therefore will fail if
+     * KeyUpdate messages are encountered.
      */
-    RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    if (!s2n_in_test()) {
+        RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    }
 
     /* Check if the cipher supports kTLS */
     const struct s2n_cipher *cipher = NULL;
@@ -151,10 +154,21 @@ static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktl
      * "implicit_iv" when writing records, so the IV may change after generation.
      */
     struct s2n_key_material key_material = { 0 };
-    RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
 
     bool is_sending_key = (ktls_mode == S2N_KTLS_MODE_SEND);
     s2n_mode key_mode = (is_sending_key) ? conn->mode : S2N_PEER_MODE(conn->mode);
+
+    switch (conn->actual_protocol_version) {
+        case S2N_TLS12:
+            RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
+            break;
+        case S2N_TLS13:
+            RESULT_GUARD(s2n_tls13_key_schedule_generate_key_material(
+                    conn, key_mode, &key_material));
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    }
 
     struct s2n_ktls_crypto_info_inputs inputs = { 0 };
     if (key_mode == S2N_CLIENT) {
@@ -173,7 +187,6 @@ static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktl
     RESULT_ENSURE_REF(cipher);
     RESULT_ENSURE_REF(cipher->set_ktls_info);
     RESULT_GUARD(cipher->set_ktls_info(&inputs, crypto_info));
-
     return S2N_RESULT_OK;
 }
 

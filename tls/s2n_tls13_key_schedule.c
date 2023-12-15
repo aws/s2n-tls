@@ -13,6 +13,7 @@
  * permissions and limitations under the License.
  */
 
+#include "tls/s2n_prf.h"
 #include "tls/s2n_tls13_handshake.h"
 #include "utils/s2n_result.h"
 
@@ -41,27 +42,21 @@ static S2N_RESULT s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode)
+static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
+        struct s2n_connection *conn, s2n_extract_secret_type_t secret_type,
+        s2n_mode mode, struct s2n_blob *iv, struct s2n_blob *key)
 {
     RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(iv);
+    RESULT_ENSURE_REF(key);
     RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
-    const struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg->cipher);
-    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
 
-    uint8_t *implicit_iv_data = NULL;
-    struct s2n_session_key *session_key = NULL;
-    if (mode == S2N_CLIENT) {
-        implicit_iv_data = conn->secure->client_implicit_iv;
-        session_key = &conn->secure->client_key;
-        conn->client = conn->secure;
-    } else {
-        implicit_iv_data = conn->secure->server_implicit_iv;
-        session_key = &conn->secure->server_key;
-        conn->server = conn->secure;
-    }
+    const struct s2n_cipher_suite *cipher_suite = conn->secure->cipher_suite;
+    RESULT_ENSURE_REF(cipher_suite);
+
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
 
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-7.3
@@ -108,19 +103,50 @@ static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_ty
      *#
      *# [sender]_write_key = HKDF-Expand-Label(Secret, "key", "", key_length)
      **/
-    struct s2n_blob key = { 0 };
-    uint8_t key_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&key, key_bytes, key_size));
+    RESULT_ENSURE_LTE(key_size, key->size);
+    key->size = key_size;
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
-            &secret, key_purpose, &s2n_zero_length_context, &key));
+            &secret, key_purpose, &s2n_zero_length_context, key));
     /**
      *= https://tools.ietf.org/rfc/rfc8446#section-7.3
      *# [sender]_write_iv  = HKDF-Expand-Label(Secret, "iv", "", iv_length)
      **/
-    struct s2n_blob iv = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&iv, implicit_iv_data, iv_size));
+    RESULT_ENSURE_LTE(iv_size, iv->size);
+    iv->size = iv_size;
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
-            &secret, iv_purpose, &s2n_zero_length_context, &iv));
+            &secret, iv_purpose, &s2n_zero_length_context, iv));
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->secure);
+
+    uint8_t *implicit_iv_data = NULL;
+    struct s2n_session_key *session_key = NULL;
+    uint8_t key_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
+    if (mode == S2N_CLIENT) {
+        implicit_iv_data = conn->secure->client_implicit_iv;
+        session_key = &conn->secure->client_key;
+        conn->client = conn->secure;
+    } else {
+        implicit_iv_data = conn->secure->server_implicit_iv;
+        session_key = &conn->secure->server_key;
+        conn->server = conn->secure;
+    }
+
+    struct s2n_blob iv = { 0 };
+    struct s2n_blob key = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&iv, implicit_iv_data, S2N_TLS13_FIXED_IV_LEN));
+    RESULT_GUARD_POSIX(s2n_blob_init(&key, key_bytes, sizeof(key_bytes)));
+    RESULT_GUARD(s2n_tls13_key_schedule_get_keying_material(
+            conn, secret_type, mode, &iv, &key));
+
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
 
     bool is_sending_secret = (mode == conn->mode);
     if (is_sending_secret) {
@@ -327,5 +353,19 @@ S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn)
     conn->client = conn->initial;
     conn->server = conn->initial;
     conn->secrets.extract_secret_type = S2N_NONE_SECRET;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_tls13_key_schedule_generate_key_material(struct s2n_connection *conn,
+        s2n_mode sender, struct s2n_key_material *key_material)
+{
+    RESULT_GUARD(s2n_key_material_init(key_material, conn));
+    if (sender == S2N_CLIENT) {
+        RESULT_GUARD(s2n_tls13_key_schedule_get_keying_material(conn, S2N_MASTER_SECRET,
+                sender, &key_material->client_iv, &key_material->client_key));
+    } else {
+        RESULT_GUARD(s2n_tls13_key_schedule_get_keying_material(conn, S2N_MASTER_SECRET,
+                sender, &key_material->server_iv, &key_material->server_key));
+    }
     return S2N_RESULT_OK;
 }

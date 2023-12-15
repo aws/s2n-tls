@@ -189,14 +189,14 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(test_key.size, sizeof(value->key));
             EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
 
-            EXPECT_TRUE(test_iv.size >= sizeof(value->iv));
-            EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->iv, sizeof(value->iv));
+            EXPECT_TRUE(test_seq.size >= sizeof(value->rec_seq));
+            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->rec_seq, sizeof(value->rec_seq));
 
             EXPECT_TRUE(test_iv.size >= sizeof(value->salt));
             EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->salt, sizeof(value->salt));
 
-            EXPECT_TRUE(test_seq.size >= sizeof(value->rec_seq));
-            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->rec_seq, sizeof(value->rec_seq));
+            EXPECT_TRUE(test_iv.size >= sizeof(value->iv));
+            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->iv, sizeof(value->iv));
         };
 
         /* s2n_aes256_gcm */
@@ -221,14 +221,14 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(test_key.size, sizeof(value->key));
             EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
 
-            EXPECT_TRUE(test_iv.size >= sizeof(value->iv));
-            EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->iv, sizeof(value->iv));
+            EXPECT_TRUE(test_seq.size >= sizeof(value->rec_seq));
+            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->rec_seq, sizeof(value->rec_seq));
 
             EXPECT_TRUE(test_iv.size >= sizeof(value->salt));
             EXPECT_BYTEARRAY_EQUAL(test_iv.data, value->salt, sizeof(value->salt));
 
-            EXPECT_TRUE(test_seq.size >= sizeof(value->rec_seq));
-            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->rec_seq, sizeof(value->rec_seq));
+            EXPECT_TRUE(test_iv.size >= sizeof(value->iv));
+            EXPECT_BYTEARRAY_EQUAL(test_seq.data, value->iv, sizeof(value->iv));
         };
     };
 
@@ -309,7 +309,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
 
-            server_conn->actual_protocol_version = S2N_TLS13;
+            server_conn->actual_protocol_version = S2N_TLS13 + 1;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
             server_conn->actual_protocol_version = S2N_TLS11;
