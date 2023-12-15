@@ -612,11 +612,11 @@ int main(int argc, char **argv)
             { .iov_len = 3 },
             { .iov_len = 0 },
         };
-        const size_t test_multiple_bufs_total_size = 20;
+        const ssize_t test_multiple_bufs_total_size = 20;
 
         /* Safety */
         {
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_sendv_with_offset_total_size(NULL, 0, 0, NULL),
                     S2N_ERR_NULL);
@@ -627,7 +627,7 @@ int main(int argc, char **argv)
 
         /* No iovecs */
         {
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_OK(s2n_sendv_with_offset_total_size(NULL, 0, 0, &out));
             EXPECT_EQUAL(out, 0);
         }
@@ -635,7 +635,7 @@ int main(int argc, char **argv)
         /* Array of zero-length iovecs */
         {
             const struct iovec test_bufs[10] = { 0 };
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_OK(s2n_sendv_with_offset_total_size(
                     test_bufs, s2n_array_len(test_bufs), 0, &out));
             EXPECT_EQUAL(out, 0);
@@ -643,9 +643,9 @@ int main(int argc, char **argv)
 
         /* Single iovec */
         {
-            const size_t expected_size = 10;
+            const ssize_t expected_size = 10;
             const struct iovec test_buf = { .iov_len = expected_size };
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_OK(s2n_sendv_with_offset_total_size(&test_buf, 1, 0, &out));
             EXPECT_EQUAL(out, expected_size);
         }
@@ -654,14 +654,14 @@ int main(int argc, char **argv)
         {
             const struct iovec test_buf = { .iov_len = 10 };
             const ssize_t offset = 5;
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_OK(s2n_sendv_with_offset_total_size(&test_buf, 1, offset, &out));
             EXPECT_EQUAL(out, test_buf.iov_len - offset);
         }
 
         /* Multiple iovecs */
         {
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_OK(s2n_sendv_with_offset_total_size(
                     test_multiple_bufs, s2n_array_len(test_multiple_bufs), 0, &out));
             EXPECT_EQUAL(out, test_multiple_bufs_total_size);
@@ -669,8 +669,8 @@ int main(int argc, char **argv)
 
         /* Multiple iovecs with offset */
         {
-            const size_t offset = 10;
-            size_t out = 0;
+            const ssize_t offset = 10;
+            ssize_t out = 0;
             EXPECT_OK(s2n_sendv_with_offset_total_size(
                     test_multiple_bufs, s2n_array_len(test_multiple_bufs), offset, &out));
             EXPECT_EQUAL(out, test_multiple_bufs_total_size - offset);
@@ -679,7 +679,7 @@ int main(int argc, char **argv)
         /* Offset with no data */
         {
             const struct iovec test_bufs[10] = { 0 };
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_sendv_with_offset_total_size(NULL, 0, 1, &out),
                     S2N_ERR_INVALID_ARGUMENT);
@@ -694,7 +694,7 @@ int main(int argc, char **argv)
         /* Offset larger than available data */
         {
             const struct iovec test_buf = { .iov_len = 10 };
-            size_t out = 0;
+            ssize_t out = 0;
 
             ssize_t test_buf_offset = test_buf.iov_len + 1;
             EXPECT_ERROR_WITH_ERRNO(
@@ -719,7 +719,7 @@ int main(int argc, char **argv)
                 { .iov_len = SIZE_MAX },
                 { .iov_len = 1 },
             };
-            size_t out = 0;
+            ssize_t out = 0;
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_sendv_with_offset_total_size(test_bufs, s2n_array_len(test_bufs), 0, &out),
                     S2N_ERR_INVALID_ARGUMENT);
