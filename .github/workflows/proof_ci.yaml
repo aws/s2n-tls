@@ -62,7 +62,7 @@ jobs:
         run: |
           # Search within 5 most recent releases for latest available package
           CBMC_REL="https://api.github.com/repos/diffblue/cbmc/releases?page=1&per_page=5"
-          CBMC_DEB=$(curl -s $CBMC_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[].assets[].browser_download_url' | grep -e 'ubuntu-20.04' | head -n 1)
+          CBMC_DEB=$(curl -s $CBMC_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '. | map(select(.prerelease == false)) | [.[0].assets[].browser_download_url] | map(select(test("ubuntu-20.04"))) | .[0]')
           CBMC_ARTIFACT_NAME=$(basename $CBMC_DEB)
           curl -o $CBMC_ARTIFACT_NAME -L $CBMC_DEB
           sudo dpkg -i $CBMC_ARTIFACT_NAME
