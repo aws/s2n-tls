@@ -103,6 +103,38 @@ int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked)
     return 0;
 }
 
+S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t count,
+        ssize_t offs, ssize_t *total_size_out)
+{
+    RESULT_ENSURE_REF(total_size_out);
+    if (count > 0) {
+        RESULT_ENSURE_REF(bufs);
+    }
+
+    size_t total_size = 0;
+    for (ssize_t i = 0; i < count; i++) {
+        size_t iov_len = bufs[i].iov_len;
+        /* Account for any offset */
+        if (offs > 0) {
+            size_t offs_consumed = MIN((size_t) offs, iov_len);
+            iov_len -= offs_consumed;
+            offs -= offs_consumed;
+        }
+        RESULT_ENSURE(S2N_ADD_IS_OVERFLOW_SAFE(total_size, iov_len, SIZE_MAX),
+                S2N_ERR_INVALID_ARGUMENT);
+        total_size += iov_len;
+    }
+
+    /* We must have fully accounted for the offset, or else the offset is larger
+     * than the available data and our inputs are invalid.
+     */
+    RESULT_ENSURE(offs == 0, S2N_ERR_INVALID_ARGUMENT);
+
+    RESULT_ENSURE(total_size <= SSIZE_MAX, S2N_ERR_INVALID_ARGUMENT);
+    *total_size_out = total_size;
+    return S2N_RESULT_OK;
+}
+
 ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iovec *bufs,
         ssize_t count, ssize_t offs, s2n_blocked_status *blocked)
 {
@@ -137,23 +169,9 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         writer = conn->client;
     }
 
+    POSIX_GUARD_RESULT(s2n_sendv_with_offset_total_size(bufs, count, offs, &total_size));
     /* Defensive check against an invalid retry */
-    if (offs > 0) {
-        const struct iovec *_bufs = bufs;
-        ssize_t _count = count;
-        while ((size_t) offs >= _bufs->iov_len && _count > 0) {
-            offs -= _bufs->iov_len;
-            _bufs++;
-            _count--;
-        }
-        bufs = _bufs;
-        count = _count;
-    }
-    for (ssize_t i = 0; i < count; i++) {
-        total_size += bufs[i].iov_len;
-    }
-    total_size -= offs;
-    S2N_ERROR_IF(conn->current_user_data_consumed > total_size, S2N_ERR_SEND_SIZE);
+    POSIX_ENSURE(conn->current_user_data_consumed <= total_size, S2N_ERR_SEND_SIZE);
     POSIX_GUARD_RESULT(s2n_early_data_validate_send(conn, total_size));
 
     if (conn->dynamic_record_timeout_threshold > 0) {

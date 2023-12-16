@@ -459,6 +459,22 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(test_data, buffer, read);
             }
         };
+
+        /* Test: receiving KeyUpdate message */
+        {
+            EXPECT_SUCCESS(s2n_connection_set_blinding(reader, S2N_SELF_SERVICE_BLINDING));
+
+            /* Write KeyUpdate message */
+            s2n_atomic_flag_set(&writer->key_update_pending);
+            int written = s2n_send(writer, test_data, sizeof(test_data), &blocked);
+            EXPECT_EQUAL(written, sizeof(test_data));
+
+            /* Read KeyUpdate message */
+            uint8_t buffer[sizeof(test_data)] = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_recv(reader, buffer, sizeof(buffer), &blocked),
+                    S2N_ERR_KTLS_KEYUPDATE);
+        };
     };
 
     /* Test: s2n_shutdown
