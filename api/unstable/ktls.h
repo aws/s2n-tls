@@ -98,47 +98,19 @@ S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
 /**
  * Allows kTLS to be enabled if a connection negotiates TLS1.3.
  *
- * This method must be called BEFORE enabling ktls on a connection using
+ * Enabling TLS1.3 with this method is considered "unsafe" because the kernel
+ * currently doesn't support updating encryption keys, which is required in TLS1.3.
+ *
+ * In order to safely enable TLS1.3, an application must ensure that its peer will
+ * not send any KeyUpdate messages. If s2n-tls receives a KeyUpdate message while
+ * kTLS is enabled, it will report an S2N_ERR_KTLS_KEYUPDATE S2N_ERR_T_PROTO error.
+ *
+ * Additionally, an application must not use kTLS to attempt to send more than 35GB
+ * of data and must not call s2n_send more than 23 million times. If either of these
+ * limits is exceeded, it will report an S2N_ERR_KTLS_KEY_LIMIT S2N_ERR_T_PROTO error.
+ *
+ * This method must be called before enabling kTLS on a connection using
  * s2n_connection_ktls_enable_send or s2n_connection_ktls_enable_recv.
- *
- * Currently, the kernel does not support updating connection keys. However, the
- * TLS1.3 protocol requires implementations update their sending or receiving keys
- * when required by cryptographic key usage limits or when requested by a peer.
- * A fix for the kernel is being worked on, but is not yet available.
- *
- * Therefore to enable TLS1.3 with kTLS, the following requirements must be met:
- *
- * If kTLS is enabled for receiving, the peer must NOT trigger a key update by
- * sending a KeyUpdate message. Both clients and servers are allowed to send
- * KeyUpdate messages at any time, regardless of key usage limits. Some
- * implementations are known to send KeyUpdates immediately after the handshake.
- * Likely this requirement can only be met if an application controls both the
- * clients and servers involved in the TLS connections. If this requirement is
- * violated, s2n-tls will return an S2N_ERR_KTLS_KEYUPDATE S2N_ERR_T_PROTO error.
- *
- * If kTLS is enabled for sending, the peer must NOT request a key update
- * by sending a KeyUpdate message with the "request_update" flag set. If the peer
- * sets the "request_update" flag, the TLS1.3 protocol requires that s2n-tls
- * update its sending key. Like the previous requirement, this can likely only
- * be met if the client behavior is known and well-defined. If this requirement is
- * violated, s2n-tls will return an S2N_ERR_KTLS_KEYUPDATE S2N_ERR_T_PROTO error.
- * - Note: Some implementations may allow s2n-tls to simply ignore KeyUpdate requests.
- *   However, the ones that don't will fail the connection a variable time after
- *   the request with an alert, making debugging the failures difficult.
- *   We choose to fail as soon as the request is received.
- *
- * If kTLS is enabled for sending, the application must NOT attempt to send enough data to
- * reach the AES-GCM key usage limits. The limit is defined as 2^24.5 (about 24 million)
- * full-sized TLS records, which is 2^38.5 bytes (about 38GB). However, because
- * s2n-tls tracks the limit by record count instead of bytes, the actual limit
- * will be lower depending on how application data is split into records by the
- * kernel. Likely this requirement can only be met if the application sends
- * less than 35GB AND makes fewer than 24 million calls to s2n_send. If this requirement
- * is violated, s2n-tls will return an S2N_ERR_KTLS_KEY_LIMIT S2N_ERR_T_USAGE error.
- * - Note: s2n-tls uses the `count` argument when checking key usages limits for
- *   s2n_sendfile, even if the file is smaller than `count` so less than `count`
- *   bytes will be sent. Applications must set reasonable `count` values to ensure
- *   that s2n_sendfile can't violate the key usage limit.
  *
  * @param config A pointer to the config.
  * @returns S2N_SUCCESS if successfully enabled, S2N_FAILURE otherwise.
@@ -152,6 +124,10 @@ S2N_API int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config);
  * the file and the write socket happens inside the kernel.
  *
  * This method is only supported if kTLS is enabled for sending.
+ *
+ * @note For a TLS1.3 connection, the `count` argument will be used to enforce
+ * safe sending limits regardless of the actual size of the file. Applications
+ * should not set `count` excessively high.
  *
  * @param conn A pointer to the connection.
  * @param fd The file descriptor to read from. It must be opened for reading and
