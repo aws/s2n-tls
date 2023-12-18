@@ -38,7 +38,7 @@ cmake --install build
 See the [s2n-tls build documentation](docs/BUILD.md) for further guidance on building s2n-tls for your platform.
 
 ## Have a Question?
-If you think you might have found a security impacting issue, please follow [our Security Notification Process.](#security-issue-notifications)
+If you think you might have found a security impacting issue, please follow our [Security Notification Process.](#security-issue-notifications)
 
 If you have any questions about submitting PRs, s2n-tls API usage, or something similar, please open an issue.
 
