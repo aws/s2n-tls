@@ -914,6 +914,15 @@ impl Connection {
         }?;
         Ok(self)
     }
+
+    /// Allows the quic library to check if session tickets are expected
+    pub fn client_resumption_enabled(&self) -> bool {
+        if let Some(config) = self.config() {
+            let ctx = config.context();
+            return ctx.session_ticket_callback.is_some();
+        }
+        false
+    }
 }
 
 impl AsRef<Connection> for Connection {
