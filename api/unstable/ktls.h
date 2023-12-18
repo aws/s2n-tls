@@ -127,7 +127,7 @@ S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
  *   the request with an alert, making debugging the failures difficult.
  *   We choose to fail as soon as the request is received.
  *
- * If kTLS is enabled for sending, the application must NOT send enough data to
+ * If kTLS is enabled for sending, the application must NOT attempt to send enough data to
  * reach the AES-GCM key usage limits. The limit is defined as 2^24.5 (about 24 million)
  * full-sized TLS records, which is 2^38.5 bytes (about 38GB). However, because
  * s2n-tls tracks the limit by record count instead of bytes, the actual limit
@@ -135,11 +135,15 @@ S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
  * kernel. Likely this requirement can only be met if the application sends
  * less than 35GB AND makes fewer than 24 million calls to s2n_send. If this requirement
  * is violated, s2n-tls will return an S2N_ERR_KTLS_KEY_LIMIT S2N_ERR_T_USAGE error.
+ * - Note: s2n-tls uses the `count` argument when checking key usages limits for
+ *   s2n_sendfile, even if the file is smaller than `count` so less than `count`
+ *   bytes will be sent. Applications must set reasonable `count` values to ensure
+ *   that s2n_sendfile can't violate the key usage limit.
  *
  * @param config A pointer to the config.
  * @returns S2N_SUCCESS if successfully enabled, S2N_FAILURE otherwise.
  */
-S2N_API int s2n_config_ktls_enable_tls13(struct s2n_config *config);
+S2N_API int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config);
 
 /**
  * Sends the contents of a file as application data.

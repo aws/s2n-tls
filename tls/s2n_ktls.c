@@ -272,3 +272,10 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_connection_ktls_enable(conn, S2N_KTLS_MODE_RECV));
     return S2N_SUCCESS;
 }
+
+int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+    config->ktls_tls13_enabled = true;
+    return S2N_SUCCESS;
+}
