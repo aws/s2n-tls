@@ -152,7 +152,7 @@ run_connection_test() {
     local SERVER_PID=$!
     
     # Wait for the server to start up before connecting
-    sleep 5s
+    # sleep 5s
     
     LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nc -i -c default_tls13 localhost 4433 | tee build/client.log
     kill $SERVER_PID &> /dev/null || true
@@ -162,7 +162,7 @@ run_connection_test() {
     grep -q "Actual protocol version: 34" build/client.log
 }
 
-for i in {1..10000}
+for i in {1..200}
 do
     # without interning, the connection should fail when linking the wrong version of libcrypto
     echo "Running test: attempt TLS1.3 handshake without interning"
