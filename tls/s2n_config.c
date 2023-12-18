@@ -1181,3 +1181,10 @@ int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups,
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_ktls_enable_tls13(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+    config->ktls_tls13_enabled = true;
+    return S2N_SUCCESS;
+}

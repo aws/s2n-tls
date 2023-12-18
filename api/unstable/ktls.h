@@ -27,16 +27,17 @@
  * The kTLS APIs are currently considered unstable. kTLS is a relatively new
  * feature with limited and volatile support from different kernels and hardware.
  *
- * Currently, s2n-tls supports ktls for only very limited scenarios:
+ * Currently, s2n-tls supports ktls for limited scenarios:
  * - You must be using Linux. We have not tested with other kernels.
  * - Your kernel must support kTLS. For Linux, versions >4.13 should support kTLS.
  * - The TLS kernel module must be enabled. While some environments enable the
  *   module by default, most will require you to run `sudo modprobe tls`.
- * - You must negotiate TLS1.2. TLS1.3 support is blocked on kernel support for
- *   TLS KeyUpdate messages.
- * - You must negotiate AES128-GCM, which is the most preferred cipher suite
- *   in the "default" security policy. Other ciphers are supported by the kernel,
- *   but not implemented in s2n-tls yet.
+ * - You must negotiate AES128-GCM or AES256-GCM. Other ciphers are supported by
+ *   the kernel, but not implemented in s2n-tls yet.
+ * - You must not use the s2n_renegotiate_request_cb from unstable/negotiate.h.
+ *   The TLS kernel module currently doesn't support renegotiation.
+ * - By default, you must negotiate TLS1.2. See s2n_config_ktls_enable_tls13
+ *   for the requirements to also support TLS1.3.
  */
 
 /**
@@ -93,6 +94,52 @@ S2N_API int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
  * enabled, returns S2N_FAILURE but the connection may proceed without kTLS.
  */
 S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
+
+/**
+ * Allows kTLS to be enabled if a connection negotiates TLS1.3.
+ *
+ * This method must be called BEFORE enabling ktls on a connection using
+ * s2n_connection_ktls_enable_send or s2n_connection_ktls_enable_recv.
+ *
+ * Currently, the kernel does not support updating connection keys. However, the
+ * TLS1.3 protocol requires implementations update their sending or receiving keys
+ * when required by cryptographic key usage limits or when requested by a peer.
+ * A fix for the kernel is being worked on, but is not yet available.
+ *
+ * Therefore to enable TLS1.3 with kTLS, the following requirements must be met:
+ *
+ * If kTLS is enabled for receiving, the peer must NOT trigger a key update by
+ * sending a KeyUpdate message. Both clients and servers are allowed to send
+ * KeyUpdate messages at any time, regardless of key usage limits. Some
+ * implementations are known to send KeyUpdates immediately after the handshake.
+ * Likely this requirement can only be met if an application controls both the
+ * clients and servers involved in the TLS connections. If this requirement is
+ * violated, s2n-tls will return an S2N_ERR_KTLS_KEYUPDATE S2N_ERR_T_PROTO error.
+ *
+ * If kTLS is enabled for sending, the peer must NOT request a key update
+ * by sending a KeyUpdate message with the "request_update" flag set. If the peer
+ * sets the "request_update" flag, the TLS1.3 protocol requires that s2n-tls
+ * update its sending key. Like the previous requirement, this can likely only
+ * be met if the client behavior is known and well-defined. If this requirement is
+ * violated, s2n-tls will return an S2N_ERR_KTLS_KEYUPDATE S2N_ERR_T_PROTO error.
+ * - Note: Some implementations may allow s2n-tls to simply ignore KeyUpdate requests.
+ *   However, the ones that don't will fail the connection a variable time after
+ *   the request with an alert, making debugging the failures difficult.
+ *   We choose to fail as soon as the request is received.
+ *
+ * If kTLS is enabled for sending, the application must NOT send enough data to
+ * reach the AES-GCM key usage limits. The limit is defined as 2^24.5 (about 24 million)
+ * full-sized TLS records, which is 2^38.5 bytes (about 38GB). However, because
+ * s2n-tls tracks the limit by record count instead of bytes, the actual limit
+ * will be lower depending on how application data is split into records by the
+ * kernel. Likely this requirement can only be met if the application sends
+ * less than 35GB AND makes fewer than 24 million calls to s2n_send. If this requirement
+ * is violated, s2n-tls will return an S2N_ERR_KTLS_KEY_LIMIT S2N_ERR_T_USAGE error.
+ *
+ * @param config A pointer to the config.
+ * @returns S2N_SUCCESS if successfully enabled, S2N_FAILURE otherwise.
+ */
+S2N_API int s2n_config_ktls_enable_tls13(struct s2n_config *config);
 
 /**
  * Sends the contents of a file as application data.

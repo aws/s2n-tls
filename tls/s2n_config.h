@@ -102,6 +102,9 @@ struct s2n_config {
     /* Indicates whether s2n has enabled OCSP status requests, for backwards compatibility */
     unsigned ocsp_status_requested_by_s2n : 1;
 
+    /* TLS1.3 can be dangerous with kTLS. Require it to be explicitly enabled. */
+    unsigned ktls_tls13_enabled : 1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 
