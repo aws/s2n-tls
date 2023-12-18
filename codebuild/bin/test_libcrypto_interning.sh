@@ -152,7 +152,7 @@ run_connection_test() {
     local SERVER_PID=$!
     
     # Wait for the server to start up before connecting
-    # sleep 5s
+    sleep 5s
     
     LD_PRELOAD=$OPENSSL_1_0/lib/libcrypto.so ./build/$TARGET/bin/s2nc -i -c default_tls13 localhost 4433 | tee build/client.log
     kill $SERVER_PID &> /dev/null || true
