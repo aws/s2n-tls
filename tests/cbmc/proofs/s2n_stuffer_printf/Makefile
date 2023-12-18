@@ -11,9 +11,6 @@
 # implied. See the License for the specific language governing permissions and
 # limitations under the License.
 
-MAX_STRING_LEN = 20
-DEFINES += -DMAX_STRING_LEN=$(MAX_STRING_LEN)
-
 CHECKFLAGS +=
 
 PROOF_UID = s2n_stuffer_printf
@@ -23,6 +20,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_STUB)/madvise.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
 PROOF_SOURCES += $(PROOF_STUB)/posix_memalign_override.c
@@ -36,10 +34,5 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
-
-# We abstract these functions because manual inspection demonstrates they are unreachable.
-# We never shrink the stuffer in this method, only grow it.
-REMOVE_FUNCTION_BODY += s2n_blob_slice
-REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 
 include ../Makefile.common

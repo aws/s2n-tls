@@ -28,20 +28,20 @@ void s2n_stuffer_printf_harness()
     struct s2n_stuffer *stuffer = cbmc_allocate_s2n_stuffer();
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
-    char *format = ensure_c_str_is_allocated(MAX_STRING_LEN);
+    size_t format_len;
+    char *format = ensure_c_str_is_allocated(format_len);
 
     /* CBMC defines va_list as void** */
-    size_t va_list_len;
-    __CPROVER_assume(va_list_len >= 0);
-    __CPROVER_assume(va_list_len < MAX_STRING_LEN);
-    void** va_list_mem = malloc(sizeof(void*) * va_list_len);
+    size_t va_list_size;
+    __CPROVER_assume(va_list_size % sizeof(void*) == 0);
+    void** va_list_mem = malloc(va_list_size);
 
     /* Store the stuffer to compare after the write */
     struct s2n_stuffer            old_stuffer = *stuffer;
     struct store_byte_from_buffer old_byte;
     save_byte_from_array(old_stuffer.blob.data, old_stuffer.write_cursor, &old_byte);
 
-    int test_success = s2n_stuffer_vprintf(stuffer, format, va_list_mem);
+    int result = s2n_stuffer_vprintf(stuffer, format, va_list_mem);
     assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     /* The basic stuffer fields should NOT be updated */
@@ -58,7 +58,7 @@ void s2n_stuffer_printf_harness()
     assert(old_stuffer.read_cursor == stuffer->read_cursor);
 
     /* The write cursor should only be updated on success */
-    if (test_success == S2N_SUCCESS) {
+    if (result == S2N_SUCCESS) {
         assert(old_stuffer.write_cursor <= stuffer->write_cursor);
     } else {
         assert(old_stuffer.write_cursor == stuffer->write_cursor);
