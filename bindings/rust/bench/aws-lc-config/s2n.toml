@@ -1,3 +1,0 @@
-[env]
-S2N_TLS_LIB_DIR = "target/s2n-tls-build/lib"
-LD_LIBRARY_PATH = "target/s2n-tls-build/lib"
