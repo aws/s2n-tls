@@ -283,10 +283,6 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_client_policy, awslc_se
 
     port = next(available_ports)
 
-    s2n_env_vars = dict()
-    s2n_env_vars["PATH"] = os.path.abspath("../../bin")
-    s2n_env_vars["LD_LIBRARY_PATH"] = os.path.abspath("../../test-deps/awslc/lib")
-
     awslc_env_vars = dict()
     awslc_env_vars["PATH"] = os.path.abspath("../../test-deps/awslc/bin")
     awslc_env_vars["LD_LIBRARY_PATH"] = os.path.abspath("../../test-deps/awslc/lib")
@@ -296,7 +292,6 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_client_policy, awslc_se
         port=port,
         insecure=True,
         cipher=s2n_client_policy,
-        env_overrides=s2n_env_vars,
         protocol=Protocols.TLS13)
 
     awslc_server_options = ProviderOptions(
@@ -332,10 +327,6 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
 
     port = next(available_ports)
 
-    s2n_env_vars = dict()
-    s2n_env_vars["PATH"] = os.path.abspath("../../bin")
-    s2n_env_vars["LD_LIBRARY_PATH"] = os.path.abspath("../../test-deps/awslc/lib")
-
     awslc_env_vars = dict()
     awslc_env_vars["PATH"] = os.path.abspath("../../test-deps/awslc/bin")
     awslc_env_vars["LD_LIBRARY_PATH"] = os.path.abspath("../../test-deps/awslc/lib")
@@ -345,7 +336,6 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
         port=port,
         insecure=True,
         cipher=s2n_server_policy,
-        env_overrides=s2n_env_vars,
         protocol=Protocols.TLS13)
 
     awslc_client_options = ProviderOptions(
