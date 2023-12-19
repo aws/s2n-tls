@@ -11,7 +11,6 @@ s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be 
 [![C99](https://img.shields.io/badge/language-C99-blue.svg)](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
 [![Github forks](https://img.shields.io/github/forks/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/network)
 [![Github stars](https://img.shields.io/github/stars/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/stargazers)
-[![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Quickstart for Ubuntu
 
@@ -39,9 +38,9 @@ cmake --install build
 See the [s2n-tls build documentation](docs/BUILD.md) for further guidance on building s2n-tls for your platform.
 
 ## Have a Question?
-If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
+If you think you might have found a security impacting issue, please follow our [Security Notification Process.](#security-issue-notifications)
 
-Otherwise, if you think you might have found a security impacting issue, please instead follow [our Security Notification Process.](#security-issue-notifications)
+If you have any questions about submitting PRs, s2n-tls API usage, or something similar, please open an issue.
 
 ## Documentation
 
