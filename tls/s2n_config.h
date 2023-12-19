@@ -69,8 +69,7 @@ struct s2n_config {
     unsigned disable_x509_time_validation : 1;
     unsigned disable_x509_validation : 1;
     unsigned max_verify_cert_chain_depth_set : 1;
-    /* Whether to add dss cert type during a server certificate request.
-     * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md */
+    /* Whether to add dss cert type during a server certificate request */
     unsigned cert_req_dss_legacy_compat_enabled : 1;
     /* Whether any RSA certificates have been configured server-side to send to clients. This is needed so that the
      * server knows whether or not to self-downgrade to TLS 1.2 if the server is compiled with Openssl 1.0.2 and does

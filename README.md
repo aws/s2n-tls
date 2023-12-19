@@ -44,7 +44,7 @@ If you have any questions about submitting PRs, s2n-tls API usage, or something 
 
 ## Documentation
 
-s2n-tls uses [Doxygen](https://doxygen.nl/index.html) to document its public API. The latest s2n-tls documentation can be found on [GitHub pages](https://aws.github.io/s2n-tls/doxygen/). The [Usage Guide](docs/USAGE-GUIDE.md) explains how different TLS features can be configured and used.
+s2n-tls uses [Doxygen](https://doxygen.nl/index.html) to document its public API. The latest s2n-tls documentation can be found on [GitHub pages](https://aws.github.io/s2n-tls/doxygen/). The [Usage Guide](docs/usage-guide/) explains how different TLS features can be configured and used.
 
 Documentation for older versions or branches of s2n-tls can be generated locally. To generate the documentation, install doxygen and run `doxygen docs/doxygen/Doxyfile`. The doxygen documentation can now be found at `docs/doxygen/output/html/index.html`.
 
@@ -77,7 +77,7 @@ int bytes_written;
 bytes_written = s2n_send(conn, "Hello World", sizeof("Hello World"), &blocked);
 ```
 
-For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the [usage guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md).
+For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the [usage guide][Usage Guide](docs/usage-guide).
 
 ## s2n-tls features
 
