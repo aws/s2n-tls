@@ -54,9 +54,9 @@ bool s2n_connection_is_quic_enabled(struct s2n_connection *conn)
     return (conn && conn->quic_enabled) || (conn && conn->config && conn->config->quic_enabled);
 }
 
-bool s2n_connection_is_resumption_enabled(struct s2n_connection *conn)
+bool s2n_connection_is_client_resumption_enabled(struct s2n_connection *conn)
 {
-    return conn && conn->config->use_tickets;
+    return conn && conn->config && conn->config->use_tickets && conn->config->session_ticket_cb;
 }
 
 int s2n_connection_set_quic_transport_parameters(struct s2n_connection *conn,
