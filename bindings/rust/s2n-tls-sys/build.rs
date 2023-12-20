@@ -93,6 +93,22 @@ fn build_vendored() {
 
     let mut build = builder(&libcrypto);
 
+    // cc will read the CFLAGS env variable and prepend the compiler
+    // command with all flags and includes from it, which may conflict
+    // with the libcrypto includes we specify. To ensure the libcrypto
+    // includes show up first in the compiler command, we temporarily
+    // remove CFLAGS env variable and manually add all the flags to the
+    // compiler command.
+    let cflags = if let Ok(cflags) = std::env::var("CFLAGS") {
+        std::env::remove_var("CFLAGS");
+        for cflag in cflags.split_ascii_whitespace() {
+            build.flag(cflag);
+        }
+        Some(cflags)
+    } else {
+        None
+    };
+
     // TODO: update rust bindings to handle no pq-crypto dir
 
     let pq = option_env("CARGO_FEATURE_PQ").is_some();
@@ -173,6 +189,11 @@ fn build_vendored() {
     build.warnings(false);
 
     build.compile("s2n-tls");
+
+    // restore CFLAGS
+    if let Some(cflags) = cflags {
+        std::env::set_var("CFLAGS", cflags);
+    }
 
     // tell rust we're linking with libcrypto
     println!("cargo:rustc-link-lib={}", libcrypto.link);
