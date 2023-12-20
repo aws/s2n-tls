@@ -63,7 +63,7 @@ const uint8_t fips_cipher_suite_ianas[][2] = {
     { TLS_DHE_RSA_WITH_AES_128_CBC_SHA },
     { TLS_DHE_RSA_WITH_AES_256_CBC_SHA },
 
-    /* 3.3.1.1.2 3.3.1.2 Cipher Suites for TLS 1.3 */
+    /* 3.3.1.2 Cipher Suites for TLS 1.3 */
     { TLS_AES_128_GCM_SHA256 },
     { TLS_AES_256_GCM_SHA384 },
 };
