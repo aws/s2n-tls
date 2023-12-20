@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.0-aae820da</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.0-d4c3ebb7</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -1578,7 +1578,7 @@ Safety</h1>
 <p >Used to help applications determine why an s2n-tls function failed.</p>
 <p >This enum is optimized for use in C switch statements. Each value in the enum represents an error "category".</p>
 <p >s2n-tls organizes errors into different "types" to allow applications to handle error values without catching all possibilities. Applications using non-blocking I/O should check the error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use <code><a class="el" href="s2n_8h.html#aebff13e0704f879abbb6a3a7cbbe62c2">s2n_error_get_type()</a></code>. Applications should perform any error handling logic using these high level types.</p>
-<p >See the <a href="https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#error-handling">Error Handling</a> section for how the errors should be interpreted. </p>
+<p >See the <a href="https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch03-error-handling.md">Error Handling</a> section for how the errors should be interpreted. </p>
 <table class="fieldtable">
 <tr><th colspan="2">Enumerator</th></tr><tr><td class="fieldname"><a id="a41f8ab66d28ce2f33fa8dbf858c0ac44a09221eeb73c34d50145b9c7c0eb21f25" name="a41f8ab66d28ce2f33fa8dbf858c0ac44a09221eeb73c34d50145b9c7c0eb21f25"></a>S2N_ERR_T_OK&#160;</td><td class="fielddoc"><p >No error </p>
 </td></tr>
@@ -2244,7 +2244,7 @@ Safety</h1>
         </tr>
       </table>
 </div><div class="memdoc">
-<p >Associates a public certificate chain with a <code>s2n_cert_chain_and_key</code> object. It does NOT set a private key, so the connection will need to be configured to <a href="https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#offloading-asynchronous-private-key-operations">offload private key operations</a>.</p>
+<p >Associates a public certificate chain with a <code>s2n_cert_chain_and_key</code> object. It does NOT set a private key, so the connection will need to be configured to <a href="https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch12-private-key-ops.md">offload private key operations</a>.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">chain_and_key</td><td>The certificate chain and private key handle </td></tr>
@@ -4345,7 +4345,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Sets the security policy that includes the cipher/kem/signature/ecc preferences and protocol version.</p>
-<p >See the <a href="https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md">USAGE-GUIDE.md</a> for how to use security policies. </p>
+<p >See the <a href="https://github.com/aws/s2n-tls/blob/main/docs/usage-guide">USAGE-GUIDE.md</a> for how to use security policies. </p>
 
 </div>
 </div>
@@ -9405,7 +9405,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Called by the server to begin negotiation and accept any early data the client sends.</p>
-<p >See <a href="https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data&ndash;0rtt">https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data&amp;ndash;0rtt</a> for usage and examples. DO NOT USE unless you have considered the security issues and implemented mitigation for anti-replay attacks.</p>
+<p >See <a href="https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md">https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md</a> for usage and examples. DO NOT USE unless you have considered the security issues and implemented mitigation for anti-replay attacks.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
@@ -9519,7 +9519,7 @@ Unlike OpenSSL, repeated calls to <a class="el" href="s2n_8h.html#a9afeb514731fa
       </table>
 </div><div class="memdoc">
 <p >Called by the client to begin negotiation and send early data.</p>
-<p >See <a href="https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data&ndash;0rtt">https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data&amp;ndash;0rtt</a> for usage and examples. DO NOT USE unless you have considered the security issues and implemented mitigation for anti-replay attacks.</p>
+<p >See <a href="https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md">https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md</a> for usage and examples. DO NOT USE unless you have considered the security issues and implemented mitigation for anti-replay attacks.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
