@@ -28,7 +28,7 @@
      */
     #define S2N_API __attribute__((visibility("default")))
 #else
-/**
+    /**
      * Marks a function as belonging to the public s2n API.
      */
     #define S2N_API
