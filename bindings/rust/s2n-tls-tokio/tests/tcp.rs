@@ -21,12 +21,12 @@ async fn match_tcp_read_from_closed() -> Result<(), Box<dyn std::error::Error>> 
     let (tcp_server, tcp_client) = common::get_streams().await?;
     assert_read_from_closed(tcp_server, tcp_client).await;
 
-    let (tls_server, tls_client) = common::get_tls_streams(
+    let (tls13_server, tls13_client) = common::get_tls_streams(
         common::server_config()?.build()?,
         common::client_config()?.build()?,
     )
     .await?;
-    assert_read_from_closed(tls_server, tls_client).await;
+    assert_read_from_closed(tls13_server, tls13_client).await;
 
     let (tls12_server, tls12_client) = common::get_tls_streams(
         common::server_config_tls12()?.build()?,
@@ -51,12 +51,12 @@ async fn match_tcp_write_to_closed() -> Result<(), Box<dyn std::error::Error>> {
     let (tcp_server, tcp_client) = common::get_streams().await?;
     assert_write_to_closed(tcp_server, tcp_client).await;
 
-    let (tls_server, tls_client) = common::get_tls_streams(
+    let (tls13_server, tls13_client) = common::get_tls_streams(
         common::server_config()?.build()?,
         common::client_config()?.build()?,
     )
     .await?;
-    assert_write_to_closed(tls_server, tls_client).await;
+    assert_write_to_closed(tls13_server, tls13_client).await;
 
     let (tls12_server, tls12_client) = common::get_tls_streams(
         common::server_config_tls12()?.build()?,
