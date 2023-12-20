@@ -225,7 +225,7 @@ int main(int argc, char **argv)
         EXPECT_ERROR_WITH_ERRNO(s2n_fips_validate_version(0, NULL), S2N_ERR_NULL);
 
         /* Test: Valid */
-        uint8_t valid[] = { S2N_TLS10, S2N_TLS13 };
+        uint8_t valid[] = { S2N_TLS12, S2N_TLS13 };
         for (size_t i = 0; i < s2n_array_len(valid); i++) {
             bool is_valid = false;
             EXPECT_OK(s2n_fips_validate_version(valid[i], &is_valid));
@@ -233,7 +233,7 @@ int main(int argc, char **argv)
         }
 
         /* Test: Invalid */
-        uint8_t invalid[] = { 0, 1, S2N_SSLv2, S2N_SSLv3 };
+        uint8_t invalid[] = { 0, 1, S2N_SSLv2, S2N_SSLv3, S2N_TLS11 };
         for (size_t i = 0; i < s2n_array_len(invalid); i++) {
             bool is_valid = true;
             EXPECT_OK(s2n_fips_validate_version(invalid[i], &is_valid));

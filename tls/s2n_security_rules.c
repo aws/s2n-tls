@@ -111,7 +111,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
 
     const char *error_msg_format_name = "%s: policy %s: %s: %s (#%i)";
     const char *error_msg_format_iana = "%s: policy %s: %s: %x (#%i)";
-    const char *error_msg_format_basic = "%s: policy %s: %s: %x";
+    const char *error_msg_format_basic = "%s: policy %s: %s: %i";
 
     const struct s2n_cipher_preferences *cipher_prefs = policy->cipher_preferences;
     RESULT_ENSURE_REF(cipher_prefs);

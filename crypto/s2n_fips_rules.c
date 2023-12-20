@@ -117,6 +117,9 @@ S2N_RESULT s2n_fips_validate_curve(const struct s2n_ecc_named_curve *curve, bool
 S2N_RESULT s2n_fips_validate_version(uint8_t version, bool *valid)
 {
     RESULT_ENSURE_REF(valid);
-    *valid = (version >= S2N_TLS10);
+    /* Technically FIPS 140-3 still allows TLS1.0 and TLS1.1 for some use cases,
+     * but for simplicity s2n-tls does not.
+     */
+    *valid = (version >= S2N_TLS12);
     return S2N_RESULT_OK;
 }
