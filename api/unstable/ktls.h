@@ -27,16 +27,17 @@
  * The kTLS APIs are currently considered unstable. kTLS is a relatively new
  * feature with limited and volatile support from different kernels and hardware.
  *
- * Currently, s2n-tls supports ktls for only very limited scenarios:
+ * Currently, s2n-tls supports ktls for limited scenarios:
  * - You must be using Linux. We have not tested with other kernels.
  * - Your kernel must support kTLS. For Linux, versions >4.13 should support kTLS.
  * - The TLS kernel module must be enabled. While some environments enable the
  *   module by default, most will require you to run `sudo modprobe tls`.
- * - You must negotiate TLS1.2. TLS1.3 support is blocked on kernel support for
- *   TLS KeyUpdate messages.
- * - You must negotiate AES128-GCM, which is the most preferred cipher suite
- *   in the "default" security policy. Other ciphers are supported by the kernel,
- *   but not implemented in s2n-tls yet.
+ * - You must negotiate AES128-GCM or AES256-GCM. Other ciphers are supported by
+ *   the kernel, but not implemented in s2n-tls yet.
+ * - You must not use the s2n_renegotiate_request_cb from unstable/negotiate.h.
+ *   The TLS kernel module currently doesn't support renegotiation.
+ * - By default, you must negotiate TLS1.2. See s2n_config_ktls_enable_tls13
+ *   for the requirements to also support TLS1.3.
  */
 
 /**
@@ -95,12 +96,38 @@ S2N_API int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
 S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
 
 /**
+ * Allows kTLS to be enabled if a connection negotiates TLS1.3.
+ *
+ * Enabling TLS1.3 with this method is considered "unsafe" because the kernel
+ * currently doesn't support updating encryption keys, which is required in TLS1.3.
+ *
+ * In order to safely enable TLS1.3, an application must ensure that its peer will
+ * not send any KeyUpdate messages. If s2n-tls receives a KeyUpdate message while
+ * kTLS is enabled, it will report an S2N_ERR_KTLS_KEYUPDATE S2N_ERR_T_PROTO error.
+ *
+ * Additionally, an application must not use kTLS to attempt to send more than 35GB
+ * of data and must not call s2n_send more than 23 million times. If either of these
+ * limits is exceeded, it will report an S2N_ERR_KTLS_KEY_LIMIT S2N_ERR_T_PROTO error.
+ *
+ * This method must be called before enabling kTLS on a connection using
+ * s2n_connection_ktls_enable_send or s2n_connection_ktls_enable_recv.
+ *
+ * @param config A pointer to the config.
+ * @returns S2N_SUCCESS if successfully enabled, S2N_FAILURE otherwise.
+ */
+S2N_API int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config);
+
+/**
  * Sends the contents of a file as application data.
  *
  * s2n_sendfile should be more efficient than s2n_send because the copy between
  * the file and the write socket happens inside the kernel.
  *
  * This method is only supported if kTLS is enabled for sending.
+ *
+ * @note For a TLS1.3 connection, the `count` argument will be used to enforce
+ * safe sending limits regardless of the actual size of the file. Applications
+ * should not set `count` excessively high.
  *
  * @param conn A pointer to the connection.
  * @param fd The file descriptor to read from. It must be opened for reading and
