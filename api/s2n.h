@@ -142,7 +142,7 @@ S2N_API extern int *s2n_errno_location(void);
  * error. To retrieve the type for a given error use `s2n_error_get_type()`. Applications should
  * perform any error handling logic using these high level types.
  *
- * See the [Error Handling](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#error-handling) section for how the errors should be interpreted. 
+ * See the [Error Handling](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch03-error-handling.md) section for how the errors should be interpreted.
  */
 typedef enum {
     /** No error */
@@ -673,7 +673,7 @@ S2N_API extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_a
 /**
  * Associates a public certificate chain with a `s2n_cert_chain_and_key` object. It does
  * NOT set a private key, so the connection will need to be configured to
- * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#offloading-asynchronous-private-key-operations).
+ * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch12-private-key-ops.md).
  *
  * @param chain_and_key The certificate chain and private key handle
  * @param chain_pem A byte array of a PEM encoded certificate chain.
@@ -1043,7 +1043,7 @@ S2N_API extern int s2n_config_add_dhparams(struct s2n_config *config, const char
  * Sets the security policy that includes the cipher/kem/signature/ecc preferences and
  * protocol version.
  *
- * See the [USAGE-GUIDE.md](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md) for how to use security policies.
+ * See the [USAGE-GUIDE.md](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide) for how to use security policies.
  */
 S2N_API extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 
@@ -3295,7 +3295,7 @@ S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, 
 /**
  * Called by the client to begin negotiation and send early data.
  *
- * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md
  * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *
@@ -3312,7 +3312,7 @@ S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data
 /**
  * Called by the server to begin negotiation and accept any early data the client sends.
  *
- * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md
  * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *

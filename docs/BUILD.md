@@ -68,7 +68,21 @@ cmake --install build
 
 Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
 
-See the [s2n-tls usage guide](USAGE-GUIDE.md#consuming-s2n-tls-via-cmake) for instructions on how to include s2n-tls in your CMake project.
+## Consuming s2n-tls via CMake
+
+s2n-tls ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n-tls in your project is:
+
+````bash
+find_package(s2n)
+
+....
+
+target_link_libraries(yourExecutableOrLibrary AWS::s2n)
+````
+
+And when invoking CMake for your project, do one of two things:
+ 1. Set the `CMAKE_INSTALL_PREFIX` variable with the path to your s2n-tls build.
+ 2. If you have globally installed s2n-tls, do nothing, it will automatically be found.
 
 ## Configuring the s2n-tls build
 
