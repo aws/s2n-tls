@@ -916,10 +916,16 @@ impl Connection {
     }
 
     /// Allows the quic library to check if session tickets are expected
-    pub fn client_resumption_enabled(&self) -> bool {
-        if let Some(config) = self.config() {
-            let ctx = config.context();
-            return ctx.session_ticket_callback.is_some();
+    pub fn is_client_resumption_enabled(&self) -> bool {
+        unsafe {
+            let result = s2n_connection_is_resumption_enabled(self.connection.as_ptr());
+            if !result {
+                return false;
+            }
+            if let Some(config) = self.config() {
+                let ctx = config.context();
+                return ctx.session_ticket_callback.is_some();
+            }
         }
         false
     }
