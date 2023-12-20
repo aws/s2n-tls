@@ -85,7 +85,8 @@ int main(int argc, char **argv)
              * but we should double check any invariants we can just in case.
              */
 
-            /* RSA key exchange is deprecated */
+            /* RSA key exchange is disallowed after 2023
+             * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-131Ar2.pdf */
             EXPECT_NOT_EQUAL(cipher_suite->key_exchange_alg, &s2n_rsa);
 
             /* AES is required.
