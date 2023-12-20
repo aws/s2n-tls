@@ -93,6 +93,10 @@ fn build_vendored() {
 
     let mut build = builder(&libcrypto);
 
+    for flag in libcrypto.flags.iter() {
+        build.flag(flag);
+    }
+
     // TODO: update rust bindings to handle no pq-crypto dir
 
     let pq = option_env("CARGO_FEATURE_PQ").is_some();
@@ -252,6 +256,7 @@ struct Libcrypto {
     version: String,
     link: String,
     include: String,
+    flags: Vec<String>,
     root: String,
 }
 
@@ -268,10 +273,15 @@ impl Default for Libcrypto {
                     let include = value;
                     let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
 
+                    let oss_header_defines =
+                        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/block-ossl-headers.txt"));
+                    let flags = oss_header_defines.iter().map(|s| s.to_string()).collect();
+
                     return Self {
                         version,
                         link,
                         include,
+                        flags,
                         root,
                     };
                 }
