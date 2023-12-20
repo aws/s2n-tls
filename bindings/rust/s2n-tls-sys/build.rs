@@ -273,8 +273,10 @@ impl Default for Libcrypto {
                     let include = value;
                     let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
 
-                    let oss_header_defines =
-                        include!(concat!(env!("CARGO_MANIFEST_DIR"), "/data/block-ossl-headers.txt"));
+                    let oss_header_defines = include!(concat!(
+                        env!("CARGO_MANIFEST_DIR"),
+                        "/data/block-ossl-headers.txt"
+                    ));
                     let flags = oss_header_defines.iter().map(|s| s.to_string()).collect();
 
                     return Self {
