@@ -916,9 +916,9 @@ impl Connection {
     }
 
     /// Allows the quic library to check if session tickets are expected
-    pub fn is_client_resumption_enabled(&self) -> bool {
+    pub fn are_session_tickets_enabled(&self) -> bool {
         unsafe {
-            let result = s2n_connection_is_client_resumption_enabled(self.connection.as_ptr());
+            let result = s2n_connection_is_resumption_enabled(self.connection.as_ptr());
             return result;
         }
     }
