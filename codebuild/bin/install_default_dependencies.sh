@@ -65,7 +65,7 @@ if [[ "$S2N_LIBCRYPTO" == "boringssl" && ! -d "$BORINGSSL_INSTALL_DIR" ]]; then
 fi
 
 # Download and Install AWS-LC
-if [[ ("$S2N_LIBCRYPTO" == "awslc") || ( "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) && ! -d "$AWSLC_INSTALL_DIR" ]]; then
+if [[ "$S2N_LIBCRYPTO" == "awslc" && ! -d "$AWSLC_INSTALL_DIR" ]]; then
     codebuild/bin/install_awslc.sh "$(mktemp -d)" "$AWSLC_INSTALL_DIR" "0" > /dev/null ;
 fi
 

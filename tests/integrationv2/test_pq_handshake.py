@@ -285,7 +285,6 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_client_policy, awslc_se
 
     awslc_env_vars = dict()
     awslc_env_vars["PATH"] = os.path.abspath("../../test-deps/awslc/bin")
-    awslc_env_vars["LD_LIBRARY_PATH"] = os.path.abspath("../../test-deps/awslc/lib")
 
     s2nc_client_options = ProviderOptions(
         mode=Provider.ClientMode,
@@ -329,7 +328,6 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
 
     awslc_env_vars = dict()
     awslc_env_vars["PATH"] = os.path.abspath("../../test-deps/awslc/bin")
-    awslc_env_vars["LD_LIBRARY_PATH"] = os.path.abspath("../../test-deps/awslc/lib")
 
     s2nd_server_options = ProviderOptions(
         mode=Provider.ServerMode,
