@@ -1,7 +1,7 @@
 {
   description = "A flake for s2n-tls";
 
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-23.11";
   # TODO: https://github.com/aws/aws-lc/pull/830
   inputs.awslc.url = "github:dougch/aws-lc?ref=nix";
 

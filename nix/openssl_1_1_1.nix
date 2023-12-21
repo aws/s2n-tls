@@ -5,11 +5,11 @@ pkgs.stdenv.mkDerivation rec {
 
   src = pkgs.fetchzip {
     url =
-      "https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1t.zip";
-    sha256 = "sha256-gI2+Vm67j1+xLvzBb+DF0YFTOHW7myotRsXRzluzSLY=";
+      "https://github.com/openssl/openssl/archive/refs/tags/OpenSSL_1_1_1w.zip";
+    sha256 = "sha256-tGuFhc7RuPjUiiO96u+vCkXnBL2EToFs9y1k7UW1fxQ=";
   };
 
-  buildInputs = [ pkgs.gnumake pkgs.perl534 pkgs.coreutils ];
+  buildInputs = [ pkgs.gnumake pkgs.perl538 pkgs.coreutils ];
 
   patchPhase = ''
     substitute ./config ./config --replace /usr/bin/env ${pkgs.coreutils}/bin/env

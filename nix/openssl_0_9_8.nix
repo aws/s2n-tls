@@ -10,7 +10,7 @@ pkgs.stdenv.mkDerivation rec {
     sha256 = "sha256:0h451dgk2pws957cjidjhwb2qlr0qx73klzb0n0l3x601jmw27ih";
   };
 
-  buildInputs = [ pkgs.gnumake pkgs.perl534 ];
+  buildInputs = [ pkgs.gnumake pkgs.perl538 ];
 
   configurePhase = ''
     ./config --prefix=$out
