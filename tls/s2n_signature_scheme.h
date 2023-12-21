@@ -84,5 +84,6 @@ extern const struct s2n_signature_preferences s2n_signature_preferences_rfc9151;
 extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_rfc9151;
 extern const struct s2n_signature_preferences s2n_signature_preferences_default_fips;
 extern const struct s2n_signature_preferences s2n_signature_preferences_null;
+extern const struct s2n_signature_preferences s2n_signature_preferences_test_all_fips;
 
 extern const struct s2n_signature_preferences s2n_certificate_signature_preferences_20201110;

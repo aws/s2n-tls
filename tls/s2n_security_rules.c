@@ -17,6 +17,7 @@
 
 #include <stdarg.h>
 
+#include "crypto/s2n_fips.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_signature_scheme.h"
 #include "utils/s2n_result.h"
@@ -69,6 +70,13 @@ static S2N_RESULT s2n_security_rule_all_curves(
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_security_rule_all_versions(uint8_t version, bool *valid)
+{
+    RESULT_ENSURE_REF(valid);
+    *valid = true;
+    return S2N_RESULT_OK;
+}
+
 const struct s2n_security_rule security_rule_definitions[] = {
     [S2N_PERFECT_FORWARD_SECRECY] = {
             .name = "Perfect Forward Secrecy",
@@ -76,6 +84,15 @@ const struct s2n_security_rule security_rule_definitions[] = {
             .validate_sig_scheme = s2n_security_rule_all_sig_schemes,
             .validate_cert_sig_scheme = s2n_security_rule_all_sig_schemes,
             .validate_curve = s2n_security_rule_all_curves,
+            .validate_version = s2n_security_rule_all_versions,
+    },
+    [S2N_FIPS_140_3] = {
+            .name = "FIPS 140-3 (2019)",
+            .validate_cipher_suite = s2n_fips_validate_cipher_suite,
+            .validate_sig_scheme = s2n_fips_validate_signature_scheme,
+            .validate_cert_sig_scheme = s2n_fips_validate_signature_scheme,
+            .validate_curve = s2n_fips_validate_curve,
+            .validate_version = s2n_fips_validate_version,
     },
 };
 
@@ -94,6 +111,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
 
     const char *error_msg_format_name = "%s: policy %s: %s: %s (#%i)";
     const char *error_msg_format_iana = "%s: policy %s: %s: %x (#%i)";
+    const char *error_msg_format_basic = "%s: policy %s: %s: %i";
 
     const struct s2n_cipher_preferences *cipher_prefs = policy->cipher_preferences;
     RESULT_ENSURE_REF(cipher_prefs);
@@ -101,6 +119,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
         const struct s2n_cipher_suite *cipher_suite = cipher_prefs->suites[i];
         RESULT_ENSURE_REF(cipher_suite);
         bool is_valid = false;
+        RESULT_ENSURE_REF(rule->validate_cipher_suite);
         RESULT_GUARD(rule->validate_cipher_suite(cipher_suite, &is_valid));
         RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
                 error_msg_format_name, rule->name, policy_name,
@@ -113,6 +132,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
         const struct s2n_signature_scheme *sig_scheme = sig_prefs->signature_schemes[i];
         RESULT_ENSURE_REF(sig_scheme);
         bool is_valid = false;
+        RESULT_ENSURE_REF(rule->validate_sig_scheme);
         RESULT_GUARD(rule->validate_sig_scheme(sig_scheme, &is_valid));
         RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
                 error_msg_format_iana, rule->name, policy_name,
@@ -125,6 +145,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
             const struct s2n_signature_scheme *sig_scheme = cert_sig_prefs->signature_schemes[i];
             RESULT_ENSURE_REF(sig_scheme);
             bool is_valid = false;
+            RESULT_ENSURE_REF(rule->validate_cert_sig_scheme);
             RESULT_GUARD(rule->validate_cert_sig_scheme(sig_scheme, &is_valid));
             RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
                     error_msg_format_iana, rule->name, policy_name,
@@ -138,11 +159,19 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
         const struct s2n_ecc_named_curve *curve = ecc_prefs->ecc_curves[i];
         RESULT_ENSURE_REF(curve);
         bool is_valid = false;
+        RESULT_ENSURE_REF(rule->validate_curve);
         RESULT_GUARD(rule->validate_curve(curve, &is_valid));
         RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
                 error_msg_format_name, rule->name, policy_name,
                 "curve", curve->name, i + 1));
     }
+
+    bool is_valid = false;
+    RESULT_ENSURE_REF(rule->validate_version);
+    RESULT_GUARD(rule->validate_version(policy->minimum_protocol_version, &is_valid));
+    RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
+            error_msg_format_basic, rule->name, policy_name,
+            "min version", policy->minimum_protocol_version));
 
     return S2N_RESULT_OK;
 }
