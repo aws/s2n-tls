@@ -95,3 +95,25 @@ where
     );
     Ok((client?, server?))
 }
+
+pub async fn get_tls_streams<A: Builder, B: Builder>(
+    server_builder: A,
+    client_builder: B,
+) -> Result<
+    (
+        TlsStream<TcpStream, A::Output>,
+        TlsStream<TcpStream, B::Output>,
+    ),
+    Box<dyn std::error::Error>,
+>
+where
+    <A as Builder>::Output: Unpin,
+    <B as Builder>::Output: Unpin,
+{
+    let (server_stream, client_stream) = get_streams().await?;
+    let connector = TlsConnector::new(client_builder);
+    let acceptor = TlsAcceptor::new(server_builder);
+    let (client_tls, server_tls) =
+        run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
+    Ok((server_tls, client_tls))
+}
