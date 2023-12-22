@@ -187,8 +187,18 @@ fn build_vendored() {
 fn builder(libcrypto: &Libcrypto) -> cc::Build {
     let mut build = cc::Build::new();
 
+    if let Ok(cflags) = std::env::var("CFLAGS") {
+        // cc will read the CFLAGS env variable and prepend the compiler
+        // command with all flags and includes from it, which may conflict
+        // with the libcrypto includes we specify. To ensure the libcrypto
+        // includes show up first in the compiler command, we prepend our
+        // includes to CFLAGS.
+        std::env::set_var("CFLAGS", format!("-I {} {}", libcrypto.include, cflags));
+    } else {
+        build.include(&libcrypto.include);
+    };
+
     build
-        .include(&libcrypto.include)
         .include("lib")
         .include("lib/api")
         .flag("-std=c11")
