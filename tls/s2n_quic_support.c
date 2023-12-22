@@ -54,6 +54,11 @@ bool s2n_connection_is_quic_enabled(struct s2n_connection *conn)
     return (conn && conn->quic_enabled) || (conn && conn->config && conn->config->quic_enabled);
 }
 
+bool s2n_connection_are_session_tickets_enabled(struct s2n_connection *conn)
+{
+    return conn && conn->config && conn->config->use_tickets;
+}
+
 int s2n_connection_set_quic_transport_parameters(struct s2n_connection *conn,
         const uint8_t *data_buffer, uint16_t data_len)
 {
