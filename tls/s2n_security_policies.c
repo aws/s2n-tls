@@ -734,7 +734,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_10 = {
 const struct s2n_security_policy security_policy_pq_20231213 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20231213,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_12,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
@@ -742,17 +742,23 @@ const struct s2n_security_policy security_policy_pq_20231213 = {
 const struct s2n_security_policy security_policy_pq_20231214 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20231214,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_12,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_FIPS_140_3] = true,
+    },
 };
 
 const struct s2n_security_policy security_policy_pq_20231215 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_kms_fips_tls_1_2_2021_08,
-    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_06,
+    .kem_preferences = &kem_preferences_pq_tls_1_3_2023_12,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_FIPS_140_3] = true,
+    },
 };
 
 const struct s2n_security_policy security_policy_kms_fips_tls_1_2_2018_10 = {
