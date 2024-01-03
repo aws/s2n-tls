@@ -134,8 +134,6 @@ function test_toolchain_counts {
     echo -e "gnutls-serv:\t $(gnutls-serv --version |grep -c 'gnutls-serv 3.8')"
     echo -e "Nix Python:\t $(which python|grep -c '/nix/store')"
     echo -e "Nix pytest:\t $(which pytest|grep -c '/nix/store')"
-    echo -e "Nix sslyze:\t $(which sslyze|grep -c '/nix/store')"
-    echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
 }
 
 function test_nonstandard_compilation {
