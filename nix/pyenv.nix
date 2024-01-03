@@ -18,33 +18,13 @@ let
       propagatedBuildInputs = [ pyOpenSSL ];
 
     };
-  sslyze = with pythonPkgs;
-    buildPythonPackage rec {
-      pname = "sslyze";
-      version = "5.1.1";
-      src = fetchPypi {
-        inherit pname version;
-        sha256 = "sha256-F+3wMSGQSyi+THWTjbGS33Bua+G6FyuHQRNZIc/WYeU=";
-      };
-      propagatedBuildInputs = [
-        nassl # >=4.0.1,<5.0.0 TODO: check if this version is correct/if it matters
-        cryptography # >=2.6,<37.0.0 TODO: check if this version is correct/if it matters
-        tls-parser # >=2.0.0,<3.0.0 TODO: check if this version is correct/if it matters
-        pydantic # >=1.7,<1.9 TODO: check if this version is correct/if it matters
-      ];
-    };
-in pkgs.python310.withPackages (ps:
-  [
-    ps.pep8
-    ps.pytest
-    ps.pytest-xdist
-    ps.pytest-rerunfailures
-    ps.typing-extensions
-    ps.setuptools-rust
-    ps.cryptography
-  ] ++ (if pkgs.stdenv.hostPlatform.system == "x86_64-linux" then [
-    nassl
-    sslyze
-  ] else
-    [ ]))
+in pkgs.python310.withPackages (ps: [
+  ps.pep8
+  ps.pytest
+  ps.pytest-xdist
+  ps.pytest-rerunfailures
+  ps.typing-extensions
+  ps.setuptools-rust
+  ps.cryptography
+])
 
