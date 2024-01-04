@@ -10,10 +10,6 @@
 # immediately bail if any command fails
 set -e
 
-# go to directory certs are located
-mkdir -p "$(dirname "$0")"/../certs
-pushd "$(dirname "$0")"/../certs > /dev/null
-
 # Generates certs with given algorithms and bits in $1$2/, ex. ec384/
 # $1: rsa or ec
 # $2: number of bits
@@ -23,10 +19,11 @@ cert-gen () {
 
     key_family=$1
     key_size=$2
-    dir_name=$3
+    digest=$3
+    dir_name=$4
 
     # set openssl argument name
-    if [[ $key_family == rsa ]]; then
+    if [[ $key_family == rsa || $key_family == rsa-pss ]]; then
         local argname=rsa_keygen_bits:
     elif [[ $key_family == ec ]]; then
         local argname=ec_paramgen_curve:P-
@@ -45,6 +42,7 @@ cert-gen () {
     # The advantage of manually specifying the extensions is that there is no
     # dependency on any openssl config files
 
+    # we pass in the digest here because it is self signed
     echo "generating CA private key and certificate"
     openssl req -new -noenc -x509 \
             -newkey $key_family \
@@ -52,6 +50,7 @@ cert-gen () {
             -keyout  ca-key.pem \
             -out ca-cert.pem \
             -days 65536 \
+            -$digest \
             -subj "/C=US/CN=root" \
             -addext "basicConstraints = critical,CA:true" \
             -addext "keyUsage = critical,keyCertSign"
@@ -87,6 +86,7 @@ cert-gen () {
     echo "generating intermediate certificate and signing it"
     openssl x509 -days 65536 \
             -req -in intermediate.csr \
+            -$digest \
             -CA ca-cert.pem \
             -CAkey ca-key.pem \
             -CAcreateserial \
@@ -96,6 +96,7 @@ cert-gen () {
     echo "generating server certificate and signing it"
     openssl x509 -days 65536 \
             -req -in server.csr \
+            -$digest \
             -CA intermediate-cert.pem \
             -CAkey intermediate-key.pem \
             -CAcreateserial -out server-cert.pem \
@@ -104,6 +105,7 @@ cert-gen () {
     echo "generating client certificate and signing it"
     openssl x509 -days 65536 \
             -req -in client.csr \
+            -$digest \
             -CA ca-cert.pem \
             -CAkey ca-key.pem \
             -CAcreateserial -out client-cert.pem \
@@ -126,20 +128,34 @@ cert-gen () {
     rm intermediate.csr
     rm client.csr
     rm ca-key.pem
+    rm ca-cert.srl
+    rm intermediate-cert.srl
 
     cd ..
 }
 
 if [[ $1 != "clean" ]]
 then
-    cert-gen ec 256 ecdsa256
-    cert-gen ec 384 ecdsa384
-    cert-gen rsa 2048 rsa2048
-    cert-gen rsa 3072 rsa3072
-    cert-gen rsa 4096 rsa4096
+    #         type       key_size     digest    directory
+    cert-gen   ec          256        SHA256      ecdsa_p256_sha256
+    cert-gen   ec          256        SHA384      ecdsa_p256_sha384
+    cert-gen   ec          384        SHA256      ecdsa_p384_sha256
+    cert-gen   ec          384        SHA384      ecdsa_p384_sha384
+    cert-gen   ec          521        SHA256      ecdsa_p521_sha256
+    cert-gen   ec          521        SHA384      ecdsa_p521_sha384
+    cert-gen   rsa         2048       SHA256      rsa_2048_sha256
+    cert-gen   rsa         2048       SHA384      rsa_2048_sha384
+    cert-gen   rsa         3072       SHA256      rsa_3072_sha256
+    cert-gen   rsa         3072       SHA384      rsa_3072_sha384
+    cert-gen   rsa         4096       SHA256      rsa_4096_sha256
+    cert-gen   rsa         4096       SHA384      rsa_4096_sha384
+    cert-gen   rsa-pss     2048       SHA256      rsapss_2048_sha256
+    cert-gen   rsa-pss     2048       SHA384      rsapss_2048_sha384
+    cert-gen   rsa-pss     3072       SHA256      rsapss_3072_sha256
+    cert-gen   rsa-pss     3072       SHA384      rsapss_3072_sha384
+    cert-gen   rsa-pss     4096       SHA256      rsapss_4096_sha256
+    cert-gen   rsa-pss     4096       SHA384      rsapss_4096_sha384
 else
     echo "cleaning certs"
-    rm -rf ecdsa*/ rsa*/
+    rm -rf ecdsa* rsa*
 fi
-
-popd > /dev/null

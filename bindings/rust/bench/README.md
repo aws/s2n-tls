@@ -11,7 +11,6 @@ All benchmarks are run in an idealized environment, using only a single thread a
 ../generate.sh
 
 # set up bench crate
-scripts/generate-certs.sh
 scripts/install-aws-lc.sh
 
 # run all benchmarks (s2n-tls with AWS-LC)
