@@ -731,6 +731,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2023_10_10 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
+/* General purpose "mostly" FIPS + PQ policy (with the exception of supporting RSA Key Exchange for backwards compatibility). */
 const struct s2n_security_policy security_policy_pq_20231213 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20231213,
@@ -739,6 +740,7 @@ const struct s2n_security_policy security_policy_pq_20231213 = {
     .ecc_preferences = &s2n_ecc_preferences_20201021,
 };
 
+/* General purpose FIPS + PQ policy that meets all current FIPS requirements. */
 const struct s2n_security_policy security_policy_pq_20231214 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20231214,
@@ -750,6 +752,7 @@ const struct s2n_security_policy security_policy_pq_20231214 = {
     },
 };
 
+/* FIPS + PQ Policy that uses KMS's FIPS cipher preference list and meets all current FIPS requirements. */
 const struct s2n_security_policy security_policy_pq_20231215 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_kms_fips_tls_1_2_2021_08,
