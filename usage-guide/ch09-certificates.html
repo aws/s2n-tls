@@ -1,0 +1,291 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Certificates and Authentication</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="ch00-introduction.html">Introduction</a></li><li class="chapter-item expanded "><a href="ch01-api.html"><strong aria-hidden="true">1.</strong> s2n-tls API</a></li><li class="chapter-item expanded "><a href="ch02-initialization.html"><strong aria-hidden="true">2.</strong> Initialization and Teardown</a></li><li class="chapter-item expanded "><a href="ch03-error-handling.html"><strong aria-hidden="true">3.</strong> Error Handling</a></li><li class="chapter-item expanded "><a href="ch04-connection.html"><strong aria-hidden="true">4.</strong> TLS Connections</a></li><li class="chapter-item expanded "><a href="ch05-config.html"><strong aria-hidden="true">5.</strong> Configuring the Connection</a></li><li class="chapter-item expanded "><a href="ch06-security-policies.html"><strong aria-hidden="true">6.</strong> Security Policies</a></li><li class="chapter-item expanded "><a href="ch07-io.html"><strong aria-hidden="true">7.</strong> IO</a></li><li class="chapter-item expanded "><a href="ch08-record-sizes.html"><strong aria-hidden="true">8.</strong> TLS Record Sizes</a></li><li class="chapter-item expanded "><a href="ch09-certificates.html" class="active"><strong aria-hidden="true">9.</strong> Certificates and Authentication</a></li><li class="chapter-item expanded "><a href="ch10-client-hello.html"><strong aria-hidden="true">10.</strong> Examining the Client Hello</a></li><li class="chapter-item expanded "><a href="ch11-resumption.html"><strong aria-hidden="true">11.</strong> Session Resumption</a></li><li class="chapter-item expanded "><a href="ch12-private-key-ops.html"><strong aria-hidden="true">12.</strong> Offloading Private Key Operations</a></li><li class="chapter-item expanded "><a href="ch13-preshared-keys.html"><strong aria-hidden="true">13.</strong> Pre-shared Keys</a></li><li class="chapter-item expanded "><a href="ch14-early-data.html"><strong aria-hidden="true">14.</strong> Early Data</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="certificates-and-authentication"><a class="header" href="#certificates-and-authentication">Certificates and Authentication</a></h1>
+<p>TLS uses certificates to authenticate the server (and optionally the client). The handshake will fail if the client cannot verify the server’s certificate.</p>
+<p>Authentication is usually the most expensive part of the handshake. To avoid the cost, consider using <a href="./ch11-resumption.html">session resumption</a> or <a href="./ch13-preshared-keys.html">pre-shared keys</a>.</p>
+<h2 id="configuring-the-trust-store"><a class="header" href="#configuring-the-trust-store">Configuring the Trust Store</a></h2>
+<p>To validate the peer’s certificate, a config's local “trust store” must contain a certificate
+that can authenticate the peer’s certificate. To add certificates to the trust store, call
+<code>s2n_config_set_verification_ca_location()</code> or <code>s2n_config_add_pem_to_trust_store()</code>.</p>
+<p><code>s2n_config_new()</code> initializes the trust store with the default system certificates, which may
+include public CAs or other unexpected certificates. If s2n-tls is verifying certificates and does
+not require these default system certificates, they should be cleared with
+<code>s2n_config_wipe_trust_store()</code> before calling <code>s2n_config_set_verification_ca_location()</code> or
+<code>s2n_config_add_pem_to_trust_store()</code>.</p>
+<p>Note that the <code>s2n_verify_host_fn</code> callback must be implemented to validate the identity of all
+received certificates. A client implementation is set by default. If the identity of the received
+certificates are implicit (i.e. the certificates are self-signed, or signed by a privately owned
+CA), the <code>s2n_verify_host_fn</code> callback need not perform any additional validation. However,
+<code>s2n_config_wipe_trust_store()</code> should be called before adding certificates to the trust store in
+this case, in order to avoid implicitly trusting the identity of peers that may present
+certificates trusted via an unexpected default system certificate.</p>
+<p>Configs created with <code>s2n_config_new_minimal()</code> are initialized with empty trust stores. To add
+default system certificates to these configs, call <code>s2n_config_load_system_certs()</code>.</p>
+<h2 id="server-authentication"><a class="header" href="#server-authentication">Server Authentication</a></h2>
+<p>A server must have a certificate and private key pair to prove its identity. s2n-tls supports RSA, RSA-PSS, and ECDSA certificates, and allows one of each type to be added to a config.</p>
+<p>Create a new certificate and key pair by calling <code>s2n_cert_chain_and_key_new()</code>, then load the pem-encoded data with <code>s2n_cert_chain_and_key_load_pem_bytes()</code>.  Call <code>s2n_config_add_cert_chain_and_key_to_store()</code> to add the certificate and key pair to the config. When a certificate and key pair is no longer needed, it must be cleaned up with <code>s2n_cert_chain_and_key_free()</code>.</p>
+<p>A client can add restrictions on the certificate’s hostname by setting a custom <code>s2n_verify_host_fn</code> with <code>s2n_config_set_verify_host_callback()</code> or <code>s2n_connection_set_verify_host_callback()</code>. The default behavior is to require that the hostname match the server name set with <code>s2n_set_server_name()</code>.</p>
+<h2 id="client--mutual-authentication"><a class="header" href="#client--mutual-authentication">Client / Mutual Authentication</a></h2>
+<p>Client authentication is not enabled by default. However, the server can require that the client also provide a certificate, if the server needs to authenticate clients before accepting connections.</p>
+<p>Client authentication can be configured by calling <code>s2n_config_set_client_auth_type()</code> or <code>s2n_connection_set_client_auth_type()</code> for both the client and server. Additionally, the client will need to load a certificate and key pair as described for the server in <a href="#server-authentication">Server Authentication</a> and the server will need to configure its trust store as described in <a href="#configuring-the-trust-store">Configuring the Trust Store</a>.</p>
+<p>When using client authentication, the server MUST implement the <code>s2n_verify_host_fn</code>, because the default behavior will likely reject all client certificates.</p>
+<p>When using client authentication with TLS1.3, <code>s2n_negotiate</code> will report a successful
+handshake to clients before the server validates the client certificate. If the server then
+rejects the client certificate, the client may later receive an alert while calling <code>s2n_recv</code>,
+potentially after already having sent application data with <code>s2n_send</code>. This is a quirk of the
+TLS1.3 protocol message ordering: the server does not send any more handshake messages
+after the client sends the client certificate (see the <a href="https://www.rfc-editor.org/rfc/rfc8446.html#appendix-A.2">TLS1.3 state machine</a>).
+There is no security risk, since the client has already authenticated the server,
+but it could make handshake failures and authentication errors more difficult to handle.</p>
+<h2 id="certificate-inspection"><a class="header" href="#certificate-inspection">Certificate Inspection</a></h2>
+<p>Applications may want to know which certificate was used by a server for authentication during a connection, since servers can set multiple certificates. <code>s2n_connection_get_selected_cert()</code> will return the local certificate chain object used to authenticate. <code>s2n_connection_get_peer_cert_chain()</code> will provide the peer's certificate chain, if they sent one. Use <code>s2n_cert_chain_get_length()</code> and <code>s2n_cert_chain_get_cert()</code> to parse the certificate chain object and get a single certificate from the chain. Use <code>s2n_cert_get_der()</code> to get the DER encoded certificate if desired.</p>
+<p>Additionally s2n-tls has functions for parsing certificate extensions on a certificate. Use <code>s2n_cert_get_x509_extension_value_length()</code> and <code>s2n_cert_get_x509_extension_value()</code> to obtain a specific DER encoded certificate extension from a certificate. <code>s2n_cert_get_utf8_string_from_extension_data_length()</code> and <code>s2n_cert_get_utf8_string_from_extension_data()</code> can be used to obtain a specific UTF8 string representation of a certificate extension instead. These functions will work for both RFC-defined certificate extensions and custom certificate extensions.</p>
+<h2 id="certificate-revocation"><a class="header" href="#certificate-revocation">Certificate Revocation</a></h2>
+<p>Certificate revocation is how CAs inform validators that an active certificate should not be trusted. This commonly occurs when a private key has been leaked and the identity of the certificate's owner can no longer be trusted.</p>
+<p>s2n-tls supports two methods of certificate revocation: OCSP stapling and CRLs. A fundamental difference between the two is that with OCSP stapling, the peer offering the certificate validates the revocation status of its own certificate. This peer can choose not to send a certificate status response, and applications will have to decide whether or not to fail certificate validation in this case. With CRLs, the application checks the revocation status of the certificate itself, without relying on the peer. However, CRLs must be retrieved and stored by the application, which requires more network and memory utilization than OCSP stapling.</p>
+<p>Users who want certificate revocation should look closely at their use-case and decide which method is more appropriate. We suggest using OCSP stapling if you're sure your peer supports OCSP stapling. CRLs should be used if this assumption can't be made. However, s2n-tls does not enable applications to fetch CRLs for received certificates in real-time. This method should only be used if you're able to obtain CRLs in advance for all certificates you expect to encounter.</p>
+<h3 id="ocsp-stapling"><a class="header" href="#ocsp-stapling">OCSP Stapling</a></h3>
+<p>Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.</p>
+<p>OCSP stapling can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.</p>
+<p>To use OCSP stapling, the requester must call <code>s2n_config_set_status_request_type()</code> with S2N_STATUS_REQUEST_OCSP. The responder will need to call <code>s2n_cert_chain_and_key_set_ocsp_data()</code> to set the raw bytes of the OCSP stapling data.</p>
+<p>The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. <code>s2n_config_set_check_stapled_ocsp_response()</code> can be called with &quot;0&quot; to turn this off. Call <code>s2n_connection_get_ocsp_response()</code> to retrieve the received OCSP stapling information for manual verification.</p>
+<h2 id="crl-validation"><a class="header" href="#crl-validation">CRL Validation</a></h2>
+<blockquote>
+<p>Note: the CRL validation feature in s2n-tls is currently considered unstable, meaning the CRL APIs are subject to change in a future release. To access the CRL APIs, include <code>api/unstable/crl.h</code>.</p>
+</blockquote>
+<p>Certificate Revocation Lists (CRLs) are lists of issued, unexpired certificates that have been revoked by the CA. CAs publish updated versions of these lists periodically. A validator wishing to verify a certificate obtains a CRL from the CA, validates the CRL, and checks to ensure the certificate is not contained in the list, and therefore has not been revoked by the CA.</p>
+<p>The s2n CRL lookup callback must be implemented and set via <code>s2n_config_set_crl_lookup_cb()</code> to enable CRL validation in s2n-tls. This callback will be triggered once for each certificate in the certificate chain.</p>
+<p>The CRLs for all certificates received in the handshake must be obtained in advance of the CRL lookup callback, outside of s2n-tls. It is not possible in s2n-tls to obtain CRLs in real-time. Applications should load these CRLs into memory, by creating <code>s2n_crl</code>s via <code>s2n_crl_new()</code>, and adding the obtained CRL data via <code>s2n_crl_load_pem()</code>. The <code>s2n_crl</code> should be freed via <code>s2n_crl_free()</code> when no longer needed.</p>
+<p>The application must implement a way to look up the correct CRL for a given certificate. This can be done by comparing the hash of the received certificate's issuer with the hash of the CRL's issuer. The certificate's issuer hash is retrieved via <code>s2n_crl_lookup_get_cert_issuer_hash()</code>, and the CRL's issuer hash is retrieved via <code>s2n_crl_get_issuer_hash()</code>. Once a CRL is found with a matching issuer hash, call <code>s2n_crl_lookup_set()</code> to provide s2n-tls with this CRL.</p>
+<p>Call <code>s2n_crl_lookup_ignore()</code> to ignore a received certificate if its CRL can't be found. This will cause the certificate validation logic to fail with a <code>S2N_ERR_CRL_LOOKUP_FAILED</code> error if the certificate is needed in the chain of trust. The certificate validation logic will not fail if the ignored certificate ends up not being included in the chain of trust.</p>
+<p>By default, the CRL validation logic will not fail on CRLs that are not yet active, or are expired. Timestamp validation can optionally be performed in the CRL lookup callback by calling <code>s2n_crl_validate_active()</code> and <code>s2n_crl_validate_not_expired()</code>.</p>
+<h2 id="certificate-transparency"><a class="header" href="#certificate-transparency">Certificate Transparency</a></h2>
+<p>Certificate transparency is a framework to store public logs of CA-issued certificates. If requested, certificate owners can send a signed certificate timestamp (SCT) to prove that their certificate exists in these logs. The requester can choose whether or not to accept a certificate based on this information.</p>
+<p>Certificate transparency information can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.</p>
+<p>To use certificate transparency, the requester (usually the client) must call <code>s2n_config_set_ct_support_level()</code> with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call <code>s2n_cert_chain_and_key_set_sct_list()</code> to set the raw bytes of the transparency information.</p>
+<p>Call <code>s2n_connection_get_sct_list()</code> to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch08-record-sizes.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch10-client-hello.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch08-record-sizes.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch10-client-hello.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>

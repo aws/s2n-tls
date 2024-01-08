@@ -1,0 +1,293 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Offloading Private Key Operations</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+    </head>
+    <body class="sidebar-visible no-js">
+    <div id="body-container">
+        <!-- Provide site root to javascript -->
+        <script>
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "light";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('light')
+            html.classList.add(theme);
+            var body = document.querySelector('body');
+            body.classList.remove('no-js')
+            body.classList.add('js');
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            var body = document.querySelector('body');
+            var sidebar = null;
+            var sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+            }
+            sidebar_toggle.checked = sidebar === 'visible';
+            body.classList.remove('sidebar-visible');
+            body.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="ch00-introduction.html">Introduction</a></li><li class="chapter-item expanded "><a href="ch01-api.html"><strong aria-hidden="true">1.</strong> s2n-tls API</a></li><li class="chapter-item expanded "><a href="ch02-initialization.html"><strong aria-hidden="true">2.</strong> Initialization and Teardown</a></li><li class="chapter-item expanded "><a href="ch03-error-handling.html"><strong aria-hidden="true">3.</strong> Error Handling</a></li><li class="chapter-item expanded "><a href="ch04-connection.html"><strong aria-hidden="true">4.</strong> TLS Connections</a></li><li class="chapter-item expanded "><a href="ch05-config.html"><strong aria-hidden="true">5.</strong> Configuring the Connection</a></li><li class="chapter-item expanded "><a href="ch06-security-policies.html"><strong aria-hidden="true">6.</strong> Security Policies</a></li><li class="chapter-item expanded "><a href="ch07-io.html"><strong aria-hidden="true">7.</strong> IO</a></li><li class="chapter-item expanded "><a href="ch08-record-sizes.html"><strong aria-hidden="true">8.</strong> TLS Record Sizes</a></li><li class="chapter-item expanded "><a href="ch09-certificates.html"><strong aria-hidden="true">9.</strong> Certificates and Authentication</a></li><li class="chapter-item expanded "><a href="ch10-client-hello.html"><strong aria-hidden="true">10.</strong> Examining the Client Hello</a></li><li class="chapter-item expanded "><a href="ch11-resumption.html"><strong aria-hidden="true">11.</strong> Session Resumption</a></li><li class="chapter-item expanded "><a href="ch12-private-key-ops.html" class="active"><strong aria-hidden="true">12.</strong> Offloading Private Key Operations</a></li><li class="chapter-item expanded "><a href="ch13-preshared-keys.html"><strong aria-hidden="true">13.</strong> Pre-shared Keys</a></li><li class="chapter-item expanded "><a href="ch14-early-data.html"><strong aria-hidden="true">14.</strong> Early Data</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <!-- Track and set sidebar scroll position -->
+        <script>
+            var sidebarScrollbox = document.querySelector('#sidebar .sidebar-scrollbox');
+            sidebarScrollbox.addEventListener('click', function(e) {
+                if (e.target.tagName === 'A') {
+                    sessionStorage.setItem('sidebar-scroll', sidebarScrollbox.scrollTop);
+                }
+            }, { passive: true });
+            var sidebarScrollTop = sessionStorage.getItem('sidebar-scroll');
+            sessionStorage.removeItem('sidebar-scroll');
+            if (sidebarScrollTop) {
+                // preserve sidebar scroll position when navigating via links within sidebar
+                sidebarScrollbox.scrollTop = sidebarScrollTop;
+            } else {
+                // scroll sidebar to current active section when navigating via "next/previous chapter" buttons
+                var activeSection = document.querySelector('#sidebar .active');
+                if (activeSection) {
+                    activeSection.scrollIntoView({ block: 'center' });
+                }
+            }
+        </script>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title"></h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="offloading-private-key-operations"><a class="header" href="#offloading-private-key-operations">Offloading Private Key Operations</a></h1>
+<p>By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
+and decryption operations required for a tls handshake. However, this default behavior may not
+work for some situations.</p>
+<p>For example:</p>
+<ul>
+<li>An application may want to perform the CPU-expensive signature and decryption operations
+asynchronously to avoid blocking the main event loop.
+See <a href="#asynchronous-private-key-operations">Asynchronous private key operations</a></li>
+<li>An application may not have direct access to the private key, such as when using PKCS#11.
+See <a href="#offloading-private-key-operations-1">Offloading private key operations</a></li>
+</ul>
+<p>To handle these use cases, s2n-tls provides a callback to allow users to control how these operations
+are performed. The callback is set via <code>s2n_config_set_async_pkey_callback()</code> and is triggered
+every time <code>s2n_negotiate()</code> performs an action involving the private key. The callback is passed
+<strong>op</strong>, an opaque object representing the private key operation. To avoid memory leaks, <strong>op</strong> must
+always eventually be freed by calling <code>s2n_async_pkey_op_free()</code>.</p>
+<p>The private key operation can be performed by calling <code>s2n_async_pkey_op_perform()</code>
+(or <code>s2n_async_pkey_op_set_output()</code>: see <a href="#offloading-private-key-operations-1">Offloading private key operations</a>).
+The required private key can be retrieved using the <code>s2n_connection_get_selected_cert()</code> and <code>s2n_cert_chain_and_key_get_private_key()</code> calls. The operation can then be finalized with <code>s2n_async_pkey_op_apply()</code> to continue the handshake.</p>
+<h2 id="asynchronous-private-key-operations"><a class="header" href="#asynchronous-private-key-operations">Asynchronous Private Key Operations</a></h2>
+<p>When s2n-tls is used in non-blocking mode, private key operations can be completed
+asynchronously. This model can be useful to move execution of
+CPU-heavy private key operations out of the main
+event loop, preventing <code>s2n_negotiate()</code> from blocking the loop for a few
+milliseconds each time the private key operation needs to be performed.</p>
+<p>To handle private key operations asynchronously, return from the callback without calling
+<code>s2n_async_pkey_op_perform()</code> or <code>s2n_async_pkey_op_apply()</code>. Usually the user would do this
+by spawning a separate thread to perform <strong>op</strong> and immediately returning <strong>S2N_SUCCESS</strong>
+from the callback without waiting for that separate thread to complete. In response,
+<code>s2n_negotiate()</code> will return <strong>S2N_FAILURE</strong> with an error of type <strong>S2N_ERR_T_BLOCKED</strong>
+and <strong>s2n_blocked_status</strong> set to <strong>S2N_BLOCKED_ON_APPLICATION_INPUT</strong>.
+All subsequent calls to <code>s2n_negotiate()</code> will produce the same result until <code>s2n_async_pkey_op_apply()</code>
+is called to finalize the <strong>op</strong>.</p>
+<p>Note: It is not safe to call multiple functions on the same <strong>conn</strong> or
+<strong>op</strong> objects from 2 different threads at the same time. Doing so will
+produce undefined behavior. However it is safe to have a call to a
+function involving only <strong>conn</strong> at the same time as a call to a
+function involving only <strong>op</strong>, as those objects are not coupled with
+each other. It is also safe to free <strong>conn</strong> or <strong>op</strong> at any moment with
+respective function calls, with the exception that <strong>conn</strong> cannot
+be freed inside the <code>s2n_async_pkey_fn()</code> callback.</p>
+<h2 id="synchronous-private-key-operations"><a class="header" href="#synchronous-private-key-operations">Synchronous Private Key Operations</a></h2>
+<p>Despite the &quot;async&quot; in the function names, private key operations can also be completed synchronously using the callback.
+To complete an operation synchronously, simply call <code>s2n_async_pkey_op_perform()</code> and <code>s2n_async_pkey_op_apply()</code> inside the callback.
+If the callback succeeds, the handshake will continue uninterrupted.
+If the callback fails, <code>s2n_negotiate()</code> will fail with an error of type <strong>S2N_ERR_T_INTERNAL</strong>.</p>
+<h2 id="offloading-private-key-operations-1"><a class="header" href="#offloading-private-key-operations-1">Offloading Private Key Operations</a></h2>
+<p>The <code>s2n_async_pkey_op_perform()</code> call used to perform a private key operation requires
+direct access to the private key. In some cases, like when using PKCS#11, users may not
+have access to the private key. In these cases, we can substitute <code>s2n_async_pkey_op_set_output()</code>
+for <code>s2n_async_pkey_op_perform()</code> to tell s2n-tls the result of the operation rather than
+having s2n-tls perform the operation itself.</p>
+<p>s2n-tls provides a number of calls to gather the information necessary for
+an outside module or library to perform the operation. The application can query the type of private
+key operation by calling <code>s2n_async_pkey_op_get_op_type()</code>. In order to perform
+an operation, the application must ask s2n-tls to copy the operation's input into an
+application supplied buffer. The appropriate buffer size can be determined by calling
+<code>s2n_async_pkey_op_get_input_size()</code>. Once a buffer of the proper size is
+allocated, the application can request the input data by calling <code>s2n_async_pkey_op_get_input()</code>.
+After the operation is completed, the finished output can be copied back to S2N by calling <code>s2n_async_pkey_op_set_output()</code>.
+Once the output is set, the private key operation can be completed by calling <code>s2n_async_pkey_op_apply()</code> as usual.</p>
+<p>Offloading can be performed either synchronously or asynchronously. If the offloaded operation
+fails synchronously, simply return <strong>S2N_FAILURE</strong> from the callback. If the offloaded operation
+fails asynchronously, s2n-tls does not provide a way to communicate that result. Instead,
+simply shutdown and cleanup the connection as you would for any other error.</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="ch11-resumption.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="ch13-preshared-keys.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="ch11-resumption.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="ch13-preshared-keys.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js"></script>
+        <script src="mark.min.js"></script>
+        <script src="searcher.js"></script>
+
+        <script src="clipboard.min.js"></script>
+        <script src="highlight.js"></script>
+        <script src="book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </div>
+    </body>
+</html>
