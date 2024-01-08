@@ -160,6 +160,7 @@ static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktl
 
     switch (conn->actual_protocol_version) {
         case S2N_TLS12:
+            RESULT_ENSURE(conn->prf_space, S2N_ERR_INVALID_STATE);
             RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
             break;
         case S2N_TLS13:
