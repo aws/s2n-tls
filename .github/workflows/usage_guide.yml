@@ -44,8 +44,8 @@ jobs:
         uses: JamesIves/github-pages-deploy-action@v4.5.0
         if: github.event_name == 'push'
         with:
-          destination_dir: usage-guide
-          publish_dir: docs/usage-guide/book
+          target-folder: usage-guide
+          folder: docs/usage-guide/book
   
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4.0.1
