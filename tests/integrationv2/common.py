@@ -350,6 +350,21 @@ class Curves(object):
     P256 = Curve("P-256")
     P384 = Curve("P-384")
     P521 = Curve("P-521")
+    SecP256r1Kyber768Draft00 = Curve("SecP256r1Kyber768Draft00")
+    X25519Kyber768Draft00 = Curve("X25519Kyber768Draft00")
+
+    @staticmethod
+    def from_name(name):
+        curves = [
+            curve for attr in vars(Curves)
+            if not callable(curve := getattr(Curves, attr))
+            and not attr.startswith("_")
+            and curve.name
+        ]
+        return {
+            curve.name: curve
+            for curve in curves
+        }.get(name)
 
 
 class KemGroup(object):
@@ -369,6 +384,8 @@ class KemGroups(object):
     P256_KYBER512R3 = KemGroup("p256_kyber512")
     P384_KYBER768R3 = KemGroup("p384_kyber768")
     P521_KYBER1024R3 = KemGroup("p521_kyber1024")
+    SecP256r1Kyber768Draft00 = KemGroup("SecP256r1Kyber768Draft00")
+    X25519Kyber768Draft00 = KemGroup("X25519Kyber768Draft00")
 
 
 class Signature(object):

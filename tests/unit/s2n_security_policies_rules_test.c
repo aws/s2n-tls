@@ -34,7 +34,7 @@ int main(int argc, char **argv)
         int output_size = s2n_stuffer_data_available(&result.output);
         char *output_str = s2n_stuffer_raw_read(&result.output, output_size);
         EXPECT_NOT_NULL(output_str);
-        fprintf(stdout, "%.*s", output_size, output_str);
+        fprintf(stdout, "\n%.*s", output_size, output_str);
         FAIL_MSG("Security policies violate configured policy rules. See stdout for details.");
     }
 
