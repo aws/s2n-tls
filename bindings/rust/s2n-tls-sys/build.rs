@@ -97,10 +97,6 @@ fn build_vendored() {
         }
     }
 
-    if option_env("CARGO_FEATURE_PQ").is_none() {
-        build.define("S2N_NO_PQ", "1");
-    }
-
     let out_dir = PathBuf::from(env("OUT_DIR"));
 
     let features = FeatureDetector::new(&out_dir, &libcrypto);
