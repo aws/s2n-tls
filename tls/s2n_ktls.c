@@ -15,7 +15,10 @@
 
 #include "tls/s2n_ktls.h"
 
+#include "crypto/s2n_ktls_crypto.h"
 #include "tls/s2n_prf.h"
+#include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_key_schedule.h"
 
 /* Used for overriding setsockopt calls in testing */
 s2n_setsockopt_fn s2n_setsockopt = setsockopt;
@@ -41,35 +44,45 @@ static int s2n_ktls_disabled_read(void *io_context, uint8_t *buf, uint32_t len)
     POSIX_BAIL(S2N_ERR_IO);
 }
 
-static int s2n_ktls_disabled_write(void *io_context, const uint8_t *buf, uint32_t len)
-{
-    POSIX_BAIL(S2N_ERR_IO);
-}
-
 static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
-    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
-    RESULT_ENSURE_REF(cipher);
+    const struct s2n_config *config = conn->config;
+    RESULT_ENSURE_REF(config);
 
     RESULT_ENSURE(s2n_ktls_is_supported_on_platform(), S2N_ERR_KTLS_UNSUPPORTED_PLATFORM);
 
     /* kTLS enable should only be called once the handshake has completed. */
     RESULT_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
-    /* TODO support TLS 1.3
+    /* For now, only allow TlS1.3 if explicitly enabled.
      *
-     * TLS 1.3 support requires sending the KeyUpdate message when the cryptographic
-     * key usage limits are met. However, this is currently only possible by applying a
-     * kernel patch to support this functionality.
+     * TLS1.3 is potentially more dangerous to enable than TLS1.2, since the kernel
+     * does not currently support updating TLS keys and therefore will fail if
+     * KeyUpdate messages are encountered.
      */
-    RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    bool version_supported = (conn->actual_protocol_version == S2N_TLS12)
+            || (conn->config->ktls_tls13_enabled && conn->actual_protocol_version == S2N_TLS13);
+    RESULT_ENSURE(version_supported, S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
     /* Check if the cipher supports kTLS */
-    RESULT_ENSURE(cipher->ktls_supported, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE(cipher->set_ktls_info, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+
+    /* Renegotiation requires updating the keys, which kTLS doesn't currently support.
+     *
+     * Setting the renegotiation callback doesn't guarantee that a client will
+     * attempt to renegotiate. The callback can also be used to send warning alerts
+     * signaling that renegotiation was rejected. However, we can provide applications
+     * with a clearer signal earlier by preventing them from enabling ktls on a
+     * connection that MIGHT require renegotiation. We can relax this restriction
+     * later if necessary.
+     */
+    bool may_receive_hello_request = s2n_result_is_ok(s2n_client_hello_request_validate(conn));
+    bool may_renegotiate = may_receive_hello_request && config->renegotiate_request_cb;
+    RESULT_ENSURE(!may_renegotiate, S2N_ERR_KTLS_RENEG);
 
     /* kTLS I/O functionality is managed by s2n-tls. kTLS cannot be enabled if the
      * application sets custom I/O (managed_send_io == false means application has
@@ -126,171 +139,143 @@ static S2N_RESULT s2n_ktls_get_io_mode(s2n_ktls_mode ktls_mode, int *tls_tx_rx_m
     return S2N_RESULT_OK;
 }
 
-#if defined(S2N_KTLS_SUPPORTED)
-S2N_RESULT s2n_ktls_init_aes128_gcm_crypto_info(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
-        struct s2n_key_material *key_material, struct tls12_crypto_info_aes_gcm_128 *crypto_info)
+static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
+        struct s2n_ktls_crypto_info *crypto_info)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->client);
-    RESULT_ENSURE_REF(conn->server);
-    RESULT_ENSURE_REF(key_material);
-    RESULT_ENSURE_REF(crypto_info);
-    RESULT_ENSURE_REF(conn->secure);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite);
-    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
-    const struct s2n_cipher *cipher = conn->secure->cipher_suite->record_alg->cipher;
-    RESULT_ENSURE_REF(cipher);
+    struct s2n_crypto_parameters *secure = conn->secure;
+    RESULT_ENSURE_REF(secure);
 
-    RESULT_ENSURE(cipher == &s2n_aes128_gcm, S2N_ERR_KTLS_UNSUPPORTED_CONN);
-    RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
-    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_128;
-    crypto_info->info.version = TLS_1_2_VERSION;
+    /* In order to avoid storing the encryption keys on the connection, we instead
+     * regenerate them when required by ktls.
+     *
+     * s2n_key_material also includes an IV, but we should use the IV stored
+     * on the connection instead. Some record algorithms (like CBC) mutate the
+     * "implicit_iv" when writing records, so the IV may change after generation.
+     */
+    struct s2n_key_material key_material = { 0 };
 
-    /* set values based on mode of operation */
-    struct s2n_blob *key = NULL;
-    struct s2n_blob implicit_iv = { 0 };
-    struct s2n_blob sequence_number = { 0 };
+    bool is_sending_key = (ktls_mode == S2N_KTLS_MODE_SEND);
+    s2n_mode key_mode = (is_sending_key) ? conn->mode : S2N_PEER_MODE(conn->mode);
 
-    bool server_sending = (conn->mode == S2N_SERVER && ktls_mode == S2N_KTLS_MODE_SEND);
-    bool client_receiving = (conn->mode == S2N_CLIENT && ktls_mode == S2N_KTLS_MODE_RECV);
-    if (server_sending || client_receiving) {
-        /* If server is sending or client is receiving then use server key material */
-        key = &key_material->server_key;
-        RESULT_GUARD_POSIX(s2n_blob_init(&implicit_iv, conn->server->server_implicit_iv, sizeof(conn->server->server_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->server->server_sequence_number, sizeof(conn->server->server_sequence_number)));
-    } else {
-        key = &key_material->client_key;
-        RESULT_GUARD_POSIX(s2n_blob_init(&implicit_iv, conn->client->client_implicit_iv, sizeof(conn->client->client_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&sequence_number, conn->client->client_sequence_number, sizeof(conn->client->client_sequence_number)));
+    switch (conn->actual_protocol_version) {
+        case S2N_TLS12:
+            RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
+            break;
+        case S2N_TLS13:
+            RESULT_GUARD(s2n_tls13_key_schedule_generate_key_material(
+                    conn, key_mode, &key_material));
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_CONN);
     }
 
-    /* The salt is the first 4 bytes of the IV.
-     *
-     *= https://www.rfc-editor.org/rfc/rfc4106#section-4
-     *# The salt field is a four-octet value that is assigned at the
-     *# beginning of the security association, and then remains constant
-     *# for the life of the security association.
-     */
-    RESULT_ENSURE_GTE(implicit_iv.size, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->salt, implicit_iv.data, TLS_CIPHER_AES_GCM_128_SALT_SIZE);
+    struct s2n_ktls_crypto_info_inputs inputs = { 0 };
+    if (key_mode == S2N_CLIENT) {
+        inputs.key = key_material.client_key;
+        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
+                secure->client_implicit_iv, sizeof(secure->client_implicit_iv)));
+    } else {
+        inputs.key = key_material.server_key;
+        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
+                secure->server_implicit_iv, sizeof(secure->server_implicit_iv)));
+    }
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, key_mode, &inputs.seq));
 
-    RESULT_ENSURE_GTE(implicit_iv.size, TLS_CIPHER_AES_GCM_128_IV_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->iv, implicit_iv.data, TLS_CIPHER_AES_GCM_128_IV_SIZE);
-
-    RESULT_ENSURE_EQ(sequence_number.size, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, sequence_number.data, TLS_CIPHER_AES_GCM_128_REC_SEQ_SIZE);
-
-    RESULT_ENSURE_EQ(key->size, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-    RESULT_CHECKED_MEMCPY(crypto_info->key, key->data, TLS_CIPHER_AES_GCM_128_KEY_SIZE);
-
+    const struct s2n_cipher *cipher = NULL;
+    RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
+    RESULT_ENSURE_REF(cipher);
+    RESULT_ENSURE_REF(cipher->set_ktls_info);
+    RESULT_GUARD(cipher->set_ktls_info(&inputs, crypto_info));
     return S2N_RESULT_OK;
 }
-#endif
 
-static S2N_RESULT s2n_ktls_set_keys(struct s2n_connection *conn, s2n_ktls_mode ktls_mode,
-        struct s2n_key_material *key_material)
+/* This method intentionally returns void because it may NOT perform any fallible
+ * operations. See s2n_connection_ktls_enable.
+ */
+void s2n_ktls_configure_connection(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
+{
+    if (conn == NULL) {
+        return;
+    }
+    if (ktls_mode == S2N_KTLS_MODE_SEND) {
+        conn->ktls_send_enabled = true;
+        conn->send = s2n_ktls_send_cb;
+    } else {
+        conn->ktls_recv_enabled = true;
+        conn->recv = s2n_ktls_disabled_read;
+    }
+}
+
+static S2N_RESULT s2n_connection_ktls_enable(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
 {
     RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(key_material);
+    RESULT_GUARD(s2n_ktls_validate(conn, ktls_mode));
 
     int fd = 0;
     RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, ktls_mode, &fd));
+
+    /* This call doesn't actually enable ktls or modify the IO behavior of the socket.
+     * Instead, this is just a prerequisite for calling setsockopt with SOL_TLS.
+     *
+     * We intentionally ignore the result of this call. It may fail because ktls
+     * is not supported, but it might also fail because ktls has already been enabled
+     * for the socket. If SOL_TLS isn't enabled on the socket, our next call to
+     * setsockopt with SOL_TLS will also fail, and we DO check that result.
+     */
+    s2n_setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
 
     int tls_tx_rx_mode = 0;
     RESULT_GUARD(s2n_ktls_get_io_mode(ktls_mode, &tls_tx_rx_mode));
-#if defined(S2N_KTLS_SUPPORTED)
-    /* Only AES_128_GCM for TLS 1.2 is supported at the moment. */
-    struct tls12_crypto_info_aes_gcm_128 crypto_info = { 0 };
-    RESULT_GUARD(s2n_ktls_init_aes128_gcm_crypto_info(conn, ktls_mode, key_material, &crypto_info));
 
-    /* Set crypto_info on the socket; enabling kTLS and offloading the TLS
-     * protocol to the kernel. */
-    int ret = s2n_setsockopt(fd, S2N_SOL_TLS, tls_tx_rx_mode, &crypto_info, sizeof(crypto_info));
-    if (ret < 0) {
-        RESULT_BAIL(S2N_ERR_KTLS_ENABLE_CRYPTO);
-    }
-#endif
+    struct s2n_ktls_crypto_info crypto_info = { 0 };
+    RESULT_GUARD(s2n_ktls_crypto_info_init(conn, ktls_mode, &crypto_info));
 
-    return S2N_RESULT_OK;
-}
+    /* If this call succeeds, then ktls is enabled for that io mode and will be offloaded */
+    int ret = s2n_setsockopt(fd, S2N_SOL_TLS, tls_tx_rx_mode, crypto_info.value.data, crypto_info.value.size);
+    RESULT_ENSURE(ret == 0, S2N_ERR_KTLS_ENABLE);
 
-static S2N_RESULT s2n_ktls_configure_socket(struct s2n_connection *conn, s2n_ktls_mode ktls_mode)
-{
-    RESULT_ENSURE_REF(conn);
-
-    int fd = 0;
-    RESULT_GUARD(s2n_ktls_get_file_descriptor(conn, ktls_mode, &fd));
-    /* Enable 'tls' ULP for the socket. https://lwn.net/Articles/730207
+    /* At this point, ktls is enabled on the socket for the requested IO mode.
+     * No further fallible operations may be performed, or else the caller may
+     * incorrectly assume that enabling ktls failed and they should therefore
+     * fall back to using application layer TLS.
      *
-     * Its not possible to detect kTLS support at compile time. We need rely on
-     * the call to setsockopt(..TCP_ULP...) to determine if kTLS is supported.
-     * This is a safe and non destructive operation on Linux.
+     * That means no calls to RESULT_ENSURE, RESULT_GUARD, etc. after this point.
      */
-    int ret = s2n_setsockopt(fd, S2N_SOL_TCP, S2N_TCP_ULP, S2N_TLS_ULP_NAME, S2N_TLS_ULP_NAME_SIZE);
-    if (ret < 0) {
-        /* https://github.com/torvalds/linux/blob/831fe284d8275987596b7d640518dddba5735f61/net/ipv4/tcp_ulp.c#L64-L65
-         *
-         * EEXIST indicates that TCP_ULP has already been enabled on the
-         * socket. This is a noop and therefore safe to ignore.
-         */
-        RESULT_ENSURE(errno == EEXIST, S2N_ERR_KTLS_ULP);
-    }
 
-    /* configure crypto */
-    struct s2n_key_material key_material = { 0 };
-    RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
-    RESULT_GUARD(s2n_ktls_set_keys(conn, ktls_mode, &key_material));
-
+    s2n_ktls_configure_connection(conn, ktls_mode);
     return S2N_RESULT_OK;
 }
 
-/*
- * Since kTLS is an optimization, it is possible to continue operation
- * by using userspace TLS if kTLS is not supported.
- *
- * kTLS configuration errors are recoverable since calls to setsockopt are
- * non-destructive and its possible to fallback to userspace.
- */
 int s2n_connection_ktls_enable_send(struct s2n_connection *conn)
 {
-    /* gate this feature only to tests until it is ready for release */
-    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
-
     POSIX_ENSURE_REF(conn);
-    POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_SEND));
 
     /* If already enabled then return success */
     if (conn->ktls_send_enabled) {
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_SEND));
-
-    conn->ktls_send_enabled = true;
-    /* kTLS now handles I/O for the connection */
-    conn->send = s2n_ktls_disabled_write;
-
+    POSIX_GUARD_RESULT(s2n_connection_ktls_enable(conn, S2N_KTLS_MODE_SEND));
     return S2N_SUCCESS;
 }
 
 int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
 {
-    /* gate this feature only to tests until it is ready for release */
-    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
-
     POSIX_ENSURE_REF(conn);
-    POSIX_GUARD_RESULT(s2n_ktls_validate(conn, S2N_KTLS_MODE_RECV));
 
     /* If already enabled then return success */
     if (conn->ktls_recv_enabled) {
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD_RESULT(s2n_ktls_configure_socket(conn, S2N_KTLS_MODE_RECV));
+    POSIX_GUARD_RESULT(s2n_connection_ktls_enable(conn, S2N_KTLS_MODE_RECV));
+    return S2N_SUCCESS;
+}
 
-    conn->ktls_recv_enabled = true;
-    /* kTLS now handles I/O for the connection */
-    conn->recv = s2n_ktls_disabled_read;
-
+int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+    config->ktls_tls13_enabled = true;
     return S2N_SUCCESS;
 }

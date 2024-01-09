@@ -2,7 +2,7 @@
 
 If you are curious about the internals of s2n-tls, or interested in contributing to
 s2n-tls, this document is for you. If instead you are interested in using s2n-tls in an application
-that you are developing, please see the accompanying [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md).
+that you are developing, please see the accompanying [Usage Guide](usage-guide).
 
 ## s2n-tls's development principles
 

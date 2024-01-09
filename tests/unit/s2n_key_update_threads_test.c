@@ -106,13 +106,7 @@ static S2N_RESULT s2n_send_and_recv_random_data(struct s2n_connection *conn)
 static S2N_RESULT s2n_sanity_check_key_updates_sent(struct s2n_connection *conn)
 {
     struct s2n_blob seq_num_blob = { 0 };
-    if (conn->mode == S2N_CLIENT) {
-        RESULT_GUARD_POSIX(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number,
-                sizeof(conn->secure->client_sequence_number)));
-    } else {
-        RESULT_GUARD_POSIX(s2n_blob_init(&seq_num_blob, conn->secure->server_sequence_number,
-                sizeof(conn->secure->server_sequence_number)));
-    }
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, conn->mode, &seq_num_blob));
 
     uint64_t seq_num = 0;
     RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num_blob, &seq_num));

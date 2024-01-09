@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+
+#
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+
+set -e
+
+# cd into the script directory so it can be executed from anywhere
+pushd "$(dirname "${BASH_SOURCE[0]}")"
+
+LOCAL_VERSION=$(cargo metadata --manifest-path ../Cargo.toml --no-deps --format-version 1 | jq --raw-output -c '.packages[] | select(.name == "s2n-tls").version')
+CRATES_IO_VERSION=$(cargo search "s2n-tls" --limit 1 | head -n 1 | cut -d'"' -f2)
+
+# Exits with 0 if the local version has not been published to crates.io yet, otherwise exits with 1
+[[ "$LOCAL_VERSION" != "$CRATES_IO_VERSION" ]]

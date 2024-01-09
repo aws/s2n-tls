@@ -56,6 +56,7 @@ S2N_RESULT s2n_test_check_tls13(struct s2n_stuffer *stuffer)
     RESULT_ENSURE_REF(strstr(out, "SERVER_HANDSHAKE_TRAFFIC_SECRET "));
     RESULT_ENSURE_REF(strstr(out, "CLIENT_TRAFFIC_SECRET_0 "));
     RESULT_ENSURE_REF(strstr(out, "SERVER_TRAFFIC_SECRET_0 "));
+    RESULT_ENSURE_REF(strstr(out, "EXPORTER_SECRET "));
     return S2N_RESULT_OK;
 }
 

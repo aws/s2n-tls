@@ -20,7 +20,7 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"

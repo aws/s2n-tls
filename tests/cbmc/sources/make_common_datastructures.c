@@ -518,6 +518,13 @@ void cbmc_populate_s2n_signature_scheme(struct s2n_signature_scheme *s2n_signatu
     s2n_signature_scheme->signature_curve = cbmc_allocate_s2n_ecc_named_curve();
 }
 
+struct s2n_signature_scheme *cbmc_allocate_s2n_signature_scheme()
+{
+    struct s2n_signature_scheme *s2n_signature_scheme = malloc(sizeof(*s2n_signature_scheme));
+    cbmc_populate_s2n_signature_scheme(s2n_signature_scheme);
+    return s2n_signature_scheme;
+}
+
 struct s2n_kex *cbmc_allocate_s2n_kex()
 {
     struct s2n_kex *s2n_kex = malloc(sizeof(*s2n_kex));
@@ -660,10 +667,10 @@ void cbmc_populate_s2n_handshake_parameters(struct s2n_handshake_parameters *s2n
     CBMC_ENSURE_REF(s2n_handshake_parameters);
     cbmc_populate_s2n_pkey(&(s2n_handshake_parameters->server_public_key));
     cbmc_populate_s2n_pkey(&(s2n_handshake_parameters->client_public_key));
-    cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->conn_sig_scheme));
     cbmc_populate_s2n_blob(&(s2n_handshake_parameters->client_cert_chain));
-    cbmc_populate_s2n_signature_scheme(&(s2n_handshake_parameters->client_cert_sig_scheme));
     cbmc_populate_s2n_cert_chain_and_key(s2n_handshake_parameters->our_chain_and_key);
+    s2n_handshake_parameters->server_cert_sig_scheme = cbmc_allocate_s2n_signature_scheme();
+    s2n_handshake_parameters->client_cert_sig_scheme = cbmc_allocate_s2n_signature_scheme();
     /* `s2n_handshake_parameters->exact_sni_matches`
      * `s2n_handshake_parameters->wc_sni_matches` are never allocated.
      * If required, these initializations should be done in the proof harness.

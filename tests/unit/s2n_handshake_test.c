@@ -187,7 +187,8 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
             EXPECT_STRING_EQUAL(s2n_connection_get_cipher(server_conn), expected_cipher->name);
 
             EXPECT_EQUAL(server_conn->handshake_params.our_chain_and_key, expected_cert_chain);
-            EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.sig_alg, expected_sig_alg);
+            EXPECT_NOT_NULL(server_conn->handshake_params.server_cert_sig_scheme);
+            EXPECT_EQUAL(server_conn->handshake_params.server_cert_sig_scheme->sig_alg, expected_sig_alg);
 
             EXPECT_TRUE(IS_NEGOTIATED(server_conn));
             EXPECT_TRUE(IS_NEGOTIATED(client_conn));

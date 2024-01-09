@@ -148,6 +148,46 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
 
+        /* Key update messages not allowed with ktls */
+        {
+            DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_NOT_NULL(conn->secure);
+            conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
+
+            /* Fails if receiving with ktls:
+             * Kernel key update would be required.
+             */
+            conn->ktls_send_enabled = true;
+            conn->ktls_recv_enabled = true;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_NOT_REQUESTED));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&input));
+
+            /* Fails if only sending with ktls, but peer requested an update:
+             * Kernel key update would be required.
+             */
+            conn->ktls_send_enabled = true;
+            conn->ktls_recv_enabled = false;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_REQUESTED));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_key_update_recv(conn, &input), S2N_ERR_KTLS_KEYUPDATE);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
+
+            /* Succeeds if only sending with ktls and no update requested:
+             * No kernel key update would be required.
+             */
+            conn->ktls_send_enabled = true;
+            conn->ktls_recv_enabled = false;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_NOT_REQUESTED));
+            EXPECT_SUCCESS(s2n_key_update_recv(conn, &input));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&input), 0);
+        };
+
         /* Key update message received contains invalid key update request */
         {
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
@@ -441,6 +481,30 @@ int main(int argc, char **argv)
             }
 
             EXPECT_EQUAL(key_update_seq_num, expected);
+        };
+
+        /* KeyUpdate fails if ktls */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->ktls_send_enabled = true;
+
+            /* Passes if no KeyUpdate required */
+            s2n_blocked_status blocked = 0;
+            EXPECT_SUCCESS(s2n_key_update_send(conn, &blocked));
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
+
+            /* Set encryption limit */
+            EXPECT_NOT_NULL(conn->secure);
+            conn->secure->cipher_suite = cipher_suite_with_limit;
+            EXPECT_OK(s2n_write_uint64(record_limit, conn->secure->client_sequence_number));
+
+            /* Fails if KeyUpdate required */
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_key_update_send(conn, &blocked),
+                    S2N_ERR_KTLS_KEY_LIMIT);
+            EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
         };
     };
 

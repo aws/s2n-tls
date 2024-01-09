@@ -15,8 +15,8 @@
 
 #include "tls/extensions/s2n_client_key_share.h"
 
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
-#include "pq-crypto/s2n_pq.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_kem_preferences.h"
@@ -106,7 +106,7 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     POSIX_ENSURE_REF(kem_group_params);
 
     /* This function should never be called when PQ is disabled */
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_PQ_DISABLED);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
 
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
     POSIX_ENSURE_REF(kem_group);
@@ -144,7 +144,9 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
     POSIX_ENSURE_REF(kem_pref);
 
-    if (kem_pref->tls13_kem_group_count == 0) {
+    uint32_t available_groups = 0;
+    POSIX_GUARD_RESULT(s2n_kem_preferences_groups_available(kem_pref, &available_groups));
+    if (available_groups == 0) {
         return S2N_SUCCESS;
     }
 
@@ -175,7 +177,8 @@ static int s2n_generate_default_pq_hybrid_key_share(struct s2n_connection *conn,
          **/
         client_params->kem_group = server_group;
     } else {
-        client_params->kem_group = kem_pref->tls13_kem_groups[0];
+        client_params->kem_group = s2n_kem_preferences_get_highest_priority_group(kem_pref);
+        POSIX_ENSURE_REF(client_params->kem_group);
         client_params->kem_params.len_prefixed = s2n_tls13_client_must_use_hybrid_kem_length_prefix(kem_pref);
     }
 
@@ -311,6 +314,11 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_group = kem_pref->tls13_kem_groups[i];
         POSIX_ENSURE_REF(supported_group);
+
+        /* Skip if the group is not available */
+        if (!s2n_kem_group_is_available(supported_group)) {
+            continue;
+        }
 
         /* Stop if we reach the current highest priority share.
          * Any share of lower priority is discarded.

@@ -4,7 +4,7 @@
 use crate::{
     harness::{
         read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsConnection,
+        TlsConnection, TlsBenchConfig,
     },
     PemType::{self, *},
     SigType,
@@ -31,6 +31,23 @@ pub struct RustlsConnection {
 }
 
 impl RustlsConnection {
+    pub fn connection(&self) -> &Connection {
+        &self.connection
+    }
+
+        /// Treat `WouldBlock` as an `Ok` value for when blocking is expected
+        fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
+            match res {
+                Ok(t) => Ok(t),
+                Err(err) => match err.kind() {
+                    std::io::ErrorKind::WouldBlock => Ok(T::default()),
+                    _ => Err(err),
+                },
+            }
+        }
+}
+
+impl RustlsConfig {
     fn get_root_cert_store(sig_type: SigType) -> Result<RootCertStore, Box<dyn Error>> {
         let root_cert =
             Certificate(certs(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))?.remove(0));
@@ -55,17 +72,6 @@ impl RustlsConnection {
             pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?.remove(0),
         ))
     }
-
-    /// Treat `WouldBlock` as an `Ok` value for when blocking is expected
-    fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
-        match res {
-            Ok(t) => Ok(t),
-            Err(err) => match err.kind() {
-                std::io::ErrorKind::WouldBlock => Ok(T::default()),
-                _ => Err(err),
-            },
-        }
-    }
 }
 
 /// Clients and servers have different config types in Rustls, so wrap them in an enum
@@ -74,18 +80,12 @@ pub enum RustlsConfig {
     Server(Arc<ServerConfig>),
 }
 
-impl TlsConnection for RustlsConnection {
-    type Config = RustlsConfig;
-
-    fn name() -> String {
-        "rustls".to_string()
-    }
-
+impl TlsBenchConfig for RustlsConfig {
     fn make_config(
         mode: Mode,
         crypto_config: CryptoConfig,
         handshake_type: HandshakeType,
-    ) -> Result<Self::Config, Box<dyn Error>> {
+    ) -> Result<Self, Box<dyn Error>> {
         let cipher_suite = match crypto_config.cipher_suite {
             CipherSuite::AES_128_GCM_SHA256 => TLS13_AES_128_GCM_SHA256,
             CipherSuite::AES_256_GCM_SHA384 => TLS13_AES_256_GCM_SHA384,
@@ -105,12 +105,18 @@ impl TlsConnection for RustlsConnection {
                     .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type)?);
 
                 let config = match handshake_type {
-                    HandshakeType::ServerAuth => builder.with_no_client_auth(),
+                    HandshakeType::ServerAuth | HandshakeType::Resumption => {
+                        builder.with_no_client_auth()
+                    }
                     HandshakeType::MutualAuth => builder.with_client_auth_cert(
                         Self::get_cert_chain(ClientCertChain, crypto_config.sig_type)?,
                         Self::get_key(ClientKey, crypto_config.sig_type)?,
                     )?,
                 };
+
+                if handshake_type != HandshakeType::Resumption {
+                    rustls::client::Resumption::disabled();
+                }
 
                 Ok(RustlsConfig::Client(Arc::new(config)))
             }
@@ -121,7 +127,9 @@ impl TlsConnection for RustlsConnection {
                     .with_protocol_versions(&[&TLS13])?;
 
                 let builder = match handshake_type {
-                    HandshakeType::ServerAuth => builder.with_no_client_auth(),
+                    HandshakeType::ServerAuth | HandshakeType::Resumption => {
+                        builder.with_no_client_auth()
+                    }
                     HandshakeType::MutualAuth => builder.with_client_cert_verifier(Arc::new(
                         AllowAnyAuthenticatedClient::new(Self::get_root_cert_store(
                             crypto_config.sig_type,
@@ -137,6 +145,14 @@ impl TlsConnection for RustlsConnection {
                 Ok(RustlsConfig::Server(Arc::new(config)))
             }
         }
+    }
+}
+
+impl TlsConnection for RustlsConnection {
+    type Config = RustlsConfig;
+
+    fn name() -> String {
+        "rustls".to_string()
     }
 
     fn new_from_config(
@@ -220,5 +236,13 @@ impl TlsConnection for RustlsConnection {
 
     fn connected_buffer(&self) -> &ConnectedBuffer {
         &self.connected_buffer
+    }
+
+    fn resumed_connection(&self) -> bool {
+        if let rustls::Connection::Server(s) = &self.connection {
+            s.received_resumption_data().is_some()
+        } else {
+            panic!("rustls connection resumption status must be check on the server side");
+        }
     }
 }

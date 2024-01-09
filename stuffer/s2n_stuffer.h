@@ -16,6 +16,7 @@
 #pragma once
 
 #include <limits.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/uio.h>
@@ -164,6 +165,16 @@ int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expec
 int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target);
 int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
 int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);
+
+/* Stuffer versions of sprintf methods, except:
+ * - They write bytes, not strings. They do not write a final '\0'. Unfortunately,
+ *   they do still require enough space for a final '\0'-- we'd have to reimplement
+ *   sprintf to avoid that.
+ * - vprintf does not consume the vargs. It calls va_copy before using
+ *   the varg argument, so can be called repeatedly with the same vargs.
+ */
+int s2n_stuffer_printf(struct s2n_stuffer *stuffer, const char *format, ...);
+int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs);
 
 /* Read a private key from a PEM encoded stuffer to an ASN1/DER encoded one */
 int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type);

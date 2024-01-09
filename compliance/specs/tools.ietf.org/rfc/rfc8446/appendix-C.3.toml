@@ -1,0 +1,86 @@
+target = "https://tools.ietf.org/rfc/rfc8446#appendix-C.3"
+
+# C.3.  Implementation Pitfalls
+#
+# Implementation experience has shown that certain parts of earlier TLS
+# specifications are not easy to understand and have been a source of
+# interoperability and security problems.  Many of these areas have
+# been clarified in this document, but this appendix contains a short
+# list of the most important things that require special attention from
+# implementors.
+# 
+# TLS protocol issues:
+# 
+# -  Do you correctly handle handshake messages that are fragmented to
+#    multiple TLS records (see Section 5.1)?  Do you correctly handle
+#    corner cases like a ClientHello that is split into several small
+#    fragments?  Do you fragment handshake messages that exceed the
+#    maximum fragment size?  In particular, the Certificate and
+#    CertificateRequest handshake messages can be large enough to
+#    require fragmentation.
+# 
+# -  Do you ignore the TLS record layer version number in all
+#    unencrypted TLS records (see Appendix D)?
+# 
+# -  Have you ensured that all support for SSL, RC4, EXPORT ciphers,
+#    and MD5 (via the "signature_algorithms" extension) is completely
+#    removed from all possible configurations that support TLS 1.3 or
+#    later, and that attempts to use these obsolete capabilities fail
+#    correctly (see Appendix D)?
+# 
+# -  Do you handle TLS extensions in ClientHellos correctly, including
+#    unknown extensions?
+# 
+# -  When the server has requested a client certificate but no suitable
+#    certificate is available, do you correctly send an empty
+#    Certificate message, instead of omitting the whole message (see
+#    Section 4.4.2)?
+# 
+# -  When processing the plaintext fragment produced by AEAD-Decrypt
+#    and scanning from the end for the ContentType, do you avoid
+#    scanning past the start of the cleartext in the event that the
+#    peer has sent a malformed plaintext of all zeros?
+# 
+# -  Do you properly ignore unrecognized cipher suites (Section 4.1.2),
+#    hello extensions (Section 4.2), named groups (Section 4.2.7), key
+#    shares (Section 4.2.8), supported versions (Section 4.2.1), and
+#    signature algorithms (Section 4.2.3) in the ClientHello?
+# 
+# -  As a server, do you send a HelloRetryRequest to clients which
+#    support a compatible (EC)DHE group but do not predict it in the
+#    "key_share" extension?  As a client, do you correctly handle a
+#    HelloRetryRequest from the server?
+# 
+# Cryptographic details:
+# 
+# -  What countermeasures do you use to prevent timing attacks
+#    [TIMING]?
+# 
+# -  When using Diffie-Hellman key exchange, do you correctly preserve
+#    leading zero bytes in the negotiated key (see Section 7.4.1)?
+# 
+# -  Does your TLS client check that the Diffie-Hellman parameters sent
+#    by the server are acceptable (see Section 4.2.8.1)?
+# 
+# -  Do you use a strong and, most importantly, properly seeded random
+#    number generator (see Appendix C.1) when generating Diffie-Hellman
+#    private values, the ECDSA "k" parameter, and other security-
+#    critical values?  It is RECOMMENDED that implementations implement
+#    "deterministic ECDSA" as specified in [RFC6979].
+# 
+# -  Do you zero-pad Diffie-Hellman public key values and shared
+#    secrets to the group size (see Section 4.2.8.1 and Section 7.4.1)?
+# 
+# -  Do you verify signatures after making them, to protect against
+#    RSA-CRT key leaks [FW15]?
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+-  Do you use a strong and, most importantly, properly seeded random
+number generator (see Appendix C.1) when generating Diffie-Hellman
+private values, the ECDSA "k" parameter, and other security-
+critical values?  It is RECOMMENDED that implementations implement
+"deterministic ECDSA" as specified in [RFC6979].
+'''
+

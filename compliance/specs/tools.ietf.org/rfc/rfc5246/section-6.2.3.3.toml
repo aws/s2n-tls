@@ -1,0 +1,95 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-6.2.3.3"
+
+# 6.2.3.3.  AEAD Ciphers
+#
+# For AEAD [AEAD] ciphers (such as [CCM] or [GCM]), the AEAD function
+# converts TLSCompressed.fragment structures to and from AEAD
+# TLSCiphertext.fragment structures.
+# 
+#    struct {
+#       opaque nonce_explicit[SecurityParameters.record_iv_length];
+#       aead-ciphered struct {
+#           opaque content[TLSCompressed.length];
+#       };
+#    } GenericAEADCipher;
+# 
+# AEAD ciphers take as input a single key, a nonce, a plaintext, and
+# "additional data" to be included in the authentication check, as
+# described in Section 2.1 of [AEAD].  The key is either the
+# client_write_key or the server_write_key.  No MAC key is used.
+# 
+# Each AEAD cipher suite MUST specify how the nonce supplied to the
+# AEAD operation is constructed, and what is the length of the
+# GenericAEADCipher.nonce_explicit part.  In many cases, it is
+# 
+# appropriate to use the partially implicit nonce technique described
+# in Section 3.2.1 of [AEAD]; with record_iv_length being the length of
+# the explicit part.  In this case, the implicit part SHOULD be derived
+# from key_block as client_write_iv and server_write_iv (as described
+# in Section 6.3), and the explicit part is included in
+# GenericAEAEDCipher.nonce_explicit.
+# 
+# The plaintext is the TLSCompressed.fragment.
+# 
+# The additional authenticated data, which we denote as
+# additional_data, is defined as follows:
+# 
+#    additional_data = seq_num + TLSCompressed.type +
+#                      TLSCompressed.version + TLSCompressed.length;
+# 
+# where "+" denotes concatenation.
+# 
+# The aead_output consists of the ciphertext output by the AEAD
+# encryption operation.  The length will generally be larger than
+# TLSCompressed.length, but by an amount that varies with the AEAD
+# cipher.  Since the ciphers might incorporate padding, the amount of
+# overhead could vary with different TLSCompressed.length values.  Each
+# AEAD cipher MUST NOT produce an expansion of greater than 1024 bytes.
+# Symbolically,
+# 
+#    AEADEncrypted = AEAD-Encrypt(write_key, nonce, plaintext,
+#                                 additional_data)
+# 
+# In order to decrypt and verify, the cipher takes as input the key,
+# nonce, the "additional_data", and the AEADEncrypted value.  The
+# output is either the plaintext or an error indicating that the
+# decryption failed.  There is no separate integrity check.  That is:
+# 
+#    TLSCompressed.fragment = AEAD-Decrypt(write_key, nonce,
+#                                          AEADEncrypted,
+#                                          additional_data)
+# 
+# If the decryption fails, a fatal bad_record_mac alert MUST be
+# generated.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Each AEAD cipher suite MUST specify how the nonce supplied to the
+AEAD operation is constructed, and what is the length of the
+GenericAEADCipher.nonce_explicit part.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+In this case, the implicit part SHOULD be derived
+from key_block as client_write_iv and server_write_iv (as described
+in Section 6.3), and the explicit part is included in
+GenericAEAEDCipher.nonce_explicit.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Each
+AEAD cipher MUST NOT produce an expansion of greater than 1024 bytes.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the decryption fails, a fatal bad_record_mac alert MUST be
+generated.
+'''
+

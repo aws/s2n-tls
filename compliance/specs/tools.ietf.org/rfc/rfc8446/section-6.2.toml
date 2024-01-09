@@ -1,0 +1,191 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-6.2"
+
+# 6.2.  Error Alerts
+#
+# Error handling in TLS is very simple.  When an error is detected, the
+# detecting party sends a message to its peer.  Upon transmission or
+# receipt of a fatal alert message, both parties MUST immediately close
+# the connection.
+# 
+# Whenever an implementation encounters a fatal error condition, it
+# SHOULD send an appropriate fatal alert and MUST close the connection
+# without sending or receiving any additional data.  In the rest of
+# this specification, when the phrases "terminate the connection" and
+# "abort the handshake" are used without a specific alert it means that
+# the implementation SHOULD send the alert indicated by the
+# descriptions below.  The phrases "terminate the connection with an X
+# alert" and "abort the handshake with an X alert" mean that the
+# implementation MUST send alert X if it sends any alert.  All alerts
+# defined below in this section, as well as all unknown alerts, are
+# universally considered fatal as of TLS 1.3 (see Section 6).  The
+# implementation SHOULD provide a way to facilitate logging the sending
+# and receiving of alerts.
+# 
+# The following error alerts are defined:
+# 
+# unexpected_message:  An inappropriate message (e.g., the wrong
+#    handshake message, premature Application Data, etc.) was received.
+#    This alert should never be observed in communication between
+#    proper implementations.
+# 
+# bad_record_mac:  This alert is returned if a record is received which
+#    cannot be deprotected.  Because AEAD algorithms combine decryption
+#    and verification, and also to avoid side-channel attacks, this
+#    alert is used for all deprotection failures.  This alert should
+#    never be observed in communication between proper implementations,
+#    except when messages were corrupted in the network.
+# 
+# record_overflow:  A TLSCiphertext record was received that had a
+#    length more than 2^14 + 256 bytes, or a record decrypted to a
+#    TLSPlaintext record with more than 2^14 bytes (or some other
+#    negotiated limit).  This alert should never be observed in
+#    communication between proper implementations, except when messages
+#    were corrupted in the network.
+# 
+# handshake_failure:  Receipt of a "handshake_failure" alert message
+#    indicates that the sender was unable to negotiate an acceptable
+#    set of security parameters given the options available.
+# 
+# bad_certificate:  A certificate was corrupt, contained signatures
+#    that did not verify correctly, etc.
+# 
+# unsupported_certificate:  A certificate was of an unsupported type.
+# 
+# certificate_revoked:  A certificate was revoked by its signer.
+# 
+# certificate_expired:  A certificate has expired or is not currently
+#    valid.
+# 
+# certificate_unknown:  Some other (unspecified) issue arose in
+#    processing the certificate, rendering it unacceptable.
+# 
+# illegal_parameter:  A field in the handshake was incorrect or
+#    inconsistent with other fields.  This alert is used for errors
+#    which conform to the formal protocol syntax but are otherwise
+#    incorrect.
+# 
+# unknown_ca:  A valid certificate chain or partial chain was received,
+#    but the certificate was not accepted because the CA certificate
+#    could not be located or could not be matched with a known trust
+#    anchor.
+# 
+# access_denied:  A valid certificate or PSK was received, but when
+#    access control was applied, the sender decided not to proceed with
+#    negotiation.
+# 
+# decode_error:  A message could not be decoded because some field was
+#    out of the specified range or the length of the message was
+#    incorrect.  This alert is used for errors where the message does
+#    not conform to the formal protocol syntax.  This alert should
+#    never be observed in communication between proper implementations,
+#    except when messages were corrupted in the network.
+# 
+# decrypt_error:  A handshake (not record layer) cryptographic
+#    operation failed, including being unable to correctly verify a
+#    signature or validate a Finished message or a PSK binder.
+# 
+# protocol_version:  The protocol version the peer has attempted to
+#    negotiate is recognized but not supported (see Appendix D).
+# 
+# insufficient_security:  Returned instead of "handshake_failure" when
+#    a negotiation has failed specifically because the server requires
+#    parameters more secure than those supported by the client.
+# 
+# internal_error:  An internal error unrelated to the peer or the
+#    correctness of the protocol (such as a memory allocation failure)
+#    makes it impossible to continue.
+# 
+# inappropriate_fallback:  Sent by a server in response to an invalid
+#    connection retry attempt from a client (see [RFC7507]).
+# 
+# missing_extension:  Sent by endpoints that receive a handshake
+#    message not containing an extension that is mandatory to send for
+#    the offered TLS version or other negotiated parameters.
+# 
+# unsupported_extension:  Sent by endpoints receiving any handshake
+#    message containing an extension known to be prohibited for
+#    inclusion in the given handshake message, or including any
+#    extensions in a ServerHello or Certificate not first offered in
+#    the corresponding ClientHello or CertificateRequest.
+# 
+# unrecognized_name:  Sent by servers when no server exists identified
+#    by the name provided by the client via the "server_name" extension
+#    (see [RFC6066]).
+# 
+# bad_certificate_status_response:  Sent by clients when an invalid or
+#    unacceptable OCSP response is provided by the server via the
+#    "status_request" extension (see [RFC6066]).
+# 
+# unknown_psk_identity:  Sent by servers when PSK key establishment is
+#    desired but no acceptable PSK identity is provided by the client.
+#    Sending this alert is OPTIONAL; servers MAY instead choose to send
+#    a "decrypt_error" alert to merely indicate an invalid PSK
+#    identity.
+# 
+# certificate_required:  Sent by servers when a client certificate is
+#    desired but none was provided by the client.
+# 
+# no_application_protocol:  Sent by servers when a client
+#    "application_layer_protocol_negotiation" extension advertises only
+#    protocols that the server does not support (see [RFC7301]).
+# 
+# New Alert values are assigned by IANA as described in Section 11.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Upon transmission or
+receipt of a fatal alert message, both parties MUST immediately close
+the connection.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Whenever an implementation encounters a fatal error condition, it
+SHOULD send an appropriate fatal alert and MUST close the connection
+without sending or receiving any additional data.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+In the rest of
+this specification, when the phrases "terminate the connection" and
+"abort the handshake" are used without a specific alert it means that
+the implementation SHOULD send the alert indicated by the
+descriptions below.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The phrases "terminate the connection with an X
+alert" and "abort the handshake with an X alert" mean that the
+implementation MUST send alert X if it sends any alert.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The
+implementation SHOULD provide a way to facilitate logging the sending
+and receiving of alerts.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Sending this alert is OPTIONAL; servers MAY instead choose to send
+a "decrypt_error" alert to merely indicate an invalid PSK
+identity.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Sending this alert is OPTIONAL; servers MAY instead choose to send
+a "decrypt_error" alert to merely indicate an invalid PSK
+identity.
+'''
+

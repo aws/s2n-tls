@@ -36,6 +36,8 @@ S2N_RESULT s2n_renegotiate_validate(struct s2n_connection *conn)
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_NO_RENEGOTIATION);
     RESULT_ENSURE(conn->secure_renegotiation, S2N_ERR_NO_RENEGOTIATION);
     RESULT_ENSURE(conn->handshake.renegotiation, S2N_ERR_INVALID_STATE);
+    RESULT_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_RENEG);
+    RESULT_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS_RENEG);
     return S2N_RESULT_OK;
 }
 

@@ -17,6 +17,7 @@
 #include <openssl/evp.h>
 
 #include "crypto/s2n_cipher.h"
+#include "crypto/s2n_ktls_crypto.h"
 #include "tls/s2n_crypto.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
@@ -376,6 +377,149 @@ static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 
 #endif
 
+static S2N_RESULT s2n_tls12_aead_cipher_aes128_gcm_set_ktls_info(
+        struct s2n_ktls_crypto_info_inputs *in, struct s2n_ktls_crypto_info *out)
+{
+    RESULT_ENSURE_REF(in);
+    RESULT_ENSURE_REF(out);
+
+    s2n_ktls_crypto_info_tls12_aes_gcm_128 *crypto_info = &out->ciphers.aes_gcm_128;
+    crypto_info->info.version = TLS_1_2_VERSION;
+    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_128;
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->key), in->key.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->key, in->key.data, sizeof(crypto_info->key));
+    RESULT_ENSURE_LTE(sizeof(crypto_info->rec_seq), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, in->seq.data, sizeof(crypto_info->rec_seq));
+
+    /* TLS1.2 uses partially explicit nonces. That means that although part of the
+     * nonce is still fixed and implicit (the salt), the remainder is explicit
+     * (written into the record) and must be unique per record. The RFC5288 suggests
+     * using the sequence number as the explicit part.
+     *
+     * Therefore, ktls expects the salt to contain the iv derived from the secret
+     * and should generate the remainder of the nonce per-record.
+     *
+     * See the TLS1.2 RFC:
+     * - https://datatracker.ietf.org/doc/html/rfc5246#section-6.2.3.3
+     * And RFC5288, which defines the TLS1.2 AES-GCM cipher suites:
+     * - https://datatracker.ietf.org/doc/html/rfc5288#section-3
+     */
+    RESULT_ENSURE_LTE(sizeof(crypto_info->salt), in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->salt, in->iv.data, sizeof(crypto_info->salt));
+
+    /* Because TLS1.2 uses partially explicit nonces, the kernel should not
+     * use the iv in crypto_info but instead use a unique value for each record.
+     *
+     * As of this commit, Openssl has chosen to set the TLS1.2 IV to random
+     * bytes when sending and all zeroes when receiving:
+     * https://github.com/openssl/openssl/blob/de8e0851a1c0d22533801f081781a9f0be56c2c2/ssl/record/methods/ktls_meth.c#L197-L204
+     * And GnuTLS has chosen to set the TLS1.2 IV to the sequence number:
+     * https://github.com/gnutls/gnutls/blob/3f42ae70a1672673cb8f27c2dd3da1a34d1cbdd7/lib/system/ktls.c#L547-L550
+     *
+     * We (fairly arbitrarily) choose to also set it to the current sequence number.
+     */
+    RESULT_ENSURE_LTE(sizeof(crypto_info->iv), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->iv, in->seq.data, sizeof(crypto_info->iv));
+
+    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+            sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128)));
+    return S2N_RESULT_OK;
+}
+
+/* TLS1.2 AES256 is configured like TLS1.2 AES128, but with a larger key size.
+ * See TLS1.2 AES128 for details (particularly a discussion of salt + iv).
+ */
+static S2N_RESULT s2n_tls12_aead_cipher_aes256_gcm_set_ktls_info(
+        struct s2n_ktls_crypto_info_inputs *in, struct s2n_ktls_crypto_info *out)
+{
+    RESULT_ENSURE_REF(in);
+    RESULT_ENSURE_REF(out);
+
+    s2n_ktls_crypto_info_tls12_aes_gcm_256 *crypto_info = &out->ciphers.aes_gcm_256;
+    crypto_info->info.version = TLS_1_2_VERSION;
+    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_256;
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->key), in->key.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->key, in->key.data, sizeof(crypto_info->key));
+    RESULT_ENSURE_LTE(sizeof(crypto_info->rec_seq), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, in->seq.data, sizeof(crypto_info->rec_seq));
+    RESULT_ENSURE_LTE(sizeof(crypto_info->salt), in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->salt, in->iv.data, sizeof(crypto_info->salt));
+    RESULT_ENSURE_LTE(sizeof(crypto_info->iv), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->iv, in->seq.data, sizeof(crypto_info->iv));
+
+    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+            sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_256)));
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_tls13_aead_cipher_aes128_gcm_set_ktls_info(
+        struct s2n_ktls_crypto_info_inputs *in, struct s2n_ktls_crypto_info *out)
+{
+    RESULT_ENSURE_REF(in);
+    RESULT_ENSURE_REF(out);
+
+    s2n_ktls_crypto_info_tls12_aes_gcm_128 *crypto_info = &out->ciphers.aes_gcm_128;
+    crypto_info->info.version = TLS_1_3_VERSION;
+    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_128;
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->key), in->key.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->key, in->key.data, sizeof(crypto_info->key));
+    RESULT_ENSURE_LTE(sizeof(crypto_info->rec_seq), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, in->seq.data, sizeof(crypto_info->rec_seq));
+
+    /* TLS1.3 uses fully implicit nonces. The fixed, implicit IV value derived from
+     * the secret is xored with the sequence number to produce a unique per-record nonce.
+     *
+     * See the TLS1.3 RFC:
+     * - https://www.rfc-editor.org/rfc/rfc8446.html#section-5.3
+     *
+     * ktls handles this with the same structure as TLS1.2 uses for its partially
+     * explicit nonces by splitting the implicit IV between the salt and iv fields.
+     */
+    size_t salt_size = sizeof(crypto_info->salt);
+    RESULT_ENSURE_LTE(salt_size, in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->salt, in->iv.data, salt_size);
+    size_t iv_remainder = in->iv.size - salt_size;
+    RESULT_ENSURE_LTE(sizeof(crypto_info->iv), iv_remainder);
+    RESULT_CHECKED_MEMCPY(crypto_info->iv, in->iv.data + salt_size, sizeof(crypto_info->iv));
+
+    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+            sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_128)));
+    return S2N_RESULT_OK;
+}
+
+/* TLS1.3 AES256 is configured like TLS1.3 AES128, but with a larger key size.
+ * See TLS1.3 AES128 for details (particularly a discussion of salt + iv).
+ */
+static S2N_RESULT s2n_tls13_aead_cipher_aes256_gcm_set_ktls_info(
+        struct s2n_ktls_crypto_info_inputs *in, struct s2n_ktls_crypto_info *out)
+{
+    RESULT_ENSURE_REF(in);
+    RESULT_ENSURE_REF(out);
+
+    s2n_ktls_crypto_info_tls12_aes_gcm_256 *crypto_info = &out->ciphers.aes_gcm_256;
+    crypto_info->info.version = TLS_1_3_VERSION;
+    crypto_info->info.cipher_type = TLS_CIPHER_AES_GCM_256;
+
+    RESULT_ENSURE_LTE(sizeof(crypto_info->key), in->key.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->key, in->key.data, sizeof(crypto_info->key));
+    RESULT_ENSURE_LTE(sizeof(crypto_info->rec_seq), in->seq.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->rec_seq, in->seq.data, sizeof(crypto_info->rec_seq));
+
+    size_t salt_size = sizeof(crypto_info->salt);
+    RESULT_ENSURE_LTE(salt_size, in->iv.size);
+    RESULT_CHECKED_MEMCPY(crypto_info->salt, in->iv.data, salt_size);
+    size_t iv_remainder = in->iv.size - salt_size;
+    RESULT_ENSURE_LTE(sizeof(crypto_info->iv), iv_remainder);
+    RESULT_CHECKED_MEMCPY(crypto_info->iv, in->iv.data + salt_size, sizeof(crypto_info->iv));
+
+    RESULT_GUARD_POSIX(s2n_blob_init(&out->value, (uint8_t *) (void *) crypto_info,
+            sizeof(s2n_ktls_crypto_info_tls12_aes_gcm_256)));
+    return S2N_RESULT_OK;
+}
+
 const struct s2n_cipher s2n_aes128_gcm = {
     .key_material_size = S2N_TLS_AES_128_GCM_KEY_LEN,
     .type = S2N_AEAD,
@@ -390,7 +534,7 @@ const struct s2n_cipher s2n_aes128_gcm = {
     .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key,
     .set_decryption_key = s2n_aead_cipher_aes128_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
-    .ktls_supported = true,
+    .set_ktls_info = s2n_tls12_aead_cipher_aes128_gcm_set_ktls_info,
 };
 
 const struct s2n_cipher s2n_aes256_gcm = {
@@ -407,6 +551,7 @@ const struct s2n_cipher s2n_aes256_gcm = {
     .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key,
     .set_decryption_key = s2n_aead_cipher_aes256_gcm_set_decryption_key,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
+    .set_ktls_info = s2n_tls12_aead_cipher_aes256_gcm_set_ktls_info,
 };
 
 /* TLS 1.3 GCM ciphers */
@@ -424,6 +569,7 @@ const struct s2n_cipher s2n_tls13_aes128_gcm = {
     .set_encryption_key = s2n_aead_cipher_aes128_gcm_set_encryption_key_tls13,
     .set_decryption_key = s2n_aead_cipher_aes128_gcm_set_decryption_key_tls13,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
+    .set_ktls_info = s2n_tls13_aead_cipher_aes128_gcm_set_ktls_info,
 };
 
 const struct s2n_cipher s2n_tls13_aes256_gcm = {
@@ -440,4 +586,5 @@ const struct s2n_cipher s2n_tls13_aes256_gcm = {
     .set_encryption_key = s2n_aead_cipher_aes256_gcm_set_encryption_key_tls13,
     .set_decryption_key = s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13,
     .destroy_key = s2n_aead_cipher_aes_gcm_destroy_key,
+    .set_ktls_info = s2n_tls13_aead_cipher_aes256_gcm_set_ktls_info,
 };

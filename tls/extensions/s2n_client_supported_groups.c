@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tls/extensions/s2n_ec_point_format.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
@@ -64,6 +64,9 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     /* Send KEM groups list first */
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13 && s2n_pq_is_enabled()) {
         for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
+            if (!s2n_kem_group_is_available(kem_pref->tls13_kem_groups[i])) {
+                continue;
+            }
             POSIX_GUARD(s2n_stuffer_write_uint16(out, kem_pref->tls13_kem_groups[i]->iana_id));
         }
     }
@@ -76,6 +79,25 @@ static int s2n_client_supported_groups_send(struct s2n_connection *conn, struct 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&group_list_len));
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_supported_groups_parse_count(struct s2n_stuffer *extension, uint16_t *count)
+{
+    RESULT_ENSURE_REF(count);
+    *count = 0;
+    RESULT_ENSURE_REF(extension);
+
+    uint16_t supported_groups_list_size = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &supported_groups_list_size));
+
+    RESULT_ENSURE(supported_groups_list_size <= s2n_stuffer_data_available(extension),
+            S2N_ERR_INVALID_PARSED_EXTENSIONS);
+    RESULT_ENSURE(supported_groups_list_size % S2N_SUPPORTED_GROUP_SIZE == 0,
+            S2N_ERR_INVALID_PARSED_EXTENSIONS);
+
+    *count = supported_groups_list_size / S2N_SUPPORTED_GROUP_SIZE;
+
+    return S2N_RESULT_OK;
 }
 
 /* Populates the appropriate index of either the mutually_supported_curves or
@@ -108,7 +130,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
 
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_kem_group = kem_pref->tls13_kem_groups[i];
-        if (iana_id == supported_kem_group->iana_id) {
+        if (s2n_kem_group_is_available(supported_kem_group) && iana_id == supported_kem_group->iana_id) {
             conn->kex_params.mutually_supported_kem_groups[i] = supported_kem_group;
             return S2N_SUCCESS;
         }
@@ -141,7 +163,7 @@ static int s2n_choose_supported_group(struct s2n_connection *conn)
      * populated with anything. */
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *candidate_kem_group = conn->kex_params.mutually_supported_kem_groups[i];
-        if (candidate_kem_group != NULL) {
+        if (candidate_kem_group != NULL && s2n_kem_group_is_available(candidate_kem_group)) {
             conn->kex_params.server_kem_group_params.kem_group = candidate_kem_group;
             conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve = candidate_kem_group->curve;
             conn->kex_params.server_kem_group_params.kem_params.kem = candidate_kem_group->kem;
@@ -165,15 +187,14 @@ static int s2n_client_supported_groups_recv(struct s2n_connection *conn, struct 
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(extension);
 
-    uint16_t size_of_all;
-    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    if (size_of_all > s2n_stuffer_data_available(extension) || (size_of_all % sizeof(uint16_t))) {
+    uint16_t supported_groups_count = 0;
+    if (s2n_result_is_error(s2n_supported_groups_parse_count(extension, &supported_groups_count))) {
         /* Malformed length, ignore the extension */
         return S2N_SUCCESS;
     }
 
-    for (size_t i = 0; i < (size_of_all / sizeof(uint16_t)); i++) {
-        uint16_t iana_id;
+    for (size_t i = 0; i < supported_groups_count; i++) {
+        uint16_t iana_id = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &iana_id));
         POSIX_GUARD(s2n_client_supported_groups_recv_iana_id(conn, iana_id));
     }

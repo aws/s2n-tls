@@ -24,6 +24,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_ktls.h"
 #include "tls/s2n_record.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_random.h"
@@ -247,6 +248,10 @@ static inline int s2n_record_encrypt(
 
 int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const struct iovec *in, int in_count, size_t offs, size_t to_write)
 {
+    if (conn->ktls_send_enabled) {
+        return s2n_ktls_record_writev(conn, content_type, in, in_count, offs, to_write);
+    }
+
     struct s2n_blob iv = { 0 };
     uint8_t padding = 0;
     uint16_t block_size = 0;

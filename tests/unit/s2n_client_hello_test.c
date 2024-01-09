@@ -128,6 +128,49 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
     };
 
+    /* Test s2n_client_hello_has_extension with a zero-length extension */
+    for (int send_sct = 0; send_sct <= 1; send_sct++) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        /* The SCT extension is zero-length. */
+        if (send_sct) {
+            EXPECT_SUCCESS(s2n_config_set_ct_support_level(config, S2N_CT_SUPPORT_REQUEST));
+        }
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        EXPECT_SUCCESS(s2n_client_hello_send(client));
+        EXPECT_SUCCESS(s2n_stuffer_copy(&client->handshake.io, &server->handshake.io,
+                s2n_stuffer_data_available(&client->handshake.io)));
+        EXPECT_SUCCESS(s2n_client_hello_recv(server));
+
+        struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server);
+        EXPECT_NOT_NULL(client_hello);
+
+        s2n_parsed_extension *sct_extension = NULL;
+        int ret = s2n_client_hello_get_parsed_extension(S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, &client_hello->extensions,
+                &sct_extension);
+
+        if (send_sct) {
+            /* Ensure that the extension was received. */
+            EXPECT_SUCCESS(ret);
+            POSIX_ENSURE_REF(sct_extension);
+
+            /* Ensure that the extension is zero-length. */
+            EXPECT_EQUAL(sct_extension->extension.size, 0);
+        } else {
+            /* The extension shouldn't have been received because it wasn't requested. */
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_EXTENSION_NOT_RECEIVED);
+        }
+    }
+
     /* Test s2n_client_hello_get_raw_extension */
     {
         uint8_t data[] = {
@@ -180,7 +223,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
             EXPECT_TRUE(s2n_stuffer_data_available(&conn->handshake.io) > 0);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(conn), S2N_ERR_INVALID_SIGNATURE_SCHEME);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_recv(conn), S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -205,6 +248,52 @@ int main(int argc, char **argv)
         };
 
         EXPECT_SUCCESS(s2n_config_free(config));
+        s2n_disable_tls13_in_test();
+    };
+
+    /* Test getting supported versions from the client hello */
+    if (s2n_is_tls13_fully_supported()) {
+        EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
+        /* TLS13 has supported versions in the client hello */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            uint8_t supported_versions[256] = { 0 };
+            uint8_t size_of_version_list = 0;
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io,
+                    &server_conn->handshake.io, s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_client_hello_get_extension_by_id(&server_conn->client_hello,
+                    S2N_EXTENSION_SUPPORTED_VERSIONS, supported_versions, sizeof(supported_versions)));
+            size_of_version_list = supported_versions[0];
+            /* No supported versions before the handshake is received */
+            EXPECT_EQUAL(0, size_of_version_list);
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+            EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
+            EXPECT_SUCCESS(s2n_client_hello_get_extension_by_id(&server_conn->client_hello,
+                    S2N_EXTENSION_SUPPORTED_VERSIONS, supported_versions, sizeof(supported_versions)));
+            size_of_version_list = supported_versions[0];
+            EXPECT_TRUE(size_of_version_list > 0);
+            bool found_tls13 = false;
+            const uint8_t tls13_bytes[] = { 0x03, 0x04 };
+            const size_t supported_version_size = sizeof(tls13_bytes);
+            for (uint16_t offset = 1; offset < size_of_version_list; offset += supported_version_size) {
+                if (memcmp(tls13_bytes, &supported_versions[offset], supported_version_size) == 0) {
+                    found_tls13 = true;
+                }
+            }
+            EXPECT_TRUE(found_tls13);
+        };
         s2n_disable_tls13_in_test();
     };
 
@@ -1083,7 +1172,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extension_length(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY), 0);
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
         EXPECT_EQUAL(s2n_client_hello_get_extension_by_id(client_hello, S2N_EXTENSION_CERTIFICATE_TRANSPARENCY, ext_data, server_name_extension_len), 0);
-        EXPECT_EQUAL(s2n_errno, S2N_ERR_NULL);
+        EXPECT_EQUAL(s2n_errno, S2N_ERR_EXTENSION_NOT_RECEIVED);
         free(ext_data);
         ext_data = NULL;
 
@@ -1380,14 +1469,21 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
+        /* We have to update the client's security policy after it sends the ClientHello.
+         * The client sends all signature algorithms in its security policy, and
+         * won't accept any signature algorithm it receives that's not in its security policy.
+         * So we need to change the security policy between sending and receiving.
+         */
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_HELLO));
+        client_config->security_policy = &security_policy_20190214;
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         EXPECT_EQUAL(server_conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
         EXPECT_EQUAL(client_conn->secure->cipher_suite, &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha);
-        EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
-        EXPECT_EQUAL(server_conn->handshake_params.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
-        EXPECT_EQUAL(client_conn->handshake_params.conn_sig_scheme.sig_alg, S2N_SIGNATURE_ECDSA);
-        EXPECT_EQUAL(client_conn->handshake_params.conn_sig_scheme.hash_alg, S2N_HASH_SHA1);
+        EXPECT_EQUAL(server_conn->handshake_params.server_cert_sig_scheme->sig_alg, S2N_SIGNATURE_ECDSA);
+        EXPECT_EQUAL(server_conn->handshake_params.server_cert_sig_scheme->hash_alg, S2N_HASH_SHA1);
+        EXPECT_EQUAL(client_conn->handshake_params.server_cert_sig_scheme->sig_alg, S2N_SIGNATURE_ECDSA);
+        EXPECT_EQUAL(client_conn->handshake_params.server_cert_sig_scheme->hash_alg, S2N_HASH_SHA1);
 
         /* Free the data */
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

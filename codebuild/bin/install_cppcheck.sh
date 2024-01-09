@@ -32,7 +32,8 @@ cd "$INSTALL_DIR"
 git clone --branch 2.3 --depth 1 https://github.com/danmar/cppcheck.git cppcheck-src
 cd cppcheck-src
 
-make -j $JOBS
+# See https://github.com/danmar/cppcheck#gnu-make for build recommendations
+make -j $JOBS MATCHCOMPILER=yes CXXFLAGS="-O2 -DNDEBUG -Wall -Wno-sign-compare -Wno-unused-function"
 
 mv cppcheck ..
 mv cfg ..

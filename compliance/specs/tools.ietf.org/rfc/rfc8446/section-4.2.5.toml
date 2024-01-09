@@ -1,0 +1,112 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-4.2.5"
+
+# 4.2.5.  OID Filters
+#
+# The "oid_filters" extension allows servers to provide a set of
+# OID/value pairs which it would like the client's certificate to
+# match.  This extension, if provided by the server, MUST only be sent
+# in the CertificateRequest message.
+# 
+#    struct {
+#        opaque certificate_extension_oid<1..2^8-1>;
+#        opaque certificate_extension_values<0..2^16-1>;
+#    } OIDFilter;
+# 
+#    struct {
+#        OIDFilter filters<0..2^16-1>;
+#    } OIDFilterExtension;
+# 
+# filters:  A list of certificate extension OIDs [RFC5280] with their
+#    allowed value(s) and represented in DER-encoded [X690] format.
+#    Some certificate extension OIDs allow multiple values (e.g.,
+#    Extended Key Usage).  If the server has included a non-empty
+#    filters list, the client certificate included in the response MUST
+#    contain all of the specified extension OIDs that the client
+#    recognizes.  For each extension OID recognized by the client, all
+#    of the specified values MUST be present in the client certificate
+#    (but the certificate MAY have other values as well).  However, the
+#    client MUST ignore and skip any unrecognized certificate extension
+#    OIDs.  If the client ignored some of the required certificate
+#    extension OIDs and supplied a certificate that does not satisfy
+#    the request, the server MAY at its discretion either continue the
+#    connection without client authentication or abort the handshake
+#    with an "unsupported_certificate" alert.  Any given OID MUST NOT
+#    appear more than once in the filters list.
+# 
+# PKIX RFCs define a variety of certificate extension OIDs and their
+# corresponding value types.  Depending on the type, matching
+# certificate extension values are not necessarily bitwise-equal.  It
+# is expected that TLS implementations will rely on their PKI libraries
+# to perform certificate selection using certificate extension OIDs.
+# 
+# This document defines matching rules for two standard certificate
+# extensions defined in [RFC5280]:
+# 
+# -  The Key Usage extension in a certificate matches the request when
+#    all key usage bits asserted in the request are also asserted in
+#    the Key Usage certificate extension.
+# 
+# -  The Extended Key Usage extension in a certificate matches the
+#    request when all key purpose OIDs present in the request are also
+#    found in the Extended Key Usage certificate extension.  The
+#    special anyExtendedKeyUsage OID MUST NOT be used in the request.
+# 
+# Separate specifications may define matching rules for other
+# certificate extensions.
+
+[[spec]]
+level = "MUST"
+quote = '''
+This extension, if provided by the server, MUST only be sent
+in the CertificateRequest message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server has included a non-empty
+filters list, the client certificate included in the response MUST
+contain all of the specified extension OIDs that the client
+recognizes.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For each extension OID recognized by the client, all
+of the specified values MUST be present in the client certificate
+(but the certificate MAY have other values as well).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+However, the
+client MUST ignore and skip any unrecognized certificate extension
+OIDs.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If the client ignored some of the required certificate
+extension OIDs and supplied a certificate that does not satisfy
+the request, the server MAY at its discretion either continue the
+connection without client authentication or abort the handshake
+with an "unsupported_certificate" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Any given OID MUST NOT
+appear more than once in the filters list.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The
+special anyExtendedKeyUsage OID MUST NOT be used in the request.
+'''
+

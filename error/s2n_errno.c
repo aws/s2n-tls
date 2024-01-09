@@ -30,7 +30,7 @@
 #endif
 
 __thread int s2n_errno;
-__thread const char *s2n_debug_str;
+__thread struct s2n_debug_info _s2n_debug_info = { .debug_str = "", .source = "" };
 
 /**
  * Returns the address of the thread-local `s2n_errno` variable
@@ -80,6 +80,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_DECODE_PRIVATE_KEY, "error decoding private key") \
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_ALGORITHM, "Invalid signature algorithm") \
     ERR_ENTRY(S2N_ERR_INVALID_SIGNATURE_SCHEME, "Invalid signature scheme") \
+    ERR_ENTRY(S2N_ERR_NO_VALID_SIGNATURE_SCHEME, "Unable to negotiate a supported signature scheme") \
     ERR_ENTRY(S2N_ERR_CBC_VERIFY, "Failed CBC verification") \
     ERR_ENTRY(S2N_ERR_DH_COPYING_PUBLIC_KEY, "error copying Diffie-Hellman public key") \
     ERR_ENTRY(S2N_ERR_SIGN, "error signing data") \
@@ -96,10 +97,12 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_RECORD_LIMIT, "TLS record limit reached") \
     ERR_ENTRY(S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted") \
     ERR_ENTRY(S2N_ERR_CERT_REVOKED, "Certificate has been revoked by the CA") \
+    ERR_ENTRY(S2N_ERR_CERT_NOT_YET_VALID, "Certificate is not yet valid") \
     ERR_ENTRY(S2N_ERR_CERT_EXPIRED, "Certificate has expired") \
     ERR_ENTRY(S2N_ERR_CERT_TYPE_UNSUPPORTED, "Certificate Type is unsupported") \
     ERR_ENTRY(S2N_ERR_CERT_INVALID, "Certificate is invalid") \
     ERR_ENTRY(S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED, "The maximum certificate chain depth has been exceeded") \
+    ERR_ENTRY(S2N_ERR_CERT_REJECTED, "Certificate failed custom application validation") \
     ERR_ENTRY(S2N_ERR_CRL_LOOKUP_FAILED, "No CRL could be found for the corresponding certificate") \
     ERR_ENTRY(S2N_ERR_CRL_SIGNATURE, "The signature of the CRL is invalid") \
     ERR_ENTRY(S2N_ERR_CRL_ISSUER, "Unable to get the CRL issuer certificate") \
@@ -214,6 +217,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_SEND_SIZE, "Retried s2n_send() size is invalid") \
     ERR_ENTRY(S2N_ERR_CORK_SET_ON_UNMANAGED, "Attempt to set connection cork management on unmanaged IO") \
     ERR_ENTRY(S2N_ERR_UNRECOGNIZED_EXTENSION, "TLS extension not recognized") \
+    ERR_ENTRY(S2N_ERR_EXTENSION_NOT_RECEIVED, "The TLS extension was not received") \
     ERR_ENTRY(S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid") \
     ERR_ENTRY(S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid") \
     ERR_ENTRY(S2N_ERR_UPDATING_EXTENSION, "Updating extension data failed") \
@@ -260,7 +264,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_STATE, "Invalid state, this is the result of invalid use of an API. Check the API documentation for the function that raised this error for more info") \
     ERR_ENTRY(S2N_ERR_UNSUPPORTED_WITH_QUIC, "Functionality not supported when running with QUIC support enabled") \
     ERR_ENTRY(S2N_ERR_PQ_CRYPTO, "An error occurred in a post-quantum crypto function") \
-    ERR_ENTRY(S2N_ERR_PQ_DISABLED, "Post-quantum crypto is disabled") \
     ERR_ENTRY(S2N_ERR_DUPLICATE_PSK_IDENTITIES, "The list of pre-shared keys provided contains duplicate psk identities") \
     ERR_ENTRY(S2N_ERR_OFFERED_PSKS_TOO_LONG, "The total pre-shared key data is too long to send over the wire") \
     ERR_ENTRY(S2N_ERR_INVALID_SESSION_TICKET, "Session ticket data is not valid") \
@@ -294,9 +297,13 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_HANDSHAKE_NOT_COMPLETE, "Operation is only allowed after the handshake is complete") \
     ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_PLATFORM, "kTLS is unsupported on this platform") \
     ERR_ENTRY(S2N_ERR_KTLS_UNSUPPORTED_CONN, "kTLS is unsupported for this connection") \
-    ERR_ENTRY(S2N_ERR_KTLS_ULP, "An error occurred when attempting to configure the socket for kTLS. Ensure the 'tls' kernel module is enabled.")  \
-    ERR_ENTRY(S2N_ERR_KTLS_ENABLE_CRYPTO, "An error occurred when attempting to enable kTLS on socket.")  \
+    ERR_ENTRY(S2N_ERR_KTLS_ENABLE, "An error occurred when attempting to enable kTLS on socket. Ensure the 'tls' kernel module is enabled.")  \
+    ERR_ENTRY(S2N_ERR_KTLS_BAD_CMSG, "Error handling cmsghdr.")  \
     ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
+    ERR_ENTRY(S2N_ERR_TEST_ASSERTION, "Test assertion failed") \
+    ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
+    ERR_ENTRY(S2N_ERR_KTLS_KEYUPDATE, "Received KeyUpdate from peer, but kernel does not support updating tls keys") \
+    ERR_ENTRY(S2N_ERR_KTLS_KEY_LIMIT, "Reached key encryption limit, but kernel does not support updating tls keys") \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \
@@ -375,7 +382,17 @@ const char *s2n_strerror_debug(int error, const char *lang)
         return s2n_strerror(error, lang);
     }
 
-    return s2n_debug_str;
+    return _s2n_debug_info.debug_str;
+}
+
+const char *s2n_strerror_source(int error)
+{
+    /* No error, just return the no error string */
+    if (error == S2N_ERR_OK) {
+        return s2n_strerror(error, "EN");
+    }
+
+    return _s2n_debug_info.source;
 }
 
 int s2n_error_get_type(int error)
@@ -395,6 +412,12 @@ int s2n_stack_traces_enabled_set(bool newval)
 {
     s_s2n_stack_traces_enabled = newval;
     return S2N_SUCCESS;
+}
+
+void s2n_debug_info_reset(void)
+{
+    _s2n_debug_info.debug_str = "";
+    _s2n_debug_info.source = "";
 }
 
 #ifdef S2N_STACKTRACE
@@ -438,7 +461,7 @@ int s2n_print_stacktrace(FILE *fptr)
     if (!s_s2n_stack_traces_enabled) {
         fprintf(fptr, "%s\n%s\n",
                 "NOTE: Some details are omitted, run with S2N_PRINT_STACKTRACE=1 for a verbose backtrace.",
-                "See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md");
+                "See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide");
         return S2N_SUCCESS;
     }
 

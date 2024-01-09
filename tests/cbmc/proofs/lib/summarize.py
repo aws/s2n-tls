@@ -139,5 +139,5 @@ if __name__ == '__main__':
     logging.basicConfig(format="%(levelname)s: %(message)s")
     try:
         print_proof_results(args.run_file)
-    except Exception as ex: # pylint: disable=broad-except
+    except Exception as ex:  # pylint: disable=broad-except
         logging.critical("Could not print results. Exception: %s", str(ex))

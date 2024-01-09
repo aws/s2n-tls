@@ -17,6 +17,7 @@
 
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 #include "api/s2n.h"
 #include "utils/s2n_ensure.h"
@@ -93,6 +94,7 @@ typedef enum {
     S2N_ERR_INVALID_HELLO_RETRY,
     S2N_ERR_INVALID_SIGNATURE_ALGORITHM,
     S2N_ERR_INVALID_SIGNATURE_SCHEME,
+    S2N_ERR_NO_VALID_SIGNATURE_SCHEME,
     S2N_ERR_CBC_VERIFY,
     S2N_ERR_DH_COPYING_PUBLIC_KEY,
     S2N_ERR_SIGN,
@@ -109,10 +111,12 @@ typedef enum {
     S2N_ERR_RECORD_LIMIT,
     S2N_ERR_CERT_UNTRUSTED,
     S2N_ERR_CERT_REVOKED,
+    S2N_ERR_CERT_NOT_YET_VALID,
     S2N_ERR_CERT_EXPIRED,
     S2N_ERR_CERT_TYPE_UNSUPPORTED,
     S2N_ERR_CERT_INVALID,
     S2N_ERR_CERT_MAX_CHAIN_DEPTH_EXCEEDED,
+    S2N_ERR_CERT_REJECTED,
     S2N_ERR_CRL_LOOKUP_FAILED,
     S2N_ERR_CRL_SIGNATURE,
     S2N_ERR_CRL_ISSUER,
@@ -138,6 +142,7 @@ typedef enum {
     S2N_ERR_MAX_EARLY_DATA_SIZE,
     S2N_ERR_EARLY_DATA_TRIAL_DECRYPT,
     S2N_ERR_NO_RENEGOTIATION,
+    S2N_ERR_KTLS_KEYUPDATE,
     S2N_ERR_T_PROTO_END,
 
     /* S2N_ERR_T_INTERNAL */
@@ -219,7 +224,6 @@ typedef enum {
     S2N_ERR_ASYNC_CALLBACK_FAILED,
     S2N_ERR_ASYNC_MORE_THAN_ONE,
     S2N_ERR_PQ_CRYPTO,
-    S2N_ERR_PQ_DISABLED,
     S2N_ERR_INVALID_CERT_STATE,
     S2N_ERR_INVALID_EARLY_DATA_STATE,
     S2N_ERR_PKEY_CTX_INIT,
@@ -228,6 +232,7 @@ typedef enum {
     S2N_ERR_LIBCRYPTO_VERSION_NUMBER_MISMATCH,
     S2N_ERR_LIBCRYPTO_VERSION_NAME_MISMATCH,
     S2N_ERR_OSSL_PROVIDER,
+    S2N_ERR_TEST_ASSERTION,
     S2N_ERR_T_INTERNAL_END,
 
     /* S2N_ERR_T_USAGE */
@@ -255,6 +260,7 @@ typedef enum {
     S2N_ERR_SEND_SIZE,
     S2N_ERR_CORK_SET_ON_UNMANAGED,
     S2N_ERR_UNRECOGNIZED_EXTENSION,
+    S2N_ERR_EXTENSION_NOT_RECEIVED,
     S2N_ERR_INVALID_SCT_LIST,
     S2N_ERR_INVALID_OCSP_RESPONSE,
     S2N_ERR_UPDATING_EXTENSION,
@@ -310,25 +316,45 @@ typedef enum {
     S2N_ERR_KTLS_MANAGED_IO,
     S2N_ERR_KTLS_UNSUPPORTED_PLATFORM,
     S2N_ERR_KTLS_UNSUPPORTED_CONN,
-    S2N_ERR_KTLS_ULP,
-    S2N_ERR_KTLS_ENABLE_CRYPTO,
+    S2N_ERR_KTLS_ENABLE,
+    S2N_ERR_KTLS_BAD_CMSG,
+    S2N_ERR_KTLS_RENEG,
     S2N_ERR_ATOMIC,
+    S2N_ERR_KTLS_KEY_LIMIT,
     S2N_ERR_T_USAGE_END,
 } s2n_error;
 
 #define S2N_DEBUG_STR_LEN 128
-extern __thread const char *s2n_debug_str;
+
+struct s2n_debug_info {
+    const char *debug_str;
+    const char *source;
+};
+
+extern __thread struct s2n_debug_info _s2n_debug_info;
 
 #define TO_STRING(s)   #s
 #define STRING_(s)     TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
 
-#define _S2N_DEBUG_LINE "Error encountered in " __FILE__ ":" STRING__LINE__
-#define _S2N_ERROR(x)                    \
-    do {                                 \
-        s2n_debug_str = _S2N_DEBUG_LINE; \
-        s2n_errno = (x);                 \
-        s2n_calculate_stacktrace();      \
+/* gets the basename of a file path */
+/* _S2N_EXTRACT_BASENAME("Error encountered in /path/to/my/file.c") -> "file.c" */
+#if !(defined(CBMC) || defined(__TIMING_CONTRACTS__))
+    #define _S2N_RSPLIT(subject, c)     (strrchr((subject), c) ? strrchr((subject), c) + 1 : (subject))
+    #define _S2N_EXTRACT_BASENAME(path) _S2N_RSPLIT((path) + strlen(_S2N_DEBUG_LINE_PREFIX), '/')
+#else
+    #define _S2N_EXTRACT_BASENAME(path) path
+#endif
+
+#define _S2N_DEBUG_LINE_PREFIX "Error encountered in "
+#define _S2N_DEBUG_LINE        _S2N_DEBUG_LINE_PREFIX __FILE__ ":" STRING__LINE__
+
+#define _S2N_ERROR(x)                                                              \
+    do {                                                                           \
+        _s2n_debug_info.debug_str = _S2N_DEBUG_LINE;                               \
+        _s2n_debug_info.source = _S2N_EXTRACT_BASENAME(_s2n_debug_info.debug_str); \
+        s2n_errno = (x);                                                           \
+        s2n_calculate_stacktrace();                                                \
     } while (0)
 #define S2N_ERROR_PRESERVE_ERRNO() \
     do {                           \
@@ -371,3 +397,4 @@ int s2n_calculate_stacktrace(void);
 int s2n_print_stacktrace(FILE *fptr);
 int s2n_free_stacktrace(void);
 int s2n_get_stacktrace(struct s2n_stacktrace *trace);
+void s2n_debug_info_reset(void);
