@@ -44,7 +44,8 @@
  * Enables sending using kTLS on a given connection.
  *
  * See above for the limitations on when kTLS can be enabled. Additionally,
- * s2n_connection_ktls_enable_send must be called after the handshake completes.
+ * s2n_connection_ktls_enable_send must be called after the handshake completes
+ * but before the handshake is freed with s2n_connection_free_handshake.
  * It may be called after some application data is sent and received without kTLS,
  * but there must be no pending application data that requires flushing. If these
  * requirements are not met, enabling kTLS will fail with an error.
@@ -74,7 +75,8 @@ S2N_API int s2n_connection_ktls_enable_send(struct s2n_connection *conn);
  * Enables receiving using kTLS on a given connection.
  *
  * See above for the limitations on when kTLS can be enabled. Additionally,
- * s2n_connection_ktls_enable_recv must be called after the handshake completes.
+ * s2n_connection_ktls_enable_recv must be called after the handshake completes
+ * but before the handshake is freed with s2n_connection_free_handshake.
  * It may be called after some application data is sent and received without kTLS,
  * but there must be no buffered application data that requires draining. If these
  * requirements are not met, enabling kTLS will fail with an error.
