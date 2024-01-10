@@ -23,7 +23,7 @@ The benchmarked TLS implementations will be
 - rustls using Ring for a cryptographic backend
 - OpenSSL - libssl & libcrypto
 
-All of the cryptographic backends, including AWS-LC and OpenSSL libcrypto are consumed as vendored builds from crates.io, and do not need to be installed on the benchmarking host. Note that the `aws-lc-sys` crate depends on CMake in it's buildscript, so CMake must be installed on the benchmarking host.
+All of the cryptographic backends, including AWS-LC and OpenSSL libcrypto are consumed as vendored builds from crates.io, and do not need to be installed on the benchmarking host. Note that the `aws-lc-sys` crate depends on CMake in its buildscript, so CMake must be installed on the benchmarking host.
 
 Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments.
 
