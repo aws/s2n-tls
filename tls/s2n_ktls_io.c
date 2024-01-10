@@ -423,6 +423,11 @@ ssize_t s2n_ktls_sendv_with_offset(struct s2n_connection *conn, const struct iov
     POSIX_GUARD_RESULT(s2n_sendv_with_offset_total_size(bufs, count_in, offs_in, &total_bytes));
     POSIX_GUARD_RESULT(s2n_ktls_check_estimated_record_limit(conn, total_bytes));
 
+    /* new_bufs_mem must be defined before new_bufs to avoid a
+     * stack-use-after-scope error when s2n_free_or_wipe is called.
+     * See https://github.com/aws/s2n-tls/issues/4354 for more context. This is
+     * enforced by our ASAN builds.
+     */
     uint8_t new_bufs_mem[S2N_MAX_STACK_IOVECS_MEM] = { 0 };
     DEFER_CLEANUP(struct s2n_blob new_bufs = { 0 }, s2n_free_or_wipe);
     POSIX_GUARD(s2n_blob_init(&new_bufs, new_bufs_mem, sizeof(new_bufs_mem)));
