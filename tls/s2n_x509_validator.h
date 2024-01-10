@@ -18,6 +18,7 @@
 #include <openssl/x509v3.h>
 
 #include "api/s2n.h"
+#include "crypto/s2n_pkey.h"
 #include "tls/s2n_signature_scheme.h"
 
 /* one day, BoringSSL may add ocsp stapling support. Let's future proof this a bit by grabbing a definition
