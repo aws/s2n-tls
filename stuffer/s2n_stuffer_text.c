@@ -242,11 +242,12 @@ int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list
      */
     int str_len = vsnprintf(NULL, 0, format, vargs_1.va_list);
     POSIX_ENSURE_GTE(str_len, 0);
+    POSIX_ENSURE_LT(str_len, INT_MAX);
     int mem_size = str_len + 1;
 
     /* 'tainted' indicates that pointers to the contents of the stuffer exist,
      * so resizing / reallocated the stuffer will invalidate those pointers.
-     * However, we do no resize the stuffer in this method after creating `str`
+     * However, we do not resize the stuffer in this method after creating `str`
      * and `str` does not live beyond this method, so ignore `str` for the
      * purposes of tracking 'tainted'.
      */
@@ -261,7 +262,11 @@ int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list
 
     /* This time, vsnprintf actually writes the formatted string */
     int written = vsnprintf(str, mem_size, format, vargs_2.va_list);
-    POSIX_ENSURE_GTE(written, 0);
+    if (written != str_len) {
+        /* If the write fails, undo our raw write */
+        POSIX_GUARD(s2n_stuffer_wipe_n(stuffer, mem_size));
+        POSIX_BAIL(S2N_ERR_SAFETY);
+    }
 
     /* We don't actually use c-strings, so erase the final '\0' */
     POSIX_GUARD(s2n_stuffer_wipe_n(stuffer, 1));

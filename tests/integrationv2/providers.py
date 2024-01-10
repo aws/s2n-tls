@@ -677,7 +677,31 @@ class BoringSSL(Provider):
         return 'Cert issuer:'
 
     def setup_server(self):
-        pytest.skip('BoringSSL does not support server mode at this time')
+        cmd_line = ['bssl', 's_server']
+        cmd_line.extend(['-accept', self.options.port])
+        if self.options.cert is not None:
+            cmd_line.extend(['-cert', self.options.cert])
+        if self.options.key is not None:
+            cmd_line.extend(['-key', self.options.key])
+        if self.options.curve is not None:
+            if self.options.curve == Curves.P256:
+                cmd_line.extend(['-curves', 'P-256'])
+            elif self.options.curve == Curves.P384:
+                cmd_line.extend(['-curves', 'P-384'])
+            elif self.options.curve == Curves.P521:
+                cmd_line.extend(['-curves', 'P-521'])
+            elif self.options.curve == Curves.SecP256r1Kyber768Draft00:
+                cmd_line.extend(['-curves', 'SecP256r1Kyber768Draft00'])
+            elif self.options.curve == Curves.X25519Kyber768Draft00:
+                cmd_line.extend(['-curves', 'X25519Kyber768Draft00'])
+            elif self.options.curve == Curves.X25519:
+                pytest.skip('BoringSSL does not support curve {}'.format(
+                    self.options.curve))
+
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
+
+        return cmd_line
 
     def setup_client(self):
         cmd_line = ['bssl', 's_client']
@@ -704,9 +728,16 @@ class BoringSSL(Provider):
                 cmd_line.extend(['-curves', 'P-384'])
             elif self.options.curve == Curves.P521:
                 cmd_line.extend(['-curves', 'P-521'])
+            elif self.options.curve == Curves.SecP256r1Kyber768Draft00:
+                cmd_line.extend(['-curves', 'SecP256r1Kyber768Draft00'])
+            elif self.options.curve == Curves.X25519Kyber768Draft00:
+                cmd_line.extend(['-curves', 'X25519Kyber768Draft00'])
             elif self.options.curve == Curves.X25519:
                 pytest.skip('BoringSSL does not support curve {}'.format(
                     self.options.curve))
+
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
 
         # Clients are always ready to connect
         self.set_provider_ready()

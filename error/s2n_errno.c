@@ -302,6 +302,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ATOMIC, "Atomic operations in this environment would require locking") \
     ERR_ENTRY(S2N_ERR_TEST_ASSERTION, "Test assertion failed") \
     ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
+    ERR_ENTRY(S2N_ERR_KTLS_KEYUPDATE, "Received KeyUpdate from peer, but kernel does not support updating tls keys") \
+    ERR_ENTRY(S2N_ERR_KTLS_KEY_LIMIT, "Reached key encryption limit, but kernel does not support updating tls keys") \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \
@@ -459,7 +461,7 @@ int s2n_print_stacktrace(FILE *fptr)
     if (!s_s2n_stack_traces_enabled) {
         fprintf(fptr, "%s\n%s\n",
                 "NOTE: Some details are omitted, run with S2N_PRINT_STACKTRACE=1 for a verbose backtrace.",
-                "See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md");
+                "See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide");
         return S2N_SUCCESS;
     }
 

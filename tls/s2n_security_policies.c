@@ -51,6 +51,7 @@ const struct s2n_security_policy security_policy_default_fips = {
     .ecc_preferences = &s2n_ecc_preferences_default_fips,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
     },
 };
 
@@ -63,6 +64,7 @@ const struct s2n_security_policy security_policy_20230317 = {
     .ecc_preferences = &s2n_ecc_preferences_20201021,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
     },
 };
 
@@ -919,6 +921,7 @@ const struct s2n_security_policy security_policy_20210816 = {
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
     },
 };
 
@@ -930,6 +933,7 @@ const struct s2n_security_policy security_policy_20210816_gcm = {
     .ecc_preferences = &s2n_ecc_preferences_20210816,
     .rules = {
             [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
     },
 };
 
@@ -963,11 +967,14 @@ const struct s2n_security_policy security_policy_test_all_tls12 = {
 };
 
 const struct s2n_security_policy security_policy_test_all_fips = {
-    .minimum_protocol_version = S2N_TLS10,
+    .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_test_all_fips,
     .kem_preferences = &kem_preferences_null,
-    .signature_preferences = &s2n_signature_preferences_20201021,
+    .signature_preferences = &s2n_signature_preferences_test_all_fips,
     .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_FIPS_140_3] = true,
+    },
 };
 
 const struct s2n_security_policy security_policy_test_all_ecdsa = {

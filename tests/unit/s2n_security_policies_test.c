@@ -460,7 +460,6 @@ int main(int argc, char **argv)
             "20190121",
             "20190122",
             "20201021",
-            "test_all_fips",
             "test_all_ecdsa",
             "test_ecdsa_priority",
             "test_all_tls12",

@@ -16,9 +16,18 @@
 #include <stdbool.h>
 
 #include "api/s2n.h"
+#include "utils/s2n_result.h"
 
 #pragma once
 
 int s2n_fips_init(void);
 int s2n_is_in_fips_mode(void);
 bool s2n_libcrypto_is_fips(void);
+
+struct s2n_cipher_suite;
+S2N_RESULT s2n_fips_validate_cipher_suite(const struct s2n_cipher_suite *cipher_suite, bool *valid);
+struct s2n_signature_scheme;
+S2N_RESULT s2n_fips_validate_signature_scheme(const struct s2n_signature_scheme *sig_alg, bool *valid);
+struct s2n_ecc_named_curve;
+S2N_RESULT s2n_fips_validate_curve(const struct s2n_ecc_named_curve *curve, bool *valid);
+S2N_RESULT s2n_fips_validate_version(uint8_t version, bool *valid);
