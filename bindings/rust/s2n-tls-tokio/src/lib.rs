@@ -402,11 +402,14 @@ where
     }
 
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        println!("poll_shutdown start");
         ready!(self.as_mut().poll_blinding(ctx))?;
+        println!("blinding complete");
 
         let status = ready!(self.as_mut().with_io(ctx, |mut context| {
             context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
         }));
+        println!("s2n_shutdown complete: {:?}", status);
 
         if let Err(e) = status {
             // In case of an error shutting down, make sure you wait for
@@ -416,7 +419,10 @@ where
             unreachable!("should have returned the error we just put in!");
         }
 
-        Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx)
+        println!("tcp shutdown start");
+        let r = Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx);
+        println!("tcp shutdown complete: {:?}", r);
+        r
     }
 }
 
