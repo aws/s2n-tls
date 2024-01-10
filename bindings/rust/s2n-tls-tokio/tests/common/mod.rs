@@ -40,6 +40,8 @@ pub static RSA_KEY_PEM: &[u8] = include_bytes!(concat!(
 pub const MIN_BLINDING_SECS: Duration = Duration::from_secs(10);
 pub const MAX_BLINDING_SECS: Duration = Duration::from_secs(30);
 
+pub static TEST_STR: &str = "hello world";
+
 pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     let localhost = "127.0.0.1".to_owned();
     let listener = TcpListener::bind(format!("{}:0", localhost)).await?;
