@@ -574,11 +574,8 @@ S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 /*
  * volatile is important to prevent the compiler from
  * re-ordering or optimizing the use of RDRAND.
- *
- * This is marked with ASAN_IGNORE because address sanitizer is unable to deal
- * with the inline assembly and emits false positives.
  */
-ASAN_IGNORE static int s2n_rand_rdrand_impl(void *data, uint32_t size)
+static int s2n_rand_rdrand_impl(void *data, uint32_t size)
 {
 #if defined(__x86_64__) || defined(__i386__)
     struct s2n_blob out = { 0 };
