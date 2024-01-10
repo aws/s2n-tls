@@ -16,22 +16,8 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_x509_validator.h"
 
-static S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer* cert_chain_in_stuffer, struct s2n_blob* asn1_cert)
-{
-    uint32_t certificate_size = 0;
-
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint24(cert_chain_in_stuffer, &certificate_size));
-    RESULT_ENSURE(certificate_size > 0, S2N_ERR_CERT_INVALID);
-    RESULT_ENSURE(certificate_size <= s2n_stuffer_data_available(cert_chain_in_stuffer), S2N_ERR_CERT_INVALID);
-
-    asn1_cert->size = certificate_size;
-    asn1_cert->data = s2n_stuffer_raw_read(cert_chain_in_stuffer, certificate_size);
-    RESULT_ENSURE_REF(asn1_cert->data);
-
-    return S2N_RESULT_OK;
-}
+S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer* cert_chain_in_stuffer, struct s2n_blob* asn1_cert);
 
 int main(int argc, char** argv)
 {

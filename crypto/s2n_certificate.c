@@ -225,6 +225,7 @@ DEFINE_POINTER_CLEANUP_FUNC(GENERAL_NAMES *, GENERAL_NAMES_free);
 int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     POSIX_ENSURE_REF(chain_and_key->san_names);
+    POSIX_ENSURE_REF(x509_cert);
 
     DEFER_CLEANUP(GENERAL_NAMES *san_names = X509_get_ext_d2i(x509_cert, NID_subject_alt_name, NULL, NULL), GENERAL_NAMES_free_pointer);
     if (san_names == NULL) {
@@ -277,6 +278,7 @@ DEFINE_POINTER_CLEANUP_FUNC(unsigned char *, OPENSSL_free);
 int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key, X509 *x509_cert)
 {
     POSIX_ENSURE_REF(chain_and_key->cn_names);
+    POSIX_ENSURE_REF(x509_cert);
 
     X509_NAME *subject = X509_get_subject_name(x509_cert);
     if (!subject) {
@@ -355,7 +357,7 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     struct s2n_cert *head = chain_and_key->cert_chain->head;
 
     DEFER_CLEANUP(X509 *leaf_cert = NULL, X509_free_pointer);
-    POSIX_GUARD_RESULT(s2n_openssl_x509_parse_without_length_validation(&head->raw, &leaf_cert));
+    POSIX_GUARD_RESULT(s2n_openssl_x509_parse(&head->raw, &leaf_cert));
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);

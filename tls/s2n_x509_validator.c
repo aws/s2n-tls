@@ -22,6 +22,7 @@
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
+#include "crypto/s2n_pkey.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -382,7 +383,7 @@ static S2N_RESULT s2n_verify_host_information(struct s2n_connection *conn, X509 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert)
+S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert)
 {
     uint32_t certificate_size = 0;
 
@@ -417,26 +418,26 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
         /* We only do the trailing byte validation when parsing the leaf cert to
          * match historical s2n-tls behavior.
          */
-        DEFER_CLEANUP(X509 *server_cert = NULL, X509_free_pointer);
+        DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
         if (sk_X509_num(validator->cert_chain_from_wire) == 0) {
-            RESULT_GUARD(s2n_openssl_x509_parse(&asn1_cert, &server_cert));
+            RESULT_GUARD(s2n_openssl_x509_parse(&asn1_cert, &cert));
         } else {
-            RESULT_GUARD(s2n_openssl_x509_parse_without_length_validation(&asn1_cert, &server_cert));
+            RESULT_GUARD(s2n_openssl_x509_parse_without_length_validation(&asn1_cert, &cert));
         }
 
         if (!validator->skip_cert_validation) {
-            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, server_cert), S2N_ERR_CERT_UNTRUSTED);
+            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, cert), S2N_ERR_CERT_UNTRUSTED);
         }
 
         /* add the cert to the chain. */
-        if (!sk_X509_push(validator->cert_chain_from_wire, server_cert)) {
+        if (!sk_X509_push(validator->cert_chain_from_wire, cert)) {
             RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
         }
         /* After the cert is added to cert_chain_from_wire, it will be freed
          * with the call to s2n_x509_validator_wipe. We disable the cleanup
-         * function since cleanup is no longer "owned" by server_cert.
+         * function since cleanup is no longer "owned" by cert.
          */
-        ZERO_TO_DISABLE_DEFER_CLEANUP(server_cert);
+        ZERO_TO_DISABLE_DEFER_CLEANUP(cert);
 
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
         if (conn->actual_protocol_version >= S2N_TLS13) {

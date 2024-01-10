@@ -193,6 +193,10 @@ S2N_RESULT s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key,
 S2N_RESULT s2n_pkey_x509_to_public_key(X509 *cert, struct s2n_pkey *pub_key_out,
         s2n_pkey_type *pkey_type_out)
 {
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(pub_key_out);
+    RESULT_ENSURE_REF(pkey_type_out);
+
     DEFER_CLEANUP(EVP_PKEY *evp_public_key = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE(evp_public_key != NULL, S2N_ERR_DECODE_CERTIFICATE);
 
