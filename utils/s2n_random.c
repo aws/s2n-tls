@@ -75,8 +75,6 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-#define ENTROPY_SOURCE "/dev/urandom"
-
 #if defined(O_CLOEXEC)
     #define ENTROPY_FLAGS O_RDONLY | O_CLOEXEC
 #else
@@ -92,7 +90,10 @@
 /* Placeholder value for an uninitialized entropy file descriptor */
 #define UNINITIALIZED_ENTROPY_FD -1
 
-static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
+static struct s2n_rand_device s2n_dev_urandom = {
+    .source = "/dev/urandom",
+    .fd = UNINITIALIZED_ENTROPY_FD,
+};
 
 struct s2n_rand_state {
     uint64_t cached_fork_generation_number;
@@ -115,15 +116,23 @@ static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .drbgs_initialized = false
 };
 
-static int s2n_rand_init_impl(void);
-static int s2n_rand_cleanup_impl(void);
-static int s2n_rand_urandom_impl(void *ptr, uint32_t size);
+int s2n_rand_init_impl(void);
+int s2n_rand_cleanup_impl(void);
+int s2n_rand_urandom_impl(void *ptr, uint32_t size);
 static int s2n_rand_rdrand_impl(void *ptr, uint32_t size);
 
 static s2n_rand_init_callback s2n_rand_init_cb = s2n_rand_init_impl;
 static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
 static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
 static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
+
+int s2n_rand_entropy_fd_close_ptr(int *fd)
+{
+    if (fd && *fd != UNINITIALIZED_ENTROPY_FD) {
+        close(*fd);
+    }
+    return S2N_SUCCESS;
+}
 
 /* non-static for SAW proof */
 bool s2n_cpu_supports_rdrand()
@@ -332,8 +341,84 @@ S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
     return S2N_RESULT_OK;
 }
 
-static int s2n_rand_urandom_impl(void *ptr, uint32_t size)
+S2N_RESULT s2n_rand_get_dev_urandom(struct s2n_rand_device **device)
 {
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    *device = &s2n_dev_urandom;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
+{
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE_REF(device->source);
+
+    DEFER_CLEANUP(int fd = -1, s2n_rand_entropy_fd_close_ptr);
+    while (fd < 0) {
+        fd = open(device->source, ENTROPY_FLAGS);
+        if (fd < 0 && errno != EINTR) {
+            RESULT_BAIL(S2N_ERR_OPEN_RANDOM);
+        }
+    }
+
+    struct stat st = { 0 };
+    RESULT_ENSURE(fstat(fd, &st) == 0, S2N_ERR_OPEN_RANDOM);
+    device->dev = st.st_dev;
+    device->ino = st.st_ino;
+    device->mode = st.st_mode;
+    device->rdev = st.st_rdev;
+
+    device->fd = fd;
+
+    /* Disable closing the file descriptor with defer cleanup */
+    fd = UNINITIALIZED_ENTROPY_FD;
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
+{
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE_NE(device->fd, UNINITIALIZED_ENTROPY_FD);
+
+    /* Ensure that the random device is still valid by comparing it to the current file descriptor
+     * status. From:
+     * https://github.com/openssl/openssl/blob/260d97229c467d17934ca3e2e0455b1b5c0994a6/providers/implementations/rands/seeding/rand_unix.c#L513
+     */
+    struct stat st = { 0 };
+    RESULT_ENSURE(fstat(device->fd, &st) == 0, S2N_ERR_OPEN_RANDOM);
+    RESULT_ENSURE_EQ(device->dev, st.st_dev);
+    RESULT_ENSURE_EQ(device->ino, st.st_ino);
+    RESULT_ENSURE_EQ(device->rdev, st.st_rdev);
+
+    /* Ensure that the mode is the same (equal to 0 when xor'd), but don't check the permission bits. */
+    mode_t permission_mask = ~(S_IRWXU | S_IRWXG | S_IRWXO);
+    RESULT_ENSURE_EQ((device->mode ^ st.st_mode) & permission_mask, 0);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_rand_device_get_valid_fd(struct s2n_rand_device *device, int *fd)
+{
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE_REF(fd);
+
+    if (s2n_result_is_error(s2n_rand_device_validate(device))) {
+        RESULT_GUARD(s2n_rand_device_open(device));
+    }
+
+    *fd = device->fd;
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_rand_urandom_impl(void *ptr, uint32_t size)
+{
+    POSIX_ENSURE_REF(ptr);
+
+    int entropy_fd = UNINITIALIZED_ENTROPY_FD;
+    POSIX_GUARD_RESULT(s2n_rand_device_get_valid_fd(&s2n_dev_urandom, &entropy_fd));
     POSIX_ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
     uint8_t *data = ptr;
@@ -450,16 +535,9 @@ RAND_METHOD s2n_openssl_rand_method = {
 };
 #endif
 
-static int s2n_rand_init_impl(void)
+int s2n_rand_init_impl(void)
 {
-OPEN:
-    entropy_fd = open(ENTROPY_SOURCE, ENTROPY_FLAGS);
-    if (entropy_fd == -1) {
-        if (errno == EINTR) {
-            goto OPEN;
-        }
-        POSIX_BAIL(S2N_ERR_OPEN_RANDOM);
-    }
+    POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
 
     if (s2n_cpu_supports_rdrand()) {
         s2n_rand_mix_cb = s2n_rand_rdrand_impl;
@@ -502,12 +580,14 @@ S2N_RESULT s2n_rand_init(void)
     return S2N_RESULT_OK;
 }
 
-static int s2n_rand_cleanup_impl(void)
+int s2n_rand_cleanup_impl(void)
 {
-    POSIX_ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
-    POSIX_GUARD(close(entropy_fd));
-    entropy_fd = UNINITIALIZED_ENTROPY_FD;
+    if (s2n_result_is_ok(s2n_rand_device_validate(&s2n_dev_urandom))) {
+        POSIX_GUARD(close(s2n_dev_urandom.fd));
+    }
+    s2n_dev_urandom.fd = UNINITIALIZED_ENTROPY_FD;
 
     return S2N_SUCCESS;
 }
