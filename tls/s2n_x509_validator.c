@@ -414,7 +414,7 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
             && sk_X509_num(validator->cert_chain_from_wire) < validator->max_chain_depth) {
         struct s2n_blob asn1_cert = { 0 };
         RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
-        /* We only do the trailing byte validation whe parsing the leaf cert to
+        /* We only do the trailing byte validation when parsing the leaf cert to
          * match historical s2n-tls behavior.
          */
         DEFER_CLEANUP(X509 *server_cert = NULL, X509_free_pointer);
