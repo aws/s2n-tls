@@ -378,7 +378,7 @@ where
         let tcp_result = ready!(Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx));
 
         let result = if let Some(error) = self.shutdown_error.take() {
-            Err(error).map_err(io::Error::from)
+            Err(io::Error::from(error))
         } else {
             tcp_result
         };
