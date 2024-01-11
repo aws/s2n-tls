@@ -233,19 +233,25 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
 
     pid_t client_pid = fork();
     if (client_pid == 0) {
-        /* Suppress stdout when running the examples.
-         * This only affects the new client process.
+        /* use a new scope to force DEFER_CLEANUP functions to run before the
+         * exit system call
          */
-        fclose(stdout);
+        {
+            /* Suppress stdout when running the examples.
+             * This only affects the new client process.
+             */
+            fclose(stdout);
 
-        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
-        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_io_pair(client, &io_pair));
+            EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client, &io_pair));
 
-        EXPECT_OK(scenario_fn(client, &input));
+            EXPECT_OK(scenario_fn(client, &input));
+        }
+
 
         exit(EXIT_SUCCESS);
     }
