@@ -537,6 +537,10 @@ RAND_METHOD s2n_openssl_rand_method = {
 
 int s2n_rand_init_impl(void)
 {
+    /* Currently, s2n-tls may mix in entropy from urandom into every generation of random data. The
+     * file descriptor is opened on initialization for better performance reading from urandom, and
+     * to ensure that urandom is accessible from within a chroot tree.
+     */
     POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
 
     if (s2n_cpu_supports_rdrand()) {
