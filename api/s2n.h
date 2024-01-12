@@ -1396,6 +1396,9 @@ S2N_API extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s
 /**
  * Creates an s2n_client_hello from bytes representing a ClientHello message.
  *
+ * The input bytes should include the message header (message type and length),
+ * but not the record header.
+ *
  * Unlike s2n_connection_get_client_hello, the s2n_client_hello returned by this
  * method is owned by the application and must be freed with s2n_client_hello_free.
  *
