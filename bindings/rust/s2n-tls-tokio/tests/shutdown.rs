@@ -11,6 +11,10 @@ use tokio::{
 
 pub mod common;
 
+// An arbitrary but very long timeout.
+// No valid single IO operation should take anywhere near 10 minutes.
+pub const LONG_TIMEOUT: time::Duration = time::Duration::from_secs(600);
+
 async fn read_until_shutdown<S: AsyncRead + AsyncWrite + Unpin>(
     stream: &mut TlsStream<S>,
 ) -> Result<(), std::io::Error> {
@@ -160,9 +164,10 @@ async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
     // Attempt to shutdown the client. This will eventually fail because the
     // server has not written the close_notify message yet, but it will at least
     // write the close_notify message that the server needs.
-    // Because time is mocked for testing, this does not actually take 10 minutes.
+    // Because time is mocked for testing, this does not actually take LONG_TIMEOUT.
     // TODO: replace this with a half-close once the bindings support half-close.
-    _ = time::timeout(time::Duration::from_secs(600), client.shutdown()).await;
+    let timeout = time::timeout(LONG_TIMEOUT, client.shutdown()).await;
+    assert!(timeout.is_err());
 
     // Setup a bad record for the next read
     overrides.next_read(Some(Box::new(|_, _, buf| {
