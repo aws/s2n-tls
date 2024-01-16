@@ -197,7 +197,13 @@ if(ASAN)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
 endif()
 
-if(TSAN OR ASAN)
+if (UBSAN)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=undefined -fno-sanitize-recover=all -DS2N_ADDRESS_SANITIZER=1)
+    target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=undefined -fno-sanitize-recover=all)
+endif()
+
+
+if(TSAN OR ASAN OR UBSAN)
     # no-omit-frame-pointer and no-optimize-sibling-calls provide better stack traces
     target_compile_options(${PROJECT_NAME} PUBLIC -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 endif()

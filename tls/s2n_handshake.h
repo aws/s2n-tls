@@ -48,7 +48,7 @@
 #define TLS_MESSAGE_HASH              254
 
 /* Maximum number of messages in a handshake */
-#define S2N_MAX_HANDSHAKE_LENGTH    32
+#define S2N_MAX_HANDSHAKE_LENGTH 32
 
 /* This is the list of message types that we support */
 typedef enum {
@@ -89,7 +89,7 @@ typedef enum {
  * starts off on the initial enum, which indicates we're using
  * the TLS12 state machine. Once the handshake version is determined
  * the enum is set to either the TLS12 or TLS13 state machine.
- * This works because the initial entries in both the TLS12 and
+ * This works because the initial entries in both the TLS12 and 
  * TLS13 state machines are the same. */
 typedef enum {
     S2N_STATE_MACHINE_INITIAL = 0,

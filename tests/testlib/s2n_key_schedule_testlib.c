@@ -19,7 +19,7 @@ S2N_RESULT s2n_connection_set_test_transcript_hash(struct s2n_connection *conn,
         message_type_t message_type, const struct s2n_blob *digest)
 {
     RESULT_GUARD(s2n_connection_set_test_message_type(conn, message_type));
-    conn->handshake.handshake_type = conn->handshake.handshake_type & NEGOTIATED;
+    conn->handshake.handshake_type &= NEGOTIATED;
     RESULT_ENSURE_EQ(s2n_conn_get_current_message_type(conn), message_type);
     RESULT_CHECKED_MEMCPY(conn->handshake.hashes->transcript_hash_digest,
             digest->data, digest->size);
@@ -59,7 +59,8 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_connection_set_test_message_type(struct s2n_connection *conn, message_type_t expected_message_type) {
+S2N_RESULT s2n_connection_set_test_message_type(struct s2n_connection *conn, message_type_t expected_message_type)
+{
     /* scan over all handshake types until the desired message type is found */
     for (uint32_t handshake = 0; handshake < S2N_HANDSHAKES_COUNT; handshake++) {
         for (int message = 0; message < S2N_MAX_HANDSHAKE_LENGTH; message++) {
