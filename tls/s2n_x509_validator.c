@@ -636,7 +636,8 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len,
+static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(
+        struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len,
         s2n_parsed_extensions_list *first_certificate_extensions)
 {
     /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
