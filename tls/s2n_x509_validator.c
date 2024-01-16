@@ -415,6 +415,7 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
             && sk_X509_num(validator->cert_chain_from_wire) < validator->max_chain_depth) {
         struct s2n_blob asn1_cert = { 0 };
         RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
+
         /* We only do the trailing byte validation when parsing the leaf cert to
          * match historical s2n-tls behavior.
          */
@@ -429,10 +430,9 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
             RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, cert), S2N_ERR_CERT_UNTRUSTED);
         }
 
-        /* add the cert to the chain. */
-        if (!sk_X509_push(validator->cert_chain_from_wire, cert)) {
-            RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
-        }
+        /* add the cert to the chain */
+        RESULT_ENSURE(sk_X509_push(validator->cert_chain_from_wire, cert) > 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
         /* After the cert is added to cert_chain_from_wire, it will be freed
          * with the call to s2n_x509_validator_wipe. We disable the cleanup
          * function since cleanup is no longer "owned" by cert.
@@ -639,6 +639,9 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
 static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len,
         s2n_parsed_extensions_list *first_certificate_extensions)
 {
+    /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
+    RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS13);
+
     struct s2n_blob cert_chain_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = { 0 }, s2n_stuffer_free);
@@ -649,8 +652,6 @@ static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2
     struct s2n_blob asn1_cert = { 0 };
     RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
-    /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
-    RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS13);
     s2n_parsed_extensions_list parsed_extensions_list = { 0 };
     RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
     *first_certificate_extensions = parsed_extensions_list;
@@ -703,19 +704,18 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
     }
 
-    DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
-    s2n_pkey_zero_init(&public_key);
 
     /* retrieve information from leaf cert */
     RESULT_ENSURE_GT(sk_X509_num(validator->cert_chain_from_wire), 0);
     X509 *leaf_cert = sk_X509_value(validator->cert_chain_from_wire, 0);
     RESULT_ENSURE_REF(leaf_cert);
-    RESULT_GUARD(s2n_pkey_x509_to_public_key(leaf_cert, &public_key, pkey_type));
+    DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+    RESULT_GUARD(s2n_pkey_from_x509(leaf_cert, &public_key, pkey_type));
 
     *public_key_out = public_key;
 
     /* Reset the old struct, so we don't clean up public_key_out */
-    s2n_pkey_zero_init(&public_key);
+    RESULT_GUARD_POSIX(s2n_pkey_zero_init(&public_key));
 
     return S2N_RESULT_OK;
 }

@@ -252,7 +252,6 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
             EXPECT_OK(scenario_fn(client, &input));
         }
 
-
         exit(EXIT_SUCCESS);
     }
 

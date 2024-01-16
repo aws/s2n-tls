@@ -362,7 +362,7 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    POSIX_GUARD_RESULT(s2n_pkey_x509_to_public_key(leaf_cert, &public_key, &pkey_type));
+    POSIX_GUARD_RESULT(s2n_pkey_from_x509(leaf_cert, &public_key, &pkey_type));
 
     POSIX_ENSURE(pkey_type != S2N_PKEY_TYPE_UNKNOWN, S2N_ERR_CERT_TYPE_UNSUPPORTED);
     POSIX_GUARD(s2n_cert_set_cert_type(head, pkey_type));

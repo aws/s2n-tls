@@ -185,12 +185,12 @@ S2N_RESULT s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key,
 {
     DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
     RESULT_GUARD(s2n_openssl_x509_parse(asn1der, &cert));
-    RESULT_GUARD(s2n_pkey_x509_to_public_key(cert, pub_key, pkey_type_out));
+    RESULT_GUARD(s2n_pkey_from_x509(cert, pub_key, pkey_type_out));
 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_pkey_x509_to_public_key(X509 *cert, struct s2n_pkey *pub_key_out,
+S2N_RESULT s2n_pkey_from_x509(X509 *cert, struct s2n_pkey *pub_key_out,
         s2n_pkey_type *pkey_type_out)
 {
     RESULT_ENSURE_REF(cert);
