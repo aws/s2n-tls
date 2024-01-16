@@ -704,7 +704,6 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
     }
 
-
     /* retrieve information from leaf cert */
     RESULT_ENSURE_GT(sk_X509_num(validator->cert_chain_from_wire), 0);
     X509 *leaf_cert = sk_X509_value(validator->cert_chain_from_wire, 0);
