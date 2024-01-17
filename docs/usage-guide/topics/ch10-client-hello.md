@@ -6,11 +6,11 @@
 s2n-tls stores the received Client Hello and makes it available to the application. Call `s2n_connection_get_client_hello()` to get a pointer to the `s2n_client_hello` struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the [Client Hello Callback](#client-hello-callback). The stored Client Hello message will not be available after calling `s2n_connection_free_handshake()`.
 
 ### From raw bytes
-s2n-tls can parse a Client Hello from raw bytes. Call `s2n_client_hello_parse_message`
+s2n-tls can parse a Client Hello from raw bytes. Call `s2n_client_hello_parse_message()`
 with raw bytes representing a Client Hello message (including the message header, but excluding
 the record header). The returned pointer to a `s2n_client_hello` struct behaves
 the same as a pointer returned from `s2n_connection_get_client_hello()`, except
-that the memory is owned by the application and must be freed with `s2n_client_hello_free`.
+that the memory is owned by the application and must be freed with `s2n_client_hello_free()`.
 
 ## Examining the message
 
@@ -20,7 +20,7 @@ Call `s2n_client_hello_get_cipher_suites()` to retrieve the list of cipher suite
 
 Call `s2n_client_hello_get_session_id()` to retrieve the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with `s2n_connection_get_session_id()`after the handshake completes.
 
-Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensions sent in the Client Hello. Calling `s2n_client_hello_get_extension_by_id()` to retrieve a specific extension. Because `s2n_client_hello_get_extension_by_id()` doesn't distinguish between zero-length extensions and missing extensions,
+Call `s2n_client_hello_get_extensions()` to retrieve the entire list of extensions sent in the Client Hello. Call `s2n_client_hello_get_extension_by_id()` to retrieve a specific extension. Because `s2n_client_hello_get_extension_by_id()` doesn't distinguish between zero-length extensions and missing extensions,
 `s2n_client_hello_has_extension()` should be used to check for the existence of an extension.
 
 Call `s2n_client_hello_get_supported_groups()` to retrieve the entire list of
