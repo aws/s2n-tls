@@ -6,10 +6,14 @@ use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::{convert::TryFrom, sync::Arc};
 use tokio::{
     io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt},
-    join, time,
+    time,
 };
 
 pub mod common;
+
+// An arbitrary but very long timeout.
+// No valid single IO operation should take anywhere near 10 minutes.
+pub const LONG_TIMEOUT: time::Duration = time::Duration::from_secs(600);
 
 async fn read_until_shutdown<S: AsyncRead + AsyncWrite + Unpin>(
     stream: &mut TlsStream<S>,
@@ -157,7 +161,15 @@ async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
     let (mut client, mut server) =
         common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
-    // Trigger a blinded error for the server.
+    // Attempt to shutdown the client. This will eventually fail because the
+    // server has not written the close_notify message yet, but it will at least
+    // write the close_notify message that the server needs.
+    // Because time is mocked for testing, this does not actually take LONG_TIMEOUT.
+    // TODO: replace this with a half-close once the bindings support half-close.
+    let timeout = time::timeout(LONG_TIMEOUT, client.shutdown()).await;
+    assert!(timeout.is_err());
+
+    // Setup a bad record for the next read
     overrides.next_read(Some(Box::new(|_, _, buf| {
         // Parsing the header is one of the blinded operations
         // in s2n_recv, so provide a malformed header.
@@ -165,26 +177,29 @@ async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
         buf.put_slice(&zeroed_header);
         Ok(()).into()
     })));
+
+    // Trigger the blinded error
     let mut received = [0; 1];
     let result = server.read_exact(&mut received).await;
     assert!(result.is_err());
 
-    // Shutdown MUST NOT complete faster than minimal blinding time.
-    let (timeout, _) = join!(
-        time::timeout(common::MIN_BLINDING_SECS, server.shutdown()),
-        time::timeout(common::MIN_BLINDING_SECS, read_until_shutdown(&mut client)),
-    );
-    assert!(timeout.is_err());
+    let time_start = time::Instant::now();
+    let result = server.shutdown().await;
+    let time_elapsed = time_start.elapsed();
 
-    // Shutdown MUST eventually complete after blinding.
-    //
-    // We check for completion, but not for success. At the moment, the
-    // call to s2n_shutdown will fail due to issues in the underlying C library.
-    let (timeout, _) = join!(
-        time::timeout(common::MAX_BLINDING_SECS, server.shutdown()),
-        time::timeout(common::MAX_BLINDING_SECS, read_until_shutdown(&mut client)),
-    );
-    assert!(timeout.is_ok());
+    // Shutdown MUST NOT complete faster than minimal blinding time.
+    assert!(time_elapsed > common::MIN_BLINDING_SECS);
+
+    // TODO: While the server SHOULD successfully shutdown, there is currently
+    // a C bug preventing it from doing so: https://github.com/aws/s2n-tls/pull/4350
+    let io_error = result.unwrap_err();
+    let error: error::Error = io_error.try_into()?;
+    assert!(error.kind() == error::ErrorType::IOError);
+    assert!(error.name() == "S2N_ERR_IO");
+
+    // Shutdown MUST have sent the close_notify message needed by the peer
+    // to also shutdown successfully.
+    client.shutdown().await?;
 
     Ok(())
 }
@@ -204,33 +219,31 @@ async fn shutdown_with_blinding_bad_close_record() -> Result<(), Box<dyn std::er
     let (mut client, mut server) =
         common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
-    // Turn the closure alert to a bad message
+    // Setup a bad record for the next read
     overrides.next_read(Some(Box::new(|_, _, buf| {
         // Parsing the header is one of the blinded operations
-        // in s2n_recv, so provide a malformed header.
+        // in s2n_shutdown, so provide a malformed header.
         let zeroed_header = [23, 0, 0, 0, 0];
         buf.put_slice(&zeroed_header);
         Ok(()).into()
     })));
 
-    // Shutdown MUST NOT complete faster than minimal blinding time.
-    let (timeout, _) = join!(
-        time::timeout(common::MIN_BLINDING_SECS, server.shutdown()),
-        time::timeout(common::MIN_BLINDING_SECS, read_until_shutdown(&mut client)),
-    );
-    assert!(timeout.is_err());
+    let time_start = time::Instant::now();
+    let result = server.shutdown().await;
+    let time_elapsed = time_start.elapsed();
 
-    // Shutdown MUST eventually complete after blinding.
-    //
-    // We check for completion, but not for success. At the moment, the
-    // call to s2n_shutdown will fail due to issues in the underlying C library.
-    let (timeout, _) = join!(
-        time::timeout(common::MAX_BLINDING_SECS, server.shutdown()),
-        time::timeout(common::MAX_BLINDING_SECS, read_until_shutdown(&mut client)),
-    );
-    // timeout should be OK, but shutdown should return an error because of
-    // the bad record.
-    assert!(matches!(timeout, Ok(Err(_))));
+    // Shutdown MUST NOT complete faster than minimal blinding time.
+    assert!(time_elapsed > common::MIN_BLINDING_SECS);
+
+    // Shutdown MUST eventually complete with the correct error after blinding.
+    let io_error = result.unwrap_err();
+    let error: error::Error = io_error.try_into()?;
+    assert!(error.kind() == error::ErrorType::ProtocolError);
+    assert!(error.name() == "S2N_ERR_BAD_MESSAGE");
+
+    // Shutdown MUST have sent the close_notify message needed by the peer
+    // to also shutdown successfully.
+    client.shutdown().await?;
 
     Ok(())
 }
@@ -247,10 +260,10 @@ async fn shutdown_with_poll_blinding() -> Result<(), Box<dyn std::error::Error>>
     let (server_stream, client_stream) = common::get_streams().await?;
     let server_stream = common::TestStream::new(server_stream);
     let overrides = server_stream.overrides();
-    let (mut client, mut server) =
+    let (_, mut server) =
         common::run_negotiate(&client, client_stream, &server, server_stream).await?;
 
-    // Trigger a blinded error for the server.
+    // Setup a bad record for the next read
     overrides.next_read(Some(Box::new(|_, _, buf| {
         // Parsing the header is one of the blinded operations
         // in s2n_recv, so provide a malformed header.
@@ -258,26 +271,21 @@ async fn shutdown_with_poll_blinding() -> Result<(), Box<dyn std::error::Error>>
         buf.put_slice(&zeroed_header);
         Ok(()).into()
     })));
+
+    // Trigger the blinded error
     let mut received = [0; 1];
     let result = server.read_exact(&mut received).await;
     assert!(result.is_err());
 
-    // poll_blinding MUST NOT complete faster than minimal blinding time.
-    let (timeout, _) = join!(
-        time::timeout(common::MIN_BLINDING_SECS, server.apply_blinding()),
-        time::timeout(common::MIN_BLINDING_SECS, read_until_shutdown(&mut client)),
-    );
-    assert!(timeout.is_err());
+    let time_start = time::Instant::now();
+    let result = server.apply_blinding().await;
+    let time_elapsed = time_start.elapsed();
 
-    // Shutdown MUST eventually complete after blinding.
-    //
-    // We check for completion, but not for success. At the moment, the
-    // call to s2n_shutdown will fail due to issues in the underlying C library.
-    let (timeout, _) = join!(
-        time::timeout(common::MAX_BLINDING_SECS, server.apply_blinding()),
-        time::timeout(common::MAX_BLINDING_SECS, read_until_shutdown(&mut client)),
-    );
-    assert!(timeout.is_ok());
+    // poll_blinding MUST NOT complete faster than minimal blinding time.
+    assert!(time_elapsed > common::MIN_BLINDING_SECS);
+
+    // poll_blinding MUST eventually complete
+    assert!(result.is_ok());
 
     Ok(())
 }
