@@ -66,10 +66,11 @@ struct s2n_config {
     /* if this is FALSE, server will ignore client's Maximum Fragment Length request */
     unsigned accept_mfl : 1;
     unsigned check_ocsp : 1;
+    unsigned disable_x509_time_validation : 1;
     unsigned disable_x509_validation : 1;
     unsigned max_verify_cert_chain_depth_set : 1;
     /* Whether to add dss cert type during a server certificate request.
-     * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md */
+     * See s2n_config_enable_cert_req_dss_legacy_compat. */
     unsigned cert_req_dss_legacy_compat_enabled : 1;
     /* Whether any RSA certificates have been configured server-side to send to clients. This is needed so that the
      * server knows whether or not to self-downgrade to TLS 1.2 if the server is compiled with Openssl 1.0.2 and does
@@ -90,7 +91,7 @@ struct s2n_config {
 
     /* Indicates s2n_recv should read as much as it can into the output buffer
      *
-     * Note: This defaults to false to ensure backwards compatability with
+     * Note: This defaults to false to ensure backwards compatibility with
      * applications which relied on s2n_recv returning a single record.
      */
     unsigned recv_multi_record : 1;
@@ -100,6 +101,9 @@ struct s2n_config {
 
     /* Indicates whether s2n has enabled OCSP status requests, for backwards compatibility */
     unsigned ocsp_status_requested_by_s2n : 1;
+
+    /* TLS1.3 can be dangerous with kTLS. Require it to be explicitly enabled. */
+    unsigned ktls_tls13_enabled : 1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
@@ -151,6 +155,9 @@ struct s2n_config {
 
     s2n_crl_lookup_callback crl_lookup_cb;
     void *crl_lookup_ctx;
+
+    s2n_cert_validation_callback cert_validation_cb;
+    void *cert_validation_ctx;
 
     /* Application supplied callback to resolve domain name conflicts when loading certs. */
     s2n_cert_tiebreak_callback cert_tiebreak_cb;

@@ -187,37 +187,37 @@ static int s2n_rsa_pss_key_free(struct s2n_pkey *pkey)
     return S2N_SUCCESS;
 }
 
-int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
+S2N_RESULT s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
 {
     const RSA *pub_rsa_key = EVP_PKEY_get1_RSA(pkey);
-    POSIX_ENSURE_REF(pub_rsa_key);
+    RESULT_ENSURE_REF(pub_rsa_key);
 
-    S2N_ERROR_IF(s2n_rsa_is_private_key(pub_rsa_key), S2N_ERR_KEY_MISMATCH);
+    RESULT_ENSURE(!s2n_rsa_is_private_key(pub_rsa_key), S2N_ERR_KEY_MISMATCH);
 
     rsa_key->rsa = pub_rsa_key;
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
+S2N_RESULT s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey)
 {
     const RSA *priv_rsa_key = EVP_PKEY_get1_RSA(pkey);
-    POSIX_ENSURE_REF(priv_rsa_key);
+    RESULT_ENSURE_REF(priv_rsa_key);
 
     /* Documentation: https://www.openssl.org/docs/man1.1.1/man3/RSA_check_key.html */
-    S2N_ERROR_IF(!s2n_rsa_is_private_key(priv_rsa_key), S2N_ERR_KEY_MISMATCH);
+    RESULT_ENSURE(s2n_rsa_is_private_key(priv_rsa_key), S2N_ERR_KEY_MISMATCH);
 
     /* Check that the mandatory properties of a RSA Private Key are valid.
      *  - Documentation: https://www.openssl.org/docs/man1.1.1/man3/RSA_check_key.html
      */
-    POSIX_GUARD_OSSL(RSA_check_key(priv_rsa_key), S2N_ERR_KEY_CHECK);
+    RESULT_GUARD_OSSL(RSA_check_key(priv_rsa_key), S2N_ERR_KEY_CHECK);
 
     rsa_key->rsa = priv_rsa_key;
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
+S2N_RESULT s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
 {
-    POSIX_GUARD(s2n_rsa_pkey_init(pkey));
+    RESULT_GUARD(s2n_rsa_pkey_init(pkey));
 
     pkey->size = &s2n_rsa_pss_size;
     pkey->sign = &s2n_rsa_pss_key_sign;
@@ -231,25 +231,25 @@ int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
     pkey->match = &s2n_rsa_pss_keys_match;
     pkey->free = &s2n_rsa_pss_key_free;
 
-    POSIX_GUARD_RESULT(s2n_evp_signing_set_pkey_overrides(pkey));
-    return 0;
+    RESULT_GUARD(s2n_evp_signing_set_pkey_overrides(pkey));
+    return S2N_RESULT_OK;
 }
 
 #else
 
-int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_pss_key, EVP_PKEY *pkey)
+S2N_RESULT s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_pss_key, EVP_PKEY *pkey)
 {
-    POSIX_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
+    RESULT_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
 }
 
-int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_pss_key, EVP_PKEY *pkey)
+S2N_RESULT s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_pss_key, EVP_PKEY *pkey)
 {
-    POSIX_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
+    RESULT_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
 }
 
-int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
+S2N_RESULT s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey)
 {
-    POSIX_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
+    RESULT_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
 }
 
 #endif

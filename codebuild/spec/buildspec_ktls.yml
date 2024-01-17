@@ -1,0 +1,24 @@
+---
+version: 0.2
+phases:
+  install:
+    commands:
+      - apt update
+      - apt upgrade -y
+      - apt install -y qemu qemu-system-x86 wget cloud-image-utils
+  pre_build:
+    commands:
+      - aws s3 --quiet sync s3://s2n-ktls-testing ./qemu
+      - cd qemu; bash ./run.sh; cd ..
+      - rsync -avz --exclude=qemu --exclude=tests/fuzz -e 'ssh -p 2222' . codebuild@localhost:/home/codebuild/s2n-tls
+  build:
+    commands:
+      - codebuild-breakpoint
+      - |
+        ssh -p 2222 codebuild@localhost " \
+            cd s2n-tls; sudo modprobe tls; \
+            export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
+            export S2N_KTLS_TESTING_EXPECTED=1; \
+            nix develop .#openssl111 --command bash -c \
+                'source ./nix/shell.sh && clean && configure && build && unit' \
+        "

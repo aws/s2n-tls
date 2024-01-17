@@ -16,6 +16,7 @@
 set -e
 
 source codebuild/bin/s2n_setup_env.sh
+
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 # Codebuild Containers aren't allowing prlimit changes (and aren't being caught with the usual cgroup check)
 if [[ "$OS_NAME" == "linux" && -n "$CODEBUILD_BUILD_ARN" ]]; then
@@ -30,11 +31,12 @@ fi
 
 # Linker flags are a workaround for openssl
 case "$TESTS" in
-  "unit") cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -D${CMAKE_PQ_OPTION} -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True
-          cmake --build ./build -j $(nproc)
-          cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
-	  ;;
-  *) echo "Unknown test"
-     exit 1;;
+  "unit")
+    cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+      -D${CMAKE_PQ_OPTION} -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True
+    cmake --build ./build -j $(nproc)
+    cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
+    ;;
+  *) echo "Unknown test"; exit 1;;
 esac
 

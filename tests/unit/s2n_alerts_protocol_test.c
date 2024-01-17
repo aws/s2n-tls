@@ -620,7 +620,9 @@ int main(int argc, char **argv)
             /* First read should report a partial read, but also close the connection */
             EXPECT_EQUAL(s2n_recv(receiver, data, sizeof(data), &blocked), partial_write);
             EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
-            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+
+            /* Since we read at least one byte, the blocked status should be S2N_NOT_BLOCKED */
+            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
             /* Subsequent reads should NOT report END_OF_DATA, but instead an error */
             for (size_t i = 0; i < 5; i++) {

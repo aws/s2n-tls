@@ -15,7 +15,6 @@ duvet \
   --source-pattern '(*=,*#)bin/**/*.[ch]' \
   --source-pattern '(*=,*#)crypto/**/*.[ch]' \
   --source-pattern '(*=,*#)error/**/*.[ch]' \
-  --source-pattern '(*=,*#)pq-crypto/**/*.[ch]' \
   --source-pattern '(*=,*#)stuffer/**/*.[ch]' \
   --source-pattern '(*=,*#)tests/**/*.[ch]' \
   --source-pattern '(*=,*#)tls/**/*.[ch]' \

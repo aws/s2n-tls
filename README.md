@@ -11,66 +11,40 @@ s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be 
 [![C99](https://img.shields.io/badge/language-C99-blue.svg)](http://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf)
 [![Github forks](https://img.shields.io/github/forks/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/network)
 [![Github stars](https://img.shields.io/github/stars/aws/s2n-tls.svg)](https://github.com/aws/s2n-tls/stargazers)
-[![Join the chat at https://gitter.im/awslabs/s2n](https://badges.gitter.im/awslabs/s2n.svg)](https://gitter.im/awslabs/s2n?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 ## Quickstart for Ubuntu
-1. Fork s2n-tls on GitHub
-2. Run the following commands on Ubuntu.
-```
-git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
+
+```bash
+# clone s2n-tls
+git clone https://github.com/aws/s2n-tls.git
 cd s2n-tls
 
-# Pick an "env" line from the codebuild/codebuild.config file and run it, in this case choose the openssl-1.1.1 with GCC 9 build
-S2N_LIBCRYPTO=openssl-1.1.1 BUILD_S2N=true TESTS=integrationv2 GCC_VERSION=9
+# install build dependencies
+sudo apt update
+sudo apt install cmake
 
-sudo codebuild/bin/s2n_install_test_dependencies.sh
-codebuild/bin/s2n_codebuild.sh
+# install a libcrypto
+sudo apt install libssl-dev
+
+# build s2n-tls
+cmake . -Bbuild \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DCMAKE_INSTALL_PREFIX=./s2n-tls-install
+cmake --build build -j $(nproc)
+CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+cmake --install build
 ```
 
-## Quickstart for OSX (or other platforms)
-
-If you are building on OSX, or simply don't want to execute the entire build script above, you can use build tools like Ninja.
-
-### OSX
-
-An example of building on OSX:
-
-```sh
-# Install required dependencies using homebrew
-brew install ninja cmake coreutils openssl@1.1
-
-# Clone the s2n-tls source repository into the `s2n-tls` directory
-git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
-cd s2n-tls
-
-# Create a build directory, and build s2n-tls with debug symbols and a specific OpenSSL version.
-cmake . -Bbuild -GNinja \
-    -DCMAKE_BUILD_TYPE=Debug \
-    -DCMAKE_PREFIX_PATH=$(dirname $(dirname $(brew list openssl@1.1|grep libcrypto.dylib)))
-cmake --build ./build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) ninja -C build test
-```
-
-### Amazonlinux2
-
-Install dependencies with `./codebuild/bin/install_al2_dependencies.sh` after cloning.
-
-```sh
-git clone https://github.com/${YOUR_GITHUB_ACCOUNT_NAME}/s2n-tls.git
-cd s2n-tls
-cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
-cmake --build ./build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
-```
+See the [s2n-tls build documentation](docs/BUILD.md) for further guidance on building s2n-tls for your platform.
 
 ## Have a Question?
-If you have any questions about Submitting PR's, Opening Issues, s2n-tls API usage, or something similar, we have a public chatroom available here to answer your questions: https://gitter.im/awslabs/s2n
+If you think you might have found a security impacting issue, please follow our [Security Notification Process.](#security-issue-notifications)
 
-Otherwise, if you think you might have found a security impacting issue, please instead follow [our Security Notification Process.](#security-issue-notifications)
+If you have any questions about submitting PRs, s2n-tls API usage, or something similar, please open an issue.
 
 ## Documentation
 
-s2n-tls uses [Doxygen](https://doxygen.nl/index.html) to document its public API. The latest s2n-tls documentation can be found on [GitHub pages](https://aws.github.io/s2n-tls/doxygen/). The [Usage Guide](docs/USAGE-GUIDE.md) explains how different TLS features can be configured and used.
+s2n-tls uses [Doxygen](https://doxygen.nl/index.html) to document its public API. The latest s2n-tls documentation can be found on [GitHub pages](https://aws.github.io/s2n-tls/doxygen/). The [Usage Guide](https://aws.github.io/s2n-tls/usage-guide/) explains how different TLS features can be configured and used.
 
 Documentation for older versions or branches of s2n-tls can be generated locally. To generate the documentation, install doxygen and run `doxygen docs/doxygen/Doxyfile`. The doxygen documentation can now be found at `docs/doxygen/output/html/index.html`.
 
@@ -103,7 +77,7 @@ int bytes_written;
 bytes_written = s2n_send(conn, "Hello World", sizeof("Hello World"), &blocked);
 ```
 
-For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the [usage guide](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md).
+For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the [Usage Guide](https://aws.github.io/s2n-tls/usage-guide).
 
 ## s2n-tls features
 
@@ -135,6 +109,8 @@ In addition to code reviews, s2n-tls is subject to regular static analysis, fuzz
 ##### Unit tests and end-to-end testing
 
 s2n-tls includes positive and negative unit tests and end-to-end test cases.
+
+Unit test coverage can be viewed [here](https://dx1inn44oyl7n.cloudfront.net/main/index.html). Note that this represents unit coverage for a particular build. Since that build won't necessarily support all s2n-tls features, test coverage may be artificially lowered.
 
 ##### Erase on read
 s2n-tls encrypts or erases plaintext data as quickly as possible. For example, decrypted data buffers are erased as they are read by the application.

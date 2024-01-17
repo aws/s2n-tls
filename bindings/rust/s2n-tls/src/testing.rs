@@ -2,7 +2,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use crate::{
-    callbacks::VerifyHostNameCallback, config::*, enums::Blinding, security,
+    callbacks::VerifyHostNameCallback, config::*, connection, enums::Blinding, security,
     testing::s2n_tls::Harness,
 };
 use alloc::{collections::VecDeque, sync::Arc};
@@ -13,6 +13,7 @@ use core::{
 };
 
 pub mod client_hello;
+pub mod resumption;
 pub mod s2n_tls;
 
 type Error = Box<dyn std::error::Error>;
@@ -53,12 +54,20 @@ impl Default for Counter {
 }
 
 pub trait Connection: core::fmt::Debug {
-    fn poll<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>>;
+    fn poll_negotiate<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>>;
+    fn poll_action<Ctx: Context, F>(&mut self, context: &mut Ctx, action: F) -> Poll<Result<()>>
+    where
+        F: FnOnce(&mut connection::Connection) -> Poll<Result<usize, crate::error::Error>>;
 }
 
 pub trait Context {
     fn receive(&mut self, max_len: Option<usize>) -> Option<Bytes>;
     fn send(&mut self, data: Bytes);
+}
+
+pub enum Mode {
+    Client,
+    Server,
 }
 
 #[derive(Debug)]
@@ -87,8 +96,8 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
             "handshake has iterated too many times: {:#?}",
             self,
         );
-        let client_res = self.client.0.poll(&mut self.client.1);
-        let server_res = self.server.0.poll(&mut self.server.1);
+        let client_res = self.client.0.poll_negotiate(&mut self.client.1);
+        let server_res = self.server.0.poll_negotiate(&mut self.server.1);
         self.client.1.transfer(&mut self.server.1);
         self.max_iterations -= 1;
         match (client_res, server_res) {
@@ -106,6 +115,43 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
                 Poll::Pending
             }
             _ => Poll::Pending,
+        }
+    }
+
+    pub fn poll_send(&mut self, sender: Mode, buf: &[u8]) -> Poll<Result<()>> {
+        let result = match sender {
+            Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
+                connection::Connection::poll_send(conn, buf)
+            }),
+            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
+                connection::Connection::poll_send(conn, buf)
+            }),
+        };
+        self.server.1.transfer(&mut self.client.1);
+        match result {
+            Poll::Ready(result) => {
+                result?;
+                Ok(()).into()
+            }
+            Poll::Pending => Poll::Pending,
+        }
+    }
+
+    pub fn poll_recv(&mut self, receiver: Mode, buf: &mut [u8]) -> Poll<Result<()>> {
+        let result = match receiver {
+            Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
+                connection::Connection::poll_recv(conn, buf)
+            }),
+            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
+                connection::Connection::poll_recv(conn, buf)
+            }),
+        };
+        match result {
+            Poll::Ready(result) => {
+                result?;
+                Ok(()).into()
+            }
+            Poll::Pending => Poll::Pending,
         }
     }
 }

@@ -22,6 +22,7 @@
 #include "crypto/s2n_hmac.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crypto.h"
+#include "tls/s2n_kem_preferences.h"
 #include "tls/s2n_tls_parameters.h"
 
 /* Key exchange flags that can be OR'ed */

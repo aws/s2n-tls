@@ -28,13 +28,17 @@
  * 700.  In glibc 2.11 and earlier, one obtains the definitions by
  * defining _GNU_SOURCE.
  *
- * # Relavent Links
+ * We use two feature probes to detect the need to perform this workaround.
+ * It is only applied if we can't get CLOEXEC without it and the build doesn't
+ * fail with _XOPEN_SOURCE being defined.
+ *
+ * # Relevent Links
  *
  * - POSIX.1-2017: https://pubs.opengroup.org/onlinepubs/9699919799
  * - https://stackoverflow.com/a/5724485
  * - https://stackoverflow.com/a/5583764
  */
-#ifndef _XOPEN_SOURCE
+#if !defined(S2N_CLOEXEC_SUPPORTED) && defined(S2N_CLOEXEC_XOPEN_SUPPORTED) && !defined(_XOPEN_SOURCE)
     #define _XOPEN_SOURCE 700
     #include <fcntl.h>
     #undef _XOPEN_SOURCE
@@ -65,6 +69,7 @@
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_fork_detection.h"
+#include "utils/s2n_init.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
@@ -174,7 +179,9 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
 /* Deletes pthread key at process-exit */
 static void __attribute__((destructor)) s2n_drbg_rand_state_key_cleanup(void)
 {
-    (void) pthread_key_delete(s2n_per_thread_rand_state_key);
+    if (s2n_is_initialized()) {
+        pthread_key_delete(s2n_per_thread_rand_state_key);
+    }
 }
 
 static void s2n_drbg_destructor(void *_unused_argument)
@@ -542,7 +549,9 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
     s2n_per_thread_rand_state.drbgs_initialized = false;
 
     /* Unset the thread-local destructor */
-    pthread_setspecific(s2n_per_thread_rand_state_key, NULL);
+    if (s2n_is_initialized()) {
+        pthread_setspecific(s2n_per_thread_rand_state_key, NULL);
+    }
 
     return S2N_RESULT_OK;
 }
@@ -604,14 +613,14 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
             __asm__ __volatile__(
                     ".byte 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.i386_fields.u_low), "=qm"(success_low)
+                    : "=&a"(output.i386_fields.u_low), "=qm"(success_low)
                     :
                     : "cc");
 
             __asm__ __volatile__(
                     ".byte 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.i386_fields.u_high), "=qm"(success_high)
+                    : "=&a"(output.i386_fields.u_high), "=qm"(success_high)
                     :
                     : "cc");
             /* cppcheck-suppress knownConditionTrueFalse */
@@ -635,7 +644,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
             __asm__ __volatile__(
                     ".byte 0x48, 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.u64), "=qm"(success)
+                    : "=&a"(output.u64), "=qm"(success)
                     :
                     : "cc");
     #endif /* defined(__i386__) */

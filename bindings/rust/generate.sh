@@ -19,7 +19,6 @@ cp -r \
   ../../api \
   ../../crypto \
   ../../error \
-  ../../pq-crypto \
   ../../stuffer \
   ../../tls \
   ../../utils \
@@ -39,6 +38,11 @@ pushd generate
 cargo run -- ../s2n-tls-sys
 popd
 
+if [ "$1" == "--skip-tests" ]; then
+    echo "skipping tests"
+    exit;
+fi;
+
 # make sure everything builds and passes sanity checks
 pushd s2n-tls-sys
 cargo test
@@ -47,6 +51,19 @@ cargo test --release
 cargo publish --dry-run --allow-dirty
 cargo publish --dry-run --allow-dirty --all-features
 popd
+
+# if this version has already been published we can run
+# additional validation to ensure there won't be build
+# problems when a new version is published
+if ! ./scripts/detect-new-release; then
+  pushd s2n-tls
+  cargo publish --dry-run --allow-dirty
+  popd
+
+  pushd s2n-tls-tokio
+  cargo publish --dry-run --allow-dirty
+  popd
+fi
 
 pushd integration
 cargo run

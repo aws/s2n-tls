@@ -2,26 +2,23 @@
 // SPDX-License-Identifier: Apache-2.0
 
 pub mod harness;
+#[cfg(feature = "openssl")]
+pub mod openssl;
+#[cfg(feature = "rustls")]
 pub mod rustls;
 pub mod s2n_tls;
+
+#[cfg(feature = "openssl")]
+pub use crate::openssl::OpenSslConnection;
+#[cfg(feature = "rustls")]
+pub use crate::rustls::RustlsConnection;
 pub use crate::{
-    harness::{CipherSuite, CryptoConfig, ECGroup, TlsBenchHarness},
-    rustls::RustlsHarness,
-    s2n_tls::S2NHarness,
+    harness::{
+        get_cert_path, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
+        PemType, SigType, TlsConnPair, TlsConnection,
+    },
+    s2n_tls::S2NConnection,
 };
 
-const SERVER_KEY_PATH: &str = "certs/server-key.pem";
-const SERVER_CERT_CHAIN_PATH: &str = "certs/fullchain.pem";
-const CA_CERT_PATH: &str = "certs/ca-cert.pem";
-
-#[cfg(test)]
-mod tests {
-    use std::path::Path;
-
-    #[test]
-    fn cert_paths_valid() {
-        assert!(Path::new(crate::SERVER_KEY_PATH).exists());
-        assert!(Path::new(crate::SERVER_CERT_CHAIN_PATH).exists());
-        assert!(Path::new(crate::CA_CERT_PATH).exists());
-    }
-}
+// controls profiler frequency for flamegraph generation in benchmarks
+pub const PROFILER_FREQUENCY: i32 = 100;

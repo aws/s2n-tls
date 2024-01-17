@@ -54,6 +54,28 @@ struct s2n_p_hash_hmac {
     int (*free)(struct s2n_prf_working_space *ws);
 };
 
+/* TLS key expansion results in an array of contiguous data which is then
+ * interpreted as the MAC, KEY and IV for the client and server.
+ *
+ * The following is the memory layout of the key material:
+ *
+ *     [ CLIENT_MAC, SERVER_MAC, CLIENT_KEY, SERVER_KEY, CLIENT_IV, SERVER_IV ]
+ */
+struct s2n_key_material {
+    /* key material data resulting from key expansion */
+    uint8_t key_block[S2N_MAX_KEY_BLOCK_LEN];
+
+    /* pointers into data representing specific key information */
+    struct s2n_blob client_mac;
+    struct s2n_blob server_mac;
+    struct s2n_blob client_key;
+    struct s2n_blob server_key;
+    struct s2n_blob client_iv;
+    struct s2n_blob server_iv;
+};
+
+S2N_RESULT s2n_key_material_init(struct s2n_key_material *key_material, struct s2n_connection *conn);
+
 #include "tls/s2n_connection.h"
 
 S2N_RESULT s2n_prf_new(struct s2n_connection *conn);
@@ -67,6 +89,7 @@ int s2n_tls_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *prem
 int s2n_hybrid_prf_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret);
 S2N_RESULT s2n_tls_prf_extended_master_secret(struct s2n_connection *conn, struct s2n_blob *premaster_secret, struct s2n_blob *session_hash, struct s2n_blob *sha1_hash);
 S2N_RESULT s2n_prf_get_digest_for_ems(struct s2n_connection *conn, struct s2n_blob *message, s2n_hash_algorithm hash_alg, struct s2n_blob *output);
+S2N_RESULT s2n_prf_generate_key_material(struct s2n_connection *conn, struct s2n_key_material *key_material);
 int s2n_prf_key_expansion(struct s2n_connection *conn);
 int s2n_prf_server_finished(struct s2n_connection *conn);
 int s2n_prf_client_finished(struct s2n_connection *conn);

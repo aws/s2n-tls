@@ -32,6 +32,9 @@ pub use async_cb::*;
 mod client_hello;
 pub use client_hello::*;
 
+mod session_ticket;
+pub use session_ticket::*;
+
 mod pkey;
 pub use pkey::*;
 
@@ -64,17 +67,17 @@ where
 ///
 /// The implementation should verify the certificate host name and return `true`
 /// if the name is valid, `false` otherwise.
-pub trait VerifyHostNameCallback {
+pub trait VerifyHostNameCallback: 'static + Send + Sync {
     fn verify_host_name(&self, host_name: &str) -> bool;
 }
 
 /// A trait for the callback used to retrieve the system / wall clock time.
-pub trait WallClock {
+pub trait WallClock: 'static + Send + Sync {
     fn get_time_since_epoch(&self) -> Duration;
 }
 
 /// A trait for the callback used to retrieve the monotonic time.
-pub trait MonotonicClock {
+pub trait MonotonicClock: 'static + Send + Sync {
     fn get_time(&self) -> Duration;
 }
 

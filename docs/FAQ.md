@@ -15,23 +15,23 @@ higher than "TLS1.2" for similar reasons.
 If the client does support TLS1.3, it will include that information in the ClientHello
 "supported_versions" extension instead of setting any of the legacy version fields.
 
-s2n-tls offers [methods](USAGE-GUIDE/#protocol-version) to retrieve accurate protocol versions.
+s2n-tls offers [methods](usage-guide/topics/ch04-connection.md) to retrieve accurate protocol versions.
 
 ### Why isn't my connection using TLS1.3?
 There are several possible reasons:
-* Are you using a security policy that supports TLS1.3? See [security policies](USAGE-GUIDE.md/#security-policies).
+* Are you using a security policy that supports TLS1.3? See [security policies](usage-guide/topics/ch06-security-policies.md).
 * Are you verifying the connection version correctly? See [the previous question](FAQ.md#why-is-my-connection-using-tls10).
 * Are you using a libcrypto library that supports TLS1.3? Modern libcrypto libraries support the algorithms needed for TLS1.3, but older libraries like Openssl 1.0.2 do not. If s2n-tls is built with Openssl 1.0.2, TLS1.3 is unlikely to be negotiated. 
 * Does your peer support TLS1.3? If your peer does not support TLS1.3, TLS1.3 will not be negotiated.
 
 ### Why is the TLS handshake failing on validating my peer's certificate?
-Have you already configure a trust store to be able to trust your peer's certificate? If so it may be necessary to implement `s2n_verify_host_fn` as the default behavior may not work for your use case. See the [certificates](USAGE-GUIDE.md/#certificates-and-authentication) section for detailed instructions on verifying a peer's certificate.
+Have you already configure a trust store to be able to trust your peer's certificate? If so it may be necessary to implement `s2n_verify_host_fn` as the default behavior may not work for your use case. See the [certificates](usage-guide/topics/ch09-certificates.md) section for detailed instructions on verifying a peer's certificate.
 
 ### Why is s2n hanging for so long before erroring?
-s2n-tls sleeps for a random period between 10 and 30 seconds after specific errors occur to avoid leaking any secret information via timing data. This technique is called blinding and it is utilized to prevent timing side-channel attacks. See [blinding](USAGE-GUIDE.md/#blinding).
+s2n-tls sleeps for a random period between 10 and 30 seconds after specific errors occur to avoid leaking any secret information via timing data. This technique is called blinding and it is utilized to prevent timing side-channel attacks. See [blinding](usage-guide/topics/ch03-error-handling.md#blinding).
 
 ### Which security policy should I use if I want to make sure that it will never be altered?
-Our numbered security policies are guaranteed to never change. We will not alter or update them based on changing cryptography standards. However, our named security policies (like “default” or “default_tls13”) change based on new cryptography standards that come out. See [security policies](USAGE-GUIDE.md/#security-policies).
+Our numbered security policies are guaranteed to never change. We will not alter or update them based on changing cryptography standards. However, our named security policies (like “default” or “default_tls13”) change based on new cryptography standards that come out. See [security policies](usage-guide/topics/ch06-security-policies.md).
 
 ### Why does s2n-tls have a dependency on OpenSSL? Isn't s2n-tls a replacement for OpenSSL?
 OpenSSL includes both a TLS library, called libssl, and a cryptography library, called libcrypto. s2n-tls implements a TLS library, but does not implement a cryptography library. Instead, s2n-tls links to a separate libcrypto in order to perform cryptographic operations. Libcryptos other than OpenSSL can be used, such as [AWS-LC](https://github.com/aws/aws-lc).

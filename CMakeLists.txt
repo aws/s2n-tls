@@ -19,10 +19,6 @@ set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 
-option(S2N_NO_PQ "Disables all Post Quantum Crypto code. You likely want this
-for older compilers or uncommon platforms." OFF)
-option(S2N_NO_PQ_ASM "Turns off the ASM for PQ Crypto even if it's available for the toolchain.
-You likely want this on older compilers." OFF)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -38,11 +34,8 @@ option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
-option(EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS "Additional compiler warnings are treated as errors. Warnings may
-indicate danger points where you should verify with the S2N-TLS developers that the security of
-the library is not compromised. These warnings are currently failing for some builds; once the problems are fixed,
-they will be moved to UNSAFE_TREAT_WARNINGS_AS_ERRORS." OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
+option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -65,32 +58,12 @@ file(GLOB_RECURSE TLS_SRC "tls/*.c")
 file(GLOB UTILS_HEADERS "utils/*.h")
 file(GLOB UTILS_SRC "utils/*.c")
 
-# Always include the top-level pq-crypto/ files
-file(GLOB PQ_HEADERS "pq-crypto/*.h")
-file(GLOB PQ_SRC "pq-crypto/*.c")
-
 message(STATUS "Detected CMAKE_SYSTEM_PROCESSOR as ${CMAKE_SYSTEM_PROCESSOR}")
 
 if(CMAKE_SIZEOF_VOID_P EQUAL 4)
-  message(STATUS "Detected 32-Bit system - disabling PQ crypto assembly optimizations")
-  set(S2N_NO_PQ_ASM ON)
+  message(STATUS "Detected 32-Bit system")
 else()
     message(STATUS "Detected 64-Bit system")
-endif()
-
-if(S2N_NO_PQ)
-    # PQ is disabled, so we do not include any PQ crypto code
-    message(STATUS "S2N_NO_PQ flag was detected - disabling PQ crypto")
-    set(S2N_NO_PQ_ASM ON)
-else()
-    # PQ is enabled, so include all of the PQ crypto code
-    file(GLOB PQ_HEADERS
-        "pq-crypto/*.h"
-        "pq-crypto/kyber_r3/*.h")
-
-    file(GLOB PQ_SRC
-        "pq-crypto/*.c"
-        "pq-crypto/kyber_r3/*.c")
 endif()
 
 ##be nice to visual studio users
@@ -98,14 +71,12 @@ if(MSVC)
     source_group("Header Files\\s2n\\api" FILES ${API_HEADERS} ${API_UNSTABLE_HEADERS})
     source_group("Header Files\\s2n\\crypto" FILES ${CRYPTO_HEADERS})
     source_group("Header Files\\s2n\\error" FILES ${ERROR_HEADERS})
-    source_group("Header Files\\s2n\\pq-crypto" FILES ${PQ_HEADERS})
     source_group("Header Files\\s2n\\stuffer" FILES ${STUFFER_HEADERS})
     source_group("Header Files\\s2n\\tls" FILES ${TLS_HEADERS})
     source_group("Header Files\\s2n\\utils" FILES ${UTILS_HEADERS})
 
     source_group("Source Files\\crypto" FILES ${CRYPTO_SRC})
     source_group("Source Files\\error" FILES ${ERROR_SRC})
-    source_group("Source Files\\pq-crypto" FILES ${PQ_SRC})
     source_group("Source Files\\stuffer" FILES ${STUFFER_SRC})
     source_group("Source Files\\tls" FILES ${TLS_SRC})
     source_group("Source Files\\utils" FILES ${UTILS_SRC})
@@ -138,7 +109,6 @@ file(GLOB S2N_HEADERS
     ${API_UNSTABLE_HEADERS}
     ${CRYPTO_HEADERS}
     ${ERROR_HEADERS}
-    ${PQ_HEADERS}
     ${STUFFER_HEADERS}
     ${TLS_HEADERS}
     ${UTILS_HEADERS}
@@ -147,7 +117,6 @@ file(GLOB S2N_HEADERS
 file(GLOB S2N_SRC
     ${CRYPTO_SRC}
     ${ERROR_SRC}
-    ${PQ_SRC}
     ${STUFFER_SRC}
     ${TLS_SRC}
     ${UTILS_SRC}
@@ -164,12 +133,8 @@ set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wno-missing-braces -Wno-strict-prototypes -Wa,--noexecstack
+        -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
 )
-
-if (EXPERIMENTAL_TREAT_WARNINGS_AS_ERRORS)
-    target_compile_options(${PROJECT_NAME} PRIVATE -Wsign-compare )
-endif()
 
 if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
@@ -191,10 +156,6 @@ endif()
 
 if(NOT APPLE)
     set(CMAKE_SHARED_LINKER_FLAGS -Wl,-z,noexecstack,-z,relro,-z,now)
-endif()
-
-if(S2N_NO_PQ)
-    add_definitions(-DS2N_NO_PQ)
 endif()
 
 # Whether to fail the build when compiling s2n's portable C code with non-portable assembly optimizations. Doing this
@@ -224,6 +185,16 @@ endif()
 if(TSAN)
     target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread -DS2N_THREAD_SANITIZER=1)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
+endif()
+
+if(ASAN)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -DS2N_ADDRESS_SANITIZER=1)
+    target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
+endif()
+
+if(TSAN OR ASAN)
+    # no-omit-frame-pointer and no-optimize-sibling-calls provide better stack traces
+    target_compile_options(${PROJECT_NAME} PUBLIC -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
@@ -313,6 +284,10 @@ endfunction()
 
 # Tries to compile a feature probe and initializes the corresponding flags
 function(feature_probe PROBE_NAME)
+    # Load the global probe flags
+    file(READ "${CMAKE_CURRENT_LIST_DIR}/tests/features/GLOBAL.flags" GLOBAL_FILE)
+    string(REPLACE "\n" "" GLOBAL_FLAGS "${GLOBAL_FILE}")
+
     # Load the probe's flags
     file(READ "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.flags" PROBE_FILE)
     string(REPLACE "\n" "" PROBE_FLAGS "${PROBE_FILE}")
@@ -324,9 +299,12 @@ function(feature_probe PROBE_NAME)
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
-        COMPILE_DEFINITIONS -c ${PROBE_FLAGS}
+        COMPILE_DEFINITIONS -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
+        OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
+    # Uncomment the line below to get the output of the try_compile command
+    #message(STATUS "Output of try_compile: ${TRY_COMPILE_OUTPUT}")
 
     # Set the result of the probe
     feature_probe_result(${PROBE_NAME} ${IS_AVAILABLE})
@@ -356,32 +334,6 @@ if (NOT S2N_EXECINFO_AVAILABLE)
     set(S2N_STACKTRACE FALSE)
 endif()
 feature_probe_result(S2N_STACKTRACE ${S2N_STACKTRACE})
-
-set(S2N_KYBER512R3_AVX2_BMI2 FALSE)
-if(NOT S2N_NO_PQ_ASM)
-    # Kyber Round-3 code has several different optimizations which require
-    # specific compiler flags to be supported by the compiler.
-    # So for each needed instruction set extension we check if the compiler
-    # supports it and set proper compiler flags to be added later to the
-    # Kyber compilation units.
-    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "^(x86_64|amd64|AMD64)$")
-        # Some platforms support -mavx2 flag but not m256 intrinsics required to use them. Only enable Kyber assembly
-        # optimizations if both are supported. See https://github.com/aws/s2n-tls/pull/3005 for more info.
-        if(S2N_KYBER512R3_AVX2_BMI2_SUPPORTED AND S2N_KYBER512R3_M256_INTRINSICS_SUPPORTED)
-            set(S2N_KYBER512R3_AVX2_BMI2 TRUE)
-            enable_language(ASM)
-
-            # add the assembly files to the project
-            FILE(GLOB KYBER512R3_AVX2_BMI2_ASM_SRCS "pq-crypto/kyber_r3/*_avx2.S")
-            target_sources(${PROJECT_NAME} PRIVATE ${KYBER512R3_AVX2_BMI2_ASM_SRCS})
-
-            # compile the C files with avx flags
-            FILE(GLOB KYBER512R3_AVX2_BMI2_SRCS "pq-crypto/kyber_r3/*_avx2.c")
-            set_source_files_properties(${KYBER512R3_AVX2_BMI2_SRCS} PROPERTIES COMPILE_FLAGS ${S2N_KYBER512R3_AVX2_BMI2_SUPPORTED_FLAGS})
-        endif()
-    endif()
-endif()
-feature_probe_result(S2N_KYBER512R3_AVX2_BMI2 ${S2N_KYBER512R3_AVX2_BMI2})
 
 if (S2N_INTERN_LIBCRYPTO)
 
@@ -504,17 +456,30 @@ if (BUILD_TESTING)
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
+    if (TSAN OR ASAN)
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
+    endif()
     if(TSAN)
         set(TSAN_SUPPRESSIONS_FILE ${CMAKE_SOURCE_DIR}/tests/.tsan_suppressions)
         if(NOT EXISTS ${TSAN_SUPPRESSIONS_FILE})
             message(FATAL_ERROR "TSAN suppression file ${TSAN_SUPPRESSIONS_FILE} missing")
         endif()
-        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
         set(TSAN_OPTIONS suppressions=${TSAN_SUPPRESSIONS_FILE})
         if(DEFINED ENV{TSAN_OPTIONS})
             set(TSAN_OPTIONS "${TSAN_OPTIONS} $ENV{TSAN_OPTIONS}")
         endif()
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} TSAN_OPTIONS=${TSAN_OPTIONS})
+    endif()
+    if(ASAN)
+        # "detect_odr_violation" detects violations of the "one definition rule",
+        # ensuring that symbols are only defined once.
+        # But some of our unit tests intentionally include *.c files for testing,
+        # resulting in duplicate global values.
+        set(ASAN_OPTIONS detect_odr_violation=0)
+        if(DEFINED ENV{ASAN_OPTIONS})
+            set(ASAN_OPTIONS "${ASAN_OPTIONS} $ENV{ASAN_OPTIONS}")
+        endif()
+        set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} ASAN_OPTIONS=${ASAN_OPTIONS})
     endif()
     message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
 

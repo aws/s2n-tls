@@ -63,12 +63,6 @@ impl fmt::Debug for Connection {
 /// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
-/// # Safety
-///
-/// All C methods that mutate the s2n_connection are wrapped
-/// in Rust methods that require a mutable reference.
-unsafe impl Sync for Connection {}
-
 impl Connection {
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
@@ -420,6 +414,14 @@ impl Connection {
     /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
+            if let Some(config) = self.config() {
+                if let Some(callback) = config.context().connection_initializer.as_ref() {
+                    let future = callback.initialize_connection(self);
+                    AsyncCallback::trigger(future, self);
+                }
+            }
+        }
 
         loop {
             // check if an async task exists and poll it to completion
@@ -576,6 +578,15 @@ impl Connection {
                 Err(_) => None,
             }
         }
+    }
+
+    /// Adds a session ticket from a previous TLS connection to create a resumed session
+    pub fn set_session_ticket(&mut self, session: &[u8]) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_session(self.connection.as_ptr(), session.as_ptr(), session.len())
+                .into_result()
+        }?;
+        Ok(self)
     }
 
     /// Sets a Waker on the connection context or clears it if `None` is passed.
@@ -800,6 +811,32 @@ impl Connection {
             hash_alg => Some(hash_alg.try_into()?),
         })
     }
+
+    /// Provides access to the TLS-Exporter functionality.
+    ///
+    /// See https://datatracker.ietf.org/doc/html/rfc5705 and https://www.rfc-editor.org/rfc/rfc8446.
+    ///
+    /// This is currently only available with TLS 1.3 connections which have finished a handshake.
+    pub fn tls_exporter(
+        &self,
+        label: &[u8],
+        context: &[u8],
+        output: &mut [u8],
+    ) -> Result<(), Error> {
+        unsafe {
+            s2n_connection_tls_exporter(
+                self.connection.as_ptr(),
+                label.as_ptr(),
+                label.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+                context.as_ptr(),
+                context.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+                output.as_mut_ptr(),
+                output.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+            )
+            .into_result()
+            .map(|_| ())
+        }
+    }
 }
 
 struct Context {
@@ -807,6 +844,7 @@ struct Context {
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
+    connection_initialized: bool,
 }
 
 impl Context {
@@ -816,6 +854,7 @@ impl Context {
             waker: None,
             async_callback: None,
             verify_host_callback: None,
+            connection_initialized: false,
         }
     }
 }
@@ -866,6 +905,20 @@ impl Connection {
             .into_result()?;
         Ok(self)
     }
+
+    pub fn quic_process_post_handshake_message(&mut self) -> Result<&mut Self, Error> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_recv_quic_post_handshake_message(self.connection.as_ptr(), &mut blocked)
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
+    /// Allows the quic library to check if session tickets are expected
+    pub fn are_session_tickets_enabled(&self) -> bool {
+        unsafe { s2n_connection_are_session_tickets_enabled(self.connection.as_ptr()) }
+    }
 }
 
 impl AsRef<Connection> for Connection {
@@ -896,5 +949,17 @@ impl Drop for Connection {
             // cleanup connection
             let _ = s2n_connection_free(self.connection.as_ptr()).into_result();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ensure the connection context is send
+    #[test]
+    fn context_send_test() {
+        fn assert_send<T: 'static + Send>() {}
+        assert_send::<Context>();
     }
 }

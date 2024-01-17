@@ -115,6 +115,7 @@ extern "C" {
  * explaining the error in English by calling s2n_strerror(s2n_errno, "EN").
  * A string containing human readable error name; can be generated with `s2n_strerror_name`.
  * A string containing internal debug information, including filename and line number, can be generated with `s2n_strerror_debug`.
+ * A string containing only the filename and line number can be generated with `s2n_strerror_source`.
  * This string is useful to include when reporting issues to the s2n-tls development team.
  *
  * @warning To avoid possible confusion, s2n_errno should be cleared after processing an error: `s2n_errno = S2N_ERR_T_OK`
@@ -141,7 +142,7 @@ S2N_API extern int *s2n_errno_location(void);
  * error. To retrieve the type for a given error use `s2n_error_get_type()`. Applications should
  * perform any error handling logic using these high level types.
  *
- * See the [Error Handling](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#error-handling) section for how the errors should be interpreted. 
+ * See the [Error Handling](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch03-error-handling.md) section for how the errors should be interpreted.
  */
 typedef enum {
     /** No error */
@@ -408,6 +409,14 @@ S2N_API extern const char *s2n_strerror_debug(int error, const char *lang);
 S2N_API extern const char *s2n_strerror_name(int error);
 
 /**
+ * Translates an s2n_error code to a filename and line number.
+ *
+ * @param error The error code to explain. Usually this is s2n_errno.
+ * @returns The error string.
+ */
+S2N_API extern const char *s2n_strerror_source(int error);
+
+/**
  * Opaque stack trace structure.
  */
 struct s2n_stacktrace;
@@ -580,6 +589,7 @@ typedef enum {
     S2N_EXTENSION_SIGNATURE_ALGORITHMS = 13,
     S2N_EXTENSION_ALPN = 16,
     S2N_EXTENSION_CERTIFICATE_TRANSPARENCY = 18,
+    S2N_EXTENSION_SUPPORTED_VERSIONS = 43,
     S2N_EXTENSION_RENEGOTIATION_INFO = 65281,
 } s2n_tls_extension_type;
 
@@ -663,7 +673,7 @@ S2N_API extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_a
 /**
  * Associates a public certificate chain with a `s2n_cert_chain_and_key` object. It does
  * NOT set a private key, so the connection will need to be configured to
- * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#offloading-asynchronous-private-key-operations).
+ * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch12-private-key-ops.md).
  *
  * @param chain_and_key The certificate chain and private key handle
  * @param chain_pem A byte array of a PEM encoded certificate chain.
@@ -975,6 +985,30 @@ S2N_API extern int s2n_config_set_verify_host_callback(struct s2n_config *config
 S2N_API extern int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_t check_ocsp);
 
 /**
+ * Disables timestamp validation for received certificates.
+ *
+ * By default, s2n-tls checks the notBefore and notAfter fields on the certificates it receives
+ * during the handshake. If the current date is not within the range of these fields for any
+ * certificate in the chain of trust, `s2n_negotiate()` will error. This validation is in
+ * accordance with RFC 5280, section 6.1.3 a.2:
+ * https://datatracker.ietf.org/doc/html/rfc5280#section-6.1.3.
+ *
+ * This API will disable this timestamp validation, permitting negotiation with peers that send
+ * expired certificates, or certificates that are not yet considered valid.
+ *
+ * @warning Applications calling this API should seriously consider the security implications of
+ * disabling this validation. The validity period of a certificate corresponds to the range of time
+ * in which the CA is guaranteed to maintain information regarding the certificate's revocation
+ * status. As such, it may not be possible to obtain accurate revocation information for
+ * certificates with invalid timestamps. Applications disabling this validation MUST implement
+ * some external method for limiting certificate lifetime.
+ *
+ * @param config The associated connection config.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_config_disable_x509_time_verification(struct s2n_config *config);
+
+/**
  * Turns off all X.509 validation during the negotiation phase of the connection. This should only
  * be used for testing or debugging purposes.
  *
@@ -1009,7 +1043,7 @@ S2N_API extern int s2n_config_add_dhparams(struct s2n_config *config, const char
  * Sets the security policy that includes the cipher/kem/signature/ecc preferences and
  * protocol version.
  *
- * See the [USAGE-GUIDE.md](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md) for how to use security policies.
+ * See the [USAGE-GUIDE.md](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide) for how to use security policies.
  */
 S2N_API extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 
@@ -1497,6 +1531,31 @@ S2N_API extern int s2n_client_hello_get_session_id_length(struct s2n_client_hell
 S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 /**
+ * Retrieves the supported groups received from the client in the supported groups extension.
+ *
+ * IANA values for each of the received supported groups are written to the provided `groups`
+ * array, and `groups_count` is set to the number of received supported groups.
+ *
+ * `groups_count_max` should be set to the maximum capacity of the `groups` array. If
+ * `groups_count_max` is less than the number of received supported groups, this function will
+ * error. To determine how large `groups` should be in advance, use
+ * `s2n_client_hello_get_extension_length()` with the S2N_EXTENSION_SUPPORTED_GROUPS extension
+ * type, and divide the value by 2.
+ *
+ * If no supported groups extension was received from the peer, or the received supported groups
+ * extension is malformed, this function will error.
+ *
+ * @param ch A pointer to the ClientHello. Can be retrieved from a connection via
+ * `s2n_connection_get_client_hello()`.
+ * @param groups The array to populate with the received supported groups.
+ * @param groups_count_max The maximum number of supported groups that can fit in the `groups` array.
+ * @param groups_count Returns the number of received supported groups.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *groups,
+        uint16_t groups_count_max, uint16_t *groups_count);
+
+/**
  * Sets the file descriptor for a s2n connection.
  *
  * @warning If the read end of the pipe is closed unexpectedly, writing to the pipe will raise a SIGPIPE signal.
@@ -1835,8 +1894,11 @@ typedef enum {
  * rejects the client certificate, the client may later receive an alert while calling s2n_recv,
  * potentially after already having sent application data with s2n_send.
  *
+ * See the following example for guidance on calling `s2n_negotiate()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_negotiate.c
+ *
  * @param conn A pointer to the s2n_connection object
- * @param blocked A pointer which will be set to the blocked status. 
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns S2N_SUCCESS if the handshake completed. S2N_FAILURE if the handshake encountered an error or is blocked.
  */
 S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked);
@@ -1847,37 +1909,28 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
  *
  * @note Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active. 
  * @note Unlike OpenSSL, repeated calls to s2n_send() should not duplicate the original parameters, but should 
- * update `buf` and `size` per the indication of size written. For example;
- * ```c
- * s2n_blocked_status blocked;
- * int written = 0;
- * char data[10]; 
- * do {
- *     int w = s2n_send(conn, data + written, 10 - written, &blocked);
- *     if (w < 0) {
- *         break;
- *     }
- *     written += w;
- * } while (blocked != S2N_NOT_BLOCKED);
- * ```
+ * update `buf` and `size` per the indication of size written.
+ *
+ * See the following example for guidance on calling `s2n_send()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c
  *
  * @param conn A pointer to the s2n_connection object
  * @param buf A pointer to a buffer that s2n will write data from
  * @param size The size of buf
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written, and may indicate a partial write
  */
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 
 /**
- * Works in the same way as s2n_sendv_with_offset() except that the latter's `offs` parameter is implicitly assumed to be 0. 
- * Therefore in the partial write case, the caller would have to make sure that `bufs` and `count` fields are modified in a way that takes 
+ * Works in the same way as s2n_sendv_with_offset() but with the `offs` parameter implicitly assumed to be 0.
+ * Therefore in the partial write case, the caller would have to make sure that the `bufs` and `count` fields are modified in a way that takes
  * the partial writes into account.
  *
  * @param conn A pointer to the s2n_connection object
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written, and may indicate a partial write. 
  */
 S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
@@ -1887,29 +1940,16 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  *
  * @note Partial writes are possible not just for non-blocking I/O, but also for connections aborted while active.
  *
- * @note Unlike OpenSSL, repeated calls to s2n_sendv_with_offset() should not duplicate the original parameters, but should update `bufs` and `count` per the indication of size written. For example;
- * 
- * ```c
- * s2n_blocked_status blocked;
- * int written = 0;
- * char data[10]; 
- * struct iovec iov[1];
- * iov[0].iov_base = data;
- * iov[0].iov_len = 10;
- * do {
- *     int w = s2n_sendv_with_offset(conn, iov, 1, written, &blocked);
- *     if (w < 0) {
- *         break;
- *     }
- *     written += w;
- * } while (blocked != S2N_NOT_BLOCKED);
- * ```
+ * @note Unlike OpenSSL, repeated calls to s2n_sendv_with_offset() should not duplicate the original parameters, but should update `bufs` and `count` per the indication of size written.
+ *
+ * See the following example for guidance on calling `s2n_sendv_with_offset()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_send.c
  *
  * @param conn A pointer to the s2n_connection object
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
  * @param offs The write cursor offset. This should be updated as data is written. See the example code.
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns The number of bytes written, and may indicate a partial write. 
  */
 S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
@@ -1918,24 +1958,15 @@ S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const 
  * Decrypts and reads **size* to `buf` data from the associated
  * connection. 
  * 
- * @note Unlike OpenSSL, repeated calls to `s2n_recv` should not duplicate the original parameters, but should update `buf` and `size` per the indication of size read. For example;
- * ```c
- * s2n_blocked_status blocked;
- * int bytes_read = 0;
- * char data[10];
- * do {
- *     int r = s2n_recv(conn, data + bytes_read, 10 - bytes_read, &blocked);
- *     if (r < 0) {
- *         break;
- *     }
- *     bytes_read += r;
- * } while (blocked != S2N_NOT_BLOCKED);
- * ```
+ * @note Unlike OpenSSL, repeated calls to `s2n_recv` should not duplicate the original parameters, but should update `buf` and `size` per the indication of size read.
+ *
+ * See the following example for guidance on calling `s2n_recv()`:
+ * https://github.com/aws/s2n-tls/blob/main/docs/examples/s2n_recv.c
  *
  * @param conn A pointer to the s2n_connection object
  * @param buf A pointer to a buffer that s2n will place read data into.
  * @param size Size of `buf`
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns number of bytes read. 0 if the connection was shutdown by peer.
  */
 S2N_API extern ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked);
@@ -2009,7 +2040,7 @@ S2N_API extern int s2n_connection_free(struct s2n_connection *conn);
  * * The s2n_connection handle can be freed via s2n_connection_free() or reused via s2n_connection_wipe()
  *
  * @param conn A pointer to the s2n_connection object
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked);
@@ -2037,7 +2068,7 @@ S2N_API extern int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status 
  * the read side of the underlying transport.
  *
  * @param conn A pointer to the s2n_connection object
- * @param blocked A pointer which will be set to the blocked status, as in s2n_negotiate()
+ * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked);
@@ -2096,14 +2127,18 @@ S2N_API extern int s2n_connection_get_client_auth_type(struct s2n_connection *co
 S2N_API extern int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_auth_type);
 
 /**
- * Gets the client certificate chain and places it in the `der_cert_chain_out` buffer. `cert_chain_len` is updated
- * to match the size the chain buffer.
+ * Gets the raw certificate chain received from the client.
  *
- * @warning The buffers share a lifetime with the s2n_connection object.
+ * The retrieved certificate chain has the format described by the TLS 1.2 RFC:
+ * https://datatracker.ietf.org/doc/html/rfc5246#section-7.4.2. Each certificate is a DER-encoded ASN.1 X.509,
+ * prepended by a 3 byte network-endian length value. Note that this format is used regardless of the connection's
+ * protocol version.
+ *
+ * @warning The buffer pointed to by `cert_chain_out` shares its lifetime with the s2n_connection object.
  *
  * @param conn A pointer to the s2n_connection object
- * @param der_cert_chain_out A uint8_t pointer. This will be updated to point to the client certificate chain.
- * @param cert_chain_len A pointer to a uint32_t. This will be updated to match the size of the buffer `der_cert_chain_out` points to.
+ * @param cert_chain_out A pointer that's set to the client certificate chain.
+ * @param cert_chain_len A pointer that's set to the size of the `cert_chain_out` buffer.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_connection_get_client_cert_chain(struct s2n_connection *conn, uint8_t **der_cert_chain_out, uint32_t *cert_chain_len);
@@ -2213,6 +2248,9 @@ S2N_API extern int s2n_session_ticket_get_lifetime(struct s2n_session_ticket *ti
 
 /**
  * De-serializes the session state and updates the connection accordingly.
+ *
+ * If this method fails, the connection should not be affected: calling s2n_negotiate
+ * with the connection should simply result in a full handshake.
  *
  * @param conn A pointer to the s2n_connection object
  * @param session A pointer to a buffer of size `length`
@@ -2837,6 +2875,20 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 
 /**
+ * Provides access to the TLS-Exporter functionality.
+ *
+ * See https://datatracker.ietf.org/doc/html/rfc5705 and https://www.rfc-editor.org/rfc/rfc8446.
+ *
+ * @note This is currently only available with TLS 1.3 connections which have finished a handshake.
+ *
+ * @param conn A pointer to the connection
+ * @returns A POSIX error signal. If an error was returned, the value contained in `output` should be considered invalid.
+ */
+S2N_API extern int s2n_connection_tls_exporter(struct s2n_connection *conn,
+        const uint8_t *label, uint32_t label_length, const uint8_t *context, uint32_t context_length,
+        uint8_t *output, uint32_t output_length);
+
+/**
  * Returns the IANA value for the connection's negotiated cipher suite.
  *
  * The value is returned in the form of `first,second`, in order to closely match
@@ -3243,7 +3295,7 @@ S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, 
 /**
  * Called by the client to begin negotiation and send early data.
  *
- * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md
  * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *
@@ -3260,7 +3312,7 @@ S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data
 /**
  * Called by the server to begin negotiation and accept any early data the client sends.
  *
- * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md
  * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *
@@ -3338,6 +3390,34 @@ S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_d
  * @returns A POSIX error signal. If success, the client's early data will be accepted.
  */
 S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
+
+/**
+ * Retrieves the list of supported groups configured by the security policy associated with `config`.
+ *
+ * The retrieved list of groups will contain all of the supported groups for a security policy that are compatible
+ * with the build of s2n-tls. For instance, PQ kem groups that are not supported by the linked libcrypto will not
+ * be written. Otherwise, all of the supported groups configured for the security policy will be written. This API
+ * can be used with the s2n_client_hello_get_supported_groups() API as a means of comparing compatibility between
+ * a client and server.
+ *
+ * IANA values for each of the supported groups are written to the provided `groups` array, and `groups_count` is
+ * set to the number of written supported groups.
+ *
+ * `groups_count_max` should be set to the maximum capacity of the `groups` array. If `groups_count_max` is less
+ * than the number of supported groups configured by the security policy, this function will error.
+ *
+ * Note that this API retrieves only the groups from a security policy that are available to negotiate via the
+ * supported groups extension, and does not return TLS 1.2 PQ kem groups that are negotiated in the supported PQ
+ * kem parameters extension.
+ *
+ * @param config A pointer to the s2n_config object from which the supported groups will be retrieved.
+ * @param groups The array to populate with the supported groups.
+ * @param groups_count_max The maximum number of supported groups that can fit in the `groups` array.
+ * @param groups_count Set to the number of supported groups written to `groups`.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
+        uint16_t *groups_count);
 
 #ifdef __cplusplus
 }

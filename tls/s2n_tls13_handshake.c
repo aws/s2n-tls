@@ -24,11 +24,7 @@ static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
     struct s2n_blob sequence_number = { 0 };
-    if (mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, sizeof(conn->secure->client_sequence_number)));
-    } else {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->server_sequence_number, sizeof(conn->secure->server_sequence_number)));
-    }
+    POSIX_GUARD_RESULT(s2n_connection_get_sequence_number(conn, mode, &sequence_number));
     POSIX_GUARD(s2n_blob_zero(&sequence_number));
     return S2N_SUCCESS;
 }

@@ -60,13 +60,13 @@
     #define __S2N_ENSURE_POSTCONDITION(result) (s2n_likely(s2n_result_is_ok(result)) ? S2N_RESULT_OK : S2N_RESULT_ERROR)
 #endif
 
-#define __S2N_ENSURE_SAFE_MEMCPY(d, s, n, guard)                                     \
-    do {                                                                             \
-        __typeof(n) __tmp_n = (n);                                                   \
-        if (s2n_likely(__tmp_n)) {                                                   \
-            void *r = s2n_ensure_memcpy_trace((d), (s), (__tmp_n), _S2N_DEBUG_LINE); \
-            guard(r);                                                                \
-        }                                                                            \
+#define __S2N_ENSURE_SAFE_MEMCPY(d, s, n, guard)                    \
+    do {                                                            \
+        __typeof(n) __tmp_n = (n);                                  \
+        if (s2n_likely(__tmp_n)) {                                  \
+            void *r = s2n_ensure_memcpy_trace((d), (s), (__tmp_n)); \
+            guard(r);                                               \
+        }                                                           \
     } while (0)
 
 #define __S2N_ENSURE_SAFE_MEMSET(d, c, n, guard) \
@@ -103,9 +103,9 @@
  *
  */
 #if defined(S2N___RESTRICT__SUPPORTED)
-void *s2n_ensure_memcpy_trace(void *__restrict__ to, const void *__restrict__ from, size_t size, const char *debug_str);
+void *s2n_ensure_memcpy_trace(void *__restrict__ to, const void *__restrict__ from, size_t size);
 #else
-void *s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size, const char *debug_str);
+void *s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size_t size);
 #endif
 
 /**
@@ -152,7 +152,7 @@ void *s2n_ensure_memcpy_trace(void *restrict to, const void *restrict from, size
  */
 #ifdef CBMC
     #define CONTRACT_ASSIGNS(...)     __CPROVER_assigns(__VA_ARGS__)
-    #define CONTRACT_ASSIGNS_ERR(...) CONTRACT_ASSIGNS(__VA_ARGS__, s2n_debug_str, s2n_errno)
+    #define CONTRACT_ASSIGNS_ERR(...) CONTRACT_ASSIGNS(__VA_ARGS__, _s2n_debug_info, s2n_errno)
     #define CONTRACT_REQUIRES(...)    __CPROVER_requires(__VA_ARGS__)
     #define CONTRACT_ENSURES(...)     __CPROVER_ensures(__VA_ARGS__)
     #define CONTRACT_INVARIANT(...)   __CPROVER_loop_invariant(__VA_ARGS__)

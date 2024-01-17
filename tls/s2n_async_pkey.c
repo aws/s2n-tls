@@ -458,7 +458,7 @@ S2N_RESULT s2n_async_pkey_verify_signature(struct s2n_connection *conn, s2n_sign
     /* Parse public key for the cert */
     DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    RESULT_GUARD_POSIX(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type,
+    RESULT_GUARD(s2n_asn1der_to_public_key_and_type(&public_key, &pkey_type,
             &conn->handshake_params.our_chain_and_key->cert_chain->head->raw));
     RESULT_ENSURE(s2n_pkey_verify(&public_key, sig_alg, digest, signature) == S2N_SUCCESS, S2N_ERR_VERIFY_SIGNATURE);
 

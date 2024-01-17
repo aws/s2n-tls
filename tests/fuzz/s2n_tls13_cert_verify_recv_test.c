@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-/* Target Functions: s2n_tls13_cert_verify_recv s2n_get_and_validate_negotiated_signature_scheme
+/* Target Functions: s2n_tls13_cert_verify_recv s2n_signature_algorithm_recv
                      s2n_tls13_cert_read_and_verify_signature */
 
 #include <stdint.h>

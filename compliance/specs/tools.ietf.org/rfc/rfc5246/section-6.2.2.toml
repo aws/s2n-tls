@@ -1,0 +1,52 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-6.2.2"
+
+# 6.2.2.  Record Compression and Decompression
+#
+# All records are compressed using the compression algorithm defined in
+# the current session state.  There is always an active compression
+# algorithm; however, initially it is defined as
+# CompressionMethod.null.  The compression algorithm translates a
+# TLSPlaintext structure into a TLSCompressed structure.  Compression
+# functions are initialized with default state information whenever a
+# connection state is made active.  [RFC3749] describes compression
+# algorithms for TLS.
+# 
+# Compression must be lossless and may not increase the content length
+# by more than 1024 bytes.  If the decompression function encounters a
+# TLSCompressed.fragment that would decompress to a length in excess of
+# 2^14 bytes, it MUST report a fatal decompression failure error.
+# 
+#    struct {
+#        ContentType type;       /* same as TLSPlaintext.type */
+#        ProtocolVersion version;/* same as TLSPlaintext.version */
+#        uint16 length;
+#        opaque fragment[TLSCompressed.length];
+#    } TLSCompressed;
+# 
+# length
+#    The length (in bytes) of the following TLSCompressed.fragment.
+#    The length MUST NOT exceed 2^14 + 1024.
+# 
+# fragment
+#    The compressed form of TLSPlaintext.fragment.
+# 
+#    Note: A CompressionMethod.null operation is an identity operation;
+#    no fields are altered.
+# 
+#    Implementation note: Decompression functions are responsible for
+#    ensuring that messages cannot cause internal buffer overflows.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the decompression function encounters a
+TLSCompressed.fragment that would decompress to a length in excess of
+2^14 bytes, it MUST report a fatal decompression failure error.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The length MUST NOT exceed 2^14 + 1024.
+'''
+

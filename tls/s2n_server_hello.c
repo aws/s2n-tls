@@ -193,6 +193,9 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
 
         conn->actual_protocol_version = conn->server_protocol_version;
         POSIX_GUARD(s2n_set_cipher_as_client(conn, cipher_suite_wire));
+
+        /* Erase TLS 1.2 client session ticket which might have been set for session resumption */
+        POSIX_GUARD(s2n_free(&conn->client_ticket));
     } else {
         conn->server_protocol_version = legacy_version;
 
@@ -282,9 +285,6 @@ int s2n_server_hello_recv(struct s2n_connection *conn)
     if (conn->actual_protocol_version < S2N_TLS13 && s2n_connection_is_session_resumed(conn)) {
         POSIX_GUARD(s2n_prf_key_expansion(conn));
     }
-
-    /* Choose a default signature scheme */
-    POSIX_GUARD(s2n_choose_default_sig_scheme(conn, &conn->handshake_params.conn_sig_scheme, S2N_SERVER));
 
     /* Update the required hashes for this connection */
     POSIX_GUARD(s2n_conn_update_required_handshake_hashes(conn));

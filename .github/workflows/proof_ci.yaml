@@ -62,7 +62,7 @@ jobs:
         run: |
           # Search within 5 most recent releases for latest available package
           CBMC_REL="https://api.github.com/repos/diffblue/cbmc/releases?page=1&per_page=5"
-          CBMC_DEB=$(curl -s $CBMC_REL | jq -r '.[].assets[].browser_download_url' | grep -e 'ubuntu-20.04' | head -n 1)
+          CBMC_DEB=$(curl -s $CBMC_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[]|select(.prerelease|not).assets[].browser_download_url' | grep -e 'ubuntu-20.04' | head -n 1)
           CBMC_ARTIFACT_NAME=$(basename $CBMC_DEB)
           curl -o $CBMC_ARTIFACT_NAME -L $CBMC_DEB
           sudo dpkg -i $CBMC_ARTIFACT_NAME
@@ -80,7 +80,7 @@ jobs:
         shell: bash
         run: |
           CBMC_VIEWER_REL="https://api.github.com/repos/model-checking/cbmc-viewer/releases/latest"
-          CBMC_VIEWER_VERSION=$(curl -s $CBMC_VIEWER_REL | jq -r .name | sed  's/viewer-//')
+          CBMC_VIEWER_VERSION=$(curl -s $CBMC_VIEWER_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r .name | sed  's/viewer-//')
           pip3 install cbmc-viewer==$CBMC_VIEWER_VERSION
       - name: Install CBMC viewer ${{ env.CBMC_VIEWER_VERSION }}
         if: ${{ env.CBMC_VIEWER_VERSION != 'latest' }}
@@ -96,7 +96,7 @@ jobs:
         run: |
           # Search within 5 most recent releases for latest available package
           LITANI_REL="https://api.github.com/repos/awslabs/aws-build-accumulator/releases?page=1&per_page=5"
-          LITANI_DEB=$(curl -s $LITANI_REL | jq -r '.[].assets[0].browser_download_url' | head -n 1)
+          LITANI_DEB=$(curl -s $LITANI_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[]|select(.prerelease|not).assets[0].browser_download_url' | head -n 1)
           DBN_PKG_FILENAME=$(basename $LITANI_DEB)
           curl -L $LITANI_DEB -o $DBN_PKG_FILENAME
           sudo apt-get update
@@ -118,7 +118,7 @@ jobs:
           if ${{ env.KISSAT_TAG == 'latest' }}
           then
             KISSAT_REL="https://api.github.com/repos/arminbiere/kissat/releases/latest"
-            KISSAT_TAG_NAME=$(curl -s $KISSAT_REL | jq -r '.tag_name')
+            KISSAT_TAG_NAME=$(curl -s $KISSAT_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.tag_name')
           else
             KISSAT_TAG_NAME=${{ env.KISSAT_TAG }}
           fi
@@ -137,7 +137,7 @@ jobs:
           if ${{ env.CADICAL_TAG == 'latest' }}
           then
             CADICAL_REL="https://api.github.com/repos/arminbiere/cadical/releases/latest"
-            CADICAL_TAG_NAME=$(curl -s $CADICAL_REL | jq -r '.tag_name')
+            CADICAL_TAG_NAME=$(curl -s $CADICAL_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.tag_name')
           else
             CADICAL_TAG_NAME=${{ env.CADICAL_TAG }}
           fi
