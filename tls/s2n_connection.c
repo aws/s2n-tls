@@ -1689,3 +1689,14 @@ S2N_RESULT s2n_connection_get_sequence_number(struct s2n_connection *conn,
 
     return S2N_RESULT_OK;
 }
+
+S2N_API int s2n_connection_get_key_update_counts(struct s2n_connection *conn,
+        uint8_t *send_key_updates, uint8_t *recv_key_updates)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(send_key_updates);
+    POSIX_ENSURE_REF(recv_key_updates);
+    *send_key_updates = conn->send_key_updated;
+    *recv_key_updates = conn->recv_key_updated;
+    return S2N_SUCCESS;
+}
