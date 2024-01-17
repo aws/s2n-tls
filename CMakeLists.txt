@@ -551,6 +551,10 @@ if (BUILD_TESTING)
     if (S2N_INTEG_TESTS)
         find_package (Python3 COMPONENTS Interpreter Development)
         file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
+        set(N 1)
+        if (S2N_FAST_INTEG_TESTS)
+            set(N auto)
+        endif()
         foreach(test_file_path ${integv2_test_files})
             get_filename_component(test_filename ${test_file_path} NAME_WE)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
@@ -567,7 +571,7 @@ if (BUILD_TESTING)
                 add_test(NAME ${test_target}
                         COMMAND
                         pytest
-                        -x -n=1 --maxfail=1 --reruns=0 --cache-clear -rpfsq
+                        -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
                         --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
