@@ -29,11 +29,68 @@
    fun:main
 }
 
-# TODO: fix the pedantic leak errors from s2n_self_talk_alpn_test
+# START: s2n_self_talk_alpn_test suppressions
+# https://github.com/aws/s2n-tls/issues/1600
 {
    ignore_s2n_self_talk_alpn_test
    Memcheck:Leak
    match-leak-kinds: reachable
    ...
+   fun:s2n_cert_chain_and_key_new
    fun:main
 }
+
+{
+   ignore_s2n_self_talk_alpn_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:s2n_config_add_cert_chain_and_key_to_store
+   fun:main
+}
+
+{
+   ignore_s2n_self_talk_alpn_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:s2n_cert_chain_and_key_load_pem
+   fun:main
+}
+
+{
+   ignore_s2n_self_talk_alpn_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:s2n_config_new
+   fun:main
+}
+
+{
+   ignore_s2n_self_talk_alpn_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:s2n_config_set_protocol_preferences
+   fun:main
+}
+
+{
+   ignore_s2n_self_talk_alpn_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:malloc
+   fun:main
+}
+
+{
+   ignore_s2n_self_talk_alpn_test
+   Memcheck:Leak
+   match-leak-kinds: reachable
+   ...
+   fun:s2n_config_add_dhparams
+   fun:main
+}
+# END: s2n_self_talk_alpn_test suppressions
