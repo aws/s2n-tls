@@ -15,6 +15,7 @@
 
 #include "tls/s2n_connection.h"
 
+#include "api/unstable/ktls.h"
 #include "crypto/s2n_hash.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -877,6 +878,33 @@ int main(int argc, char **argv)
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
         };
     };
+
+    /* Test s2n_connection_get_key_update_counts */
+    {
+        /* Safety */
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        uint8_t send_count = 0, recv_count = 0;
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(NULL, &send_count, &recv_count),
+                S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(conn, NULL, &recv_count),
+                S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(conn, &send_count, NULL),
+                S2N_ERR_NULL);
+
+        /* Returns counts */
+        const uint8_t expected_send_count = 10;
+        conn->send_key_updated = expected_send_count;
+        const uint8_t expected_recv_count = 255;
+        conn->recv_key_updated = expected_recv_count;
+        EXPECT_SUCCESS(s2n_connection_get_key_update_counts(conn, &send_count, &recv_count));
+        EXPECT_EQUAL(send_count, expected_send_count);
+        EXPECT_EQUAL(recv_count, expected_recv_count);
+    }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));
