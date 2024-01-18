@@ -102,6 +102,8 @@ S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
  *
  * Enabling TLS1.3 with this method is considered "unsafe" because the kernel
  * currently doesn't support updating encryption keys, which is required in TLS1.3.
+ * s2n_connection_get_key_update_counts can be used to gather metrics on whether
+ * key updates are occurring on your connections before enabling TLS1.3.
  *
  * In order to safely enable TLS1.3, an application must ensure that its peer will
  * not send any KeyUpdate messages. If s2n-tls receives a KeyUpdate message while
@@ -118,6 +120,22 @@ S2N_API int s2n_connection_ktls_enable_recv(struct s2n_connection *conn);
  * @returns S2N_SUCCESS if successfully enabled, S2N_FAILURE otherwise.
  */
 S2N_API int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config);
+
+/**
+ * Reports the number of times sending and receiving keys have been updated.
+ *
+ * This only applies to TLS1.3. Earlier versions do not support key updates.
+ *
+ * @warning s2n-tls only tracks up to UINT8_MAX (255) key updates. If this method
+ * reports 255 updates, then more than 255 updates may have occurred.
+ *
+ * @param conn A pointer to the connection.
+ * @param send_key_updates Number of times the sending key was updated.
+ * @param recv_key_updates Number of times the receiving key was updated.
+ * @returns S2N_SUCCESS if successful, S2N_FAILURE otherwise.
+ */
+S2N_API int s2n_connection_get_key_update_counts(struct s2n_connection *conn,
+        uint8_t *send_key_updates, uint8_t *recv_key_updates);
 
 /**
  * Sends the contents of a file as application data.
