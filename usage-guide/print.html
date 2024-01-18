@@ -670,11 +670,23 @@ but it could make handshake failures and authentication errors more difficult to
 <p>To use certificate transparency, the requester (usually the client) must call <code>s2n_config_set_ct_support_level()</code> with S2N_CT_SUPPORT_REQUEST. The responder (usually the server) must call <code>s2n_cert_chain_and_key_set_sct_list()</code> to set the raw bytes of the transparency information.</p>
 <p>Call <code>s2n_connection_get_sct_list()</code> to retrieve the received certificate transparency information. The format of this data is the SignedCertificateTimestampList structure defined in section 3.3 of RFC 6962.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="examining-the-client-hello"><a class="header" href="#examining-the-client-hello">Examining the Client Hello</a></h1>
+<h2 id="getting-a-client-hello"><a class="header" href="#getting-a-client-hello">Getting a Client Hello</a></h2>
+<h3 id="from-a-connection"><a class="header" href="#from-a-connection">From a connection</a></h3>
 <p>s2n-tls stores the received Client Hello and makes it available to the application. Call <code>s2n_connection_get_client_hello()</code> to get a pointer to the <code>s2n_client_hello</code> struct storing the Client Hello message. A NULL value will be returned if the connection has not yet received the Client Hello. The earliest point in the handshake when this struct is available is during the <a href="ch10-client-hello.html#client-hello-callback">Client Hello Callback</a>. The stored Client Hello message will not be available after calling <code>s2n_connection_free_handshake()</code>.</p>
+<h3 id="from-raw-bytes"><a class="header" href="#from-raw-bytes">From raw bytes</a></h3>
+<p>s2n-tls can parse a Client Hello from raw bytes. Call <code>s2n_client_hello_parse_message()</code>
+with raw bytes representing a Client Hello message (including the message header, but excluding
+the record header). The returned pointer to a <code>s2n_client_hello</code> struct behaves
+the same as a pointer returned from <code>s2n_connection_get_client_hello()</code>, except
+that the memory is owned by the application and must be freed with <code>s2n_client_hello_free()</code>.</p>
+<h2 id="examining-the-message"><a class="header" href="#examining-the-message">Examining the message</a></h2>
 <p>Call <code>s2n_client_hello_get_raw_message()</code> to retrieve the complete Client Hello message with the random bytes on it zeroed out.</p>
 <p>Call <code>s2n_client_hello_get_cipher_suites()</code> to retrieve the list of cipher suites sent by the client.</p>
 <p>Call <code>s2n_client_hello_get_session_id()</code> to retrieve the session ID sent by the client in the ClientHello message. Note that this value may not be the session ID eventually associated with this particular connection since the session ID can change when the server sends the Server Hello. The official session ID can be retrieved with <code>s2n_connection_get_session_id()</code>after the handshake completes.</p>
-<p>Call <code>s2n_client_hello_get_extensions()</code> to retrieve the entire list of extensions sent in the Client Hello. Calling <code>s2n_client_hello_get_extension_by_id()</code> allows you to interrogate the <code>s2n_client_hello</code> struct for a specific extension.</p>
+<p>Call <code>s2n_client_hello_get_extensions()</code> to retrieve the entire list of extensions sent in the Client Hello. Call <code>s2n_client_hello_get_extension_by_id()</code> to retrieve a specific extension. Because <code>s2n_client_hello_get_extension_by_id()</code> doesn't distinguish between zero-length extensions and missing extensions,
+<code>s2n_client_hello_has_extension()</code> should be used to check for the existence of an extension.</p>
+<p>Call <code>s2n_client_hello_get_supported_groups()</code> to retrieve the entire list of
+supported groups sent by the client.</p>
 <h2 id="sslv2"><a class="header" href="#sslv2">SSLv2</a></h2>
 <p>s2n-tls will not negotiate SSLv2, but will accept SSLv2 ClientHellos advertising a
 higher protocol version like SSLv3 or TLS1.0. This was a backwards compatibility
