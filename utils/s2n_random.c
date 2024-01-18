@@ -396,6 +396,10 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
     /* It's possible that the file descriptor pointing to /dev/urandom was closed or changed from
      * when it was last opened. Ensure that the file descriptor is still valid, and if it isn't,
      * re-open it before getting entropy.
+     *
+     * If the file descriptor is invalid and the process doesn't have access to /dev/urandom (as is
+     * the case within a chroot tree), an error is raised here before attempting to indefinitely
+     * read.
      */
     if (s2n_result_is_error(s2n_rand_device_validate(&s2n_dev_urandom))) {
         POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));

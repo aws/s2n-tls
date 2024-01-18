@@ -434,28 +434,40 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Ensure that a handshake can be performed after all non-standard file descriptors are closed */
+    /* Ensure that a handshake can be performed after all file descriptors are closed */
     {
-        long max_file_descriptors = sysconf(_SC_OPEN_MAX);
-        EXPECT_SUCCESS(max_file_descriptors);
-        EXPECT_TRUE(max_file_descriptors < INT_MAX);
-        for (int fd = STDERR_FILENO + 1; fd < max_file_descriptors; fd++) {
-            close(fd);
+        /* A fork is created to ensure that closing file descriptors (like stdout) won't impact
+         * other tests.
+         */
+        pid_t pid = fork();
+        if (pid == 0) {
+            long max_file_descriptors = sysconf(_SC_OPEN_MAX);
+            EXPECT_SUCCESS(max_file_descriptors);
+            EXPECT_TRUE(max_file_descriptors <= INT_MAX);
+            for (int fd = 0; fd <= max_file_descriptors; fd++) {
+                close(fd);
+            }
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            EXPECT_NOT_NULL(chain_and_key);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+
+            EXPECT_SUCCESS(test_cipher_preferences(config, config, chain_and_key, S2N_SIGNATURE_RSA));
+
+            exit(EXIT_SUCCESS);
         }
 
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-        EXPECT_NOT_NULL(chain_and_key);
-
-        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
-
-        EXPECT_SUCCESS(test_cipher_preferences(config, config, chain_and_key, S2N_SIGNATURE_RSA));
+        int status = 0;
+        EXPECT_EQUAL(waitpid(pid, &status, 0), pid);
+        EXPECT_EQUAL(status, EXIT_SUCCESS);
     }
 
     END_TEST();
