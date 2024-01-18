@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.1-d573ce23</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.1-078d1e9b</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -465,6 +465,10 @@ Functions</h2></td></tr>
 <tr class="separator:a71cfccf774ddf237a30eb9c2fc9b0831"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac0c64d96b5b9a4cb600a22157d6743e3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> struct s2n_client_hello *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ac0c64d96b5b9a4cb600a22157d6743e3">s2n_connection_get_client_hello</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:ac0c64d96b5b9a4cb600a22157d6743e3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aacf329c844fa13ec9ccef34da945d7f2"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> struct s2n_client_hello *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aacf329c844fa13ec9ccef34da945d7f2">s2n_client_hello_parse_message</a> (const uint8_t *bytes, uint32_t size)</td></tr>
+<tr class="separator:aacf329c844fa13ec9ccef34da945d7f2"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad664daed9d1c437460c563c6f02157d9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad664daed9d1c437460c563c6f02157d9">s2n_client_hello_free</a> (struct s2n_client_hello **ch)</td></tr>
+<tr class="separator:ad664daed9d1c437460c563c6f02157d9"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a4c2c0de61921c9ddc8e8c4e56084cc6c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> ssize_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a4c2c0de61921c9ddc8e8c4e56084cc6c">s2n_client_hello_get_raw_message_length</a> (struct s2n_client_hello *ch)</td></tr>
 <tr class="separator:a4c2c0de61921c9ddc8e8c4e56084cc6c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ac1fc624f4ffe9378ad77eea895bb52d6"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> ssize_t&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ac1fc624f4ffe9378ad77eea895bb52d6">s2n_client_hello_get_raw_message</a> (struct s2n_client_hello *ch, uint8_t *out, uint32_t max_length)</td></tr>
@@ -2774,6 +2778,33 @@ Safety</h1>
 
 </div>
 </div>
+<a id="ad664daed9d1c437460c563c6f02157d9" name="ad664daed9d1c437460c563c6f02157d9"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad664daed9d1c437460c563c6f02157d9">&#9670;&#160;</a></span>s2n_client_hello_free()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_free </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello **&#160;</td>
+          <td class="paramname"><em>ch</em></td><td>)</td>
+          <td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Frees an s2n_client_hello structure.</p>
+<p >This method should be called to free s2n_client_hellos returned by s2n_client_hello_parse_message. It will error if passed an s2n_client_hello returned by s2n_connection_get_client_hello and owned by the connection.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>The structure to be freed. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE on failure. </dd></dl>
+
+</div>
+</div>
 <a id="ab83eff4e25edddcd4688854e0c4d8e62" name="ab83eff4e25edddcd4688854e0c4d8e62"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#ab83eff4e25edddcd4688854e0c4d8e62">&#9670;&#160;</a></span>s2n_client_hello_get_cipher_suites()</h2>
 
@@ -3262,6 +3293,46 @@ Safety</h1>
   </table>
   </dd>
 </dl>
+
+</div>
+</div>
+<a id="aacf329c844fa13ec9ccef34da945d7f2" name="aacf329c844fa13ec9ccef34da945d7f2"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aacf329c844fa13ec9ccef34da945d7f2">&#9670;&#160;</a></span>s2n_client_hello_parse_message()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> struct s2n_client_hello * s2n_client_hello_parse_message </td>
+          <td>(</td>
+          <td class="paramtype">const uint8_t *&#160;</td>
+          <td class="paramname"><em>bytes</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Creates an s2n_client_hello from bytes representing a ClientHello message.</p>
+<p >The input bytes should include the message header (message type and length), but not the record header.</p>
+<p >Unlike s2n_connection_get_client_hello, the s2n_client_hello returned by this method is owned by the application and must be freed with s2n_client_hello_free.</p>
+<p >This method does not support SSLv2 ClientHellos.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">bytes</td><td>The raw bytes representing the ClientHello. </td></tr>
+    <tr><td class="paramname">size</td><td>The size of raw_message. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>A new s2n_client_hello on success, or NULL on failure. </dd></dl>
 
 </div>
 </div>
