@@ -169,7 +169,11 @@ async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
     // Attempt to shutdown the client. This will eventually fail because the
     // server has not written the close_notify message yet, but it will at least
     // write the close_notify message that the server needs.
-    // Because time is mocked for testing, this does not actually take LONG_TIMEOUT.
+    //
+    // Because this test begins paused and relies on auto-advancing, this does
+    // not actually require waiting LONG_TIMEOUT. See the tokio `pause()` docs:
+    // https://docs.rs/tokio/latest/tokio/time/fn.pause.html
+    //
     // TODO: replace this with a half-close once the bindings support half-close.
     let timeout = time::timeout(LONG_TIMEOUT, client.shutdown()).await;
     assert!(timeout.is_err());
@@ -310,7 +314,11 @@ async fn shutdown_with_tcp_error() -> Result<(), Box<dyn std::error::Error>> {
     // Attempt to shutdown the client. This will eventually fail because the
     // server has not written the close_notify message yet, but it will at least
     // write the close_notify message that the server needs.
-    // Because time is mocked for testing, this does not actually take 10 minutes.
+    //
+    // Because this test begins paused and relies on auto-advancing, this does
+    // not actually require waiting LONG_TIMEOUT. See the tokio `pause()` docs:
+    // https://docs.rs/tokio/latest/tokio/time/fn.pause.html
+    //
     // TODO: replace this with a half-close once the bindings support half-close.
     _ = time::timeout(time::Duration::from_secs(600), client.shutdown()).await;
 

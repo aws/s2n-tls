@@ -363,7 +363,7 @@ where
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         ready!(self.as_mut().poll_blinding(ctx))?;
 
-        // s2n_shutdown should not be called again if it errors
+        // s2n_shutdown must not be called again if it errors
         if self.shutdown_error.is_none() {
             let result = ready!(self.as_mut().with_io(ctx, |mut context| {
                 context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
@@ -377,12 +377,19 @@ where
 
         let tcp_result = ready!(Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx));
 
-        let result = if let Some(error) = self.shutdown_error.take() {
-            Err(io::Error::from(error))
+        if let Some(err) = self.shutdown_error.take() {
+            // poll methods shouldn't be called again after returning Ready, but
+            // nothing actually prevents it so poll_shutdown should handle it.
+            // s2n_shutdown can be polled indefinitely after succeeding, but not after failing.
+            // s2n_tls::error::Error isn't cloneable, so we can't just return the same error
+            // if poll_shutdown is called again. Instead, save a different error.
+            let next_error = Error::application("Shutdown called again after error".into());
+            self.shutdown_error = Some(next_error);
+
+            Ready(Err(io::Error::from(err)))
         } else {
-            tcp_result
-        };
-        Ready(result)
+            Ready(tcp_result)
+        }
     }
 }
 
