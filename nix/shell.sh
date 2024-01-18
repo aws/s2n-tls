@@ -1,4 +1,3 @@
-pyfiglet -f starwars "s2n-tls devShell"
 echo nix/shell.sh: Entering a devShell...checking environment.
 export SRC_ROOT=$(pwd)
 export PATH=$SRC_ROOT/build/bin:$PATH

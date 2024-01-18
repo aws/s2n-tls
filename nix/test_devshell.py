@@ -34,8 +34,9 @@ def test_s2n_libcrypto_uniq(lc):
     libcrypto = translate_lc(lc)
     include_path = os.getenv("CMAKE_INCLUDE_PATH")
     assert include_path is not None
-    ALL_LCS.remove(libcrypto)
-    for library in ALL_LCS:
+    negative_lc = ALL_LCS
+    negative_lc.remove(libcrypto)
+    for library in negative_lc:
         assert library not in include_path
 
 
