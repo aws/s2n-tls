@@ -13,11 +13,10 @@
  * permissions and limitations under the License.
  */
 
+#include "utils/s2n_mem.h"
+
 #include "s2n_test.h"
 #include "utils/s2n_safety.h"
-
-/* Required to override memory callbacks at runtime */
-#include "utils/s2n_mem.c"
 
 int s2n_strict_mem_free_cb(void *ptr, uint32_t size)
 {
@@ -69,10 +68,14 @@ int main(int argc, char **argv)
          */
         {
             /* Save real free callback */
-            s2n_mem_free_callback saved_free_cb = s2n_mem_free_cb;
+            s2n_mem_init_callback mem_init_cb = NULL;
+            s2n_mem_cleanup_callback mem_cleanup_cb = NULL;
+            s2n_mem_malloc_callback mem_malloc_cb = NULL;
+            s2n_mem_free_callback mem_free_cb = NULL;
+            EXPECT_OK(s2n_mem_get_callbacks(&mem_init_cb, &mem_cleanup_cb, &mem_malloc_cb, &mem_free_cb));
 
             /* Set callback that won't accepts NULLs / zeros */
-            s2n_mem_free_cb = s2n_strict_mem_free_cb;
+            EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, s2n_strict_mem_free_cb));
 
             /* No-op for empty blob */
             struct s2n_blob blob = { 0 };
@@ -81,7 +84,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_free_or_wipe(&blob));
 
             /* Restore real free callback */
-            s2n_mem_free_cb = saved_free_cb;
+            EXPECT_OK(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
         };
     };
 
