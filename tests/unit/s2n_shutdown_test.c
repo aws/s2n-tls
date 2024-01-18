@@ -356,7 +356,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     };
 
-    /* Test: previous failed partial reads to not affect reading close_notify */
+    /* Test: previous failed partial reads do not affect reading close_notify */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
