@@ -22,7 +22,8 @@
     #define _GNU_SOURCE
 #endif
 
-#include "utils/s2n_random.h"
+/* The .c file is included in order to access global fields for testing purposes. */
+#include "utils/s2n_random.c"
 
 #include <openssl/rand.h>
 #include <pthread.h>
@@ -47,12 +48,6 @@
 #define NUMBER_OF_BOUNDS               10
 #define NUMBER_OF_RANGE_FUNCTION_CALLS 200
 #define MAX_REPEATED_OUTPUT            4
-
-S2N_RESULT s2n_rand_get_dev_urandom(struct s2n_rand_device **device);
-S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device);
-int s2n_rand_init_impl(void);
-int s2n_rand_cleanup_impl(void);
-int s2n_rand_urandom_impl(void *ptr, uint32_t size);
 
 struct random_test_case {
     const char *test_case_label;
@@ -799,34 +794,31 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
     EXPECT_SUCCESS(s2n_disable_atexit());
 
     for (size_t test = 0; test <= 1; test++) {
-        struct s2n_rand_device *dev_urandom = NULL;
-        EXPECT_OK(s2n_rand_get_dev_urandom(&dev_urandom));
-        EXPECT_NOT_NULL(dev_urandom);
-        EXPECT_EQUAL(dev_urandom->fd, -1);
+        EXPECT_EQUAL(s2n_dev_urandom.fd, -1);
 
         /* Validation should fail before initialization. */
-        EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
+        EXPECT_ERROR(s2n_rand_device_validate(&s2n_dev_urandom));
 
         EXPECT_SUCCESS(s2n_init());
 
         /* Validation should succeed after initialization. */
-        EXPECT_OK(s2n_rand_device_validate(dev_urandom));
+        EXPECT_OK(s2n_rand_device_validate(&s2n_dev_urandom));
 
         /* Override the mix callback with urandom, in case support for rdrand is detected and enabled. */
-        EXPECT_SUCCESS(s2n_rand_set_callbacks(s2n_rand_init_impl, s2n_rand_cleanup_impl, s2n_rand_urandom_impl,
-                s2n_rand_urandom_impl));
+        EXPECT_SUCCESS(s2n_rand_set_callbacks(s2n_rand_init_cb_impl, s2n_rand_cleanup_cb_impl,
+                s2n_rand_get_entropy_from_urandom, s2n_rand_get_entropy_from_urandom));
 
-        EXPECT_TRUE(dev_urandom->fd > STDERR_FILENO);
+        EXPECT_TRUE(s2n_dev_urandom.fd > STDERR_FILENO);
         if (test == 0) {
             /* Close the file descriptor. */
-            EXPECT_EQUAL(close(dev_urandom->fd), 0);
+            EXPECT_EQUAL(close(s2n_dev_urandom.fd), 0);
         } else {
             /* Make the file descriptor invalid by pointing it to STDERR. */
-            dev_urandom->fd = STDERR_FILENO;
+            s2n_dev_urandom.fd = STDERR_FILENO;
         }
 
-        /* Validation should fail when the file descriptor invalid. */
-        EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
+        /* Validation should fail when the file descriptor is invalid. */
+        EXPECT_ERROR(s2n_rand_device_validate(&s2n_dev_urandom));
 
         s2n_stack_blob(rand_data, 16, 16);
         EXPECT_OK(s2n_get_public_random_data(&rand_data));
@@ -841,7 +833,7 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
             /* When the urandom implementation is used, the file descriptor is re-opened and
              * validation should succeed.
              */
-            EXPECT_OK(s2n_rand_device_validate(dev_urandom));
+            EXPECT_OK(s2n_rand_device_validate(&s2n_dev_urandom));
             EXPECT_TRUE(public_bytes_used > 0);
         }
 

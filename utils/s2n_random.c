@@ -67,6 +67,7 @@
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
+#include "s2n_io.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_fork_detection.h"
 #include "utils/s2n_init.h"
@@ -116,17 +117,17 @@ static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .drbgs_initialized = false
 };
 
-int s2n_rand_init_impl(void);
-int s2n_rand_cleanup_impl(void);
-int s2n_rand_urandom_impl(void *ptr, uint32_t size);
-static int s2n_rand_rdrand_impl(void *ptr, uint32_t size);
+static int s2n_rand_init_cb_impl(void);
+static int s2n_rand_cleanup_cb_impl(void);
+static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size);
+static int s2n_rand_get_entropy_from_rdrand(void *ptr, uint32_t size);
 
-static s2n_rand_init_callback s2n_rand_init_cb = s2n_rand_init_impl;
-static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
-static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
-static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
+static s2n_rand_init_callback s2n_rand_init_cb = s2n_rand_init_cb_impl;
+static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_cb_impl;
+static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_get_entropy_from_urandom;
+static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_get_entropy_from_urandom;
 
-int s2n_rand_entropy_fd_close_ptr(int *fd)
+static int s2n_rand_entropy_fd_close_ptr(int *fd)
 {
     if (fd && *fd != UNINITIALIZED_ENTROPY_FD) {
         close(*fd);
@@ -341,26 +342,14 @@ S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_rand_get_dev_urandom(struct s2n_rand_device **device)
-{
-    RESULT_ENSURE_REF(device);
-    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-    *device = &s2n_dev_urandom;
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
+static S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
 {
     RESULT_ENSURE_REF(device);
     RESULT_ENSURE_REF(device->source);
 
     DEFER_CLEANUP(int fd = -1, s2n_rand_entropy_fd_close_ptr);
-    while (fd < 0) {
-        fd = open(device->source, ENTROPY_FLAGS);
-        if (fd < 0 && errno != EINTR) {
-            RESULT_BAIL(S2N_ERR_OPEN_RANDOM);
-        }
-    }
+    S2N_IO_RETRY_EINTR(fd, open(device->source, ENTROPY_FLAGS));
+    RESULT_ENSURE(fd >= 0, S2N_ERR_OPEN_RANDOM);
 
     struct stat st = { 0 };
     RESULT_ENSURE(fstat(fd, &st) == 0, S2N_ERR_OPEN_RANDOM);
@@ -377,7 +366,7 @@ S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
+static S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
 {
     RESULT_ENSURE_REF(device);
     RESULT_ENSURE_NE(device->fd, UNINITIALIZED_ENTROPY_FD);
@@ -399,27 +388,18 @@ S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_rand_device_get_valid_fd(struct s2n_rand_device *device, int *fd)
-{
-    RESULT_ENSURE_REF(device);
-    RESULT_ENSURE_REF(fd);
-
-    if (s2n_result_is_error(s2n_rand_device_validate(device))) {
-        RESULT_GUARD(s2n_rand_device_open(device));
-    }
-
-    *fd = device->fd;
-
-    return S2N_RESULT_OK;
-}
-
-int s2n_rand_urandom_impl(void *ptr, uint32_t size)
+static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
 {
     POSIX_ENSURE_REF(ptr);
+    POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
-    int entropy_fd = UNINITIALIZED_ENTROPY_FD;
-    POSIX_GUARD_RESULT(s2n_rand_device_get_valid_fd(&s2n_dev_urandom, &entropy_fd));
-    POSIX_ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+    /* It's possible that the file descriptor pointing to /dev/urandom was closed or changed from
+     * when it was last opened. Ensure that the file descriptor is still valid, and if it isn't,
+     * re-open it before getting entropy.
+     */
+    if (s2n_result_is_error(s2n_rand_device_validate(&s2n_dev_urandom))) {
+        POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
+    }
 
     uint8_t *data = ptr;
     uint32_t n = size;
@@ -428,7 +408,7 @@ int s2n_rand_urandom_impl(void *ptr, uint32_t size)
 
     while (n) {
         errno = 0;
-        int r = read(entropy_fd, data, n);
+        int r = read(s2n_dev_urandom.fd, data, n);
         if (r <= 0) {
             /*
              * A non-blocking read() on /dev/urandom should "never" fail,
@@ -535,7 +515,7 @@ RAND_METHOD s2n_openssl_rand_method = {
 };
 #endif
 
-int s2n_rand_init_impl(void)
+static int s2n_rand_init_cb_impl(void)
 {
     /* Currently, s2n-tls may mix in entropy from urandom into every generation of random data. The
      * file descriptor is opened on initialization for better performance reading from urandom, and
@@ -544,7 +524,7 @@ int s2n_rand_init_impl(void)
     POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
 
     if (s2n_cpu_supports_rdrand()) {
-        s2n_rand_mix_cb = s2n_rand_rdrand_impl;
+        s2n_rand_mix_cb = s2n_rand_get_entropy_from_rdrand;
     }
 
     return S2N_SUCCESS;
@@ -584,7 +564,7 @@ S2N_RESULT s2n_rand_init(void)
     return S2N_RESULT_OK;
 }
 
-int s2n_rand_cleanup_impl(void)
+static int s2n_rand_cleanup_cb_impl(void)
 {
     POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
@@ -614,10 +594,10 @@ S2N_RESULT s2n_rand_cleanup(void)
     }
 #endif
 
-    s2n_rand_init_cb = s2n_rand_init_impl;
-    s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
-    s2n_rand_seed_cb = s2n_rand_urandom_impl;
-    s2n_rand_mix_cb = s2n_rand_urandom_impl;
+    s2n_rand_init_cb = s2n_rand_init_cb_impl;
+    s2n_rand_cleanup_cb = s2n_rand_cleanup_cb_impl;
+    s2n_rand_seed_cb = s2n_rand_get_entropy_from_urandom;
+    s2n_rand_mix_cb = s2n_rand_get_entropy_from_urandom;
 
     return S2N_RESULT_OK;
 }
@@ -659,7 +639,7 @@ S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
  * volatile is important to prevent the compiler from
  * re-ordering or optimizing the use of RDRAND.
  */
-static int s2n_rand_rdrand_impl(void *data, uint32_t size)
+static int s2n_rand_get_entropy_from_rdrand(void *data, uint32_t size)
 {
 #if defined(__x86_64__) || defined(__i386__)
     struct s2n_blob out = { 0 };
