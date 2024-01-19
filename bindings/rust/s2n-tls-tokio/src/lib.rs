@@ -2,7 +2,6 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use errno::{set_errno, Errno};
-use pin_project_lite::pin_project;
 use s2n_tls::{
     config::Config,
     connection::{Builder, Connection},
@@ -12,7 +11,7 @@ use s2n_tls::{
 use std::{
     fmt,
     future::Future,
-    io, mem,
+    io,
     os::raw::{c_int, c_void},
     pin::Pin,
     task::{
@@ -139,18 +138,6 @@ where
     }
 }
 
-pin_project! {
-struct BlindingState {
-    #[pin]
-    timer: Sleep,
-
-    // The remembered error if we got into blinding because of
-    // an error, or Ok(()) if we didn't. After returning the error,
-    // this goes back to Ok(()).
-    remembered_error: Result<(), Error>,
-}
-}
-
 pub struct TlsStream<S, C = Connection>
 where
     C: AsRef<Connection> + AsMut<Connection> + Unpin,
@@ -158,7 +145,8 @@ where
 {
     conn: C,
     stream: S,
-    blinding: Option<Pin<Box<BlindingState>>>,
+    blinding: Option<Pin<Box<Sleep>>>,
+    shutdown_error: Option<Error>,
 }
 
 impl<S, C> TlsStream<S, C>
@@ -182,6 +170,7 @@ where
             conn,
             stream,
             blinding: None,
+            shutdown_error: None,
         };
         TlsHandshake {
             tls: &mut tls,
@@ -255,35 +244,6 @@ where
         })
     }
 
-    // Sets the blinding timer to the remaining blinding delay and possibly
-    // remembers an error.
-    //
-    // Returns the error if there was no blinding needed and the error
-    // did not need to be remembered.
-    fn set_blinding_timer(
-        self: Pin<&mut Self>,
-        mut remembered_error: Result<(), Error>,
-    ) -> Result<(), Error> {
-        let tls = self.get_mut();
-
-        if tls.blinding.is_none() {
-            let delay = tls.as_ref().remaining_blinding_delay()?;
-            if !delay.is_zero() {
-                // Sleep operates at the milisecond resolution, so add an extra
-                // millisecond to account for any stray nanoseconds.
-                let safety = Duration::from_millis(1);
-                // Return the error *later*, after the blinding is done
-                let remembered_error = mem::replace(&mut remembered_error, Ok(()));
-                tls.blinding = Some(Box::pin(BlindingState {
-                    timer: sleep(delay.saturating_add(safety)),
-                    remembered_error,
-                }));
-            }
-        }
-
-        remembered_error
-    }
-
     /// Polls the blinding timer, if there is any.
     ///
     /// s2n has a "blinding" functionality - when a bad behavior from the peer
@@ -296,25 +256,24 @@ where
     /// before dropping an s2n connection, you should wait until either
     /// `poll_blinding` or `poll_shutdown` (which calls `poll_blinding`
     /// internally) returns ready.
-    pub fn poll_blinding(
-        mut self: Pin<&mut Self>,
-        ctx: &mut Context<'_>,
-    ) -> Poll<Result<(), Error>> {
-        self.as_mut().set_blinding_timer(Ok(()))?;
-
+    pub fn poll_blinding(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Result<(), Error>> {
         let tls = self.get_mut();
 
-        if let Some(blinding) = &mut tls.blinding {
-            ready!(blinding.as_mut().project().timer.as_mut().poll(ctx));
+        if tls.blinding.is_none() {
+            let delay = tls.as_ref().remaining_blinding_delay()?;
+            if !delay.is_zero() {
+                // Sleep operates at the milisecond resolution, so add an extra
+                // millisecond to account for any stray nanoseconds.
+                let safety = Duration::from_millis(1);
+                tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
+            }
+        };
 
-            // Set blinding to None to ensure the next go can have blinding
-            let mut blinding = tls.blinding.take().unwrap();
-
-            // If there is an error, return it
-            mem::replace(blinding.as_mut().project().remembered_error, Ok(()))?;
+        if let Some(timer) = tls.blinding.as_mut() {
+            ready!(timer.as_mut().poll(ctx));
+            tls.blinding = None;
         }
 
-        // Otherwise we are OK
         Poll::Ready(Ok(()))
     }
 
@@ -404,19 +363,33 @@ where
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         ready!(self.as_mut().poll_blinding(ctx))?;
 
-        let status = ready!(self.as_mut().with_io(ctx, |mut context| {
-            context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
-        }));
+        // s2n_shutdown must not be called again if it errors
+        if self.shutdown_error.is_none() {
+            let result = ready!(self.as_mut().with_io(ctx, |mut context| {
+                context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
+            }));
+            if let Err(error) = result {
+                self.shutdown_error = Some(error);
+                // s2n_shutdown reading might have triggered blinding again
+                ready!(self.as_mut().poll_blinding(ctx))?;
+            }
+        };
 
-        if let Err(e) = status {
-            // In case of an error shutting down, make sure you wait for
-            // the blinding timeout.
-            self.as_mut().set_blinding_timer(Err(e))?;
-            ready!(self.as_mut().poll_blinding(ctx))?;
-            unreachable!("should have returned the error we just put in!");
+        let tcp_result = ready!(Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx));
+
+        if let Some(err) = self.shutdown_error.take() {
+            // poll methods shouldn't be called again after returning Ready, but
+            // nothing actually prevents it so poll_shutdown should handle it.
+            // s2n_shutdown can be polled indefinitely after succeeding, but not after failing.
+            // s2n_tls::error::Error isn't cloneable, so we can't just return the same error
+            // if poll_shutdown is called again. Instead, save a different error.
+            let next_error = Error::application("Shutdown called again after error".into());
+            self.shutdown_error = Some(next_error);
+
+            Ready(Err(io::Error::from(err)))
+        } else {
+            Ready(tcp_result)
         }
-
-        Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx)
     }
 }
 
