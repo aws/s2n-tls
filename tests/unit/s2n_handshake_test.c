@@ -19,6 +19,7 @@
 #include <fcntl.h>
 #include <stdint.h>
 #include <stdlib.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 #include "api/s2n.h"
@@ -442,9 +443,9 @@ int main(int argc, char **argv)
         pid_t pid = fork();
         if (pid == 0) {
             long max_file_descriptors = sysconf(_SC_OPEN_MAX);
-            EXPECT_SUCCESS(max_file_descriptors);
-            EXPECT_TRUE(max_file_descriptors <= INT_MAX);
-            for (int fd = 0; fd <= max_file_descriptors; fd++) {
+            EXPECT_TRUE(max_file_descriptors > -1);
+            int max_fd = MIN(INT_MAX, max_file_descriptors - 1);
+            for (int fd = 0; fd <= max_fd; fd++) {
                 close(fd);
             }
 
