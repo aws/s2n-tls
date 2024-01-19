@@ -644,7 +644,7 @@ static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2
         s2n_parsed_extensions_list *first_certificate_extensions)
 {
     /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
-    RESULT_ENSURE_EQ(conn->actual_protocol_version, S2N_TLS13);
+    RESULT_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
 
     struct s2n_blob cert_chain_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
@@ -718,7 +718,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
     *public_key_out = public_key;
 
     /* Reset the old struct, so we don't clean up public_key_out */
-    RESULT_GUARD_POSIX(s2n_pkey_zero_init(&public_key));
+    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
 
     return S2N_RESULT_OK;
 }
