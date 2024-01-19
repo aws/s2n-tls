@@ -342,6 +342,14 @@ S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_rand_get_urandom_for_test(struct s2n_rand_device **device)
+{
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    *device = &s2n_dev_urandom;
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
 {
     RESULT_ENSURE_REF(device);
@@ -366,7 +374,7 @@ static S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
+S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
 {
     RESULT_ENSURE_REF(device);
     RESULT_ENSURE_NE(device->fd, UNINITIALIZED_ENTROPY_FD);
@@ -636,6 +644,13 @@ S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
 
     s2n_per_thread_rand_state.private_drbg = drbg;
 
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_rand_set_urandom_for_test()
+{
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    s2n_rand_mix_cb = s2n_rand_get_entropy_from_urandom;
     return S2N_RESULT_OK;
 }
 
