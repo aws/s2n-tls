@@ -356,6 +356,61 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     };
 
+    /* Test: previous failed partial reads do not affect reading close_notify */
+    {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        EXPECT_OK(s2n_skip_handshake(conn));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
+
+        /* Set the version so that a record header with the wrong version will
+         * be rejected as invalid.
+         */
+        conn->actual_protocol_version_established = true;
+        conn->actual_protocol_version = S2N_TLS13;
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, conn));
+
+        /* Receive a malformed record.
+         * We want reading this record to leave our IO in a bad state.
+         */
+        uint8_t header_bytes[] = {
+            /* record type */
+            TLS_HANDSHAKE,
+            /* bad protocol version */
+            0,
+            0,
+            /* zero length */
+            0,
+            0,
+        };
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, header_bytes, sizeof(header_bytes)));
+        uint8_t recv_buffer[1] = { 0 };
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_recv(conn, recv_buffer, sizeof(recv_buffer), &blocked),
+                S2N_ERR_BAD_MESSAGE);
+        EXPECT_TRUE(s2n_stuffer_space_remaining(&conn->header_in) < sizeof(header_bytes));
+
+        /* Clear the blinding delay so that we can call s2n_shutdown */
+        EXPECT_TRUE(conn->delay > 0);
+        conn->delay = 0;
+
+        /* Make the valid close_notify available */
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, alert_record_header, sizeof(alert_record_header)));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, close_notify_alert, sizeof(close_notify_alert)));
+
+        /* Successfully shutdown.
+         * The initial bad call to s2n_recv should not affect shutdown.
+         */
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+    };
+
     /* Test: s2n_shutdown with aggressive socket close */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
