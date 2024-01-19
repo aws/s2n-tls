@@ -24,8 +24,10 @@ include = [
 
 [features]
 default = []
+# preserve the cmake feature in case any consumers had it enabled before
+cmake = []
 quic = []
-pq = ["cmake"] # the pq build logic is complicated so just use cmake instead
+pq = []
 internal = []
 stacktrace = []
 <TOKEN_REPLACED_WITH_UNSTABLE_FEATURES>
@@ -38,7 +40,6 @@ libc = "0.2"
 
 [build-dependencies]
 cc = { version = "1.0", features = ["parallel"] }
-cmake = { version = "0.1", optional = true }
 
 [dev-dependencies]
 jobserver = "=0.1.26" # newer versions require rust 1.66, see https://github.com/aws/s2n-tls/issues/4241

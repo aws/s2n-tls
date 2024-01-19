@@ -8,17 +8,6 @@ fn main() {
     if external.is_enabled() {
         external.link();
     } else {
-        #[cfg(feature = "cmake")]
-        {
-            // branch on a runtime value so we don't get unused code warnings
-            if option_env("CARGO_FEATURE_CMAKE").is_some() {
-                build_cmake();
-            } else {
-                build_vendored();
-            }
-        }
-
-        #[cfg(not(feature = "cmake"))]
         build_vendored();
     }
 }
@@ -93,26 +82,7 @@ fn build_vendored() {
 
     let mut build = builder(&libcrypto);
 
-    // TODO: update rust bindings to handle no pq-crypto dir
-
-    let pq = option_env("CARGO_FEATURE_PQ").is_some();
-
-    // TODO each pq section needs to be built separately since it
-    //      has its own relative include paths
-    assert!(!pq, "pq builds are not currently supported without cmake");
-
-    build.files(include!("./files.rs").iter().copied().filter(|file| {
-        // the pq entry file is still needed
-        if *file == "lib/pq-crypto/s2n_pq.c" {
-            return true;
-        }
-
-        if file.starts_with("lib/pq-crypto/") {
-            return pq;
-        }
-
-        true
-    }));
+    build.files(include!("./files.rs"));
 
     if env("PROFILE") == "release" {
         // fortify source is only available in release mode
@@ -125,10 +95,6 @@ fn build_vendored() {
                 .flag_if_supported("-flto")
                 .flag_if_supported("-ffat-lto-objects");
         }
-    }
-
-    if !pq {
-        build.define("S2N_NO_PQ", "1");
     }
 
     let out_dir = PathBuf::from(env("OUT_DIR"));
@@ -212,49 +178,6 @@ fn builder(libcrypto: &Libcrypto) -> cc::Build {
         .define("_POSIX_C_SOURCE", "200112L");
 
     build
-}
-
-#[cfg(feature = "cmake")]
-fn build_cmake() {
-    let mut config = cmake::Config::new("lib");
-
-    let libcrypto = Libcrypto::default();
-
-    config
-        .register_dep(&format!("aws_lc_{}", libcrypto.version))
-        .configure_arg("-DBUILD_TESTING=off");
-
-    if option_env("CARGO_FEATURE_PQ").is_none() {
-        config.configure_arg("-DS2N_NO_PQ=on");
-    }
-
-    let dst = config.build();
-
-    let lib = search(dst.join("lib64"))
-        .or_else(|| search(dst.join("lib")))
-        .or_else(|| search(dst.join("build").join("lib")))
-        .expect("could not build libs2n");
-
-    // link the built artifact
-    if lib.join("libs2n.a").exists() {
-        println!("cargo:rustc-link-lib=static=s2n");
-    } else {
-        println!("cargo:rustc-link-lib=s2n");
-    }
-
-    println!("cargo:include={}", dst.join("include").display());
-
-    // tell rust we're linking with libcrypto
-    println!("cargo:rustc-link-lib={}", libcrypto.link);
-
-    fn search(path: PathBuf) -> Option<PathBuf> {
-        if path.exists() {
-            println!("cargo:rustc-link-search={}", path.display());
-            Some(path)
-        } else {
-            None
-        }
-    }
 }
 
 #[derive(PartialEq, Eq, PartialOrd, Ord)]
