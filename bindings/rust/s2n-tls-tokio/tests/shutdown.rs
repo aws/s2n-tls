@@ -199,12 +199,8 @@ async fn shutdown_with_blinding() -> Result<(), Box<dyn std::error::Error>> {
     // Shutdown MUST NOT complete faster than minimal blinding time.
     assert!(time_elapsed > common::MIN_BLINDING_SECS);
 
-    // TODO: While the server SHOULD successfully shutdown, there is currently
-    // a C bug preventing it from doing so: https://github.com/aws/s2n-tls/pull/4350
-    let io_error = result.unwrap_err();
-    let error: error::Error = io_error.try_into()?;
-    assert!(error.kind() == error::ErrorType::IOError);
-    assert!(error.name() == "S2N_ERR_IO");
+    // Server MUST eventually successfully shutdown
+    assert!(result.is_ok());
 
     // Shutdown MUST have sent the close_notify message needed by the peer
     // to also shutdown successfully.
