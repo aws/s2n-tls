@@ -17,7 +17,8 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
-S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer* cert_chain_in_stuffer, struct s2n_blob* asn1_cert);
+S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer* cert_chain_in_stuffer,
+        struct s2n_blob* asn1_cert);
 
 int main(int argc, char** argv)
 {
@@ -27,8 +28,8 @@ int main(int argc, char** argv)
     {
         uint8_t cert_chain_data[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         uint32_t cert_chain_len = 0;
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ONE_TRAILING_BYTE_CERT_BIN, cert_chain_data, &cert_chain_len,
-                S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_ONE_TRAILING_BYTE_CERT_BIN, cert_chain_data,
+                &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
 
         struct s2n_blob cert_chain_blob = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));
@@ -53,8 +54,8 @@ int main(int argc, char** argv)
     {
         uint8_t cert_chain_data[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         uint32_t cert_chain_len = 0;
-        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_FOUR_TRAILING_BYTE_CERT_BIN, cert_chain_data, &cert_chain_len,
-                S2N_MAX_TEST_PEM_SIZE));
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_FOUR_TRAILING_BYTE_CERT_BIN, cert_chain_data,
+                &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
 
         struct s2n_blob cert_chain_blob = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));

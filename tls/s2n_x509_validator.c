@@ -383,7 +383,8 @@ static S2N_RESULT s2n_verify_host_information(struct s2n_connection *conn, X509 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert)
+S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer,
+        struct s2n_blob *asn1_cert)
 {
     uint32_t certificate_size = 0;
 
@@ -427,11 +428,13 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
         }
 
         if (!validator->skip_cert_validation) {
-            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, cert), S2N_ERR_CERT_UNTRUSTED);
+            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, cert),
+                    S2N_ERR_CERT_UNTRUSTED);
         }
 
         /* add the cert to the chain */
-        RESULT_ENSURE(sk_X509_push(validator->cert_chain_from_wire, cert) > 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        RESULT_ENSURE(sk_X509_push(validator->cert_chain_from_wire, cert) > 0,
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
         /* After the cert is added to cert_chain_from_wire, it will be freed
          * with the call to s2n_x509_validator_wipe. We disable the cleanup
@@ -636,8 +639,8 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(
-        struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len,
+static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2n_connection *conn,
+        uint8_t *cert_chain_in, uint32_t cert_chain_len,
         s2n_parsed_extensions_list *first_certificate_extensions)
 {
     /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
