@@ -55,6 +55,12 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     /* kTLS enable should only be called once the handshake has completed. */
     RESULT_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
+    /* kTLS uses the prf_space to recalculate the keys, but the prf_space may be
+     * freed by s2n_connection_free_handshake to reduce the connection size.
+     * Explicitly check for prf_space here to avoid a confusing S2N_ERR_NULL later.
+     */
+    RESULT_ENSURE(conn->prf_space, S2N_ERR_INVALID_STATE);
+
     /* For now, only allow TlS1.3 if explicitly enabled.
      *
      * TLS1.3 is potentially more dangerous to enable than TLS1.2, since the kernel

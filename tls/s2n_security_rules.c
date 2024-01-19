@@ -166,6 +166,20 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
                 "curve", curve->name, i + 1));
     }
 
+    const struct s2n_kem_preferences *kem_prefs = policy->kem_preferences;
+    RESULT_ENSURE_REF(kem_prefs);
+    for (size_t i = 0; i < kem_prefs->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *kem_group = kem_prefs->tls13_kem_groups[i];
+        const struct s2n_ecc_named_curve *curve = kem_group->curve;
+        RESULT_ENSURE_REF(curve);
+        bool is_valid = false;
+        RESULT_ENSURE_REF(rule->validate_curve);
+        RESULT_GUARD(rule->validate_curve(curve, &is_valid));
+        RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
+                error_msg_format_name, rule->name, policy_name,
+                "curve", curve->name, i + 1));
+    }
+
     bool is_valid = false;
     RESULT_ENSURE_REF(rule->validate_version);
     RESULT_GUARD(rule->validate_version(policy->minimum_protocol_version, &is_valid));
