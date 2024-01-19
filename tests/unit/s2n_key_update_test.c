@@ -221,6 +221,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_key_update_recv(server_conn, &input));
             EXPECT_EQUAL(server_conn->secure->client_sequence_number[0], 0);
             EXPECT_FALSE(s2n_atomic_flag_test(&server_conn->key_update_pending));
+            EXPECT_EQUAL(server_conn->recv_key_updated, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
@@ -243,6 +244,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_key_update_recv(client_conn, &input));
             EXPECT_EQUAL(client_conn->secure->server_sequence_number[0], 0);
             EXPECT_FALSE(s2n_atomic_flag_test(&client_conn->key_update_pending));
+            EXPECT_EQUAL(client_conn->recv_key_updated, 1);
 
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
         };
@@ -294,6 +296,26 @@ int main(int argc, char **argv)
             /* KeyUpdate still pending */
             EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
         };
+
+        /* Receiving a KeyUpdate doesn't overflow the key update count */
+        {
+            DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
+            conn->secure->cipher_suite = cipher_suite_with_limit;
+            conn->recv_key_updated = UINT8_MAX;
+
+            conn->secure->client_sequence_number[0] = 1;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, S2N_KEY_UPDATE_NOT_REQUESTED));
+            EXPECT_SUCCESS(s2n_key_update_recv(conn, &input));
+            EXPECT_EQUAL(conn->secure->client_sequence_number[0], 0);
+            EXPECT_EQUAL(conn->recv_key_updated, UINT8_MAX);
+            EXPECT_EQUAL(conn->send_key_updated, 0);
+        };
     };
 
     /* s2n_key_update_send */
@@ -319,6 +341,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_atomic_flag_test(&client_conn->key_update_pending), false);
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure->client_sequence_number, zeroed_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
             EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > 0);
+            EXPECT_EQUAL(client_conn->send_key_updated, 1);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
@@ -346,6 +369,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_atomic_flag_test(&client_conn->key_update_pending), false);
             EXPECT_BYTEARRAY_EQUAL(client_conn->secure->client_sequence_number, zeroed_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
             EXPECT_TRUE(s2n_stuffer_data_available(&stuffer) > 0);
+            EXPECT_EQUAL(client_conn->send_key_updated, 1);
 
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(client_conn));
