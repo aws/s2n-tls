@@ -383,6 +383,10 @@ struct s2n_connection {
      * The writer clears it after a KeyUpdate is sent.
      */
     s2n_atomic_flag key_update_pending;
+
+    /* Track KeyUpdates for metrics */
+    uint8_t send_key_updated;
+    uint8_t recv_key_updated;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
