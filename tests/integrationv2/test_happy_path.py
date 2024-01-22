@@ -12,6 +12,8 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
 # SSLv3. Therefore, in order to do an SSLv3 handshake, we override
 # env variables to signal that the libssl used should be openssl 1.0.2
 # for this provider.
+
+
 def get_sslv3_provider_override_env_vars(provider):
     if provider is SSLv3Provider:
         sslv3_provider_install_dir = os.environ["OPENSSL_1_0_2_INSTALL_DIR"]
@@ -58,7 +60,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, other_provider
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
-    server_options.override_env_vars=None
+    server_options.override_env_vars = None
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.

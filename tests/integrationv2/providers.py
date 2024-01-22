@@ -613,6 +613,7 @@ class OpenSSL(Provider):
 
         return cmd_line
 
+
 class SSLv3Provider(OpenSSL):
     def __init__(self, options: ProviderOptions):
         Provider.__init__(self, options)
@@ -634,6 +635,7 @@ class SSLv3Provider(OpenSSL):
         if protocol is Protocols.SSLv3:
             return True
         return False
+
 
 class JavaSSL(Provider):
     """
