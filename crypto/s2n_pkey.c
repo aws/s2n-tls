@@ -24,8 +24,6 @@
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_MAX_ALLOWED_CERT_TRAILING_BYTES 3
-
 int s2n_pkey_zero_init(struct s2n_pkey *pkey)
 {
     pkey->pkey = NULL;
@@ -185,19 +183,19 @@ S2N_RESULT s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob
 S2N_RESULT s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key,
         s2n_pkey_type *pkey_type_out, struct s2n_blob *asn1der)
 {
-    uint8_t *cert_to_parse = asn1der->data;
     DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
+    RESULT_GUARD(s2n_openssl_x509_parse(asn1der, &cert));
+    RESULT_GUARD(s2n_pkey_from_x509(cert, pub_key, pkey_type_out));
 
-    cert = d2i_X509(NULL, (const unsigned char **) (void *) &cert_to_parse, asn1der->size);
-    RESULT_ENSURE(cert != NULL, S2N_ERR_DECODE_CERTIFICATE);
+    return S2N_RESULT_OK;
+}
 
-    /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
-    uint32_t parsed_len = cert_to_parse - asn1der->data;
-
-    /* Some TLS clients in the wild send extra trailing bytes after the Certificate.
-     * Allow this in s2n for backwards compatibility with existing clients. */
-    uint32_t trailing_bytes = asn1der->size - parsed_len;
-    RESULT_ENSURE(trailing_bytes <= S2N_MAX_ALLOWED_CERT_TRAILING_BYTES, S2N_ERR_DECODE_CERTIFICATE);
+S2N_RESULT s2n_pkey_from_x509(X509 *cert, struct s2n_pkey *pub_key_out,
+        s2n_pkey_type *pkey_type_out)
+{
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(pub_key_out);
+    RESULT_ENSURE_REF(pkey_type_out);
 
     DEFER_CLEANUP(EVP_PKEY *evp_public_key = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE(evp_public_key != NULL, S2N_ERR_DECODE_CERTIFICATE);
@@ -206,25 +204,25 @@ S2N_RESULT s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key,
     int type = EVP_PKEY_base_id(evp_public_key);
     switch (type) {
         case EVP_PKEY_RSA:
-            RESULT_GUARD(s2n_rsa_pkey_init(pub_key));
-            RESULT_GUARD(s2n_evp_pkey_to_rsa_public_key(&pub_key->key.rsa_key, evp_public_key));
+            RESULT_GUARD(s2n_rsa_pkey_init(pub_key_out));
+            RESULT_GUARD(s2n_evp_pkey_to_rsa_public_key(&pub_key_out->key.rsa_key, evp_public_key));
             *pkey_type_out = S2N_PKEY_TYPE_RSA;
             break;
         case EVP_PKEY_RSA_PSS:
-            RESULT_GUARD(s2n_rsa_pss_pkey_init(pub_key));
-            RESULT_GUARD(s2n_evp_pkey_to_rsa_pss_public_key(&pub_key->key.rsa_key, evp_public_key));
+            RESULT_GUARD(s2n_rsa_pss_pkey_init(pub_key_out));
+            RESULT_GUARD(s2n_evp_pkey_to_rsa_pss_public_key(&pub_key_out->key.rsa_key, evp_public_key));
             *pkey_type_out = S2N_PKEY_TYPE_RSA_PSS;
             break;
         case EVP_PKEY_EC:
-            RESULT_GUARD(s2n_ecdsa_pkey_init(pub_key));
-            RESULT_GUARD(s2n_evp_pkey_to_ecdsa_public_key(&pub_key->key.ecdsa_key, evp_public_key));
+            RESULT_GUARD(s2n_ecdsa_pkey_init(pub_key_out));
+            RESULT_GUARD(s2n_evp_pkey_to_ecdsa_public_key(&pub_key_out->key.ecdsa_key, evp_public_key));
             *pkey_type_out = S2N_PKEY_TYPE_ECDSA;
             break;
         default:
             RESULT_BAIL(S2N_ERR_DECODE_CERTIFICATE);
     }
 
-    pub_key->pkey = evp_public_key;
+    pub_key_out->pkey = evp_public_key;
     ZERO_TO_DISABLE_DEFER_CLEANUP(evp_public_key);
 
     return S2N_RESULT_OK;
