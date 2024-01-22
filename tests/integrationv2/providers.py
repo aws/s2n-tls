@@ -468,6 +468,9 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.SSLv3:
+            return False
+
         return True
 
     @classmethod
@@ -507,6 +510,8 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1_1')
         elif self.options.protocol == Protocols.TLS10:
             cmd_line.append('-tls1')
+        elif self.options.protocol == Protocols.SSLv3:
+            cmd_line.append('-ssl3')
 
         if self.options.cipher is not None:
             cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
@@ -582,6 +587,8 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1_1')
         elif self.options.protocol == Protocols.TLS10:
             cmd_line.append('-tls1')
+        elif self.options.protocol == Protocols.SSLv3:
+            cmd_line.append('-ssl3')
 
         if self.options.cipher is not None:
             cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
@@ -606,6 +613,27 @@ class OpenSSL(Provider):
 
         return cmd_line
 
+class SSLv3Provider(OpenSSL):
+    def __init__(self, options: ProviderOptions):
+        Provider.__init__(self, options)
+        # We print some OpenSSL logging that includes stderr
+        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
+        self._is_openssl_102()
+
+    def _is_openssl_102(self):
+        result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
+        version_str = result.stdout.split(" ")
+        project = version_str[0]
+        version = version_str[1]
+        print(f"openssl version: {project} version: {version}")
+        if (project != "OpenSSL" or version[0:5] != "1.0.2"):
+            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.0.2")
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.SSLv3:
+            return True
+        return False
 
 class JavaSSL(Provider):
     """
@@ -623,7 +651,7 @@ class JavaSSL(Provider):
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
         # https://aws.amazon.com/blogs/opensource/tls-1-0-1-1-changes-in-openjdk-and-amazon-corretto/
-        if protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
+        if protocol is Protocols.SSLv3 or protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
             return False
 
         return True
