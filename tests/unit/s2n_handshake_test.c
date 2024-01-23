@@ -443,10 +443,9 @@ int main(int argc, char **argv)
         pid_t pid = fork();
         if (pid == 0) {
             long max_file_descriptors = sysconf(_SC_OPEN_MAX);
-            EXPECT_TRUE(max_file_descriptors > -1);
-            int max_fd = MIN(INT_MAX, max_file_descriptors - 1);
-            for (int fd = 0; fd <= max_fd; fd++) {
-                close(fd);
+            for (long fd = 0; fd < max_file_descriptors; fd++) {
+                EXPECT_TRUE(fd <= INT_MAX);
+                close((int) fd);
             }
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
