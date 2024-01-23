@@ -163,7 +163,7 @@ class S2N(Provider):
                 # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
                 if unsupported_lc in current_libcrypto:
                     return False
-        
+
         # s2n-tls will not negotiate SSLv3 if in fips mode
         if protocol == Protocols.SSLv3 and get_flag(S2N_FIPS_MODE):
             return False
