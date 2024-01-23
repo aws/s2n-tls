@@ -616,19 +616,16 @@ class OpenSSL(Provider):
 
 class SSLv3Provider(OpenSSL):
     def __init__(self, options: ProviderOptions):
-        Provider.__init__(self, options)
-        # We print some OpenSSL logging that includes stderr
-        self.expect_stderr = True  # lgtm [py/overwritten-inherited-attribute]
-        self._is_openssl_102()
+        OpenSSL.__init__(self, options)
+        self._override_libssl(options)
 
-    def _is_openssl_102(self):
-        result = subprocess.run(["openssl", "version"], shell=False, capture_output=True, text=True)
-        version_str = result.stdout.split(" ")
-        project = version_str[0]
-        version = version_str[1]
-        print(f"openssl version: {project} version: {version}")
-        if (project != "OpenSSL" or version[0:5] != "1.0.2"):
-            raise FileNotFoundError(f"Openssl version returned {version}, expected 1.0.2")
+    def _override_libssl(self, options: ProviderOptions):
+        install_dir = os.environ["OPENSSL_1_0_2_INSTALL_DIR"]
+
+        override_env_vars = dict()
+        override_env_vars["PATH"] = install_dir + "/bin"
+        override_env_vars["LD_LIBRARY_PATH"] = install_dir + "/lib"
+        options.env_overrides = override_env_vars
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):

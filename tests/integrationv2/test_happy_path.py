@@ -7,34 +7,14 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, JavaSSL, GnuTLS, SSLv3Provider
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
-# The default libssl used to test compatibility with s2n is
-# openssl 1.1.1. However, that version has removed support for
-# SSLv3. Therefore, in order to do an SSLv3 handshake, we override
-# env variables to signal that the libssl used should be openssl 1.0.2
-# for this provider.
-
-
-def get_sslv3_provider_override_env_vars(provider):
-    if provider is SSLv3Provider:
-        sslv3_provider_install_dir = os.environ["OPENSSL_1_0_2_INSTALL_DIR"]
-
-        override_env_vars = dict()
-        override_env_vars["PATH"] = sslv3_provider_install_dir + "/bin"
-        override_env_vars["LD_LIBRARY_PATH"] = sslv3_provider_install_dir + "/lib"
-
-        return override_env_vars
-    else:
-        return []
-
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS, JavaSSL, SSLv3Provider])
-@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
+@pytest.mark.parametrize("provider", [OpenSSL, JavaSSL, GnuTLS, SSLv3Provider])
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_server_happy_path(managed_process, cipher, provider, other_provider, curve, protocol, certificate):
+def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protocol, certificate):
     port = next(available_ports)
 
     # s2nd can receive large amounts of data because all the data is
@@ -51,8 +31,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, other_provider
         curve=curve,
         data_to_send=random_bytes,
         insecure=True,
-        protocol=protocol,
-        env_overrides=get_sslv3_provider_override_env_vars(provider)
+        protocol=protocol
     )
 
     server_options = copy.copy(client_options)
@@ -60,7 +39,6 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, other_provider
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
-    server_options.override_env_vars = None
 
     # Passing the type of client and server as a parameter will
     # allow us to use a fixture to enumerate all possibilities.
@@ -91,11 +69,10 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, other_provider
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS, SSLv3Provider])
-@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-def test_s2n_client_happy_path(managed_process, cipher, provider, other_provider, curve, protocol, certificate):
+def test_s2n_client_happy_path(managed_process, cipher, provider, curve, protocol, certificate):
     port = next(available_ports)
 
     # We can only send 4096 - 1 (\n at the end) bytes here because of the
@@ -120,7 +97,6 @@ def test_s2n_client_happy_path(managed_process, cipher, provider, other_provider
     server_options.mode = Provider.ServerMode
     server_options.key = certificate.key
     server_options.cert = certificate.cert
-    server_options.env_overrides = get_sslv3_provider_override_env_vars(provider)
 
     kill_marker = None
     if provider == GnuTLS:
