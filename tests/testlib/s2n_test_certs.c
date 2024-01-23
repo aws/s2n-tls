@@ -45,7 +45,6 @@ int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
 
     sprintf(path_buffer, "../pems/permutations/%s_%s_%s_%s/server-chain.pem", type, signature, size, digest);
-    printf("\nthe buffer is %s\n", path_buffer);
     POSIX_GUARD(s2n_read_test_pem(path_buffer, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
 
     sprintf(path_buffer, "../pems/permutations/%s_%s_%s_%s/server-key.pem", type, signature, size, digest);
