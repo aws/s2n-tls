@@ -52,6 +52,9 @@ function integ {
         echo "- renegotiate_apache"
         echo "   This test requires apache to be running. See codebuild/bin/s2n_apache.sh"
         echo "    for more info."
+        echo "- sslyze"
+        echo "   Sslyze/nassl was only built for x86, for certain versions of python upto version 3.10."
+
         return
     fi
     if [[ -z "$1" ]]; then
@@ -134,8 +137,6 @@ function test_toolchain_counts {
     echo -e "gnutls-serv:\t $(gnutls-serv --version |grep -c 'gnutls-serv 3.7')"
     echo -e "Nix Python:\t $(which python|grep -c '/nix/store')"
     echo -e "Nix pytest:\t $(which pytest|grep -c '/nix/store')"
-    echo -e "Nix sslyze:\t $(which sslyze|grep -c '/nix/store')"
-    echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
 }
 
 function test_nonstandard_compilation {

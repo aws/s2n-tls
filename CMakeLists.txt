@@ -558,9 +558,9 @@ if (BUILD_TESTING)
                 # For Nix and environments where LD_LIBRARY_PATH is already correct.
                 # We're also dropping tox and calling pytest directly, because
                 # Nix is already handling all of the python setup.
-                if (CMAKE_SYSTEM_PROCESSOR STREQUAL "aarch64" AND ${test_target} STREQUAL "integrationv2_sslyze" )
-                  # sslyze/nassl is not available on aarch64.
-                  message(WARNING "Skipping ${test_target} due to missing tools on ${CMAKE_SYSTEM_PROCESSOR}")
+                if (${test_target} STREQUAL "integrationv2_sslyze" )
+                  # sslyze/nassl is not available past Python310.
+                  message(WARNING "Skipping ${test_target} due to missing tools")
                   continue()
                 endif()
                 message(STATUS "Adding integ test ${test_target}")
