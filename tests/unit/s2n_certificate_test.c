@@ -903,7 +903,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
                         s2n_stuffer_data_available(&input)));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_CERT_INVALID);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_DECODE_CERTIFICATE);
                 EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
                 EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
             }

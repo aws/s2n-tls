@@ -32,7 +32,7 @@ option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that th
 only available on platforms that support execinfo." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
-option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
+option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" ON)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
@@ -551,6 +551,10 @@ if (BUILD_TESTING)
     if (S2N_INTEG_TESTS)
         find_package (Python3 COMPONENTS Interpreter Development)
         file(GLOB integv2_test_files "${PROJECT_SOURCE_DIR}/tests/integrationv2/test_*.py")
+        set(N 1)
+        if (S2N_FAST_INTEG_TESTS)
+            set(N auto)
+        endif()
         foreach(test_file_path ${integv2_test_files})
             get_filename_component(test_filename ${test_file_path} NAME_WE)
             string(REGEX REPLACE "^test_" "integrationv2_" test_target ${test_filename})
@@ -567,7 +571,7 @@ if (BUILD_TESTING)
                 add_test(NAME ${test_target}
                         COMMAND
                         pytest
-                        -x -n=1 --maxfail=1 --reruns=0 --cache-clear -rpfsq
+                        -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
                         --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
