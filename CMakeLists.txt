@@ -32,7 +32,7 @@ option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that th
 only available on platforms that support execinfo." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
-option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" OFF)
+option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" ON)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
