@@ -1850,6 +1850,47 @@ int main(int argc, char **argv)
                 S2N_ERR_DECODE_CERTIFICATE);
     };
 
+    /* Ensure that certs after the leaf cert can have an arbitrary number of trailing bytes */
+    {
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+
+        DEFER_CLEANUP(struct s2n_stuffer one_trailing_byte_chain = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(read_file(&one_trailing_byte_chain, S2N_ONE_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t one_trailing_byte_chain_len = s2n_stuffer_data_available(&one_trailing_byte_chain);
+        uint8_t *one_trailing_byte_chain_data = s2n_stuffer_raw_read(&one_trailing_byte_chain,
+                one_trailing_byte_chain_len);
+
+        DEFER_CLEANUP(struct s2n_stuffer four_trailing_bytes_chain = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(read_file(&four_trailing_bytes_chain, S2N_FOUR_TRAILING_BYTE_CERT_BIN, S2N_MAX_TEST_PEM_SIZE));
+        uint32_t four_trailing_bytes_chain_len = s2n_stuffer_data_available(&four_trailing_bytes_chain);
+        uint8_t *four_trailing_bytes_chain_data = s2n_stuffer_raw_read(&four_trailing_bytes_chain,
+                four_trailing_bytes_chain_len);
+
+        DEFER_CLEANUP(struct s2n_stuffer chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&chain_stuffer, S2N_MAX_TEST_PEM_SIZE * 2));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&chain_stuffer, one_trailing_byte_chain_data,
+                one_trailing_byte_chain_len));
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&chain_stuffer, four_trailing_bytes_chain_data,
+                four_trailing_bytes_chain_len));
+
+        uint32_t chain_len = s2n_stuffer_data_available(&chain_stuffer);
+        EXPECT_TRUE(chain_len > 0);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&chain_stuffer, chain_len);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator, connection, chain_data, chain_len, &pkey_type,
+                &public_key));
+
+        EXPECT_EQUAL(sk_X509_num(validator.cert_chain_from_wire), 2);
+    };
+
     /* Test validator trusts a SHA-1 signature in a certificate chain if certificate validation is off */
     {
         struct s2n_x509_trust_store trust_store;
@@ -1935,6 +1976,23 @@ int main(int argc, char **argv)
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
     };
+
+    /* Validator fails if cert chain is empty */
+    {
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
+
+        DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(connection);
+
+        struct s2n_pkey public_key = { 0 };
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+        EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, connection, NULL, 0, &pkey_type,
+                                        &public_key),
+                S2N_ERR_NO_CERT_FOUND);
+    }
 
     /* Test trust store can be wiped */
     {

@@ -11,25 +11,21 @@ All benchmarks are run in an idealized environment, using only a single thread a
 ../generate.sh
 
 # set up bench crate
-scripts/generate-certs.sh
-scripts/install-aws-lc.sh
+./scripts/generate-certs.sh
 
-# run all benchmarks (s2n-tls with AWS-LC)
-mkdir .cargo
-cat aws-lc-config/s2n.toml > .cargo/config.toml
+# run all benchmarks
 cargo bench
-scripts/bench-memory.sh
-cargo bench --bench handshake --bench throughput -- --profile-time 5
-rm -rf .cargo
 ```
 
 ## Setup
+The benchmarked TLS implementations will be
+- s2n-tls using AWS-LC for a cryptographic backend.
+- rustls using Ring for a cryptographic backend
+- OpenSSL - libssl & libcrypto
 
-Setup is easy! Just have OpenSSL installed, generate Rust bindings for s2n-tls using `../generate.sh`, and generate certs using `scripts/generate-certs.sh`.
+All of the cryptographic backends, including AWS-LC and OpenSSL libcrypto are consumed as vendored builds from crates.io, and do not need to be installed on the benchmarking host. Note that the `aws-lc-sys` crate depends on CMake in its buildscript, so CMake must be installed on the benchmarking host.
 
-Dependencies are the same as with s2n-tls. Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments.
-
-To bench with AWS-LC, Amazon's custom libcrypto implementation, first run `scripts/install-aws-lc.sh` to install AWS-LC for the bench crate. To then run the benchmarks with AWS-LC, use Cargo with either the flag `--config aws-lc-config/s2n.toml` or `--config aws-lc-config/rustls.toml` (or both). You can also append these configs to `.cargo/config.toml` to let Cargo automatically detect the settings without specifying the flags each time.
+Currently, this crate has only been tested on Ubuntu (both x86 and ARM), but we expect everything to work with other Unix environments.
 
 ### Features
 
@@ -93,7 +89,7 @@ To do historical benchmarks, run `scripts/bench-past.sh`. This will checkout old
 
 The last version benched is v1.3.16, since before that, the s2n-tls Rust bindings have a different API and would thus require a different bench harness to test.
 
-v1.3.30-1.3.37 are not benched because of depedency issues when generating the Rust bindings. However, versions before and after are benched, so the overall trend in performance can still be seen without the data from these versions.
+v1.3.30-1.3.37 are not benched because of dependency issues when generating the Rust bindings. However, versions before and after are benched, so the overall trend in performance can still be seen without the data from these versions.
 
 ### Sample output
 
