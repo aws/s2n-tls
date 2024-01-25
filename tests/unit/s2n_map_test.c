@@ -258,20 +258,20 @@ int main(int argc, char **argv)
                 *blobs[i].data = i;
             }
 
-            struct s2n_map *map = s2n_map_new();
-            EXPECT_NOT_NULL(map);
+            struct s2n_map *test_map = s2n_map_new();
+            EXPECT_NOT_NULL(test_map);
 
             /* set values in map to 0 and 1 */
-            map->table[0].value = blobs[0];
-            map->table[0].key = blobs[2];
-            map->table[map->capacity - 1].value = blobs[1];
-            map->table[map->capacity - 1].key = blobs[3];
+            test_map->table[0].value = blobs[0];
+            test_map->table[0].key = blobs[2];
+            test_map->table[test_map->capacity - 1].value = blobs[1];
+            test_map->table[test_map->capacity - 1].key = blobs[3];
 
-            map->size = 2;
-            EXPECT_OK(s2n_map_complete(map));
+            test_map->size = 2;
+            EXPECT_OK(s2n_map_complete(test_map));
 
             DEFER_CLEANUP(struct s2n_map_iterator *iter = NULL, s2n_map_iterator_free_pointer);
-            EXPECT_OK(s2n_map_iterator_new(map, &iter));
+            EXPECT_OK(s2n_map_iterator_new(test_map, &iter));
             bool seen[2] = { 0 };
 
             bool has_next = false;
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
             /* assert that 0 and 1 were both seen */
             EXPECT_TRUE(seen[0] && seen[1]);
 
-            EXPECT_OK(s2n_map_free(map));
+            EXPECT_OK(s2n_map_free(test_map));
         };
     };
 
