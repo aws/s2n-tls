@@ -48,8 +48,7 @@ openssl verify -CAfile ca-cert.pem kitten-cert.pem
 rm kitten.csr
 rm ca-cert.srl
 
-# the private keys of the CA and the intermediat CA are never needed after 
-# signing
+# the private keys of the CA are never needed after signing
 rm ca-key.pem
 rm ca-cert.pem
 rm kitten-cert.pem
