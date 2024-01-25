@@ -53,13 +53,11 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* Ensure that AWS-LC supports the SSLv3 HMAC. */
-    if (s2n_libcrypto_is_awslc()) {
-        EXPECT_TRUE(s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5));
-    }
-
-    /* Skip the tests if SSLv3 isn't supported. */
     if (!s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5)) {
+        /* AWS-LC should support SSLv3. */
+        EXPECT_FALSE(s2n_libcrypto_is_awslc());
+
+        /* Other libcryptos may not support SSLv3, so the tests are skipped. */
         END_TEST();
     }
 
@@ -75,58 +73,66 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
 
     /* Self-talk test */
-    for (size_t i = 0; i < security_policy_test_all.cipher_preferences->count; i++) {
-        struct s2n_cipher_suite *cipher_suite = security_policy_test_all.cipher_preferences->suites[i];
+    {
+        size_t supported_record_alg_count = 0;
 
-        /* Skip non-sslv3 cipher suites */
-        if (!cipher_suite->sslv3_record_alg) {
-            continue;
+        for (size_t i = 0; i < security_policy_test_all.cipher_preferences->count; i++) {
+            struct s2n_cipher_suite *cipher_suite = security_policy_test_all.cipher_preferences->suites[i];
+
+            /* Skip non-sslv3 cipher suites. */
+            if (!cipher_suite->sslv3_record_alg) {
+                continue;
+            }
+
+            /* Skip unsupported record algorithms. */
+            if (!cipher_suite->sslv3_record_alg->cipher->is_available()) {
+                continue;
+            }
+            supported_record_alg_count += 1;
+
+            struct s2n_cipher_preferences test_cipher_preferences = {
+                .count = 1,
+                .suites = &cipher_suite,
+            };
+            struct s2n_security_policy test_policy = security_policy_test_all;
+            test_policy.cipher_preferences = &test_cipher_preferences;
+
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+            client_config->security_policy = &test_policy;
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain_and_key));
+            EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
+            server_config->security_policy = &test_policy;
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+            client->client_protocol_version = S2N_SSLv3;
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), S2N_SSLv3);
+            EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server), S2N_SSLv3);
+
+            EXPECT_OK(s2n_test_send_receive_data(client, server));
+            EXPECT_OK(s2n_test_send_receive_data(server, client));
         }
 
-        /* Skip unsupported record algorithms */
-        if (!cipher_suite->sslv3_record_alg->cipher->is_available()) {
-            continue;
-        }
-
-        struct s2n_cipher_preferences test_cipher_preferences = {
-            .count = 1,
-            .suites = &cipher_suite,
-        };
-        struct s2n_security_policy test_policy = security_policy_test_all;
-        test_policy.cipher_preferences = &test_cipher_preferences;
-
-        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
-        client_config->security_policy = &test_policy;
-
-        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_chain_and_key));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain_and_key));
-        EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
-        server_config->security_policy = &test_policy;
-
-        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
-        client->client_protocol_version = S2N_SSLv3;
-
-        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server);
-        EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
-
-        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
-
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
-        EXPECT_EQUAL(s2n_connection_get_client_protocol_version(server), S2N_SSLv3);
-        EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server), S2N_SSLv3);
-
-        EXPECT_OK(s2n_test_send_receive_data(client, server));
-        EXPECT_OK(s2n_test_send_receive_data(server, client));
+        /* Ensure that a supported record algorithm was found, and SSLv3 was tested at least once. */
+        EXPECT_TRUE(supported_record_alg_count > 0);
     }
 
     END_TEST();
