@@ -246,3 +246,91 @@ S2N_RESULT s2n_map_free(struct s2n_map *map)
 
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_map_size(struct s2n_map *map, uint32_t *size)
+{
+    RESULT_ENSURE_REF(map);
+    *size = map->size;
+    return S2N_RESULT_OK;
+}
+
+/* Update the internal state so that `current_index` will point to the next value
+ * in the table or will equal `map->capacity` if there are no more elements in
+ * the map. 
+ */
+S2N_RESULT s2n_map_iterator_advance(struct s2n_map_iterator *iter)
+{
+    RESULT_ENSURE_REF(iter);
+    RESULT_ENSURE_REF(iter->map);
+
+    while (++iter->current_index < iter->map->capacity) {
+        /* a value was found in the map */
+        if (iter->map->table[iter->current_index].key.size) {
+            return S2N_RESULT_OK;
+        }
+    }
+    /* no more values were found in the map */
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_map_iterator_new(struct s2n_map *map, struct s2n_map_iterator **iter_out)
+{
+    RESULT_ENSURE_REF(map);
+    RESULT_ENSURE(map->immutable, S2N_ERR_MAP_MUTABLE);
+
+    struct s2n_blob mem = { 0 };
+    struct s2n_map_iterator *iter;
+
+    RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_map_iterator)));
+
+    iter = (void *) mem.data;
+    iter->map = map;
+    iter->current_index = 0;
+
+    /* Advance the index to point to the first value in the map. This isn't 
+     * necessary if the slot at index 0 already contains a value.
+     */
+    if (iter->map->table[0].key.size == 0) {
+        RESULT_GUARD(s2n_map_iterator_advance(iter));
+    }
+
+    *iter_out = iter;
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_map_iterator_next(struct s2n_map_iterator *iter, struct s2n_blob *value)
+{
+    RESULT_ENSURE_REF(iter);
+    RESULT_ENSURE(iter->map->immutable, S2N_ERR_MAP_MUTABLE);
+
+    bool has_next = false;
+    RESULT_GUARD(s2n_map_iterator_has_next(iter, &has_next));
+    RESULT_ENSURE(has_next, S2N_ERR_SAFETY);
+
+    value->data = iter->map->table[iter->current_index].value.data;
+    value->size = iter->map->table[iter->current_index].value.size;
+
+    RESULT_GUARD(s2n_map_iterator_advance(iter));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_map_iterator_has_next(const struct s2n_map_iterator *iter, bool *has_next)
+{
+    RESULT_ENSURE_REF(iter);
+    RESULT_ENSURE_REF(iter->map);
+    *has_next = iter->current_index < iter->map->capacity;
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_map_iterator_free(struct s2n_map_iterator *iter)
+{
+    if (iter == NULL) {
+        return S2N_SUCCESS;
+    }
+    POSIX_GUARD(s2n_free_object((uint8_t **) &iter, sizeof(struct s2n_map_iterator)));
+
+    return S2N_SUCCESS;
+}
