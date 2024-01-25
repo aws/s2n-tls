@@ -273,17 +273,11 @@ S2N_RESULT s2n_map_iterator_advance(struct s2n_map_iterator *iter)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_map_iterator_new(struct s2n_map *map, struct s2n_map_iterator **iter_out)
+S2N_RESULT s2n_map_iterator_init(struct s2n_map_iterator *iter, const struct s2n_map *map)
 {
     RESULT_ENSURE_REF(map);
     RESULT_ENSURE(map->immutable, S2N_ERR_MAP_MUTABLE);
 
-    struct s2n_blob mem = { 0 };
-    struct s2n_map_iterator *iter;
-
-    RESULT_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_map_iterator)));
-
-    iter = (void *) mem.data;
     iter->map = map;
     iter->current_index = 0;
 
@@ -293,8 +287,6 @@ S2N_RESULT s2n_map_iterator_new(struct s2n_map *map, struct s2n_map_iterator **i
     if (iter->map->table[0].key.size == 0) {
         RESULT_GUARD(s2n_map_iterator_advance(iter));
     }
-
-    *iter_out = iter;
 
     return S2N_RESULT_OK;
 }
@@ -323,14 +315,4 @@ S2N_RESULT s2n_map_iterator_has_next(const struct s2n_map_iterator *iter, bool *
     *has_next = iter->current_index < iter->map->capacity;
 
     return S2N_RESULT_OK;
-}
-
-int s2n_map_iterator_free(struct s2n_map_iterator *iter)
-{
-    if (iter == NULL) {
-        return S2N_SUCCESS;
-    }
-    POSIX_GUARD(s2n_free_object((uint8_t **) &iter, sizeof(struct s2n_map_iterator)));
-
-    return S2N_SUCCESS;
 }

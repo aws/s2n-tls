@@ -33,7 +33,7 @@ S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struc
 S2N_RESULT s2n_map_free(struct s2n_map *map);
 S2N_RESULT s2n_map_size(struct s2n_map *map, uint32_t *size);
 
-S2N_RESULT s2n_map_iterator_new(struct s2n_map *map, struct s2n_map_iterator **iter);
+S2N_RESULT s2n_map_iterator_init(struct s2n_map_iterator *iter, const struct s2n_map *map);
 S2N_RESULT s2n_map_iterator_next(struct s2n_map_iterator *iter, struct s2n_blob *value);
 S2N_RESULT s2n_map_iterator_has_next(const struct s2n_map_iterator *iter, bool *has_next);
-int s2n_map_iterator_free(struct s2n_map_iterator *iter);
+S2N_CLEANUP_RESULT s2n_map_iterator_free(struct s2n_map_iterator *iter);

@@ -36,7 +36,7 @@ struct s2n_map {
 };
 
 struct s2n_map_iterator {
-    struct s2n_map *map;
+    const struct s2n_map *map;
     /* Index of the entry to be returned on the next `s2n_map_iterator_next()` call. */
     uint32_t current_index;
 };

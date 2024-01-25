@@ -192,23 +192,23 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(map);
         /* fail to initialize an iterator on a mutable map */
         {
-            DEFER_CLEANUP(struct s2n_map_iterator *iter = NULL, s2n_map_iterator_free_pointer);
-            EXPECT_ERROR(s2n_map_iterator_new(map, &iter));
+            struct s2n_map_iterator iter = { 0 };
+            EXPECT_ERROR(s2n_map_iterator_init(&iter, map));
         };
 
         EXPECT_OK(s2n_map_complete(map));
 
         /* has next is false on an empty map, and next returns an error */
         {
-            DEFER_CLEANUP(struct s2n_map_iterator *iter = NULL, s2n_map_iterator_free_pointer);
-            EXPECT_OK(s2n_map_iterator_new(map, &iter));
+            struct s2n_map_iterator iter = { 0 };
+            EXPECT_OK(s2n_map_iterator_init(&iter, map));
 
             bool has_next = false;
-            EXPECT_OK(s2n_map_iterator_has_next(iter, &has_next));
+            EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
             EXPECT_FALSE(has_next);
 
             struct s2n_blob value = { 0 };
-            EXPECT_ERROR(s2n_map_iterator_next(iter, &value));
+            EXPECT_ERROR(s2n_map_iterator_next(&iter, &value));
         };
 
         EXPECT_OK(s2n_map_unlock(map));
@@ -223,24 +223,24 @@ int main(int argc, char **argv)
         {
             bool seen[10] = { 0 };
 
-            DEFER_CLEANUP(struct s2n_map_iterator *iter = NULL, s2n_map_iterator_free_pointer);
-            EXPECT_OK(s2n_map_iterator_new(map, &iter));
+            struct s2n_map_iterator iter = { 0 };
+            EXPECT_OK(s2n_map_iterator_init(&iter, map));
 
             bool has_next = false;
             struct s2n_blob value = { 0 };
             for (size_t i = 0; i < 10; i++) {
-                EXPECT_OK(s2n_map_iterator_has_next(iter, &has_next));
+                EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
                 EXPECT_TRUE(has_next);
 
-                EXPECT_OK(s2n_map_iterator_next(iter, &value));
+                EXPECT_OK(s2n_map_iterator_next(&iter, &value));
                 seen[*value.data] = true;
             }
 
             /* all elements have been iterated over */
-            EXPECT_OK(s2n_map_iterator_has_next(iter, &has_next));
+            EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
             EXPECT_FALSE(has_next);
 
-            EXPECT_ERROR(s2n_map_iterator_next(iter, &value));
+            EXPECT_ERROR(s2n_map_iterator_next(&iter, &value));
 
             /* all elements were seen */
             for (size_t i = 0; i < 10; i++) {
@@ -270,17 +270,17 @@ int main(int argc, char **argv)
             test_map->size = 2;
             EXPECT_OK(s2n_map_complete(test_map));
 
-            DEFER_CLEANUP(struct s2n_map_iterator *iter = NULL, s2n_map_iterator_free_pointer);
-            EXPECT_OK(s2n_map_iterator_new(test_map, &iter));
+            struct s2n_map_iterator iter = { 0 };
+            EXPECT_OK(s2n_map_iterator_init(&iter, test_map));
             bool seen[2] = { 0 };
 
             bool has_next = false;
             struct s2n_blob value = { 0 };
             for (size_t i = 0; i < 2; i++) {
-                EXPECT_OK(s2n_map_iterator_has_next(iter, &has_next));
+                EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
                 EXPECT_TRUE(has_next);
 
-                EXPECT_OK(s2n_map_iterator_next(iter, &value));
+                EXPECT_OK(s2n_map_iterator_next(&iter, &value));
                 seen[*value.data] = true;
             }
 
