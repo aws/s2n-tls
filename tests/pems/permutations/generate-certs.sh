@@ -10,26 +10,35 @@
 # immediately bail if any command fails
 set -e
 
-# go to directory certs are located
-mkdir -p "$(dirname "$0")"/../certs
-pushd "$(dirname "$0")"/../certs > /dev/null
-
 # Generates certs with given algorithms and bits in $1$2/, ex. ec384/
 # $1: rsa or ec
 # $2: number of bits
 # $3: directory under the `certs/` directory to put certs in
 cert-gen () {
-    echo -e "\n----- generating certs for $1$2 -----\n"
 
     key_family=$1
-    key_size=$2
-    dir_name=$3
+    signature=$2
+    key_size=$3
+    digest=$4
+    dir_name=$5
+
+    echo -e "\n----- generating certs for $key_family $key_size with $digest $signature -----\n"
+    #echo "generating $key_family $key_size cert with $digest $signature"
 
     # set openssl argument name
-    if [[ $key_family == rsa ]]; then
+    if [[ $key_family == rsa || $key_family == rsa-pss ]]; then
         local argname=rsa_keygen_bits:
     elif [[ $key_family == ec ]]; then
         local argname=ec_paramgen_curve:P-
+    fi
+
+    # All signature algorithims are the default except for rsa-pss signatures
+    # with rsae keys. For this case we must manually specify things
+    if [[ $key_family == rsa && $signature == pss ]]
+    then
+        local signature_options="-sigopt rsa_padding_mode:pss"
+    else
+        local signature_options=""
     fi
 
     # make directory for certs
@@ -45,6 +54,7 @@ cert-gen () {
     # The advantage of manually specifying the extensions is that there is no
     # dependency on any openssl config files
 
+    # we pass in the digest here because it is self signed
     echo "generating CA private key and certificate"
     openssl req -new -noenc -x509 \
             -newkey $key_family \
@@ -52,6 +62,8 @@ cert-gen () {
             -keyout  ca-key.pem \
             -out ca-cert.pem \
             -days 65536 \
+            $signature_options \
+            -$digest \
             -subj "/C=US/CN=root" \
             -addext "basicConstraints = critical,CA:true" \
             -addext "keyUsage = critical,keyCertSign"
@@ -87,6 +99,7 @@ cert-gen () {
     echo "generating intermediate certificate and signing it"
     openssl x509 -days 65536 \
             -req -in intermediate.csr \
+            -$digest \
             -CA ca-cert.pem \
             -CAkey ca-key.pem \
             -CAcreateserial \
@@ -96,6 +109,8 @@ cert-gen () {
     echo "generating server certificate and signing it"
     openssl x509 -days 65536 \
             -req -in server.csr \
+            $signature_options \
+            -$digest \
             -CA intermediate-cert.pem \
             -CAkey intermediate-key.pem \
             -CAcreateserial -out server-cert.pem \
@@ -104,6 +119,8 @@ cert-gen () {
     echo "generating client certificate and signing it"
     openssl x509 -days 65536 \
             -req -in client.csr \
+            $signature_options \
+            -$digest \
             -CA ca-cert.pem \
             -CAkey ca-key.pem \
             -CAcreateserial -out client-cert.pem \
@@ -121,25 +138,45 @@ cert-gen () {
     echo "verifying client certificates"
     openssl verify -CAfile ca-cert.pem client-cert.pem
 
-    echo "cleaning up temporary files"
+    # certificate signing requests are never used after the certs are generated
     rm server.csr
     rm intermediate.csr
     rm client.csr
+
+    # serial files are generated during the signing process, but are not used
+    rm ca-cert.srl
+    rm intermediate-cert.srl
+
+    # the private keys of the CA and the intermediat CA are never needed after 
+    # signing
     rm ca-key.pem
+    rm intermediate-key.pem
+
+    # the intermediate and server certs are included in server-chain.pem, so 
+    # the individual files can be deleted
+    rm intermediate-cert.pem
+    rm server-cert.pem
 
     cd ..
 }
 
 if [[ $1 != "clean" ]]
 then
-    cert-gen ec 256 ecdsa256
-    cert-gen ec 384 ecdsa384
-    cert-gen rsa 2048 rsa2048
-    cert-gen rsa 3072 rsa3072
-    cert-gen rsa 4096 rsa4096
+    #         key        signature   key_size     digest         directory
+    cert-gen   ec          ecdsa       256        SHA256      ec_ecdsa_p256_sha256
+    cert-gen   ec          ecdsa       256        SHA384      ec_ecdsa_p256_sha384
+    cert-gen   ec          ecdsa       384        SHA256      ec_ecdsa_p384_sha256
+    cert-gen   ec          ecdsa       384        SHA384      ec_ecdsa_p384_sha384
+    cert-gen   ec          ecdsa       521        SHA384      ec_ecdsa_p521_sha384
+    cert-gen   rsa        pkcsv1.5     2048       SHA256      rsae_pkcs_2048_sha256
+    cert-gen   rsa        pkcsv1.5     2048       SHA384      rsae_pkcs_2048_sha384
+    cert-gen   rsa        pkcsv1.5     3072       SHA256      rsae_pkcs_3072_sha256
+    cert-gen   rsa        pkcsv1.5     3072       SHA384      rsae_pkcs_3072_sha384
+    cert-gen   rsa        pkcsv1.5     4096       SHA384      rsae_pkcs_4096_sha384
+    cert-gen   rsa          pss        4096       SHA384      rsae_pss_4096_sha384
+    cert-gen   rsa-pss      pss        2048       SHA256      rsapss_pss_2048_sha256
+
 else
     echo "cleaning certs"
-    rm -rf ecdsa*/ rsa*/
+    rm -rf ecdsa* rsa*
 fi
-
-popd > /dev/null
