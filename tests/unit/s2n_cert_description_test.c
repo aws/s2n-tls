@@ -29,10 +29,10 @@ int main(int argc, char **argv)
 
     /* s2n_cert_get_cert_description */
     struct {
-        char *key_type;
-        char *signature;
-        char *key_size;
-        char *digest;
+        const char *key_type;
+        const char *signature;
+        const char *key_size;
+        const char *digest;
         int expected_signature_nid;
         int expected_digest_nid;
     } test_cases[] = {
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
         char pathbuffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
         uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         EXPECT_SUCCESS(
-                s2n_test_cert_permutation_get_server_chain_path(&pathbuffer, test_cases[i].key_type,
+                s2n_test_cert_permutation_get_server_chain_path(&pathbuffer[0], test_cases[i].key_type,
                         test_cases[i].signature, test_cases[i].key_size, test_cases[i].digest));
         EXPECT_SUCCESS(s2n_read_test_pem(pathbuffer, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
 

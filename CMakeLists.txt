@@ -500,7 +500,10 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
-        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
+                    -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-strict-prototypes -Wno-deprecated-declarations
+                    -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
+                    -Wno-unused-but-set-variable -D_POSIX_C_SOURCE=200809L -std=gnu99)
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
