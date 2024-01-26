@@ -348,8 +348,11 @@ class Curves(object):
     """
     X25519 = Curve("X25519", Protocols.TLS13)
     P256 = Curve("P-256")
-    P384 = Curve("P-384")
-    P521 = Curve("P-521")
+    # Our only SSLv3 provider doesn't support extensions
+    # so there is no way to negotiate a curve other than the
+    # default P-256 in SSLv3.
+    P384 = Curve("P-384", Protocols.TLS10)
+    P521 = Curve("P-521", Protocols.TLS10)
     SecP256r1Kyber768Draft00 = Curve("SecP256r1Kyber768Draft00")
     X25519Kyber768Draft00 = Curve("X25519Kyber768Draft00")
 
