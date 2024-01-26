@@ -136,6 +136,7 @@ function test_toolchain_counts {
     echo -e "Nix pytest:\t $(which pytest|grep -c '/nix/store')"
     echo -e "Nix sslyze:\t $(which sslyze|grep -c '/nix/store')"
     echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
+    echo -e "valgrind:\t $(valgrind --version|grep -c 'valgrind-3.19.0')"
 }
 
 function test_nonstandard_compilation {
