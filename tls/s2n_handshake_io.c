@@ -1517,8 +1517,9 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         /* If we're a Client, and received a ClientCertRequest message, and ClientAuth
          * is set to optional, then switch the State Machine that we're using to expect the ClientCertRequest. */
         if (conn->mode == S2N_CLIENT
-                && client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL
+                && client_cert_auth_type != S2N_CERT_AUTH_REQUIRED
                 && message_type == TLS_CERT_REQ) {
+            POSIX_ENSURE(client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL, S2N_ERR_UNEXPECTED_CERT_REQUEST);
             POSIX_ENSURE(IS_FULL_HANDSHAKE(conn), S2N_ERR_HANDSHAKE_STATE);
             POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, CLIENT_AUTH));
         }
