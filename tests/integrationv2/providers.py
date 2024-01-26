@@ -163,6 +163,11 @@ class S2N(Provider):
                 # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
                 if unsupported_lc in current_libcrypto:
                     return False
+
+        # s2n-tls will not negotiate SSLv3 if in fips mode
+        if protocol == Protocols.SSLv3 and get_flag(S2N_FIPS_MODE):
+            return False
+
         return True
 
     @classmethod
@@ -468,6 +473,9 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.SSLv3:
+            return False
+
         return True
 
     @classmethod
@@ -507,6 +515,8 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1_1')
         elif self.options.protocol == Protocols.TLS10:
             cmd_line.append('-tls1')
+        elif self.options.protocol == Protocols.SSLv3:
+            cmd_line.append('-ssl3')
 
         if self.options.cipher is not None:
             cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
@@ -582,6 +592,8 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1_1')
         elif self.options.protocol == Protocols.TLS10:
             cmd_line.append('-tls1')
+        elif self.options.protocol == Protocols.SSLv3:
+            cmd_line.append('-ssl3')
 
         if self.options.cipher is not None:
             cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
@@ -607,6 +619,26 @@ class OpenSSL(Provider):
         return cmd_line
 
 
+class SSLv3Provider(OpenSSL):
+    def __init__(self, options: ProviderOptions):
+        OpenSSL.__init__(self, options)
+        self._override_libssl(options)
+
+    def _override_libssl(self, options: ProviderOptions):
+        install_dir = os.environ["OPENSSL_1_0_2_INSTALL_DIR"]
+
+        override_env_vars = dict()
+        override_env_vars["PATH"] = install_dir + "/bin"
+        override_env_vars["LD_LIBRARY_PATH"] = install_dir + "/lib"
+        options.env_overrides = override_env_vars
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.SSLv3:
+            return True
+        return False
+
+
 class JavaSSL(Provider):
     """
     NOTE: Only a Java SSL client has been set up. The server has not been
@@ -623,7 +655,7 @@ class JavaSSL(Provider):
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
         # https://aws.amazon.com/blogs/opensource/tls-1-0-1-1-changes-in-openjdk-and-amazon-corretto/
-        if protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
+        if protocol is Protocols.SSLv3 or protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
             return False
 
         return True

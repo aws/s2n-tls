@@ -10,9 +10,6 @@ All benchmarks are run in an idealized environment, using only a single thread a
 # generate rust bindings
 ../generate.sh
 
-# set up bench crate
-./scripts/generate-certs.sh
-
 # run all benchmarks
 cargo bench
 ```
