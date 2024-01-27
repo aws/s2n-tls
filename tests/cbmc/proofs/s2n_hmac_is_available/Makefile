@@ -22,6 +22,7 @@ HARNESS_FILE = $(HARNESS_ENTRY).c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
+PROOF_SOURCES += $(PROOF_STUB)/s2n_libcrypto_is_awslc.c
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hmac.c
 
