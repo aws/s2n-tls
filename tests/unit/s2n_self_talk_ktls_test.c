@@ -161,7 +161,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client);
+        EXPECT_NOT_NULL(server);
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
