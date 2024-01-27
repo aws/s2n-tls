@@ -73,7 +73,7 @@ fn server_config(animal: &str) -> s2n_tls::config::Config {
 
     // we can set different policies for different configs. "20190214" doesn't
     // support TLS 1.3, so any customer requesting www.wombat.com won't be able
-    // to negoatiate TLS 1.3
+    // to negotiate TLS 1.3
     let security_policy = match animal {
         "wombat" => Policy::from_version("20190214").unwrap(),
         _ => DEFAULT_TLS13,
