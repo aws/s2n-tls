@@ -10,7 +10,8 @@ members = [
 # generate/main.rs
 exclude = [
     "generate",
-    "bench"
+    "bench",
+    "examples",
 ]
 
 [profile.release]
