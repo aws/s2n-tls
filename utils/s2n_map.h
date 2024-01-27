@@ -21,7 +21,11 @@
 #include "utils/s2n_result.h"
 
 struct s2n_map;
-struct s2n_map_iterator;
+struct s2n_map_iterator {
+    const struct s2n_map *map;
+    /* Index of the entry to be returned on the next `s2n_map_iterator_next()` call. */
+    uint32_t current_index;
+};
 
 struct s2n_map *s2n_map_new();
 struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity);
