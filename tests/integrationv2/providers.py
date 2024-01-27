@@ -164,8 +164,12 @@ class S2N(Provider):
                 if unsupported_lc in current_libcrypto:
                     return False
 
-        # s2n-tls will not negotiate SSLv3 if in fips mode
-        if protocol == Protocols.SSLv3 and get_flag(S2N_FIPS_MODE):
+        # SSLv3 cannot be negotiated in FIPS mode with libcryptos other than AWS-LC.
+        if all([
+            protocol == Protocols.SSLv3,
+            get_flag(S2N_FIPS_MODE),
+            "awslc" not in get_flag(S2N_PROVIDER_VERSION)
+        ]):
             return False
 
         return True
