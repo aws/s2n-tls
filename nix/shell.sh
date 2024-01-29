@@ -9,6 +9,20 @@ banner()
     echo "+---------------------------------------------------------+"
 }
 
+function libcrypto_alias {
+    if [[ -f $2 ]]; then
+      alias $1=$2
+      else
+      banner "Could not find libcrdypto $2 for alias"
+    fi
+}
+libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
+libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
+libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
+libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
+libcrypto_alias gnutls-cli "${GNUTLS_INSTALL_DIR}/bin/gnutls-cli"
+
 
 function clean {
     banner "Cleanup ./build"
