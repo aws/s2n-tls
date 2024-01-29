@@ -116,7 +116,7 @@ fn scenario() -> turmoil::Result {
                 let mut tls = server
                     .accept(stream)
                     .await
-                    .expect("server failure to negoatiate");
+                    .expect("server failure to negotiate");
                 println!("{:#?}", tls);
 
                 let connection = tls.as_ref();

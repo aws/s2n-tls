@@ -93,7 +93,7 @@ jobs:
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
-      - name: bench tests
+      - name: client hello callback test
         working-directory: ${{env.ROOT_PATH}}/examples/client-hello-config-resolution
         run: cargo test
 
