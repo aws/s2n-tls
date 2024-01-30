@@ -13,6 +13,7 @@ env:
   # This should be occasionally updated.
   RUST_NIGHTLY_TOOLCHAIN: nightly-2024-01-01
   ROOT_PATH: bindings/rust
+  EXAMPLE_WORKSPACE: bindings/rust-examples
 
 jobs:
   generate:
@@ -93,9 +94,9 @@ jobs:
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
-      - name: client hello callback test
-        working-directory: ${{env.ROOT_PATH}}/examples/client-hello-config-resolution
-        run: cargo test
+      - name: build examples
+        working-directory: ${{env.EXAMPLE_WORKSPACE}}
+        run: cargo build
 
   generate-openssl-102:
     runs-on: ubuntu-latest
