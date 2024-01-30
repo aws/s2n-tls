@@ -20,13 +20,15 @@
 #include "api/s2n.h"
 #include "s2n_test.h"
 
+#define TEST_VALUE_COUNT 8192
+
 DEFINE_POINTER_CLEANUP_FUNC(struct s2n_map_iterator *, s2n_map_iterator_free);
 
 int main(int argc, char **argv)
 {
     char keystr[sizeof("ffff")];
     char valstr[sizeof("16384")];
-    uint32_t size;
+    uint32_t size = 0;
     struct s2n_map *empty, *map;
     struct s2n_blob key = { 0 };
     struct s2n_blob val = { 0 };
@@ -72,7 +74,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(map = s2n_map_new_with_initial_capacity(1));
 
     /* Insert 8k key value pairs of the form hex(i) -> dec(i) */
-    for (int i = 0; i < 8192; i++) {
+    for (int i = 0; i < TEST_VALUE_COUNT; i++) {
         EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
         EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
 
@@ -84,7 +86,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_map_add(map, &key, &val));
     }
     EXPECT_OK(s2n_map_size(map, &size));
-    EXPECT_EQUAL(size, 8192);
+    EXPECT_EQUAL(size, TEST_VALUE_COUNT);
 
     /* Try adding some duplicates */
     for (int i = 0; i < 10; i++) {
@@ -99,7 +101,7 @@ int main(int argc, char **argv)
         EXPECT_ERROR(s2n_map_add(map, &key, &val));
     }
     EXPECT_OK(s2n_map_size(map, &size));
-    EXPECT_EQUAL(size, 8192);
+    EXPECT_EQUAL(size, TEST_VALUE_COUNT);
 
     /* Try replacing some entries */
     for (int i = 0; i < 10; i++) {
@@ -122,8 +124,8 @@ int main(int argc, char **argv)
     EXPECT_OK(s2n_map_complete(map));
 
     /* Make sure that add-after-complete fails */
-    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
-    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 8193));
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", TEST_VALUE_COUNT + 1));
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", TEST_VALUE_COUNT + 1));
 
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;
@@ -133,7 +135,7 @@ int main(int argc, char **argv)
     EXPECT_ERROR(s2n_map_add(map, &key, &val));
 
     /* Check for equivalence */
-    for (int i = 0; i < 8192; i++) {
+    for (int i = 0; i < TEST_VALUE_COUNT; i++) {
         if (i >= 10) {
             EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", i));
             EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", i));
@@ -153,7 +155,7 @@ int main(int argc, char **argv)
     }
 
     /* Check for a key that shouldn't be there */
-    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", TEST_VALUE_COUNT + 1));
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;
     EXPECT_OK(s2n_map_lookup(map, &key, &val, &key_found));
@@ -162,8 +164,8 @@ int main(int argc, char **argv)
     /* Make the map mutable */
     EXPECT_OK(s2n_map_unlock(map));
     /* Make sure that add-after-unlock succeeds */
-    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", 8193));
-    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", 8193));
+    EXPECT_SUCCESS(snprintf(keystr, sizeof(keystr), "%04x", TEST_VALUE_COUNT + 1));
+    EXPECT_SUCCESS(snprintf(valstr, sizeof(valstr), "%05d", TEST_VALUE_COUNT + 1));
 
     key.data = (void *) keystr;
     key.size = strlen(keystr) + 1;

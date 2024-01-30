@@ -210,7 +210,7 @@ S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struc
 
         /* We found a match */
         struct s2n_blob entry_value = map->table[slot].value;
-        s2n_blob_init(value, entry_value.data, entry_value.size);
+        RESULT_GUARD_POSIX(s2n_blob_init(value, entry_value.data, entry_value.size));
 
         *key_found = true;
 
@@ -301,22 +301,21 @@ S2N_RESULT s2n_map_iterator_next(struct s2n_map_iterator *iter, struct s2n_blob 
     RESULT_ENSURE_REF(iter);
     RESULT_ENSURE(iter->map->immutable, S2N_ERR_MAP_MUTABLE);
     RESULT_ENSURE(!iter->consumed, S2N_ERR_SAFETY);
-    RESULT_ENSURE(value->allocated == 0, S2N_ERR_SAFETY);
 
+    RESULT_ENSURE(iter->current_index < iter->map->capacity, S2N_ERR_SAFETY);
     struct s2n_blob entry_value = iter->map->table[iter->current_index].value;
-    s2n_blob_init(value, entry_value.data, entry_value.size);
+    RESULT_GUARD_POSIX(s2n_blob_init(value, entry_value.data, entry_value.size));
 
     RESULT_GUARD(s2n_map_iterator_advance(iter));
 
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_map_iterator_has_next(const struct s2n_map_iterator *iter, bool *has_next)
+bool s2n_map_iterator_has_next(const struct s2n_map_iterator *iter)
 {
-    RESULT_ENSURE_REF(iter);
-    RESULT_ENSURE_REF(iter->map);
+    if (!iter) {
+        return false;
+    }
 
-    *has_next = !iter->consumed;
-
-    return S2N_RESULT_OK;
+    return !iter->consumed;
 }

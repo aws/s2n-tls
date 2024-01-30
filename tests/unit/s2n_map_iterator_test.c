@@ -18,6 +18,8 @@
 #include "utils/s2n_map.h"
 #include "utils/s2n_map_internal.h"
 
+#define TEST_VALUE_COUNT 10
+
 DEFINE_POINTER_CLEANUP_FUNC(struct s2n_map_iterator *, s2n_map_iterator_free);
 
 int main(int argc, char **argv)
@@ -31,26 +33,32 @@ int main(int argc, char **argv)
         /* fail to initialize an iterator on a mutable map */
         {
             struct s2n_map_iterator iter = { 0 };
-            EXPECT_ERROR(s2n_map_iterator_init(&iter, map));
+            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_init(&iter, map), S2N_ERR_MAP_MUTABLE);
         };
 
         EXPECT_OK(s2n_map_complete(map));
+
+        /* next returns an error when the blob is null */
+        {
+            struct s2n_map_iterator iter = { 0 };
+            EXPECT_OK(s2n_map_iterator_init(&iter, map));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, NULL), S2N_ERR_SAFETY);
+        }
 
         /* has next is false on an empty map, and next returns an error */
         {
             struct s2n_map_iterator iter = { 0 };
             EXPECT_OK(s2n_map_iterator_init(&iter, map));
 
-            bool has_next = false;
-            EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
-            EXPECT_FALSE(has_next);
+            EXPECT_FALSE(s2n_map_iterator_has_next(&iter));
 
             struct s2n_blob value = { 0 };
-            EXPECT_ERROR(s2n_map_iterator_next(&iter, &value));
+            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, &value), S2N_ERR_SAFETY);
         };
 
         EXPECT_OK(s2n_map_unlock(map));
-        for (uint8_t i = 0; i < 10; i++) {
+        for (uint8_t i = 0; i < TEST_VALUE_COUNT; i++) {
             struct s2n_blob key = { .size = 1, .data = &i };
             struct s2n_blob val = { .size = 1, .data = &i };
             EXPECT_OK(s2n_map_put(map, &key, &val));
@@ -59,40 +67,37 @@ int main(int argc, char **argv)
 
         /* iterator goes over all elements */
         {
-            bool seen[10] = { 0 };
+            bool seen[TEST_VALUE_COUNT] = { 0 };
 
             struct s2n_map_iterator iter = { 0 };
             EXPECT_OK(s2n_map_iterator_init(&iter, map));
 
-            bool has_next = false;
             struct s2n_blob value = { 0 };
-            for (size_t i = 0; i < 10; i++) {
-                EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
-                EXPECT_TRUE(has_next);
+            for (size_t i = 0; i < TEST_VALUE_COUNT; i++) {
+                EXPECT_TRUE(s2n_map_iterator_has_next(&iter));
 
                 EXPECT_OK(s2n_map_iterator_next(&iter, &value));
                 seen[*value.data] = true;
             }
 
             /* all elements have been iterated over */
-            EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
-            EXPECT_FALSE(has_next);
-
-            EXPECT_ERROR(s2n_map_iterator_next(&iter, &value));
+            EXPECT_FALSE(s2n_map_iterator_has_next(&iter));
+            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, &value), S2N_ERR_SAFETY);
 
             /* all elements were seen */
-            for (size_t i = 0; i < 10; i++) {
+            for (size_t i = 0; i < TEST_VALUE_COUNT; i++) {
                 EXPECT_TRUE(seen[i]);
             }
-        }
+        };
 
         EXPECT_OK(s2n_map_free(map));
     };
 
     /* test first and last slots in table */
     {
-        struct s2n_blob blobs[4] = { 0 };
-        for (uint8_t i = 0; i < 4; i++) {
+        /* 2 (first and last slot) * 2 (key and value) */
+        struct s2n_blob blobs[2 * 2] = { 0 };
+        for (uint8_t i = 0; i < (2 * 2); i++) {
             s2n_alloc(&blobs[i], 1);
             *blobs[i].data = i;
         }
@@ -116,8 +121,7 @@ int main(int argc, char **argv)
         bool has_next = false;
         struct s2n_blob value = { 0 };
         for (size_t i = 0; i < 2; i++) {
-            EXPECT_OK(s2n_map_iterator_has_next(&iter, &has_next));
-            EXPECT_TRUE(has_next);
+            EXPECT_TRUE(s2n_map_iterator_has_next(&iter));
 
             EXPECT_OK(s2n_map_iterator_next(&iter, &value));
             seen[*value.data] = true;
