@@ -209,8 +209,8 @@ S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struc
         }
 
         /* We found a match */
-        value->data = map->table[slot].value.data;
-        value->size = map->table[slot].value.size;
+        struct s2n_blob entry_value = map->table[slot].value;
+        s2n_blob_init(value, entry_value.data, entry_value.size);
 
         *key_found = true;
 
@@ -255,26 +255,31 @@ S2N_RESULT s2n_map_size(struct s2n_map *map, uint32_t *size)
 }
 
 /* Update the internal state so that `current_index` will point to the next value
- * in the table or will equal `map->capacity` if there are no more elements in
- * the map. 
+ * in the table or set iter->consumed equal to true if there are no more elements
+ * in the map. 
  */
 S2N_RESULT s2n_map_iterator_advance(struct s2n_map_iterator *iter)
 {
     RESULT_ENSURE_REF(iter);
     RESULT_ENSURE_REF(iter->map);
+    RESULT_ENSURE(!iter->consumed, S2N_ERR_SAFETY);
 
-    while (++iter->current_index < iter->map->capacity) {
+    iter->current_index++;
+    while (iter->current_index < iter->map->capacity) {
         /* a value was found in the map */
         if (iter->map->table[iter->current_index].key.size) {
             return S2N_RESULT_OK;
         }
+        iter->current_index++;
     }
     /* no more values were found in the map */
+    iter->consumed = true;
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_map_iterator_init(struct s2n_map_iterator *iter, const struct s2n_map *map)
 {
+    RESULT_ENSURE_REF(iter);
     RESULT_ENSURE_REF(map);
     RESULT_ENSURE(map->immutable, S2N_ERR_MAP_MUTABLE);
 
@@ -295,13 +300,11 @@ S2N_RESULT s2n_map_iterator_next(struct s2n_map_iterator *iter, struct s2n_blob 
 {
     RESULT_ENSURE_REF(iter);
     RESULT_ENSURE(iter->map->immutable, S2N_ERR_MAP_MUTABLE);
+    RESULT_ENSURE(!iter->consumed, S2N_ERR_SAFETY);
+    RESULT_ENSURE(value->allocated == 0, S2N_ERR_SAFETY);
 
-    bool has_next = false;
-    RESULT_GUARD(s2n_map_iterator_has_next(iter, &has_next));
-    RESULT_ENSURE(has_next, S2N_ERR_SAFETY);
-
-    value->data = iter->map->table[iter->current_index].value.data;
-    value->size = iter->map->table[iter->current_index].value.size;
+    struct s2n_blob entry_value = iter->map->table[iter->current_index].value;
+    s2n_blob_init(value, entry_value.data, entry_value.size);
 
     RESULT_GUARD(s2n_map_iterator_advance(iter));
 
@@ -312,7 +315,8 @@ S2N_RESULT s2n_map_iterator_has_next(const struct s2n_map_iterator *iter, bool *
 {
     RESULT_ENSURE_REF(iter);
     RESULT_ENSURE_REF(iter->map);
-    *has_next = iter->current_index < iter->map->capacity;
+
+    *has_next = !iter->consumed;
 
     return S2N_RESULT_OK;
 }
