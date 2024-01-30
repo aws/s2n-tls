@@ -1046,3 +1046,54 @@ int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t 
 
     return S2N_SUCCESS;
 }
+
+int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_t *length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(length);
+    *length = 0;
+
+    s2n_parsed_extension *server_name_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
+    POSIX_ENSURE_REF(server_name_extension);
+
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
+
+    /* Skip over two bytes for the extension length field plus a byte for the entry's type */
+    POSIX_GUARD(s2n_stuffer_skip_read(&extension_stuffer, S2N_EXTENSION_LENGTH_FIELD_LENGTH + 1));
+
+    POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &length));
+
+    return S2N_SUCCESS;
+
+}
+
+int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *buffer, uint16_t length, uint16_t *out_length)
+{
+    POSIX_ENSURE_REF(out_length);
+    *out_length = 0;
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(buffer);
+    
+    s2n_parsed_extension *server_name_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
+    POSIX_ENSURE_REF(server_name_extension);
+
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
+
+    /* Skip over two bytes for the extension length field plus a byte for the entry's type */
+    POSIX_GUARD(s2n_stuffer_skip_read(&extension_stuffer, S2N_EXTENSION_LENGTH_FIELD_LENGTH + 1));
+
+    uint8_t name_length = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &name_length));
+    POSIX_ENSURE_GTE(length, name_length);
+
+    uint8_t *server_name = s2n_stuffer_raw_read(&extension_stuffer, name_length);
+    
+    POSIX_CHECKED_MEMCPY(buffer, server_name, name_length);
+    *out_length = name_length;
+
+    return S2N_SUCCESS;
+}
