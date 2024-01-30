@@ -929,6 +929,59 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(recv_count, expected_recv_count);
     }
 
+    /* Test s2n_connection_get_client_auth_type */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        /* Test: use defaults if no overrides set */
+        {
+            /* Ensure that defaults are still used if the override flags are not set,
+             * even if client_cert_auth_type is somehow set.
+             */
+            server->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+            client->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_REQUIRED;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_OPTIONAL);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_NONE);
+        };
+
+        /* Test: use config overrides if set */
+        {
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_REQUIRED);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_REQUIRED);
+        };
+
+        /* Test: use connection overrides if set */
+        {
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, S2N_CERT_AUTH_NONE));
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_REQUIRED;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_NONE);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_OPTIONAL);
+        };
+    };
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));
     END_TEST();
