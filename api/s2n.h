@@ -2202,7 +2202,7 @@ S2N_API extern int s2n_config_set_client_auth_type(struct s2n_config *config, s2
  * @param client_auth_type A pointer to a client auth policy. This will be updated to the s2n_connection value.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_auth_type);
+S2N_API extern int s2n_connection_get_client_auth_type(const struct s2n_connection *conn, s2n_cert_auth_type *client_auth_type);
 
 /**
  * Sets whether or not a Client Certificate should be required to complete the TLS Connection. 

@@ -59,8 +59,8 @@
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
 #define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= (1 << (i + 1)))
 
-static S2N_RESULT s2n_connection_and_config_get_client_auth_type(struct s2n_connection *conn,
-        struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);
 
 /* Allocates and initializes memory for a new connection.
  *
@@ -748,8 +748,8 @@ int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct 
     return 0;
 }
 
-static S2N_RESULT s2n_connection_and_config_get_client_auth_type(struct s2n_connection *conn,
-        struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type)
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(config);
@@ -772,7 +772,7 @@ static S2N_RESULT s2n_connection_and_config_get_client_auth_type(struct s2n_conn
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
+int s2n_connection_get_client_auth_type(const struct s2n_connection *conn,
         s2n_cert_auth_type *client_cert_auth_type)
 {
     POSIX_ENSURE_REF(conn);
@@ -783,7 +783,7 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
 {
-    conn->client_cert_auth_type_overridden = 1;
+    conn->client_cert_auth_type_overridden = true;
     conn->client_cert_auth_type = client_cert_auth_type;
     return 0;
 }
