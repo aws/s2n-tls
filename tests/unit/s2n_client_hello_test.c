@@ -25,7 +25,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_sslv2_client_hello.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_client_hello.c"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_quic_support.h"
@@ -46,6 +45,8 @@
 #define COMPRESSION_METHODS_LEN 0x05
 
 int s2n_parse_client_hello(struct s2n_connection *conn);
+S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
+        struct s2n_blob *raw_extensions, struct s2n_blob *extension);
 
 int main(int argc, char **argv)
 {
