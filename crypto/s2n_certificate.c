@@ -884,10 +884,10 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_cert_get_cert_description(X509 *cert, struct s2n_cert_info *description)
+S2N_RESULT s2n_cert_get_cert_info(X509 *cert, struct s2n_cert_info *info)
 {
     RESULT_ENSURE_REF(cert);
-    RESULT_ENSURE_REF(description);
+    RESULT_ENSURE_REF(info);
     
     X509_NAME *issuer_name = X509_get_issuer_name(cert);
     RESULT_ENSURE_REF(issuer_name);
@@ -896,23 +896,23 @@ S2N_RESULT s2n_cert_get_cert_description(X509 *cert, struct s2n_cert_info *descr
     RESULT_ENSURE_REF(subject_name);
 
     if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
-        description->self_signed = true;
+        info->self_signed = true;
     } else {
-        description->self_signed = false;
+        info->self_signed = false;
     }
 
 #if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x02070000f)
     RESULT_ENSURE_REF(cert->sig_alg);
-    description->signature_nid = OBJ_obj2nid(cert->sig_alg->algorithm);
+    info->signature_nid = OBJ_obj2nid(cert->sig_alg->algorithm);
 #else
-    description->signature_nid = X509_get_signature_nid(cert);
+    info->signature_nid = X509_get_signature_nid(cert);
 #endif
     /* These is no method to directly retrieve that signature digest from the X509*
      * that is available in all libcryptos, so instead we use find_sigid_algs. For
      * a signature NID_ecdsa_with_SHA256 this will return NID_SHA256 
      */
-    RESULT_GUARD_OSSL(OBJ_find_sigid_algs(description->signature_nid,
-                              &description->signature_digest_nid, NULL),
+    RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid,
+                              &info->signature_digest_nid, NULL),
             S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
     return S2N_RESULT_OK;

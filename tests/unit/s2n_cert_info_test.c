@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* s2n_cert_get_cert_description */
+    /* s2n_cert_get_cert_info */
     struct {
         const char *key_type;
         const char *signature;
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
     };
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         /* print statement to help debugging in CI */
-        printf("get_cert_description test case %zu\n", i);
+        printf("get_cert_info test case %zu\n", i);
         char pathbuffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
         uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         EXPECT_SUCCESS(
@@ -113,27 +113,27 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(BIO_free(cert_bio));
         };
 
-        struct s2n_cert_info leaf_description = { 0 };
-        struct s2n_cert_info intermediate_description = { 0 };
-        struct s2n_cert_info root_description = { 0 };
+        struct s2n_cert_info leaf_info = { 0 };
+        struct s2n_cert_info intermediate_info = { 0 };
+        struct s2n_cert_info root_info = { 0 };
 
-        EXPECT_OK(s2n_cert_get_cert_description(leaf, &leaf_description));
-        EXPECT_OK(s2n_cert_get_cert_description(intermediate, &intermediate_description));
-        EXPECT_OK(s2n_cert_get_cert_description(root, &root_description));
+        EXPECT_OK(s2n_cert_get_cert_info(leaf, &leaf_info));
+        EXPECT_OK(s2n_cert_get_cert_info(intermediate, &intermediate_info));
+        EXPECT_OK(s2n_cert_get_cert_info(root, &root_info));
 
-        EXPECT_EQUAL(leaf_description.signature_nid, test_cases[i].expected_signature_nid);
-        EXPECT_EQUAL(leaf_description.signature_digest_nid, test_cases[i].expected_digest_nid);
-        EXPECT_EQUAL(leaf_description.self_signed, false);
+        EXPECT_EQUAL(leaf_info.signature_nid, test_cases[i].expected_signature_nid);
+        EXPECT_EQUAL(leaf_info.signature_digest_nid, test_cases[i].expected_digest_nid);
+        EXPECT_EQUAL(leaf_info.self_signed, false);
 
-        /* leaf and intermediate should have the same descriptions */
-        EXPECT_EQUAL(memcmp(&leaf_description, &intermediate_description,
+        /* leaf and intermediate should have the same infos */
+        EXPECT_EQUAL(memcmp(&leaf_info, &intermediate_info,
                              sizeof(struct s2n_cert_info)),
                 0);
 
         /* root should be self-signed */
-        EXPECT_EQUAL(root_description.signature_nid, test_cases[i].expected_signature_nid);
-        EXPECT_EQUAL(root_description.signature_digest_nid, test_cases[i].expected_digest_nid);
-        EXPECT_EQUAL(root_description.self_signed, true);
+        EXPECT_EQUAL(root_info.signature_nid, test_cases[i].expected_signature_nid);
+        EXPECT_EQUAL(root_info.signature_digest_nid, test_cases[i].expected_digest_nid);
+        EXPECT_EQUAL(root_info.self_signed, true);
     }
 
     END_TEST();

@@ -440,20 +440,20 @@ S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X50
         return S2N_RESULT_OK;
     }
 
-    struct s2n_cert_info description = { 0 };
-    RESULT_GUARD(s2n_cert_get_cert_description(cert, &description));
+    struct s2n_cert_info info = { 0 };
+    RESULT_GUARD(s2n_cert_get_cert_info(cert, &info));
 
     /* Ensure that the certificate signature does not use SHA-1. While this check
      * would ideally apply to all connections, we only enforce it when there are 
      * certificate_*_preferences to stay backwards compatible.
      */
-    if (conn->actual_protocol_version == S2N_TLS13 && !description.self_signed) {
-        if (description.signature_digest_nid == NID_sha1) {
+    if (conn->actual_protocol_version == S2N_TLS13 && !info.self_signed) {
+        if (info.signature_digest_nid == NID_sha1) {
             RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
         }
     }
 
-    RESULT_GUARD(s2n_security_policy_validate_certificate(&description, security_policy));
+    RESULT_GUARD(s2n_security_policy_validate_certificate(&info, security_policy));
     return S2N_RESULT_OK;
 }
 

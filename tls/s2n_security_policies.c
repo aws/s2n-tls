@@ -1461,15 +1461,15 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
 }
 
 S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(
-        const struct s2n_cert_info *description,
+        const struct s2n_cert_info *info,
         const struct s2n_signature_preferences *cert_sig_preferences)
 {
-    RESULT_ENSURE_REF(description);
+    RESULT_ENSURE_REF(info);
     RESULT_ENSURE_REF(cert_sig_preferences);
 
     for (size_t i = 0; i < cert_sig_preferences->count; i++) {
         if (cert_sig_preferences->signature_schemes[i]->libcrypto_nid
-                == description->signature_nid) {
+                == info->signature_nid) {
             return S2N_RESULT_OK;
         }
     }
@@ -1477,17 +1477,17 @@ S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(
     RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
 
-S2N_RESULT s2n_security_policy_validate_certificate(const struct s2n_cert_info *description,
+S2N_RESULT s2n_security_policy_validate_certificate(const struct s2n_cert_info *info,
         const struct s2n_security_policy *security_policy)
 {
-    RESULT_ENSURE_REF(description);
+    RESULT_ENSURE_REF(info);
     RESULT_ENSURE_REF(security_policy);
 
-    if (description->self_signed) {
+    if (info->self_signed) {
         return S2N_RESULT_OK;
     }
 
-    RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(description,
+    RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(info,
             security_policy->certificate_signature_preferences));
 
     return S2N_RESULT_OK;
