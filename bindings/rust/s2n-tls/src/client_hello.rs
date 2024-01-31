@@ -168,7 +168,7 @@ impl ClientHello {
         Ok(session_id)
     }
 
-    fn server_name(&self) -> Result<String, Error> {
+    fn server_name(&self) -> Result<Vec<u8>, Error> {
         let mut server_name_length = 0;
         unsafe {
             s2n_client_hello_get_server_name_length(self.deref_mut_ptr(), &mut server_name_length)
