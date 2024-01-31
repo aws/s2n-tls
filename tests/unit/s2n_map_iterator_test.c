@@ -20,8 +20,6 @@
 
 #define TEST_VALUE_COUNT 10
 
-DEFINE_POINTER_CLEANUP_FUNC(struct s2n_map_iterator *, s2n_map_iterator_free);
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -118,7 +116,6 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_map_iterator_init(&iter, test_map));
         bool seen[2] = { 0 };
 
-        bool has_next = false;
         struct s2n_blob value = { 0 };
         for (size_t i = 0; i < 2; i++) {
             EXPECT_TRUE(s2n_map_iterator_has_next(&iter));

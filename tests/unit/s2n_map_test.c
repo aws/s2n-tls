@@ -22,8 +22,6 @@
 
 #define TEST_VALUE_COUNT 8192
 
-DEFINE_POINTER_CLEANUP_FUNC(struct s2n_map_iterator *, s2n_map_iterator_free);
-
 int main(int argc, char **argv)
 {
     char keystr[sizeof("ffff")];
