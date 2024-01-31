@@ -1063,7 +1063,7 @@ int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_
     /* Skip over two bytes for the extension length field plus a byte for the entry's type */
     POSIX_GUARD(s2n_stuffer_skip_read(&extension_stuffer, S2N_EXTENSION_LENGTH_FIELD_LENGTH + 1));
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &length));
+    POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, length));
 
     return S2N_SUCCESS;
 
@@ -1086,7 +1086,7 @@ int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *buffe
     /* Skip over two bytes for the extension length field plus a byte for the entry's type */
     POSIX_GUARD(s2n_stuffer_skip_read(&extension_stuffer, S2N_EXTENSION_LENGTH_FIELD_LENGTH + 1));
 
-    uint8_t name_length = 0;
+    uint16_t name_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &name_length));
     POSIX_ENSURE_GTE(length, name_length);
 
