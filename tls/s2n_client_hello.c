@@ -1066,7 +1066,6 @@ int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_
     POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, length));
 
     return S2N_SUCCESS;
-
 }
 
 int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *buffer, uint16_t length, uint16_t *out_length)
@@ -1075,7 +1074,7 @@ int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *buffe
     *out_length = 0;
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(buffer);
-    
+
     s2n_parsed_extension *server_name_extension = NULL;
     POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
     POSIX_ENSURE_REF(server_name_extension);
