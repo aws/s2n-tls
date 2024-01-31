@@ -51,6 +51,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          * our errors should be equally or more specific than alerts, not less.
          */
         S2N_ALERT_CASE(S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
+        S2N_ALERT_CASE(S2N_ERR_UNEXPECTED_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
         /* For errors involving secure renegotiation:
          *= https://tools.ietf.org/rfc/rfc5746#3.4

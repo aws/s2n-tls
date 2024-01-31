@@ -44,3 +44,8 @@ int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
  * Prefer s2n_free. Only use this method if completely necessary.
  */
 int s2n_free_or_wipe(struct s2n_blob *b);
+
+S2N_RESULT s2n_mem_override_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
+        s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback);
+S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_mem_cleanup_callback *mem_cleanup_callback,
+        s2n_mem_malloc_callback *mem_malloc_callback, s2n_mem_free_callback *mem_free_callback);

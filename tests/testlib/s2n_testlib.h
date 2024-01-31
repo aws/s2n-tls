@@ -93,7 +93,8 @@ S2N_RESULT s2n_connection_set_test_early_secret(struct s2n_connection *conn, con
 S2N_RESULT s2n_connection_set_test_handshake_secret(struct s2n_connection *conn, const struct s2n_blob *handshake_secret);
 S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, const struct s2n_blob *master_secret);
 
-#define S2N_MAX_TEST_PEM_SIZE 8192
+#define S2N_MAX_TEST_PEM_SIZE        8192
+#define S2N_MAX_TEST_PEM_PATH_LENGTH 512
 
 /* These paths assume that the unit tests are run from inside the unit/ directory.
  * Absolute paths will be needed if test directories go to deeper levels.
@@ -198,6 +199,20 @@ int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size);
 int s2n_read_test_pem_and_len(const char *pem_path, uint8_t *pem_out, uint32_t *pem_len, long int max_size);
 int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_key,
         const char *cert_chain_file, const char *private_key_file);
+/**
+ * load the `server-cert.pem` for the appropriate permutation
+ * @param type indicates an `ec`, `rsae` or `rsapss` key type
+ * @param signature indicates an `ecdsa`, `pkcs`, or `pss` signature
+ * @param size indicates an rsa cert of `2048`, `3072`, or `4096` or an ecdsa
+ * cert with `p256` or `p384`
+ * @param digest indicates the certificate signature digest of `sha256` or
+ * `sha384`
+*/
+int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
+        const char *type, const char *siganture, const char *size, const char *digest);
+
+int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *siganture,
+        const char *size, const char *digest);
 
 S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const char *pem_path,
         struct s2n_stuffer *cert_chain_stuffer);

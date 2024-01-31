@@ -25,6 +25,7 @@
           # We're not including openssl1.1.1 in our package list to avoid confusing cmake.
           # It will be in the PATH of our devShell for use in tests.
           pythonEnv
+          pkgs.valgrind
           corretto
           pkgs.iproute2
           pkgs.apacheHttpd

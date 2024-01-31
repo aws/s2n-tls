@@ -36,6 +36,33 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
     return S2N_SUCCESS;
 }
 
+int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
+        const char *type, const char *signature, const char *size, const char *digest)
+{
+    char path_buffer[S2N_MAX_TEST_PEM_PATH_LENGTH];
+
+    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
+    char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
+
+    sprintf(path_buffer, "../pems/permutations/%s_%s_%s_%s/server-chain.pem", type, signature, size, digest);
+    POSIX_GUARD(s2n_read_test_pem(path_buffer, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
+
+    sprintf(path_buffer, "../pems/permutations/%s_%s_%s_%s/server-key.pem", type, signature, size, digest);
+    POSIX_GUARD(s2n_read_test_pem(path_buffer, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
+
+    POSIX_GUARD_PTR(*chain_and_key = s2n_cert_chain_and_key_new());
+    POSIX_GUARD(s2n_cert_chain_and_key_load_pem(*chain_and_key, cert_chain_pem, private_key_pem));
+
+    return S2N_SUCCESS;
+}
+
+int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *signature,
+        const char *size, const char *digest)
+{
+    sprintf(output, "../pems/permutations/%s_%s_%s_%s/ca-cert.pem", type, signature, size, digest);
+    return S2N_SUCCESS;
+}
+
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 {
     uint32_t pem_len = 0;
