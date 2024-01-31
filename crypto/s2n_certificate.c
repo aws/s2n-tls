@@ -32,8 +32,6 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
-
 int s2n_cert_set_cert_type(struct s2n_cert *cert, s2n_pkey_type pkey_type)
 {
     POSIX_ENSURE_REF(cert);
@@ -886,8 +884,11 @@ int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid,
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_cert_get_cert_description(X509 *cert, struct s2n_cert_description *description)
+S2N_RESULT s2n_cert_get_cert_description(X509 *cert, struct s2n_cert_info *description)
 {
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(description);
+    
     X509_NAME *issuer_name = X509_get_issuer_name(cert);
     RESULT_ENSURE_REF(issuer_name);
 
@@ -906,10 +907,10 @@ S2N_RESULT s2n_cert_get_cert_description(X509 *cert, struct s2n_cert_description
 #else
     description->signature_nid = X509_get_signature_nid(cert);
 #endif
-
-    DEFER_CLEANUP(EVP_PKEY *pubkey = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
-    RESULT_ENSURE_REF(pubkey);
-
+    /* These is no method to directly retrieve that signature digest from the X509*
+     * that is available in all libcryptos, so instead we use find_sigid_algs. For
+     * a signature NID_ecdsa_with_SHA256 this will return NID_SHA256 
+     */
     RESULT_GUARD_OSSL(OBJ_find_sigid_algs(description->signature_nid,
                               &description->signature_digest_nid, NULL),
             S2N_ERR_CERT_TYPE_UNSUPPORTED);

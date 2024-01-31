@@ -1461,7 +1461,7 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
 }
 
 S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(
-        const struct s2n_cert_description *description,
+        const struct s2n_cert_info *description,
         const struct s2n_signature_preferences *cert_sig_preferences)
 {
     RESULT_ENSURE_REF(description);
@@ -1477,7 +1477,7 @@ S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(
     RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
 
-S2N_RESULT s2n_security_policy_validate_certificate(const struct s2n_cert_description *description,
+S2N_RESULT s2n_security_policy_validate_certificate(const struct s2n_cert_info *description,
         const struct s2n_security_policy *security_policy)
 {
     RESULT_ENSURE_REF(description);
@@ -1487,10 +1487,8 @@ S2N_RESULT s2n_security_policy_validate_certificate(const struct s2n_cert_descri
         return S2N_RESULT_OK;
     }
 
-    if (security_policy->certificate_signature_preferences != NULL) {
-        RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(description,
-                security_policy->certificate_signature_preferences));
-    }
+    RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(description,
+            security_policy->certificate_signature_preferences));
 
     return S2N_RESULT_OK;
 }

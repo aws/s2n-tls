@@ -113,9 +113,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(BIO_free(cert_bio));
         };
 
-        struct s2n_cert_description leaf_description = { 0 };
-        struct s2n_cert_description intermediate_description = { 0 };
-        struct s2n_cert_description root_description = { 0 };
+        struct s2n_cert_info leaf_description = { 0 };
+        struct s2n_cert_info intermediate_description = { 0 };
+        struct s2n_cert_info root_description = { 0 };
 
         EXPECT_OK(s2n_cert_get_cert_description(leaf, &leaf_description));
         EXPECT_OK(s2n_cert_get_cert_description(intermediate, &intermediate_description));
@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
         /* leaf and intermediate should have the same descriptions */
         EXPECT_EQUAL(memcmp(&leaf_description, &intermediate_description,
-                             sizeof(struct s2n_cert_description)),
+                             sizeof(struct s2n_cert_info)),
                 0);
 
         /* root should be self-signed */

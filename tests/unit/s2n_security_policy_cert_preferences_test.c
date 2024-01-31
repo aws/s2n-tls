@@ -54,28 +54,28 @@ int main(int argc, char **argv)
     {
         /* Certificate signature algorithm is in test certificate signature preferences list */
         {
-            struct s2n_cert_description description = { .self_signed = false,
+            struct s2n_cert_info info = { .self_signed = false,
                 .signature_digest_nid = NID_sha256,
                 .signature_nid = NID_ecdsa_with_SHA256 };
-            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(&description,
+            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(&info,
                     &test_certificate_signature_preferences));
         };
 
         /* Certificate signature algorithm is not in test certificate signature preferences list */
         {
-            struct s2n_cert_description description = { .self_signed = false,
+            struct s2n_cert_info info = { .self_signed = false,
                 .signature_digest_nid = NID_undef,
                 .signature_nid = NID_rsassaPss };
-            EXPECT_ERROR(s2n_security_policy_validate_sig_scheme_supported(&description,
+            EXPECT_ERROR(s2n_security_policy_validate_sig_scheme_supported(&info,
                     &test_certificate_signature_preferences));
         };
 
         /* Certificates signed with an RSA PSS signature can be validated */
         {
-            struct s2n_cert_description description = { .self_signed = false,
+            struct s2n_cert_info info = { .self_signed = false,
                 .signature_digest_nid = NID_undef,
                 .signature_nid = NID_rsassaPss };
-            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(&description,
+            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(&info,
                     &pss_certificate_signature_preferences));
         };
     };
@@ -84,26 +84,26 @@ int main(int argc, char **argv)
     {
         /* cert signature algorithim in test security policy */
         {
-            struct s2n_cert_description description = { .self_signed = false,
+            struct s2n_cert_info info = { .self_signed = false,
                 .signature_digest_nid = NID_sha256,
                 .signature_nid = NID_ecdsa_with_SHA256 };
-            EXPECT_OK(s2n_security_policy_validate_certificate(&description, &test_sp));
+            EXPECT_OK(s2n_security_policy_validate_certificate(&info, &test_sp));
         };
 
         /* cert signature algorithim not in test security policy */
         {
-            struct s2n_cert_description description = { .self_signed = false,
+            struct s2n_cert_info info = { .self_signed = false,
                 .signature_digest_nid = NID_sha384,
                 .signature_nid = NID_ecdsa_with_SHA384 };
-            EXPECT_ERROR(s2n_security_policy_validate_certificate(&description, &test_sp));
+            EXPECT_ERROR(s2n_security_policy_validate_certificate(&info, &test_sp));
         };
 
         /* cert signature algorithim is not validated when cert is self-signed */
         {
-            struct s2n_cert_description description = { .self_signed = true,
+            struct s2n_cert_info info = { .self_signed = true,
                 .signature_digest_nid = NID_sha384,
                 .signature_nid = NID_ecdsa_with_SHA384 };
-            EXPECT_OK(s2n_security_policy_validate_certificate(&description, &test_sp));
+            EXPECT_OK(s2n_security_policy_validate_certificate(&info, &test_sp));
         };
     };
 
