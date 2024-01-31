@@ -197,6 +197,5 @@ S2N_RESULT s2n_security_policy_validate_certificate(const struct s2n_cert_info *
 /* Checks to see if a certificate has a signature algorithm that's in our 
  * certificate_signature_preferences list 
  */
-S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(
-        const struct s2n_cert_info *info,
+S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(const struct s2n_cert_info *info,
         const struct s2n_signature_preferences *cert_sig_preferences);

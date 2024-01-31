@@ -67,7 +67,8 @@ int main(int argc, char **argv)
                 .signature_digest_nid = NID_undef,
                 .signature_nid = NID_rsassaPss };
             EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_sig_scheme_supported(&info,
-                    &test_certificate_signature_preferences), S2N_ERR_CERT_UNTRUSTED);
+                                            &test_certificate_signature_preferences),
+                    S2N_ERR_CERT_UNTRUSTED);
         };
 
         /* Certificates signed with an RSA PSS signature can be validated */
@@ -95,7 +96,8 @@ int main(int argc, char **argv)
             struct s2n_cert_info info = { .self_signed = false,
                 .signature_digest_nid = NID_sha384,
                 .signature_nid = NID_ecdsa_with_SHA384 };
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate(&info, &test_sp), S2N_ERR_CERT_UNTRUSTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate(&info, &test_sp),
+                    S2N_ERR_CERT_UNTRUSTED);
         };
 
         /* cert signature algorithim is not validated when cert is self-signed */

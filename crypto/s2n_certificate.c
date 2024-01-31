@@ -888,7 +888,7 @@ S2N_RESULT s2n_cert_get_cert_info(X509 *cert, struct s2n_cert_info *info)
 {
     RESULT_ENSURE_REF(cert);
     RESULT_ENSURE_REF(info);
-    
+
     X509_NAME *issuer_name = X509_get_issuer_name(cert);
     RESULT_ENSURE_REF(issuer_name);
 
@@ -911,8 +911,7 @@ S2N_RESULT s2n_cert_get_cert_info(X509 *cert, struct s2n_cert_info *info)
      * that is available in all libcryptos, so instead we use find_sigid_algs. For
      * a signature NID_ecdsa_with_SHA256 this will return NID_SHA256 
      */
-    RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid,
-                              &info->signature_digest_nid, NULL),
+    RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL),
             S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
     return S2N_RESULT_OK;
