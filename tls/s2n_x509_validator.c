@@ -444,8 +444,8 @@ S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X50
     RESULT_GUARD(s2n_cert_get_cert_info(cert, &info));
 
     /* Ensure that the certificate signature does not use SHA-1. While this check
-     * would ideally apply to all connections, we only enforce it when there are 
-     * certificate_*_preferences to stay backwards compatible.
+     * would ideally apply to all connections, we only enforce it when certificate
+     * preferences exist to stay backwards compatible.
      */
     if (conn->actual_protocol_version == S2N_TLS13 && !info.self_signed) {
         if (info.signature_digest_nid == NID_sha1) {
