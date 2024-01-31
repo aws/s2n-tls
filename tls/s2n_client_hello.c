@@ -1091,7 +1091,8 @@ int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *buffe
     POSIX_ENSURE_GTE(length, name_length);
 
     uint8_t *server_name = s2n_stuffer_raw_read(&extension_stuffer, name_length);
-    
+    POSIX_ENSURE_REF(server_name);
+
     POSIX_CHECKED_MEMCPY(buffer, server_name, name_length);
     *out_length = name_length;
 
