@@ -55,7 +55,7 @@ int main(int argc, char **argv)
                 .expected_protocol = protocols[0] },
 
         /* Test a lower preferred matching ALPN request */
-        { .client_protocol_count = 2,
+        { .client_protocol_count = 1,
                 .client_protocols = &protocols[1],
                 .expected_protocol = protocols[1] },
 
@@ -67,16 +67,19 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(client_config,
                 test_cases[i].client_protocols, test_cases[i].client_protocol_count));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
         EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
         EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
 
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
@@ -98,22 +101,25 @@ int main(int argc, char **argv)
         uint8_t data_recv[TEST_DATA_SIZE] = { 0 };
         EXPECT_EQUAL(s2n_send(client, data_send, sizeof(data_send), &blocked), sizeof(data_send));
         EXPECT_EQUAL(s2n_recv(server, data_recv, sizeof(data_recv), &blocked), sizeof(data_recv));
-        EXPECT_EQUAL(memcmp(data_send, data_recv, sizeof(data_send)), 0);
+        EXPECT_BYTEARRAY_EQUAL(data_send, data_recv, sizeof(data_send));
     }
 
     /* Test a connection level application protocol */
     {
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(client_config, protocols,
                 s2n_array_len(protocols)));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
         EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
         EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
 
         /* override the server (connection) preferences to only contain h2 */
