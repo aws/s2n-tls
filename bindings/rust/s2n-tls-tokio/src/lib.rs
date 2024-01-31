@@ -363,15 +363,19 @@ where
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         ready!(self.as_mut().poll_blinding(ctx))?;
 
-        // s2n_shutdown must not be called again if it errors
+        // s2n_shutdown_send must not be called again if it errors
         if self.shutdown_error.is_none() {
             let result = ready!(self.as_mut().with_io(ctx, |mut context| {
-                context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
+                context
+                    .conn
+                    .as_mut()
+                    .poll_shutdown_send()
+                    .map(|r| r.map(|_| ()))
             }));
             if let Err(error) = result {
                 self.shutdown_error = Some(error);
-                // s2n_shutdown reading might have triggered blinding again
-                ready!(self.as_mut().poll_blinding(ctx))?;
+                // s2n_shutdown_send only writes, so will never trigger blinding again.
+                // So we do not need to poll_blinding again after this error.
             }
         };
 
