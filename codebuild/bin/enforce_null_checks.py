@@ -188,4 +188,5 @@ if __name__ == "__main__":
 
     # if there are violations, exit with an unsuccessful error code
     if len(violations) != 0:
+        print(f"Final violation count: {len(violations)}")
         sys.exit(1)
