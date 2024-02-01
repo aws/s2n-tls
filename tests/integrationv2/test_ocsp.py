@@ -12,6 +12,7 @@ from global_flags import get_flag, S2N_PROVIDER_VERSION
 OCSP_CERTS = [Certificates.OCSP, Certificates.OCSP_ECDSA]
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS], ids=get_parameter_name)
@@ -74,6 +75,7 @@ def test_s2n_client_ocsp_response(managed_process, cipher, provider, other_provi
         assert random_bytes[1:] in server_results.stdout or random_bytes[1:] in server_results.stderr
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [GnuTLS, OpenSSL], ids=get_parameter_name)

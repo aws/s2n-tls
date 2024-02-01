@@ -69,6 +69,19 @@ function integ {
     fi
 }
 
+function pytestmark_report {
+    # Basically a pytest dry-run, showing which tests will run with a given mark and which ones will not.
+    if [[ -z "$1" ]]; then
+        echo -e "\nUsage: pytest_report <pytest mark>\n"
+        echo -e "This function runs pytest in a dry-run mode,showing a high level \ncount of tests that would run with and without a certain mark.\n" 
+    else
+        banner "Tests with the $1 mark"
+        pytest -n auto -m $1 --provider-version=$S2N_LIBCRYPTO --provider-criterion=off --fips-mode=0 --no-pq=0 --collect-only -qq $SRC_ROOT/tests/integrationv2;
+        banner "Tests without the $1 mark"
+        pytest -n auto -m "not $1" --provider-version=$S2N_LIBCRYPTO --provider-criterion=off --fips-mode=0 --no-pq=0 --collect-only -qq $SRC_ROOT/tests/integrationv2;
+    fi
+}
+
 function check-clang-format {
     banner "Dry run of clang-format"
     (cd $SRC_ROOT;

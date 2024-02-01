@@ -20,6 +20,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "uncollect_if(*, func): function to unselect tests from parametrization"
     )
+    config.addinivalue_line(
+        "markers", "nix: test is expected to pass on nix."
+    )
 
     no_pq = config.getoption('no-pq', 0)
     fips_mode = config.getoption('fips-mode', 0)

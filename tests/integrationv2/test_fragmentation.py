@@ -20,6 +20,7 @@ CERTIFICATES_TO_TEST = [
 ]
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS], ids=get_parameter_name)
@@ -77,6 +78,7 @@ def invalid_test_parameters_frag_len(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters_frag_len)
 @pytest.mark.parametrize("cipher", CIPHERS_TO_TEST, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS], ids=get_parameter_name)

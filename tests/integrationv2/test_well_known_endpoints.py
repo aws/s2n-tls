@@ -85,6 +85,7 @@ else:
     }
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", PROTOCOLS, ids=get_parameter_name)
 @pytest.mark.parametrize("endpoint", ENDPOINTS, ids=get_parameter_name)

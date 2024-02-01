@@ -20,6 +20,7 @@ CURVE_NAMES = {
 }
 
 
+@pytest.mark.nix
 def test_nothing():
     """
     Sometimes the hello retry test parameters in combination with the s2n libcrypto
@@ -29,6 +30,7 @@ def test_nothing():
     assert True
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -84,6 +86,7 @@ def test_hrr_with_s2n_as_client(managed_process, cipher, provider, other_provide
         assert random_bytes in results.stdout
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -148,6 +151,7 @@ def test_hrr_with_s2n_as_server(managed_process, cipher, provider, other_provide
 TEST_CURVES = ALL_TEST_CURVES[1:]
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])

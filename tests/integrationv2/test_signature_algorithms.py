@@ -68,6 +68,7 @@ def skip_ciphers(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=skip_ciphers)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])

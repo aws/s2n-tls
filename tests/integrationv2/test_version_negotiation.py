@@ -9,6 +9,7 @@ from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_
     to_bytes, get_expected_gnutls_version
 
 
+@pytest.mark.nix
 def test_nothing():
     """
     Sometimes the version negotiation test parameters in combination with the s2n
@@ -29,6 +30,7 @@ def invalid_version_negotiation_test_parameters(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -92,6 +94,7 @@ def test_s2nc_tls13_negotiates_tls12(managed_process, cipher, curve, certificate
         ])
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_version_negotiation_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)

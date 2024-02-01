@@ -9,6 +9,7 @@ from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -56,6 +57,7 @@ def test_session_resumption_s2n_server(managed_process, cipher, curve, certifica
             to_bytes("Actual protocol version: {}".format(expected_version))) == 6
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -101,6 +103,7 @@ def test_session_resumption_s2n_client(managed_process, cipher, curve, protocol,
         assert results.stdout.count(to_bytes("6 server accepts that finished"))
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -180,6 +183,7 @@ def test_tls13_session_resumption_s2n_server(managed_process, tmp_path, cipher, 
             s2n_version)) in results.stdout
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -243,6 +247,7 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, cer
                 b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -322,6 +327,7 @@ def test_s2nd_falls_back_to_full_connection(managed_process, tmp_path, cipher, c
             s2n_version)) in results.stdout
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)

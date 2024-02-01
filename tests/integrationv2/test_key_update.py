@@ -8,6 +8,7 @@ from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
 
+@pytest.mark.nix
 def test_nothing():
     """
     Sometimes the key update test parameters in combination with the s2n libcrypto
@@ -17,6 +18,7 @@ def test_nothing():
     assert True
 
 
+@pytest.mark.nix
 @pytest.mark.flaky(reruns=5)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
@@ -73,6 +75,7 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
         assert client_data in results.stdout
 
 
+@pytest.mark.nix
 @pytest.mark.flaky(reruns=5)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)

@@ -204,6 +204,7 @@ def test_nothing():
     assert True
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_pq_handshake_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS12, Protocols.TLS13], ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", [Certificates.RSA_4096_SHA512], ids=get_parameter_name)

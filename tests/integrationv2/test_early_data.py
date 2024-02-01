@@ -137,6 +137,7 @@ def get_ticket_from_s2n_server(options, managed_process, provider, certificate):
     assert os.path.exists(options.ticket_file)
 
 
+@pytest.mark.nix
 def test_nothing():
     """
     Sometimes the early data test parameters in combination with the s2n libcrypto
@@ -154,6 +155,7 @@ then another resumption connection with early data.
 """
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -212,6 +214,7 @@ That means we don't need to manually perform the initial full connection, and th
 """
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
@@ -267,6 +270,7 @@ test_session_resumption but with validation that no early data is sent.
 """
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
@@ -324,6 +328,7 @@ reconnects automatically, without any mechanism to modify the connection in betw
 """
 
 
+@pytest.mark.nix
 @pytest.mark.flaky(reruns=5)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
@@ -384,6 +389,7 @@ does not send key shares for.
 """
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", S2N_HRR_CURVES, ids=get_parameter_name)
@@ -446,6 +452,7 @@ S2N doesn't support while still supporting at least one curve S2N does support.
 """
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -502,6 +509,7 @@ Test the S2N server fails if it receives too much early data.
 """
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)

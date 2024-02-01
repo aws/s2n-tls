@@ -36,6 +36,7 @@ FRAGMENT_PREFERENCE = [
 ]
 
 
+@pytest.mark.nix
 def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
     port = next(available_ports)
 
@@ -58,6 +59,7 @@ def test_SEND_BUFFER_SIZE_MIN_is_s2ns_min_buffer_size(managed_process):
         assert results.exit_code != 0
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [GnuTLS, OpenSSL, S2N], ids=get_parameter_name)
@@ -111,6 +113,7 @@ def test_s2n_server_buffered_send(managed_process, cipher, provider, protocol, c
         results.assert_success()
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL], ids=get_parameter_name)

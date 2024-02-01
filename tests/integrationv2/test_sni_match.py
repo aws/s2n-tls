@@ -26,6 +26,7 @@ def filter_cipher_list(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
+@pytest.mark.nix
 @pytest.mark.uncollect_if(func=filter_cipher_list)
 @pytest.mark.parametrize("provider", [OpenSSL], ids=get_parameter_name)
 @pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
