@@ -96,7 +96,7 @@ int main(int argc, char **argv)
         /* 2 (first and last slot) * 2 (key and value) */
         struct s2n_blob blobs[2 * 2] = { 0 };
         for (uint8_t i = 0; i < (2 * 2); i++) {
-            s2n_alloc(&blobs[i], 1);
+            EXPECT_SUCCESS(s2n_alloc(&blobs[i], 1));
             *blobs[i].data = i;
         }
 
