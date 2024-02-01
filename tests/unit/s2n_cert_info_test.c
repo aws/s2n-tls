@@ -28,6 +28,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /* s2n_cert_get_cert_info */
+    /* clang-format off */
     struct {
         const char *key_type;
         const char *signature;
@@ -36,63 +37,76 @@ int main(int argc, char **argv)
         int expected_signature_nid;
         int expected_digest_nid;
     } test_cases[] = {
-        { .key_type = "ec",
-                .signature = "ecdsa",
-                .key_size = "p384",
-                .digest = "sha256",
-                .expected_signature_nid = NID_ecdsa_with_SHA256,
-                .expected_digest_nid = NID_sha256 },
-        { .key_type = "ec",
-                .signature = "ecdsa",
-                .key_size = "p256",
-                .digest = "sha384",
-                .expected_signature_nid = NID_ecdsa_with_SHA384,
-                .expected_digest_nid = NID_sha384 },
-        { .key_type = "ec",
-                .signature = "ecdsa",
-                .key_size = "p521",
-                .digest = "sha512",
-                .expected_signature_nid = NID_ecdsa_with_SHA512,
-                .expected_digest_nid = NID_sha512 },
-        { .key_type = "rsae",
-                .signature = "pkcs",
-                .key_size = "2048",
-                .digest = "sha1",
-                .expected_signature_nid = NID_sha1WithRSAEncryption,
-                .expected_digest_nid = NID_sha1 },
-        { .key_type = "rsae",
-                .signature = "pkcs",
-                .key_size = "2048",
-                .digest = "sha224",
-                .expected_signature_nid = NID_sha224WithRSAEncryption,
-                .expected_digest_nid = NID_sha224 },
-        { .key_type = "rsae",
-                .signature = "pkcs",
-                .key_size = "3072",
-                .digest = "sha384",
-                .expected_signature_nid = NID_sha384WithRSAEncryption,
-                .expected_digest_nid = NID_sha384 },
+        { 
+            .key_type = "ec",
+            .signature = "ecdsa",
+            .key_size = "p384",
+            .digest = "sha256",
+            .expected_signature_nid = NID_ecdsa_with_SHA256,
+            .expected_digest_nid = NID_sha256 
+        },
+        { 
+            .key_type = "ec",
+            .signature = "ecdsa",
+            .key_size = "p256",
+            .digest = "sha384",
+            .expected_signature_nid = NID_ecdsa_with_SHA384,
+            .expected_digest_nid = NID_sha384 
+        },
+        { 
+            .key_type = "ec",
+            .signature = "ecdsa",
+            .key_size = "p521",
+            .digest = "sha512",
+            .expected_signature_nid = NID_ecdsa_with_SHA512,
+            .expected_digest_nid = NID_sha512 
+        },
+        {   
+            .key_type = "rsae",
+            .signature = "pkcs",
+            .key_size = "2048",
+            .digest = "sha1",
+            .expected_signature_nid = NID_sha1WithRSAEncryption,
+            .expected_digest_nid = NID_sha1 
+        },
+        {   
+            .key_type = "rsae",
+            .signature = "pkcs",
+            .key_size = "2048",
+            .digest = "sha224",
+            .expected_signature_nid = NID_sha224WithRSAEncryption,
+            .expected_digest_nid = NID_sha224 
+        },
+        {   
+            .key_type = "rsae",
+            .signature = "pkcs",
+            .key_size = "3072",
+            .digest = "sha384",
+            .expected_signature_nid = NID_sha384WithRSAEncryption,
+            .expected_digest_nid = NID_sha384 
+        },
 /* openssl 1.0.* does not support rsapss signatures */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
-        { .key_type = "rsae",
-                .signature = "pss",
-                .key_size = "4096",
-                .digest = "sha384",
-                .expected_signature_nid = NID_rsassaPss,
-                .expected_digest_nid = NID_undef },
-        { .key_type = "rsapss",
-                .signature = "pss",
-                .key_size = "2048",
-                .digest = "sha256",
-                .expected_signature_nid = NID_rsassaPss,
-                .expected_digest_nid = NID_undef },
+        { 
+            .key_type = "rsae",
+            .signature = "pss",
+            .key_size = "4096",
+            .digest = "sha384",
+            .expected_signature_nid = NID_rsassaPss,
+            .expected_digest_nid = NID_undef 
+        },
+        {   .key_type = "rsapss",
+            .signature = "pss",
+            .key_size = "2048",
+            .digest = "sha256",
+            .expected_signature_nid = NID_rsassaPss,
+            .expected_digest_nid = NID_undef 
+        },
 #endif
     };
+    /* clang-format on */
 
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-        /* print statement to help debugging in CI */
-        printf("get_cert_info test case %zu\n", i);
-
         /* initialize variables and read in certificates */
         char pathbuffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
         uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = { 0 };
