@@ -28,12 +28,12 @@ int s2n_mem_cleanup(void);
  * Generally, s2n_realloc is preferred over s2n_alloc. This is because calling
  * s2n_alloc on a blob that already has memory allocated will leak memory.
 */
-int s2n_alloc(struct s2n_blob *b, uint32_t size);
-int s2n_realloc(struct s2n_blob *b, uint32_t size);
+int S2N_RESULT_MUST_USE s2n_alloc(struct s2n_blob *b, uint32_t size);
+int S2N_RESULT_MUST_USE s2n_realloc(struct s2n_blob *b, uint32_t size);
 int s2n_free(struct s2n_blob *b);
 int s2n_free_without_wipe(struct s2n_blob *b);
 int s2n_free_object(uint8_t **p_data, uint32_t size);
-int s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
+int S2N_RESULT_MUST_USE s2n_dup(struct s2n_blob *from, struct s2n_blob *to);
 
 /* Unlike free, s2n_free_or_wipe accepts static blobs.
  * It frees allocated blobs and wipes static blobs.
