@@ -299,10 +299,11 @@ S2N_RESULT s2n_map_iterator_init(struct s2n_map_iterator *iter, const struct s2n
 S2N_RESULT s2n_map_iterator_next(struct s2n_map_iterator *iter, struct s2n_blob *value)
 {
     RESULT_ENSURE_REF(iter);
+    RESULT_ENSURE_REF(iter->map);
     RESULT_ENSURE(iter->map->immutable, S2N_ERR_MAP_MUTABLE);
-    RESULT_ENSURE(!iter->consumed, S2N_ERR_SAFETY);
+    RESULT_ENSURE(s2n_map_iterator_has_next(iter), S2N_ERR_ARRAY_INDEX_OOB);
 
-    RESULT_ENSURE(iter->current_index < iter->map->capacity, S2N_ERR_SAFETY);
+    RESULT_ENSURE(iter->current_index < iter->map->capacity, S2N_ERR_ARRAY_INDEX_OOB);
     struct s2n_blob entry_value = iter->map->table[iter->current_index].value;
     RESULT_GUARD_POSIX(s2n_blob_init(value, entry_value.data, entry_value.size));
 
@@ -313,9 +314,5 @@ S2N_RESULT s2n_map_iterator_next(struct s2n_map_iterator *iter, struct s2n_blob 
 
 bool s2n_map_iterator_has_next(const struct s2n_map_iterator *iter)
 {
-    if (!iter) {
-        return false;
-    }
-
-    return !iter->consumed;
+    return iter && !iter->consumed;
 }

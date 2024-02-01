@@ -36,14 +36,6 @@ int main(int argc, char **argv)
 
         EXPECT_OK(s2n_map_complete(map));
 
-        /* next returns an error when the blob is null */
-        {
-            struct s2n_map_iterator iter = { 0 };
-            EXPECT_OK(s2n_map_iterator_init(&iter, map));
-
-            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, NULL), S2N_ERR_SAFETY);
-        }
-
         /* has next is false on an empty map, and next returns an error */
         {
             struct s2n_map_iterator iter = { 0 };
@@ -52,7 +44,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_map_iterator_has_next(&iter));
 
             struct s2n_blob value = { 0 };
-            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, &value), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, &value), S2N_ERR_ARRAY_INDEX_OOB);
         };
 
         EXPECT_OK(s2n_map_unlock(map));
@@ -80,13 +72,21 @@ int main(int argc, char **argv)
 
             /* all elements have been iterated over */
             EXPECT_FALSE(s2n_map_iterator_has_next(&iter));
-            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, &value), S2N_ERR_SAFETY);
+            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, &value), S2N_ERR_ARRAY_INDEX_OOB);
 
             /* all elements were seen */
             for (size_t i = 0; i < TEST_VALUE_COUNT; i++) {
                 EXPECT_TRUE(seen[i]);
             }
         };
+
+        /* next returns an error when the blob is null */
+        {
+            struct s2n_map_iterator iter = { 0 };
+            EXPECT_OK(s2n_map_iterator_init(&iter, map));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_map_iterator_next(&iter, NULL), S2N_ERR_NULL);
+        }
 
         EXPECT_OK(s2n_map_free(map));
     };
