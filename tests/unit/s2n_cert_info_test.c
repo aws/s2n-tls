@@ -91,9 +91,9 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         /* print statement to help debugging in CI */
+        printf("get_cert_info test case %zu\n", i);
 
         /* initialize variables and read in certificates */
-        printf("get_cert_info test case %zu\n", i);
         char pathbuffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
         uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_test_cert_permutation_get_server_chain_path(&pathbuffer[0],
