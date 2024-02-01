@@ -262,7 +262,7 @@ S2N_RESULT s2n_map_iterator_advance(struct s2n_map_iterator *iter)
 {
     RESULT_ENSURE_REF(iter);
     RESULT_ENSURE_REF(iter->map);
-    RESULT_ENSURE(!iter->consumed, S2N_ERR_SAFETY);
+    RESULT_ENSURE(s2n_map_iterator_has_next(iter), S2N_ERR_ARRAY_INDEX_OOB);
 
     iter->current_index++;
     while (iter->current_index < iter->map->capacity) {
