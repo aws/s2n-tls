@@ -453,7 +453,10 @@ S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X50
         }
     }
 
-    RESULT_GUARD(s2n_security_policy_validate_certificate(&info, security_policy));
+    if (!info.self_signed) {
+        RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(&info, security_policy->certificate_signature_preferences));
+    }
+
     return S2N_RESULT_OK;
 }
 

@@ -81,34 +81,6 @@ int main(int argc, char **argv)
         };
     };
 
-    /* s2n_security_policy_validate_certificate */
-    {
-        /* cert signature algorithim in test security policy */
-        {
-            struct s2n_cert_info info = { .self_signed = false,
-                .signature_digest_nid = NID_sha256,
-                .signature_nid = NID_ecdsa_with_SHA256 };
-            EXPECT_OK(s2n_security_policy_validate_certificate(&info, &test_sp));
-        };
-
-        /* cert signature algorithim not in test security policy */
-        {
-            struct s2n_cert_info info = { .self_signed = false,
-                .signature_digest_nid = NID_sha384,
-                .signature_nid = NID_ecdsa_with_SHA384 };
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate(&info, &test_sp),
-                    S2N_ERR_CERT_UNTRUSTED);
-        };
-
-        /* cert signature algorithim is not validated when cert is self-signed */
-        {
-            struct s2n_cert_info info = { .self_signed = true,
-                .signature_digest_nid = NID_sha384,
-                .signature_nid = NID_ecdsa_with_SHA384 };
-            EXPECT_OK(s2n_security_policy_validate_certificate(&info, &test_sp));
-        };
-    };
-
     END_TEST();
     return S2N_SUCCESS;
 }

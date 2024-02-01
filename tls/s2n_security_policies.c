@@ -1474,19 +1474,3 @@ S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(const struct s2n_ce
 
     RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
-
-S2N_RESULT s2n_security_policy_validate_certificate(const struct s2n_cert_info *info,
-        const struct s2n_security_policy *security_policy)
-{
-    RESULT_ENSURE_REF(info);
-    RESULT_ENSURE_REF(security_policy);
-
-    if (info->self_signed) {
-        return S2N_RESULT_OK;
-    }
-
-    RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(info,
-            security_policy->certificate_signature_preferences));
-
-    return S2N_RESULT_OK;
-}

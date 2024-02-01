@@ -27,7 +27,6 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    /* s2n_cert_get_cert_info */
     /* clang-format off */
     struct {
         const char *key_type;
@@ -106,6 +105,7 @@ int main(int argc, char **argv)
     };
     /* clang-format on */
 
+    /* s2n_cert_get_cert_info */
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         /* initialize variables and read in certificates */
         char pathbuffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
