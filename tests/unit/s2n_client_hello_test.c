@@ -1855,6 +1855,7 @@ int main(int argc, char **argv)
             uint8_t out = 0;
             struct s2n_client_hello client_hello = { 0 };
             client_hello.legacy_record_version = S2N_TLS12;
+            client_hello.record_version_recorded = 1;
             EXPECT_SUCCESS(s2n_client_hello_get_legacy_record_version(&client_hello, &out));
             EXPECT_EQUAL(out, S2N_TLS12);
         }
