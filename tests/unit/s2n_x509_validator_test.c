@@ -57,13 +57,13 @@ static int fetch_not_expired_ocsp_timestamp(void *data, uint64_t *timestamp)
 static int read_file(struct s2n_stuffer *file_output, const char *path, uint32_t max_len)
 {
     FILE *fd = fopen(path, "rb");
-    s2n_stuffer_alloc(file_output, max_len);
+    POSIX_GUARD(s2n_stuffer_alloc(file_output, max_len));
 
     if (fd) {
         char data[1024];
         size_t r = 0;
         while ((r = fread(data, 1, sizeof(data), fd)) > 0) {
-            s2n_stuffer_write_bytes(file_output, (const uint8_t *) data, (const uint32_t) r);
+            POSIX_GUARD(s2n_stuffer_write_bytes(file_output, (const uint8_t *) data, (const uint32_t) r));
         }
         fclose(fd);
         return s2n_stuffer_data_available(file_output) > 0;
