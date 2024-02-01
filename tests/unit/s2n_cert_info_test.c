@@ -88,8 +88,11 @@ int main(int argc, char **argv)
                 .expected_digest_nid = NID_undef },
 #endif
     };
+
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         /* print statement to help debugging in CI */
+
+        /* initialize variables and read in certificates */
         printf("get_cert_info test case %zu\n", i);
         char pathbuffer[S2N_MAX_TEST_PEM_PATH_LENGTH] = { 0 };
         uint8_t cert_file[S2N_MAX_TEST_PEM_SIZE] = { 0 };
@@ -101,18 +104,18 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(X509 *leaf = NULL, X509_free_pointer);
         DEFER_CLEANUP(X509 *intermediate = NULL, X509_free_pointer);
         DEFER_CLEANUP(X509 *root = NULL, X509_free_pointer);
-        {
-            /* read in cert chain */
-            size_t chain_len = strlen((const char *) cert_file);
-            BIO *cert_bio = NULL;
-            EXPECT_NOT_NULL(cert_bio = BIO_new(BIO_s_mem()));
-            EXPECT_TRUE(BIO_write(cert_bio, cert_file, chain_len) > 0);
-            EXPECT_NOT_NULL(leaf = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL));
-            EXPECT_NOT_NULL(intermediate = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL));
-            EXPECT_NOT_NULL(root = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL));
-            EXPECT_SUCCESS(BIO_free(cert_bio));
-        };
 
+        /* read in cert chain */
+        size_t chain_len = strlen((const char *) cert_file);
+        BIO *cert_bio = NULL;
+        EXPECT_NOT_NULL(cert_bio = BIO_new(BIO_s_mem()));
+        EXPECT_TRUE(BIO_write(cert_bio, cert_file, chain_len) > 0);
+        EXPECT_NOT_NULL(leaf = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL));
+        EXPECT_NOT_NULL(intermediate = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL));
+        EXPECT_NOT_NULL(root = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL));
+        EXPECT_SUCCESS(BIO_free(cert_bio));
+
+        /* retrieve cert info from test case certificates */
         struct s2n_cert_info leaf_info = { 0 };
         struct s2n_cert_info intermediate_info = { 0 };
         struct s2n_cert_info root_info = { 0 };
@@ -121,6 +124,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_cert_get_cert_info(intermediate, &intermediate_info));
         EXPECT_OK(s2n_cert_get_cert_info(root, &root_info));
 
+        /* assert that cert info matches expected values */
         EXPECT_EQUAL(leaf_info.signature_nid, test_cases[i].expected_signature_nid);
         EXPECT_EQUAL(leaf_info.signature_digest_nid, test_cases[i].expected_digest_nid);
         EXPECT_EQUAL(leaf_info.self_signed, false);
