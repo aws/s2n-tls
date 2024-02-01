@@ -1572,10 +1572,13 @@ S2N_API extern int s2n_client_hello_get_compression_methods_length(struct s2n_cl
  * Retrieves the list of compression methods sent in the Client Hello.
  *
  * Use `s2n_client_hello_get_compression_methods_length()`
- * to retrieve how much memory should be allocated for the `out` buffer in advance.
+ * to retrieve how much memory should be allocated for the buffer in advance.
  *
- * @note Compression methods were removed in TLS13 and therefore the only valid value in this list is the
- * "null" compression method when TLS13 is negotiated. 
+ * @note Compression methods were removed in TLS1.3 and therefore the only valid value in this list is the
+ * "null" compression method when TLS1.3 is negotiated.
+ *
+ * @note s2n-tls has never supported compression methods in any TLS version and therefore a
+ * compression method will never be negotiated or used.
  * 
  * @param ch A pointer to the Client Hello
  * @param buffer A pointer to the buffer that s2n will write the compression methods to. This buffer MUST be the size of `buffer_length`
@@ -1588,8 +1591,9 @@ S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_he
 /**
  * Access the Client Hello protocol version
  *
- * @note This field is a legacy field in TLS13 and is no longer used to negotiate the
- * protocol version of the connection. Therefore this method should only be used for logging or fingerprinting.
+ * @note This field is a legacy field in TLS1.3 and is no longer used to negotiate the
+ * protocol version of the connection. It will be set to TLS1.2 even if TLS1.3 is negotiated.
+ * Therefore this method should only be used for logging or fingerprinting.
  *
  * @param ch A pointer to the client hello struct
  * @param out The protocol version in the client hello.
@@ -2917,12 +2921,14 @@ S2N_API extern int s2n_connection_get_actual_protocol_version(struct s2n_connect
 S2N_API extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
 
 /**
- * Access the protocol version written in the Client Hello record header.
+ * Access the protocol version written in the record header that included the client hello.
  *
- * @note This field has been deprecated and is no longer used to determine TLS version.
- * Therefore this method should only be used for logging or fingerprinting.
- * 
- * @param conn A pointer to the connection
+ * @note This field has been deprecated and should not be confused with the client hello
+ * version. It is often set very low, usually to TLS1.0 for compatibility reasons,
+ * and should never be set higher than TLS1.2. Therefore this method should only be used
+ * for logging or fingerprinting.
+ *
+ * @param conn A pointer to the client hello struct
  * @param out The protocol version in the record header containing the Client Hello.
  */
 S2N_API extern int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out);

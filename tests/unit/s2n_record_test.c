@@ -435,7 +435,6 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         uint8_t content_type = 0;
         uint16_t fragment_length = 0;
-        uint8_t out = 0;
         uint8_t header[5] = { 0x16, /* Record type */
             0x03, 0x01,             /* Protocol version: TLS10 */
             0x00, 0x00 };           /* Record size */

@@ -952,6 +952,7 @@ int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint
 {
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(out);
+    POSIX_ENSURE(ch->record_version_recorded, S2N_ERR_CLIENT_HELLO_VERSION);
     *out = ch->legacy_record_version;
     return S2N_SUCCESS;
 }
