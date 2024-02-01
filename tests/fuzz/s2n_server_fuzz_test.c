@@ -161,7 +161,7 @@ int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
+    int unused_result = s2n_stuffer_read_bytes(in_buf, buf, n_read);
     return n_read;
 }
 
