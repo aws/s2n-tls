@@ -500,10 +500,11 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
-        target_compile_options(${test_case_name} PRIVATE -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
-                 -Wshadow  -Wcast-align -Wwrite-strings -fPIC -Wno-missing-braces
-                 -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-                 -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        target_compile_options(${test_case_name} PRIVATE 
+                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
+                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
+                -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99)
         if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
             target_compile_options(${test_case_name} PRIVATE -Werror  )
         endif ()
@@ -549,7 +550,7 @@ if (BUILD_TESTING)
             # Based off the flags in tests/benchmark/Makefile
             target_compile_options(${benchmark_name} PRIVATE -pedantic -Wall -Werror -Wunused -Wcomment -Wchar-subscripts
                     -Wuninitialized -Wshadow -Wcast-qual -Wcast-align -Wwrite-strings -Wno-deprecated-declarations
-                    -Wno-unknown-pragmas -Wformat-security -Wno-missing-braces -fvisibility=hidden -Wno-unreachable-code
+                    -Wno-unknown-pragmas -Wformat-security -fvisibility=hidden -Wno-unreachable-code
                     -Wno-unused-but-set-variable)
         endforeach(benchmark)
     endif()
