@@ -37,6 +37,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
     /* We do not use a GUARD macro here as there may not be enough bytes to write the necessary
      * amount, and the result of a failed read_bytes call is an acceptable test input. */
     int unused_result = s2n_stuffer_read_bytes(&server_conn->handshake.io, server_conn->handshake.client_finished, S2N_TLS_FINISHED_LEN);
+    (void)unused_result;
 
     /* Run Test
      * Do not use GUARD macro here since the connection memory hasn't been freed.
