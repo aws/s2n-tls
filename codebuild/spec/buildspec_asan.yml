@@ -47,7 +47,6 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
 
-
 phases:
   build:
     on-failure: ABORT
