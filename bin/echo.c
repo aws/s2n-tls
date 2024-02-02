@@ -376,36 +376,38 @@ int echo(struct s2n_connection *conn, int sockfd, bool *stop_echo)
 
             if (readers[0].revents & POLLIN) {
                 s2n_errno = S2N_ERR_T_OK;
-                bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
-                if (bytes_read == 0) {
-                    return 0;
-                }
-                if (bytes_read < 0) {
-                    switch (s2n_error_get_type(s2n_errno)) {
-                        case S2N_ERR_T_BLOCKED:
-                            /* Wait until poll tells us data is ready */
-                            continue;
-                        case S2N_ERR_T_ALERT:
-                            fprintf(stderr, "Received alert: %d\n", s2n_connection_get_alert(conn));
-                            break;
-                        default:
-                            fprintf(stderr, "Error reading from connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
-                            break;
+                while (1) {
+                    bytes_read = s2n_recv(conn, buffer, STDIO_BUFSIZE, &blocked);
+                    if (bytes_read == 0) {
+                        return 0;
                     }
-                    exit(1);
-                }
-
-                char *buf_ptr = buffer;
-                do {
-                    ssize_t bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read);
-                    if (bytes_written < 0) {
-                        fprintf(stderr, "Error writing to stdout\n");
-                        exit(1);
+                    if (bytes_read < 0) {
+                        switch (s2n_error_get_type(s2n_errno)) {
+                            case S2N_ERR_T_BLOCKED:
+                                /* Wait until poll tells us data is ready */
+                                break;
+                            case S2N_ERR_T_ALERT:
+                                fprintf(stderr, "Received alert: %d\n", s2n_connection_get_alert(conn));
+                                exit(1);
+                            default:
+                                fprintf(stderr, "Error reading from connection: '%s'\n", s2n_strerror(s2n_errno, "EN"));
+                                exit(1);
+                        }
+                        break;
                     }
 
-                    bytes_read -= bytes_written;
-                    buf_ptr += bytes_written;
-                } while (bytes_read > 0);
+                    char *buf_ptr = buffer;
+                    do {
+                        ssize_t bytes_written = write(STDOUT_FILENO, buf_ptr, bytes_read);
+                        if (bytes_written < 0) {
+                            fprintf(stderr, "Error writing to stdout\n");
+                            exit(1);
+                        }
+
+                        bytes_read -= bytes_written;
+                        buf_ptr += bytes_written;
+                    } while (bytes_read > 0);
+                }
             }
 
             if (readers[1].revents & POLLIN) {
