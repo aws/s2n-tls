@@ -46,7 +46,8 @@ int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_test_lowercase_copy(const char *input, char* destination, size_t max_len) {
+S2N_RESULT s2n_test_lowercase_copy(const char *input, char *destination, size_t max_len)
+{
     RESULT_ENSURE_REF(input);
     RESULT_ENSURE_REF(destination);
 
