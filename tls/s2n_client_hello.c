@@ -928,14 +928,14 @@ int s2n_client_hello_get_compression_methods_length(struct s2n_client_hello *ch,
     return S2N_SUCCESS;
 }
 
-int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *buffer, uint32_t buffer_length, uint32_t *out_length)
+int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length)
 {
     POSIX_ENSURE_REF(ch);
-    POSIX_ENSURE_REF(buffer);
+    POSIX_ENSURE_REF(list);
     POSIX_ENSURE_REF(out_length);
 
-    POSIX_ENSURE_GTE(buffer_length, ch->compression_methods.size);
-    POSIX_CHECKED_MEMCPY(buffer, ch->compression_methods.data, ch->compression_methods.size);
+    POSIX_ENSURE_GTE(list_length, ch->compression_methods.size);
+    POSIX_CHECKED_MEMCPY(list, ch->compression_methods.data, ch->compression_methods.size);
     *out_length = ch->compression_methods.size;
     return S2N_SUCCESS;
 }

@@ -1694,17 +1694,17 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods_length(NULL, &length), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods_length(&client_hello, NULL), S2N_ERR_NULL);
 
-            uint8_t buffer = 0;
-            uint32_t buffer_length = 0;
+            uint8_t list = 0;
+            uint32_t list_length = 0;
             uint32_t out_length = 0;
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(NULL, &buffer, buffer_length, &out_length), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(&client_hello, NULL, buffer_length, &out_length), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(&client_hello, &buffer, buffer_length, NULL), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(NULL, &list, list_length, &out_length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(&client_hello, NULL, list_length, &out_length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(&client_hello, &list, list_length, NULL), S2N_ERR_NULL);
 
             /* User did not provide a large enough buffer to write the compression methods */
             uint8_t data[] = { 1, 2, 3, 4, 5 };
             EXPECT_SUCCESS(s2n_blob_init(&client_hello.compression_methods, data, sizeof(data)));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(&client_hello, &buffer, buffer_length, &out_length), S2N_ERR_SAFETY);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_compression_methods(&client_hello, &list, list_length, &out_length), S2N_ERR_SAFETY);
         };
 
         /* Retrieves the compression methods list */
@@ -1735,9 +1735,9 @@ int main(int argc, char **argv)
             uint32_t length = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_compression_methods_length(client_hello, &length));
             EXPECT_EQUAL(length, 1);
-            uint8_t buffer = 0;
+            uint8_t list = 0;
             uint32_t out_length = 0;
-            EXPECT_SUCCESS(s2n_client_hello_get_compression_methods(client_hello, &buffer, sizeof(buffer), &out_length));
+            EXPECT_SUCCESS(s2n_client_hello_get_compression_methods(client_hello, &list, sizeof(list), &out_length));
             EXPECT_EQUAL(out_length, 1);
         };
 
@@ -1788,13 +1788,13 @@ int main(int argc, char **argv)
             uint32_t length = 0;
             EXPECT_SUCCESS(s2n_client_hello_get_compression_methods_length(client_hello, &length));
             EXPECT_EQUAL(length, COMPRESSION_METHODS_LEN);
-            uint8_t buffer[5] = { 0 };
+            uint8_t list[5] = { 0 };
             uint32_t out_length = 0;
-            EXPECT_SUCCESS(s2n_client_hello_get_compression_methods(client_hello, buffer, sizeof(buffer), &out_length));
+            EXPECT_SUCCESS(s2n_client_hello_get_compression_methods(client_hello, list, sizeof(list), &out_length));
             EXPECT_EQUAL(out_length, COMPRESSION_METHODS_LEN);
 
             uint8_t compression_data[] = { COMPRESSION_METHODS };
-            EXPECT_BYTEARRAY_EQUAL(buffer, compression_data, out_length);
+            EXPECT_BYTEARRAY_EQUAL(list, compression_data, out_length);
         }
     };
 

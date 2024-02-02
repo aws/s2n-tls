@@ -1581,12 +1581,12 @@ S2N_API extern int s2n_client_hello_get_compression_methods_length(struct s2n_cl
  * compression method will never be negotiated or used.
  * 
  * @param ch A pointer to the Client Hello
- * @param buffer A pointer to the buffer that s2n will write the compression methods to. This buffer MUST be the size of `buffer_length`
- * @param buffer_length The size of `buffer`.
+ * @param list A pointer to some memory that s2n will write the compression methods to. This memory MUST be the size of `list_length`
+ * @param list_length The size of `list`.
  * @param out_length An out pointer. s2n will set its value to the size of the compression methods list in bytes.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *buffer, uint32_t buffer_length, uint32_t *out_length);
+S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length);
 
 /**
  * Access the Client Hello protocol version
@@ -2921,8 +2921,8 @@ S2N_API extern int s2n_connection_get_actual_protocol_version(struct s2n_connect
 S2N_API extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
 
 /**
- * Access the protocol version written in the record header that included the client hello.
- *
+ * Access the protocol version from the header of the first record that contained the ClientHello message.
+ * 
  * @note This field has been deprecated and should not be confused with the client hello
  * version. It is often set very low, usually to TLS1.0 for compatibility reasons,
  * and should never be set higher than TLS1.2. Therefore this method should only be used
