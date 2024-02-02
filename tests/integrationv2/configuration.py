@@ -16,6 +16,7 @@ PROTOCOLS = [
     Protocols.TLS12,
     Protocols.TLS11,
     Protocols.TLS10,
+    Protocols.SSLv3,
 ]
 
 

@@ -553,6 +553,22 @@ impl Connection {
         }
     }
 
+    /// Attempts a graceful shutdown of the write side of a TLS connection.
+    ///
+    /// Unlike Self::poll_shutdown, no reponse from the peer is necessary.
+    /// If using TLS1.3, the connection can continue to be used for reading afterwards.
+    pub fn poll_shutdown_send(&mut self) -> Poll<Result<&mut Self, Error>> {
+        if !self.remaining_blinding_delay()?.is_zero() {
+            return Poll::Pending;
+        }
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_shutdown_send(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
+        }
+    }
+
     /// Returns the TLS alert code, if any
     pub fn alert(&self) -> Option<u8> {
         let alert =
