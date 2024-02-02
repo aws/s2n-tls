@@ -34,49 +34,49 @@ version: 0.2
 # openssl 1.0.2: the default libcrypto on AL2, and AL2 is still widely deployed.
 batch:
   build-list:
-    - identifier: clang-awslc
+    - identifier: clang_awslc
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
-    - identifier: clang-openssl_3_0
+    - identifier: clang_openssl_3_0
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
-    - identifier: clang-openssl_1_1_1
+    - identifier: clang_openssl_1_1_1
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: clang
-    - identifier: clang-openssl_1_0_2
+    - identifier: clang_openssl_1_0_2
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: clang
-    - identifier: gcc-awslc
+    - identifier: gcc_awslc
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: gcc
-    - identifier: gcc-openssl_3_0
+    - identifier: gcc_openssl_3_0
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: gcc
-    - identifier: gcc-openssl_1_1_1
+    - identifier: gcc_openssl_1_1_1
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: gcc
-    - identifier: gcc-openssl_1_0_2
+    - identifier: gcc_openssl_1_0_2
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
