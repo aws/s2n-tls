@@ -84,7 +84,7 @@ int main()
         } else {
             /* Any other library should have the name of the library (modulo case) in its version string.  */
             const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
-            EXPECT_NOT_NULL(strcasecmp(ssleay_version_text, name));
+            EXPECT_NOT_NULL(strcasestr(ssleay_version_text, name));
         }
     };
 
