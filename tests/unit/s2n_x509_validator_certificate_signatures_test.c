@@ -33,6 +33,8 @@
 /* forward declaration */
 S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X509 *cert);
 
+DEFINE_POINTER_CLEANUP_FUNC(BIO *, BIO_free);
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -41,6 +43,21 @@ int main(int argc, char **argv)
     X509 *cert = NULL;
     BIO *certBio = NULL;
     size_t certLen = 0;
+
+    const struct s2n_signature_scheme *const test_sig_scheme_list[] = {
+        &s2n_ecdsa_sha256,
+        &s2n_rsa_pkcs1_sha1,
+    };
+
+    const struct s2n_signature_preferences test_certificate_signature_preferences = {
+        .count = s2n_array_len(test_sig_scheme_list),
+        .signature_schemes = test_sig_scheme_list,
+    };
+
+    const struct s2n_security_policy test_sp = {
+        .minimum_protocol_version = S2N_TLS12,
+        .certificate_signature_preferences = &test_certificate_signature_preferences,
+    };
 
     /* s2n_validator_check_cert_preferences */
     {
@@ -119,6 +136,58 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(BIO_free(certBio));
             X509_free(cert);
+        };
+
+        /* Certificate signature algorithm is in the test certificate signature preferences list but signature is SHA-1
+         * and TLS 1.3 has been negotiated.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            config->security_policy = &test_sp;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            size_t cert_len = strlen((const char *) cert_file);
+
+            /* Read the test certificates into an Openssl X509 struct */
+            DEFER_CLEANUP(BIO *cert_bio = BIO_new(BIO_s_mem()), BIO_free_pointer);
+            EXPECT_NOT_NULL(cert_bio);
+            EXPECT_TRUE(BIO_write(cert_bio, cert_file, cert_len) > 0);
+            DEFER_CLEANUP(X509 *test_cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL), X509_free_pointer);
+            EXPECT_NOT_NULL(test_cert);
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_validator_check_cert_preferences(conn, test_cert), S2N_ERR_CERT_UNTRUSTED);
+        };
+
+        /* Certificate signature algorithm is in the test certificate signature preferences list and signature is SHA-1
+         * and TLS 1.2 has been negotiated.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            config->security_policy = &test_sp;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            size_t cert_len = strlen((const char *) cert_file);
+
+            /* Read the test certificates into an Openssl X509 struct */
+            DEFER_CLEANUP(BIO *cert_bio = BIO_new(BIO_s_mem()), BIO_free_pointer);
+            EXPECT_NOT_NULL(cert_bio);
+            EXPECT_TRUE(BIO_write(cert_bio, cert_file, cert_len) > 0);
+            DEFER_CLEANUP(X509 *test_cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL), X509_free_pointer);
+            EXPECT_NOT_NULL(test_cert);
+
+            EXPECT_OK(s2n_validator_check_cert_preferences(conn, test_cert));
         };
     };
     END_TEST();

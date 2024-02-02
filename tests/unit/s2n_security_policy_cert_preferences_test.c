@@ -45,11 +45,6 @@ int main(int argc, char **argv)
         .signature_schemes = pss_sig_scheme_list,
     };
 
-    const struct s2n_security_policy test_sp = {
-        .minimum_protocol_version = S2N_TLS12,
-        .certificate_signature_preferences = &test_certificate_signature_preferences,
-    };
-
     /* s2n_security_policy_validate_sig_scheme_supported() */
     {
         /* Certificate signature algorithm is in test certificate signature preferences list */
