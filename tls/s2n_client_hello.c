@@ -934,7 +934,7 @@ int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_
     POSIX_ENSURE_REF(list);
     POSIX_ENSURE_REF(out_length);
 
-    POSIX_ENSURE_GTE(list_length, ch->compression_methods.size);
+    POSIX_ENSURE(list_length >= ch->compression_methods.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
     POSIX_CHECKED_MEMCPY(list, ch->compression_methods.data, ch->compression_methods.size);
     *out_length = ch->compression_methods.size;
     return S2N_SUCCESS;
@@ -952,7 +952,7 @@ int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint
 {
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(out);
-    POSIX_ENSURE(ch->record_version_recorded, S2N_ERR_CLIENT_HELLO_VERSION);
+    POSIX_ENSURE(ch->record_version_recorded, S2N_ERR_INVALID_ARGUMENT);
     *out = ch->legacy_record_version;
     return S2N_SUCCESS;
 }
