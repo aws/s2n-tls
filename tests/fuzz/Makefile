@@ -39,7 +39,9 @@ include ../../s2n.mk
 
 CRUFT += $(wildcard *_test) $(wildcard fuzz-*.log) $(wildcard *_test_output.txt) $(wildcard *_test_results.txt) $(wildcard LD_PRELOAD/*.so) $(wildcard *.prof*)
 
-CFLAGS += -Wno-unreachable-code -O0 -I$(LIBCRYPTO_ROOT)/include/ -I../
+# We do not warn on unused results (-Wno-unused-result) because we expect that 
+# many of the fuzz test inputs will not be valid and operations will not succeed.
+CFLAGS += -Wno-unreachable-code -Wno-unused-result -O0 -I$(LIBCRYPTO_ROOT)/include/ -I../
 LIBS += -L../testlib/ -ltests2n -L../../lib/ -ls2n
 LDFLAGS += $(LIBFUZZER_ROOT)/lib/libFuzzer.a -lstdc++
 LDFLAGS += ${CRYPTO_LDFLAGS} ${LIBS} ${CRYPTO_LIBS} -lm -ldl -lrt -pthread
