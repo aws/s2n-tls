@@ -409,7 +409,7 @@ S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X50
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(cert);
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
 
     /**
@@ -441,20 +441,19 @@ S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X50
     }
 
     struct s2n_cert_info info = { 0 };
-    RESULT_GUARD(s2n_cert_get_cert_info(cert, &info));
+    RESULT_GUARD(s2n_openssl_x509_get_cert_info(cert, &info));
 
     /* Ensure that the certificate signature does not use SHA-1. While this check
      * would ideally apply to all connections, we only enforce it when certificate
      * preferences exist to stay backwards compatible.
      */
     if (conn->actual_protocol_version == S2N_TLS13 && !info.self_signed) {
-        if (info.signature_digest_nid == NID_sha1) {
-            RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
-        }
+        RESULT_ENSURE(info.signature_digest_nid != NID_sha1, S2N_ERR_CERT_UNTRUSTED);
     }
 
     if (!info.self_signed) {
-        RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(&info, security_policy->certificate_signature_preferences));
+        RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(
+                security_policy->certificate_signature_preferences, &info));
     }
 
     return S2N_RESULT_OK;

@@ -89,4 +89,3 @@ int s2n_cert_get_x509_extension_value_length(struct s2n_cert *cert, const uint8_
 int s2n_cert_get_x509_extension_value(struct s2n_cert *cert, const uint8_t *oid, uint8_t *ext_value, uint32_t *ext_value_len, bool *critical);
 int s2n_cert_get_utf8_string_from_extension_data_length(const uint8_t *extension_data, uint32_t extension_len, uint32_t *utf8_str_len);
 int s2n_cert_get_utf8_string_from_extension_data(const uint8_t *extension_data, uint32_t extension_len, uint8_t *out_data, uint32_t *out_len);
-S2N_RESULT s2n_cert_get_cert_info(X509 *cert, struct s2n_cert_info *info);

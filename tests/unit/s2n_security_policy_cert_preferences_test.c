@@ -49,30 +49,39 @@ int main(int argc, char **argv)
     {
         /* Certificate signature algorithm is in test certificate signature preferences list */
         {
-            struct s2n_cert_info info = { .self_signed = false,
+            struct s2n_cert_info info = {
+                .self_signed = false,
                 .signature_digest_nid = NID_sha256,
-                .signature_nid = NID_ecdsa_with_SHA256 };
-            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(&info,
-                    &test_certificate_signature_preferences));
+                .signature_nid = NID_ecdsa_with_SHA256,
+            };
+
+            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(
+                    &test_certificate_signature_preferences, &info));
         };
 
         /* Certificate signature algorithm is not in test certificate signature preferences list */
         {
-            struct s2n_cert_info info = { .self_signed = false,
+            struct s2n_cert_info info = {
+                .self_signed = false,
                 .signature_digest_nid = NID_undef,
-                .signature_nid = NID_rsassaPss };
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_sig_scheme_supported(&info,
-                                            &test_certificate_signature_preferences),
+                .signature_nid = NID_rsassaPss,
+            };
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_sig_scheme_supported(
+                                            &test_certificate_signature_preferences, &info),
                     S2N_ERR_CERT_UNTRUSTED);
         };
 
         /* Certificates signed with an RSA PSS signature can be validated */
         {
-            struct s2n_cert_info info = { .self_signed = false,
+            struct s2n_cert_info info = {
+                .self_signed = false,
                 .signature_digest_nid = NID_undef,
-                .signature_nid = NID_rsassaPss };
-            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(&info,
-                    &pss_certificate_signature_preferences));
+                .signature_nid = NID_rsassaPss,
+            };
+
+            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(
+                    &pss_certificate_signature_preferences, &info));
         };
     };
 

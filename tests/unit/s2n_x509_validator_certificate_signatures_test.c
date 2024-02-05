@@ -151,8 +151,9 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
-            size_t cert_len = strlen((const char *) cert_file);
+            uint32_t cert_len = 0;
+            EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_2048_PKCS1_CERT_CHAIN, cert_file,
+                    &cert_len, S2N_MAX_TEST_PEM_SIZE));
 
             /* Read the test certificates into an Openssl X509 struct */
             DEFER_CLEANUP(BIO *cert_bio = BIO_new(BIO_s_mem()), BIO_free_pointer);
@@ -177,8 +178,9 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
-            size_t cert_len = strlen((const char *) cert_file);
+            uint32_t cert_len = 0;
+            EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_RSA_2048_PKCS1_CERT_CHAIN, cert_file,
+                    &cert_len, S2N_MAX_TEST_PEM_SIZE));
 
             /* Read the test certificates into an Openssl X509 struct */
             DEFER_CLEANUP(BIO *cert_bio = BIO_new(BIO_s_mem()), BIO_free_pointer);
