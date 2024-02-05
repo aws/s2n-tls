@@ -572,7 +572,8 @@ if (BUILD_TESTING)
                         COMMAND
                         pytest
                         -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
-                        --junitxml=report_integ-${test_target}.xml
+                        --junitxml=${test_target}_junit.xml
+                        --html=${test_target}_report.html --self-contained-html
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
                         --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2
