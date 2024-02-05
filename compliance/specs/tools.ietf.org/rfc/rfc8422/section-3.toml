@@ -1,0 +1,58 @@
+target = "https://tools.ietf.org/rfc/rfc8422#section-3"
+
+# 3.  Client Authentication
+#
+# This document defines a client authentication mechanism named after
+# the type of client certificate involved: ECDSA_sign.  The ECDSA_sign
+# mechanism is usable with any of the non-anonymous ECC key exchange
+# algorithms described in Section 2 as well as other non-anonymous
+# (non-ECC) key exchange algorithms defined in TLS.
+# 
+# Note that client certificates with EdDSA public keys also use this
+# mechanism.
+# 
+# The server can request ECC-based client authentication by including
+# this certificate type in its CertificateRequest message.  The client
+# must check if it possesses a certificate appropriate for the method
+# suggested by the server and is willing to use it for authentication.
+# 
+# If these conditions are not met, the client SHOULD send a client
+# Certificate message containing no certificates.  In this case, the
+# ClientKeyExchange MUST be sent as described in Section 2, and the
+# CertificateVerify MUST NOT be sent.  If the server requires client
+# authentication, it may respond with a fatal handshake failure alert.
+# 
+# If the client has an appropriate certificate and is willing to use it
+# for authentication, it must send that certificate in the client's
+# Certificate message (as per Section 5.6) and prove possession of the
+# private key corresponding to the certified key.  The process of
+# determining an appropriate certificate and proving possession is
+# different for each authentication mechanism and is described below.
+# 
+# NOTE: It is permissible for a server to request (and the client to
+# send) a client certificate of a different type than the server
+# certificate.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If these conditions are not met, the client SHOULD send a client
+Certificate message containing no certificates.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In this case, the
+ClientKeyExchange MUST be sent as described in Section 2, and the
+CertificateVerify MUST NOT be sent.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In this case, the
+ClientKeyExchange MUST be sent as described in Section 2, and the
+CertificateVerify MUST NOT be sent.
+'''
+

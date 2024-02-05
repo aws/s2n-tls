@@ -1,0 +1,100 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-2.2"
+
+# 2.2.  Resumption and Pre-Shared Key (PSK)
+#
+# Although TLS PSKs can be established out of band, PSKs can also be
+# established in a previous connection and then used to establish a new
+# connection ("session resumption" or "resuming" with a PSK).  Once a
+# handshake has completed, the server can send the client a PSK
+# identity that corresponds to a unique key derived from the initial
+# handshake (see Section 4.6.1).  The client can then use that PSK
+# identity in future handshakes to negotiate the use of the associated
+# PSK.  If the server accepts the PSK, then the security context of the
+# new connection is cryptographically tied to the original connection
+# and the key derived from the initial handshake is used to bootstrap
+# the cryptographic state instead of a full handshake.  In TLS 1.2 and
+# below, this functionality was provided by "session IDs" and "session
+# tickets" [RFC5077].  Both mechanisms are obsoleted in TLS 1.3.
+# 
+# PSKs can be used with (EC)DHE key exchange in order to provide
+# forward secrecy in combination with shared keys, or can be used
+# alone, at the cost of losing forward secrecy for the application
+# data.
+# 
+# Figure 3 shows a pair of handshakes in which the first handshake
+# establishes a PSK and the second handshake uses it:
+# 
+#        Client                                               Server
+# 
+# Initial Handshake:
+#        ClientHello
+#        + key_share               -------->
+#                                                        ServerHello
+#                                                        + key_share
+#                                              {EncryptedExtensions}
+#                                              {CertificateRequest*}
+#                                                     {Certificate*}
+#                                               {CertificateVerify*}
+#                                                         {Finished}
+#                                  <--------     [Application Data*]
+#        {Certificate*}
+#        {CertificateVerify*}
+#        {Finished}                -------->
+#                                  <--------      [NewSessionTicket]
+#        [Application Data]        <------->      [Application Data]
+# 
+# Subsequent Handshake:
+#        ClientHello
+#        + key_share*
+#        + pre_shared_key          -------->
+#                                                        ServerHello
+#                                                   + pre_shared_key
+#                                                       + key_share*
+#                                              {EncryptedExtensions}
+#                                                         {Finished}
+#                                  <--------     [Application Data*]
+#        {Finished}                -------->
+#        [Application Data]        <------->      [Application Data]
+# 
+#             Figure 3: Message Flow for Resumption and PSK
+# 
+# As the server is authenticating via a PSK, it does not send a
+# Certificate or a CertificateVerify message.  When a client offers
+# resumption via a PSK, it SHOULD also supply a "key_share" extension
+# to the server to allow the server to decline resumption and fall back
+# to a full handshake, if needed.  The server responds with a
+# "pre_shared_key" extension to negotiate the use of PSK key
+# establishment and can (as shown here) respond with a "key_share"
+# extension to do (EC)DHE key establishment, thus providing forward
+# secrecy.
+# 
+# When PSKs are provisioned out of band, the PSK identity and the KDF
+# hash algorithm to be used with the PSK MUST also be provisioned.
+# 
+# Note:  When using an out-of-band provisioned pre-shared secret, a
+#    critical consideration is using sufficient entropy during the key
+#    generation, as discussed in [RFC4086].  Deriving a shared secret
+#    from a password or other low-entropy sources is not secure.  A
+#    low-entropy secret, or password, is subject to dictionary attacks
+#    based on the PSK binder.  The specified PSK authentication is not
+#    a strong password-based authenticated key exchange even when used
+#    with Diffie-Hellman key establishment.  Specifically, it does not
+#    prevent an attacker that can observe the handshake from performing
+#    a brute-force attack on the password/pre-shared key.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+When a client offers
+resumption via a PSK, it SHOULD also supply a "key_share" extension
+to the server to allow the server to decline resumption and fall back
+to a full handshake, if needed.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When PSKs are provisioned out of band, the PSK identity and the KDF
+hash algorithm to be used with the PSK MUST also be provisioned.
+'''
+

@@ -49,7 +49,7 @@ S2N_PRIVATE_API int s2n_connection_get_config(struct s2n_connection *conn, struc
  * Sets a certificate chain on the config.
  *
  * It does NOT set a private key, so the connection will need to be configured to
- * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#offloading-asynchronous-private-key-operations).
+ * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch12-private-key-ops.md).
  */
 S2N_PRIVATE_API int s2n_config_add_cert_chain(struct s2n_config *config,
         uint8_t *cert_chain_pem, uint32_t cert_chain_pem_size);

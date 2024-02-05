@@ -82,8 +82,10 @@ bool s2n_hmac_is_available(s2n_hmac_algorithm hmac_alg)
     case S2N_HMAC_MD5:
     case S2N_HMAC_SSLv3_MD5:
     case S2N_HMAC_SSLv3_SHA1:
-        /* Set is_available to 0 if in FIPS mode, as MD5/SSLv3 algs are not available in FIPS mode. */
-        return !s2n_is_in_fips_mode();
+        /* Some libcryptos, such as OpenSSL, disable MD5 by default when in FIPS mode, which is
+         * required in order to negotiate SSLv3. However, this is supported in AWS-LC.
+         */
+        return !s2n_is_in_fips_mode() || s2n_libcrypto_is_awslc();
     case S2N_HMAC_NONE:
     case S2N_HMAC_SHA1:
     case S2N_HMAC_SHA224:
@@ -395,4 +397,35 @@ int s2n_hmac_restore_evp_hash_state(struct s2n_hmac_evp_backup* backup, struct s
     hmac->outer_just_key.digest.high_level = backup->outer_just_key;
     POSIX_POSTCONDITION(s2n_hmac_state_validate(hmac));
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_hmac_md_from_alg(s2n_hmac_algorithm alg, const EVP_MD **md)
+{
+    RESULT_ENSURE_REF(md);
+
+    switch (alg) {
+        case S2N_HMAC_SSLv3_MD5:
+        case S2N_HMAC_MD5:
+            *md = EVP_md5();
+            break;
+        case S2N_HMAC_SSLv3_SHA1:
+        case S2N_HMAC_SHA1:
+            *md = EVP_sha1();
+            break;
+        case S2N_HMAC_SHA224:
+            *md = EVP_sha224();
+            break;
+        case S2N_HMAC_SHA256:
+            *md = EVP_sha256();
+            break;
+        case S2N_HMAC_SHA384:
+            *md = EVP_sha384();
+            break;
+        case S2N_HMAC_SHA512:
+            *md = EVP_sha512();
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_P_HASH_INVALID_ALGORITHM);
+    }
+    return S2N_RESULT_OK;
 }

@@ -7,14 +7,6 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL, GnuTLS
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
 
-certs = [
-    Certificates.RSA_2048_SHA256,
-    Certificates.RSA_2048_SHA384,
-    Certificates.RSA_PSS_2048_SHA256,
-    Certificates.ECDSA_256,
-    Certificates.ECDSA_384,
-]
-
 all_sigs = [
     Signatures.RSA_SHA1,
     Signatures.RSA_SHA224,
@@ -22,10 +14,15 @@ all_sigs = [
     Signatures.RSA_SHA384,
     Signatures.RSA_SHA512,
     Signatures.ECDSA_SECP256r1_SHA256,
+    Signatures.ECDSA_SECP384r1_SHA384,
+    Signatures.ECDSA_SECP521r1_SHA512,
     Signatures.RSA_PSS_RSAE_SHA256,
     Signatures.RSA_PSS_PSS_SHA256,
-    Signatures.ECDSA_SHA224,
     Signatures.ECDSA_SHA1,
+    Signatures.ECDSA_SHA224,
+    Signatures.ECDSA_SHA256,
+    Signatures.ECDSA_SHA384,
+    Signatures.ECDSA_SHA512,
 ]
 
 
@@ -193,62 +190,3 @@ def test_s2n_client_signature_algorithms(managed_process, cipher, provider, othe
             Provider.ServerMode, expected_signature(protocol, signature)) in results.stdout or not server_sigalg_used
         assert (signature_marker(Provider.ClientMode, expected_signature(protocol, signature))
                 in results.stdout) == client_auth
-
-
-@pytest.mark.uncollect_if(func=skip_ciphers)
-@pytest.mark.parametrize("cipher", [Ciphers.SECURITY_POLICY_20210816], ids=get_parameter_name)
-@pytest.mark.parametrize("provider", [OpenSSL])
-@pytest.mark.parametrize("protocol", [Protocols.TLS12], ids=get_parameter_name)
-@pytest.mark.parametrize("certificate", ALL_TEST_CERTS, ids=get_parameter_name)
-# RSA_SHA224, ECDSA_SHA224 signature algorithms are not included in security_policy_20210816[].
-@pytest.mark.parametrize("signature", [Signatures.RSA_SHA224, Signatures.ECDSA_SHA224], ids=get_parameter_name)
-def test_s2n_server_tls12_signature_algorithm_fallback(managed_process, cipher, provider, protocol, certificate,
-                                                       signature):
-    port = next(available_ports)
-
-    random_bytes = data_bytes(64)
-    client_options = ProviderOptions(
-        mode=Provider.ClientMode,
-        port=port,
-        data_to_send=random_bytes,
-        insecure=False,
-        signature_algorithm=signature,
-        protocol=protocol
-    )
-
-    server_options = copy.copy(client_options)
-    server_options.extra_flags = None
-    server_options.data_to_send = None
-    server_options.mode = Provider.ServerMode
-    server_options.key = certificate.key
-    server_options.cert = certificate.cert
-    server_options.cipher = cipher
-
-    server = managed_process(S2N, server_options, timeout=5)
-    client = managed_process(provider, client_options, timeout=5)
-
-    for results in client.get_results():
-        results.assert_success()
-
-    expected_version = get_expected_s2n_version(protocol, provider)
-
-    # Due to signature algorithm mismatch created, if the negotiated key exchange algorithm is :
-    #  1. (RSA,DHE_RSA, DH_RSA, RSA_PSK, ECDH_RSA,ECDHE_RSA), server is expected to behave as if client had
-    #  sent value { sha1, rsa}.
-    #  2. (ECDH_ECDSA,  ECDHE_ECDSA), server is expected to behave as if client had sent value {sha1,ecdsa}.
-    # This is the default tls1.2 fallback behavior and is the fallback behavior for missing signature_algorithms
-    # extension.
-    #
-    # This is inferred from the rfc- https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
-    if signature == Signatures.RSA_SHA224:
-        expected_sig_alg_tls12 = Signatures.RSA_SHA1
-    else:
-        expected_sig_alg_tls12 = Signatures.ECDSA_SHA1
-
-    for results in server.get_results():
-        results.assert_success()
-        assert to_bytes("Actual protocol version: {}".format(
-            expected_version)) in results.stdout
-        assert signature_marker(Provider.ServerMode,
-                                expected_sig_alg_tls12) in results.stdout
-        assert random_bytes in results.stdout

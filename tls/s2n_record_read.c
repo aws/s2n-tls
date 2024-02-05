@@ -106,12 +106,19 @@ int s2n_record_header_parse(
     S2N_ERROR_IF(conn->actual_protocol_version_established && MIN(conn->actual_protocol_version, S2N_TLS12) /* check against legacy record version (1.2) in tls 1.3 */
                             != version,
             S2N_ERR_BAD_MESSAGE);
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
 
-    /* Some servers send fragments that are above the maximum length.  (e.g.
-     * Openssl 1.0.1, so we don't check if the fragment length is >
-     * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. The on-the-wire max is 65k
+    /* Some servers send fragments that are above the maximum length (e.g.
+     * Openssl 1.0.1), so we don't check if the fragment length is >
+     * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. We allow up to 2^16.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+     *= type=exception
+     *= reason=Incorrect implementations exist in the wild. Ignoring instead.
+     *# The length MUST NOT exceed 2^14 bytes.  An
+     *# endpoint that receives a record that exceeds this length MUST
+     *# terminate the connection with a "record_overflow" alert.
      */
+    POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
     POSIX_GUARD(s2n_stuffer_reread(in));
 
     return 0;

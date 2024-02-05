@@ -1,0 +1,43 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-9.1"
+
+# 9.1.  Mandatory-to-Implement Cipher Suites
+#
+# In the absence of an application profile standard specifying
+# otherwise:
+# 
+# A TLS-compliant application MUST implement the TLS_AES_128_GCM_SHA256
+# [GCM] cipher suite and SHOULD implement the TLS_AES_256_GCM_SHA384
+# [GCM] and TLS_CHACHA20_POLY1305_SHA256 [RFC8439] cipher suites (see
+# Appendix B.4).
+# 
+# A TLS-compliant application MUST support digital signatures with
+# rsa_pkcs1_sha256 (for certificates), rsa_pss_rsae_sha256 (for
+# CertificateVerify and certificates), and ecdsa_secp256r1_sha256.  A
+# TLS-compliant application MUST support key exchange with secp256r1
+# (NIST P-256) and SHOULD support key exchange with X25519 [RFC7748].
+
+[[spec]]
+level = "MUST"
+quote = '''
+A TLS-compliant application MUST implement the TLS_AES_128_GCM_SHA256
+[GCM] cipher suite and SHOULD implement the TLS_AES_256_GCM_SHA384
+[GCM] and TLS_CHACHA20_POLY1305_SHA256 [RFC8439] cipher suites (see
+Appendix B.4).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A TLS-compliant application MUST support digital signatures with
+rsa_pkcs1_sha256 (for certificates), rsa_pss_rsae_sha256 (for
+CertificateVerify and certificates), and ecdsa_secp256r1_sha256.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A
+TLS-compliant application MUST support key exchange with secp256r1
+(NIST P-256) and SHOULD support key exchange with X25519 [RFC7748].
+'''
+

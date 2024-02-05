@@ -18,7 +18,7 @@
 #include <stdint.h>
 #include <sys/param.h>
 
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"

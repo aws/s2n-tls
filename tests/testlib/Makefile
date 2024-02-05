@@ -13,7 +13,14 @@
 # permissions and limitations under the License.
 #
 
+EXAMPLES_DIR=../../docs/examples
+EXAMPLES=$(wildcard $(EXAMPLES_DIR)/*.c)
+
 SRCS=$(wildcard *.c)
+# Consider the examples part of the testlib.
+# It would be more correct to build the examples separately, but requires more setup
+# and we've deprecated our Makefiles anyway.
+SRCS += $(EXAMPLES)
 OBJS=$(SRCS:.c=.o)
 CRYPTO_LDFLAGS = -L$(LIBCRYPTO_ROOT)/lib
 
@@ -25,6 +32,7 @@ include ../../s2n.mk
 CFLAGS += -I../
 LIBS += ../../lib/libs2n.a
 LDFLAGS += ${CRYPTO_LDFLAGS} ${LIBS} ${CRYPTO_LIBS} -lm -ldl -lrt -pthread
+CRUFT += $(filter-out %.c, $(wildcard $(EXAMPLES_DIR)/*))
 
 libtests2n.so: ${OBJS}
 	${CC} ${CFLAGS} -shared ${LDFLAGS} -o libtests2n.so ${OBJS}

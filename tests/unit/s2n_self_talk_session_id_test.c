@@ -244,6 +244,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     /* Session resumption with bad session state */
     conn = s2n_connection_new(S2N_CLIENT);
+    EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
     s2n_connection_set_io_pair(conn, io_pair);
 
     /* Change the format of the session state and check we cannot deserialize it */
@@ -560,6 +561,7 @@ int main(int argc, char **argv)
         /* Wipe connections and set up new handshake */
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));

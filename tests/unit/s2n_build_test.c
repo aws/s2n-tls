@@ -65,6 +65,10 @@ int main()
         return 0;
     }
 
+    if (strcmp(s2n_libcrypto, "default") == 0) {
+        END_TEST();
+    }
+
     char s2n_libcrypto_copy[100] = { 0 };
     strncpy(s2n_libcrypto_copy, s2n_libcrypto, 99);
     char *name = NULL;

@@ -18,9 +18,11 @@
     #include <features.h>
 #endif
 
+#include <limits.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <sys/mman.h>
+#include <sys/param.h>
 #include <unistd.h>
 
 #include "error/s2n_errno.h"
@@ -51,8 +53,8 @@ static int s2n_mem_init_impl(void)
     POSIX_ENSURE_GT(sysconf_rc, 0);
 
     /* page_size must be a valid uint32 */
-    POSIX_ENSURE_LTE(sysconf_rc, UINT32_MAX);
-
+    long max_page_size = MIN(UINT32_MAX, LONG_MAX);
+    POSIX_ENSURE_LTE(sysconf_rc, max_page_size);
     page_size = (uint32_t) sysconf_rc;
 
     if (getenv("S2N_DONT_MLOCK") || s2n_in_unit_test()) {
@@ -133,18 +135,41 @@ int s2n_mem_set_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_clean
         s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
 {
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
+    POSIX_GUARD_RESULT(s2n_mem_override_callbacks(mem_init_callback, mem_cleanup_callback,
+            mem_malloc_callback, mem_free_callback));
+    return S2N_SUCCESS;
+}
 
-    POSIX_ENSURE_REF(mem_init_callback);
-    POSIX_ENSURE_REF(mem_cleanup_callback);
-    POSIX_ENSURE_REF(mem_malloc_callback);
-    POSIX_ENSURE_REF(mem_free_callback);
+S2N_RESULT s2n_mem_override_callbacks(s2n_mem_init_callback mem_init_callback, s2n_mem_cleanup_callback mem_cleanup_callback,
+        s2n_mem_malloc_callback mem_malloc_callback, s2n_mem_free_callback mem_free_callback)
+{
+    RESULT_ENSURE_REF(mem_init_callback);
+    RESULT_ENSURE_REF(mem_cleanup_callback);
+    RESULT_ENSURE_REF(mem_malloc_callback);
+    RESULT_ENSURE_REF(mem_free_callback);
 
     s2n_mem_init_cb = mem_init_callback;
     s2n_mem_cleanup_cb = mem_cleanup_callback;
     s2n_mem_malloc_cb = mem_malloc_callback;
     s2n_mem_free_cb = mem_free_callback;
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_mem_get_callbacks(s2n_mem_init_callback *mem_init_callback, s2n_mem_cleanup_callback *mem_cleanup_callback,
+        s2n_mem_malloc_callback *mem_malloc_callback, s2n_mem_free_callback *mem_free_callback)
+{
+    RESULT_ENSURE_REF(mem_init_callback);
+    RESULT_ENSURE_REF(mem_cleanup_callback);
+    RESULT_ENSURE_REF(mem_malloc_callback);
+    RESULT_ENSURE_REF(mem_free_callback);
+
+    *mem_init_callback = s2n_mem_init_cb;
+    *mem_cleanup_callback = s2n_mem_cleanup_cb;
+    *mem_malloc_callback = s2n_mem_malloc_cb;
+    *mem_free_callback = s2n_mem_free_cb;
+
+    return S2N_RESULT_OK;
 }
 
 int s2n_alloc(struct s2n_blob *b, uint32_t size)
@@ -230,6 +255,8 @@ int s2n_free_object(uint8_t **p_data, uint32_t size)
 int s2n_dup(struct s2n_blob *from, struct s2n_blob *to)
 {
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE_REF(to);
+    POSIX_ENSURE_REF(from);
     POSIX_ENSURE_EQ(to->size, 0);
     POSIX_ENSURE_EQ(to->data, NULL);
     POSIX_ENSURE_NE(from->size, 0);

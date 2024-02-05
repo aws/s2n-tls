@@ -36,13 +36,12 @@ RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key)
 {
     PTR_ENSURE_REF(rsa_key);
 
-    /* pragma gcc diagnostic was added in gcc 4.6 */
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+#ifdef S2N_DIAGNOSTICS_PUSH_SUPPORTED
     #pragma GCC diagnostic push
     #pragma GCC diagnostic ignored "-Wcast-qual"
 #endif
     RSA *out_rsa_key = (RSA *) rsa_key->rsa;
-#if defined(__clang__) || S2N_GCC_VERSION_AT_LEAST(4, 6, 0)
+#ifdef S2N_DIAGNOSTICS_POP_SUPPORTED
     #pragma GCC diagnostic pop
 #endif
 
@@ -194,25 +193,25 @@ static int s2n_rsa_check_key_exists(const struct s2n_pkey *pkey)
     return 0;
 }
 
-int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public_key)
+S2N_RESULT s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *evp_public_key)
 {
     const RSA *rsa = EVP_PKEY_get1_RSA(evp_public_key);
-    S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_CERTIFICATE);
+    RESULT_ENSURE(rsa != NULL, S2N_ERR_DECODE_CERTIFICATE);
 
     rsa_key->rsa = rsa;
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
+S2N_RESULT s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *evp_private_key)
 {
     const RSA *rsa = EVP_PKEY_get1_RSA(evp_private_key);
-    S2N_ERROR_IF(rsa == NULL, S2N_ERR_DECODE_PRIVATE_KEY);
+    RESULT_ENSURE(rsa != NULL, S2N_ERR_DECODE_PRIVATE_KEY);
 
     rsa_key->rsa = rsa;
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-int s2n_rsa_pkey_init(struct s2n_pkey *pkey)
+S2N_RESULT s2n_rsa_pkey_init(struct s2n_pkey *pkey)
 {
     pkey->size = &s2n_rsa_encrypted_size;
     pkey->sign = &s2n_rsa_sign;
@@ -222,6 +221,6 @@ int s2n_rsa_pkey_init(struct s2n_pkey *pkey)
     pkey->match = &s2n_rsa_keys_match;
     pkey->free = &s2n_rsa_key_free;
     pkey->check_key = &s2n_rsa_check_key_exists;
-    POSIX_GUARD_RESULT(s2n_evp_signing_set_pkey_overrides(pkey));
-    return 0;
+    RESULT_GUARD(s2n_evp_signing_set_pkey_overrides(pkey));
+    return S2N_RESULT_OK;
 }

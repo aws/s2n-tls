@@ -1,0 +1,73 @@
+name: Publish Usage Guide
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+env:
+  CDN: https://d3fqnyekunr9xg.cloudfront.net
+
+# By default dependabot only receives read permissions. Explicitly give it write
+# permissions which is needed by the ouzi-dev/commit-status-updater task.
+#
+# Updating status is relatively safe (doesnt modify source code) and caution
+# should be taken before adding more permissions.
+permissions:
+  contents: write
+  statuses: write
+
+jobs:
+  build-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout s2n-tls repo
+        uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Set override
+        run: rustup override set stable
+
+      - uses: camshaft/install@v1
+        with:
+          crate: mdbook
+
+      - name: Build book
+        run: |
+          cd docs/usage-guide
+          mdbook build
+      
+      - name: Deploy documentation to gh-pages
+        uses: JamesIves/github-pages-deploy-action@v4.5.0
+        if: github.event_name == 'push'
+        with:
+          target-folder: usage-guide
+          folder: docs/usage-guide/book
+  
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4.0.1
+        if: github.event_name == 'push' || github.repository == github.event.pull_request.head.repo.full_name
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-1
+      
+      - name: Upload to S3
+        if: github.event_name == 'push' || github.repository == github.event.pull_request.head.repo.full_name
+        id: s3
+        run: |
+          TARGET="${{ github.sha }}/book"
+          aws s3 sync docs/usage-guide/book "s3://s2n-tls-ci-artifacts/$TARGET" --acl private --follow-symlinks
+          URL="$CDN/$TARGET/index.html"
+          echo "URL=$URL" >> $GITHUB_OUTPUT
+      
+      - name: Output mdbook url 
+        uses: ouzi-dev/commit-status-updater@v2.0.1
+        if: github.event_name == 'push' || github.repository == github.event.pull_request.head.repo.full_name
+        with:
+          name: "book / url"
+          status: "success"
+          url: "${{ steps.s3.outputs.URL }}"

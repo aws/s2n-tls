@@ -22,3 +22,6 @@ harness = false
 [[bench]]
 name = "s2nd"
 harness = false
+
+[dev-dependencies]
+regex = "=1.9.6" # newer versions require rust 1.65, see https://github.com/aws/s2n-tls/issues/4242

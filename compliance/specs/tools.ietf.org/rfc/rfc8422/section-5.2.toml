@@ -1,0 +1,74 @@
+target = "https://tools.ietf.org/rfc/rfc8422#section-5.2"
+
+# 5.2.  Server Hello Extension
+#
+# This section specifies a TLS extension that can be included with the
+# ServerHello message as described in [RFC4366], the Supported Point
+# Formats Extension.
+# 
+# When this extension is sent:
+# 
+# The Supported Point Formats Extension is included in a ServerHello
+# message in response to a ClientHello message containing the Supported
+# Point Formats Extension when negotiating an ECC cipher suite.
+# 
+# Meaning of this extension:
+# 
+# This extension allows a server to enumerate the point formats it can
+# parse (for the curve that will appear in its ServerKeyExchange
+# message when using the ECDHE_ECDSA, ECDHE_RSA, or ECDH_anon key
+# exchange algorithm.
+# 
+# Structure of this extension:
+# 
+# The server's Supported Point Formats Extension has the same structure
+# as the client's Supported Point Formats Extension (see
+# Section 5.1.2).  Items in ec_point_format_list here are ordered
+# according to the server's preference (favorite choice first).  Note
+# that the server MAY include items that were not found in the client's
+# list.  However, without extensions, this specification allows exactly
+# one point format, so there is not really any opportunity for
+# mismatches.
+# 
+# Actions of the sender:
+# 
+# A server that selects an ECC cipher suite in response to a
+# ClientHello message including a Supported Point Formats Extension
+# appends this extension (along with others) to its ServerHello
+# message, enumerating the point formats it can parse.  The Supported
+# Point Formats Extension, when used, MUST contain the value 0
+# (uncompressed) as one of the items in the list of point formats.
+# 
+# Actions of the receiver:
+# 
+# A client that receives a ServerHello message containing a Supported
+# Point Formats Extension MUST respect the server's choice of point
+# formats during the handshake (cf.  Sections 5.6 and 5.7).  If no
+# Supported Point Formats Extension is received with the ServerHello,
+# this is equivalent to an extension allowing only the uncompressed
+# point format.
+
+[[spec]]
+level = "MAY"
+quote = '''
+Note
+that the server MAY include items that were not found in the client's
+list.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The Supported
+Point Formats Extension, when used, MUST contain the value 0
+(uncompressed) as one of the items in the list of point formats.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A client that receives a ServerHello message containing a Supported
+Point Formats Extension MUST respect the server's choice of point
+formats during the handshake (cf.
+'''
+

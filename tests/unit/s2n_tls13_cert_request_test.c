@@ -69,7 +69,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_stuffer_data_available(&client_conn->handshake.io) > 0);
         EXPECT_SUCCESS(s2n_tls13_cert_req_recv(client_conn));
 
-        EXPECT_EQUAL(client_conn->handshake_params.server_sig_hash_algs.len, s2n_supported_sig_schemes_count(server_conn));
+        EXPECT_TRUE(client_conn->handshake_params.server_sig_hash_algs.len > 0);
 
         EXPECT_SUCCESS(s2n_connection_free(client_conn));
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

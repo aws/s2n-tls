@@ -1,0 +1,139 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-7.4.1.4.1"
+
+# 7.4.1.4.1.  Signature Algorithms
+#
+# The client uses the "signature_algorithms" extension to indicate to
+# the server which signature/hash algorithm pairs may be used in
+# digital signatures.  The "extension_data" field of this extension
+# contains a "supported_signature_algorithms" value.
+# 
+#    enum {
+#        none(0), md5(1), sha1(2), sha224(3), sha256(4), sha384(5),
+#        sha512(6), (255)
+#    } HashAlgorithm;
+# 
+#    enum { anonymous(0), rsa(1), dsa(2), ecdsa(3), (255) }
+#      SignatureAlgorithm;
+# 
+#    struct {
+#          HashAlgorithm hash;
+#          SignatureAlgorithm signature;
+#    } SignatureAndHashAlgorithm;
+# 
+#    SignatureAndHashAlgorithm
+#      supported_signature_algorithms<2..2^16-2>;
+# 
+# Each SignatureAndHashAlgorithm value lists a single hash/signature
+# pair that the client is willing to verify.  The values are indicated
+# in descending order of preference.
+# 
+# Note: Because not all signature algorithms and hash algorithms may be
+# accepted by an implementation (e.g., DSA with SHA-1, but not
+# SHA-256), algorithms here are listed in pairs.
+# 
+# hash
+#    This field indicates the hash algorithm which may be used.  The
+#    values indicate support for unhashed data, MD5 [MD5], SHA-1,
+#    SHA-224, SHA-256, SHA-384, and SHA-512 [SHS], respectively.  The
+#    "none" value is provided for future extensibility, in case of a
+#    signature algorithm which does not require hashing before signing.
+# 
+# signature
+#    This field indicates the signature algorithm that may be used.
+#    The values indicate anonymous signatures, RSASSA-PKCS1-v1_5
+#    [PKCS1] and DSA [DSS], and ECDSA [ECDSA], respectively.  The
+#    "anonymous" value is meaningless in this context but used in
+#    Section 7.4.3.  It MUST NOT appear in this extension.
+# 
+# The semantics of this extension are somewhat complicated because the
+# cipher suite indicates permissible signature algorithms but not hash
+# algorithms.  Sections 7.4.2 and 7.4.3 describe the appropriate rules.
+# 
+# If the client supports only the default hash and signature algorithms
+# (listed in this section), it MAY omit the signature_algorithms
+# extension.  If the client does not support the default algorithms, or
+# supports other hash and signature algorithms (and it is willing to
+# use them for verifying messages sent by the server, i.e., server
+# certificates and server key exchange), it MUST send the
+# 
+# signature_algorithms extension, listing the algorithms it is willing
+# to accept.
+# 
+# If the client does not send the signature_algorithms extension, the
+# server MUST do the following:
+# 
+# -  If the negotiated key exchange algorithm is one of (RSA, DHE_RSA,
+#    DH_RSA, RSA_PSK, ECDH_RSA, ECDHE_RSA), behave as if client had
+#    sent the value {sha1,rsa}.
+# 
+# -  If the negotiated key exchange algorithm is one of (DHE_DSS,
+#    DH_DSS), behave as if the client had sent the value {sha1,dsa}.
+# 
+# -  If the negotiated key exchange algorithm is one of (ECDH_ECDSA,
+#    ECDHE_ECDSA), behave as if the client had sent value {sha1,ecdsa}.
+# 
+# Note: this is a change from TLS 1.1 where there are no explicit
+# rules, but as a practical matter one can assume that the peer
+# supports MD5 and SHA-1.
+# 
+# Note: this extension is not meaningful for TLS versions prior to 1.2.
+# Clients MUST NOT offer it if they are offering prior versions.
+# However, even if clients do offer it, the rules specified in [TLSEXT]
+# require servers to ignore extensions they do not understand.
+# 
+# Servers MUST NOT send this extension.  TLS servers MUST support
+# receiving this extension.
+# 
+# When performing session resumption, this extension is not included in
+# Server Hello, and the server ignores the extension in Client Hello
+# (if present).
+
+[[spec]]
+level = "MUST"
+quote = '''
+It MUST NOT appear in this extension.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If the client supports only the default hash and signature algorithms
+(listed in this section), it MAY omit the signature_algorithms
+extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client does not support the default algorithms, or
+supports other hash and signature algorithms (and it is willing to
+use them for verifying messages sent by the server, i.e., server
+certificates and server key exchange), it MUST send the
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client does not send the signature_algorithms extension, the
+server MUST do the following:
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients MUST NOT offer it if they are offering prior versions.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MUST NOT send this extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+TLS servers MUST support
+receiving this extension.
+'''
+

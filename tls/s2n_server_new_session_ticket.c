@@ -126,6 +126,14 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
         return S2N_RESULT_OK;
     }
 
+    /* Legacy behavior is that the s2n server sends a NST even if the client did not indicate support
+     * for resumption or does not support the psk_dhe_ke mode. This is potentially wasteful so we 
+     * choose to not extend this behavior to QUIC.
+     */
+    if (conn->quic_enabled && conn->psk_params.psk_ke_mode != S2N_PSK_DHE_KE) {
+        return S2N_RESULT_OK;
+    }
+
     /* No-op if all tickets already sent.
      * Clean up the stuffer used for the ticket to conserve memory. */
     if (conn->tickets_to_send == conn->tickets_sent) {

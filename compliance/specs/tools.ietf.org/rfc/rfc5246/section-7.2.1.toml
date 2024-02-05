@@ -1,0 +1,59 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-7.2.1"
+
+# 7.2.1.  Closure Alerts
+#
+# The client and the server must share knowledge that the connection is
+# ending in order to avoid a truncation attack.  Either party may
+# initiate the exchange of closing messages.
+# 
+# close_notify
+#    This message notifies the recipient that the sender will not send
+#    any more messages on this connection.  Note that as of TLS 1.1,
+#    failure to properly close a connection no longer requires that a
+#    session not be resumed.  This is a change from TLS 1.0 to conform
+#    with widespread implementation practice.
+# 
+# Either party may initiate a close by sending a close_notify alert.
+# Any data received after a closure alert is ignored.
+# 
+# Unless some other fatal alert has been transmitted, each party is
+# required to send a close_notify alert before closing the write side
+# of the connection.  The other party MUST respond with a close_notify
+# alert of its own and close down the connection immediately,
+# discarding any pending writes.  It is not required for the initiator
+# of the close to wait for the responding close_notify alert before
+# closing the read side of the connection.
+# 
+# If the application protocol using TLS provides that any data may be
+# carried over the underlying transport after the TLS connection is
+# closed, the TLS implementation must receive the responding
+# close_notify alert before indicating to the application layer that
+# the TLS connection has ended.  If the application protocol will not
+# transfer any additional data, but will only close the underlying
+# transport connection, then the implementation MAY choose to close the
+# transport without waiting for the responding close_notify.  No part
+# 
+# of this standard should be taken to dictate the manner in which a
+# usage profile for TLS manages its data transport, including when
+# connections are opened or closed.
+# 
+# Note: It is assumed that closing a connection reliably delivers
+# pending data before destroying the transport.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The other party MUST respond with a close_notify
+alert of its own and close down the connection immediately,
+discarding any pending writes.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If the application protocol will not
+transfer any additional data, but will only close the underlying
+transport connection, then the implementation MAY choose to close the
+transport without waiting for the responding close_notify.
+'''
+

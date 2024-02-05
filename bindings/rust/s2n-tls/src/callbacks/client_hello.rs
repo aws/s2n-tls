@@ -12,7 +12,7 @@ use std::{future::Future, pin::Pin};
 ///
 /// Use in conjunction with
 /// [config::Builder::set_client_hello_callback](`crate::config::Builder::set_client_hello_callback()`).
-pub trait ClientHelloCallback {
+pub trait ClientHelloCallback: 'static + Send + Sync {
     /// The application can return an `Ok(None)` to resolve the callback
     /// synchronously or return an `Ok(Some(ConnectionFuture))` if it wants to
     /// run some asynchronous task before resolving the callback.
@@ -42,13 +42,15 @@ pin_project! {
     }
 }
 
-impl<F: Future<Output = Result<Config, Error>>> ConfigResolver<F> {
+impl<F: 'static + Send + Future<Output = Result<Config, Error>>> ConfigResolver<F> {
     pub fn new(fut: F) -> Self {
         ConfigResolver { fut }
     }
 }
 
-impl<F: Future<Output = Result<Config, Error>>> ConnectionFuture for ConfigResolver<F> {
+impl<F: 'static + Send + Future<Output = Result<Config, Error>>> ConnectionFuture
+    for ConfigResolver<F>
+{
     fn poll(
         self: Pin<&mut Self>,
         connection: &mut Connection,

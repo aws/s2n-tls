@@ -26,9 +26,6 @@ base_packages() {
     # We don't use NodeJS, so just remove it.
     yum erase -y nodejs || true
     yum update -y
-    # The default openssl-devel on AL2 is openssl-1.0.
-    # We replace it with openssl-1.1 later in the build process.
-    yum erase -y openssl-devel || true
     yum install -y https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm || true
     yum install amazon-linux-extras
 
@@ -59,5 +56,15 @@ symlink_all_the_things() {
 base_packages
 mono
 yum groupinstall -y "Development tools"
-yum install -y clang cmake3 iproute net-tools nettle-devel nettle openssl11-static openssl11-libs openssl11-devel which sudo psmisc python3-pip  tcpdump unzip zlib-devel libtool ninja-build valgrind  wget which
+yum install -y clang cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
+yum install -y python3-pip tcpdump unzip zlib-devel libtool ninja-build valgrind wget
 symlink_all_the_things
+
+case "$S2N_LIBCRYPTO" in
+  "openssl-1.1.1")
+    yum erase -y openssl-devel || true
+    yum install -y openssl11-static openssl11-libs openssl11-devel
+    ;;
+  "default") echo "Using default system libcrypto";;
+  *) echo "Unknown libcrypto: ${S2N_LIBCRYPTO}"; exit 1;;
+esac

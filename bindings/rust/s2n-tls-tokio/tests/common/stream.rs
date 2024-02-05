@@ -14,11 +14,13 @@ use tokio::{
 
 type ReadFn = Box<dyn Fn(Pin<&mut TcpStream>, &mut Context, &mut ReadBuf) -> Poll<io::Result<()>>>;
 type WriteFn = Box<dyn Fn(Pin<&mut TcpStream>, &mut Context, &[u8]) -> Poll<io::Result<usize>>>;
+type ShutdownFn = Box<dyn Fn(Pin<&mut TcpStream>, &mut Context) -> Poll<io::Result<()>>>;
 
 #[derive(Default)]
 struct OverrideMethods {
     next_read: Option<ReadFn>,
     next_write: Option<WriteFn>,
+    next_shutdown: Option<ShutdownFn>,
 }
 
 #[derive(Default)]
@@ -36,7 +38,26 @@ impl Overrides {
             overrides.next_write = input;
         }
     }
+
+    pub fn next_shutdown(&self, input: Option<ShutdownFn>) {
+        if let Ok(mut overrides) = self.0.lock() {
+            overrides.next_shutdown = input;
+        }
+    }
+
+    pub fn is_consumed(&self) -> bool {
+        if let Ok(overrides) = self.0.lock() {
+            overrides.next_read.is_none()
+                && overrides.next_write.is_none()
+                && overrides.next_shutdown.is_none()
+        } else {
+            false
+        }
+    }
 }
+
+unsafe impl Send for Overrides {}
+unsafe impl Sync for Overrides {}
 
 pub struct TestStream {
     stream: TcpStream,
@@ -97,7 +118,17 @@ impl AsyncWrite for TestStream {
         Pin::new(&mut self.stream).poll_flush(ctx)
     }
 
-    fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        Pin::new(&mut self.stream).poll_shutdown(ctx)
+    fn poll_shutdown(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
+        let s = self.get_mut();
+        let stream = Pin::new(&mut s.stream);
+        let action = match s.overrides.0.lock() {
+            Ok(mut overrides) => overrides.next_shutdown.take(),
+            _ => None,
+        };
+        if let Some(f) = action {
+            (f)(stream, ctx)
+        } else {
+            stream.poll_shutdown(ctx)
+        }
     }
 }

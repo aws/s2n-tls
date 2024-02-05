@@ -48,7 +48,7 @@ LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_T
 TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
 GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
 
-FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/pq-crypto ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
+FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
 then
@@ -197,7 +197,13 @@ then
             printf "\033[33;1mWARNING!\033[0m ${TEST_NAME} is only ${TESTS_PER_SEC} tests/sec, which is below ${MIN_TEST_PER_SEC}/sec! Fuzz tests are more effective at higher rates.\n\n"
         fi
 
-        if [ "$FEATURE_COVERAGE" -lt $MIN_FEATURES_COVERED ]; then
+        COVERAGE_FAILURE_ALLOWED=0
+        if grep -Fxq ${TEST_NAME} ./allowed_coverage_failures.cfg
+        then
+            COVERAGE_FAILURE_ALLOWED=1
+        fi
+
+        if [ "$FEATURE_COVERAGE" -lt $MIN_FEATURES_COVERED && COVERAGE_FAILURE_ALLOWED -eq 0 ]; then
             printf "\033[31;1mERROR!\033[0m ${TEST_NAME} only covers ${FEATURE_COVERAGE} features, which is below ${MIN_FEATURES_COVERED}! This may be due to missing corpus files or a bug.\n"
             exit -1;
         fi

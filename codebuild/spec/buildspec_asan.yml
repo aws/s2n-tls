@@ -1,0 +1,63 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+# This buildspec runs on an Ubuntu22 image. That configuration is a property of
+# the codebuild job itself.
+
+# Codebuild's matrix jobs have non-differentiated names so use batch-list
+# instead.
+batch:
+  build-list:
+    # awslc is the happy path libcrypto for s2n-tls
+    - identifier: awslc
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: awslc
+    # s2n-tls takes different code paths for ossl3, so make sure we run asan on
+    # it. See pr 4033 for a historical motivating example.
+    - identifier: openssl_3_0
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0
+    # openssl 1.1.1 is a widely deployed version of openssl.
+    - identifier: openssl_1_1_1
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+    # openssl 1.0.2 is the default distributed on AL2, and AL2 is still widely
+    # deployed
+    - identifier: openssl_1_0_2
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2
+
+phases:
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        cmake . -Bbuild \
+          -DCMAKE_C_COMPILER=/usr/bin/clang \
+          -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
+          -DASAN=ON
+      - cmake --build ./build -- -j $(nproc)
+  post_build:
+    on-failure: ABORT
+    commands:
+      - CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test

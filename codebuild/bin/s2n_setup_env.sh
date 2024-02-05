@@ -151,9 +151,11 @@ fi
 
 if [[ "$S2N_LIBCRYPTO" == "libressl" ]]; then export LIBCRYPTO_ROOT=$LIBRESSL_INSTALL_DIR ; fi
 
-# Create a link to the selected libcrypto. This shouldn't be needed when LIBCRYPTO_ROOT is set, but some tests
-# have the "libcrypto-root" directory path hardcoded.
-rm -rf libcrypto-root && ln -s "$LIBCRYPTO_ROOT" libcrypto-root
+if [[ -n "${LIBCRYPTO_ROOT:-}" ]]; then
+  # Create a link to the selected libcrypto. This shouldn't be needed when LIBCRYPTO_ROOT is set, but some tests
+  # have the "libcrypto-root" directory path hardcoded.
+  rm -rf libcrypto-root && ln -s "$LIBCRYPTO_ROOT" libcrypto-root
+fi
 
 # Set the libfuzzer to use for fuzz tests
 export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
@@ -219,11 +221,10 @@ set_cc
 echo "UID=$UID"
 echo "OS_NAME=$OS_NAME"
 echo "S2N_LIBCRYPTO=$S2N_LIBCRYPTO"
-echo "LIBCRYPTO_ROOT=$LIBCRYPTO_ROOT"
+echo "LIBCRYPTO_ROOT=${LIBCRYPTO_ROOT:-}"
 echo "BUILD_S2N=$BUILD_S2N"
 echo "GCC_VERSION=$GCC_VERSION"
 echo "LATEST_CLANG=$LATEST_CLANG"
 echo "TESTS=$TESTS"
 echo "PATH=$PATH"
 echo "LD_LIBRARY_PATH=$LD_LIBRARY_PATH"
-

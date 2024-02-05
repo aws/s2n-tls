@@ -19,7 +19,6 @@
 #include "crypto/s2n_locking.h"
 #include "error/s2n_errno.h"
 #include "openssl/opensslv.h"
-#include "pq-crypto/s2n_pq.h"
 #include "tls/extensions/s2n_client_key_share.h"
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_cipher_suites.h"
@@ -77,8 +76,8 @@ int s2n_init(void)
     POSIX_GUARD(s2n_security_policies_init());
     POSIX_GUARD(s2n_config_defaults_init());
     POSIX_GUARD(s2n_extension_type_init());
-    POSIX_GUARD_RESULT(s2n_pq_init());
     POSIX_GUARD_RESULT(s2n_tls13_empty_transcripts_init());
+    POSIX_GUARD_RESULT(s2n_atomic_init());
 
     if (atexit_cleanup) {
         POSIX_ENSURE_OK(atexit(s2n_cleanup_atexit), S2N_ERR_ATEXIT);
@@ -131,4 +130,9 @@ int s2n_cleanup(void)
 static void s2n_cleanup_atexit(void)
 {
     (void) s2n_cleanup_atexit_impl();
+}
+
+bool s2n_is_initialized(void)
+{
+    return initialized;
 }

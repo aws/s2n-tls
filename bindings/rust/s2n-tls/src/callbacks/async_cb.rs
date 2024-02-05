@@ -26,7 +26,7 @@ use std::pin::Pin;
 /// if it wants to run an asynchronous operation (disk read, network call).
 /// The application can return an error ([Err(Error::application())])
 /// to indicate connection failure.
-pub trait ConnectionFuture {
+pub trait ConnectionFuture: 'static + Send {
     fn poll(
         self: Pin<&mut Self>,
         connection: &mut Connection,
@@ -58,7 +58,7 @@ impl ConnectionFuture for ErrorFuture {
 pin_project! {
     /// A wrapper around an optional [`ConnectionFuture`]
     /// which either polls the future or immediately reports success.
-    struct OptionalFuture{
+    struct OptionalFuture {
         option: Option<Pin<Box<dyn ConnectionFuture>>>,
     }
 }

@@ -40,7 +40,7 @@
 /**
  * Sets the global `s2n_errno` to `error` and returns with an `S2N_RESULT_ERROR`
  */
-#define RESULT_BAIL(error)                                     do { _S2N_ERROR((error)); return S2N_RESULT_ERROR; } while (0)
+#define RESULT_BAIL(error)                                     do { _S2N_ERROR((error)); __S2N_ENSURE_CHECKED_RETURN(S2N_RESULT_ERROR); } while (0)
 
 /**
  * Ensures the `condition` is `true`, otherwise the function will `RESULT_BAIL` with `error`
@@ -161,7 +161,7 @@
  * * The size of the data pointed to by both the `destination` and `source` parameters,
  *   shall be at least `len` bytes.
  */
-#define RESULT_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), RESULT_GUARD_PTR)
+#define RESULT_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), RESULT_ENSURE_REF)
 
 /**
  * Performs a safer memset
@@ -180,7 +180,7 @@
 /**
  * Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_RESULT_ERROR`
  */
-#define RESULT_GUARD(result)                                   __S2N_ENSURE(s2n_result_is_ok(result), return S2N_RESULT_ERROR)
+#define RESULT_GUARD(result)                                   __S2N_ENSURE(s2n_result_is_ok(result), __S2N_ENSURE_CHECKED_RETURN(S2N_RESULT_ERROR))
 
 /**
  * Ensures `result == _OSSL_SUCCESS`, otherwise the function will `RESULT_BAIL` with `error`
@@ -190,21 +190,21 @@
 /**
  * Ensures `(result) > S2N_FAILURE`, otherwise the function will return `S2N_RESULT_ERROR`
  */
-#define RESULT_GUARD_POSIX(result)                             __S2N_ENSURE((result) > S2N_FAILURE, return S2N_RESULT_ERROR)
+#define RESULT_GUARD_POSIX(result)                             __S2N_ENSURE((result) > S2N_FAILURE, __S2N_ENSURE_CHECKED_RETURN(S2N_RESULT_ERROR))
 
 /**
  * Ensures `(result) != NULL`, otherwise the function will return `S2N_RESULT_ERROR`
  *
  * Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for RESULT_ENSURE_REF.
  */
-#define RESULT_GUARD_PTR(result)                               __S2N_ENSURE((result) != NULL, return S2N_RESULT_ERROR)
+#define RESULT_GUARD_PTR(result)                               __S2N_ENSURE((result) != NULL, __S2N_ENSURE_CHECKED_RETURN(S2N_RESULT_ERROR))
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
  * Sets the global `s2n_errno` to `error` and returns with an `S2N_FAILURE`
  */
-#define POSIX_BAIL(error)                                     do { _S2N_ERROR((error)); return S2N_FAILURE; } while (0)
+#define POSIX_BAIL(error)                                     do { _S2N_ERROR((error)); __S2N_ENSURE_CHECKED_RETURN(S2N_FAILURE); } while (0)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -357,7 +357,7 @@
  * * The size of the data pointed to by both the `destination` and `source` parameters,
  *   shall be at least `len` bytes.
  */
-#define POSIX_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), POSIX_GUARD_PTR)
+#define POSIX_CHECKED_MEMCPY(destination, source, len)        __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), POSIX_ENSURE_REF)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -380,7 +380,7 @@
  *
  * Ensures `(result) > S2N_FAILURE`, otherwise the function will return `S2N_FAILURE`
  */
-#define POSIX_GUARD(result)                                   __S2N_ENSURE((result) > S2N_FAILURE, return S2N_FAILURE)
+#define POSIX_GUARD(result)                                   __S2N_ENSURE((result) > S2N_FAILURE, __S2N_ENSURE_CHECKED_RETURN(S2N_FAILURE))
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -394,7 +394,7 @@
  *
  * Ensures `s2n_result_is_ok(result)`, otherwise the function will return `S2N_FAILURE`
  */
-#define POSIX_GUARD_RESULT(result)                            __S2N_ENSURE(s2n_result_is_ok(result), return S2N_FAILURE)
+#define POSIX_GUARD_RESULT(result)                            __S2N_ENSURE(s2n_result_is_ok(result), __S2N_ENSURE_CHECKED_RETURN(S2N_FAILURE))
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -403,14 +403,14 @@
  *
  * Does not set s2n_errno to S2N_ERR_NULL, so is NOT a direct replacement for POSIX_ENSURE_REF.
  */
-#define POSIX_GUARD_PTR(result)                               __S2N_ENSURE((result) != NULL, return S2N_FAILURE)
+#define POSIX_GUARD_PTR(result)                               __S2N_ENSURE((result) != NULL, __S2N_ENSURE_CHECKED_RETURN(S2N_FAILURE))
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
  * Sets the global `s2n_errno` to `error` and returns with an `NULL`
  */
-#define PTR_BAIL(error)                                       do { _S2N_ERROR((error)); return NULL; } while (0)
+#define PTR_BAIL(error)                                       do { _S2N_ERROR((error)); __S2N_ENSURE_CHECKED_RETURN(NULL); } while (0)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -563,7 +563,7 @@
  * * The size of the data pointed to by both the `destination` and `source` parameters,
  *   shall be at least `len` bytes.
  */
-#define PTR_CHECKED_MEMCPY(destination, source, len)          __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), PTR_GUARD)
+#define PTR_CHECKED_MEMCPY(destination, source, len)          __S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), PTR_ENSURE_REF)
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -586,7 +586,7 @@
  *
  * Ensures `(result) != NULL`, otherwise the function will return `NULL`
  */
-#define PTR_GUARD(result)                                     __S2N_ENSURE((result) != NULL, return NULL)
+#define PTR_GUARD(result)                                     __S2N_ENSURE((result) != NULL, __S2N_ENSURE_CHECKED_RETURN(NULL))
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
@@ -600,12 +600,12 @@
  *
  * Ensures `s2n_result_is_ok(result)`, otherwise the function will return `NULL`
  */
-#define PTR_GUARD_RESULT(result)                              __S2N_ENSURE(s2n_result_is_ok(result), return NULL)
+#define PTR_GUARD_RESULT(result)                              __S2N_ENSURE(s2n_result_is_ok(result), __S2N_ENSURE_CHECKED_RETURN(NULL))
 
 /**
  * DEPRECATED: all methods (except those in s2n.h) should return s2n_result.
  *
  * Ensures `(result) > S2N_FAILURE`, otherwise the function will return `NULL`
  */
-#define PTR_GUARD_POSIX(result)                               __S2N_ENSURE((result) > S2N_FAILURE, return NULL)
+#define PTR_GUARD_POSIX(result)                               __S2N_ENSURE((result) > S2N_FAILURE, __S2N_ENSURE_CHECKED_RETURN(NULL))
 

@@ -15,6 +15,7 @@
 
 #include "tls/s2n_connection.h"
 
+#include "api/unstable/ktls.h"
 #include "crypto/s2n_hash.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
@@ -253,8 +254,10 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = S2N_TLS_HASH_NONE; i <= UINT16_MAX; i++) {
-            conn->handshake_params.client_cert_sig_scheme.hash_alg = i;
-            conn->handshake_params.conn_sig_scheme.hash_alg = i;
+            struct s2n_signature_scheme test_scheme = *conn->handshake_params.client_cert_sig_scheme;
+            test_scheme.hash_alg = i;
+            conn->handshake_params.client_cert_sig_scheme = &test_scheme;
+            conn->handshake_params.server_cert_sig_scheme = &test_scheme;
             if (i <= S2N_HASH_SENTINEL) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_digest_algorithm(conn, &output));
                 EXPECT_EQUAL(expected_output[i], output);
@@ -300,8 +303,10 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i <= UINT16_MAX; i++) {
-            conn->handshake_params.client_cert_sig_scheme.sig_alg = i;
-            conn->handshake_params.conn_sig_scheme.sig_alg = i;
+            struct s2n_signature_scheme test_scheme = *conn->handshake_params.client_cert_sig_scheme;
+            test_scheme.sig_alg = i;
+            conn->handshake_params.client_cert_sig_scheme = &test_scheme;
+            conn->handshake_params.server_cert_sig_scheme = &test_scheme;
 
             if (i < s2n_array_len(expected_output)) {
                 EXPECT_SUCCESS(s2n_connection_get_selected_client_cert_signature_algorithm(conn, &output));
@@ -795,14 +800,6 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(NULL, S2N_IO_CLOSED));
             EXPECT_FALSE(s2n_connection_check_io_status(NULL, 10));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, 10));
-
-            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
-            conn->write_closed = 10;
-            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
-
-            EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
-            conn->read_closed = 10;
-            EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
         }
 
         /* TLS1.2 */
@@ -819,24 +816,24 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
             /* Close write */
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->write_closed = 0;
+            s2n_atomic_flag_clear(&conn->write_closed);
 
             /* Close read */
-            conn->read_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->read_closed = 0;
+            s2n_atomic_flag_clear(&conn->read_closed);
 
             /* Close both */
-            conn->read_closed = 1;
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
@@ -857,30 +854,57 @@ int main(int argc, char **argv)
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
 
             /* Close write */
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->write_closed = 0;
+            s2n_atomic_flag_clear(&conn->write_closed);
 
             /* Close read */
-            conn->read_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
-            conn->read_closed = 0;
+            s2n_atomic_flag_clear(&conn->read_closed);
 
             /* Close both */
-            conn->read_closed = 1;
-            conn->write_closed = 1;
+            s2n_atomic_flag_set(&conn->read_closed);
+            s2n_atomic_flag_set(&conn->write_closed);
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_WRITABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_READABLE));
             EXPECT_FALSE(s2n_connection_check_io_status(conn, S2N_IO_FULL_DUPLEX));
             EXPECT_TRUE(s2n_connection_check_io_status(conn, S2N_IO_CLOSED));
         };
     };
+
+    /* Test s2n_connection_get_key_update_counts */
+    {
+        /* Safety */
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+        uint8_t send_count = 0, recv_count = 0;
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(NULL, &send_count, &recv_count),
+                S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(conn, NULL, &recv_count),
+                S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(
+                s2n_connection_get_key_update_counts(conn, &send_count, NULL),
+                S2N_ERR_NULL);
+
+        /* Returns counts */
+        const uint8_t expected_send_count = 10;
+        conn->send_key_updated = expected_send_count;
+        const uint8_t expected_recv_count = 255;
+        conn->recv_key_updated = expected_recv_count;
+        EXPECT_SUCCESS(s2n_connection_get_key_update_counts(conn, &send_count, &recv_count));
+        EXPECT_EQUAL(send_count, expected_send_count);
+        EXPECT_EQUAL(recv_count, expected_recv_count);
+    }
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));

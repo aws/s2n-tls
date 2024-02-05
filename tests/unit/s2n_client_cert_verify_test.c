@@ -169,7 +169,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
 
         /* Set any signature scheme. Our test pkey methods ignore it. */
-        conn->handshake_params.client_cert_sig_scheme = s2n_rsa_pkcs1_md5_sha1;
+        conn->handshake_params.client_cert_sig_scheme = &s2n_rsa_pkcs1_md5_sha1;
 
         struct s2n_cert_chain_and_key *chain_and_key;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

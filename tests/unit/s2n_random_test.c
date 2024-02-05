@@ -48,6 +48,10 @@
 #define NUMBER_OF_RANGE_FUNCTION_CALLS 200
 #define MAX_REPEATED_OUTPUT            4
 
+S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device);
+S2N_RESULT s2n_rand_get_urandom_for_test(struct s2n_rand_device **device);
+S2N_RESULT s2n_rand_set_urandom_for_test();
+
 struct random_test_case {
     const char *test_case_label;
     int (*test_case_cb)(struct random_test_case *test_case);
@@ -765,6 +769,17 @@ static int s2n_random_test_case_failure_cb(struct random_test_case *test_case)
     return EXIT_SUCCESS;
 }
 
+static int s2n_random_noop_destructor_test_cb(struct random_test_case *test_case)
+{
+    /* Ensure that the destructor / cleanup does not require s2n_init to have been called.
+     * If applications load s2n-tls but do not actually use it, our cleanup should not fail.
+     *
+     * Other test cases may currently trigger this scenario if the feature they
+     * intend to test is not available so they exit before calling s2n_init.
+     */
+    return EXIT_SUCCESS;
+}
+
 static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_case)
 {
     s2n_disable_atexit();
@@ -777,17 +792,76 @@ static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_
     return S2N_SUCCESS;
 }
 
+static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
+{
+    EXPECT_SUCCESS(s2n_disable_atexit());
+
+    struct s2n_rand_device *dev_urandom = NULL;
+    EXPECT_OK(s2n_rand_get_urandom_for_test(&dev_urandom));
+    EXPECT_NOT_NULL(dev_urandom);
+
+    for (size_t test = 0; test <= 1; test++) {
+        EXPECT_EQUAL(dev_urandom->fd, -1);
+
+        /* Validation should fail before initialization. */
+        EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
+
+        EXPECT_SUCCESS(s2n_init());
+
+        /* Validation should succeed after initialization. */
+        EXPECT_OK(s2n_rand_device_validate(dev_urandom));
+
+        /* Override the mix callback with urandom, in case support for rdrand is detected and enabled. */
+        EXPECT_OK(s2n_rand_set_urandom_for_test());
+
+        EXPECT_TRUE(dev_urandom->fd > STDERR_FILENO);
+        if (test == 0) {
+            /* Close the file descriptor. */
+            EXPECT_EQUAL(close(dev_urandom->fd), 0);
+        } else {
+            /* Make the file descriptor invalid by pointing it to STDERR. */
+            dev_urandom->fd = STDERR_FILENO;
+        }
+
+        /* Validation should fail when the file descriptor is invalid. */
+        EXPECT_ERROR(s2n_rand_device_validate(dev_urandom));
+
+        s2n_stack_blob(rand_data, 16, 16);
+        EXPECT_OK(s2n_get_public_random_data(&rand_data));
+
+        uint64_t public_bytes_used = 0;
+        EXPECT_OK(s2n_get_public_random_bytes_used(&public_bytes_used));
+
+        if (s2n_is_in_fips_mode()) {
+            /* The urandom implementation should not be in use when s2n-tls is in FIPS mode. */
+            EXPECT_EQUAL(public_bytes_used, 0);
+        } else {
+            /* When the urandom implementation is used, the file descriptor is re-opened and
+             * validation should succeed.
+             */
+            EXPECT_OK(s2n_rand_device_validate(dev_urandom));
+            EXPECT_TRUE(public_bytes_used > 0);
+        }
+
+        EXPECT_SUCCESS(s2n_cleanup());
+    }
+
+    return S2N_SUCCESS;
+}
+
 struct random_test_case random_test_cases[] = {
     { "Random API.", s2n_random_test_case_default_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     { "Random API without prediction resistance.", s2n_random_test_case_without_pr_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     { "Random API without prediction resistance and with only pthread_atfork fork detection mechanism.", s2n_random_test_case_without_pr_pthread_atfork_cb, CLONE_TEST_NO, EXIT_SUCCESS },
     { "Random API without prediction resistance and with only madv_wipeonfork fork detection mechanism.", s2n_random_test_case_without_pr_madv_wipeonfork_cb, CLONE_TEST_YES, EXIT_SUCCESS },
     { "Random API without prediction resistance and with only map_inheret_zero fork detection mechanism.", s2n_random_test_case_without_pr_map_inherit_zero_cb, CLONE_TEST_YES, EXIT_SUCCESS },
+    { "Test destructor without s2n_init", s2n_random_noop_destructor_test_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     /* The s2n FAIL_MSG() macro uses exit(1) not exit(EXIT_FAILURE). So, we need
      * to use 1 below and in s2n_random_test_case_failure_cb().
      */
     { "Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1 },
     { "Test libcrypto's RAND engine is reset correctly after manual s2n_cleanup()", s2n_random_rand_bytes_after_cleanup_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
+    { "Test getting entropy with an invalid file descriptor", s2n_random_invalid_urandom_fd_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
 };
 
 int main(int argc, char **argv)

@@ -21,7 +21,7 @@
 #include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
-static S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
+S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_stuffer *in, uint8_t message_type)
 {
     RESULT_ENSURE_REF(conn);
 

@@ -37,7 +37,7 @@
  * [x] server_handshake_traffic_secret
  * [x] client_application_traffic_secret_0
  * [x] server_application_traffic_secret_0
- * [ ] exporter_master_secret
+ * [x] exporter_master_secret
  * [x] resumption_master_secret
  *
  * The TLS 1.3 key generation can be divided into 3 phases
@@ -78,6 +78,11 @@ S2N_BLOB_LABEL(s2n_tls13_label_session_ticket_secret, "resumption")
  */
 S2N_BLOB_LABEL(s2n_tls13_label_traffic_secret_key, "key")
 S2N_BLOB_LABEL(s2n_tls13_label_traffic_secret_iv, "iv")
+
+/*
+ * TLS 1.3 Exporter label
+ */
+S2N_BLOB_LABEL(s2n_tls13_label_exporter, "exporter")
 
 /*
  * TLS 1.3 Finished label

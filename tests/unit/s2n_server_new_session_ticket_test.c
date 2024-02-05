@@ -911,6 +911,38 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         };
 
+        /* QUIC mode is enabled */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->tickets_to_send = 1;
+            conn->actual_protocol_version = S2N_TLS13;
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            s2n_blocked_status blocked = 0;
+
+            conn->quic_enabled = true;
+            /* No mutually-supported psk mode agreed upon */
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 0);
+
+            /* Client has indicated that it supports both resumption and psk_dhe_ke mode */
+            conn->psk_params.psk_ke_mode = S2N_PSK_DHE_KE;
+            EXPECT_OK(s2n_tls13_server_nst_send(conn, &blocked));
+            EXPECT_TICKETS_SENT(conn, 1);
+        };
+
         /* Sends one new session ticket */
         {
             struct s2n_config *config;

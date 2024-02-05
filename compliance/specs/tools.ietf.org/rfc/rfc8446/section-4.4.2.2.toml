@@ -1,0 +1,137 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-4.4.2.2"
+
+# 4.4.2.2.  Server Certificate Selection
+#
+# The following rules apply to the certificates sent by the server:
+# 
+# -  The certificate type MUST be X.509v3 [RFC5280], unless explicitly
+#    negotiated otherwise (e.g., [RFC7250]).
+# 
+# -  The server's end-entity certificate's public key (and associated
+#    restrictions) MUST be compatible with the selected authentication
+#    algorithm from the client's "signature_algorithms" extension
+#    (currently RSA, ECDSA, or EdDSA).
+# 
+# -  The certificate MUST allow the key to be used for signing (i.e.,
+#    the digitalSignature bit MUST be set if the Key Usage extension is
+#    present) with a signature scheme indicated in the client's
+#    "signature_algorithms"/"signature_algorithms_cert" extensions (see
+#    Section 4.2.3).
+# 
+# -  The "server_name" [RFC6066] and "certificate_authorities"
+#    extensions are used to guide certificate selection.  As servers
+#    MAY require the presence of the "server_name" extension, clients
+#    SHOULD send this extension, when applicable.
+# 
+# All certificates provided by the server MUST be signed by a signature
+# algorithm advertised by the client if it is able to provide such a
+# chain (see Section 4.2.3).  Certificates that are self-signed or
+# certificates that are expected to be trust anchors are not validated
+# as part of the chain and therefore MAY be signed with any algorithm.
+# 
+# If the server cannot produce a certificate chain that is signed only
+# via the indicated supported algorithms, then it SHOULD continue the
+# handshake by sending the client a certificate chain of its choice
+# that may include algorithms that are not known to be supported by the
+# client.  This fallback chain SHOULD NOT use the deprecated SHA-1 hash
+# algorithm in general, but MAY do so if the client's advertisement
+# permits it, and MUST NOT do so otherwise.
+# 
+# If the client cannot construct an acceptable chain using the provided
+# certificates and decides to abort the handshake, then it MUST abort
+# the handshake with an appropriate certificate-related alert (by
+# default, "unsupported_certificate"; see Section 6.2 for more
+# information).
+# 
+# If the server has multiple certificates, it chooses one of them based
+# on the above-mentioned criteria (in addition to other criteria, such
+# as transport-layer endpoint, local configuration, and preferences).
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  The certificate type MUST be X.509v3 [RFC5280], unless explicitly
+negotiated otherwise (e.g., [RFC7250]).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  The server's end-entity certificate's public key (and associated
+restrictions) MUST be compatible with the selected authentication
+algorithm from the client's "signature_algorithms" extension
+(currently RSA, ECDSA, or EdDSA).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  The certificate MUST allow the key to be used for signing (i.e.,
+the digitalSignature bit MUST be set if the Key Usage extension is
+present) with a signature scheme indicated in the client's
+"signature_algorithms"/"signature_algorithms_cert" extensions (see
+Section 4.2.3).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  The certificate MUST allow the key to be used for signing (i.e.,
+the digitalSignature bit MUST be set if the Key Usage extension is
+present) with a signature scheme indicated in the client's
+"signature_algorithms"/"signature_algorithms_cert" extensions (see
+Section 4.2.3).
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+As servers
+MAY require the presence of the "server_name" extension, clients
+SHOULD send this extension, when applicable.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+All certificates provided by the server MUST be signed by a signature
+algorithm advertised by the client if it is able to provide such a
+chain (see Section 4.2.3).
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Certificates that are self-signed or
+certificates that are expected to be trust anchors are not validated
+as part of the chain and therefore MAY be signed with any algorithm.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If the server cannot produce a certificate chain that is signed only
+via the indicated supported algorithms, then it SHOULD continue the
+handshake by sending the client a certificate chain of its choice
+that may include algorithms that are not known to be supported by the
+client.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This fallback chain SHOULD NOT use the deprecated SHA-1 hash
+algorithm in general, but MAY do so if the client's advertisement
+permits it, and MUST NOT do so otherwise.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client cannot construct an acceptable chain using the provided
+certificates and decides to abort the handshake, then it MUST abort
+the handshake with an appropriate certificate-related alert (by
+default, "unsupported_certificate"; see Section 6.2 for more
+information).
+'''
+

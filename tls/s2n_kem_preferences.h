@@ -26,7 +26,7 @@ struct s2n_kem_preferences {
     const struct s2n_kem **kems;
 
     /* tls13_kem_groups used for hybrid TLS 1.3 */
-    uint8_t tls13_kem_group_count;
+    const uint8_t tls13_kem_group_count;
     const struct s2n_kem_group **tls13_kem_groups;
 
     /* Which draft revision data format should the client use in its ClientHello. Currently the server will auto-detect
@@ -39,15 +39,23 @@ struct s2n_kem_preferences {
     uint8_t tls13_pq_hybrid_draft_revision;
 };
 
-extern const struct s2n_kem *pq_kems_r3_2021_05[1];
+extern const struct s2n_kem *pq_kems_r3_2021_05[];
 
-extern const struct s2n_kem_group *pq_kem_groups_r3[];
+extern const struct s2n_kem_group *pq_kem_groups_r3_2021_05[];
+extern const struct s2n_kem_group *pq_kem_groups_r3_2023_06[];
 
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05;
 extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2023_01;
+extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_06;
+extern const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_12;
+extern const struct s2n_kem_preferences kem_preferences_all;
 extern const struct s2n_kem_preferences kem_preferences_null;
 
 bool s2n_kem_preferences_includes_tls13_kem_group(const struct s2n_kem_preferences *kem_preferences,
         uint16_t query_iana_id);
 
 bool s2n_tls13_client_must_use_hybrid_kem_length_prefix(const struct s2n_kem_preferences *kem_pref);
+
+const struct s2n_kem_group *s2n_kem_preferences_get_highest_priority_group(const struct s2n_kem_preferences *kem_preferences);
+
+S2N_RESULT s2n_kem_preferences_groups_available(const struct s2n_kem_preferences *kem_preferences, uint32_t *groups_available);

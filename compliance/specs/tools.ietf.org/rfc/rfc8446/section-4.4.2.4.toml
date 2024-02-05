@@ -1,0 +1,96 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-4.4.2.4"
+
+# 4.4.2.4.  Receiving a Certificate Message
+#
+# In general, detailed certificate validation procedures are out of
+# scope for TLS (see [RFC5280]).  This section provides TLS-specific
+# requirements.
+# 
+# If the server supplies an empty Certificate message, the client MUST
+# abort the handshake with a "decode_error" alert.
+# 
+# If the client does not send any certificates (i.e., it sends an empty
+# Certificate message), the server MAY at its discretion either
+# continue the handshake without client authentication or abort the
+# handshake with a "certificate_required" alert.  Also, if some aspect
+# of the certificate chain was unacceptable (e.g., it was not signed by
+# a known, trusted CA), the server MAY at its discretion either
+# continue the handshake (considering the client unauthenticated) or
+# abort the handshake.
+# 
+# Any endpoint receiving any certificate which it would need to
+# validate using any signature algorithm using an MD5 hash MUST abort
+# the handshake with a "bad_certificate" alert.  SHA-1 is deprecated,
+# and it is RECOMMENDED that any endpoint receiving any certificate
+# which it would need to validate using any signature algorithm using a
+# SHA-1 hash abort the handshake with a "bad_certificate" alert.  For
+# clarity, this means that endpoints can accept these algorithms for
+# certificates that are self-signed or are trust anchors.
+# 
+# All endpoints are RECOMMENDED to transition to SHA-256 or better as
+# soon as possible to maintain interoperability with implementations
+# currently in the process of phasing out SHA-1 support.
+# 
+# Note that a certificate containing a key for one signature algorithm
+# MAY be signed using a different signature algorithm (for instance, an
+# RSA key signed with an ECDSA key).
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server supplies an empty Certificate message, the client MUST
+abort the handshake with a "decode_error" alert.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If the client does not send any certificates (i.e., it sends an empty
+Certificate message), the server MAY at its discretion either
+continue the handshake without client authentication or abort the
+handshake with a "certificate_required" alert.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Also, if some aspect
+of the certificate chain was unacceptable (e.g., it was not signed by
+a known, trusted CA), the server MAY at its discretion either
+continue the handshake (considering the client unauthenticated) or
+abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Any endpoint receiving any certificate which it would need to
+validate using any signature algorithm using an MD5 hash MUST abort
+the handshake with a "bad_certificate" alert.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+SHA-1 is deprecated,
+and it is RECOMMENDED that any endpoint receiving any certificate
+which it would need to validate using any signature algorithm using a
+SHA-1 hash abort the handshake with a "bad_certificate" alert.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+All endpoints are RECOMMENDED to transition to SHA-256 or better as
+soon as possible to maintain interoperability with implementations
+currently in the process of phasing out SHA-1 support.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Note that a certificate containing a key for one signature algorithm
+MAY be signed using a different signature algorithm (for instance, an
+RSA key signed with an ECDSA key).
+'''
+

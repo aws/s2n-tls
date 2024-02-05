@@ -1,0 +1,62 @@
+[package]
+name = "bench"
+version = "0.1.0"
+edition = "2021"
+
+[features]
+default = ["rustls", "openssl"]
+rustls = ["dep:rustls", "rustls-pemfile"]
+openssl = ["dep:openssl"]
+memory = ["plotters", "crabgrind", "structopt"]
+historical-perf = ["plotters", "serde_json", "semver"]
+
+[dependencies]
+s2n-tls = { path = "../s2n-tls" }
+errno = "0.3"
+libc = "0.2"
+strum = { version = "0.25", features = ["derive"] }
+rustls = { version = "0.21", optional = true }
+rustls-pemfile = { version = "1.0", optional = true }
+openssl = { version = "0.10", features = ["vendored"], optional = true }
+crabgrind = { version = "0.1", optional = true }
+structopt = { version = "0.3", optional = true }
+serde_json = { version = "1.0", optional = true }
+semver = { version = "1.0", optional = true }
+
+[dependencies.plotters]
+version = "0.3"
+optional = true
+default-features = false
+features = ["all_series", "all_elements", "full_palette", "svg_backend"]
+
+[dev-dependencies]
+criterion = "0.5"
+pprof = { version = "0.12", features = ["criterion", "flamegraph"] }
+# env_logger and log are used to enable logging for rustls, which can help with
+# debugging interop failures
+env_logger = "0.10"
+log = "0.4"
+
+[[bin]]
+name = "memory"
+required-features = ["memory"]
+
+[[bin]]
+name = "graph_memory"
+required-features = ["memory"]
+
+[[bin]]
+name = "graph_perf"
+required-features = ["historical-perf"]
+
+[[bench]]
+name = "handshake"
+harness = false
+
+[[bench]]
+name = "throughput"
+harness = false
+
+[[bench]]
+name = "resumption"
+harness = false

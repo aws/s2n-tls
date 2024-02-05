@@ -1,0 +1,46 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+env:
+  variables:
+    MUSL_DIR: "test-deps/musl"
+    LIBCRYPTO_DIR: "test-deps/musl-awslc"
+    
+phases:
+  pre_build:
+    on-failure: ABORT
+    commands:
+      # Install musl libc
+      - git clone https://git.musl-libc.org/git/musl $MUSL_DIR
+      - echo "Installing musl to $CODEBUILD_SRC_DIR/$MUSL_DIR"
+      - cd $MUSL_DIR
+      - ./configure --prefix=$CODEBUILD_SRC_DIR/$MUSL_DIR
+      - make install
+      - cd $CODEBUILD_SRC_DIR
+      # Install libcrypto.
+      # We need to modify the usual install so that the library can link to musl.
+      # If this becomes a problem, we can switch to more official cross compilation.
+      - CFLAGS="-U_FORTIFY_SOURCE -D_FILE_OFFSET_BITS=32"
+      - ./codebuild/bin/install_awslc.sh $(mktemp -d) $CODEBUILD_SRC_DIR/$LIBCRYPTO_DIR 0
+  build:
+    on-failure: ABORT
+    commands:
+      - CC="$CODEBUILD_SRC_DIR/$MUSL_DIR/bin/musl-gcc"
+      - cmake . -Bbuild -DCMAKE_PREFIX_PATH=$CODEBUILD_SRC_DIR/$LIBCRYPTO_DIR
+      - cmake --build ./build
+  post_build:
+    on-failure: ABORT
+    commands:
+      - CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test

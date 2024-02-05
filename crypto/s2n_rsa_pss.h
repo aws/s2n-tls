@@ -41,6 +41,6 @@
 #endif
 
 int s2n_is_rsa_pss_certs_supported();
-int s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey);
-int s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey);
-int s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey);
+S2N_RESULT s2n_rsa_pss_pkey_init(struct s2n_pkey *pkey);
+S2N_RESULT s2n_evp_pkey_to_rsa_pss_public_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey);
+S2N_RESULT s2n_evp_pkey_to_rsa_pss_private_key(struct s2n_rsa_key *rsa_key, EVP_PKEY *pkey);

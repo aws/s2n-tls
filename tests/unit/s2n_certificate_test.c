@@ -18,6 +18,7 @@
 #include "crypto/s2n_openssl_x509.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_tls.h"
 #include "utils/s2n_safety.h"
 
 #define S2N_DEFAULT_TEST_CERT_CHAIN_LENGTH 3
@@ -272,25 +273,41 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server_conn->x509_validator.state, VALIDATED);
             EXPECT_NOT_EQUAL(client_conn->x509_validator.state, VALIDATED);
 
-            struct s2n_cert_chain_and_key *test_peer_chain = s2n_cert_chain_and_key_new();
-            EXPECT_NOT_NULL(test_peer_chain);
-
             /* Safety checks */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(NULL, chain_and_key), S2N_ERR_NULL);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, NULL), S2N_ERR_NULL);
+            {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = s2n_cert_chain_and_key_new(),
+                        s2n_cert_chain_and_key_ptr_free);
+                EXPECT_NOT_NULL(chain);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(NULL, chain), S2N_ERR_NULL);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, NULL), S2N_ERR_NULL);
+            }
 
             /* Input certificate chain is not empty */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, chain_and_key),
-                    S2N_ERR_INVALID_ARGUMENT);
+            {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *input = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&input,
+                        S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(server_conn, input),
+                        S2N_ERR_INVALID_ARGUMENT);
+
+                /* Validate that the original cert chain was not modified */
+                EXPECT_NOT_NULL(input->cert_chain);
+                EXPECT_NOT_NULL(input->cert_chain->head);
+                EXPECT_EQUAL(input->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
+            }
 
             /* x509 verification is skipped on client side */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(client_conn, test_peer_chain),
-                    S2N_ERR_CERT_NOT_VALIDATED);
+            {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = s2n_cert_chain_and_key_new(),
+                        s2n_cert_chain_and_key_ptr_free);
+                EXPECT_NOT_NULL(chain);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_peer_cert_chain(client_conn, chain),
+                        S2N_ERR_CERT_NOT_VALIDATED);
+            }
 
             EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
 
             /* Clean-up */
-            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(test_peer_chain));
             EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
         };
@@ -691,7 +708,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(tls12_server_conn->handshake_params.client_cert_chain.size, 0);
         };
 
-        /* Perform TLS1.3 handshake and verify cert chain is NOT available.
+        /* Perform TLS1.3 handshake and verify cert chain is available.
          *
          * The TLS1.3 handshake is only possible if TLS1.3 is fully supported because of client auth:
          * the server doesn't know whether the client will offer a RSA-PSS certificate or not.
@@ -710,7 +727,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(tls13_server_conn->actual_protocol_version, S2N_TLS13);
             EXPECT_NOT_NULL(tls13_server_conn->handshake_params.client_cert_chain.data);
             EXPECT_NOT_EQUAL(tls13_server_conn->handshake_params.client_cert_chain.size, 0);
-        }
+        };
 
         /* Should error if called by client */
         {
@@ -738,7 +755,179 @@ int main(int argc, char **argv)
 
             EXPECT_EQUAL(tls12_output_len, tls13_output_len);
             EXPECT_BYTEARRAY_EQUAL(tls12_output, tls13_output, tls13_output_len);
-        }
+        };
+
+        /* Test: Certificate that skips validation still available */
+        {
+            DEFER_CLEANUP(struct s2n_config *unsafe_config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(unsafe_config, S2N_CERT_AUTH_REQUIRED));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(unsafe_config, chain_and_key));
+
+            /* Disable certificate verification */
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(unsafe_config));
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, unsafe_config));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, unsafe_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
+            EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
+        };
+
+        /* Test: Certificate that fails validation still available */
+        {
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
+            EXPECT_SUCCESS(s2n_config_set_verify_host_callback(client_config, always_verify_host_fn, NULL));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+            EXPECT_SUCCESS(s2n_config_set_verify_host_callback(server_config, always_verify_host_fn, NULL));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+            /* Disable client verification of the server cert.
+             * Do not disable server verification of the client cert, but also
+             * don't provide any trust store to successfully perform the verification.
+             */
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
+                    S2N_ERR_CERT_UNTRUSTED);
+            /* Both the client and server could produce S2N_ERR_CERT_UNTRUSTED.
+             * Verify that only the server encountered an error and therefore only
+             * the server closed the connection.
+             */
+            EXPECT_TRUE(s2n_connection_check_io_status(server, S2N_IO_CLOSED));
+            EXPECT_FALSE(s2n_connection_check_io_status(client, S2N_IO_CLOSED));
+
+            EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
+            EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
+        };
+
+        /* Test: Certificate that fails parsing is still available in TLS1.2 */
+        {
+            DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+            /* Generate a completely malformed certificate chain, with no
+             * properly formed certificates.
+             *
+             * We don't parse pre-TLS1.3 chains before storing them, so don't
+             * care whether or not they're malformed.
+             */
+            const uint32_t chain_size = 24;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&input, chain_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, chain_size));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            server->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
+                    s2n_stuffer_data_available(&input)));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_CERT_INVALID);
+            EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
+            EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
+        };
+
+        /* Test: Certificate that fails parsing is not available in TLS1.3 */
+        {
+            DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+            /* Since it's TLS1.3, we also need a zero-length request context */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, 0));
+
+            /* Generate a well-formed certificate chain.
+             *
+             * Unlike in TLS1.2, in TLS1.3 we must parse chains before storing
+             * them to remove the per-certificate TLS extension lists. Chains
+             * we cannot parse should not be stored.
+             *
+             * We could generate a completely invalid chain to test this case,
+             * like we do for TLS1.2. However, we want to ensure that a partially
+             * parsed chain is not partially stored. To do that, we need to
+             * generated a partially correct chain.
+             *
+             * We start with a completely parseable chain and then modify it
+             * to create a malformed chain.
+             */
+            struct s2n_stuffer_reservation total_size = { 0 };
+            const uint32_t cert_size = 24, extensions_size = 20;
+            EXPECT_SUCCESS(s2n_stuffer_reserve_uint24(&input, &total_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&input, cert_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, cert_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, extensions_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, extensions_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&input, cert_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, cert_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, extensions_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, extensions_size));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&total_size));
+
+            /* Validate that the certificate chain we generated is parseable.
+             * The chain will still ultimately fail validation, but it will be
+             * parsed and stored on the connection.
+             */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                server->actual_protocol_version = S2N_TLS13;
+                EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
+                        s2n_stuffer_data_available(&input)));
+
+                EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_DECODE_CERTIFICATE);
+                EXPECT_NOT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
+                EXPECT_NOT_NULL(server->handshake_params.client_cert_chain.data);
+            }
+
+            /* Modify the last certificate's TLS extension list to be malformed.
+             *
+             * We want the parsing error to occur as late as possible (on the last
+             * extension list) to test that the cert chain is not partially stored.
+             */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&input));
+            EXPECT_SUCCESS(s2n_stuffer_wipe_n(&input, 1));
+            EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&total_size));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            server->actual_protocol_version = S2N_TLS13;
+            EXPECT_SUCCESS(s2n_stuffer_copy(&input, &server->handshake.io,
+                    s2n_stuffer_data_available(&input)));
+
+            /* Assert that no part of the certificate chain is stored */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_cert_recv(server), S2N_ERR_BAD_MESSAGE);
+            EXPECT_EQUAL(server->handshake_params.client_cert_chain.size, 0);
+            EXPECT_NULL(server->handshake_params.client_cert_chain.data);
+        };
     };
 
     /* Test s2n_cert_chain_and_key_set_ocsp_data */

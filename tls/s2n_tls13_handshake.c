@@ -24,11 +24,7 @@ static int s2n_zero_sequence_number(struct s2n_connection *conn, s2n_mode mode)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->secure);
     struct s2n_blob sequence_number = { 0 };
-    if (mode == S2N_CLIENT) {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->client_sequence_number, sizeof(conn->secure->client_sequence_number)));
-    } else {
-        POSIX_GUARD(s2n_blob_init(&sequence_number, conn->secure->server_sequence_number, sizeof(conn->secure->server_sequence_number)));
-    }
+    POSIX_GUARD_RESULT(s2n_connection_get_sequence_number(conn, mode, &sequence_number));
     POSIX_GUARD(s2n_blob_zero(&sequence_number));
     return S2N_SUCCESS;
 }
@@ -186,12 +182,20 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     s2n_tls13_key_blob(app_key, conn->secure->cipher_suite->record_alg->cipher->key_material_size);
 
     /* Derives next generation of traffic key */
+    uint8_t *count = NULL;
     POSIX_GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret_update, &app_key, &app_iv));
     if (status == RECEIVING) {
         POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
+        count = &conn->recv_key_updated;
     } else {
         POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
+        count = &conn->send_key_updated;
     }
+
+    /* Increment the count.
+     * Don't treat overflows as errors-- we only do best-effort reporting.
+     */
+    *count = MIN(UINT8_MAX, *count + 1);
 
     /* According to https://tools.ietf.org/html/rfc8446#section-5.3:
      * Each sequence number is set to zero at the beginning of a connection and

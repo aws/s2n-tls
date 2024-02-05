@@ -281,6 +281,7 @@ int main(int argc, char **argv)
             EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls13.server_handshake_secret, test_secret.data, test_secret.size);
             EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls13.client_app_secret, test_secret.data, test_secret.size);
             EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls13.server_app_secret, test_secret.data, test_secret.size);
+            EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls13.exporter_master_secret, test_secret.data, test_secret.size);
             EXPECT_MEMCPY_SUCCESS(conn->secrets.version.tls13.resumption_master_secret, test_secret.data, test_secret.size);
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.extract_secret, empty_secret, sizeof(empty_secret));
@@ -289,6 +290,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.server_handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.client_app_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.server_app_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.exporter_master_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.resumption_master_secret, empty_secret, sizeof(empty_secret));
 
             EXPECT_OK(s2n_tls13_secrets_clean(conn));
@@ -299,6 +301,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.version.tls13.server_handshake_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.client_app_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.server_app_secret, empty_secret, sizeof(empty_secret));
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.exporter_master_secret, empty_secret, sizeof(empty_secret));
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.resumption_master_secret, empty_secret, sizeof(empty_secret));
         };
     };
@@ -485,6 +488,59 @@ int main(int argc, char **argv)
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.resumption_master_secret,
                     empty_secret, sizeof(empty_secret));
+        };
+    };
+
+    /* s2n_connection_export_secret */
+    {
+        /* Derives exporter secret on SERVER_FINISHED */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
+            conn->actual_protocol_version = S2N_TLS13;
+            EXPECT_OK(s2n_connection_set_test_master_secret(conn, &test_secret));
+            EXPECT_BYTEARRAY_EQUAL(conn->secrets.version.tls13.exporter_master_secret,
+                    empty_secret, sizeof(empty_secret));
+
+            while (s2n_conn_get_current_message_type(conn) != SERVER_FINISHED) {
+                conn->handshake.message_number++;
+            }
+            EXPECT_OK(s2n_tls13_secrets_update(conn));
+
+            EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.exporter_master_secret,
+                    empty_secret, sizeof(empty_secret));
+
+            /*
+             * s2n_connection_tls_exporter requires us to finish the handshake.
+             * The above is needed since s2n_tls13_secrets_update will only
+             * initialize when it sees the SERVER_FINISHED frame.
+             */
+            EXPECT_OK(s2n_skip_handshake(conn));
+
+            uint8_t output[32] = { 0 };
+            int result = s2n_connection_tls_exporter(
+                    conn,
+                    (const uint8_t *) "label",
+                    sizeof("label") - 1,
+                    (const uint8_t *) "context",
+                    sizeof("context") - 1,
+                    output,
+                    sizeof(output));
+            EXPECT_SUCCESS(result);
+            /*
+             * If updating this value, it's a good idea to make sure the update
+             * matches OpenSSL's SSL_export_keying_material. The easiest known
+             * way of doing that is building a simple client/server pair and
+             * calling the s2n and OpenSSL APIs after a handshake on both
+             * sides; you should get identical results with identical
+             * label/context parameters. This particular value though is not
+             * checked as its dependent on the s2n-specific test master secret.
+             */
+            S2N_BLOB_FROM_HEX(expected, "3a 72 eb 08 10 a3 69 f3 06 f2 77 11 70 ad d5 76 bd 21 15 \
+                    46 d4 c8 fb 80 1a 93 04 1e ac 59 aa 47");
+            EXPECT_EQUAL(sizeof(output), expected.size);
+            EXPECT_BYTEARRAY_EQUAL(output, expected.data, expected.size);
         };
     };
 

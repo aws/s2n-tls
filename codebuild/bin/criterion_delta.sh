@@ -17,7 +17,6 @@ source ./codebuild/bin/utils.sh
 export S2N_NO_PQ=1
 export AWS_S3_BUCKET="s3://s2n-tls-logs/"
 # Limit the number of child processes in the test run
-export XDIST_WORKERS=4
 export RUST_BACKTRACE=1
 
 export GIT_COMMIT=$(git log -n 1 --format="%h")

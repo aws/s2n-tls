@@ -24,7 +24,7 @@
 #include "tls/s2n_tls13_secrets.c"
 
 #define NO_TRIGGER_MSG       APPLICATION_DATA
-#define TRAFFIC_SECRET_COUNT 5
+#define TRAFFIC_SECRET_COUNT 6
 
 static uint8_t empty_secret[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
 

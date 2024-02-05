@@ -39,3 +39,47 @@ S2N_CLEANUP_RESULT s2n_openssl_asn1_time_free_pointer(ASN1_GENERALIZEDTIME **tim
     *time_ptr = NULL;
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_openssl_x509_parse_impl(struct s2n_blob *asn1der, X509 **cert_out, uint32_t *parsed_length)
+{
+    RESULT_ENSURE_REF(asn1der);
+    RESULT_ENSURE_REF(asn1der->data);
+    RESULT_ENSURE_REF(cert_out);
+    RESULT_ENSURE_REF(parsed_length);
+
+    uint8_t *cert_to_parse = asn1der->data;
+    *cert_out = d2i_X509(NULL, (const unsigned char **) (void *) &cert_to_parse, asn1der->size);
+    RESULT_ENSURE(*cert_out != NULL, S2N_ERR_DECODE_CERTIFICATE);
+
+    /* If cert parsing is successful, d2i_X509 increments *cert_to_parse to the byte following the parsed data */
+    *parsed_length = cert_to_parse - asn1der->data;
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_openssl_x509_parse_without_length_validation(struct s2n_blob *asn1der, X509 **cert_out)
+{
+    RESULT_ENSURE_REF(asn1der);
+    RESULT_ENSURE_REF(cert_out);
+
+    uint32_t parsed_len = 0;
+    RESULT_GUARD(s2n_openssl_x509_parse_impl(asn1der, cert_out, &parsed_len));
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_openssl_x509_parse(struct s2n_blob *asn1der, X509 **cert_out)
+{
+    RESULT_ENSURE_REF(asn1der);
+    RESULT_ENSURE_REF(cert_out);
+
+    uint32_t parsed_len = 0;
+    RESULT_GUARD(s2n_openssl_x509_parse_impl(asn1der, cert_out, &parsed_len));
+
+    /* Some TLS clients in the wild send extra trailing bytes after the Certificate.
+     * Allow this in s2n for backwards compatibility with existing clients. */
+    uint32_t trailing_bytes = asn1der->size - parsed_len;
+    RESULT_ENSURE(trailing_bytes <= S2N_MAX_ALLOWED_CERT_TRAILING_BYTES, S2N_ERR_DECODE_CERTIFICATE);
+
+    return S2N_RESULT_OK;
+}

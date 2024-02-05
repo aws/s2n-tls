@@ -11,7 +11,7 @@ banner()
 
 
 function clean {
-    banner "Cleanup up ./build"
+    banner "Cleanup ./build"
     rm -rf ./build
 }
 
@@ -23,6 +23,7 @@ function configure {
           -DS2N_INSTALL_S2NC_S2ND=ON \
           -DS2N_INTEG_NIX=ON \
           -DBUILD_SHARED_LIBS=ON \
+          $S2N_CMAKE_OPTIONS \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
 }
 
@@ -62,7 +63,7 @@ function integ {
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
                echo "Test failed, stopping execution"
-               exit 1
+               return 1
             fi
         done
     fi
@@ -128,13 +129,14 @@ function test_toolchain_counts {
       END{print "\nOpenssl3:\t",o3,"\nOpenssl1.1:\t",o11,"\nOpenssl1.0.2:\t",o10,"\nAwlc:\t\t",awslc,"\nLibreSSL:\t", libre}'
     banner "Checking tooling counts (these should all be 1)"
     echo -e "\nOpenssl integ:\t $(openssl version|grep -c '1.1.1')"
-    echo -e "Corretto:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto')"
+    echo -e "Corretto 17:\t $(java -version 2>&1|grep -ce 'Runtime.*Corretto-17')"
     echo -e "gnutls-cli:\t $(gnutls-cli --version |grep -c 'gnutls-cli 3.7')"
     echo -e "gnutls-serv:\t $(gnutls-serv --version |grep -c 'gnutls-serv 3.7')"
     echo -e "Nix Python:\t $(which python|grep -c '/nix/store')"
     echo -e "Nix pytest:\t $(which pytest|grep -c '/nix/store')"
     echo -e "Nix sslyze:\t $(which sslyze|grep -c '/nix/store')"
     echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
+    echo -e "valgrind:\t $(valgrind --version|grep -c 'valgrind-3.19.0')"
 }
 
 function test_nonstandard_compilation {

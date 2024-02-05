@@ -21,29 +21,28 @@
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_openssl.h"
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tests/s2n_test.h"
 #include "tests/testlib/s2n_testlib.h"
-#include "tls/s2n_kex.h"
+#include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_kem.h"
+#include "tls/s2n_kex.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
-#include "utils/s2n_safety.h"
-#include "tls/s2n_cipher_suites.h"
-#include "tls/s2n_security_policies.h"
-#include "pq-crypto/s2n_pq.h"
 
-static struct s2n_kem_params kyber512_r3_draft0_params = {.kem = &s2n_kyber_512_r3, .len_prefixed = true };
-static struct s2n_kem_params kyber512_r3_draft5_params = {.kem = &s2n_kyber_512_r3, .len_prefixed = false };
+static struct s2n_kem_params kyber512_r3_draft0_params = { .kem = &s2n_kyber_512_r3, .len_prefixed = true };
+static struct s2n_kem_params kyber512_r3_draft5_params = { .kem = &s2n_kyber_512_r3, .len_prefixed = false };
 
 /* Setup the connection in a state for a fuzz test run, s2n_client_key_recv modifies the state of the connection
  * along the way and gets cleaned up at the end of each fuzz test.
  * - Connection needs cipher suite, curve, and kem setup
  * - Connection needs a ecdhe key and a kem private key, this would normally be setup when the server calls s2n_server_send_key
  * */
-static int setup_connection(struct s2n_connection *server_conn, struct s2n_kem_params* params)
+static int setup_connection(struct s2n_connection *server_conn, struct s2n_kem_params *params)
 {
     server_conn->actual_protocol_version = S2N_TLS12;
 
@@ -55,7 +54,7 @@ static int setup_connection(struct s2n_connection *server_conn, struct s2n_kem_p
     server_conn->kex_params.server_ecc_evp_params.evp_pkey = NULL;
     server_conn->kex_params.kem_params.kem = &s2n_kyber_512_r3;
     server_conn->secure->cipher_suite = &s2n_ecdhe_kyber_rsa_with_aes_256_gcm_sha384;
-    server_conn->handshake_params.conn_sig_scheme = s2n_rsa_pkcs1_sha384;
+    server_conn->handshake_params.server_cert_sig_scheme = &s2n_rsa_pkcs1_sha384;
 
     POSIX_GUARD(s2n_dup(&params->private_key, &server_conn->kex_params.kem_params.private_key));
     POSIX_GUARD(s2n_ecc_evp_generate_ephemeral_key(&server_conn->kex_params.server_ecc_evp_params));
@@ -63,7 +62,8 @@ static int setup_connection(struct s2n_connection *server_conn, struct s2n_kem_p
     return S2N_SUCCESS;
 }
 
-int s2n_fuzz_init_kem_param(struct s2n_kem_params *param) {
+int s2n_fuzz_init_kem_param(struct s2n_kem_params *param)
+{
     POSIX_ENSURE_REF(param->kem);
     struct s2n_blob *public_key = &param->public_key;
     POSIX_GUARD(s2n_alloc(public_key, S2N_KYBER_512_R3_PUBLIC_KEY_BYTES));
@@ -90,7 +90,8 @@ int s2n_fuzz_init(int *argc, char **argv[])
     return S2N_SUCCESS;
 }
 
-int s2n_fuzz_test_with_params(const uint8_t *buf, size_t len, struct s2n_kem_params *params) {
+int s2n_fuzz_test_with_params(const uint8_t *buf, size_t len, struct s2n_kem_params *params)
+{
     struct s2n_connection *server_conn;
     POSIX_ENSURE_REF(server_conn = s2n_connection_new(S2N_SERVER));
     POSIX_GUARD(setup_connection(server_conn, params));

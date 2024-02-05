@@ -7,6 +7,7 @@ use crate::{
 };
 use alloc::sync::Arc;
 use core::{sync::atomic::Ordering, task::Poll};
+use s2n_tls_sys::{s2n_client_hello_has_extension, s2n_connection_get_client_hello};
 use std::{fmt, io, pin::Pin, sync::atomic::AtomicUsize};
 
 // The Future returned by MockClientHelloHandler.
@@ -130,6 +131,42 @@ impl Drop for FailingCHFuture {
     // improve test coverage
     fn drop(&mut self) {
         assert!(self.invoked.load(Ordering::SeqCst) >= 1);
+    }
+}
+/// A client hello handler that asserts that the extension with the given
+/// IANA code is either present or not present in the client hello
+pub struct HasExtensionClientHelloHandler {
+    pub extension_iana: u16,
+    pub extension_expected: bool,
+}
+
+impl ClientHelloCallback for HasExtensionClientHelloHandler {
+    fn on_client_hello(
+        &self,
+        connection: &mut crate::connection::Connection,
+    ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
+        let mut exists = false;
+
+        unsafe {
+            let client_hello = s2n_connection_get_client_hello(connection.as_ptr());
+            s2n_client_hello_has_extension(client_hello, self.extension_iana, &mut exists as _);
+        }
+
+        if self.extension_expected {
+            assert!(
+                exists,
+                "Extension {} was not found in the client hello",
+                self.extension_iana
+            );
+        } else {
+            assert!(
+                !exists,
+                "Unexpected extension {} found in the client hello",
+                self.extension_iana
+            )
+        }
+
+        Ok(None)
     }
 }
 

@@ -106,7 +106,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Verify state prior to alert */
-            EXPECT_FALSE(conn->close_notify_received);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
 
             /* Write and process the alert */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, not_close_notify_alert, sizeof(not_close_notify_alert)));
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_process_alert_fragment(conn), S2N_ERR_ALERT);
 
             /* Verify state after alert */
-            EXPECT_FALSE(conn->close_notify_received);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }
@@ -126,14 +126,14 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Verify state prior to alert */
-            EXPECT_FALSE(conn->close_notify_received);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
 
             /* Write and process the alert */
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, close_notify_alert, sizeof(close_notify_alert)));
             EXPECT_SUCCESS(s2n_process_alert_fragment(conn));
 
             /* Verify state after alert */
-            EXPECT_TRUE(conn->close_notify_received);
+            EXPECT_TRUE(s2n_atomic_flag_test(&conn->close_notify_received));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         }

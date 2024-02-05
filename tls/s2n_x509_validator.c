@@ -19,8 +19,10 @@
 #include <openssl/x509.h>
 #include <sys/socket.h>
 
+#include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_openssl.h"
 #include "crypto/s2n_openssl_x509.h"
+#include "crypto/s2n_pkey.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
@@ -55,6 +57,8 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
  * can be safely represented as a time_t.
  */
 #define MAX_32_TIMESTAMP_NANOS 2147483647 * ONE_SEC_IN_NANOS
+
+#define OSSL_VERIFY_CALLBACK_IGNORE_ERROR 1
 
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509_CRL) *, sk_X509_CRL_free);
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(GENERAL_NAME) *, GENERAL_NAMES_free);
@@ -121,13 +125,6 @@ int s2n_x509_trust_store_from_ca_file(struct s2n_x509_trust_store *store, const 
         s2n_x509_trust_store_wipe(store);
         POSIX_BAIL(S2N_ERR_X509_TRUST_STORE);
     }
-
-    /* It's a likely scenario if this function is called, a self-signed certificate is used, and that is was generated
-     * without a trust anchor. However if you call this function, the assumption is you trust ca_file or path and if a certificate
-     * is encountered that's in that path, it should be trusted. The following flag tells libcrypto to not care that the cert
-     * is missing a root anchor. */
-    unsigned long flags = X509_V_FLAG_PARTIAL_CHAIN;
-    X509_STORE_set_flags(store->trust_store, flags);
 
     return 0;
 }
@@ -386,7 +383,8 @@ static S2N_RESULT s2n_verify_host_information(struct s2n_connection *conn, X509 
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer, struct s2n_blob *asn1_cert)
+S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer,
+        struct s2n_blob *asn1_cert)
 {
     uint32_t certificate_size = 0;
 
@@ -414,30 +412,35 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
     RESULT_GUARD_POSIX(s2n_stuffer_init(&cert_chain_in_stuffer, &cert_chain_blob));
     RESULT_GUARD_POSIX(s2n_stuffer_write(&cert_chain_in_stuffer, &cert_chain_blob));
 
-    X509 *server_cert = NULL;
-
     while (s2n_stuffer_data_available(&cert_chain_in_stuffer)
             && sk_X509_num(validator->cert_chain_from_wire) < validator->max_chain_depth) {
         struct s2n_blob asn1_cert = { 0 };
         RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
-        const uint8_t *data = asn1_cert.data;
-
-        /* the cert is der encoded, just convert it. */
-        server_cert = d2i_X509(NULL, &data, asn1_cert.size);
-        RESULT_ENSURE_REF(server_cert);
-
-        /* add the cert to the chain. */
-        if (!sk_X509_push(validator->cert_chain_from_wire, server_cert)) {
-            /* After the cert is added to cert_chain_from_wire, it will be freed with the call to
-             * s2n_x509_validator_wipe. If adding the cert fails, free it now instead. */
-            X509_free(server_cert);
-            RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+        /* We only do the trailing byte validation when parsing the leaf cert to
+         * match historical s2n-tls behavior.
+         */
+        DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
+        if (sk_X509_num(validator->cert_chain_from_wire) == 0) {
+            RESULT_GUARD(s2n_openssl_x509_parse(&asn1_cert, &cert));
+        } else {
+            RESULT_GUARD(s2n_openssl_x509_parse_without_length_validation(&asn1_cert, &cert));
         }
 
         if (!validator->skip_cert_validation) {
-            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, server_cert), S2N_ERR_CERT_UNTRUSTED);
+            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, cert),
+                    S2N_ERR_CERT_UNTRUSTED);
         }
+
+        /* add the cert to the chain */
+        RESULT_ENSURE(sk_X509_push(validator->cert_chain_from_wire, cert) > 0,
+                S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
+        /* After the cert is added to cert_chain_from_wire, it will be freed
+         * with the call to s2n_x509_validator_wipe. We disable the cleanup
+         * function since cleanup is no longer "owned" by cert.
+         */
+        ZERO_TO_DISABLE_DEFER_CLEANUP(cert);
 
         /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
         if (conn->actual_protocol_version >= S2N_TLS13) {
@@ -486,6 +489,74 @@ static S2N_RESULT s2n_x509_validator_process_cert_chain(struct s2n_x509_validato
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_x509_validator_set_no_check_time_flag(struct s2n_x509_validator *validator)
+{
+    RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(validator->store_ctx);
+
+    X509_VERIFY_PARAM *param = X509_STORE_CTX_get0_param(validator->store_ctx);
+    RESULT_ENSURE_REF(param);
+
+#ifdef S2N_LIBCRYPTO_SUPPORTS_FLAG_NO_CHECK_TIME
+    RESULT_GUARD_OSSL(X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_NO_CHECK_TIME),
+            S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+#else
+    RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
+#endif
+
+    return S2N_RESULT_OK;
+}
+
+int s2n_disable_time_validation_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
+{
+    int err = X509_STORE_CTX_get_error(ctx);
+    switch (err) {
+        case X509_V_ERR_CERT_NOT_YET_VALID:
+        case X509_V_ERR_CERT_HAS_EXPIRED:
+            return OSSL_VERIFY_CALLBACK_IGNORE_ERROR;
+        default:
+            break;
+    }
+
+    /* If CRL validation is enabled, setting the time validation verify callback will override the
+     * CRL verify callback. The CRL verify callback is manually triggered to work around this
+     * issue.
+     *
+     * The CRL verify callback ignores validation errors exclusively for CRL timestamp fields. So,
+     * if CRL validation isn't enabled, the CRL verify callback is a no-op.
+     */
+    return s2n_crl_ossl_verify_callback(default_ossl_ret, ctx);
+}
+
+static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connection *conn,
+        struct s2n_x509_validator *validator)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+    RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(validator->store_ctx);
+
+    /* Setting an X509_STORE verify callback is not recommended with AWS-LC:
+     * https://github.com/aws/aws-lc/blob/aa90e509f2e940916fbe9fdd469a4c90c51824f6/include/openssl/x509.h#L2980-L2990
+     *
+     * If the libcrypto supports the ability to disable time validation with an X509_VERIFY_PARAM
+     * NO_CHECK_TIME flag, this method is preferred.
+     *
+     * However, older versions of AWS-LC and OpenSSL 1.0.2 do not support this flag. In this case,
+     * an X509_STORE verify callback is used. This is acceptable in older versions of AWS-LC
+     * because the versions are fixed, and updates to AWS-LC will not break the callback
+     * implementation.
+     */
+    if (s2n_libcrypto_supports_flag_no_check_time()) {
+        RESULT_GUARD(s2n_x509_validator_set_no_check_time_flag(validator));
+    } else {
+        X509_STORE_CTX_set_verify_cb(validator->store_ctx,
+                s2n_disable_time_validation_ossl_verify_callback);
+    }
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn)
 {
     RESULT_ENSURE(validator->state == READY_TO_VERIFY, S2N_ERR_INVALID_CERT_STATE);
@@ -513,21 +584,38 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
                 S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
     }
 
-    uint64_t current_sys_time = 0;
-    RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
-    if (sizeof(time_t) == 4) {
-        /* cast value to uint64_t to prevent overflow errors */
-        RESULT_ENSURE_LTE(current_sys_time, (uint64_t) MAX_32_TIMESTAMP_NANOS);
+    /* Disabling time validation may set a NO_CHECK_TIME flag on the X509_STORE_CTX. Calling
+     * X509_STORE_CTX_set_time will override this flag. To prevent this, X509_STORE_CTX_set_time is
+     * only called if time validation is enabled.
+     */
+    if (conn->config->disable_x509_time_validation) {
+        RESULT_GUARD(s2n_x509_validator_disable_time_validation(conn, validator));
+    } else {
+        uint64_t current_sys_time = 0;
+        RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
+        if (sizeof(time_t) == 4) {
+            /* cast value to uint64_t to prevent overflow errors */
+            RESULT_ENSURE_LTE(current_sys_time, (uint64_t) MAX_32_TIMESTAMP_NANOS);
+        }
+
+        /* this wants seconds not nanoseconds */
+        time_t current_time = (time_t) (current_sys_time / ONE_SEC_IN_NANOS);
+        X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
     }
 
-    /* this wants seconds not nanoseconds */
-    time_t current_time = (time_t) (current_sys_time / ONE_SEC_IN_NANOS);
-    X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
+    /* It's assumed that if a valid certificate chain is received with an issuer that's present in
+     * the trust store, the certificate chain should be trusted. This should be the case even if
+     * the issuer in the trust store isn't a root certificate. Setting the PARTIAL_CHAIN flag
+     * allows the libcrypto to trust certificates in the trust store that aren't root certificates.
+     */
+    X509_STORE_CTX_set_flags(validator->store_ctx, X509_V_FLAG_PARTIAL_CHAIN);
 
     int verify_ret = X509_verify_cert(validator->store_ctx);
     if (verify_ret <= 0) {
         int ossl_error = X509_STORE_CTX_get_error(validator->store_ctx);
         switch (ossl_error) {
+            case X509_V_ERR_CERT_NOT_YET_VALID:
+                RESULT_BAIL(S2N_ERR_CERT_NOT_YET_VALID);
             case X509_V_ERR_CERT_HAS_EXPIRED:
                 RESULT_BAIL(S2N_ERR_CERT_EXPIRED);
             case X509_V_ERR_CERT_REVOKED:
@@ -551,9 +639,13 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn, uint8_t *cert_chain_in, uint32_t cert_chain_len,
-        struct s2n_pkey *public_key, s2n_pkey_type *pkey_type, s2n_parsed_extensions_list *first_certificate_extensions)
+static S2N_RESULT s2n_x509_validator_parse_leaf_certificate_extensions(struct s2n_connection *conn,
+        uint8_t *cert_chain_in, uint32_t cert_chain_len,
+        s2n_parsed_extensions_list *first_certificate_extensions)
 {
+    /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
+    RESULT_ENSURE_GTE(conn->actual_protocol_version, S2N_TLS13);
+
     struct s2n_blob cert_chain_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&cert_chain_blob, cert_chain_in, cert_chain_len));
     DEFER_CLEANUP(struct s2n_stuffer cert_chain_in_stuffer = { 0 }, s2n_stuffer_free);
@@ -564,16 +656,9 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
     struct s2n_blob asn1_cert = { 0 };
     RESULT_GUARD(s2n_x509_validator_read_asn1_cert(&cert_chain_in_stuffer, &asn1_cert));
 
-    RESULT_ENSURE(s2n_asn1der_to_public_key_and_type(public_key, pkey_type, &asn1_cert) == 0,
-            S2N_ERR_CERT_UNTRUSTED);
-
-    /* certificate extensions is a field in TLS 1.3 - https://tools.ietf.org/html/rfc8446#section-4.4.2 */
-    if (conn->actual_protocol_version >= S2N_TLS13) {
-        s2n_parsed_extensions_list parsed_extensions_list = { 0 };
-        RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
-
-        *first_certificate_extensions = parsed_extensions_list;
-    }
+    s2n_parsed_extensions_list parsed_extensions_list = { 0 };
+    RESULT_GUARD_POSIX(s2n_extension_list_parse(&cert_chain_in_stuffer, &parsed_extensions_list));
+    *first_certificate_extensions = parsed_extensions_list;
 
     return S2N_RESULT_OK;
 }
@@ -581,6 +666,9 @@ static S2N_RESULT s2n_x509_validator_read_leaf_info(struct s2n_connection *conn,
 S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len, s2n_pkey_type *pkey_type, struct s2n_pkey *public_key_out)
 {
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(conn->config);
+
     switch (validator->state) {
         case INIT:
             break;
@@ -599,12 +687,6 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         RESULT_GUARD(s2n_x509_validator_verify_cert_chain(validator, conn));
     }
 
-    DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
-    s2n_pkey_zero_init(&public_key);
-    s2n_parsed_extensions_list first_certificate_extensions = { 0 };
-    RESULT_GUARD(s2n_x509_validator_read_leaf_info(conn, cert_chain_in, cert_chain_len, &public_key, pkey_type,
-            &first_certificate_extensions));
-
     if (conn->actual_protocol_version >= S2N_TLS13) {
         /* Only process certificate extensions received in the first certificate. Extensions received in all other
          * certificates are ignored.
@@ -613,13 +695,30 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
          *# If an extension applies to the entire chain, it SHOULD be included in
          *# the first CertificateEntry.
          */
+        s2n_parsed_extensions_list first_certificate_extensions = { 0 };
+        RESULT_GUARD(s2n_x509_validator_parse_leaf_certificate_extensions(conn, cert_chain_in, cert_chain_len, &first_certificate_extensions));
         RESULT_GUARD_POSIX(s2n_extension_list_process(S2N_EXTENSION_LIST_CERTIFICATE, conn, &first_certificate_extensions));
     }
+
+    if (conn->config->cert_validation_cb) {
+        struct s2n_cert_validation_info info = { 0 };
+        RESULT_ENSURE(conn->config->cert_validation_cb(conn, &info, conn->config->cert_validation_ctx) >= S2N_SUCCESS,
+                S2N_ERR_CANCELLED);
+        RESULT_ENSURE(info.finished, S2N_ERR_INVALID_STATE);
+        RESULT_ENSURE(info.accepted, S2N_ERR_CERT_REJECTED);
+    }
+
+    /* retrieve information from leaf cert */
+    RESULT_ENSURE_GT(sk_X509_num(validator->cert_chain_from_wire), 0);
+    X509 *leaf_cert = sk_X509_value(validator->cert_chain_from_wire, 0);
+    RESULT_ENSURE_REF(leaf_cert);
+    DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
+    RESULT_GUARD(s2n_pkey_from_x509(leaf_cert, &public_key, pkey_type));
 
     *public_key_out = public_key;
 
     /* Reset the old struct, so we don't clean up public_key_out */
-    s2n_pkey_zero_init(&public_key);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(public_key);
 
     return S2N_RESULT_OK;
 }
@@ -850,4 +949,26 @@ S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)
 {
     return validator && (validator->state == VALIDATED || validator->state == OCSP_VALIDATED);
+}
+
+int s2n_cert_validation_accept(struct s2n_cert_validation_info *info)
+{
+    POSIX_ENSURE_REF(info);
+    POSIX_ENSURE(!info->finished, S2N_ERR_INVALID_STATE);
+
+    info->finished = true;
+    info->accepted = true;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_cert_validation_reject(struct s2n_cert_validation_info *info)
+{
+    POSIX_ENSURE_REF(info);
+    POSIX_ENSURE(!info->finished, S2N_ERR_INVALID_STATE);
+
+    info->finished = true;
+    info->accepted = false;
+
+    return S2N_SUCCESS;
 }

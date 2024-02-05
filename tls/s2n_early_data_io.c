@@ -146,9 +146,11 @@ static bool s2n_early_data_can_continue(struct s2n_connection *conn)
             && remaining_early_data_size > 0;
 }
 
-S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len,
+S2N_RESULT s2n_send_early_data_impl(struct s2n_connection *conn, const uint8_t *data, ssize_t data_len_signed,
         ssize_t *data_sent, s2n_blocked_status *blocked)
 {
+    RESULT_ENSURE_GTE(data_len_signed, 0);
+    size_t data_len = data_len_signed;
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(blocked);
     *blocked = S2N_NOT_BLOCKED;

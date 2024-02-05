@@ -1,0 +1,40 @@
+target = "https://tools.ietf.org/rfc/rfc5246#section-6.2.3"
+
+# 6.2.3.  Record Payload Protection
+#
+#    The encryption and MAC functions translate a TLSCompressed
+#    structure into a TLSCiphertext.  The decryption functions reverse
+#    the process.  The MAC of the record also includes a sequence
+#    number so that missing, extra, or repeated messages are
+#    detectable.
+# 
+#    struct {
+#        ContentType type;
+#        ProtocolVersion version;
+#        uint16 length;
+#        select (SecurityParameters.cipher_type) {
+#            case stream: GenericStreamCipher;
+#            case block:  GenericBlockCipher;
+#            case aead:   GenericAEADCipher;
+#        } fragment;
+#    } TLSCiphertext;
+# 
+# type
+#    The type field is identical to TLSCompressed.type.
+# 
+# version
+#    The version field is identical to TLSCompressed.version.
+# 
+# length
+#    The length (in bytes) of the following TLSCiphertext.fragment.
+#    The length MUST NOT exceed 2^14 + 2048.
+# 
+# fragment
+#    The encrypted form of TLSCompressed.fragment, with the MAC.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The length MUST NOT exceed 2^14 + 2048.
+'''
+

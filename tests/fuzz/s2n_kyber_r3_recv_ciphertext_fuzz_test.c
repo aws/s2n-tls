@@ -50,4 +50,3 @@ static void s2n_fuzz_cleanup()
 }
 
 S2N_FUZZ_TARGET(s2n_fuzz_init, s2n_fuzz_test, s2n_fuzz_cleanup)
-

@@ -64,9 +64,17 @@ static int s2n_ec_point_format_send(struct s2n_connection *conn, struct s2n_stuf
 
 static int s2n_ec_point_format_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    /**
-     * Only uncompressed points are supported by the server and the client must include it in
+    /* Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
+     *
+     *= https://tools.ietf.org/rfc/rfc8422#section-5.1.2
+     *= type=exception
+     *= reason=Incorrect implementations exist in the wild. Skipping validation.
+     *# If the client sends the extension and the extension does not contain
+     *# the uncompressed point format, and the client has used the Supported
+     *# Groups extension to indicate support for any of the curves defined in
+     *# this specification, then the server MUST abort the handshake and
+     *# return an illegal_parameter alert.
      */
     conn->ec_point_formats = 1;
     return S2N_SUCCESS;

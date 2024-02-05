@@ -237,6 +237,7 @@ def run_build(litani, jobs, fail_on_proof_failure, summarize):
         logging.error("One or more proofs failed")
         sys.exit(10)
 
+
 def get_litani_path(proof_root):
     cmd = [
         "make",
@@ -301,7 +302,7 @@ def should_enable_pools(litani_caps, args):
     return "pools" in litani_caps
 
 
-async def configure_proof_dirs( # pylint: disable=too-many-arguments
+async def configure_proof_dirs(  # pylint: disable=too-many-arguments
         queue, counter, proof_uids, enable_pools, enable_memory_profiling, report_target, debug):
     while True:
         print_counter(counter)
@@ -350,7 +351,7 @@ def add_tool_version_job():
         sys.exit(1)
 
 
-async def main(): # pylint: disable=too-many-locals
+async def main():  # pylint: disable=too-many-locals
     args = get_args()
     set_up_logging(args.verbose)
 

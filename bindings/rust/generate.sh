@@ -2,7 +2,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-set -e
+set -xe
 
 # cd into the script directory so it can be executed from anywhere
 pushd "$(dirname "${BASH_SOURCE[0]}")"
@@ -19,7 +19,6 @@ cp -r \
   ../../api \
   ../../crypto \
   ../../error \
-  ../../pq-crypto \
   ../../stuffer \
   ../../tls \
   ../../utils \
@@ -38,6 +37,11 @@ cp -r \
 pushd generate
 cargo run -- ../s2n-tls-sys
 popd
+
+if [ "$1" == "--skip-tests" ]; then
+    echo "skipping tests"
+    exit;
+fi;
 
 # make sure everything builds and passes sanity checks
 pushd s2n-tls-sys

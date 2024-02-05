@@ -176,6 +176,36 @@ static S2N_RESULT s2n_test_negotiate(struct s2n_connection *server_conn, struct 
     return S2N_RESULT_OK;
 }
 
+static int s2n_wipe_psk_ke_ext(struct s2n_connection *conn, void *ctx)
+{
+    struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
+    POSIX_ENSURE_REF(client_hello);
+    s2n_parsed_extension *parsed_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &client_hello->extensions, &parsed_extension));
+    POSIX_ENSURE_REF(parsed_extension);
+    POSIX_GUARD(s2n_blob_zero(&parsed_extension->extension));
+
+    return S2N_SUCCESS;
+}
+
+static int s2n_alter_psk_ke_ext(struct s2n_connection *conn, void *ctx)
+{
+    struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
+    POSIX_ENSURE_REF(client_hello);
+    s2n_parsed_extension *parsed_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &client_hello->extensions, &parsed_extension));
+    POSIX_ENSURE_REF(parsed_extension);
+
+    /* Overwrite the extension so it only supports PSK_KE mode */
+    struct s2n_stuffer psk_ke_extension = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&psk_ke_extension, &parsed_extension->extension));
+    POSIX_GUARD(s2n_stuffer_skip_write(&psk_ke_extension, 1));
+    uint8_t mode = TLS_PSK_KE_MODE;
+    POSIX_GUARD(s2n_stuffer_write_bytes(&psk_ke_extension, &mode, 1));
+
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -498,14 +528,16 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     }
 
-    /* Test: A TLS1.3 client with a valid TLS1.2 ticket can fall back to a TLS1.3 connection
+    /* Test: A TLS1.3 client with a valid TLS1.2 ticket can fall back to a
+     * TLS1.3 connection.
      *
-     * This could occur when upgrading a fleet of TLS1.2 servers to TLS1.3
-     * without disabling session resumption.
+     * This scenario could occur when upgrading a fleet of TLS1.2 servers to
+     * TLS1.3 without disabling session resumption.
      */
     {
-        struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
-        struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+        DEFER_CLEANUP(struct s2n_blob ticket = { 0 }, s2n_free);
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
         EXPECT_NOT_NULL(server_conn);
 
@@ -513,7 +545,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair = { 0 };
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -525,8 +557,8 @@ int main(int argc, char **argv)
 
         /* Store the TLS1.2 session ticket */
         size_t tls12_session_ticket_len = s2n_connection_get_session_length(client_conn);
-        uint8_t tls12_session_ticket[S2N_TLS12_SESSION_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+        EXPECT_SUCCESS(s2n_realloc(&ticket, tls12_session_ticket_len));
+        EXPECT_SUCCESS(s2n_connection_get_session(client_conn, ticket.data, ticket.size));
 
         /* Prepare client and server for a second connection */
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -536,7 +568,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
         /* Client sets up a resumption connection with the received TLS1.2 session ticket data */
-        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls12_session_ticket, tls12_session_ticket_len));
+        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, ticket.data, ticket.size));
         /* We want to ensure that ems is handled properly too */
         EXPECT_TRUE(client_conn->ems_negotiated);
 
@@ -549,9 +581,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(client_conn->actual_protocol_version, S2N_TLS13);
 
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
+        /* since TLS 1.3 was negotiated, and the client hasn't called recv yet
+         * there should be no session ticket available.
+         */
+        EXPECT_EQUAL(s2n_connection_get_session_length(client_conn), 0);
+        EXPECT_EQUAL(s2n_connection_get_session(client_conn, ticket.data, ticket.size), 0);
     };
 
     /* HRR when issuing a session resumption ticket and when resuming a session */
@@ -737,7 +771,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_blob session_state = { 0 }, s2n_free);
 
         /* A quirk of the TLS1.2 session resumption behavior is that if a ticket is set
-         * on the connection using s2n_connection_set_session, s2n_connection_get_session 
+         * on the connection using s2n_connection_set_session, s2n_connection_get_session
          * will return a valid ticket, even before actually receiving a new session ticket
          * from the server. Here we test that behavior to ensure it is consistent. */
         for (size_t j = 0; j < s2n_array_len(client_config); j++) {
@@ -1094,6 +1128,111 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
         EXPECT_SUCCESS(s2n_stuffer_rewrite(&cb_session_data));
     }
+
+    /* Functional: Server in QUIC mode does not send a session ticket if psk_ke extension was not received */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Enable QUIC mode */
+        EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
+        EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
+
+        /* Create nonblocking pipes */
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+
+        /* Wipe psk_ke extension when it is received */
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, s2n_wipe_psk_ke_ext, NULL));
+
+        /* Negotiate handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Server did not send a ticket since the client did not send the psk_ke extension */
+        uint16_t tickets_sent = 0;
+        EXPECT_SUCCESS(s2n_connection_get_tickets_sent(server_conn, &tickets_sent));
+        EXPECT_EQUAL(tickets_sent, 0);
+    };
+
+    /* Functional: Server in QUIC mode does not send a session ticket if psk_ke extension does not support psk_dhe_ke */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Enable QUIC mode */
+        EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
+        EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
+
+        /* Create nonblocking pipes */
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+
+        /* Alter psk_ke extension when it is received so that it only supports psk_ke mode */
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, s2n_alter_psk_ke_ext, NULL));
+
+        /* Negotiate handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Server did not send a ticket since the client does not support psk_dhe_ke mode */
+        uint16_t tickets_sent = 0;
+        EXPECT_SUCCESS(s2n_connection_get_tickets_sent(server_conn, &tickets_sent));
+        EXPECT_EQUAL(tickets_sent, 0);
+    };
+
+    /* Functional: Server in QUIC mode sends a session ticket if the client indicates it supports psk_dhe_ke mode */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_client_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+
+        /* Enable QUIC mode */
+        EXPECT_SUCCESS(s2n_connection_enable_quic(client_conn));
+        EXPECT_SUCCESS(s2n_connection_enable_quic(server_conn));
+
+        /* Create nonblocking pipes */
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&input, &output, server_conn));
+        EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&output, &input, client_conn));
+
+        /* Disable any client hello cb changes */
+        EXPECT_SUCCESS(s2n_config_set_client_hello_cb(server_config, NULL, NULL));
+
+        /* Negotiate handshake */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+        /* Server sent one ticket since the client by default indicates it supports psk_dhe_ke mode */
+        uint16_t tickets_sent = 0;
+        EXPECT_SUCCESS(s2n_connection_get_tickets_sent(server_conn, &tickets_sent));
+        EXPECT_EQUAL(tickets_sent, 1);
+    };
 
     /* Clean-up */
     EXPECT_SUCCESS(s2n_config_free(server_config));

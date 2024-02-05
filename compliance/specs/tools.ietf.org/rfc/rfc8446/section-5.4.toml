@@ -1,0 +1,112 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-5.4"
+
+# 5.4.  Record Padding
+#
+# All encrypted TLS records can be padded to inflate the size of the
+# TLSCiphertext.  This allows the sender to hide the size of the
+# traffic from an observer.
+# 
+# When generating a TLSCiphertext record, implementations MAY choose to
+# pad.  An unpadded record is just a record with a padding length of
+# zero.  Padding is a string of zero-valued bytes appended to the
+# ContentType field before encryption.  Implementations MUST set the
+# padding octets to all zeros before encrypting.
+# 
+# Application Data records may contain a zero-length
+# TLSInnerPlaintext.content if the sender desires.  This permits
+# generation of plausibly sized cover traffic in contexts where the
+# presence or absence of activity may be sensitive.  Implementations
+# MUST NOT send Handshake and Alert records that have a zero-length
+# TLSInnerPlaintext.content; if such a message is received, the
+# receiving implementation MUST terminate the connection with an
+# "unexpected_message" alert.
+# 
+# The padding sent is automatically verified by the record protection
+# mechanism; upon successful decryption of a
+# TLSCiphertext.encrypted_record, the receiving implementation scans
+# the field from the end toward the beginning until it finds a non-zero
+# octet.  This non-zero octet is the content type of the message.  This
+# padding scheme was selected because it allows padding of any
+# encrypted TLS record by an arbitrary size (from zero up to TLS record
+# size limits) without introducing new content types.  The design also
+# enforces all-zero padding octets, which allows for quick detection of
+# padding errors.
+# 
+# Implementations MUST limit their scanning to the cleartext returned
+# from the AEAD decryption.  If a receiving implementation does not
+# find a non-zero octet in the cleartext, it MUST terminate the
+# connection with an "unexpected_message" alert.
+# 
+# The presence of padding does not change the overall record size
+# limitations: the full encoded TLSInnerPlaintext MUST NOT exceed 2^14
+# + 1 octets.  If the maximum fragment length is reduced -- as, for
+# example, by the record_size_limit extension from [RFC8449] -- then
+# the reduced limit applies to the full plaintext, including the
+# content type and padding.
+# 
+# Selecting a padding policy that suggests when and how much to pad is
+# a complex topic and is beyond the scope of this specification.  If
+# the application-layer protocol on top of TLS has its own padding, it
+# may be preferable to pad Application Data TLS records within the
+# application layer.  Padding for encrypted Handshake or Alert records
+# must still be handled at the TLS layer, though.  Later documents may
+# define padding selection algorithms or define a padding policy
+# request mechanism through TLS extensions or some other means.
+
+[[spec]]
+level = "MAY"
+quote = '''
+When generating a TLSCiphertext record, implementations MAY choose to
+pad.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MUST set the
+padding octets to all zeros before encrypting.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations
+MUST NOT send Handshake and Alert records that have a zero-length
+TLSInnerPlaintext.content; if such a message is received, the
+receiving implementation MUST terminate the connection with an
+"unexpected_message" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations
+MUST NOT send Handshake and Alert records that have a zero-length
+TLSInnerPlaintext.content; if such a message is received, the
+receiving implementation MUST terminate the connection with an
+"unexpected_message" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MUST limit their scanning to the cleartext returned
+from the AEAD decryption.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a receiving implementation does not
+find a non-zero octet in the cleartext, it MUST terminate the
+connection with an "unexpected_message" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The presence of padding does not change the overall record size
+limitations: the full encoded TLSInnerPlaintext MUST NOT exceed 2^14
++ 1 octets.
+'''
+

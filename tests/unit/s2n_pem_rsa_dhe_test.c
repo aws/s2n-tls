@@ -109,7 +109,7 @@ int main(int argc, char **argv)
     uint32_t available_size = 0;
     available_size = s2n_stuffer_data_available(&certificate_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
-    EXPECT_SUCCESS(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
+    EXPECT_OK(s2n_asn1der_to_public_key_and_type(&pub_key, &pkey_type, &b));
 
     /* Test without a type hint */
     int wrong_type = 0;
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
     available_size = s2n_stuffer_data_available(&rsa_key_out);
     EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&rsa_key_out, available_size), available_size));
-    EXPECT_SUCCESS(s2n_asn1der_to_private_key(&priv_key, &b, wrong_type));
+    EXPECT_OK(s2n_asn1der_to_private_key(&priv_key, &b, wrong_type));
 
     EXPECT_SUCCESS(s2n_pkey_match(&pub_key, &priv_key));
 

@@ -38,8 +38,20 @@ const s2n_extension_type s2n_psk_key_exchange_modes_extension = {
 
 static bool s2n_psk_key_exchange_modes_should_send(struct s2n_connection *conn)
 {
-    /* Only send a psk_key_exchange_modes extension if psks available */
-    return conn->psk_params.psk_list.len > 0;
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.9
+     *# Servers MUST NOT select a key exchange mode that is not listed by the
+     *# client.  This extension also restricts the modes for use with PSK
+     *# resumption.
+     *
+     * The RFC is ambiguous about whether the psk_kx_modes extension should be
+     * sent in the first flight of messages, but we choose to do so for
+     * interoperability with other TLS implementations.
+     * https://github.com/aws/s2n-tls/issues/4124
+     * The final check for psk_list.len > 0 is necessary because external
+     * PSKs are used without setting `use_tickets` to true.
+     */
+    return conn->config->use_tickets || conn->psk_params.psk_list.len > 0;
 }
 
 static int s2n_psk_key_exchange_modes_send(struct s2n_connection *conn, struct s2n_stuffer *out)

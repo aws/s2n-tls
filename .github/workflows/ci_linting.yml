@@ -77,11 +77,16 @@ jobs:
     steps:
       - name: checkout
         uses: actions/checkout@v3
-      - name: pep8 exp
-        uses: harrisonkaiser/autopep8_action@python-latest
+      - name: Run autopep8
+        id: autopep8
+        uses: peter-evans/autopep8@v2
         with:
-          dry: true
-          checkpath: ./tests/integrationv2/*.py
+          args: --diff --exit-code .
+      - name: Check exit code
+        if: steps.autopep8.outputs.exit-code != 0
+        run: |
+            echo "Run 'autopep8 --in-place .' to fix"
+            exit 1
   clang-format:
     runs-on: ubuntu-latest
     steps:
@@ -90,7 +95,7 @@ jobs:
         uses: harrisonkaiser/clang-format-action@verbose
         with:
           clang-format-version: '15'
-          include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib).*\.(c|h)$'
+          include-regex: '^(\.\/)?(api|bin|crypto|stuffer|error|tls|utils|tests\/unit|tests\/testlib|docs\/examples).*\.(c|h)$'
   nixflake:
     # The nix develop changes contain broken nixpkg dependenecies; the allow/impure flags workaround this.
     runs-on: ubuntu-latest

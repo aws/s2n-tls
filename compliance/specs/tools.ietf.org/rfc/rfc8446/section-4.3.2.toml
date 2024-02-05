@@ -1,0 +1,111 @@
+target = "https://tools.ietf.org/rfc/rfc8446#section-4.3.2"
+
+# 4.3.2.  Certificate Request
+#
+# A server which is authenticating with a certificate MAY optionally
+# request a certificate from the client.  This message, if sent, MUST
+# follow EncryptedExtensions.
+# 
+# Structure of this message:
+# 
+#    struct {
+#        opaque certificate_request_context<0..2^8-1>;
+#        Extension extensions<2..2^16-1>;
+#    } CertificateRequest;
+# 
+# certificate_request_context:  An opaque string which identifies the
+#    certificate request and which will be echoed in the client's
+#    Certificate message.  The certificate_request_context MUST be
+#    unique within the scope of this connection (thus preventing replay
+#    of client CertificateVerify messages).  This field SHALL be zero
+#    length unless used for the post-handshake authentication exchanges
+#    described in Section 4.6.2.  When requesting post-handshake
+#    authentication, the server SHOULD make the context unpredictable
+#    to the client (e.g., by randomly generating it) in order to
+#    prevent an attacker who has temporary access to the client's
+#    private key from pre-computing valid CertificateVerify messages.
+# 
+# extensions:  A set of extensions describing the parameters of the
+#    certificate being requested.  The "signature_algorithms" extension
+#    MUST be specified, and other extensions may optionally be included
+#    if defined for this message.  Clients MUST ignore unrecognized
+#    extensions.
+# 
+# In prior versions of TLS, the CertificateRequest message carried a
+# list of signature algorithms and certificate authorities which the
+# server would accept.  In TLS 1.3, the former is expressed by sending
+# the "signature_algorithms" and optionally "signature_algorithms_cert"
+# extensions.  The latter is expressed by sending the
+# "certificate_authorities" extension (see Section 4.2.4).
+# 
+# Servers which are authenticating with a PSK MUST NOT send the
+# CertificateRequest message in the main handshake, though they MAY
+# send it in post-handshake authentication (see Section 4.6.2) provided
+# that the client has sent the "post_handshake_auth" extension (see
+# Section 4.2.6).
+
+[[spec]]
+level = "MAY"
+quote = '''
+A server which is authenticating with a certificate MAY optionally
+request a certificate from the client.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This message, if sent, MUST
+follow EncryptedExtensions.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The certificate_request_context MUST be
+unique within the scope of this connection (thus preventing replay
+of client CertificateVerify messages).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+This field SHALL be zero
+length unless used for the post-handshake authentication exchanges
+described in Section 4.6.2.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+When requesting post-handshake
+authentication, the server SHOULD make the context unpredictable
+to the client (e.g., by randomly generating it) in order to
+prevent an attacker who has temporary access to the client's
+private key from pre-computing valid CertificateVerify messages.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The "signature_algorithms" extension
+MUST be specified, and other extensions may optionally be included
+if defined for this message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients MUST ignore unrecognized
+extensions.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers which are authenticating with a PSK MUST NOT send the
+CertificateRequest message in the main handshake, though they MAY
+send it in post-handshake authentication (see Section 4.6.2) provided
+that the client has sent the "post_handshake_auth" extension (see
+Section 4.2.6).
+'''
+

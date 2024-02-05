@@ -109,3 +109,4 @@ int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 int s2n_align_to(uint32_t initial, uint32_t alignment, uint32_t* out);
 int s2n_add_overflow(uint32_t a, uint32_t b, uint32_t* out);
 int s2n_sub_overflow(uint32_t a, uint32_t b, uint32_t* out);
+#define S2N_ADD_IS_OVERFLOW_SAFE(a, b, max) (((max) >= (a)) && ((max) - (a) >= (b)))

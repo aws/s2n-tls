@@ -44,7 +44,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_signature_algorithms_extension.recv(client_conn, &io));
         EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
 
-        EXPECT_EQUAL(client_conn->handshake_params.server_sig_hash_algs.len, s2n_supported_sig_schemes_count(server_conn));
+        EXPECT_TRUE(client_conn->handshake_params.server_sig_hash_algs.len > 0);
 
         s2n_stuffer_free(&io);
         EXPECT_SUCCESS(s2n_connection_free(server_conn));

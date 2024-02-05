@@ -124,7 +124,7 @@ const COPYRIGHT: &str = r#"
 const PRELUDE: &str = r#"
 #![allow(unused_imports, non_camel_case_types)]
 
-use libc::{iovec, FILE};
+use libc::{iovec, FILE, off_t};
 "#;
 
 fn base_builder() -> bindgen::Builder {

@@ -28,13 +28,17 @@
  * 700.  In glibc 2.11 and earlier, one obtains the definitions by
  * defining _GNU_SOURCE.
  *
- * # Relavent Links
+ * We use two feature probes to detect the need to perform this workaround.
+ * It is only applied if we can't get CLOEXEC without it and the build doesn't
+ * fail with _XOPEN_SOURCE being defined.
+ *
+ * # Relevent Links
  *
  * - POSIX.1-2017: https://pubs.opengroup.org/onlinepubs/9699919799
  * - https://stackoverflow.com/a/5724485
  * - https://stackoverflow.com/a/5583764
  */
-#ifndef _XOPEN_SOURCE
+#if !defined(S2N_CLOEXEC_SUPPORTED) && defined(S2N_CLOEXEC_XOPEN_SUPPORTED) && !defined(_XOPEN_SOURCE)
     #define _XOPEN_SOURCE 700
     #include <fcntl.h>
     #undef _XOPEN_SOURCE
@@ -63,14 +67,14 @@
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_fips.h"
 #include "error/s2n_errno.h"
+#include "s2n_io.h"
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_fork_detection.h"
+#include "utils/s2n_init.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_safety.h"
-
-#define ENTROPY_SOURCE "/dev/urandom"
 
 #if defined(O_CLOEXEC)
     #define ENTROPY_FLAGS O_RDONLY | O_CLOEXEC
@@ -87,7 +91,10 @@
 /* Placeholder value for an uninitialized entropy file descriptor */
 #define UNINITIALIZED_ENTROPY_FD -1
 
-static int entropy_fd = UNINITIALIZED_ENTROPY_FD;
+static struct s2n_rand_device s2n_dev_urandom = {
+    .source = "/dev/urandom",
+    .fd = UNINITIALIZED_ENTROPY_FD,
+};
 
 struct s2n_rand_state {
     uint64_t cached_fork_generation_number;
@@ -100,6 +107,8 @@ struct s2n_rand_state {
 static pthread_key_t s2n_per_thread_rand_state_key;
 /* Needed to ensure key is initialized only once */
 static pthread_once_t s2n_per_thread_rand_state_key_once = PTHREAD_ONCE_INIT;
+/* Tracks if call to pthread_key_create failed */
+static int pthread_key_create_result;
 
 static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .cached_fork_generation_number = 0,
@@ -108,15 +117,23 @@ static __thread struct s2n_rand_state s2n_per_thread_rand_state = {
     .drbgs_initialized = false
 };
 
-static int s2n_rand_init_impl(void);
-static int s2n_rand_cleanup_impl(void);
-static int s2n_rand_urandom_impl(void *ptr, uint32_t size);
-static int s2n_rand_rdrand_impl(void *ptr, uint32_t size);
+static int s2n_rand_init_cb_impl(void);
+static int s2n_rand_cleanup_cb_impl(void);
+static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size);
+static int s2n_rand_get_entropy_from_rdrand(void *ptr, uint32_t size);
 
-static s2n_rand_init_callback s2n_rand_init_cb = s2n_rand_init_impl;
-static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
-static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_urandom_impl;
-static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_urandom_impl;
+static s2n_rand_init_callback s2n_rand_init_cb = s2n_rand_init_cb_impl;
+static s2n_rand_cleanup_callback s2n_rand_cleanup_cb = s2n_rand_cleanup_cb_impl;
+static s2n_rand_seed_callback s2n_rand_seed_cb = s2n_rand_get_entropy_from_urandom;
+static s2n_rand_mix_callback s2n_rand_mix_cb = s2n_rand_get_entropy_from_urandom;
+
+static int s2n_rand_entropy_fd_close_ptr(int *fd)
+{
+    if (fd && *fd != UNINITIALIZED_ENTROPY_FD) {
+        close(*fd);
+    }
+    return S2N_SUCCESS;
+}
 
 /* non-static for SAW proof */
 bool s2n_cpu_supports_rdrand()
@@ -169,6 +186,14 @@ S2N_RESULT s2n_get_mix_entropy(struct s2n_blob *blob)
     return S2N_RESULT_OK;
 }
 
+/* Deletes pthread key at process-exit */
+static void __attribute__((destructor)) s2n_drbg_rand_state_key_cleanup(void)
+{
+    if (s2n_is_initialized()) {
+        pthread_key_delete(s2n_per_thread_rand_state_key);
+    }
+}
+
 static void s2n_drbg_destructor(void *_unused_argument)
 {
     (void) _unused_argument;
@@ -178,7 +203,9 @@ static void s2n_drbg_destructor(void *_unused_argument)
 
 static void s2n_drbg_make_rand_state_key(void)
 {
-    (void) pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
+    /* We can't return the output of pthread_key_create due to the parameter constraints of pthread_once.
+     * Here we store the result in a global variable that will be error checked later. */
+    pthread_key_create_result = pthread_key_create(&s2n_per_thread_rand_state_key, s2n_drbg_destructor);
 }
 
 static S2N_RESULT s2n_init_drbgs(void)
@@ -191,6 +218,7 @@ static S2N_RESULT s2n_init_drbgs(void)
     RESULT_GUARD_POSIX(s2n_blob_init(&private, s2n_private_drbg, sizeof(s2n_private_drbg)));
 
     RESULT_ENSURE(pthread_once(&s2n_per_thread_rand_state_key_once, s2n_drbg_make_rand_state_key) == 0, S2N_ERR_DRBG);
+    RESULT_ENSURE_EQ(pthread_key_create_result, 0);
 
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.public_drbg, &public, S2N_AES_128_CTR_NO_DF_PR));
     RESULT_GUARD(s2n_drbg_instantiate(&s2n_per_thread_rand_state.private_drbg, &private, S2N_AES_256_CTR_NO_DF_PR));
@@ -314,9 +342,76 @@ S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used)
     return S2N_RESULT_OK;
 }
 
-static int s2n_rand_urandom_impl(void *ptr, uint32_t size)
+S2N_RESULT s2n_rand_get_urandom_for_test(struct s2n_rand_device **device)
 {
-    POSIX_ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    *device = &s2n_dev_urandom;
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_rand_device_open(struct s2n_rand_device *device)
+{
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE_REF(device->source);
+
+    DEFER_CLEANUP(int fd = -1, s2n_rand_entropy_fd_close_ptr);
+    S2N_IO_RETRY_EINTR(fd, open(device->source, ENTROPY_FLAGS));
+    RESULT_ENSURE(fd >= 0, S2N_ERR_OPEN_RANDOM);
+
+    struct stat st = { 0 };
+    RESULT_ENSURE(fstat(fd, &st) == 0, S2N_ERR_OPEN_RANDOM);
+    device->dev = st.st_dev;
+    device->ino = st.st_ino;
+    device->mode = st.st_mode;
+    device->rdev = st.st_rdev;
+
+    device->fd = fd;
+
+    /* Disable closing the file descriptor with defer cleanup */
+    fd = UNINITIALIZED_ENTROPY_FD;
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_rand_device_validate(struct s2n_rand_device *device)
+{
+    RESULT_ENSURE_REF(device);
+    RESULT_ENSURE_NE(device->fd, UNINITIALIZED_ENTROPY_FD);
+
+    /* Ensure that the random device is still valid by comparing it to the current file descriptor
+     * status. From:
+     * https://github.com/openssl/openssl/blob/260d97229c467d17934ca3e2e0455b1b5c0994a6/providers/implementations/rands/seeding/rand_unix.c#L513
+     */
+    struct stat st = { 0 };
+    RESULT_ENSURE(fstat(device->fd, &st) == 0, S2N_ERR_OPEN_RANDOM);
+    RESULT_ENSURE_EQ(device->dev, st.st_dev);
+    RESULT_ENSURE_EQ(device->ino, st.st_ino);
+    RESULT_ENSURE_EQ(device->rdev, st.st_rdev);
+
+    /* Ensure that the mode is the same (equal to 0 when xor'd), but don't check the permission bits. */
+    mode_t permission_mask = ~(S_IRWXU | S_IRWXG | S_IRWXO);
+    RESULT_ENSURE_EQ((device->mode ^ st.st_mode) & permission_mask, 0);
+
+    return S2N_RESULT_OK;
+}
+
+static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
+{
+    POSIX_ENSURE_REF(ptr);
+    POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+
+    /* It's possible that the file descriptor pointing to /dev/urandom was closed or changed from
+     * when it was last opened. Ensure that the file descriptor is still valid, and if it isn't,
+     * re-open it before getting entropy.
+     *
+     * If the file descriptor is invalid and the process doesn't have access to /dev/urandom (as is
+     * the case within a chroot tree), an error is raised here before attempting to indefinitely
+     * read.
+     */
+    if (s2n_result_is_error(s2n_rand_device_validate(&s2n_dev_urandom))) {
+        POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
+    }
 
     uint8_t *data = ptr;
     uint32_t n = size;
@@ -325,7 +420,7 @@ static int s2n_rand_urandom_impl(void *ptr, uint32_t size)
 
     while (n) {
         errno = 0;
-        int r = read(entropy_fd, data, n);
+        int r = read(s2n_dev_urandom.fd, data, n);
         if (r <= 0) {
             /*
              * A non-blocking read() on /dev/urandom should "never" fail,
@@ -432,19 +527,16 @@ RAND_METHOD s2n_openssl_rand_method = {
 };
 #endif
 
-static int s2n_rand_init_impl(void)
+static int s2n_rand_init_cb_impl(void)
 {
-OPEN:
-    entropy_fd = open(ENTROPY_SOURCE, ENTROPY_FLAGS);
-    if (entropy_fd == -1) {
-        if (errno == EINTR) {
-            goto OPEN;
-        }
-        POSIX_BAIL(S2N_ERR_OPEN_RANDOM);
-    }
+    /* Currently, s2n-tls may mix in entropy from urandom into every generation of random data. The
+     * file descriptor is opened on initialization for better performance reading from urandom, and
+     * to ensure that urandom is accessible from within a chroot tree.
+     */
+    POSIX_GUARD_RESULT(s2n_rand_device_open(&s2n_dev_urandom));
 
     if (s2n_cpu_supports_rdrand()) {
-        s2n_rand_mix_cb = s2n_rand_rdrand_impl;
+        s2n_rand_mix_cb = s2n_rand_get_entropy_from_rdrand;
     }
 
     return S2N_SUCCESS;
@@ -484,12 +576,14 @@ S2N_RESULT s2n_rand_init(void)
     return S2N_RESULT_OK;
 }
 
-static int s2n_rand_cleanup_impl(void)
+static int s2n_rand_cleanup_cb_impl(void)
 {
-    POSIX_ENSURE(entropy_fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE(s2n_dev_urandom.fd != UNINITIALIZED_ENTROPY_FD, S2N_ERR_NOT_INITIALIZED);
 
-    POSIX_GUARD(close(entropy_fd));
-    entropy_fd = UNINITIALIZED_ENTROPY_FD;
+    if (s2n_result_is_ok(s2n_rand_device_validate(&s2n_dev_urandom))) {
+        POSIX_GUARD(close(s2n_dev_urandom.fd));
+    }
+    s2n_dev_urandom.fd = UNINITIALIZED_ENTROPY_FD;
 
     return S2N_SUCCESS;
 }
@@ -512,10 +606,10 @@ S2N_RESULT s2n_rand_cleanup(void)
     }
 #endif
 
-    s2n_rand_init_cb = s2n_rand_init_impl;
-    s2n_rand_cleanup_cb = s2n_rand_cleanup_impl;
-    s2n_rand_seed_cb = s2n_rand_urandom_impl;
-    s2n_rand_mix_cb = s2n_rand_urandom_impl;
+    s2n_rand_init_cb = s2n_rand_init_cb_impl;
+    s2n_rand_cleanup_cb = s2n_rand_cleanup_cb_impl;
+    s2n_rand_seed_cb = s2n_rand_get_entropy_from_urandom;
+    s2n_rand_mix_cb = s2n_rand_get_entropy_from_urandom;
 
     return S2N_RESULT_OK;
 }
@@ -531,7 +625,9 @@ S2N_RESULT s2n_rand_cleanup_thread(void)
     s2n_per_thread_rand_state.drbgs_initialized = false;
 
     /* Unset the thread-local destructor */
-    pthread_setspecific(s2n_per_thread_rand_state_key, NULL);
+    if (s2n_is_initialized()) {
+        pthread_setspecific(s2n_per_thread_rand_state_key, NULL);
+    }
 
     return S2N_RESULT_OK;
 }
@@ -551,11 +647,18 @@ S2N_RESULT s2n_set_private_drbg_for_test(struct s2n_drbg drbg)
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_rand_set_urandom_for_test()
+{
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    s2n_rand_mix_cb = s2n_rand_get_entropy_from_urandom;
+    return S2N_RESULT_OK;
+}
+
 /*
  * volatile is important to prevent the compiler from
  * re-ordering or optimizing the use of RDRAND.
  */
-static int s2n_rand_rdrand_impl(void *data, uint32_t size)
+static int s2n_rand_get_entropy_from_rdrand(void *data, uint32_t size)
 {
 #if defined(__x86_64__) || defined(__i386__)
     struct s2n_blob out = { 0 };
@@ -593,14 +696,14 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
             __asm__ __volatile__(
                     ".byte 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.i386_fields.u_low), "=qm"(success_low)
+                    : "=&a"(output.i386_fields.u_low), "=qm"(success_low)
                     :
                     : "cc");
 
             __asm__ __volatile__(
                     ".byte 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.i386_fields.u_high), "=qm"(success_high)
+                    : "=&a"(output.i386_fields.u_high), "=qm"(success_high)
                     :
                     : "cc");
             /* cppcheck-suppress knownConditionTrueFalse */
@@ -624,7 +727,7 @@ static int s2n_rand_rdrand_impl(void *data, uint32_t size)
             __asm__ __volatile__(
                     ".byte 0x48, 0x0f, 0xc7, 0xf0;\n"
                     "setc %b1;\n"
-                    : "=a"(output.u64), "=qm"(success)
+                    : "=&a"(output.u64), "=qm"(success)
                     :
                     : "cc");
     #endif /* defined(__i386__) */

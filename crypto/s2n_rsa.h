@@ -43,7 +43,7 @@ RSA *s2n_unsafe_rsa_get_non_const(const struct s2n_rsa_key *rsa_key);
 typedef struct s2n_rsa_key s2n_rsa_public_key;
 typedef struct s2n_rsa_key s2n_rsa_private_key;
 
-int s2n_rsa_pkey_init(struct s2n_pkey *pkey);
+S2N_RESULT s2n_rsa_pkey_init(struct s2n_pkey *pkey);
 
-int s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey);
-int s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey);
+S2N_RESULT s2n_evp_pkey_to_rsa_public_key(s2n_rsa_public_key *rsa_key, EVP_PKEY *pkey);
+S2N_RESULT s2n_evp_pkey_to_rsa_private_key(s2n_rsa_private_key *rsa_key, EVP_PKEY *pkey);

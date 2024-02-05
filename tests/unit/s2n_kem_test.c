@@ -15,7 +15,7 @@
 #include "tls/s2n_kem.h"
 
 #include "crypto/s2n_ecc_evp.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tests/s2n_test.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -77,24 +77,26 @@ int assert_kem_params_free(struct s2n_kem_params *kem_params)
     return S2N_SUCCESS;
 }
 
-int s2n_test_generate_keypair(unsigned char *public_key, unsigned char *private_key)
+int s2n_test_generate_keypair(const struct s2n_kem *kem, unsigned char *public_key, unsigned char *private_key)
 {
-    memset(public_key, TEST_PUBLIC_KEY_LENGTH, TEST_PUBLIC_KEY_LENGTH);
-    memset(private_key, TEST_PRIVATE_KEY_LENGTH, TEST_PRIVATE_KEY_LENGTH);
+    memset(public_key, kem->public_key_length, kem->public_key_length);
+    memset(private_key, kem->private_key_length, kem->private_key_length);
     return 0;
 }
-int s2n_test_encrypt(unsigned char *ciphertext, unsigned char *shared_secret, const unsigned char *public_key)
+
+int s2n_test_encrypt(const struct s2n_kem *kem, unsigned char *ciphertext, unsigned char *shared_secret, const unsigned char *public_key)
 {
     POSIX_GUARD(memcmp(public_key, TEST_PUBLIC_KEY, TEST_PUBLIC_KEY_LENGTH));
-    memset(ciphertext, TEST_CIPHERTEXT_LENGTH, TEST_CIPHERTEXT_LENGTH);
-    memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
+    memset(ciphertext, kem->ciphertext_length, kem->ciphertext_length);
+    memset(shared_secret, kem->shared_secret_key_length, kem->shared_secret_key_length);
     return 0;
 }
-int s2n_test_decrypt(unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key)
+
+int s2n_test_decrypt(const struct s2n_kem *kem, unsigned char *shared_secret, const unsigned char *ciphertext, const unsigned char *private_key)
 {
     POSIX_GUARD(memcmp(ciphertext, TEST_CIPHERTEXT, TEST_CIPHERTEXT_LENGTH));
     POSIX_GUARD(memcmp(private_key, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH));
-    memset(shared_secret, TEST_SHARED_SECRET_LENGTH, TEST_SHARED_SECRET_LENGTH);
+    memset(shared_secret, kem->shared_secret_key_length, kem->shared_secret_key_length);
     return 0;
 }
 
@@ -170,11 +172,11 @@ int main(int argc, char **argv)
 
         /* The kem_extensions and kems arrays should be kept in sync with each other */
         kem_extension_size kem_extensions[] = {
-            TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3
+            TLS_PQ_KEM_EXTENSION_ID_KYBER_512_R3,
         };
 
         const struct s2n_kem *kems[] = {
-            &s2n_kyber_512_r3
+            &s2n_kyber_512_r3,
         };
 
         for (size_t i = 0; i < s2n_array_len(kems); i++) {
@@ -369,7 +371,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer io_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 
-            s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH);
+            EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
             POSIX_CHECKED_MEMCPY(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
 
             /* {0, 5} = length of ciphertext to follow

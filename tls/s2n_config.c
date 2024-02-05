@@ -20,6 +20,7 @@
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hkdf.h"
+#include "crypto/s2n_pq.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_internal.h"
@@ -240,12 +241,17 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
     }
 
-    /* Set up TLS 1.3 defaults */
+    /* TLS 1.3 default config is only used in tests so avoid initialization costs in applications */
     POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
     POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
-    POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_tls13_config));
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void)
+{
+    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_tls13_config));
+    return S2N_RESULT_OK;
 }
 
 void s2n_wipe_static_configs(void)
@@ -451,6 +457,13 @@ int s2n_config_set_check_stapled_ocsp_response(struct s2n_config *config, uint8_
     return 0;
 }
 
+int s2n_config_disable_x509_time_verification(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+    config->disable_x509_time_validation = true;
+    return S2N_SUCCESS;
+}
+
 int s2n_config_disable_x509_verification(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
@@ -519,11 +532,15 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
 {
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
+
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
+
     POSIX_GUARD(s2n_config_build_domain_name_to_cert_map(config, cert_key_pair));
 
     if (!config->default_certs_are_explicit) {
+        POSIX_ENSURE(cert_type >= 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+        POSIX_ENSURE(cert_type < S2N_CERT_TYPE_COUNT, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         /* Attempt to auto set default based on ordering. ie: first RSA cert is the default, first ECDSA cert is the
          * default, etc. */
         if (config->default_certs_by_type.certs[cert_type] == NULL) {
@@ -1114,6 +1131,58 @@ int s2n_config_set_recv_multi_record(struct s2n_config *config, bool enabled)
     POSIX_ENSURE_REF(config);
 
     config->recv_multi_record = enabled;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_cert_validation_cb(struct s2n_config *config, s2n_cert_validation_callback cb, void *ctx)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->cert_validation_cb = cb;
+    config->cert_validation_ctx = ctx;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
+        uint16_t *groups_count_out)
+{
+    POSIX_ENSURE_REF(groups_count_out);
+    *groups_count_out = 0;
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(groups);
+
+    const struct s2n_security_policy *security_policy = config->security_policy;
+    POSIX_ENSURE_REF(security_policy);
+    const struct s2n_kem_preferences *kem_preferences = security_policy->kem_preferences;
+    POSIX_ENSURE_REF(kem_preferences);
+    const struct s2n_ecc_preferences *ecc_preferences = security_policy->ecc_preferences;
+    POSIX_ENSURE_REF(ecc_preferences);
+
+    uint16_t groups_count = 0;
+    for (uint8_t i = 0; i < kem_preferences->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *kem_group = kem_preferences->tls13_kem_groups[i];
+        POSIX_ENSURE_REF(kem_group);
+        if (!s2n_kem_group_is_available(kem_group)) {
+            continue;
+        }
+
+        POSIX_ENSURE(groups_count < groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        groups[groups_count] = kem_group->iana_id;
+        groups_count += 1;
+    }
+
+    for (uint8_t i = 0; i < ecc_preferences->count; i++) {
+        const struct s2n_ecc_named_curve *ecc_curve = ecc_preferences->ecc_curves[i];
+        POSIX_ENSURE_REF(ecc_curve);
+
+        POSIX_ENSURE(groups_count < groups_count_max, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        groups[groups_count] = ecc_curve->iana_id;
+        groups_count += 1;
+    }
+
+    *groups_count_out = groups_count;
 
     return S2N_SUCCESS;
 }

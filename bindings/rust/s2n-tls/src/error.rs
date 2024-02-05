@@ -306,13 +306,19 @@ impl TryFrom<std::io::Error> for Error {
 
 impl From<Error> for std::io::Error {
     fn from(input: Error) -> Self {
-        if let Context::Code(_, errno) = input.0 {
-            if ErrorType::IOError == input.kind() {
-                let bare = std::io::Error::from_raw_os_error(errno.0);
-                return std::io::Error::new(bare.kind(), input);
+        let kind = match input.kind() {
+            ErrorType::IOError => {
+                if let Context::Code(_, errno) = input.0 {
+                    let bare = std::io::Error::from_raw_os_error(errno.0);
+                    bare.kind()
+                } else {
+                    std::io::ErrorKind::Other
+                }
             }
-        }
-        std::io::Error::new(std::io::ErrorKind::Other, input)
+            ErrorType::ConnectionClosed => std::io::ErrorKind::UnexpectedEof,
+            _ => std::io::ErrorKind::Other,
+        };
+        std::io::Error::new(kind, input)
     }
 }
 

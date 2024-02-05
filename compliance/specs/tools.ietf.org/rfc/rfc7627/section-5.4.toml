@@ -1,0 +1,90 @@
+target = "https://tools.ietf.org/rfc/rfc7627#section-5.4"
+
+# 5.4.  Interoperability Considerations
+#
+# To allow interoperability with legacy clients and servers, a TLS peer
+# may decide to accept full handshakes that use the legacy master
+# secret computation.  If so, they need to differentiate between
+# sessions that use legacy and extended master secrets by adding a flag
+# to the session state.
+# 
+# If a client or server chooses to continue with a full handshake
+# without the extended master secret extension, then the new session
+# becomes vulnerable to the man-in-the-middle key synchronization
+# attack described in Section 1.  Hence, the client or server MUST NOT
+# export any key material based on the new master secret for any
+# subsequent application-level authentication.  In particular, it MUST
+# disable [RFC5705] and any Extensible Authentication Protocol (EAP)
+# relying on compound authentication [COMPOUND-AUTH].
+# 
+# If a client or server chooses to continue an abbreviated handshake to
+# resume a session that does not use the extended master secret, then
+# the current connection becomes vulnerable to a man-in-the-middle
+# handshake log synchronization attack as described in Section 1.
+# Hence, the client or server MUST NOT use the current handshake's
+# "verify_data" for application-level authentication.  In particular,
+# the client MUST disable renegotiation and any use of the "tls-unique"
+# channel binding [RFC5929] on the current connection.
+# 
+# If the original session uses an extended master secret but the
+# ClientHello or ServerHello in the abbreviated handshake does not
+# include the extension, it MAY be safe to continue the abbreviated
+# handshake since it is protected by the extended master secret of the
+# original session.  This scenario may occur, for example, when a
+# server that implements this extension establishes a session but the
+# session is subsequently resumed at a different server that does not
+# support the extension.  Since such situations are unusual and likely
+# to be the result of transient or inadvertent misconfigurations, this
+# document recommends that the client and server MUST abort such
+# handshakes.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Hence, the client or server MUST NOT
+export any key material based on the new master secret for any
+subsequent application-level authentication.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In particular, it MUST
+disable [RFC5705] and any Extensible Authentication Protocol (EAP)
+relying on compound authentication [COMPOUND-AUTH].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Hence, the client or server MUST NOT use the current handshake's
+"verify_data" for application-level authentication.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In particular,
+the client MUST disable renegotiation and any use of the "tls-unique"
+channel binding [RFC5929] on the current connection.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If the original session uses an extended master secret but the
+ClientHello or ServerHello in the abbreviated handshake does not
+include the extension, it MAY be safe to continue the abbreviated
+handshake since it is protected by the extended master secret of the
+original session.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Since such situations are unusual and likely
+to be the result of transient or inadvertent misconfigurations, this
+document recommends that the client and server MUST abort such
+handshakes.
+'''
+

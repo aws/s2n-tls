@@ -1,0 +1,92 @@
+target = "https://tools.ietf.org/rfc/rfc8422#section-5.3"
+
+# 5.3.  Server Certificate
+#
+# When this message is sent:
+# 
+# This message is sent in all non-anonymous, ECC-based key exchange
+# algorithms.
+# 
+# Meaning of this message:
+# 
+# This message is used to authentically convey the server's static
+# public key to the client.  The following table shows the server
+# certificate type appropriate for each key exchange algorithm.  ECC
+# public keys MUST be encoded in certificates as described in
+# Section 5.9.
+# 
+# NOTE: The server's Certificate message is capable of carrying a chain
+# of certificates.  The restrictions mentioned in Table 2 apply only to
+# the server's certificate (first in the chain).
+# 
+# +-------------+-----------------------------------------------------+
+# | Algorithm   | Server Certificate Type                             |
+# +-------------+-----------------------------------------------------+
+# | ECDHE_ECDSA | Certificate MUST contain an ECDSA- or EdDSA-capable |
+# |             | public key.                                         |
+# | ECDHE_RSA   | Certificate MUST contain an RSA public key.         |
+# +-------------+-----------------------------------------------------+
+# 
+#                   Table 2: Server Certificate Types
+# 
+# Structure of this message:
+# 
+# Identical to the TLS Certificate format.
+# 
+# Actions of the sender:
+# 
+# The server constructs an appropriate certificate chain and conveys it
+# to the client in the Certificate message.  If the client has used a
+# Supported Elliptic Curves Extension, the public key in the server's
+# 
+# certificate MUST respect the client's choice of elliptic curves.  A
+# server that cannot satisfy this requirement MUST NOT choose an ECC
+# cipher suite in its ServerHello message.)
+# 
+# Actions of the receiver:
+# 
+# The client validates the certificate chain, extracts the server's
+# public key, and checks that the key type is appropriate for the
+# negotiated key exchange algorithm.  (A possible reason for a fatal
+# handshake failure is that the client's capabilities for handling
+# elliptic curves and point formats are exceeded; cf. Section 5.1.)
+
+[[spec]]
+level = "MUST"
+quote = '''
+ECC
+public keys MUST be encoded in certificates as described in
+Section 5.9.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
++-------------+-----------------------------------------------------+
+| Algorithm   | Server Certificate Type                             |
++-------------+-----------------------------------------------------+
+| ECDHE_ECDSA | Certificate MUST contain an ECDSA- or EdDSA-capable |
+|             | public key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+|
+| ECDHE_RSA   | Certificate MUST contain an RSA public key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+certificate MUST respect the client's choice of elliptic curves.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A
+server that cannot satisfy this requirement MUST NOT choose an ECC
+cipher suite in its ServerHello message.)
+'''
+

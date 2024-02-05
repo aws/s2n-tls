@@ -17,6 +17,7 @@
 
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_hmac.h"
+#include "crypto/s2n_openssl.h"
 
 #include <assert.h>
 
@@ -33,7 +34,7 @@ void s2n_hmac_is_available_harness()
         case S2N_HASH_MD5:
         case S2N_HMAC_SSLv3_MD5:
         case S2N_HMAC_SSLv3_SHA1:
-            assert(is_available == !s2n_is_in_fips_mode()); break;
+            assert(is_available == !s2n_is_in_fips_mode() || s2n_libcrypto_is_awslc()); break;
         case S2N_HASH_NONE:
         case S2N_HASH_SHA1:
         case S2N_HASH_SHA224:

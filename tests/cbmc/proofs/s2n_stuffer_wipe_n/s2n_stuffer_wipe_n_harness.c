@@ -30,26 +30,38 @@ void s2n_stuffer_wipe_n_harness()
     __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
 
     /* Save previous state. */
-    uint32_t old_n = n;
     struct s2n_stuffer old_stuffer = *stuffer;
 
-    /* Function under verification. */
-    if (s2n_stuffer_wipe_n(stuffer, n) == S2N_SUCCESS)
-    {
-        assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
-        assert(old_n == n);
-        assert(S2N_IMPLIES(n >= old_stuffer.write_cursor,
-                           stuffer->high_water_mark == 0 &&
-                           stuffer->tainted == 0         &&
-                           stuffer->write_cursor == 0    &&
-                           stuffer->read_cursor == 0));
-        assert(S2N_IMPLIES(n < old_stuffer.write_cursor,
-                           (stuffer->read_cursor == MIN(old_stuffer.read_cursor, (old_stuffer.write_cursor - n)))));
-        assert(S2N_IMPLIES(n < old_stuffer.write_cursor,
-                           (stuffer->write_cursor == old_stuffer.write_cursor - n)));
-        if(n >= old_stuffer.write_cursor)
-            assert_all_bytes_are(stuffer->blob.data, S2N_WIPE_PATTERN, old_stuffer.high_water_mark);
-        else
-            assert_all_bytes_are(stuffer->blob.data+(old_stuffer.write_cursor - n), S2N_WIPE_PATTERN, n);
-    };
+    /* Save byte from untouched portion to compare after the wipe */
+    uint32_t expect_wiped = MIN(n, old_stuffer.write_cursor);
+    uint32_t expected_write_cursor = old_stuffer.write_cursor - expect_wiped;
+    struct store_byte_from_buffer old_byte;
+    save_byte_from_array(old_stuffer.blob.data, expected_write_cursor, &old_byte);
+
+    /* Given a valid stuffer, wipe_n always succeeds */
+    assert(s2n_stuffer_wipe_n(stuffer, n) == S2N_SUCCESS);
+    assert(s2n_result_is_ok(s2n_stuffer_validate(stuffer)));
+
+    /* The basic stuffer fields should NOT be updated */
+    assert(stuffer->high_water_mark == old_stuffer.high_water_mark);
+    assert(stuffer->tainted == old_stuffer.tainted);
+    assert(stuffer->blob == old_stuffer.blob);
+    assert(stuffer->blob.data == old_stuffer.blob.data);
+
+    /* The read and write cursors should be updated */
+    assert(S2N_IMPLIES(expect_wiped < n, stuffer->write_cursor == 0));
+    assert(S2N_IMPLIES(expect_wiped < n, stuffer->read_cursor == 0));
+    assert(stuffer->write_cursor == expected_write_cursor);
+    assert(stuffer->read_cursor == MIN(old_stuffer.read_cursor, stuffer->write_cursor));
+
+    /* Any data before the new write cursor should NOT be updated */
+    if (expected_write_cursor > 0) {
+        assert_byte_from_buffer_matches(stuffer->blob.data, &old_byte);
+    }
+
+    /* Everything after the new write cursor should be wiped */
+    if (expect_wiped > 0) {
+        assert_all_bytes_are(stuffer->blob.data + stuffer->write_cursor,
+                S2N_WIPE_PATTERN, expect_wiped);
+    }
 }

@@ -17,6 +17,7 @@
 
 #include <string.h>
 
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hmac.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
@@ -399,17 +400,18 @@ static struct hkdf_test_vector tests[] = {
 
 int main(int argc, char **argv)
 {
-    struct s2n_hmac_state hmac;
+    struct s2n_hmac_state hmac = { 0 };
 
-    uint8_t prk_pad[MAX_PSEUDO_RAND_KEY_SIZE];
+    uint8_t prk_pad[MAX_PSEUDO_RAND_KEY_SIZE] = { 0 };
+    uint8_t output_pad[MAX_OUTPUT_SIZE] = { 0 };
+
+    struct s2n_blob in_key_blob = { 0 };
+    struct s2n_blob salt_blob = { 0 };
+    struct s2n_blob info_blob = { 0 };
+    struct s2n_blob actual_prk_blob = { 0 };
+    struct s2n_blob actual_output_blob = { 0 };
     struct s2n_blob prk_result = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&prk_result, prk_pad, sizeof(prk_pad)));
-
-    uint8_t output_pad[MAX_OUTPUT_SIZE];
     struct s2n_blob out_result = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&out_result, output_pad, sizeof(output_pad)));
-
-    struct s2n_blob in_key_blob, salt_blob, info_blob, actual_prk_blob, actual_output_blob;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -419,17 +421,40 @@ int main(int argc, char **argv)
     for (uint8_t i = 0; i < NUM_TESTS; i++) {
         struct hkdf_test_vector *test = &tests[i];
 
-        s2n_blob_init(&in_key_blob, test->in_key, test->in_key_len);
-        s2n_blob_init(&salt_blob, test->salt, test->salt_len);
-        s2n_blob_init(&info_blob, test->info, test->info_len);
-        s2n_blob_init(&actual_prk_blob, test->pseudo_rand_key, test->prk_len);
-        s2n_blob_init(&actual_output_blob, test->output, test->output_len);
+        EXPECT_SUCCESS(s2n_blob_init(&in_key_blob, test->in_key, test->in_key_len));
+        EXPECT_SUCCESS(s2n_blob_init(&salt_blob, test->salt, test->salt_len));
+        EXPECT_SUCCESS(s2n_blob_init(&info_blob, test->info, test->info_len));
+        EXPECT_SUCCESS(s2n_blob_init(&actual_prk_blob, test->pseudo_rand_key, test->prk_len));
+        EXPECT_SUCCESS(s2n_blob_init(&actual_output_blob, test->output, test->output_len));
+        EXPECT_SUCCESS(s2n_blob_init(&prk_result, prk_pad, sizeof(prk_pad)));
+        EXPECT_SUCCESS(s2n_blob_init(&out_result, output_pad, sizeof(output_pad)));
 
         EXPECT_SUCCESS(s2n_hkdf_extract(&hmac, test->alg, &salt_blob, &in_key_blob, &prk_result));
         EXPECT_EQUAL(memcmp(prk_pad, actual_prk_blob.data, actual_prk_blob.size), 0);
 
+        /* The size of the PRK output should match the digest size */
+        uint8_t digest_size = 0;
+        EXPECT_SUCCESS(s2n_hmac_digest_size(test->alg, &digest_size));
+        EXPECT_EQUAL(prk_result.size, digest_size);
+
         EXPECT_SUCCESS(s2n_hkdf(&hmac, test->alg, &salt_blob, &in_key_blob, &info_blob, &out_result));
         EXPECT_EQUAL(memcmp(output_pad, actual_output_blob.data, actual_output_blob.size), 0);
+    }
+
+    /* Ensure that the PRK output size can't be set beyond its max size */
+    {
+        s2n_stack_blob(small_prk_output, 10, 10);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &small_prk_output),
+                S2N_ERR_HKDF_OUTPUT_SIZE);
+
+        /* s2n_hkdf_extract succeeds with the correct output size */
+        s2n_stack_blob(large_prk_output, SHA512_DIGEST_LENGTH, SHA512_DIGEST_LENGTH);
+        EXPECT_SUCCESS(s2n_hkdf_extract(&hmac, S2N_HMAC_SHA512, &salt_blob, &in_key_blob, &large_prk_output));
+    }
+
+    /* Ensure that the libcrypto HKDF implementation is supported when s2n-tls is linked with AWSLC-FIPS */
+    if (s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode()) {
+        EXPECT_TRUE(s2n_libcrypto_supports_hkdf());
     }
 
     /* This size (5101) is obtained by multiplying the digest size for

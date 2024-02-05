@@ -17,6 +17,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <limits.h>
 
 static void *s2n_load_dynamic_lib(void *ctx)
 {
@@ -63,9 +64,10 @@ int main(int argc, char *argv[])
     /* s2n-tls library can be dynamically loaded and cleaned up safely 
      *
      * We can't use any s2n test macros because this test doesn't get linked to 
-     * s2n during compile-time.
+     * s2n during compile-time. This test is in a loop to make sure that we are
+     * cleaning up pthread keys properly.
      */
-    {
+    for (size_t i = 0; i <= PTHREAD_KEYS_MAX + 1; i++) {
         pthread_t thread_id = { 0 };
         if (pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
             exit(1);
