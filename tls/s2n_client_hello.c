@@ -372,6 +372,11 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
 
     /* legacy_version */
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+
+    /* Encode the version as a 1 byte representation of the two protocol version bytes, with the
+     * major version in the tens place and the minor version in the ones place. For example, the
+     * TLS 1.2 protocol version is 0x0303, which is encoded as S2N_TLS12 (33).
+     */
     client_hello->legacy_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
 
     /* random */
