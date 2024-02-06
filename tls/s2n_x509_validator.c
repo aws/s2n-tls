@@ -443,18 +443,19 @@ S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn
     struct s2n_cert_info info = { 0 };
     RESULT_GUARD(s2n_openssl_x509_get_cert_info(cert, &info));
 
+    if (info.self_signed) {
+        return S2N_RESULT_OK;
+    }
+
     /* Ensure that the certificate signature does not use SHA-1. While this check
      * would ideally apply to all connections, we only enforce it when certificate
      * preferences exist to stay backwards compatible.
      */
-    if (conn->actual_protocol_version == S2N_TLS13 && !info.self_signed) {
+    if (conn->actual_protocol_version == S2N_TLS13) {
         RESULT_ENSURE(info.signature_digest_nid != NID_sha1, S2N_ERR_CERT_UNTRUSTED);
     }
 
-    if (!info.self_signed) {
-        RESULT_GUARD(s2n_signature_preferences_validate_supported(
-                security_policy->certificate_signature_preferences, &info));
-    }
+    RESULT_GUARD(s2n_security_policy_cert_signature_scheme_validate(security_policy, &info));
 
     return S2N_RESULT_OK;
 }
