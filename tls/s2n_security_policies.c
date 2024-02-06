@@ -1468,9 +1468,7 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
     const struct s2n_signature_preferences *sig_preferences =
             security_policy->certificate_signature_preferences;
 
-    if (sig_preferences == NULL) {
-        return S2N_RESULT_OK;
-    }
+    RESULT_ENSURE_REF(sig_preferences);
 
     for (size_t i = 0; i < sig_preferences->count; i++) {
         if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
