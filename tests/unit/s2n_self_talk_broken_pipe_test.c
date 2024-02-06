@@ -92,7 +92,6 @@ int main(int argc, char **argv)
     struct s2n_config *config;
     s2n_blocked_status blocked;
     int status;
-    pid_t pid;
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
@@ -107,7 +106,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
         /* Create a child process */
-        pid = fork();
+        pid_t pid = fork();
         if (pid == 0) {
             /* This is the client process, close the server end of the pipe */
             EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
