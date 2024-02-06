@@ -241,12 +241,17 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
     }
 
-    /* Set up TLS 1.3 defaults */
+    /* TLS 1.3 default config is only used in tests so avoid initialization costs in applications */
     POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
     POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
-    POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_tls13_config));
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void)
+{
+    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_tls13_config));
+    return S2N_RESULT_OK;
 }
 
 void s2n_wipe_static_configs(void)

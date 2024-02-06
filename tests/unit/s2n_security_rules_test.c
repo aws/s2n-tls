@@ -126,6 +126,7 @@ int main(int argc, char **argv)
         .signature_preferences = &valid_sig_prefs,
         .certificate_signature_preferences = &valid_sig_prefs,
         .ecc_preferences = &valid_ecc_prefs,
+        .kem_preferences = &kem_preferences_null,
         .minimum_protocol_version = VALID_VERSION,
     };
     const struct s2n_security_policy invalid_policy = {
@@ -133,6 +134,7 @@ int main(int argc, char **argv)
         .signature_preferences = &invalid_sig_prefs,
         .certificate_signature_preferences = &invalid_sig_prefs,
         .ecc_preferences = &invalid_ecc_prefs,
+        .kem_preferences = &kem_preferences_null,
         .minimum_protocol_version = EXAMPLE_INVALID_VERSION,
     };
 

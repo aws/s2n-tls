@@ -75,9 +75,6 @@ jobs:
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
-      - name: generate test certs
-        run: ${{env.ROOT_PATH}}/bench/scripts/generate-certs.sh
-
       - name: bench tests
         working-directory: ${{env.ROOT_PATH}}/bench
         run: cargo test

@@ -16,9 +16,8 @@
 #include "testlib/s2n_mem_testlib.h"
 
 #include "stuffer/s2n_stuffer.h"
-
-/* Required to override memory callbacks at runtime */
-#include "utils/s2n_mem.c"
+#include "utils/s2n_mem.h"
+#include "utils/s2n_safety.h"
 
 struct s2n_mem_test_cb_ctx {
     struct s2n_stuffer mallocs;
@@ -32,25 +31,43 @@ static int s2n_mem_test_free_cb(void *ptr, uint32_t size);
 
 static S2N_RESULT s2n_mem_test_set_callbacks()
 {
-    if (s2n_mem_malloc_cb != s2n_mem_test_malloc_cb) {
-        s2n_mem_malloc_cb_backup = s2n_mem_malloc_cb;
-        s2n_mem_malloc_cb = s2n_mem_test_malloc_cb;
+    s2n_mem_init_callback mem_init_cb = NULL;
+    s2n_mem_cleanup_callback mem_cleanup_cb = NULL;
+    s2n_mem_malloc_callback mem_malloc_cb = NULL;
+    s2n_mem_free_callback mem_free_cb = NULL;
+    RESULT_GUARD(s2n_mem_get_callbacks(&mem_init_cb, &mem_cleanup_cb, &mem_malloc_cb, &mem_free_cb));
+
+    if (mem_malloc_cb != s2n_mem_test_malloc_cb) {
+        s2n_mem_malloc_cb_backup = mem_malloc_cb;
+        mem_malloc_cb = s2n_mem_test_malloc_cb;
     }
-    if (s2n_mem_free_cb != s2n_mem_test_free_cb) {
-        s2n_mem_free_cb_backup = s2n_mem_free_cb;
-        s2n_mem_free_cb = s2n_mem_test_free_cb;
+    if (mem_free_cb != s2n_mem_test_free_cb) {
+        s2n_mem_free_cb_backup = mem_free_cb;
+        mem_free_cb = s2n_mem_test_free_cb;
     }
+
+    RESULT_GUARD(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
+
     return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_mem_test_unset_callbacks()
 {
+    s2n_mem_init_callback mem_init_cb = NULL;
+    s2n_mem_cleanup_callback mem_cleanup_cb = NULL;
+    s2n_mem_malloc_callback mem_malloc_cb = NULL;
+    s2n_mem_free_callback mem_free_cb = NULL;
+    RESULT_GUARD(s2n_mem_get_callbacks(&mem_init_cb, &mem_cleanup_cb, &mem_malloc_cb, &mem_free_cb));
+
     if (s2n_mem_malloc_cb_backup != NULL) {
-        s2n_mem_malloc_cb = s2n_mem_malloc_cb_backup;
+        mem_malloc_cb = s2n_mem_malloc_cb_backup;
     }
     if (s2n_mem_free_cb_backup != NULL) {
-        s2n_mem_free_cb = s2n_mem_free_cb_backup;
+        mem_free_cb = s2n_mem_free_cb_backup;
     }
+
+    RESULT_GUARD(s2n_mem_override_callbacks(mem_init_cb, mem_cleanup_cb, mem_malloc_cb, mem_free_cb));
+
     return S2N_RESULT_OK;
 }
 

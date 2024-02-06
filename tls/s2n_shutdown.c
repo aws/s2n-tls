@@ -121,16 +121,18 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     int isSSLv2 = false;
     *blocked = S2N_BLOCKED_ON_READ;
     while (!s2n_atomic_flag_test(&conn->close_notify_received)) {
+        /* Reset IO. Make sure we do this before attempting to read a record in
+         * case a previous failed read left IO in a bad state.
+         */
+        POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
+        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
+        conn->in_status = ENCRYPTED;
+
         POSIX_GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
         POSIX_ENSURE(!isSSLv2, S2N_ERR_BAD_MESSAGE);
         if (record_type == TLS_ALERT) {
             POSIX_GUARD(s2n_process_alert_fragment(conn));
         }
-
-        /* Wipe and keep trying */
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-        conn->in_status = ENCRYPTED;
     }
 
     *blocked = S2N_NOT_BLOCKED;
