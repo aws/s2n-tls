@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.3-6c7cdc83</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.3-3c80856d</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -491,6 +491,12 @@ Functions</h2></td></tr>
 <tr class="separator:a803cebda25d3d8beadfd2981bfc0faa2"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae86458717edccfb2f58b86f3991af1a9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ae86458717edccfb2f58b86f3991af1a9">s2n_client_hello_get_session_id</a> (struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length)</td></tr>
 <tr class="separator:ae86458717edccfb2f58b86f3991af1a9"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a76a3487dda504244c2b81978de6d79bb"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a76a3487dda504244c2b81978de6d79bb">s2n_client_hello_get_compression_methods_length</a> (struct s2n_client_hello *ch, uint32_t *out_length)</td></tr>
+<tr class="separator:a76a3487dda504244c2b81978de6d79bb"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:adbab79e2b5c583efaf918283fb0222bf"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#adbab79e2b5c583efaf918283fb0222bf">s2n_client_hello_get_compression_methods</a> (struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length)</td></tr>
+<tr class="separator:adbab79e2b5c583efaf918283fb0222bf"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aeff080b07553418e574fa5907c6d2ca0"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aeff080b07553418e574fa5907c6d2ca0">s2n_client_hello_get_legacy_protocol_version</a> (struct s2n_client_hello *ch, uint8_t *out)</td></tr>
+<tr class="separator:aeff080b07553418e574fa5907c6d2ca0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a68a751eb59517406db2439a88e94d8d1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a68a751eb59517406db2439a88e94d8d1">s2n_client_hello_get_supported_groups</a> (struct s2n_client_hello *ch, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</td></tr>
 <tr class="separator:a68a751eb59517406db2439a88e94d8d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67962bf835ce5145d215a9ee8f4985d3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a67962bf835ce5145d215a9ee8f4985d3">s2n_connection_set_fd</a> (struct s2n_connection *conn, int fd)</td></tr>
@@ -683,6 +689,8 @@ Functions</h2></td></tr>
 <tr class="separator:a67f52395125df9876ebf18964f582883"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad2a608603c7dbe9203a7c8f8b63ee1b8"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad2a608603c7dbe9203a7c8f8b63ee1b8">s2n_connection_get_client_hello_version</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:ad2a608603c7dbe9203a7c8f8b63ee1b8"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad2c9fa3dea9e458f259c142c01537e4f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad2c9fa3dea9e458f259c142c01537e4f">s2n_client_hello_get_legacy_record_version</a> (struct s2n_client_hello *ch, uint8_t *out)</td></tr>
+<tr class="separator:ad2c9fa3dea9e458f259c142c01537e4f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a249408b5a39897276524176bb951dba5"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a249408b5a39897276524176bb951dba5">s2n_connection_client_cert_used</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:a249408b5a39897276524176bb951dba5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aed6c509e7ec18b2a9ddb47e3e595b565"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aed6c509e7ec18b2a9ddb47e3e595b565">s2n_connection_get_cipher</a> (struct s2n_connection *conn)</td></tr>
@@ -2876,6 +2884,98 @@ Safety</h1>
 
 </div>
 </div>
+<a id="adbab79e2b5c583efaf918283fb0222bf" name="adbab79e2b5c583efaf918283fb0222bf"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#adbab79e2b5c583efaf918283fb0222bf">&#9670;&#160;</a></span>s2n_client_hello_get_compression_methods()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_compression_methods </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>list</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>list_length</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t *&#160;</td>
+          <td class="paramname"><em>out_length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Retrieves the list of compression methods sent in the Client Hello.</p>
+<p >Use <code><a class="el" href="s2n_8h.html#a76a3487dda504244c2b81978de6d79bb">s2n_client_hello_get_compression_methods_length()</a></code> to retrieve how much memory should be allocated for the buffer in advance.</p>
+<dl class="section note"><dt>Note</dt><dd>Compression methods were removed in TLS1.3 and therefore the only valid value in this list is the "null" compression method when TLS1.3 is negotiated.</dd>
+<dd>
+s2n-tls has never supported compression methods in any TLS version and therefore a compression method will never be negotiated or used.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>A pointer to the Client Hello </td></tr>
+    <tr><td class="paramname">list</td><td>A pointer to some memory that s2n will write the compression methods to. This memory MUST be the size of <code>list_length</code> </td></tr>
+    <tr><td class="paramname">list_length</td><td>The size of <code>list</code>. </td></tr>
+    <tr><td class="paramname">out_length</td><td>An out pointer. s2n will set its value to the size of the compression methods list in bytes. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="a76a3487dda504244c2b81978de6d79bb" name="a76a3487dda504244c2b81978de6d79bb"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a76a3487dda504244c2b81978de6d79bb">&#9670;&#160;</a></span>s2n_client_hello_get_compression_methods_length()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_compression_methods_length </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t *&#160;</td>
+          <td class="paramname"><em>out_length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Get the length of the compression methods list sent in the Client Hello.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>A pointer to the Client Hello </td></tr>
+    <tr><td class="paramname">out_length</td><td>An out pointer. Will be set to the length of the compression methods list in bytes. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
 <a id="a5ad69c8c71521b13b69bcd77fea92b74" name="a5ad69c8c71521b13b69bcd77fea92b74"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#a5ad69c8c71521b13b69bcd77fea92b74">&#9670;&#160;</a></span>s2n_client_hello_get_extension_by_id()</h2>
 
@@ -3032,6 +3132,80 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>the number of bytes the extensions take in the ClientHello message received by the server </dd></dl>
+
+</div>
+</div>
+<a id="aeff080b07553418e574fa5907c6d2ca0" name="aeff080b07553418e574fa5907c6d2ca0"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aeff080b07553418e574fa5907c6d2ca0">&#9670;&#160;</a></span>s2n_client_hello_get_legacy_protocol_version()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_legacy_protocol_version </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>out</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Access the Client Hello protocol version</p>
+<dl class="section note"><dt>Note</dt><dd>This field is a legacy field in TLS1.3 and is no longer used to negotiate the protocol version of the connection. It will be set to TLS1.2 even if TLS1.3 is negotiated. Therefore this method should only be used for logging or fingerprinting.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>A pointer to the client hello struct </td></tr>
+    <tr><td class="paramname">out</td><td>The protocol version in the client hello. </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="ad2c9fa3dea9e458f259c142c01537e4f" name="ad2c9fa3dea9e458f259c142c01537e4f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad2c9fa3dea9e458f259c142c01537e4f">&#9670;&#160;</a></span>s2n_client_hello_get_legacy_record_version()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_legacy_record_version </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>out</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Access the protocol version from the header of the first record that contained the ClientHello message.</p>
+<dl class="section note"><dt>Note</dt><dd>This field has been deprecated and should not be confused with the client hello version. It is often set very low, usually to TLS1.0 for compatibility reasons, and should never be set higher than TLS1.2. Therefore this method should only be used for logging or fingerprinting.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the client hello struct </td></tr>
+    <tr><td class="paramname">out</td><td>The protocol version in the record header containing the Client Hello. </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
