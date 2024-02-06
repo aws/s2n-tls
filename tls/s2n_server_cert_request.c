@@ -84,13 +84,12 @@ static int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_typ
 static int s2n_set_cert_chain_as_client(struct s2n_connection *conn)
 {
     if (s2n_config_get_num_default_certs(conn->config) > 0) {
-        POSIX_GUARD(s2n_choose_sig_scheme_from_peer_preference_list(conn, &conn->handshake_params.server_sig_hash_algs,
-                &conn->handshake_params.client_cert_sig_scheme));
-
         struct s2n_cert_chain_and_key *cert = s2n_config_get_single_default_cert(conn->config);
         POSIX_ENSURE_REF(cert);
         conn->handshake_params.our_chain_and_key = cert;
         conn->handshake_params.client_cert_pkey_type = s2n_cert_chain_and_key_get_pkey_type(cert);
+
+        POSIX_GUARD_RESULT(s2n_signature_algorithm_select(conn));
     }
 
     return 0;

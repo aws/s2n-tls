@@ -163,6 +163,15 @@ class S2N(Provider):
                 # e.g. "openssl-1.0" in "openssl-1.0.2-fips"
                 if unsupported_lc in current_libcrypto:
                     return False
+
+        # SSLv3 cannot be negotiated in FIPS mode with libcryptos other than AWS-LC.
+        if all([
+            protocol == Protocols.SSLv3,
+            get_flag(S2N_FIPS_MODE),
+            "awslc" not in get_flag(S2N_PROVIDER_VERSION)
+        ]):
+            return False
+
         return True
 
     @classmethod
@@ -468,6 +477,9 @@ class OpenSSL(Provider):
 
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.SSLv3:
+            return False
+
         return True
 
     @classmethod
@@ -507,6 +519,8 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1_1')
         elif self.options.protocol == Protocols.TLS10:
             cmd_line.append('-tls1')
+        elif self.options.protocol == Protocols.SSLv3:
+            cmd_line.append('-ssl3')
 
         if self.options.cipher is not None:
             cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
@@ -582,6 +596,8 @@ class OpenSSL(Provider):
             cmd_line.append('-tls1_1')
         elif self.options.protocol == Protocols.TLS10:
             cmd_line.append('-tls1')
+        elif self.options.protocol == Protocols.SSLv3:
+            cmd_line.append('-ssl3')
 
         if self.options.cipher is not None:
             cmd_line.extend(self._cipher_to_cmdline(self.options.cipher))
@@ -607,6 +623,26 @@ class OpenSSL(Provider):
         return cmd_line
 
 
+class SSLv3Provider(OpenSSL):
+    def __init__(self, options: ProviderOptions):
+        OpenSSL.__init__(self, options)
+        self._override_libssl(options)
+
+    def _override_libssl(self, options: ProviderOptions):
+        install_dir = os.environ["OPENSSL_1_0_2_INSTALL_DIR"]
+
+        override_env_vars = dict()
+        override_env_vars["PATH"] = install_dir + "/bin"
+        override_env_vars["LD_LIBRARY_PATH"] = install_dir + "/lib"
+        options.env_overrides = override_env_vars
+
+    @classmethod
+    def supports_protocol(cls, protocol, with_cert=None):
+        if protocol is Protocols.SSLv3:
+            return True
+        return False
+
+
 class JavaSSL(Provider):
     """
     NOTE: Only a Java SSL client has been set up. The server has not been
@@ -623,7 +659,7 @@ class JavaSSL(Provider):
     @classmethod
     def supports_protocol(cls, protocol, with_cert=None):
         # https://aws.amazon.com/blogs/opensource/tls-1-0-1-1-changes-in-openjdk-and-amazon-corretto/
-        if protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
+        if protocol is Protocols.SSLv3 or protocol is Protocols.TLS10 or protocol is Protocols.TLS11:
             return False
 
         return True
@@ -677,7 +713,31 @@ class BoringSSL(Provider):
         return 'Cert issuer:'
 
     def setup_server(self):
-        pytest.skip('BoringSSL does not support server mode at this time')
+        cmd_line = ['bssl', 's_server']
+        cmd_line.extend(['-accept', self.options.port])
+        if self.options.cert is not None:
+            cmd_line.extend(['-cert', self.options.cert])
+        if self.options.key is not None:
+            cmd_line.extend(['-key', self.options.key])
+        if self.options.curve is not None:
+            if self.options.curve == Curves.P256:
+                cmd_line.extend(['-curves', 'P-256'])
+            elif self.options.curve == Curves.P384:
+                cmd_line.extend(['-curves', 'P-384'])
+            elif self.options.curve == Curves.P521:
+                cmd_line.extend(['-curves', 'P-521'])
+            elif self.options.curve == Curves.SecP256r1Kyber768Draft00:
+                cmd_line.extend(['-curves', 'SecP256r1Kyber768Draft00'])
+            elif self.options.curve == Curves.X25519Kyber768Draft00:
+                cmd_line.extend(['-curves', 'X25519Kyber768Draft00'])
+            elif self.options.curve == Curves.X25519:
+                pytest.skip('BoringSSL does not support curve {}'.format(
+                    self.options.curve))
+
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
+
+        return cmd_line
 
     def setup_client(self):
         cmd_line = ['bssl', 's_client']
@@ -704,9 +764,16 @@ class BoringSSL(Provider):
                 cmd_line.extend(['-curves', 'P-384'])
             elif self.options.curve == Curves.P521:
                 cmd_line.extend(['-curves', 'P-521'])
+            elif self.options.curve == Curves.SecP256r1Kyber768Draft00:
+                cmd_line.extend(['-curves', 'SecP256r1Kyber768Draft00'])
+            elif self.options.curve == Curves.X25519Kyber768Draft00:
+                cmd_line.extend(['-curves', 'X25519Kyber768Draft00'])
             elif self.options.curve == Curves.X25519:
                 pytest.skip('BoringSSL does not support curve {}'.format(
                     self.options.curve))
+
+        if self.options.extra_flags is not None:
+            cmd_line.extend(self.options.extra_flags)
 
         # Clients are always ready to connect
         self.set_provider_ready()

@@ -14,8 +14,6 @@
 version: 0.2
 
 env:
-  parameter-store:
-    CODECOV_TOKEN : codecov-upload-token
   variables:
     # CODEBUILD_ is a reserved namespace.
     CB_BIN_DIR: "./codebuild/bin"
@@ -23,21 +21,25 @@ env:
     CXX: "/usr/bin/clang++"
 
 phases:
-  pre_build:
-    commands:
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-          ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
-        fi
-      - ln -s /usr/local $CODEBUILD_SRC_DIR/test-deps
   build:
     on-failure: ABORT
     commands:
-      - $CB_BIN_DIR/coverage_build.sh
+    # LLVM complains about corrupt coverage information
+    # for static targets, so compile to a shared lib
+    # instead.
+      - |
+        cmake . -Bbuild \
+          -DCOVERAGE=ON \
+          -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+          -DBUILD_SHARED_LIBS=ON
+      - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
     commands:
-      - LLVM_PROFILE_FILE="ut_%p.profraw" CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test ARGS="--output-on-failure -L unit"
+      - LLVM_PROFILE_FILE="ut_%8m.profraw" CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test ARGS="--output-on-failure -L unit"
       - $CB_BIN_DIR/coverage_report.sh
-      - $CB_BIN_DIR/coverage_upload.sh
+artifacts:
+  # upload all files in the coverage_report directory
+  files:
+    - '**/*'
+  base-directory: coverage_report

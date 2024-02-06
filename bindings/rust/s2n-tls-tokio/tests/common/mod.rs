@@ -40,6 +40,8 @@ pub static RSA_KEY_PEM: &[u8] = include_bytes!(concat!(
 pub const MIN_BLINDING_SECS: Duration = Duration::from_secs(10);
 pub const MAX_BLINDING_SECS: Duration = Duration::from_secs(30);
 
+pub static TEST_STR: &str = "hello world";
+
 pub async fn get_streams() -> Result<(TcpStream, TcpStream), tokio::io::Error> {
     let localhost = "127.0.0.1".to_owned();
     let listener = TcpListener::bind(format!("{}:0", localhost)).await?;
@@ -94,4 +96,26 @@ where
         server.accept(server_stream)
     );
     Ok((client?, server?))
+}
+
+pub async fn get_tls_streams<A: Builder, B: Builder>(
+    server_builder: A,
+    client_builder: B,
+) -> Result<
+    (
+        TlsStream<TcpStream, A::Output>,
+        TlsStream<TcpStream, B::Output>,
+    ),
+    Box<dyn std::error::Error>,
+>
+where
+    <A as Builder>::Output: Unpin,
+    <B as Builder>::Output: Unpin,
+{
+    let (server_stream, client_stream) = get_streams().await?;
+    let connector = TlsConnector::new(client_builder);
+    let acceptor = TlsAcceptor::new(server_builder);
+    let (client_tls, server_tls) =
+        run_negotiate(&connector, client_stream, &acceptor, server_stream).await?;
+    Ok((server_tls, client_tls))
 }

@@ -1,2 +1,0 @@
-[patch.crates-io]
-ring = { path = "target/aws-lc-rs/aws-lc-rs" }

@@ -15,34 +15,13 @@
 
 #include "tls/s2n_kem.h"
 
-#include "pq-crypto/s2n_kyber_evp.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_kyber_evp.h"
+#include "crypto/s2n_pq.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
-
-#if defined(S2N_NO_PQ) /* If S2N_NO_PQ, pq-crypto won't be compiled so define relevant stubs here. */
-
-int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, OUT uint8_t *secret_key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
-        IN const uint8_t *public_key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
-        IN const uint8_t *secret_key)
-{
-    POSIX_BAIL(S2N_ERR_UNIMPLEMENTED);
-}
-
-#endif
 
 /* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
 

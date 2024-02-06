@@ -16,7 +16,7 @@
 #include "tls/s2n_kem_preferences.h"
 
 #include "crypto/s2n_fips.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "s2n_test.h"
 #include "tls/s2n_tls_parameters.h"
 

@@ -142,7 +142,7 @@ S2N_API extern int *s2n_errno_location(void);
  * error. To retrieve the type for a given error use `s2n_error_get_type()`. Applications should
  * perform any error handling logic using these high level types.
  *
- * See the [Error Handling](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#error-handling) section for how the errors should be interpreted. 
+ * See the [Error Handling](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch03-error-handling.md) section for how the errors should be interpreted.
  */
 typedef enum {
     /** No error */
@@ -673,7 +673,7 @@ S2N_API extern int s2n_cert_chain_and_key_load_pem_bytes(struct s2n_cert_chain_a
 /**
  * Associates a public certificate chain with a `s2n_cert_chain_and_key` object. It does
  * NOT set a private key, so the connection will need to be configured to
- * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#offloading-asynchronous-private-key-operations).
+ * [offload private key operations](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch12-private-key-ops.md).
  *
  * @param chain_and_key The certificate chain and private key handle
  * @param chain_pem A byte array of a PEM encoded certificate chain.
@@ -1043,7 +1043,7 @@ S2N_API extern int s2n_config_add_dhparams(struct s2n_config *config, const char
  * Sets the security policy that includes the cipher/kem/signature/ecc preferences and
  * protocol version.
  *
- * See the [USAGE-GUIDE.md](https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md) for how to use security policies.
+ * See the [USAGE-GUIDE.md](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide) for how to use security policies.
  */
 S2N_API extern int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version);
 
@@ -1392,6 +1392,35 @@ struct s2n_client_hello;
  * @returns A handle to the s2n_client_hello structure holding the client hello message sent by the client during the handshake. NULL is returned if a Client Hello has not yet been received and parsed.
  */
 S2N_API extern struct s2n_client_hello *s2n_connection_get_client_hello(struct s2n_connection *conn);
+
+/**
+ * Creates an s2n_client_hello from bytes representing a ClientHello message.
+ *
+ * The input bytes should include the message header (message type and length),
+ * but not the record header.
+ *
+ * Unlike s2n_connection_get_client_hello, the s2n_client_hello returned by this
+ * method is owned by the application and must be freed with s2n_client_hello_free.
+ *
+ * This method does not support SSLv2 ClientHellos.
+ *
+ * @param bytes The raw bytes representing the ClientHello.
+ * @param size The size of raw_message.
+ * @returns A new s2n_client_hello on success, or NULL on failure.
+ */
+S2N_API extern struct s2n_client_hello *s2n_client_hello_parse_message(const uint8_t *bytes, uint32_t size);
+
+/**
+ * Frees an s2n_client_hello structure.
+ *
+ * This method should be called to free s2n_client_hellos returned by
+ * s2n_client_hello_parse_message. It will error if passed an s2n_client_hello
+ * returned by s2n_connection_get_client_hello and owned by the connection.
+ *
+ * @param ch The structure to be freed.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_client_hello_free(struct s2n_client_hello **ch);
 
 /**
  * Function to determine the size of the raw Client Hello buffer. 
@@ -3295,7 +3324,7 @@ S2N_API int s2n_connection_get_max_early_data_size(struct s2n_connection *conn, 
 /**
  * Called by the client to begin negotiation and send early data.
  *
- * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md
  * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *
@@ -3312,7 +3341,7 @@ S2N_API int s2n_send_early_data(struct s2n_connection *conn, const uint8_t *data
 /**
  * Called by the server to begin negotiation and accept any early data the client sends.
  *
- * See https://github.com/aws/s2n-tls/blob/main/docs/USAGE-GUIDE.md#using-early-data--0rtt
+ * See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch14-early-data.md
  * for usage and examples. DO NOT USE unless you have considered the security issues and
  * implemented mitigation for anti-replay attacks.
  *
@@ -3390,6 +3419,34 @@ S2N_API int s2n_offered_early_data_reject(struct s2n_offered_early_data *early_d
  * @returns A POSIX error signal. If success, the client's early data will be accepted.
  */
 S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_data);
+
+/**
+ * Retrieves the list of supported groups configured by the security policy associated with `config`.
+ *
+ * The retrieved list of groups will contain all of the supported groups for a security policy that are compatible
+ * with the build of s2n-tls. For instance, PQ kem groups that are not supported by the linked libcrypto will not
+ * be written. Otherwise, all of the supported groups configured for the security policy will be written. This API
+ * can be used with the s2n_client_hello_get_supported_groups() API as a means of comparing compatibility between
+ * a client and server.
+ *
+ * IANA values for each of the supported groups are written to the provided `groups` array, and `groups_count` is
+ * set to the number of written supported groups.
+ *
+ * `groups_count_max` should be set to the maximum capacity of the `groups` array. If `groups_count_max` is less
+ * than the number of supported groups configured by the security policy, this function will error.
+ *
+ * Note that this API retrieves only the groups from a security policy that are available to negotiate via the
+ * supported groups extension, and does not return TLS 1.2 PQ kem groups that are negotiated in the supported PQ
+ * kem parameters extension.
+ *
+ * @param config A pointer to the s2n_config object from which the supported groups will be retrieved.
+ * @param groups The array to populate with the supported groups.
+ * @param groups_count_max The maximum number of supported groups that can fit in the `groups` array.
+ * @param groups_count Set to the number of supported groups written to `groups`.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
+        uint16_t *groups_count);
 
 #ifdef __cplusplus
 }

@@ -18,6 +18,7 @@
 #include "crypto/s2n_ktls_crypto.h"
 #include "tls/s2n_prf.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_key_schedule.h"
 
 /* Used for overriding setsockopt calls in testing */
 s2n_setsockopt_fn s2n_setsockopt = setsockopt;
@@ -54,13 +55,21 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     /* kTLS enable should only be called once the handshake has completed. */
     RESULT_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
-    /* TODO support TLS 1.3
-     *
-     * TLS 1.3 support requires sending the KeyUpdate message when the cryptographic
-     * key usage limits are met. However, this is currently only possible by applying a
-     * kernel patch to support this functionality.
+    /* kTLS uses the prf_space to recalculate the keys, but the prf_space may be
+     * freed by s2n_connection_free_handshake to reduce the connection size.
+     * Explicitly check for prf_space here to avoid a confusing S2N_ERR_NULL later.
      */
-    RESULT_ENSURE(conn->actual_protocol_version == S2N_TLS12, S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    RESULT_ENSURE(conn->prf_space, S2N_ERR_INVALID_STATE);
+
+    /* For now, only allow TlS1.3 if explicitly enabled.
+     *
+     * TLS1.3 is potentially more dangerous to enable than TLS1.2, since the kernel
+     * does not currently support updating TLS keys and therefore will fail if
+     * KeyUpdate messages are encountered.
+     */
+    bool version_supported = (conn->actual_protocol_version == S2N_TLS12)
+            || (conn->config->ktls_tls13_enabled && conn->actual_protocol_version == S2N_TLS13);
+    RESULT_ENSURE(version_supported, S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
     /* Check if the cipher supports kTLS */
     const struct s2n_cipher *cipher = NULL;
@@ -151,32 +160,39 @@ static S2N_RESULT s2n_ktls_crypto_info_init(struct s2n_connection *conn, s2n_ktl
      * "implicit_iv" when writing records, so the IV may change after generation.
      */
     struct s2n_key_material key_material = { 0 };
-    RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
 
     bool is_sending_key = (ktls_mode == S2N_KTLS_MODE_SEND);
     s2n_mode key_mode = (is_sending_key) ? conn->mode : S2N_PEER_MODE(conn->mode);
+
+    switch (conn->actual_protocol_version) {
+        case S2N_TLS12:
+            RESULT_GUARD(s2n_prf_generate_key_material(conn, &key_material));
+            break;
+        case S2N_TLS13:
+            RESULT_GUARD(s2n_tls13_key_schedule_generate_key_material(
+                    conn, key_mode, &key_material));
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_KTLS_UNSUPPORTED_CONN);
+    }
 
     struct s2n_ktls_crypto_info_inputs inputs = { 0 };
     if (key_mode == S2N_CLIENT) {
         inputs.key = key_material.client_key;
         RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
                 secure->client_implicit_iv, sizeof(secure->client_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.seq,
-                secure->client_sequence_number, sizeof(secure->client_sequence_number)));
     } else {
         inputs.key = key_material.server_key;
         RESULT_GUARD_POSIX(s2n_blob_init(&inputs.iv,
                 secure->server_implicit_iv, sizeof(secure->server_implicit_iv)));
-        RESULT_GUARD_POSIX(s2n_blob_init(&inputs.seq,
-                secure->server_sequence_number, sizeof(secure->server_sequence_number)));
     }
+    RESULT_GUARD(s2n_connection_get_sequence_number(conn, key_mode, &inputs.seq));
 
     const struct s2n_cipher *cipher = NULL;
     RESULT_GUARD(s2n_connection_get_secure_cipher(conn, &cipher));
     RESULT_ENSURE_REF(cipher);
     RESULT_ENSURE_REF(cipher->set_ktls_info);
     RESULT_GUARD(cipher->set_ktls_info(&inputs, crypto_info));
-
     return S2N_RESULT_OK;
 }
 
@@ -260,5 +276,12 @@ int s2n_connection_ktls_enable_recv(struct s2n_connection *conn)
     }
 
     POSIX_GUARD_RESULT(s2n_connection_ktls_enable(conn, S2N_KTLS_MODE_RECV));
+    return S2N_SUCCESS;
+}
+
+int s2n_config_ktls_enable_unsafe_tls13(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+    config->ktls_tls13_enabled = true;
     return S2N_SUCCESS;
 }

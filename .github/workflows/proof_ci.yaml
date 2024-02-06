@@ -62,7 +62,7 @@ jobs:
         run: |
           # Search within 5 most recent releases for latest available package
           CBMC_REL="https://api.github.com/repos/diffblue/cbmc/releases?page=1&per_page=5"
-          CBMC_DEB=$(curl -s $CBMC_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[].assets[].browser_download_url' | grep -e 'ubuntu-20.04' | head -n 1)
+          CBMC_DEB=$(curl -s $CBMC_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[]|select(.prerelease|not).assets[].browser_download_url' | grep -e 'ubuntu-20.04' | head -n 1)
           CBMC_ARTIFACT_NAME=$(basename $CBMC_DEB)
           curl -o $CBMC_ARTIFACT_NAME -L $CBMC_DEB
           sudo dpkg -i $CBMC_ARTIFACT_NAME
@@ -96,7 +96,7 @@ jobs:
         run: |
           # Search within 5 most recent releases for latest available package
           LITANI_REL="https://api.github.com/repos/awslabs/aws-build-accumulator/releases?page=1&per_page=5"
-          LITANI_DEB=$(curl -s $LITANI_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[].assets[0].browser_download_url' | head -n 1)
+          LITANI_DEB=$(curl -s $LITANI_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r '.[]|select(.prerelease|not).assets[0].browser_download_url' | head -n 1)
           DBN_PKG_FILENAME=$(basename $LITANI_DEB)
           curl -L $LITANI_DEB -o $DBN_PKG_FILENAME
           sudo apt-get update

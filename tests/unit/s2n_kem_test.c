@@ -15,7 +15,7 @@
 #include "tls/s2n_kem.h"
 
 #include "crypto/s2n_ecc_evp.h"
-#include "pq-crypto/s2n_pq.h"
+#include "crypto/s2n_pq.h"
 #include "tests/s2n_test.h"
 #include "tls/extensions/s2n_key_share.h"
 #include "tls/s2n_cipher_preferences.h"
@@ -371,7 +371,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer io_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&io_stuffer, &io_blob));
 
-            s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH);
+            EXPECT_SUCCESS(s2n_alloc(&(kem_params.private_key), TEST_PRIVATE_KEY_LENGTH));
             POSIX_CHECKED_MEMCPY(kem_params.private_key.data, TEST_PRIVATE_KEY, TEST_PRIVATE_KEY_LENGTH);
 
             /* {0, 5} = length of ciphertext to follow

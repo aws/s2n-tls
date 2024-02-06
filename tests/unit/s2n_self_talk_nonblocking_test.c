@@ -221,7 +221,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     struct iovec *iov = NULL;
     if (!use_iov) {
         data_size = 10000000;
-        s2n_alloc(&blob, data_size);
+        EXPECT_SUCCESS(s2n_alloc(&blob, data_size));
         EXPECT_OK(s2n_get_public_random_data(&blob));
     } else {
         iov = malloc(sizeof(*iov) * iov_size);

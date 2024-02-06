@@ -383,6 +383,10 @@ struct s2n_connection {
      * The writer clears it after a KeyUpdate is sent.
      */
     s2n_atomic_flag key_update_pending;
+
+    /* Track KeyUpdates for metrics */
+    uint8_t send_key_updated;
+    uint8_t recv_key_updated;
 };
 
 S2N_CLEANUP_RESULT s2n_connection_ptr_free(struct s2n_connection **s2n_connection);
@@ -422,3 +426,5 @@ int s2n_connection_get_peer_cert_chain(const struct s2n_connection *conn, struct
 uint8_t s2n_connection_get_protocol_version(const struct s2n_connection *conn);
 S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, uint16_t length);
 S2N_RESULT s2n_connection_get_secure_cipher(struct s2n_connection *conn, const struct s2n_cipher **cipher);
+S2N_RESULT s2n_connection_get_sequence_number(struct s2n_connection *conn,
+        s2n_mode mode, struct s2n_blob *seq_num);

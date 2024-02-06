@@ -71,3 +71,5 @@ int s2n_pkey_free(struct s2n_pkey *pkey);
 
 S2N_RESULT s2n_asn1der_to_private_key(struct s2n_pkey *priv_key, struct s2n_blob *asn1der, int type_hint);
 S2N_RESULT s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key, s2n_pkey_type *pkey_type, struct s2n_blob *asn1der);
+S2N_RESULT s2n_pkey_from_x509(X509 *cert, struct s2n_pkey *pub_key_out,
+        s2n_pkey_type *pkey_type_out);

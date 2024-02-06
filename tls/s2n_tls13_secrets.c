@@ -693,6 +693,11 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     RESULT_ENSURE_REF(conn->secure);
     RESULT_ENSURE_REF(conn->secure->cipher_suite);
 
+    bool is_available = (secret_type <= conn->secrets.extract_secret_type)
+            /* Unlike the other secrets, we don't wipe the master / app secrets */
+            || (secret_type == S2N_MASTER_SECRET && s2n_handshake_is_complete(conn));
+    RESULT_ENSURE(is_available, S2N_ERR_SAFETY);
+
     uint8_t *secrets[][2] = {
         [S2N_EARLY_SECRET] = { NULL, CONN_SECRETS(conn).client_early_secret },
         [S2N_HANDSHAKE_SECRET] = { CONN_SECRETS(conn).server_handshake_secret, CONN_SECRETS(conn).client_handshake_secret },
@@ -700,7 +705,6 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
     };
     RESULT_ENSURE_GT(secret_type, S2N_NONE_SECRET);
     RESULT_ENSURE_LT(secret_type, s2n_array_len(secrets));
-    RESULT_ENSURE_LTE(secret_type, conn->secrets.extract_secret_type);
     RESULT_ENSURE_REF(secrets[secret_type][mode]);
 
     secret->size = s2n_get_hash_len(CONN_HMAC_ALG(conn));

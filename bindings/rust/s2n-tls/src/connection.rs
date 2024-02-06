@@ -63,12 +63,6 @@ impl fmt::Debug for Connection {
 /// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
-/// # Safety
-///
-/// All C methods that mutate the s2n_connection are wrapped
-/// in Rust methods that require a mutable reference.
-unsafe impl Sync for Connection {}
-
 impl Connection {
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
@@ -420,6 +414,14 @@ impl Connection {
     /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
+            if let Some(config) = self.config() {
+                if let Some(callback) = config.context().connection_initializer.as_ref() {
+                    let future = callback.initialize_connection(self);
+                    AsyncCallback::trigger(future, self);
+                }
+            }
+        }
 
         loop {
             // check if an async task exists and poll it to completion
@@ -546,6 +548,22 @@ impl Connection {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         unsafe {
             s2n_shutdown(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
+        }
+    }
+
+    /// Attempts a graceful shutdown of the write side of a TLS connection.
+    ///
+    /// Unlike Self::poll_shutdown, no reponse from the peer is necessary.
+    /// If using TLS1.3, the connection can continue to be used for reading afterwards.
+    pub fn poll_shutdown_send(&mut self) -> Poll<Result<&mut Self, Error>> {
+        if !self.remaining_blinding_delay()?.is_zero() {
+            return Poll::Pending;
+        }
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_shutdown_send(self.connection.as_ptr(), &mut blocked)
                 .into_poll()
                 .map_ok(|_| self)
         }
@@ -842,6 +860,7 @@ struct Context {
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
+    connection_initialized: bool,
 }
 
 impl Context {
@@ -851,6 +870,7 @@ impl Context {
             waker: None,
             async_callback: None,
             verify_host_callback: None,
+            connection_initialized: false,
         }
     }
 }
@@ -910,6 +930,11 @@ impl Connection {
         }?;
         Ok(self)
     }
+
+    /// Allows the quic library to check if session tickets are expected
+    pub fn are_session_tickets_enabled(&self) -> bool {
+        unsafe { s2n_connection_are_session_tickets_enabled(self.connection.as_ptr()) }
+    }
 }
 
 impl AsRef<Connection> for Connection {
@@ -940,5 +965,17 @@ impl Drop for Connection {
             // cleanup connection
             let _ = s2n_connection_free(self.connection.as_ptr()).into_result();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // ensure the connection context is send
+    #[test]
+    fn context_send_test() {
+        fn assert_send<T: 'static + Send>() {}
+        assert_send::<Context>();
     }
 }
