@@ -404,7 +404,7 @@ S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_s
 * Validates that each certificate in a peer's cert chain contains only signature algorithms in a security policy's
 * certificate_signatures_preference list.
 */
-S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X509 *cert)
+S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn, X509 *cert)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(cert);
@@ -452,7 +452,7 @@ S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X50
     }
 
     if (!info.self_signed) {
-        RESULT_GUARD(s2n_security_policy_validate_sig_scheme_supported(
+        RESULT_GUARD(s2n_signature_preferences_validate_supported(
                 security_policy->certificate_signature_preferences, &info));
     }
 
@@ -488,7 +488,7 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
         }
 
         if (!validator->skip_cert_validation) {
-            RESULT_GUARD(s2n_validator_check_cert_preferences(conn, cert));
+            RESULT_GUARD(s2n_x509_validator_check_cert_preferences(conn, cert));
         }
 
         /* add the cert to the chain */

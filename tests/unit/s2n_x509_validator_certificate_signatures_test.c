@@ -31,7 +31,7 @@
 #include "utils/s2n_safety.h"
 
 /* forward declaration */
-S2N_RESULT s2n_validator_check_cert_preferences(struct s2n_connection *conn, X509 *cert);
+S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn, X509 *cert);
 
 DEFINE_POINTER_CLEANUP_FUNC(BIO *, BIO_free);
 
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
         .certificate_signature_preferences = &test_certificate_signature_preferences,
     };
 
-    /* s2n_validator_check_cert_preferences */
+    /* s2n_x509_validator_check_cert_preferences */
     {
         /* Connection using a security policy with no certificate_signature_preferences allows SHA-1 signatures in certificates */
         {
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(BIO_write(certBio, cert_file, certLen) > 0);
             EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
-            EXPECT_OK(s2n_validator_check_cert_preferences(conn, cert));
+            EXPECT_OK(s2n_x509_validator_check_cert_preferences(conn, cert));
 
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(BIO_write(certBio, cert_file, certLen) > 0);
             EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_validator_check_cert_preferences(conn, cert),
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_check_cert_preferences(conn, cert),
                     S2N_ERR_CERT_UNTRUSTED);
 
             EXPECT_SUCCESS(s2n_config_free(config));
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(BIO_write(certBio, cert_file, certLen) > 0);
             EXPECT_NOT_NULL(cert = PEM_read_bio_X509(certBio, NULL, NULL, NULL));
 
-            EXPECT_OK(s2n_validator_check_cert_preferences(conn, cert));
+            EXPECT_OK(s2n_x509_validator_check_cert_preferences(conn, cert));
 
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_connection_free(conn));
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(X509 *test_cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL), X509_free_pointer);
             EXPECT_NOT_NULL(test_cert);
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_validator_check_cert_preferences(conn, test_cert), S2N_ERR_CERT_UNTRUSTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_check_cert_preferences(conn, test_cert), S2N_ERR_CERT_UNTRUSTED);
         };
 
         /* Certificate signature algorithm is in the test certificate signature preferences list and signature is SHA-1
@@ -189,7 +189,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(X509 *test_cert = PEM_read_bio_X509(cert_bio, NULL, NULL, NULL), X509_free_pointer);
             EXPECT_NOT_NULL(test_cert);
 
-            EXPECT_OK(s2n_validator_check_cert_preferences(conn, test_cert));
+            EXPECT_OK(s2n_x509_validator_check_cert_preferences(conn, test_cert));
         };
     };
     END_TEST();

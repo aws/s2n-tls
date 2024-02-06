@@ -1460,7 +1460,7 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
     RESULT_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
-S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(
+S2N_RESULT s2n_signature_preferences_validate_supported(
         const struct s2n_signature_preferences *cert_sig_preferences,
         const struct s2n_cert_info *info)
 {

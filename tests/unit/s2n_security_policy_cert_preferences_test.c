@@ -45,7 +45,7 @@ int main(int argc, char **argv)
         .signature_schemes = pss_sig_scheme_list,
     };
 
-    /* s2n_security_policy_validate_sig_scheme_supported() */
+    /* s2n_signature_preferences_validate_supported() */
     {
         /* Certificate signature algorithm is in test certificate signature preferences list */
         {
@@ -55,7 +55,7 @@ int main(int argc, char **argv)
                 .signature_nid = NID_ecdsa_with_SHA256,
             };
 
-            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(
+            EXPECT_OK(s2n_signature_preferences_validate_supported(
                     &test_certificate_signature_preferences, &info));
         };
 
@@ -67,7 +67,7 @@ int main(int argc, char **argv)
                 .signature_nid = NID_rsassaPss,
             };
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_sig_scheme_supported(
+            EXPECT_ERROR_WITH_ERRNO(s2n_signature_preferences_validate_supported(
                                             &test_certificate_signature_preferences, &info),
                     S2N_ERR_CERT_UNTRUSTED);
         };
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
                 .signature_nid = NID_rsassaPss,
             };
 
-            EXPECT_OK(s2n_security_policy_validate_sig_scheme_supported(
+            EXPECT_OK(s2n_signature_preferences_validate_supported(
                     &pss_certificate_signature_preferences, &info));
         };
     };

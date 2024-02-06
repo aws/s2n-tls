@@ -193,9 +193,6 @@ int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferenc
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
 S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy,
         const char **version);
-/* Checks to see if a certificate has a signature algorithm that's in our 
- * certificate_signature_preferences list 
- */
-S2N_RESULT s2n_security_policy_validate_sig_scheme_supported(
+S2N_RESULT s2n_signature_preferences_validate_supported(
         const struct s2n_signature_preferences *cert_sig_preferences,
         const struct s2n_cert_info *info);
