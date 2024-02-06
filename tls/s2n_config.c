@@ -530,8 +530,17 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
 
 static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
+    POSIX_ENSURE_REF(config);
+    POSIX_ENSURE_REF(config->security_policy);
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
+
+    /* Validate that the certificate type is allowed by the security policy. */
+    const struct s2n_security_policy *const security_policy = config->security_policy;
+    if (security_policy->certificate_preferences_apply_locally) {
+        POSIX_GUARD_RESULT(s2n_security_policy_validate_certificate_chain(config->security_policy,
+                cert_key_pair));
+    }
 
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
@@ -560,6 +569,50 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     }
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_validate_certificate_preferences(const struct s2n_config *config,
+        const struct s2n_security_policy *security_policy)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(security_policy);
+    if (!security_policy->certificate_preferences_apply_locally
+            || security_policy->certificate_signature_preferences == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    /* validate the default certs */
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        struct s2n_cert_chain_and_key *cert = config->default_certs_by_type.certs[i];
+        if (cert == NULL) {
+            continue;
+        }
+        RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
+    }
+
+    /* validate the certs in the domain map if they are different than the default certs */
+    uint32_t domain_certs_count = 0;
+    RESULT_GUARD(s2n_map_size(config->domain_name_to_cert_map, &domain_certs_count));
+    if (config->default_certs_are_explicit
+            || (s2n_config_get_num_default_certs(config) != (int) domain_certs_count)) {
+        struct s2n_map_iterator iter = { 0 };
+        RESULT_GUARD(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
+
+        while (s2n_map_iterator_has_next(&iter)) {
+            struct s2n_blob value = { 0 };
+            RESULT_GUARD(s2n_map_iterator_next(&iter, &value));
+
+            struct certs_by_type *domain_certs = (void *) value.data;
+            for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+                struct s2n_cert_chain_and_key *cert = domain_certs->certs[i];
+                if (cert == NULL) {
+                    continue;
+                }
+                RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
+            }
+        }
+    }
+    return S2N_RESULT_OK;
 }
 
 /* Deprecated. Superseded by s2n_config_add_cert_chain_and_key_to_store */
@@ -991,7 +1044,7 @@ struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_con
     return cert;
 }
 
-int s2n_config_get_num_default_certs(struct s2n_config *config)
+int s2n_config_get_num_default_certs(const struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
     int num_certs = 0;

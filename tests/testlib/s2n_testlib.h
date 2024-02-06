@@ -176,6 +176,8 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_IP_V6_LO_RSA_KEY    "../pems/sni/ip_v6_lo_rsa_key.pem"
 #define S2N_WITHOUT_CN_RSA_CERT "../pems/sni/without_cn_rsa_cert.pem"
 #define S2N_WITHOUT_CN_RSA_KEY  "../pems/sni/without_cn_rsa_key.pem"
+#define S2N_KITTEN_SAN_CHAIN    "../pems/san_with_ca/kitten-chain.pem"
+#define S2N_KITTEN_SAN_KEY      "../pems/san_with_ca/kitten-key.pem"
 
 #define S2N_DHPARAMS_2048 "../pems/dhparams_2048.pem"
 

@@ -283,6 +283,11 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         return 0;
     }
 
+    if (conn->security_policy_override != NULL) {
+        POSIX_GUARD_RESULT(s2n_config_validate_certificate_preferences(config,
+                conn->security_policy_override));
+    }
+
     /* We only support one client certificate */
     if (s2n_config_get_num_default_certs(config) > 1 && conn->mode == S2N_CLIENT) {
         POSIX_BAIL(S2N_ERR_TOO_MANY_CERTIFICATES);

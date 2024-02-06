@@ -980,6 +980,7 @@ const struct s2n_security_policy security_policy_rfc9151 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_rfc9151,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_rfc9151,
+    .certificate_preferences_apply_locally = true,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
 };
 
@@ -1207,6 +1208,9 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+    /* If the certificates loaded in the config are incompatible with the security 
+     * policy's certificate preferences, return an error. */
+    POSIX_GUARD_RESULT(s2n_config_validate_certificate_preferences(config, security_policy));
     config->security_policy = security_policy;
     return 0;
 }
@@ -1223,6 +1227,13 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+    /* If the certificates loaded in the config are incompatible with the security 
+     * policy's certificate preferences, return an error. */
+    if (conn->config != NULL) {
+        POSIX_GUARD_RESULT(
+                s2n_config_validate_certificate_preferences(conn->config, security_policy));
+    }
 
     conn->security_policy_override = security_policy;
     return 0;
@@ -1468,7 +1479,9 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
     const struct s2n_signature_preferences *sig_preferences =
             security_policy->certificate_signature_preferences;
 
-    RESULT_ENSURE_REF(sig_preferences);
+    if (sig_preferences == NULL) {
+        return S2N_RESULT_OK;
+    }
 
     for (size_t i = 0; i < sig_preferences->count; i++) {
         if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
@@ -1477,4 +1490,23 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
     }
 
     RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+}
+
+S2N_RESULT s2n_security_policy_validate_certificate_chain(
+        const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_chain_and_key *cert_key_pair)
+{
+    RESULT_ENSURE_REF(security_policy);
+    RESULT_ENSURE_REF(cert_key_pair);
+    RESULT_ENSURE_REF(cert_key_pair->cert_chain);
+
+    struct s2n_cert *current = cert_key_pair->cert_chain->head;
+    while (current != NULL) {
+        if (!current->info.self_signed) {
+            RESULT_GUARD(
+                    s2n_security_policy_validate_cert_signature(security_policy, &current->info));
+        }
+        current = current->next;
+    }
+    return S2N_RESULT_OK;
 }

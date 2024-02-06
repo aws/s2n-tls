@@ -358,6 +358,7 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
 
     DEFER_CLEANUP(X509 *leaf_cert = NULL, X509_free_pointer);
     POSIX_GUARD_RESULT(s2n_openssl_x509_parse(&head->raw, &leaf_cert));
+    POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(leaf_cert, &head->info));
 
     /* Parse the leaf cert for the public key and certificate type */
     DEFER_CLEANUP(struct s2n_pkey public_key = { 0 }, s2n_pkey_free);
@@ -381,6 +382,16 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
         POSIX_ENSURE(nid > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         POSIX_ENSURE(nid < UINT16_MAX, S2N_ERR_CERT_TYPE_UNSUPPORTED);
         head->ec_curve_nid = nid;
+    }
+
+    /* populate libcrypto nid's required for cert restrictions */
+    struct s2n_cert *current = head->next;
+    while (current != NULL) {
+        DEFER_CLEANUP(X509 *parsed_cert = NULL, X509_free_pointer);
+        POSIX_GUARD_RESULT(s2n_openssl_x509_parse(&current->raw, &parsed_cert));
+        POSIX_GUARD_RESULT(s2n_openssl_x509_get_cert_info(parsed_cert, &current->info));
+
+        current = current->next;
     }
 
     return S2N_SUCCESS;
