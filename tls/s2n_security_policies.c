@@ -1459,3 +1459,22 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
     }
     RESULT_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
 }
+
+S2N_RESULT s2n_security_policy_validate_cert_signature(
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info)
+{
+    RESULT_ENSURE_REF(info);
+    RESULT_ENSURE_REF(security_policy);
+    const struct s2n_signature_preferences *sig_preferences =
+            security_policy->certificate_signature_preferences;
+
+    RESULT_ENSURE_REF(sig_preferences);
+
+    for (size_t i = 0; i < sig_preferences->count; i++) {
+        if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
+            return S2N_RESULT_OK;
+        }
+    }
+
+    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+}

@@ -105,6 +105,7 @@ extern const struct s2n_security_policy security_policy_20190802;
 extern const struct s2n_security_policy security_policy_20230317;
 extern const struct s2n_security_policy security_policy_default_tls13;
 extern const struct s2n_security_policy security_policy_default_fips;
+extern const struct s2n_security_policy security_policy_rfc9151;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;
@@ -190,4 +191,7 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
-S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy, const char **version);
+S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy,
+        const char **version);
+S2N_RESULT s2n_security_policy_validate_cert_signature(
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info);
