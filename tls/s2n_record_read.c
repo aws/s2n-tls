@@ -95,6 +95,12 @@ int s2n_record_header_parse(
     POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     const uint8_t version = (protocol_version[0] * 10) + protocol_version[1];
+    /* We record the protocol version in the first record seen by the server for fingerprinting usecases */
+    if (!conn->client_hello.record_version_recorded) {
+        conn->client_hello.legacy_record_version = version;
+        conn->client_hello.record_version_recorded = 1;
+    }
+
     /* https://tools.ietf.org/html/rfc5246#appendix-E.1 states that servers must accept any value {03,XX} as the record
      * layer version number for the first TLS record. There is some ambiguity here because the client does not know
      * what version to use in the record header prior to receiving the ServerHello. Some client implementations may use

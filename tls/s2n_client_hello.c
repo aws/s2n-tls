@@ -373,6 +373,12 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     /* legacy_version */
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
+    /* Encode the version as a 1 byte representation of the two protocol version bytes, with the
+     * major version in the tens place and the minor version in the ones place. For example, the
+     * TLS 1.2 protocol version is 0x0303, which is encoded as S2N_TLS12 (33).
+     */
+    client_hello->legacy_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
+
     /* random */
     RESULT_GUARD_POSIX(s2n_stuffer_erase_and_read_bytes(in, client_random, S2N_TLS_RANDOM_DATA_LEN));
 
@@ -393,10 +399,12 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     RESULT_ENSURE(cipher_suites != NULL, S2N_ERR_BAD_MESSAGE);
     RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->cipher_suites, cipher_suites, cipher_suites_length));
 
-    /* legacy_compression_methods (ignored) */
-    uint8_t num_compression_methods = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &num_compression_methods));
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(in, num_compression_methods));
+    /* legacy_compression_methods */
+    uint8_t compression_methods_len = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &compression_methods_len));
+    uint8_t *compression_methods = s2n_stuffer_raw_read(in, compression_methods_len);
+    RESULT_ENSURE(compression_methods != NULL, S2N_ERR_BAD_MESSAGE);
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->compression_methods, compression_methods, compression_methods_len));
 
     /* extensions */
     RESULT_GUARD_POSIX(s2n_extension_list_parse(in, &client_hello->extensions));
@@ -914,6 +922,43 @@ int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, u
     POSIX_CHECKED_MEMCPY(out, ch->session_id.data, len);
     *out_length = len;
 
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_compression_methods_length(struct s2n_client_hello *ch, uint32_t *out_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out_length);
+    *out_length = ch->compression_methods.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(list);
+    POSIX_ENSURE_REF(out_length);
+
+    POSIX_ENSURE(list_length >= ch->compression_methods.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    POSIX_CHECKED_MEMCPY(list, ch->compression_methods.data, ch->compression_methods.size);
+    *out_length = ch->compression_methods.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_legacy_protocol_version(struct s2n_client_hello *ch, uint8_t *out)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+    *out = ch->legacy_version;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE(ch->record_version_recorded, S2N_ERR_INVALID_ARGUMENT);
+    *out = ch->legacy_record_version;
     return S2N_SUCCESS;
 }
 

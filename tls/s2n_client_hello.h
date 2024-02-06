@@ -31,6 +31,13 @@ struct s2n_client_hello {
     s2n_parsed_extensions_list extensions;
     struct s2n_blob cipher_suites;
     struct s2n_blob session_id;
+    struct s2n_blob compression_methods;
+    /* The protocol version as written in the client hello */
+    uint8_t legacy_version;
+    /* The protocol written on the record header containing the client hello */
+    uint8_t legacy_record_version;
+    /* Tracks if we have recorded the version in the first record */
+    unsigned int record_version_recorded : 1;
 
     unsigned int callback_invoked : 1;
     unsigned int callback_async_blocked : 1;

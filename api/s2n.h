@@ -1560,6 +1560,47 @@ S2N_API extern int s2n_client_hello_get_session_id_length(struct s2n_client_hell
 S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 /**
+ * Get the length of the compression methods list sent in the Client Hello.
+ *
+ * @param ch A pointer to the Client Hello
+ * @param out_length An out pointer. Will be set to the length of the compression methods list in bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_client_hello_get_compression_methods_length(struct s2n_client_hello *ch, uint32_t *out_length);
+
+/**
+ * Retrieves the list of compression methods sent in the Client Hello.
+ *
+ * Use `s2n_client_hello_get_compression_methods_length()`
+ * to retrieve how much memory should be allocated for the buffer in advance.
+ *
+ * @note Compression methods were removed in TLS1.3 and therefore the only valid value in this list is the
+ * "null" compression method when TLS1.3 is negotiated.
+ *
+ * @note s2n-tls has never supported compression methods in any TLS version and therefore a
+ * compression method will never be negotiated or used.
+ * 
+ * @param ch A pointer to the Client Hello
+ * @param list A pointer to some memory that s2n will write the compression methods to. This memory MUST be the size of `list_length`
+ * @param list_length The size of `list`.
+ * @param out_length An out pointer. s2n will set its value to the size of the compression methods list in bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length);
+
+/**
+ * Access the Client Hello protocol version
+ *
+ * @note This field is a legacy field in TLS1.3 and is no longer used to negotiate the
+ * protocol version of the connection. It will be set to TLS1.2 even if TLS1.3 is negotiated.
+ * Therefore this method should only be used for logging or fingerprinting.
+ *
+ * @param ch A pointer to the client hello struct
+ * @param out The protocol version in the client hello.
+ */
+S2N_API extern int s2n_client_hello_get_legacy_protocol_version(struct s2n_client_hello *ch, uint8_t *out);
+
+/**
  * Retrieves the supported groups received from the client in the supported groups extension.
  *
  * IANA values for each of the received supported groups are written to the provided `groups`
@@ -2878,6 +2919,19 @@ S2N_API extern int s2n_connection_get_actual_protocol_version(struct s2n_connect
  * @returns The protocol version used to send the initial client hello message. 
  */
 S2N_API extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
+
+/**
+ * Access the protocol version from the header of the first record that contained the ClientHello message.
+ * 
+ * @note This field has been deprecated and should not be confused with the client hello
+ * version. It is often set very low, usually to TLS1.0 for compatibility reasons,
+ * and should never be set higher than TLS1.2. Therefore this method should only be used
+ * for logging or fingerprinting.
+ *
+ * @param conn A pointer to the client hello struct
+ * @param out The protocol version in the record header containing the Client Hello.
+ */
+S2N_API extern int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out);
 
 /**
  * Check if Client Auth was used for a connection.
