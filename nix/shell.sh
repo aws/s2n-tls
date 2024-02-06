@@ -137,6 +137,7 @@ function test_toolchain_counts {
     echo -e "gnutls-serv:\t $(gnutls-serv --version |grep -c 'gnutls-serv 3.7')"
     echo -e "Nix Python:\t $(which python|grep -c '/nix/store')"
     echo -e "Nix pytest:\t $(which pytest|grep -c '/nix/store')"
+    echo -e "valgrind:\t $(valgrind --version|grep -c 'valgrind-3.19.0')"
 }
 
 function test_nonstandard_compilation {

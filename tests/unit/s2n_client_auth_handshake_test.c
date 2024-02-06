@@ -309,6 +309,11 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+            s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
     /* client_auth handshake negotiation */
     {
         struct s2n_config *server_config, *client_config;
@@ -356,6 +361,32 @@ int main(int argc, char **argv)
 
         /* Test message by message with a cert */
         s2n_test_client_auth_message_by_message(0);
+    };
+
+    /* Test unexpected certificate request */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        /* Enable client auth on the server, but not on the client */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
+                S2N_ERR_UNEXPECTED_CERT_REQUEST);
     };
 
     END_TEST();

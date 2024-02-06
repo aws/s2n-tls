@@ -99,6 +99,7 @@ cert-gen () {
     echo "generating intermediate certificate and signing it"
     openssl x509 -days 65536 \
             -req -in intermediate.csr \
+            $signature_options \
             -$digest \
             -CA ca-cert.pem \
             -CAkey ca-key.pem \
@@ -168,6 +169,9 @@ then
     cert-gen   ec          ecdsa       384        SHA256      ec_ecdsa_p384_sha256
     cert-gen   ec          ecdsa       384        SHA384      ec_ecdsa_p384_sha384
     cert-gen   ec          ecdsa       521        SHA384      ec_ecdsa_p521_sha384
+    cert-gen   ec          ecdsa       521        SHA512      ec_ecdsa_p521_sha512
+    cert-gen   rsa        pkcsv1.5     2048       SHA1        rsae_pkcs_2048_sha1
+    cert-gen   rsa        pkcsv1.5     2048       SHA224      rsae_pkcs_2048_sha224
     cert-gen   rsa        pkcsv1.5     2048       SHA256      rsae_pkcs_2048_sha256
     cert-gen   rsa        pkcsv1.5     2048       SHA384      rsae_pkcs_2048_sha384
     cert-gen   rsa        pkcsv1.5     3072       SHA256      rsae_pkcs_3072_sha256
