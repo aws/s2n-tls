@@ -1,0 +1,36 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+phases:
+  pre_build:
+    on-failure: ABORT
+    commands:
+      # The exported compile commands will by used by clang-tidy to "build" the 
+      # project for static analysis.
+      - cmake . -Bbuild -DCMAKE_EXPORT_COMPILE_COMMANDS=ON
+  build:
+    on-failure: ABORT
+    commands:
+      # The ugly sed command is used to remove ANSI color from clang-tidy output,
+      # since run-clang-tidy turns that on by default the and the version that we 
+      # use doesn't have an option to disable it.
+      - run-clang-tidy . -p build/ -quiet -checks=cppcoreguidelines-init-variables | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' > clang-tidy.report
+      - cat clang-tidy.report | grep warning
+      # This if statement will exit with a non-zero code if grep found any warnings 
+      # in the clang-tidy report.
+      - |
+        if [ $? -eq 0 ]; then
+          exit 1
+        fi
