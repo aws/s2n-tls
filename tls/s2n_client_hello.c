@@ -962,7 +962,7 @@ int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
+S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension)
 {
     RESULT_ENSURE_REF(raw_extensions);
@@ -1089,10 +1089,7 @@ int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *buffe
     POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &name_length));
     POSIX_ENSURE_GTE(length, name_length);
 
-    uint8_t *server_name = s2n_stuffer_raw_read(&extension_stuffer, name_length);
-    POSIX_ENSURE_REF(server_name);
-
-    POSIX_CHECKED_MEMCPY(buffer, server_name, name_length);
+    POSIX_GUARD(s2n_stuffer_read_bytes(&extension_stuffer, buffer, name_length));
     *out_length = name_length;
 
     return S2N_SUCCESS;
