@@ -429,6 +429,33 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);
     };
 
+    /* Record version is recorded for the first message received (Client Hello) */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        uint8_t content_type = 0;
+        uint16_t fragment_length = 0;
+        uint8_t header[5] = { 0x16, /* Record type */
+            0x03, 0x01,             /* Protocol version: TLS10 */
+            0x00, 0x00 };           /* Record size */
+
+        uint8_t altered_header[5] = { 0x16, /* Record type */
+            0x03, 0x03,                     /* Protocol version: TLS12 */
+            0x00, 0x00 };                   /* Record size */
+
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->header_in, header, sizeof(header)));
+        EXPECT_SUCCESS(s2n_record_header_parse(server_conn, &content_type, &fragment_length));
+        /* Record TLS version is retrieved as written in the header */
+        EXPECT_EQUAL(server_conn->client_hello.legacy_record_version, S2N_TLS10);
+
+        EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->header_in));
+
+        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&server_conn->header_in, altered_header, sizeof(header)));
+        EXPECT_SUCCESS(s2n_record_header_parse(server_conn, &content_type, &fragment_length));
+        /* Record TLS version is unchanged even though a different TLS version was in the record header */
+        EXPECT_EQUAL(server_conn->client_hello.legacy_record_version, S2N_TLS10);
+    }
+
     EXPECT_SUCCESS(s2n_hmac_free(&check_mac));
 
     EXPECT_SUCCESS(s2n_connection_free(conn));
