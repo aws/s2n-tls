@@ -1639,11 +1639,11 @@ S2N_API extern int s2n_client_hello_get_server_name_length(struct s2n_client_hel
  * Use `s2n_client_hello_get_server_name_length()` to get the amount of memory needed for the buffer.
  *
  * @param ch A pointer to the ClientHello
- * @param buffer A pointer to the buffer which will be populated with the server name
- * @param length The maximum amount of data that can be written to `buffer`
+ * @param server_name A pointer to the memory which will be populated with the server name
+ * @param length The maximum amount of data that can be written to `server_name`
  * @param out_length A pointer which will be populated with the size of the server name
  */
-S2N_API extern int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *buffer, uint16_t length, uint16_t *out_length);
+S2N_API extern int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length);
 
 /**
  * Sets the file descriptor for a s2n connection.
