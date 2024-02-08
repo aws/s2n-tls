@@ -1850,7 +1850,7 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_legacy_record_version(NULL, &out), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_legacy_record_version(&client_hello, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Retrieves record version */
         {
@@ -1860,8 +1860,8 @@ int main(int argc, char **argv)
             client_hello.record_version_recorded = 1;
             EXPECT_SUCCESS(s2n_client_hello_get_legacy_record_version(&client_hello, &out));
             EXPECT_EQUAL(out, S2N_TLS12);
-        }
-    }
+        };
+    };
 
     /* s2n_client_hello_get_server_name() */
     {
