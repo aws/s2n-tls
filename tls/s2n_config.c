@@ -590,26 +590,21 @@ S2N_RESULT s2n_config_validate_certificate_preferences(const struct s2n_config *
         RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
     }
 
-    /* validate the certs in the domain map if they are different than the default certs */
-    uint32_t domain_certs_count = 0;
-    RESULT_GUARD(s2n_map_size(config->domain_name_to_cert_map, &domain_certs_count));
-    if (config->default_certs_are_explicit
-            || (s2n_config_get_num_default_certs(config) != (int) domain_certs_count)) {
-        struct s2n_map_iterator iter = { 0 };
-        RESULT_GUARD(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
+    /* validate the certs in the domain map */
+    struct s2n_map_iterator iter = { 0 };
+    RESULT_GUARD(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
 
-        while (s2n_map_iterator_has_next(&iter)) {
-            struct s2n_blob value = { 0 };
-            RESULT_GUARD(s2n_map_iterator_next(&iter, &value));
+    while (s2n_map_iterator_has_next(&iter)) {
+        struct s2n_blob value = { 0 };
+        RESULT_GUARD(s2n_map_iterator_next(&iter, &value));
 
-            struct certs_by_type *domain_certs = (void *) value.data;
-            for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
-                struct s2n_cert_chain_and_key *cert = domain_certs->certs[i];
-                if (cert == NULL) {
-                    continue;
-                }
-                RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
+        struct certs_by_type *domain_certs = (void *) value.data;
+        for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+            struct s2n_cert_chain_and_key *cert = domain_certs->certs[i];
+            if (cert == NULL) {
+                continue;
             }
+            RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
         }
     }
     return S2N_RESULT_OK;

@@ -1489,7 +1489,7 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
         }
     }
 
-    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+    RESULT_BAIL(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 }
 
 S2N_RESULT s2n_security_policy_validate_certificate_chain(

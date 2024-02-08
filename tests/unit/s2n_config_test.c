@@ -1087,7 +1087,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test s2n_config_validate_certificate_preferences*/
+    /* Test s2n_config_validate_certificate_preferences */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_p384_sha256 = NULL,
                 s2n_cert_chain_and_key_ptr_free);

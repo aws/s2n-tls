@@ -215,7 +215,7 @@ struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_con
 int s2n_config_get_num_default_certs(const struct s2n_config *config);
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
 
-/* Validate that the certfificates in `config` respect the certificate preferences
+/* Validate that the certificates in `config` respect the certificate preferences
  * in `security_policy` */
 S2N_RESULT s2n_config_validate_certificate_preferences(const struct s2n_config *config,
         const struct s2n_security_policy *security_policy);

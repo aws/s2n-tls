@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_security_policy_validate_cert_signature(&test_sp, &info),
-                    S2N_ERR_CERT_UNTRUSTED);
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 
         /* Certificates signed with an RSA PSS signature can be validated */
@@ -101,9 +101,11 @@ int main(int argc, char **argv)
         int invalid_hash_nid = 0;
         EXPECT_SUCCESS(s2n_hash_NID_type(s2n_rsa_pkcs1_sha256.hash_alg, &valid_hash_nid));
 
-        struct s2n_cert_info valid = { .self_signed = false,
+        struct s2n_cert_info valid = {
+            .self_signed = false,
             .signature_nid = valid_sig_nid,
-            .signature_digest_nid = valid_hash_nid };
+            .signature_digest_nid = valid_hash_nid,
+        };
         struct s2n_cert root = { 0 };
         root.info = valid;
         root.info.self_signed = true;
@@ -137,7 +139,7 @@ int main(int argc, char **argv)
         {
             intermediate.info.signature_nid = invalid_sig_nid;
             intermediate.info.signature_digest_nid = invalid_sig_nid;
-            EXPECT_ERROR(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
     };
 
@@ -151,7 +153,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "rfc9151"));
 
-            EXPECT_FAILURE(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, cert), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
             /* assert that no certs were loaded */
             uint32_t domain_certs = 0;
@@ -166,7 +168,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
             const struct s2n_security_policy *default_sp = config->security_policy;
-            EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, "rfc9151"));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
             /* assert that the security policy was not changed */
             EXPECT_EQUAL(config->security_policy, default_sp);
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_FAILURE(s2n_connection_set_cipher_preferences(conn, "rfc9151"));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
             /* assert that the security policy override was not successful */
             EXPECT_NULL(conn->security_policy_override);
@@ -195,7 +197,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "rfc9151"));
             struct s2n_config *default_config = conn->config;
-            EXPECT_FAILURE(s2n_connection_set_config(conn, config));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
             /* assert that the config was not changed */
             EXPECT_EQUAL(conn->config, default_config);

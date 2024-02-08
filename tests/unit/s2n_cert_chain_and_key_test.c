@@ -202,11 +202,13 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(leaf->info.signature_digest_nid, NID_sha256);
 
             struct s2n_cert *intermediate = leaf->next;
+            EXPECT_NOT_NULL(intermediate);
             EXPECT_EQUAL(intermediate->info.self_signed, false);
             EXPECT_EQUAL(intermediate->info.signature_nid, NID_ecdsa_with_SHA256);
             EXPECT_EQUAL(intermediate->info.signature_digest_nid, NID_sha256);
 
             struct s2n_cert *root = intermediate->next;
+            EXPECT_NOT_NULL(intermediate);
             EXPECT_NULL(root->next);
             EXPECT_EQUAL(root->info.self_signed, true);
             EXPECT_EQUAL(root->info.signature_nid, NID_ecdsa_with_SHA256);
