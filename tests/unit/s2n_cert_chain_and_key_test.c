@@ -192,11 +192,11 @@ int main(int argc, char **argv)
     {
         /* when loading a chain, all certs have a info associated with them and root is self-signed */
         {
-            DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = NULL,
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
                     s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert_chain, "ec", "ecdsa",
+            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&chain, "ec", "ecdsa",
                     "p384", "sha256"));
-            struct s2n_cert *leaf = cert_chain->cert_chain->head;
+            struct s2n_cert *leaf = chain->cert_chain->head;
             EXPECT_EQUAL(leaf->info.self_signed, false);
             EXPECT_EQUAL(leaf->info.signature_nid, NID_ecdsa_with_SHA256);
             EXPECT_EQUAL(leaf->info.signature_digest_nid, NID_sha256);

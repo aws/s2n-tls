@@ -143,9 +143,9 @@ int main(int argc, char **argv)
         }
     };
 
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_cert = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(
-            s2n_test_cert_permutation_load_server_chain(&cert, "ec", "ecdsa", "p384", "sha256"));
+            s2n_test_cert_permutation_load_server_chain(&test_cert, "ec", "ecdsa", "p384", "sha256"));
     /* s2n_config cases  */
     {
         /* configure security policy then load an invalid cert */
@@ -153,7 +153,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "rfc9151"));
 
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, cert), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, test_cert), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
             /* assert that no certs were loaded */
             uint32_t domain_certs = 0;
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
         /* load a cert then configure an invalid security policy */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_cert));
             const struct s2n_security_policy *default_sp = config->security_policy;
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
@@ -179,7 +179,7 @@ int main(int argc, char **argv)
     {
         /* setup a config with the default security policy and the test cert */
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, test_cert));
 
         /* set a config then set an invalid security policy override */
         {

@@ -1479,17 +1479,20 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
     const struct s2n_signature_preferences *sig_preferences =
             security_policy->certificate_signature_preferences;
 
+    /* The "else" statement is necessary to aid cppcheck static analysis, 
+     * otherwise it reports sig_preferences->count as a null dereference. This was
+     * true as of cppcheck version 2.12. */
     if (sig_preferences == NULL) {
         return S2N_RESULT_OK;
-    }
-
-    for (size_t i = 0; i < sig_preferences->count; i++) {
-        if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
-            return S2N_RESULT_OK;
+    } else {
+        for (size_t i = 0; i < sig_preferences->count; i++) {
+            if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
+                return S2N_RESULT_OK;
+            }
         }
-    }
 
-    RESULT_BAIL(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        RESULT_BAIL(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+    }
 }
 
 S2N_RESULT s2n_security_policy_validate_certificate_chain(
