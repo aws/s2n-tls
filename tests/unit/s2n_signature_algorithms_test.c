@@ -239,7 +239,7 @@ int main(int argc, char **argv)
                 /* Test: ECDSA */
                 {
                     const struct s2n_signature_scheme *expected = &s2n_ecdsa_sha1;
-                    conn->handshake_params.client_cert_pkey_type = S2N_AUTHENTICATION_ECDSA;
+                    conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_ECDSA;
                     EXPECT_SUCCESS(s2n_connection_set_config(conn, client_ecdsa_config));
 
                     /* TLS1.1 selects the default */
@@ -256,7 +256,7 @@ int main(int argc, char **argv)
                 /* Test: RSA */
                 {
                     const struct s2n_signature_scheme *expected = &s2n_rsa_pkcs1_md5_sha1;
-                    conn->handshake_params.client_cert_pkey_type = S2N_AUTHENTICATION_RSA;
+                    conn->handshake_params.client_cert_pkey_type = S2N_PKEY_TYPE_RSA;
                     EXPECT_SUCCESS(s2n_connection_set_config(conn, client_rsa_config));
 
                     /* TLS1.1 selects the default */

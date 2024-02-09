@@ -184,7 +184,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(crypto_info.value.size, sizeof(crypto_info.ciphers.aes_gcm_128));
             EXPECT_EQUAL(crypto_info.value.data, (uint8_t *) &crypto_info.ciphers.aes_gcm_128);
             s2n_ktls_crypto_info_tls12_aes_gcm_128 *value =
-                    (s2n_ktls_crypto_info_tls12_aes_gcm_128 *) crypto_info.value.data;
+                    (s2n_ktls_crypto_info_tls12_aes_gcm_128 *) (void *) crypto_info.value.data;
 
             EXPECT_EQUAL(test_key.size, sizeof(value->key));
             EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
@@ -216,7 +216,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(crypto_info.value.size, sizeof(crypto_info.ciphers.aes_gcm_256));
             EXPECT_EQUAL(crypto_info.value.data, (uint8_t *) &crypto_info.ciphers.aes_gcm_256);
             s2n_ktls_crypto_info_tls12_aes_gcm_256 *value =
-                    (s2n_ktls_crypto_info_tls12_aes_gcm_256 *) crypto_info.value.data;
+                    (s2n_ktls_crypto_info_tls12_aes_gcm_256 *) (void *) crypto_info.value.data;
 
             EXPECT_EQUAL(test_key.size, sizeof(value->key));
             EXPECT_BYTEARRAY_EQUAL(test_key.data, value->key, sizeof(value->key));
