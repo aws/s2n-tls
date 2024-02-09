@@ -26,6 +26,7 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_client_server_name.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_key_share.h"
@@ -1060,10 +1061,7 @@ int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_
     struct s2n_stuffer extension_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
 
-    /* Skip over two bytes for the extension length field plus a byte for the entry's type */
-    POSIX_GUARD(s2n_stuffer_skip_read(&extension_stuffer, S2N_EXTENSION_LENGTH_FIELD_LENGTH + 1));
-
-    POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, length));
+    POSIX_GUARD_RESULT(s2n_validate_server_name_length(&extension_stuffer, length));
 
     return S2N_SUCCESS;
 }
@@ -1071,9 +1069,9 @@ int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_
 int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length)
 {
     POSIX_ENSURE_REF(out_length);
-    *out_length = 0;
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE_REF(server_name);
+    *out_length = 0;
 
     s2n_parsed_extension *server_name_extension = NULL;
     POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
@@ -1082,11 +1080,8 @@ int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *serve
     struct s2n_stuffer extension_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
 
-    /* Skip over two bytes for the extension length field plus a byte for the entry's type */
-    POSIX_GUARD(s2n_stuffer_skip_read(&extension_stuffer, S2N_EXTENSION_LENGTH_FIELD_LENGTH + 1));
-
     uint16_t name_length = 0;
-    POSIX_GUARD(s2n_stuffer_read_uint16(&extension_stuffer, &name_length));
+    POSIX_GUARD_RESULT(s2n_validate_server_name_length(&extension_stuffer, &name_length));
     POSIX_ENSURE_GTE(length, name_length);
 
     POSIX_GUARD(s2n_stuffer_read_bytes(&extension_stuffer, server_name, name_length));
