@@ -252,3 +252,12 @@ int s2n_tls13_parse_record_type(struct s2n_stuffer *stuffer, uint8_t *record_typ
 
     return 0;
 }
+
+S2N_RESULT s2n_record_wipe(struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->header_in));
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&conn->in));
+    conn->in_status = ENCRYPTED;
+    return S2N_RESULT_OK;
+}
