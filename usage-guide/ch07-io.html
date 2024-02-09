@@ -281,7 +281,7 @@ or <code>s2n_sendv_with_offset()</code>, see <a href="https://github.com/aws/s2n
 <p><code>s2n_recv()</code> reads and decrypts application data from the peer, copying it into
 the application-provided output buffer. It returns the number of bytes read, and
 may indicate a partial read even if blocking IO is used.
-It returns &quot;0&quot; to indicate that the peer has shutdown the connection.</p>
+It returns "0" to indicate that the peer has shutdown the connection.</p>
 <p>By default, <code>s2n_recv()</code> will return after reading a single TLS record. <code>s2n_recv()</code> can be called
 repeatedly to read multiple records. To allow <code>s2n_recv()</code> to read multiple records with a single
 call, use <code>s2n_config_set_recv_multi_record()</code>.</p>
@@ -331,8 +331,8 @@ via <code>s2n_connection_wipe()</code></li>
 </ul>
 <h3 id="closing-the-connection-for-writes"><a class="header" href="#closing-the-connection-for-writes">Closing the connection for writes</a></h3>
 <p>TLS1.3 supports closing the write side of a TLS connection while leaving the read
-side unaffected. This indicates &quot;end-of-data&quot; to the peer without preventing
-future reads. This feature is usually referred to as &quot;half-close&quot;.</p>
+side unaffected. This indicates "end-of-data" to the peer without preventing
+future reads. This feature is usually referred to as "half-close".</p>
 <p>s2n-tls offers the <code>s2n_shutdown_send()</code> method to close the write side of
 a connection. Unlike <code>s2n_shutdown()</code>, it does not wait for the peer to respond
 with a close_notify alert and does not discard any incoming application data. An

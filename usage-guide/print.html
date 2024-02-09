@@ -201,13 +201,13 @@ includes an example client (<code>s2nc</code>) and server (<code>s2nd</code>).</
 failure. s2n-tls functions that return pointer types return NULL in the case of
 failure. When an s2n-tls function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
-explaining the error in English by calling <code>s2n_strerror(s2n_errno, &quot;EN&quot;)</code>.
+explaining the error in English by calling <code>s2n_strerror(s2n_errno, "EN")</code>.
 A string containing human readable error name, can be generated with <code>s2n_strerror_name()</code>.
 A string containing internal debug information, including filename and line number, can be generated with <code>s2n_strerror_debug()</code>.
 This string is useful to include when reporting issues to the s2n-tls development team.</p>
 <p>Example:</p>
 <pre><code>if (s2n_config_set_cipher_preferences(config, prefs) &lt; 0) {
-    printf(&quot;Setting cipher prefs failed! %s : %s&quot;, s2n_strerror(s2n_errno, &quot;EN&quot;), s2n_strerror_debug(s2n_errno, &quot;EN&quot;));
+    printf("Setting cipher prefs failed! %s : %s", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
     return -1;
 }
 </code></pre>
@@ -215,7 +215,7 @@ This string is useful to include when reporting issues to the s2n-tls developmen
 <p>When using s2n-tls outside of <code>C</code>, the address of the thread-local <code>s2n_errno</code> may be obtained by calling the <code>s2n_errno_location()</code> function.
 This will ensure that the same TLS mechanisms are used with which s2n-tls was compiled.</p>
 <h2 id="error-types"><a class="header" href="#error-types">Error Types</a></h2>
-<p>s2n-tls organizes errors into different &quot;types&quot; to allow applications to handle error values without catching all possibilities.
+<p>s2n-tls organizes errors into different "types" to allow applications to handle error values without catching all possibilities.
 Applications using non-blocking I/O should check the error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use <code>s2n_error_get_type()</code>.
 Applications should perform any error handling logic using these high level types:</p>
 <p>Here's an example that handles errors based on type:</p>
@@ -269,7 +269,7 @@ It can be enabled globally by setting the environment variable <code>S2N_PRINT_S
 <h3 id="protocol-version"><a class="header" href="#protocol-version">Protocol Version</a></h3>
 <p>s2n-tls provides multiple different methods to get the TLS protocol version of the connection. They should be called after the handshake has completed.</p>
 <ul>
-<li><code>s2n_connection_get_actual_protocol_version()</code>: The actual TLS protocol version negotiated during the handshake. This is the primary value referred to as &quot;protocol_version&quot;, and the most commonly used.</li>
+<li><code>s2n_connection_get_actual_protocol_version()</code>: The actual TLS protocol version negotiated during the handshake. This is the primary value referred to as "protocol_version", and the most commonly used.</li>
 <li><code>s2n_connection_get_server_protocol_version()</code>: The highest TLS protocol version the server supports.</li>
 <li><code>s2n_connection_get_client_protocol_version()</code>: The highest TLS protocol version the client advertised.</li>
 </ul>
@@ -316,11 +316,11 @@ for certificate validation.</p>
 <tr><td>rfc9151</td><td></td><td></td><td>X</td><td>X</td><td></td><td>X</td><td></td><td></td><td></td><td>X</td><td>X</td><td>X</td></tr>
 </tbody></table>
 </div>
-<p>The &quot;default&quot;, &quot;default_tls13&quot;, and &quot;default_fips&quot; versions are special in that they will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
+<p>The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 In general, customers prefer to use numbered versions for production use cases to prevent impact from library updates.</p>
-<p>&quot;20230317&quot; is a FIPS compliant policy. It offers more limited but more secure options than &quot;default&quot;. It only supports TLS1.2 and TLS1.3. Consider this policy if you plan to enable FIPS mode or don't need or want to support less secure legacy options like TLS1.1 or SHA1.</p>
-<p>&quot;20160411&quot; follows the same general preference order as &quot;default&quot;. The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.</p>
-<p>&quot;rfc9151&quot; is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.</p>
+<p>"20230317" is a FIPS compliant policy. It offers more limited but more secure options than "default". It only supports TLS1.2 and TLS1.3. Consider this policy if you plan to enable FIPS mode or don't need or want to support less secure legacy options like TLS1.1 or SHA1.</p>
+<p>"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.</p>
+<p>"rfc9151" is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.</p>
 <p>s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:</p>
 <p><em>NOTE</em>: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The underlying encrypt/decrypt functions are not available in older versions.</p>
 <ol>
@@ -330,7 +330,7 @@ In general, customers prefer to use numbered versions for production use cases t
 <li>Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.</li>
 </ol>
 <h4 id="chacha20-boosting"><a class="header" href="#chacha20-boosting">ChaCha20 Boosting</a></h4>
-<p>s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly mobile or IOT devices-- do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers &quot;ChaCha20 boosted&quot; security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20. This is available in the &quot;CloudFront-TLS-1-2-2021-ChaCha20-Boosted&quot; policy, which is identical to the &quot;CloudFront-TLS-1-2-2021&quot; policy listed above but with ChaCha20 Boosting enabled.</p>
+<p>s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly mobile or IOT devices-- do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers "ChaCha20 boosted" security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20. This is available in the "CloudFront-TLS-1-2-2021-ChaCha20-Boosted" policy, which is identical to the "CloudFront-TLS-1-2-2021" policy listed above but with ChaCha20 Boosting enabled.</p>
 <h3 id="chart-security-policy-version-to-supported-signature-schemes"><a class="header" href="#chart-security-policy-version-to-supported-signature-schemes">Chart: Security Policy Version To Supported Signature Schemes</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>version</th><th>RSA PKCS1</th><th>ECDSA</th><th>SHA-1 Legacy</th><th>RSA PSS</th></tr></thead><tbody>
 <tr><td>20230317</td><td>X</td><td>X</td><td></td><td>X</td></tr>
@@ -493,7 +493,7 @@ or <code>s2n_sendv_with_offset()</code>, see <a href="https://github.com/aws/s2n
 <p><code>s2n_recv()</code> reads and decrypts application data from the peer, copying it into
 the application-provided output buffer. It returns the number of bytes read, and
 may indicate a partial read even if blocking IO is used.
-It returns &quot;0&quot; to indicate that the peer has shutdown the connection.</p>
+It returns "0" to indicate that the peer has shutdown the connection.</p>
 <p>By default, <code>s2n_recv()</code> will return after reading a single TLS record. <code>s2n_recv()</code> can be called
 repeatedly to read multiple records. To allow <code>s2n_recv()</code> to read multiple records with a single
 call, use <code>s2n_config_set_recv_multi_record()</code>.</p>
@@ -543,8 +543,8 @@ via <code>s2n_connection_wipe()</code></li>
 </ul>
 <h3 id="closing-the-connection-for-writes"><a class="header" href="#closing-the-connection-for-writes">Closing the connection for writes</a></h3>
 <p>TLS1.3 supports closing the write side of a TLS connection while leaving the read
-side unaffected. This indicates &quot;end-of-data&quot; to the peer without preventing
-future reads. This feature is usually referred to as &quot;half-close&quot;.</p>
+side unaffected. This indicates "end-of-data" to the peer without preventing
+future reads. This feature is usually referred to as "half-close".</p>
 <p>s2n-tls offers the <code>s2n_shutdown_send()</code> method to close the write side of
 a connection. Unlike <code>s2n_shutdown()</code>, it does not wait for the peer to respond
 with a close_notify alert and does not discard any incoming application data. An
@@ -580,7 +580,7 @@ allows the receiver to decrypt the data faster. It also decreases s2n-tls's memo
 <p>These options only affect the size of the records that s2n-tls sends, not the behavior
 of the peer.</p>
 <h2 id="maximum-fragment-length"><a class="header" href="#maximum-fragment-length">Maximum Fragment Length</a></h2>
-<p>The maximum number of bytes that can be sent in a TLS record is called the &quot;maximum fragment length&quot;,
+<p>The maximum number of bytes that can be sent in a TLS record is called the "maximum fragment length",
 and is set to 2^14 bytes by default. Regardless of the maximum record size that s2n-tls
 uses when sending, it may receive records containing up to 2^14 bytes of plaintext.</p>
 <p>A client can request a lower maximum fragment length by calling <code>s2n_config_send_max_fragment_length()</code>,
@@ -653,7 +653,7 @@ but it could make handshake failures and authentication errors more difficult to
 <p>Online Certificate Status Protocol (OCSP) is a protocol to establish whether or not a certificate has been revoked. The requester (usually a client), asks the responder (usually a server), to ‘staple’ the certificate status information along with the certificate itself. The certificate status sent back will be either expired, current, or unknown, which the requester can use to determine whether or not to accept the certificate.</p>
 <p>OCSP stapling can be applied to both client and server certificates when using TLS1.3, but only to server certificates when using TLS1.2.</p>
 <p>To use OCSP stapling, the requester must call <code>s2n_config_set_status_request_type()</code> with S2N_STATUS_REQUEST_OCSP. The responder will need to call <code>s2n_cert_chain_and_key_set_ocsp_data()</code> to set the raw bytes of the OCSP stapling data.</p>
-<p>The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. <code>s2n_config_set_check_stapled_ocsp_response()</code> can be called with &quot;0&quot; to turn this off. Call <code>s2n_connection_get_ocsp_response()</code> to retrieve the received OCSP stapling information for manual verification.</p>
+<p>The OCSP stapling information will be automatically validated if the underlying libcrypto supports OCSP validation. <code>s2n_config_set_check_stapled_ocsp_response()</code> can be called with "0" to turn this off. Call <code>s2n_connection_get_ocsp_response()</code> to retrieve the received OCSP stapling information for manual verification.</p>
 <h2 id="crl-validation"><a class="header" href="#crl-validation">CRL Validation</a></h2>
 <blockquote>
 <p>Note: the CRL validation feature in s2n-tls is currently considered unstable, meaning the CRL APIs are subject to change in a future release. To access the CRL APIs, include <code>api/unstable/crl.h</code>.</p>
@@ -704,10 +704,10 @@ for details about proper SSLv2 ClientHello parsing.</p>
 <p><code>s2n_connection_server_name_extension_used()</code> MUST be invoked before exiting the callback if any of the connection properties were changed on the basis of the Server Name extension. If desired, the callback can return a negative value to make s2n-tls terminate the handshake early with a fatal handshake failure alert.</p>
 <h3 id="callback-modes"><a class="header" href="#callback-modes">Callback Modes</a></h3>
 <p>The callback can be invoked in two modes: <strong>S2N_CLIENT_HELLO_CB_BLOCKING</strong> or <strong>S2N_CLIENT_HELLO_CB_NONBLOCKING</strong>. Use <code>s2n_config_set_client_hello_cb_mode()</code> to set the desired mode.</p>
-<p>The default mode, &quot;blocking mode&quot;, will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won't slow down the handshake or block the main thread, like logging or simple configuration changes.</p>
-<p>In contrast, &quot;non-blocking mode&quot; will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls <code>s2n_client_hello_cb_done()</code> will the handshake be able to resume.</p>
+<p>The default mode, "blocking mode", will wait for the Client Hello callback to succeed and then continue the handshake. Use this mode for light-weight callbacks that won't slow down the handshake or block the main thread, like logging or simple configuration changes.</p>
+<p>In contrast, "non-blocking mode" will wait for the ClientHello callback to succeed and then pause the handshake, immediately returning from s2n_negotiate with an error indicating that the handshake is blocked on application input. This allows the application to do expensive or time-consuming work like network calls outside of the callback without blocking the main thread. Only when the application calls <code>s2n_client_hello_cb_done()</code> will the handshake be able to resume.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="session-resumption"><a class="header" href="#session-resumption">Session Resumption</a></h1>
-<p>TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. The authentication step can be skipped because both the server and client will use their possession of the key from the previous session to prove who they are. We usually refer to the stored session state as a &quot;session ticket&quot;. Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.</p>
+<p>TLS handshake sessions are CPU-heavy due to the calculations involved in authenticating a certificate. These calculations can be skipped after the first connection by turning on session resumption. This mechanism stores state from the previous session and uses it to establish the next session, allowing the handshake to skip the costly authentication step while keeping the same cryptographic guarantees. The authentication step can be skipped because both the server and client will use their possession of the key from the previous session to prove who they are. We usually refer to the stored session state as a "session ticket". Note that this session ticket is encrypted by the server, so a server will have to set up an external key in order to do session resumption.</p>
 <h2 id="session-ticket-key"><a class="header" href="#session-ticket-key">Session Ticket Key</a></h2>
 <p>The key that encrypts and decrypts the session state is not related to the keys negotiated as part of the TLS handshake and has to be set by the server by calling <code>s2n_config_add_ticket_crypto_key()</code>. See <a href="https://www.rfc-editor.org/rfc/rfc5077#section-5.5">RFC5077</a> for guidelines on securely generating keys.</p>
 <p>Each key has two different expiration dates. The first expiration date signifies the time that the key can be used for both encryption and decryption. The second expiration date signifies the time that the key can be used only for decryption. This mechanism is to ensure that a session ticket can be successfully decrypted if it was encrypted by a key that was about to expire. The full lifetime of the key is therefore the encrypt-decrypt lifetime plus the decrypt-only lifetime. To alter the default key lifetime call <code>s2n_config_set_ticket_encrypt_decrypt_key_lifetime()</code> and <code>s2n_config_set_ticket_decrypt_key_lifetime()</code>.</p>
@@ -722,14 +722,14 @@ for details about proper SSLv2 ClientHello parsing.</p>
 <p>Clients should call <code>s2n_connection_get_session()</code> to retrieve some serialized state about the session. Then <code>s2n_connection_set_session()</code> should be called with that saved state when attempting to resume a new connection.</p>
 <h2 id="session-resumption-in-tls12-and-tls13"><a class="header" href="#session-resumption-in-tls12-and-tls13">Session Resumption in TLS1.2 and TLS1.3</a></h2>
 <p>In TLS1.2, session ticket messages are sent during the handshake and are automatically received as part of calling <code>s2n_negotiate()</code>. They will be available as soon as negotiation is complete.</p>
-<p>In TLS1.3, session ticket messages are sent after the handshake as &quot;post-handshake&quot; messages, and may not be received as part of calling <code>s2n_negotiate()</code>. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling <code>s2n_recv()</code> immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection.</p>
+<p>In TLS1.3, session ticket messages are sent after the handshake as "post-handshake" messages, and may not be received as part of calling <code>s2n_negotiate()</code>. A s2n-tls server will send tickets immediately after the handshake, so clients can receive them by calling <code>s2n_recv()</code> immediately after the handshake completes. However, other server implementations may send their session tickets later, at any time during the connection.</p>
 <p>Additionally, in TLS1.3, multiple session tickets may be issued for the same connection. Servers can call <code>s2n_config_set_initial_ticket_count()</code> to set the number of tickets they want to send and <code>s2n_connection_add_new_tickets_to_send()</code> to increase the number of tickets to send during a connection.</p>
 <h2 id="session-resumption-forward-secrecy"><a class="header" href="#session-resumption-forward-secrecy">Session Resumption Forward Secrecy</a></h2>
 <p>In TLS1.2, the secret stored inside the ticket is the original session's master secret. Because of this, TLS1.2 session tickets are not forward secret, meaning that compromising the resumed session's secret exposes the original session's encrypted data.</p>
 <p>In contrast, in TLS1.3 the secret stored inside the ticket is <em>derived</em> from the original session's master secret. The derivation uses a cryptographic operation that can't be reversed by an attacker to retrieve the original master secret. Therefore, TLS1.3 session tickets are forward secret, meaning compromising the resumed session's secret will not expose the original session's encrypted data.</p>
 <h2 id="keying-material-lifetimes-in-tls12-and-tls13"><a class="header" href="#keying-material-lifetimes-in-tls12-and-tls13">Keying Material Lifetimes in TLS1.2 and TLS1.3</a></h2>
-<p>In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original &quot;keying material&quot;-- meaning the lifetime of any secret derived from the original full handshake-- is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with <code>s2n_config_set_ticket_encrypt_decrypt_key_lifetime()</code>.</p>
-<p>In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see <a href="ch11-resumption.html#session-resumption-forward-secrecy">Session Resumption Forward Secrecy</a>. These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original &quot;keying material&quot; to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate &quot;keying material&quot; lifetime, which servers can configure with <code>s2n_connection_set_server_keying_material_lifetime()</code>. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.</p>
+<p>In TLS1.2, a full handshake can issue a session ticket encrypted with a specific session ticket encryption key. Connections that resume using that session ticket will not issue new session tickets. Therefore, the lifetime of the original "keying material"-- meaning the lifetime of any secret derived from the original full handshake-- is limited by the lifetime of the session ticket encryption key. Applications can set the session ticket encryption key lifetime with <code>s2n_config_set_ticket_encrypt_decrypt_key_lifetime()</code>.</p>
+<p>In TLS1.3, connections that resume using a session ticket CAN issue new session tickets. This is because TLS1.3 tickets are intended to be single-use, and each ticket contains a different secret: see <a href="ch11-resumption.html#session-resumption-forward-secrecy">Session Resumption Forward Secrecy</a>. These new session tickets may be encrypted with newer session ticket encryption keys, allowing the original "keying material" to outlive the original session ticket encryption key. However, TLS1.3 enforces a specific separate "keying material" lifetime, which servers can configure with <code>s2n_connection_set_server_keying_material_lifetime()</code>. This effectively places a limit on how long sessions can be resumed before a new full handshake is required.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="offloading-private-key-operations"><a class="header" href="#offloading-private-key-operations">Offloading Private Key Operations</a></h1>
 <p>By default, s2n-tls automatically uses the configured private key to synchronously perform the signature
 and decryption operations required for a tls handshake. However, this default behavior may not
@@ -773,7 +773,7 @@ each other. It is also safe to free <strong>conn</strong> or <strong>op</strong>
 respective function calls, with the exception that <strong>conn</strong> cannot
 be freed inside the <code>s2n_async_pkey_fn()</code> callback.</p>
 <h2 id="synchronous-private-key-operations"><a class="header" href="#synchronous-private-key-operations">Synchronous Private Key Operations</a></h2>
-<p>Despite the &quot;async&quot; in the function names, private key operations can also be completed synchronously using the callback.
+<p>Despite the "async" in the function names, private key operations can also be completed synchronously using the callback.
 To complete an operation synchronously, simply call <code>s2n_async_pkey_op_perform()</code> and <code>s2n_async_pkey_op_apply()</code> inside the callback.
 If the callback succeeds, the handshake will continue uninterrupted.
 If the callback fails, <code>s2n_negotiate()</code> will fail with an error of type <strong>S2N_ERR_T_INTERNAL</strong>.</p>
@@ -855,7 +855,7 @@ simply shutdown and cleanup the connection as you would for any other error.</p>
 <p>Like other IO functions, <code>s2n_send_early_data()</code> can potentially fail repeatedly with a blocking error before it eventually succeeds: see <a href="./ch07-io.html">I/O Functions</a> for more information. An application can stop calling <code>s2n_send_early_data()</code> at any time, even if the function has not returned success yet. If <code>s2n_send_early_data()</code> does return success, the connection is ready to complete the handshake and begin sending normal data. However, <code>s2n_send_early_data()</code> can continue to be called to send more early data if desired.</p>
 <p>Once a client finishes sending early data, you should call <code>s2n_negotiate()</code> to complete the handshake just as you would for a handshake that did not include early data.</p>
 <p>For example:</p>
-<pre><code>uint8_t early_data[] = &quot;early data to send&quot;;
+<pre><code>uint8_t early_data[] = "early data to send";
 ssize_t total_data_sent = 0, len = sizeof(early_data);
 while (total_data_sent &lt; len) {
     ssize_t data_sent = 0;
@@ -898,7 +898,7 @@ while (s2n_negotiate(conn, &amp;blocked) != S2N_SUCCESS) {
 <p><strong>s2n-tls does not include anti-replay protection automatically.</strong> Effective anti-replay protection for a multi-server application requires an external state shared by all servers. Without shared state, an attacker can capture early data originally sent to server A and successfully replay it against server B.</p>
 <p>The TLS1.3 specification suggests two possible anti-replay solutions that a user can implement:</p>
 <ol>
-<li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.1">Single-Use Tickets</a>: Valid tickets are stored in a shared database and deleted after use. <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code> can be used to get the ticket identifier, or &quot;pre-shared key identity&quot;, associated with offered early data.</li>
+<li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.1">Single-Use Tickets</a>: Valid tickets are stored in a shared database and deleted after use. <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code> can be used to get the ticket identifier, or "pre-shared key identity", associated with offered early data.</li>
 <li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.2">Client Hello Recording</a>: Instead of recording outstanding valid tickets, unique values from recent ClientHellos can be stored. The client hello message can be retrieved with <code>s2n_connection_get_client_hello()</code> and the pre-shared key identity can be retrieved with <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code>, but s2n-tls does not currently provide methods to retrieve the validated binders or the ClientHello.random.</li>
 </ol>
 <p>The <code>s2n_early_data_cb()</code> can be used to hook an anti-replay solution into s2n-tls. The callback can be configured by using <code>s2n_config_set_early_data_cb()</code>. Using the <strong>s2n_offered_early_data</strong> pointer offered by the callback, <code>s2n_offered_early_data_reject()</code> or <code>s2n_offered_early_data_accept()</code> can accept or reject the client request to use early data.</p>

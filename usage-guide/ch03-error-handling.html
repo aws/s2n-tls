@@ -178,13 +178,13 @@
 failure. s2n-tls functions that return pointer types return NULL in the case of
 failure. When an s2n-tls function returns a failure, s2n_errno will be set to a value
 corresponding to the error. This error value can be translated into a string
-explaining the error in English by calling <code>s2n_strerror(s2n_errno, &quot;EN&quot;)</code>.
+explaining the error in English by calling <code>s2n_strerror(s2n_errno, "EN")</code>.
 A string containing human readable error name, can be generated with <code>s2n_strerror_name()</code>.
 A string containing internal debug information, including filename and line number, can be generated with <code>s2n_strerror_debug()</code>.
 This string is useful to include when reporting issues to the s2n-tls development team.</p>
 <p>Example:</p>
 <pre><code>if (s2n_config_set_cipher_preferences(config, prefs) &lt; 0) {
-    printf(&quot;Setting cipher prefs failed! %s : %s&quot;, s2n_strerror(s2n_errno, &quot;EN&quot;), s2n_strerror_debug(s2n_errno, &quot;EN&quot;));
+    printf("Setting cipher prefs failed! %s : %s", s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"));
     return -1;
 }
 </code></pre>
@@ -192,7 +192,7 @@ This string is useful to include when reporting issues to the s2n-tls developmen
 <p>When using s2n-tls outside of <code>C</code>, the address of the thread-local <code>s2n_errno</code> may be obtained by calling the <code>s2n_errno_location()</code> function.
 This will ensure that the same TLS mechanisms are used with which s2n-tls was compiled.</p>
 <h2 id="error-types"><a class="header" href="#error-types">Error Types</a></h2>
-<p>s2n-tls organizes errors into different &quot;types&quot; to allow applications to handle error values without catching all possibilities.
+<p>s2n-tls organizes errors into different "types" to allow applications to handle error values without catching all possibilities.
 Applications using non-blocking I/O should check the error type to determine if the I/O operation failed because it would block or for some other error. To retrieve the type for a given error use <code>s2n_error_get_type()</code>.
 Applications should perform any error handling logic using these high level types:</p>
 <p>Here's an example that handles errors based on type:</p>

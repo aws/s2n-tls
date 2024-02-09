@@ -192,7 +192,7 @@
 <p>Like other IO functions, <code>s2n_send_early_data()</code> can potentially fail repeatedly with a blocking error before it eventually succeeds: see <a href="./ch07-io.html">I/O Functions</a> for more information. An application can stop calling <code>s2n_send_early_data()</code> at any time, even if the function has not returned success yet. If <code>s2n_send_early_data()</code> does return success, the connection is ready to complete the handshake and begin sending normal data. However, <code>s2n_send_early_data()</code> can continue to be called to send more early data if desired.</p>
 <p>Once a client finishes sending early data, you should call <code>s2n_negotiate()</code> to complete the handshake just as you would for a handshake that did not include early data.</p>
 <p>For example:</p>
-<pre><code>uint8_t early_data[] = &quot;early data to send&quot;;
+<pre><code>uint8_t early_data[] = "early data to send";
 ssize_t total_data_sent = 0, len = sizeof(early_data);
 while (total_data_sent &lt; len) {
     ssize_t data_sent = 0;
@@ -235,7 +235,7 @@ while (s2n_negotiate(conn, &amp;blocked) != S2N_SUCCESS) {
 <p><strong>s2n-tls does not include anti-replay protection automatically.</strong> Effective anti-replay protection for a multi-server application requires an external state shared by all servers. Without shared state, an attacker can capture early data originally sent to server A and successfully replay it against server B.</p>
 <p>The TLS1.3 specification suggests two possible anti-replay solutions that a user can implement:</p>
 <ol>
-<li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.1">Single-Use Tickets</a>: Valid tickets are stored in a shared database and deleted after use. <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code> can be used to get the ticket identifier, or &quot;pre-shared key identity&quot;, associated with offered early data.</li>
+<li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.1">Single-Use Tickets</a>: Valid tickets are stored in a shared database and deleted after use. <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code> can be used to get the ticket identifier, or "pre-shared key identity", associated with offered early data.</li>
 <li><a href="https://tools.ietf.org/rfc/rfc8446#section-8.2">Client Hello Recording</a>: Instead of recording outstanding valid tickets, unique values from recent ClientHellos can be stored. The client hello message can be retrieved with <code>s2n_connection_get_client_hello()</code> and the pre-shared key identity can be retrieved with <code>s2n_connection_get_negotiated_psk_identity_length()</code> and <code>s2n_connection_get_negotiated_psk_identity()</code>, but s2n-tls does not currently provide methods to retrieve the validated binders or the ClientHello.random.</li>
 </ol>
 <p>The <code>s2n_early_data_cb()</code> can be used to hook an anti-replay solution into s2n-tls. The callback can be configured by using <code>s2n_config_set_early_data_cb()</code>. Using the <strong>s2n_offered_early_data</strong> pointer offered by the callback, <code>s2n_offered_early_data_reject()</code> or <code>s2n_offered_early_data_accept()</code> can accept or reject the client request to use early data.</p>

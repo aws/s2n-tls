@@ -184,7 +184,7 @@ allows the receiver to decrypt the data faster. It also decreases s2n-tls's memo
 <p>These options only affect the size of the records that s2n-tls sends, not the behavior
 of the peer.</p>
 <h2 id="maximum-fragment-length"><a class="header" href="#maximum-fragment-length">Maximum Fragment Length</a></h2>
-<p>The maximum number of bytes that can be sent in a TLS record is called the &quot;maximum fragment length&quot;,
+<p>The maximum number of bytes that can be sent in a TLS record is called the "maximum fragment length",
 and is set to 2^14 bytes by default. Regardless of the maximum record size that s2n-tls
 uses when sending, it may receive records containing up to 2^14 bytes of plaintext.</p>
 <p>A client can request a lower maximum fragment length by calling <code>s2n_config_send_max_fragment_length()</code>,

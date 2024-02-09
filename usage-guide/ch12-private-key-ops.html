@@ -216,7 +216,7 @@ each other. It is also safe to free <strong>conn</strong> or <strong>op</strong>
 respective function calls, with the exception that <strong>conn</strong> cannot
 be freed inside the <code>s2n_async_pkey_fn()</code> callback.</p>
 <h2 id="synchronous-private-key-operations"><a class="header" href="#synchronous-private-key-operations">Synchronous Private Key Operations</a></h2>
-<p>Despite the &quot;async&quot; in the function names, private key operations can also be completed synchronously using the callback.
+<p>Despite the "async" in the function names, private key operations can also be completed synchronously using the callback.
 To complete an operation synchronously, simply call <code>s2n_async_pkey_op_perform()</code> and <code>s2n_async_pkey_op_apply()</code> inside the callback.
 If the callback succeeds, the handshake will continue uninterrupted.
 If the callback fails, <code>s2n_negotiate()</code> will fail with an error of type <strong>S2N_ERR_T_INTERNAL</strong>.</p>
