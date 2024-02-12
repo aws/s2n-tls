@@ -313,7 +313,7 @@ body {
 body, table, div, p, dl, #nav-tree .label, .title,
 .sm-dox a, .sm-dox a:hover, .sm-dox a:focus, #projectname,
 .SelectItem, #MSearchField, .navpath li.navelem a,
-.navpath li.navelem a:hover, p.reference, p.definition {
+.navpath li.navelem a:hover, p.reference, p.definition, div.toc li, div.toc h3 {
     font-family: var(--font-family);
 }
 
@@ -2460,17 +2460,17 @@ h2:hover a.anchorlink, h1:hover a.anchorlink, h3:hover a.anchorlink, h4:hover a.
  Optional tab feature
 */
 
-.tabbed ul {
+.tabbed > ul {
     padding-inline-start: 0px;
     margin: 0;
     padding: var(--spacing-small) 0;
 }
 
-.tabbed li {
+.tabbed > ul > li {
     display: none;
 }
 
-.tabbed li.selected {
+.tabbed > ul > li.selected {
     display: block;
 }
 
