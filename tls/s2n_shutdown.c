@@ -124,9 +124,7 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
         /* Reset IO. Make sure we do this before attempting to read a record in
          * case a previous failed read left IO in a bad state.
          */
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-        conn->in_status = ENCRYPTED;
+        POSIX_GUARD_RESULT(s2n_record_wipe(conn));
 
         POSIX_GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
         POSIX_ENSURE(!isSSLv2, S2N_ERR_BAD_MESSAGE);
