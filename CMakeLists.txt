@@ -24,6 +24,8 @@ otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
 indicate danger points where you should verify with the S2N-TLS developers that the security of
 the library is not compromised. Turn this OFF to ignore warnings." ON)
+option(S2N_WERROR_ALL "This option will cause all artifacts linked to libs2n to use the 
+-Werror setting." OFF)
 option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed with a specific
 version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
@@ -136,7 +138,9 @@ target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimpl
         -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
 )
 
-if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
+if (S2N_WERROR_ALL)
+    target_compile_options(${PROJECT_NAME} PUBLIC -Werror)
+elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
@@ -500,7 +504,11 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
-        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -Wunused-result -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        target_compile_options(${test_case_name} PRIVATE 
+                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
+                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
+                -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99)
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
