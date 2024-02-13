@@ -1098,10 +1098,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_p384_sha256, "ec",
                 "ecdsa", "p384", "sha256"));
 
-        /* test assumptions */
-        EXPECT_TRUE(security_policy_rfc9151.certificate_preferences_apply_locally);
-        EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&security_policy_rfc9151, ecdsa_p384_sha256), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
-
         /* when certificate preferences apply locally, invalid certs are rejected */
         {
             DEFER_CLEANUP(struct s2n_config* config = s2n_config_new(), s2n_config_ptr_free);
@@ -1185,8 +1181,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 1);
 
             /* certs in default_certs_by_type are validated */
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
+            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 

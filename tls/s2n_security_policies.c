@@ -1217,6 +1217,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
+    POSIX_ENSURE_REF(conn);
     const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
     POSIX_ENSURE_REF(security_policy);
@@ -1230,10 +1231,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 
     /* If the certificates loaded in the config are incompatible with the security 
      * policy's certificate preferences, return an error. */
-    if (conn->config != NULL) {
-        POSIX_GUARD_RESULT(
-                s2n_config_validate_loaded_certificates(conn->config, security_policy));
-    }
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
 
     conn->security_policy_override = security_policy;
     return 0;
@@ -1502,6 +1500,10 @@ S2N_RESULT s2n_security_policy_validate_certificate_chain(
     RESULT_ENSURE_REF(security_policy);
     RESULT_ENSURE_REF(cert_key_pair);
     RESULT_ENSURE_REF(cert_key_pair->cert_chain);
+
+    if (!security_policy->certificate_preferences_apply_locally) {
+        return S2N_RESULT_OK;
+    }
 
     struct s2n_cert *current = cert_key_pair->cert_chain->head;
     while (current != NULL) {

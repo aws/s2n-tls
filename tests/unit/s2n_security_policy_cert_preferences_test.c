@@ -33,6 +33,7 @@ int main(int argc, char **argv)
 
     const struct s2n_security_policy test_sp = {
         .certificate_signature_preferences = &test_certificate_signature_preferences,
+        .certificate_preferences_apply_locally = true,
     };
 
     const struct s2n_signature_scheme *const pss_sig_scheme_list[] = {
@@ -139,37 +140,38 @@ int main(int argc, char **argv)
         {
             intermediate.info.signature_nid = invalid_sig_nid;
             intermediate.info.signature_digest_nid = invalid_sig_nid;
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain), 
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
-        }
+        };
+
+        /* when certificate_preferences_apply_locally is false then validation succeeds */
+        {
+            struct s2n_security_policy test_sp_no_local = test_sp;
+            test_sp_no_local.certificate_preferences_apply_locally = false;
+            EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp_no_local, &chain));
+        };
     };
 
     /* s2n_config_set_cipher_preferences */
     {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL,
-                s2n_cert_chain_and_key_ptr_free);
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
 
         /* when certificate preferences apply locally and a config contains invalid
          * certs then s2n_config_set_cipher_preferences fails
          */
         {
-            /* test assumptions */
-            EXPECT_TRUE(security_policy_rfc9151.certificate_preferences_apply_locally);
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&security_policy_rfc9151, invalid_cert), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
-
             DEFER_CLEANUP(struct s2n_config* config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"), 
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
     };
 
     /* s2n_connection_set_cipher_preferences */
     {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL,
-                s2n_cert_chain_and_key_ptr_free);
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
 
         /* when certificate preferences apply locally and the connection contains
@@ -182,7 +184,8 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"), 
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
     };
 
