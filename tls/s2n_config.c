@@ -182,7 +182,7 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
     return 0;
 }
 
-static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     uint32_t cn_len = 0;
     POSIX_GUARD_RESULT(s2n_array_num_elements(cert_key_pair->cn_names, &cn_len));
@@ -528,7 +528,7 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
-static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(config->security_policy);
