@@ -455,7 +455,7 @@ S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn
         RESULT_ENSURE(info.signature_digest_nid != NID_sha1, S2N_ERR_CERT_UNTRUSTED);
     }
 
-    RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &info));
+    RESULT_ENSURE_OK(s2n_security_policy_validate_cert_signature(security_policy, &info), S2N_ERR_CERT_UNTRUSTED);
 
     return S2N_RESULT_OK;
 }

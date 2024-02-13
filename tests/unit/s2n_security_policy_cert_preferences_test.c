@@ -94,13 +94,11 @@ int main(int argc, char **argv)
 
     /* s2n_security_policy_validate_certificate_chain */
     {
-        int valid_sig_nid = s2n_ecdsa_sha256.libcrypto_nid;
-        int valid_hash_nid = 0;
-        EXPECT_SUCCESS(s2n_hash_NID_type(s2n_ecdsa_sha256.hash_alg, &valid_hash_nid));
+        int valid_sig_nid = NID_ecdsa_with_SHA256;
+        int valid_hash_nid = NID_sha256;
 
-        int invalid_sig_nid = s2n_rsa_pkcs1_sha256.libcrypto_nid;
-        int invalid_hash_nide = 0;
-        EXPECT_SUCCESS(s2n_hash_NID_type(s2n_rsa_pkcs1_sha256.hash_alg, &invalid_hash_nide));
+        int invalid_sig_nid = NID_sha256WithRSAEncryption;
+        int invalid_hash_nide = NID_sha256;
 
         struct s2n_cert_info valid = {
             .self_signed = false,
