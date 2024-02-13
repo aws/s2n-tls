@@ -1100,7 +1100,7 @@ int main(int argc, char **argv)
 
         /* when certificate preferences apply locally, invalid certs are rejected */
         {
-            DEFER_CLEANUP(struct s2n_config* config = s2n_config_new(), s2n_config_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             config->security_policy = &security_policy_rfc9151;
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_impl(config, ecdsa_p384_sha256), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
@@ -1111,7 +1111,7 @@ int main(int argc, char **argv)
             struct s2n_security_policy rfc9151_no_local = security_policy_rfc9151;
             rfc9151_no_local.certificate_preferences_apply_locally = false;
 
-            DEFER_CLEANUP(struct s2n_config* config = s2n_config_new(), s2n_config_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             config->security_policy = &rfc9151_no_local;
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_impl(config, ecdsa_p384_sha256));

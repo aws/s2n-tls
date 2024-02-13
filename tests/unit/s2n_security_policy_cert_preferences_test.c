@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
         struct s2n_cert_chain_and_key chain = { 0 };
         chain.cert_chain = &cert_chain;
-        
+
         /* valid chain */
         {
             EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
@@ -140,7 +140,7 @@ int main(int argc, char **argv)
         {
             intermediate.info.signature_nid = invalid_sig_nid;
             intermediate.info.signature_digest_nid = invalid_sig_nid;
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain), 
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 
@@ -161,10 +161,10 @@ int main(int argc, char **argv)
          * certs then s2n_config_set_cipher_preferences fails
          */
         {
-            DEFER_CLEANUP(struct s2n_config* config = s2n_config_new(), s2n_config_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"), 
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
     };
@@ -178,13 +178,13 @@ int main(int argc, char **argv)
          * an invalid config then s2n_connection_set_cipher_preferences fails
          */
         {
-            DEFER_CLEANUP(struct s2n_config* config = s2n_config_new(), s2n_config_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            DEFER_CLEANUP(struct s2n_connection* conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"), 
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
     };
