@@ -1061,7 +1061,9 @@ int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_
     struct s2n_stuffer extension_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
 
-    POSIX_GUARD_RESULT(s2n_validate_server_name_length(&extension_stuffer, length));
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD_RESULT(s2n_parse_server_name(&extension_stuffer, &blob));
+    *length = blob.size;
 
     return S2N_SUCCESS;
 }
@@ -1080,12 +1082,12 @@ int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *serve
     struct s2n_stuffer extension_stuffer = { 0 };
     POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
 
-    uint16_t name_length = 0;
-    POSIX_GUARD_RESULT(s2n_validate_server_name_length(&extension_stuffer, &name_length));
-    POSIX_ENSURE_GTE(length, name_length);
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD_RESULT(s2n_parse_server_name(&extension_stuffer, &blob));
+    POSIX_ENSURE_LTE(blob.size, length);
+    POSIX_CHECKED_MEMCPY(server_name, blob.data, blob.size);
 
-    POSIX_GUARD(s2n_stuffer_read_bytes(&extension_stuffer, server_name, name_length));
-    *out_length = name_length;
+    *out_length = blob.size;
 
     return S2N_SUCCESS;
 }
