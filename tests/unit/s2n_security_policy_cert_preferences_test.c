@@ -53,10 +53,6 @@ int main(int argc, char **argv)
         .certificate_signature_preferences = &pss_certificate_signature_preferences,
     };
 
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *test_cert = NULL, s2n_cert_chain_and_key_ptr_free);
-    EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&test_cert, "ec", "ecdsa", "p384",
-            "sha256"));
-
     /* s2n_security_policy_validate_cert_signature() */
     {
         /* Certificate signature algorithm is in test certificate signature preferences list */

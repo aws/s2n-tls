@@ -1122,13 +1122,13 @@ int main(int argc, char **argv)
         }
     };
 
-    /* Test s2n_config_validate_certificate_preferences */
+    /* Test s2n_config_validate_loaded_certificates */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL,
                 s2n_cert_chain_and_key_ptr_free);
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *valid_cert = NULL,
                 s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa",
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa",
                 "p384", "sha256"));
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa",
                 "p384", "sha384"));
@@ -1141,7 +1141,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, valid_cert));
             EXPECT_OK(
-                    s2n_config_validate_certificate_preferences(config, &security_policy_rfc9151));
+                    s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151));
         };
 
         /* when cert preferences don't apply locally, invalid certs are accepted */
@@ -1162,11 +1162,11 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
-            EXPECT_OK(s2n_config_validate_certificate_preferences(config, &test_sp));
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &test_sp));
         };
 
         /* Certs in an s2n_config are stored in default_certs_by_type, domain_name_to_cert_map, or
-         * both. We want to ensure that the s2n_config_validate_certificate_preferences method will
+         * both. We want to ensure that the s2n_config_validate_loaded_certificates method will
          * validate certs in both locations.
          */
 
@@ -1186,7 +1186,7 @@ int main(int argc, char **argv)
 
             /* certs in default_certs_by_type are validated */
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_config_validate_certificate_preferences(config, &security_policy_rfc9151),
+                    s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 
@@ -1204,7 +1204,7 @@ int main(int argc, char **argv)
 
             /* certs in domain_map are validated */
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_config_validate_certificate_preferences(config, &security_policy_rfc9151),
+                    s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
     };

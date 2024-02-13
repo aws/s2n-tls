@@ -217,5 +217,5 @@ S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
 
 /* Validate that the certificates in `config` respect the certificate preferences
  * in `security_policy` */
-S2N_RESULT s2n_config_validate_certificate_preferences(const struct s2n_config *config,
+S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
         const struct s2n_security_policy *security_policy);

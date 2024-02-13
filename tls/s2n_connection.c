@@ -284,7 +284,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
     }
 
     if (conn->security_policy_override != NULL) {
-        POSIX_GUARD_RESULT(s2n_config_validate_certificate_preferences(config,
+        POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config,
                 conn->security_policy_override));
     }
 

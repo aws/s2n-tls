@@ -571,7 +571,7 @@ int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_config_validate_certificate_preferences(const struct s2n_config *config,
+S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
         const struct s2n_security_policy *security_policy)
 {
     RESULT_ENSURE_REF(config);

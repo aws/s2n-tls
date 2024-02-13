@@ -1210,7 +1210,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
 
     /* If the certificates loaded in the config are incompatible with the security 
      * policy's certificate preferences, return an error. */
-    POSIX_GUARD_RESULT(s2n_config_validate_certificate_preferences(config, security_policy));
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
     config->security_policy = security_policy;
     return 0;
 }
@@ -1232,7 +1232,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
      * policy's certificate preferences, return an error. */
     if (conn->config != NULL) {
         POSIX_GUARD_RESULT(
-                s2n_config_validate_certificate_preferences(conn->config, security_policy));
+                s2n_config_validate_loaded_certificates(conn->config, security_policy));
     }
 
     conn->security_policy_override = security_policy;
