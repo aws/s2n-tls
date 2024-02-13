@@ -77,6 +77,7 @@ S2N_RESULT s2n_parse_server_name(struct s2n_stuffer *extension, struct s2n_blob 
     RESULT_ENSURE_LTE(length, S2N_MAX_SERVER_NAME);
 
     uint8_t *data = s2n_stuffer_raw_read(extension, length);
+    RESULT_ENSURE_REF(data);
     RESULT_GUARD_POSIX(s2n_blob_init(server_name, data, length));
 
     return S2N_RESULT_OK;
