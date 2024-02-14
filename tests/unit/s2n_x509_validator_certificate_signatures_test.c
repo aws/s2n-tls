@@ -155,10 +155,10 @@ int main(int argc, char **argv)
                     s2n_cert_chain_and_key_ptr_free);
             EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_p384_sha256, "ec",
                     "ecdsa", "p384", "sha384"));
-            DEFER_CLEANUP(X509 *cert = NULL, X509_free_pointer);
-            EXPECT_OK(s2n_openssl_x509_parse(&ecdsa_p384_sha256->cert_chain->head->raw, &cert));
+            DEFER_CLEANUP(X509 *test_cert = NULL, X509_free_pointer);
+            EXPECT_OK(s2n_openssl_x509_parse(&ecdsa_p384_sha256->cert_chain->head->raw, &test_cert));
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_check_cert_preferences(conn, cert), S2N_ERR_CERT_UNTRUSTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_check_cert_preferences(conn, test_cert), S2N_ERR_CERT_UNTRUSTED);
         };
 
         /* Certificate signature algorithm is in the test certificate signature preferences list but signature is SHA-1

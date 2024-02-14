@@ -104,17 +104,17 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
+    POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
+    POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
+
+    s2n_x509_trust_store_init_empty(&config->trust_store);
+
     POSIX_GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
         POSIX_GUARD(s2n_config_setup_tls13(config));
     } else if (s2n_is_in_fips_mode()) {
         POSIX_GUARD(s2n_config_setup_fips(config));
     }
-
-    POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
-    POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
-
-    s2n_x509_trust_store_init_empty(&config->trust_store);
 
     return 0;
 }
@@ -571,10 +571,6 @@ S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *conf
 {
     RESULT_ENSURE_REF(config);
     RESULT_ENSURE_REF(security_policy);
-    if (!security_policy->certificate_preferences_apply_locally
-            || security_policy->certificate_signature_preferences == NULL) {
-        return S2N_RESULT_OK;
-    }
 
     /* validate the default certs */
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
