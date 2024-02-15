@@ -61,7 +61,7 @@ static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_s
 /* Read the extension up to the first item in ServerNameList. Instantiates the server_name blob to
  * point to the first entry. For now s2n ignores all subsequent items in ServerNameList.
  */
-S2N_RESULT s2n_parse_server_name(struct s2n_stuffer *extension, struct s2n_blob *server_name)
+S2N_RESULT s2n_client_server_name_parse(struct s2n_stuffer *extension, struct s2n_blob *server_name)
 {
     uint16_t list_size = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &list_size));
@@ -74,7 +74,6 @@ S2N_RESULT s2n_parse_server_name(struct s2n_stuffer *extension, struct s2n_blob 
     uint16_t length = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &length));
     RESULT_ENSURE_LTE(length, s2n_stuffer_data_available(extension));
-    RESULT_ENSURE_LTE(length, S2N_MAX_SERVER_NAME);
 
     uint8_t *data = s2n_stuffer_raw_read(extension, length);
     RESULT_ENSURE_REF(data);
@@ -94,7 +93,7 @@ static int s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_s
 
     /* Ignore if malformed or we don't have enough space to store it. We just won't use the server name. */
     struct s2n_blob server_name = { 0 };
-    if (!s2n_result_is_ok(s2n_parse_server_name(extension, &server_name))) {
+    if (!s2n_result_is_ok(s2n_client_server_name_parse(extension, &server_name)) || server_name.size > S2N_MAX_SERVER_NAME) {
         return S2N_SUCCESS;
     }
 
