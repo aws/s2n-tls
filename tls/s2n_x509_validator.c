@@ -59,7 +59,8 @@ DEFINE_POINTER_CLEANUP_FUNC(OCSP_BASICRESP *, OCSP_BASICRESP_free);
  */
 #define MAX_32_TIMESTAMP_NANOS 2147483647 * ONE_SEC_IN_NANOS
 
-#define OSSL_VERIFY_CALLBACK_IGNORE_ERROR 1
+#define OSSL_VERIFY_CALLBACK_OK    1
+#define OSSL_VERIFY_CALLBACK_ERROR 0
 
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(X509_CRL) *, sk_X509_CRL_free);
 DEFINE_POINTER_CLEANUP_FUNC(STACK_OF(GENERAL_NAME) *, GENERAL_NAMES_free);
@@ -150,6 +151,8 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->crl_lookup_list = NULL;
+    validator->verify_cb_config.crl_callback = 0;
+    validator->verify_cb_config.disable_time_validation = 0;
 
     return 0;
 }
@@ -169,6 +172,8 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
     validator->crl_lookup_list = NULL;
+    validator->verify_cb_config.crl_callback = 0;
+    validator->verify_cb_config.disable_time_validation = 0;
 
     return 0;
 }
@@ -573,48 +578,32 @@ int s2n_disable_time_validation_ossl_verify_callback(int default_ossl_ret, X509_
     switch (err) {
         case X509_V_ERR_CERT_NOT_YET_VALID:
         case X509_V_ERR_CERT_HAS_EXPIRED:
-            return OSSL_VERIFY_CALLBACK_IGNORE_ERROR;
+            return OSSL_VERIFY_CALLBACK_OK;
         default:
             break;
     }
 
-    /* If CRL validation is enabled, setting the time validation verify callback will override the
-     * CRL verify callback. The CRL verify callback is manually triggered to work around this
-     * issue.
-     *
-     * The CRL verify callback ignores validation errors exclusively for CRL timestamp fields. So,
-     * if CRL validation isn't enabled, the CRL verify callback is a no-op.
-     */
-    return s2n_crl_ossl_verify_callback(default_ossl_ret, ctx);
+    return default_ossl_ret;
 }
 
-static S2N_RESULT s2n_x509_validator_disable_time_validation(struct s2n_connection *conn,
-        struct s2n_x509_validator *validator)
+int s2n_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
 {
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(conn->config);
-    RESULT_ENSURE_REF(validator);
-    RESULT_ENSURE_REF(validator->store_ctx);
-
-    /* Setting an X509_STORE verify callback is not recommended with AWS-LC:
-     * https://github.com/aws/aws-lc/blob/aa90e509f2e940916fbe9fdd469a4c90c51824f6/include/openssl/x509.h#L2980-L2990
-     *
-     * If the libcrypto supports the ability to disable time validation with an X509_VERIFY_PARAM
-     * NO_CHECK_TIME flag, this method is preferred.
-     *
-     * However, older versions of AWS-LC and OpenSSL 1.0.2 do not support this flag. In this case,
-     * an X509_STORE verify callback is used. This is acceptable in older versions of AWS-LC
-     * because the versions are fixed, and updates to AWS-LC will not break the callback
-     * implementation.
-     */
-    if (s2n_libcrypto_supports_flag_no_check_time()) {
-        RESULT_GUARD(s2n_x509_validator_set_no_check_time_flag(validator));
-    } else {
-        X509_STORE_CTX_set_verify_cb(validator->store_ctx,
-                s2n_disable_time_validation_ossl_verify_callback);
+    void *callback_config_paramter = X509_STORE_CTX_get_app_data(ctx);
+    if (callback_config_paramter == NULL) {
+        /* error, fail closed */
+        return OSSL_VERIFY_CALLBACK_ERROR;
     }
+    const struct s2n_ossl_verify_cb_config *callback_config = (struct s2n_ossl_verify_cb_config *) callback_config_paramter;
 
-    return S2N_RESULT_OK;
+    /* If any callback returns OK, then return OK */
+    if (callback_config->disable_time_validation
+            && s2n_disable_time_validation_ossl_verify_callback(default_ossl_ret, ctx) == OSSL_VERIFY_CALLBACK_OK) {
+        return OSSL_VERIFY_CALLBACK_OK;
+    }
+    if (callback_config->crl_callback && s2n_crl_ossl_verify_callback(default_ossl_ret, ctx) == OSSL_VERIFY_CALLBACK_OK) {
+        return OSSL_VERIFY_CALLBACK_OK;
+    }
+    return default_ossl_ret;
 }
 
 static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn)
@@ -627,8 +616,6 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
     DEFER_CLEANUP(STACK_OF(X509_CRL) *crl_stack = NULL, sk_X509_CRL_free_pointer);
 
     if (conn->config->crl_lookup_cb) {
-        X509_STORE_CTX_set_verify_cb(validator->store_ctx, s2n_crl_ossl_verify_callback);
-
         crl_stack = sk_X509_CRL_new_null();
         RESULT_GUARD(s2n_crl_get_crls_from_lookup_list(validator, crl_stack));
 
@@ -642,6 +629,8 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         /* Enable CRL validation for all certificates, not just the leaf */
         RESULT_GUARD_OSSL(X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL),
                 S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
+        validator->verify_cb_config.crl_callback = true;
     }
 
     /* Disabling time validation may set a NO_CHECK_TIME flag on the X509_STORE_CTX. Calling
@@ -649,7 +638,22 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
      * only called if time validation is enabled.
      */
     if (conn->config->disable_x509_time_validation) {
-        RESULT_GUARD(s2n_x509_validator_disable_time_validation(conn, validator));
+        /* Setting an X509_STORE verify callback is not recommended with AWS-LC:
+         * https://github.com/aws/aws-lc/blob/aa90e509f2e940916fbe9fdd469a4c90c51824f6/include/openssl/x509.h#L2980-L2990
+         *
+         * If the libcrypto supports the ability to disable time validation with an X509_VERIFY_PARAM
+         * NO_CHECK_TIME flag, this method is preferred.
+         *
+         * However, older versions of AWS-LC and OpenSSL 1.0.2 do not support this flag. In this case,
+         * an X509_STORE verify callback is used. This is acceptable in older versions of AWS-LC
+         * because the versions are fixed, and updates to AWS-LC will not break the callback
+         * implementation.
+         */
+        if (s2n_libcrypto_supports_flag_no_check_time()) {
+            RESULT_GUARD(s2n_x509_validator_set_no_check_time_flag(validator));
+        } else {
+            validator->verify_cb_config.disable_time_validation = true;
+        }
     } else {
         uint64_t current_sys_time = 0;
         RESULT_GUARD(s2n_config_wall_clock(conn->config, &current_sys_time));
@@ -661,6 +665,11 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         /* this wants seconds not nanoseconds */
         time_t current_time = (time_t) (current_sys_time / ONE_SEC_IN_NANOS);
         X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
+    }
+
+    if (validator->verify_cb_config.crl_callback || validator->verify_cb_config.disable_time_validation) {
+        X509_STORE_CTX_set_app_data(validator->store_ctx, (void *) &validator->verify_cb_config);
+        X509_STORE_CTX_set_verify_cb(validator->store_ctx, s2n_ossl_verify_callback);
     }
 
     /* It's assumed that if a valid certificate chain is received with an issuer that's present in

@@ -41,6 +41,11 @@ typedef enum {
 typedef uint8_t (*verify_host)(const char *host_name, size_t host_name_len, void *data);
 struct s2n_connection;
 
+struct s2n_ossl_verify_cb_config {
+    unsigned crl_callback : 1;
+    unsigned disable_time_validation : 1;
+};
+
 /**
  * Trust store simply contains the trust store each connection should validate certs against.
  * For most use cases, you only need one of these per application.
@@ -64,6 +69,7 @@ struct s2n_x509_validator {
     STACK_OF(X509) *cert_chain_from_wire;
     int state;
     struct s2n_array *crl_lookup_list;
+    struct s2n_ossl_verify_cb_config verify_cb_config;
 };
 
 struct s2n_cert_validation_info {
