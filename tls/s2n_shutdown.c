@@ -123,14 +123,6 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
         return S2N_SUCCESS;
     }
 
-    /* Skip any leftover plaintext not consumed by the application.
-     * Partial or encrypted records should not be wiped-- we need to finish
-     * processing them or report an error.
-     */
-    if (conn->in_status == PLAINTEXT) {
-        POSIX_GUARD_RESULT(s2n_record_wipe(conn));
-    }
-
     /* Wait for the peer's close_notify. */
     uint8_t record_type = 0;
     int isSSLv2 = false;
