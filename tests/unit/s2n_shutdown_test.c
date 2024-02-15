@@ -45,6 +45,17 @@ int main(int argc, char **argv)
 
     const uint8_t alert_record_size = sizeof(alert_record_header) + S2N_ALERT_LENGTH;
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key * chain_and_key,
+            s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+            s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+
     /* Test: Do not send or await close_notify if reader alert already queued */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
@@ -356,7 +367,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     };
 
-    /* Test: previous failed partial reads do not affect reading close_notify */
+    /* Test: Do not await close_notify after reading malformed record */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
@@ -395,20 +406,172 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_recv(conn, recv_buffer, sizeof(recv_buffer), &blocked),
                 S2N_ERR_BAD_MESSAGE);
-        EXPECT_TRUE(s2n_stuffer_space_remaining(&conn->header_in) < sizeof(header_bytes));
 
         /* Clear the blinding delay so that we can call s2n_shutdown */
         EXPECT_TRUE(conn->delay > 0);
-        conn->delay = 0;
+        conn->write_timer.time = 0;
 
-        /* Make the valid close_notify available */
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, alert_record_header, sizeof(alert_record_header)));
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, close_notify_alert, sizeof(close_notify_alert)));
+        /* Successfully shutdown without waiting for more data. */
+        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_FALSE(s2n_atomic_flag_test(&conn->close_notify_received));
+    };
+
+    /* Test: s2n_shutdown successfully reads and skips a partial app data record */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 },
+                s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Send some application data */
+        uint8_t test_data[] = "hello world";
+        EXPECT_EQUAL(s2n_send(client, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+
+        /* Block reading application data */
+        io_pair.server_in.write_cursor--;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server, test_data, sizeof(test_data), &blocked),
+                S2N_ERR_IO_BLOCKED);
+
+        /* Make the remainder of the application data + a close_notify available */
+        io_pair.server_in.write_cursor++;
+        EXPECT_SUCCESS(s2n_shutdown_send(client, &blocked));
 
         /* Successfully shutdown.
-         * The initial bad call to s2n_recv should not affect shutdown.
+         * The application data is skipped.
          */
-        EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
+        EXPECT_SUCCESS(s2n_shutdown(server, &blocked));
+        EXPECT_TRUE(s2n_atomic_flag_test(&server->close_notify_received));
+    };
+
+    /* Test: s2n_shutdown successfully reads a partial close_notify record */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 },
+                s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Send the close_notify */
+        EXPECT_SUCCESS(s2n_shutdown_send(client, &blocked));
+
+        /* Block reading the close_notify record */
+        uint8_t read = 0;
+        io_pair.server_in.write_cursor--;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server, &read, 1, &blocked), S2N_ERR_IO_BLOCKED);
+        EXPECT_FALSE(s2n_atomic_flag_test(&server->close_notify_received));
+
+        /* Receive the rest of the close_notify record and successful shutdown */
+        io_pair.server_in.write_cursor++;
+        EXPECT_SUCCESS(s2n_shutdown(server, &blocked));
+        EXPECT_TRUE(s2n_atomic_flag_test(&server->close_notify_received));
+    };
+
+    /* Test: s2n_shutdown fails if a partial record is malformed */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 },
+                s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Send some invalid application data */
+        uint8_t test_data[] = "hello world";
+        EXPECT_EQUAL(s2n_send(client, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+        const uint8_t overwrite_size = sizeof(test_data) / 2;
+        EXPECT_SUCCESS(s2n_stuffer_wipe_n(&io_pair.server_in, overwrite_size));
+        EXPECT_SUCCESS(s2n_stuffer_skip_write(&io_pair.server_in, overwrite_size));
+
+        /* Block reading application data */
+        io_pair.server_in.write_cursor--;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server, test_data, sizeof(test_data), &blocked),
+                S2N_ERR_IO_BLOCKED);
+
+        /* Make the remainder of the application data + a close_notify available */
+        io_pair.server_in.write_cursor++;
+        EXPECT_SUCCESS(s2n_shutdown_send(client, &blocked));
+
+        /* Shutdown fails to decrypt bad application data record */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_shutdown(server, &blocked), S2N_ERR_DECRYPT);
+        EXPECT_FALSE(s2n_atomic_flag_test(&server->close_notify_received));
+    };
+
+    /* Test: s2n_shutdown skips partially drained / consumed app data
+     *
+     * This is different from handling a partial record. The record is complete
+     * and decrypted, but the application has not consumed the plaintext data yet.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 },
+                s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+        /* Send some application data */
+        uint8_t test_data[] = "hello world";
+        EXPECT_EQUAL(s2n_send(client, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+
+        /* Only read some of the application data */
+        EXPECT_EQUAL(s2n_recv(server, test_data, 1, &blocked), 1);
+
+        /* Make a close_notify available */
+        EXPECT_SUCCESS(s2n_shutdown_send(client, &blocked));
+
+        /* Successfully shutdown.
+         * The remaining application data is skipped.
+         */
+        EXPECT_SUCCESS(s2n_shutdown(server, &blocked));
+        EXPECT_TRUE(s2n_atomic_flag_test(&server->close_notify_received));
     };
 
     /* Test: s2n_shutdown with aggressive socket close */
