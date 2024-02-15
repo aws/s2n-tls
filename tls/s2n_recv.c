@@ -203,9 +203,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
                     break;
                 }
             }
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-            conn->in_status = ENCRYPTED;
+            POSIX_GUARD_RESULT(s2n_record_wipe(conn));
             continue;
         }
 
@@ -219,9 +217,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
         /* Are we ready for more encrypted data? */
         if (s2n_stuffer_data_available(&conn->in) == 0) {
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-            conn->in_status = ENCRYPTED;
+            POSIX_GUARD_RESULT(s2n_record_wipe(conn));
         }
 
         /* If we've read some data, return it in legacy mode */
