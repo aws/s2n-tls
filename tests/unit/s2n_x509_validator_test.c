@@ -13,10 +13,9 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_openssl_x509.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-
-DEFINE_POINTER_CLEANUP_FUNC(X509 *, X509_free);
 
 static int mock_time(void *data, uint64_t *timestamp)
 {

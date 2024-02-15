@@ -56,7 +56,7 @@ else()
     )
 
     if (NOT crypto_LIBRARY)
-        if (BUILD_SHARED_LIBS)
+        if (BUILD_SHARED_LIBS OR S2N_USE_CRYPTO_SHARED_LIBS)
             if (crypto_SHARED_LIBRARY)
                 set(crypto_LIBRARY ${crypto_SHARED_LIBRARY})
             else()
