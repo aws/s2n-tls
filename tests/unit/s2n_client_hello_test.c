@@ -25,7 +25,6 @@
 #include "s2n_test.h"
 #include "testlib/s2n_sslv2_client_hello.h"
 #include "testlib/s2n_testlib.h"
-#include "tls/s2n_client_hello.c"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_handshake.h"
 #include "tls/s2n_quic_support.h"
@@ -46,6 +45,8 @@
 #define COMPRESSION_METHODS_LEN 0x05
 
 int s2n_parse_client_hello(struct s2n_connection *conn);
+S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
+        struct s2n_blob *raw_extensions, struct s2n_blob *extension);
 
 int main(int argc, char **argv)
 {
@@ -1849,7 +1850,7 @@ int main(int argc, char **argv)
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_legacy_record_version(NULL, &out), S2N_ERR_NULL);
             EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_legacy_record_version(&client_hello, NULL), S2N_ERR_NULL);
-        }
+        };
 
         /* Retrieves record version */
         {
@@ -1859,8 +1860,69 @@ int main(int argc, char **argv)
             client_hello.record_version_recorded = 1;
             EXPECT_SUCCESS(s2n_client_hello_get_legacy_record_version(&client_hello, &out));
             EXPECT_EQUAL(out, S2N_TLS12);
-        }
-    }
+        };
+    };
+
+    /* s2n_client_hello_get_server_name() */
+    {
+        /* Safety */
+        {
+            struct s2n_client_hello ch = { 0 };
+            uint16_t length = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_server_name_length(NULL, &length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_server_name_length(&ch, NULL), S2N_ERR_NULL);
+
+            uint8_t buffer = 0;
+            uint16_t out_length = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_server_name(NULL, &buffer, 0, &out_length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_server_name(&ch, NULL, 0, &out_length), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_server_name(&ch, &buffer, 0, NULL), S2N_ERR_NULL);
+        };
+
+        /* Retrieves the first entry in the server_name extension */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_NOT_NULL(client_conn);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+            const char *test_server_name = "test server name!";
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+
+            struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(server_conn);
+            EXPECT_NOT_NULL(client_hello);
+
+            uint16_t length = 0;
+            EXPECT_SUCCESS(s2n_client_hello_get_server_name_length(client_hello, &length));
+            EXPECT_EQUAL(strlen(test_server_name), length);
+            uint8_t buffer[20] = { 0 };
+            uint16_t out_length = 0;
+            EXPECT_SUCCESS(s2n_client_hello_get_server_name(client_hello, buffer, sizeof(buffer), &out_length));
+            EXPECT_EQUAL(length, out_length);
+
+            EXPECT_BYTEARRAY_EQUAL(buffer, test_server_name, out_length);
+
+            /* Check error occurs if buffer is too small to hold server name */
+            uint8_t small_buf[2] = { 0 };
+            out_length = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_get_server_name(client_hello, small_buf, sizeof(small_buf), &out_length), S2N_ERR_SAFETY);
+        };
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
