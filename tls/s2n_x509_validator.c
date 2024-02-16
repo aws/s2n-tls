@@ -151,8 +151,7 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->crl_lookup_list = NULL;
-    validator->verify_cb_config.crl_callback = 0;
-    validator->verify_cb_config.disable_time_validation = 0;
+    validator->verify_cb_config = (const struct s2n_ossl_verify_cb_config){ 0 };
 
     return 0;
 }
@@ -172,8 +171,8 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
     validator->crl_lookup_list = NULL;
-    validator->verify_cb_config.crl_callback = 0;
-    validator->verify_cb_config.disable_time_validation = 0;
+    validator->verify_cb_config = (const struct s2n_ossl_verify_cb_config){ 0 };
+
 
     return 0;
 }
@@ -667,10 +666,9 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
     }
 
-    if (validator->verify_cb_config.crl_callback || validator->verify_cb_config.disable_time_validation) {
-        X509_STORE_CTX_set_app_data(validator->store_ctx, (void *) &validator->verify_cb_config);
-        X509_STORE_CTX_set_verify_cb(validator->store_ctx, s2n_ossl_verify_callback);
-    }
+    RESULT_GUARD_OSSL(X509_STORE_CTX_set_app_data(validator->store_ctx, (void *) &validator->verify_cb_config), 
+            S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+    X509_STORE_CTX_set_verify_cb(validator->store_ctx, s2n_ossl_verify_callback);
 
     /* It's assumed that if a valid certificate chain is received with an issuer that's present in
      * the trust store, the certificate chain should be trusted. This should be the case even if
