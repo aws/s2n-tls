@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.4-629c60a3</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.4-e16e151b</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -499,6 +499,10 @@ Functions</h2></td></tr>
 <tr class="separator:aeff080b07553418e574fa5907c6d2ca0"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a68a751eb59517406db2439a88e94d8d1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a68a751eb59517406db2439a88e94d8d1">s2n_client_hello_get_supported_groups</a> (struct s2n_client_hello *ch, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</td></tr>
 <tr class="separator:a68a751eb59517406db2439a88e94d8d1"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a4345089b56dee57f4c6f97c04588289e"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a4345089b56dee57f4c6f97c04588289e">s2n_client_hello_get_server_name_length</a> (struct s2n_client_hello *ch, uint16_t *length)</td></tr>
+<tr class="separator:a4345089b56dee57f4c6f97c04588289e"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a13b362b99e61c3da07b6be2f9c4cff3f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a13b362b99e61c3da07b6be2f9c4cff3f">s2n_client_hello_get_server_name</a> (struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length)</td></tr>
+<tr class="separator:a13b362b99e61c3da07b6be2f9c4cff3f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a67962bf835ce5145d215a9ee8f4985d3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a67962bf835ce5145d215a9ee8f4985d3">s2n_connection_set_fd</a> (struct s2n_connection *conn, int fd)</td></tr>
 <tr class="separator:a67962bf835ce5145d215a9ee8f4985d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aa75014bd12d682e91ab2812c2e92c16d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aa75014bd12d682e91ab2812c2e92c16d">s2n_connection_set_read_fd</a> (struct s2n_connection *conn, int readfd)</td></tr>
@@ -3278,6 +3282,93 @@ s2n-tls has never supported compression methods in any TLS version and therefore
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The size of the ClientHello message received by the server </dd></dl>
+
+</div>
+</div>
+<a id="a13b362b99e61c3da07b6be2f9c4cff3f" name="a13b362b99e61c3da07b6be2f9c4cff3f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a13b362b99e61c3da07b6be2f9c4cff3f">&#9670;&#160;</a></span>s2n_client_hello_get_server_name()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_server_name </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>server_name</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t&#160;</td>
+          <td class="paramname"><em>length</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t *&#160;</td>
+          <td class="paramname"><em>out_length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Gets the first server name in a Client Hello.</p>
+<p >Use <code><a class="el" href="s2n_8h.html#a4345089b56dee57f4c6f97c04588289e">s2n_client_hello_get_server_name_length()</a></code> to get the amount of memory needed for the buffer.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>A pointer to the ClientHello </td></tr>
+    <tr><td class="paramname">server_name</td><td>A pointer to the memory which will be populated with the server name </td></tr>
+    <tr><td class="paramname">length</td><td>The maximum amount of data that can be written to <code>server_name</code> </td></tr>
+    <tr><td class="paramname">out_length</td><td>A pointer which will be populated with the size of the server name </td></tr>
+  </table>
+  </dd>
+</dl>
+
+</div>
+</div>
+<a id="a4345089b56dee57f4c6f97c04588289e" name="a4345089b56dee57f4c6f97c04588289e"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a4345089b56dee57f4c6f97c04588289e">&#9670;&#160;</a></span>s2n_client_hello_get_server_name_length()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_client_hello_get_server_name_length </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_client_hello *&#160;</td>
+          <td class="paramname"><em>ch</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint16_t *&#160;</td>
+          <td class="paramname"><em>length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Gets the length of the first server name in a Client Hello.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">ch</td><td>A pointer to the ClientHello </td></tr>
+    <tr><td class="paramname">length</td><td>A pointer which will be populated with the length of the server name </td></tr>
+  </table>
+  </dd>
+</dl>
 
 </div>
 </div>
