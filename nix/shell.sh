@@ -12,6 +12,7 @@ banner()
 function libcrypto_alias {
     if [[ -f $2 ]]; then
       alias $1=$2
+      echo "Libcrypto $2 available as $1"
       else
       banner "Could not find libcrdypto $2 for alias"
     fi
