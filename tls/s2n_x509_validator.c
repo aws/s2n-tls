@@ -151,7 +151,6 @@ int s2n_x509_validator_init_no_x509_validation(struct s2n_x509_validator *valida
     validator->state = INIT;
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->crl_lookup_list = NULL;
-    validator->verify_cb_config = (const struct s2n_ossl_verify_cb_config){ 0 };
 
     return 0;
 }
@@ -171,8 +170,6 @@ int s2n_x509_validator_init(struct s2n_x509_validator *validator, struct s2n_x50
     validator->cert_chain_from_wire = sk_X509_new_null();
     validator->state = INIT;
     validator->crl_lookup_list = NULL;
-    validator->verify_cb_config = (const struct s2n_ossl_verify_cb_config){ 0 };
-
 
     return 0;
 }
@@ -587,19 +584,19 @@ int s2n_disable_time_validation_ossl_verify_callback(int default_ossl_ret, X509_
 
 int s2n_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
 {
-    void *callback_config_paramter = X509_STORE_CTX_get_app_data(ctx);
-    if (callback_config_paramter == NULL) {
+    void *conn_parameter = X509_STORE_CTX_get_app_data(ctx);
+    if (conn_parameter == NULL) {
         /* error, fail closed */
         return OSSL_VERIFY_CALLBACK_ERROR;
     }
-    const struct s2n_ossl_verify_cb_config *callback_config = (struct s2n_ossl_verify_cb_config *) callback_config_paramter;
+    const struct s2n_connection *conn = (struct s2n_connection *) conn_parameter;
 
     /* If any callback returns OK, then return OK */
-    if (callback_config->disable_time_validation
+    if ((conn->config->disable_x509_time_validation && !s2n_libcrypto_supports_flag_no_check_time())
             && s2n_disable_time_validation_ossl_verify_callback(default_ossl_ret, ctx) == OSSL_VERIFY_CALLBACK_OK) {
         return OSSL_VERIFY_CALLBACK_OK;
     }
-    if (callback_config->crl_callback && s2n_crl_ossl_verify_callback(default_ossl_ret, ctx) == OSSL_VERIFY_CALLBACK_OK) {
+    if (conn->config->crl_lookup_cb && s2n_crl_ossl_verify_callback(default_ossl_ret, ctx) == OSSL_VERIFY_CALLBACK_OK) {
         return OSSL_VERIFY_CALLBACK_OK;
     }
     return default_ossl_ret;
@@ -628,8 +625,6 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         /* Enable CRL validation for all certificates, not just the leaf */
         RESULT_GUARD_OSSL(X509_VERIFY_PARAM_set_flags(param, X509_V_FLAG_CRL_CHECK_ALL),
                 S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
-
-        validator->verify_cb_config.crl_callback = true;
     }
 
     /* Disabling time validation may set a NO_CHECK_TIME flag on the X509_STORE_CTX. Calling
@@ -650,8 +645,6 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
          */
         if (s2n_libcrypto_supports_flag_no_check_time()) {
             RESULT_GUARD(s2n_x509_validator_set_no_check_time_flag(validator));
-        } else {
-            validator->verify_cb_config.disable_time_validation = true;
         }
     } else {
         uint64_t current_sys_time = 0;
@@ -666,7 +659,7 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
         X509_STORE_CTX_set_time(validator->store_ctx, 0, current_time);
     }
 
-    RESULT_GUARD_OSSL(X509_STORE_CTX_set_app_data(validator->store_ctx, (void *) &validator->verify_cb_config), 
+    RESULT_GUARD_OSSL(X509_STORE_CTX_set_app_data(validator->store_ctx, (void *) conn),
             S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
     X509_STORE_CTX_set_verify_cb(validator->store_ctx, s2n_ossl_verify_callback);
 
