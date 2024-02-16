@@ -26,6 +26,7 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_client_server_name.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_key_share.h"
@@ -962,7 +963,7 @@ int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
+S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension)
 {
     RESULT_ENSURE_REF(raw_extensions);
@@ -1043,6 +1044,50 @@ int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t 
     }
 
     *groups_count_out = supported_groups_count;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_t *length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(length);
+    *length = 0;
+
+    s2n_parsed_extension *server_name_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
+    POSIX_ENSURE_REF(server_name_extension);
+
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
+
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD_RESULT(s2n_client_server_name_parse(&extension_stuffer, &blob));
+    *length = blob.size;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length)
+{
+    POSIX_ENSURE_REF(out_length);
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(server_name);
+    *out_length = 0;
+
+    s2n_parsed_extension *server_name_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
+    POSIX_ENSURE_REF(server_name_extension);
+
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
+
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD_RESULT(s2n_client_server_name_parse(&extension_stuffer, &blob));
+    POSIX_ENSURE_LTE(blob.size, length);
+    POSIX_CHECKED_MEMCPY(server_name, blob.data, blob.size);
+
+    *out_length = blob.size;
 
     return S2N_SUCCESS;
 }
