@@ -34,8 +34,6 @@
 #include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
-/* Included to grab the s2n_openssl_rand_method */
-#include "utils/s2n_random.c"
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
 
@@ -806,7 +804,8 @@ static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
 
     /* The global random method is overridden after calling s2n_init() */
     const RAND_METHOD *custom_rand_method = RAND_get_rand_method();
-    EXPECT_EQUAL(custom_rand_method, &s2n_openssl_rand_method);
+    EXPECT_NOT_NULL(custom_rand_method);
+    EXPECT_EQUAL(custom_rand_method->bytes, s2n_openssl_compat_rand);
 
     return S2N_SUCCESS;
 }
