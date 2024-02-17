@@ -34,6 +34,8 @@
 #include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
+/* Included to grab the s2n_openssl_rand_method */
+#include "utils/s2n_random.c"
 
 #define MAX_NUMBER_OF_TEST_THREADS 2
 
@@ -792,6 +794,23 @@ static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_
     return S2N_SUCCESS;
 }
 
+static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
+{
+    /* Calling RAND_bytes will set a global random method */
+    unsigned char rndbytes[16] = { 0 };
+    EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
+    const RAND_METHOD *rand_method = RAND_get_rand_method();
+    EXPECT_EQUAL(rand_method, RAND_OpenSSL());
+
+    EXPECT_SUCCESS(s2n_init());
+
+    /* The global random method is overridden after calling s2n_init() */
+    const RAND_METHOD *custom_rand_method = RAND_get_rand_method();
+    EXPECT_EQUAL(custom_rand_method, &s2n_openssl_rand_method);
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
 {
     EXPECT_SUCCESS(s2n_disable_atexit());
@@ -862,6 +881,7 @@ struct random_test_case random_test_cases[] = {
     { "Test failure.", s2n_random_test_case_failure_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, 1 },
     { "Test libcrypto's RAND engine is reset correctly after manual s2n_cleanup()", s2n_random_rand_bytes_after_cleanup_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
     { "Test getting entropy with an invalid file descriptor", s2n_random_invalid_urandom_fd_cb, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
+    { "Test libcrypto's global RAND is unset after calling s2n_init()", s2n_random_rand_bytes_before_init, CLONE_TEST_DETERMINE_AT_RUNTIME, EXIT_SUCCESS },
 };
 
 int main(int argc, char **argv)

@@ -553,6 +553,10 @@ S2N_RESULT s2n_rand_init(void)
         return S2N_RESULT_OK;
     }
 
+    /* Unset any existing random engine */
+    RAND_set_rand_engine(NULL);
+    RAND_set_rand_method(NULL);
+
     /* Create an engine */
     ENGINE *e = ENGINE_new();
 
