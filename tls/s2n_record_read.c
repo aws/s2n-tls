@@ -53,9 +53,10 @@ int s2n_sslv2_record_header_parse(
      * Since the first bit is not actually used to indicate length, we need to
      * remove it from the length.
      *
-     *= https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2
-     *# The highest bit MUST be 1; the remaining bits contain the length
-     *# of the following data in bytes.
+     *= https://tools.ietf.org/rfc/rfc5246#appendix-E.2
+     *# msg_length
+     *#    The highest bit MUST be 1; the remaining bits contain the length
+     *#    of the following data in bytes.
      */
     POSIX_ENSURE(*fragment_length & S2N_TLS_SSLV2_HEADER_FLAG_UINT16, S2N_ERR_BAD_MESSAGE);
     *fragment_length ^= S2N_TLS_SSLV2_HEADER_FLAG_UINT16;
