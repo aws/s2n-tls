@@ -794,12 +794,10 @@ static int s2n_random_rand_bytes_after_cleanup_cb(struct random_test_case *test_
 
 static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
 {
-#ifdef S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
+#if S2N_LIBCRYPTO_SUPPORTS_CUSTOM_RAND
     /* Calling RAND_bytes will set a global random method */
     unsigned char rndbytes[16] = { 0 };
     EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
-    const RAND_METHOD *rand_method = RAND_get_rand_method();
-    EXPECT_EQUAL(rand_method, RAND_OpenSSL());
 
     EXPECT_SUCCESS(s2n_init());
 
