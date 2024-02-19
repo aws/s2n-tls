@@ -214,7 +214,6 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_x509_validator_check_cert_preferences(conn, test_cert));
         };
-
     };
     END_TEST();
     return S2N_SUCCESS;

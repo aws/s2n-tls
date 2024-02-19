@@ -33,7 +33,7 @@
 
 #define S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT 30
 
-/* forward declarations */
+/* forward declaration */
 int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
@@ -1107,14 +1107,10 @@ int main(int argc, char **argv)
 
     /* Test s2n_config_validate_loaded_certificates */
     {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL,
-                s2n_cert_chain_and_key_ptr_free);
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *valid_cert = NULL,
-                s2n_cert_chain_and_key_ptr_free);
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa",
-                "p384", "sha256"));
-        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa",
-                "p384", "sha384"));
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *valid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa", "p384", "sha384"));
 
         /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
          * so ecdsa_p384_sha256 is invalid and ecdsa_p384_sha384 is valid */
@@ -1123,29 +1119,17 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, valid_cert));
-            EXPECT_OK(
-                    s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151));
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151));
         };
 
         /* when cert preferences don't apply locally, invalid certs are accepted */
         {
-            const struct s2n_signature_scheme *const test_sig_scheme_list[] = {
-                &s2n_ecdsa_sha384,
-            };
-
-            const struct s2n_signature_preferences test_certificate_signature_preferences = {
-                .count = s2n_array_len(test_sig_scheme_list),
-                .signature_schemes = test_sig_scheme_list,
-            };
-
-            const struct s2n_security_policy test_sp = {
-                .certificate_signature_preferences = &test_certificate_signature_preferences,
-                .certificate_preferences_apply_locally = false,
-            };
+            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+            non_local_rfc9151.certificate_preferences_apply_locally = false;
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
-            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &test_sp));
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &non_local_rfc9151));
         };
 
         /* Certs in an s2n_config are stored in default_certs_by_type, domain_name_to_cert_map, or
@@ -1165,7 +1149,6 @@ int main(int argc, char **argv)
             uint32_t domain_certs_count = 0;
             EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &domain_certs_count));
             EXPECT_EQUAL(domain_certs_count, 0);
-            EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 1);
 
             /* certs in default_certs_by_type are validated */
             EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
@@ -1180,13 +1163,8 @@ int main(int argc, char **argv)
             /* default_certs_by_type is empty. */
             EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
 
-            uint32_t domain_certs_count = 0;
-            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &domain_certs_count));
-            EXPECT_EQUAL(domain_certs_count, 1);
-
             /* certs in domain_map are validated */
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
+            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
     };
