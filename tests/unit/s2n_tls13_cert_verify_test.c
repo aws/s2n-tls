@@ -23,6 +23,7 @@
 #include "tls/s2n_tls13.h"
 #include "tls/s2n_tls13_certificate_verify.c"
 
+#define TEST_SECURITY_POLICY "20200207"
 uint8_t hello[] = "Hello, World!\n";
 uint8_t goodbye[] = "Goodbye, World!\n";
 
@@ -47,12 +48,12 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
     const char *key_file = test_case->key_file;
     struct s2n_signature_scheme sig_scheme = *test_case->sig_scheme;
 
-    struct s2n_config *config = NULL;
-    EXPECT_NOT_NULL(config = s2n_config_new());
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20200207"));
-
     /* Successfully send and receive certificate verify */
     {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_SECURITY_POLICY));
+
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
@@ -137,6 +138,10 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     /* Verifying connection errors with incorrect signed content */
     {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_SECURITY_POLICY));
+
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
@@ -208,6 +213,10 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     /* Verifying connection errors with even 1 bit incorrect */
     {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_SECURITY_POLICY));
+
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
         struct s2n_cert_chain_and_key *cert_chain = NULL;
@@ -278,6 +287,10 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     /* Verifying connection errors with wrong hash/signature algorithms */
     {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, TEST_SECURITY_POLICY));
+
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
@@ -369,8 +382,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
     };
-
-    EXPECT_SUCCESS(s2n_config_free(config));
 
     return 0;
 }
