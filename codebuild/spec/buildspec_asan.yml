@@ -32,6 +32,11 @@ version: 0.2
 #            asan on it. See pr 4033 for a historical motivating example.
 # openssl 1.1.1: a widely deployed version of openssl.
 # openssl 1.0.2: the default libcrypto on AL2, and AL2 is still widely deployed.
+
+# CMAKE_BUILD_TYPE
+# RelWithDebInfo: This instructs CMake to do all optimizations (Rel -> Release)
+# along with debug info (DebInfo). Debug info is necessary to get line numbers 
+# in the stack traces that ASAN reports.
 batch:
   build-list:
     - identifier: clang_awslc
