@@ -200,8 +200,7 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
 /* Checks to see if a certificate has a signature algorithm that's in our 
  * certificate_signature_preferences list 
  */
-S2N_RESULT s2n_security_policy_validate_certificate_chain(
-        const struct s2n_security_policy *security_policy,
+S2N_RESULT s2n_security_policy_validate_certificate_chain(const struct s2n_security_policy *security_policy,
         const struct s2n_cert_chain_and_key *cert_key_pair);
 S2N_RESULT s2n_security_policy_validate_cert_signature(
         const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info);

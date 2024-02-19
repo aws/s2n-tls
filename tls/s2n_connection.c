@@ -283,10 +283,13 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         return 0;
     }
 
+    const struct s2n_security_policy *security_policy = NULL;
     if (conn->security_policy_override != NULL) {
-        POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config,
-                conn->security_policy_override));
+        security_policy = conn->security_policy_override;
+    } else {
+        security_policy = config->security_policy;
     }
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
 
     /* We only support one client certificate */
     if (s2n_config_get_num_default_certs(config) > 1 && conn->mode == S2N_CLIENT) {

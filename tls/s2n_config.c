@@ -104,17 +104,17 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
-    POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
-    POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
-
-    s2n_x509_trust_store_init_empty(&config->trust_store);
-
     POSIX_GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
         POSIX_GUARD(s2n_config_setup_tls13(config));
     } else if (s2n_is_in_fips_mode()) {
         POSIX_GUARD(s2n_config_setup_fips(config));
     }
+
+    POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
+    POSIX_GUARD_RESULT(s2n_map_complete(config->domain_name_to_cert_map));
+
+    s2n_x509_trust_store_init_empty(&config->trust_store);
 
     return 0;
 }
@@ -530,14 +530,10 @@ int s2n_config_set_verification_ca_location(struct s2n_config *config, const cha
     return err_code;
 }
 
-int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
-    POSIX_ENSURE_REF(config);
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
-
-    /* Validate that the certificate type is allowed by the security policy. */
-    POSIX_GUARD_RESULT(s2n_security_policy_validate_certificate_chain(config->security_policy, cert_key_pair));
 
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
