@@ -156,6 +156,13 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
         return S2N_SUCCESS;
     }
 
+    /* A TLS 1.3 state machine flag is used to determine if a HelloRetryRequest is negotiated. A
+     * protocol version of TLS 1.3 must be set in order to query the TLS 1.3 state machine, so
+     * it must be queried before the protocol version is potentially reset due to processing the
+     * extension.
+     */
+    bool is_hrr_handshake = s2n_is_hello_retry_handshake(conn);
+
     s2n_result result = s2n_client_supported_versions_recv_impl(conn, extension);
     if (s2n_result_is_error(result)) {
         conn->client_protocol_version = s2n_unknown_protocol_version;
@@ -165,6 +172,14 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
         POSIX_ENSURE(s2n_errno != S2N_ERR_SAFETY, S2N_ERR_BAD_MESSAGE);
     }
     POSIX_GUARD_RESULT(result);
+
+    /* When the supported versions extension is received in a ClientHello sent in response to a
+     * HelloRetryRequest, ensure that TLS 1.3 is selected as the protocol version.
+     */
+    if (is_hrr_handshake && conn->handshake.message_number > 0) {
+        POSIX_ENSURE(conn->client_protocol_version == S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+        POSIX_ENSURE(conn->actual_protocol_version == S2N_TLS13, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+    }
 
     return S2N_SUCCESS;
 }
