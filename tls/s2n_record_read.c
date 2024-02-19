@@ -34,17 +34,16 @@ int s2n_sslv2_record_header_parse(
         uint8_t *client_protocol_version,
         uint16_t *fragment_length)
 {
-    struct s2n_stuffer *in = &conn->header_in;
+    struct s2n_stuffer *header_in = &conn->header_in;
 
-    S2N_ERROR_IF(s2n_stuffer_data_available(in) < S2N_TLS_RECORD_HEADER_LENGTH, S2N_ERR_BAD_MESSAGE);
+    POSIX_ENSURE(s2n_stuffer_data_available(header_in) >= S2N_TLS_RECORD_HEADER_LENGTH,
+            S2N_ERR_BAD_MESSAGE);
 
+    POSIX_GUARD(s2n_stuffer_read_uint16(header_in, fragment_length));
     /* The first bit of the length must be set to indicate SSLv2,
      * so the raw fragment length must be adjusted.
-     * Revert the change afterwards in case we need to re-parse the header.
      */
-    in->blob.data[0] ^= S2N_TLS_SSLV2_HEADER_FLAG;
-    POSIX_GUARD(s2n_stuffer_read_uint16(in, fragment_length));
-    in->blob.data[0] |= S2N_TLS_SSLV2_HEADER_FLAG;
+    *fragment_length ^= (S2N_TLS_SSLV2_HEADER_FLAG << 8);
 
     /* The SSLv2 header is only a 2 byte record length (technically 3 bytes if
      * padding is included, but TLS1.2 requires no padding).
@@ -61,8 +60,8 @@ int s2n_sslv2_record_header_parse(
      * read a standard header, we need to adjust the length so that we only
      * try to read the remainder of the record payload.
      */
-    POSIX_ENSURE(*fragment_length >= s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
-    *fragment_length -= s2n_stuffer_data_available(in);
+    POSIX_ENSURE(*fragment_length >= s2n_stuffer_data_available(header_in), S2N_ERR_BAD_MESSAGE);
+    *fragment_length -= s2n_stuffer_data_available(header_in);
 
     /*
      * The first field of an SSLv2 ClientHello is the msg_type.
@@ -70,7 +69,7 @@ int s2n_sslv2_record_header_parse(
      * This is always '1', matching the ClientHello msg_type used by later
      * handshake messages.
      */
-    POSIX_GUARD(s2n_stuffer_read_uint8(in, record_type));
+    POSIX_GUARD(s2n_stuffer_read_uint8(header_in, record_type));
 
     /*
      * The second field of an SSLv2 ClientHello is the version.
@@ -80,11 +79,11 @@ int s2n_sslv2_record_header_parse(
      * See s2n_sslv2_client_hello_recv.
      */
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-    POSIX_GUARD(s2n_stuffer_read_bytes(in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(header_in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
     *client_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
 
-    POSIX_GUARD(s2n_stuffer_reread(in));
+    POSIX_GUARD(s2n_stuffer_reread(header_in));
     return 0;
 }
 
