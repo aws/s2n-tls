@@ -40,21 +40,21 @@ int s2n_sslv2_record_header_parse(
             S2N_ERR_BAD_MESSAGE);
 
     POSIX_GUARD(s2n_stuffer_read_uint16(header_in, fragment_length));
-    /* The first bit of the length must be set to indicate SSLv2,
-     * so the raw fragment length must be adjusted.
-     */
-    *fragment_length ^= (S2N_TLS_SSLV2_HEADER_FLAG << 8);
 
-    /* The SSLv2 header is only a 2 byte record length (technically 3 bytes if
-     * padding is included, but TLS1.2 requires no padding).
-     * See https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2
-     * And https://www.ietf.org/archive/id/draft-hickman-netscape-ssl-00.txt.
+    /* The first bit of the SSLv2 header would usually indicate whether the
+     * length is 2 bytes long or 3 bytes long.
+     * See https://www.ietf.org/archive/id/draft-hickman-netscape-ssl-00.txt
      *
-     * So by reading 5 bytes for a standard header we have also read the first
-     * 3 bytes of the record payload. s2n-tls only supports SSLv2 ClientHellos,
-     * so we assume that those 3 bytes are the first two fields of the
-     * SSLv2 ClientHello.
+     * However, s2n-tls only supports SSLv2 for ClientHellos as defined in the
+     * TLS1.2 RFC. In that case, the first bit must always be set to distinguish
+     * SSLv2 from non-SSLv2 headers. The length is always 2 bytes.
+     * See https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2
+     *
+     * Since the first bit is not actually used to indicate length, we need to
+     * remove it from the length.
      */
+    POSIX_ENSURE(*fragment_length & S2N_TLS_SSLV2_HEADER_FLAG_UINT16, S2N_ERR_BAD_MESSAGE);
+    *fragment_length ^= S2N_TLS_SSLV2_HEADER_FLAG_UINT16;
 
     /* Because we already read 3 bytes of the record payload while trying to
      * read a standard header, we need to adjust the length so that we only
@@ -63,9 +63,11 @@ int s2n_sslv2_record_header_parse(
     POSIX_ENSURE(*fragment_length >= s2n_stuffer_data_available(header_in), S2N_ERR_BAD_MESSAGE);
     *fragment_length -= s2n_stuffer_data_available(header_in);
 
-    /*
-     * The first field of an SSLv2 ClientHello is the msg_type.
+    /* By reading 5 bytes for a standard header we have also read the first
+     * 3 bytes of the record payload.
+     * So we now need to parse those three bytes of the ClientHello.
      *
+     * The first field of an SSLv2 ClientHello is the msg_type.
      * This is always '1', matching the ClientHello msg_type used by later
      * handshake messages.
      */
@@ -80,7 +82,6 @@ int s2n_sslv2_record_header_parse(
      */
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     POSIX_GUARD(s2n_stuffer_read_bytes(header_in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-
     *client_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
 
     POSIX_GUARD(s2n_stuffer_reread(header_in));
