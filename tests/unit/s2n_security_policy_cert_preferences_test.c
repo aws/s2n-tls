@@ -151,6 +151,26 @@ int main(int argc, char **argv)
         };
     };
 
+    /* s2n_connection_set_cipher_preferences */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
+
+        /* when certificate preferences apply locally and the connection contains
+         * an invalid config then s2n_connection_set_cipher_preferences fails
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        }
+    };
+
     END_TEST();
     return S2N_SUCCESS;
 }
