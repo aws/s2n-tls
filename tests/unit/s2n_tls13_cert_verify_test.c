@@ -68,7 +68,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
-
         s2n_pkey_type pkey_type = { 0 };
 
         struct s2n_connection *verifying_conn = NULL, *sending_conn = NULL;
@@ -300,7 +299,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_FAILURE(s2n_tls13_cert_read_and_verify_signature(verifying_conn,
                 verifying_conn->handshake_params.server_cert_sig_scheme));
 
-        /* send with mismatched signature algs */
+        /* send and receive with mismatched signature algs */
         verifying_conn->handshake_params.client_cert_sig_scheme = &test_scheme;
         test_scheme.hash_alg = S2N_HASH_SHA256;
         test_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
