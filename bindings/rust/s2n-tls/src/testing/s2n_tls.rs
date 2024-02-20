@@ -784,4 +784,108 @@ mod tests {
             establish_connection(config_with_system_certs);
         });
     }
+
+    #[test]
+    fn peer_chain() -> Result<(), Error> {
+        use crate::enums::ClientAuthType;
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_auth_type(ClientAuthType::Optional)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client);
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        for conn in [server, client] {
+            let chain = conn.peer_cert_chain()?;
+            assert_eq!(chain.len(), 1);
+            for cert in chain.iter() {
+                let cert = cert?;
+                let cert = cert.der()?;
+                assert!(!cert.is_empty());
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn selected_cert() -> Result<(), Error> {
+        use crate::enums::ClientAuthType;
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_auth_type(ClientAuthType::Required)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        // None before handshake...
+        assert!(server.connection.selected_cert().is_none());
+        assert!(client.connection.selected_cert().is_none());
+
+        let pair = Pair::new(server, client);
+
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        for conn in [&server, &client] {
+            let chain = conn.selected_cert().unwrap();
+            assert_eq!(chain.len(), 1);
+            for cert in chain.iter() {
+                let cert = cert?;
+                let cert = cert.der()?;
+                assert!(!cert.is_empty());
+            }
+        }
+
+        // Same config is used for both and we are doing mTLS, so both should select the same
+        // certificate.
+        assert_eq!(
+            server
+                .selected_cert()
+                .unwrap()
+                .iter()
+                .next()
+                .unwrap()?
+                .der()?,
+            client
+                .selected_cert()
+                .unwrap()
+                .iter()
+                .next()
+                .unwrap()?
+                .der()?
+        );
+
+        Ok(())
+    }
 }
