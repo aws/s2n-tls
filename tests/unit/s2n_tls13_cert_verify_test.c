@@ -301,24 +301,16 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_FAILURE(s2n_tls13_cert_read_and_verify_signature(verifying_conn,
                 verifying_conn->handshake_params.server_cert_sig_scheme));
 
-        /* send and receive with mismatched signature algs */
+        /* send with mismatched signature algs */
         verifying_conn->handshake_params.client_cert_sig_scheme = &test_scheme;
         test_scheme.hash_alg = S2N_HASH_SHA256;
-        test_scheme.sig_alg = test_case->sig_scheme->sig_alg;
-        /* 0xFFFF is an invalid iana value */
+        test_scheme.sig_alg = S2N_SIGNATURE_RSA;
         test_scheme.iana_value = 0xFFFF;
 
         EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
 
-        /* the iana value is not checked when writing the verify message */
-        EXPECT_SUCCESS(s2n_tls13_cert_verify_send(verifying_conn));
-
-        EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
-        EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
-
-        /* the invalid iana value should result in a failure */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_INVALID_SIGNATURE_SCHEME);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_send(verifying_conn), S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
 
         /* Clean up */
         if (verifying_conn->mode == S2N_CLIENT) {
