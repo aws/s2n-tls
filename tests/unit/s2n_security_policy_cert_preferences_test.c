@@ -128,11 +128,15 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
         };
 
-        /* an invalid root signature is ignored */
+        /* an invalid root signature causes a failure */
         {
+            struct s2n_cert_info valid_root = root.info;
             root.info.signature_nid = invalid_sig_nid;
             root.info.signature_digest_nid = invalid_hash_nide;
-            EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain), 
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            /* restore root values */
+            root.info = valid_root;
         };
 
         /* an invalid intermediate causes a failure */
@@ -155,6 +159,20 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
+
+        struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+        rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+
+        /* s2n_connection_set_cipher_preferences looks up the security policy from the security_policy_selection table
+         * but none of our current security policies apply certificate preferences locally. So instead we rewrite the
+         * rfc9151 policy from the table to apply cert preference locally. */
+        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+            if (strcasecmp("rfc9151", security_policy_selection[i].version) == 0) {
+                security_policy_selection[i].security_policy = &rfc9151_applied_locally;
+                break;
+            }
+        }
+        /* modify*/
 
         /* when certificate preferences apply locally and the connection contains
          * an invalid config then s2n_connection_set_cipher_preferences fails

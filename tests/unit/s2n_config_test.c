@@ -274,7 +274,9 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
             EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "rfc9151"));
+            struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+            rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+            config->security_policy = &rfc9151_applied_locally;
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
@@ -1112,6 +1114,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa", "p384", "sha384"));
 
+        struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+        rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+
         /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
          * so ecdsa_p384_sha256 is invalid and ecdsa_p384_sha384 is valid */
 
@@ -1151,7 +1156,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(domain_certs_count, 0);
 
             /* certs in default_certs_by_type are validated */
-            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
+            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &rfc9151_applied_locally),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 
@@ -1164,7 +1169,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
 
             /* certs in domain_map are validated */
-            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151),
+            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &rfc9151_applied_locally),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
     };

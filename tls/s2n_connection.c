@@ -283,10 +283,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         return 0;
     }
 
-    const struct s2n_security_policy *security_policy = NULL;
-    if (conn->security_policy_override != NULL) {
-        security_policy = conn->security_policy_override;
-    } else {
+    const struct s2n_security_policy *security_policy = conn->security_policy_override;
+    if (!security_policy) {
         security_policy = config->security_policy;
     }
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));

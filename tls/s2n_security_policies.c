@@ -980,7 +980,6 @@ const struct s2n_security_policy security_policy_rfc9151 = {
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_rfc9151,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_rfc9151,
-    .certificate_preferences_apply_locally = true,
     .ecc_preferences = &s2n_ecc_preferences_20210816,
 };
 
@@ -1500,10 +1499,7 @@ S2N_RESULT s2n_security_policy_validate_certificate_chain(
 
     struct s2n_cert *current = cert_key_pair->cert_chain->head;
     while (current != NULL) {
-        if (!current->info.self_signed) {
-            RESULT_GUARD(
-                    s2n_security_policy_validate_cert_signature(security_policy, &current->info));
-        }
+        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &current->info));
         current = current->next;
     }
     return S2N_RESULT_OK;
