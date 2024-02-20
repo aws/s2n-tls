@@ -568,35 +568,59 @@ static S2N_RESULT s2n_x509_validator_set_no_check_time_flag(struct s2n_x509_vali
     return S2N_RESULT_OK;
 }
 
-int s2n_disable_time_validation_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
+bool s2n_ossl_is_cert_time_validation_error(X509_STORE_CTX *ctx)
 {
     int err = X509_STORE_CTX_get_error(ctx);
     switch (err) {
         case X509_V_ERR_CERT_NOT_YET_VALID:
         case X509_V_ERR_CERT_HAS_EXPIRED:
-            return OSSL_VERIFY_CALLBACK_OK;
+            return true;
         default:
-            break;
+            return false;
     }
-
-    return default_ossl_ret;
 }
 
+bool s2n_ossl_is_crl_time_validation_error(X509_STORE_CTX *ctx)
+{
+    int err = X509_STORE_CTX_get_error(ctx);
+    switch (err) {
+        case X509_V_ERR_CRL_NOT_YET_VALID:
+        case X509_V_ERR_CRL_HAS_EXPIRED:
+        case X509_V_ERR_ERROR_IN_CRL_LAST_UPDATE_FIELD:
+        case X509_V_ERR_ERROR_IN_CRL_NEXT_UPDATE_FIELD:
+            return true;
+        default:
+            return false;
+    }
+}
+
+/* Setting an X509_STORE verify callback is generally not recommended with AWS-LC:
+ * https://github.com/aws/aws-lc/blob/aa90e509f2e940916fbe9fdd469a4c90c51824f6/include/openssl/x509.h#L2980-L2990
+ *
+ * Functionality should be implemented using the verify callback only when no alternative configuration for
+ * X509_STORE_CTX exists. Additionally, implementations should aim for minimal API usage to lessen the risk of breaking
+ * libcrypto changes.
+ */
 int s2n_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
 {
-    void *conn_parameter = X509_STORE_CTX_get_app_data(ctx);
-    if (conn_parameter == NULL) {
+    const struct s2n_connection *conn = (struct s2n_connection *) X509_STORE_CTX_get_app_data(ctx);
+    if (conn == NULL) {
         /* error, fail closed */
         return OSSL_VERIFY_CALLBACK_ERROR;
     }
-    const struct s2n_connection *conn = (struct s2n_connection *) conn_parameter;
 
-    /* If any callback returns OK, then return OK */
-    if ((conn->config->disable_x509_time_validation && !s2n_libcrypto_supports_flag_no_check_time())
-            && s2n_disable_time_validation_ossl_verify_callback(default_ossl_ret, ctx) == OSSL_VERIFY_CALLBACK_OK) {
+    /* When x509 time validation is disabled and the libcrypto doesn't support configuration to ignore time validation 
+     * errors, then we have to manually ignore time validation errors in the verify callback .
+     */
+    bool should_ignore_time_validation_error = conn->config->disable_x509_time_validation 
+            && !s2n_libcrypto_supports_flag_no_check_time();
+    if (should_ignore_time_validation_error && s2n_ossl_is_cert_time_validation_error(ctx)) {
         return OSSL_VERIFY_CALLBACK_OK;
     }
-    if (conn->config->crl_lookup_cb && s2n_crl_ossl_verify_callback(default_ossl_ret, ctx) == OSSL_VERIFY_CALLBACK_OK) {
+    /* When CRL validation is enabled, we ignore openssl errors about CRL time validity because customers are expected 
+     * to use s2n-tls CRL apis to validate those qualities instead.
+     */
+    if (conn->config->crl_lookup_cb && s2n_ossl_is_crl_time_validation_error(ctx)) {
         return OSSL_VERIFY_CALLBACK_OK;
     }
     return default_ossl_ret;
@@ -632,16 +656,11 @@ static S2N_RESULT s2n_x509_validator_verify_cert_chain(struct s2n_x509_validator
      * only called if time validation is enabled.
      */
     if (conn->config->disable_x509_time_validation) {
-        /* Setting an X509_STORE verify callback is not recommended with AWS-LC:
-         * https://github.com/aws/aws-lc/blob/aa90e509f2e940916fbe9fdd469a4c90c51824f6/include/openssl/x509.h#L2980-L2990
-         *
-         * If the libcrypto supports the ability to disable time validation with an X509_VERIFY_PARAM
+        /* If the libcrypto supports the ability to disable time validation with an X509_VERIFY_PARAM
          * NO_CHECK_TIME flag, this method is preferred.
          *
          * However, older versions of AWS-LC and OpenSSL 1.0.2 do not support this flag. In this case,
-         * an X509_STORE verify callback is used. This is acceptable in older versions of AWS-LC
-         * because the versions are fixed, and updates to AWS-LC will not break the callback
-         * implementation.
+         * an X509_STORE verify callback is used.
          */
         if (s2n_libcrypto_supports_flag_no_check_time()) {
             RESULT_GUARD(s2n_x509_validator_set_no_check_time_flag(validator));
