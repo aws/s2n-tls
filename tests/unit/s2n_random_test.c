@@ -798,6 +798,9 @@ static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
     /* Calling RAND_bytes will set a global random method */
     unsigned char rndbytes[16] = { 0 };
     EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
+    const RAND_METHOD *rand_method = RAND_get_rand_method();
+    EXPECT_NOT_NULL(rand_method);
+    EXPECT_NOT_EQUAL(rand_method->bytes, s2n_openssl_compat_rand);
 
     EXPECT_SUCCESS(s2n_init());
 
@@ -805,6 +808,10 @@ static int s2n_random_rand_bytes_before_init(struct random_test_case *test_case)
     const RAND_METHOD *custom_rand_method = RAND_get_rand_method();
     EXPECT_NOT_NULL(custom_rand_method);
     EXPECT_EQUAL(custom_rand_method->bytes, s2n_openssl_compat_rand);
+
+    /* RAND_bytes is still successful */
+    EXPECT_EQUAL(RAND_bytes(rndbytes, sizeof(rndbytes)), 1);
+
 #endif
     return S2N_SUCCESS;
 }
