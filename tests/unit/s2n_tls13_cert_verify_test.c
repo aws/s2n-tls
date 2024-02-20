@@ -50,7 +50,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20200207"));
 
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = s2n_cert_chain_and_key_new(), 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = s2n_cert_chain_and_key_new(),
             s2n_cert_chain_and_key_ptr_free);
     EXPECT_NOT_NULL(cert_chain);
 
