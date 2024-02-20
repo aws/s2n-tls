@@ -22,6 +22,9 @@
 
 #define S2N_TLS_CONTENT_TYPE_LENGTH 1
 
+#define S2N_TLS_SSLV2_HEADER_FLAG        (0x80)
+#define S2N_TLS_SSLV2_HEADER_FLAG_UINT16 (S2N_TLS_SSLV2_HEADER_FLAG << 8)
+
 /* All versions of TLS define the record header the same:
  * ContentType + ProtocolVersion + length
  */
