@@ -568,7 +568,7 @@ static S2N_RESULT s2n_x509_validator_set_no_check_time_flag(struct s2n_x509_vali
     return S2N_RESULT_OK;
 }
 
-bool s2n_ossl_is_cert_time_validation_error(X509_STORE_CTX *ctx)
+bool s2n_x509_validator_is_ossl_cert_time_validation_error(X509_STORE_CTX *ctx)
 {
     int err = X509_STORE_CTX_get_error(ctx);
     switch (err) {
@@ -580,7 +580,7 @@ bool s2n_ossl_is_cert_time_validation_error(X509_STORE_CTX *ctx)
     }
 }
 
-bool s2n_ossl_is_crl_time_validation_error(X509_STORE_CTX *ctx)
+bool s2n_x509_validator_is_ossl_crl_time_validation_error(X509_STORE_CTX *ctx)
 {
     int err = X509_STORE_CTX_get_error(ctx);
     switch (err) {
@@ -604,7 +604,7 @@ bool s2n_ossl_is_crl_time_validation_error(X509_STORE_CTX *ctx)
 int s2n_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
 {
     const struct s2n_connection *conn = (struct s2n_connection *) X509_STORE_CTX_get_app_data(ctx);
-    if (conn == NULL) {
+    if (conn == NULL || ctx == NULL) {
         /* error, fail closed */
         return OSSL_VERIFY_CALLBACK_ERROR;
     }
@@ -614,13 +614,13 @@ int s2n_ossl_verify_callback(int default_ossl_ret, X509_STORE_CTX *ctx)
      */
     bool should_ignore_time_validation_error = conn->config->disable_x509_time_validation 
             && !s2n_libcrypto_supports_flag_no_check_time();
-    if (should_ignore_time_validation_error && s2n_ossl_is_cert_time_validation_error(ctx)) {
+    if (should_ignore_time_validation_error && s2n_x509_validator_is_ossl_cert_time_validation_error(ctx)) {
         return OSSL_VERIFY_CALLBACK_OK;
     }
     /* When CRL validation is enabled, we ignore openssl errors about CRL time validity because customers are expected 
      * to use s2n-tls CRL apis to validate those qualities instead.
      */
-    if (conn->config->crl_lookup_cb && s2n_ossl_is_crl_time_validation_error(ctx)) {
+    if (conn->config->crl_lookup_cb && s2n_x509_validator_is_ossl_crl_time_validation_error(ctx)) {
         return OSSL_VERIFY_CALLBACK_OK;
     }
     return default_ossl_ret;
