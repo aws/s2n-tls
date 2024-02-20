@@ -49,6 +49,13 @@ static bool s2n_shutdown_expect_close_notify(struct s2n_connection *conn)
         return false;
     }
 
+    /* Blinded errors indicate a fatal error handling inputs.
+     * We should not attempt to handle further inputs.
+     */
+    if (conn->delay) {
+        return false;
+    }
+
     return true;
 }
 
@@ -121,16 +128,12 @@ int s2n_shutdown(struct s2n_connection *conn, s2n_blocked_status *blocked)
     int isSSLv2 = false;
     *blocked = S2N_BLOCKED_ON_READ;
     while (!s2n_atomic_flag_test(&conn->close_notify_received)) {
-        /* Reset IO. Make sure we do this before attempting to read a record in
-         * case a previous failed read left IO in a bad state.
-         */
-        POSIX_GUARD_RESULT(s2n_record_wipe(conn));
-
         POSIX_GUARD(s2n_read_full_record(conn, &record_type, &isSSLv2));
         POSIX_ENSURE(!isSSLv2, S2N_ERR_BAD_MESSAGE);
         if (record_type == TLS_ALERT) {
             POSIX_GUARD(s2n_process_alert_fragment(conn));
         }
+        POSIX_GUARD_RESULT(s2n_record_wipe(conn));
     }
 
     *blocked = S2N_NOT_BLOCKED;

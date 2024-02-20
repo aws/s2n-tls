@@ -1626,6 +1626,26 @@ S2N_API extern int s2n_client_hello_get_supported_groups(struct s2n_client_hello
         uint16_t groups_count_max, uint16_t *groups_count);
 
 /**
+ * Gets the length of the first server name in a Client Hello.
+ *
+ * @param ch A pointer to the ClientHello
+ * @param length A pointer which will be populated with the length of the server name
+ */
+S2N_API extern int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_t *length);
+
+/**
+ * Gets the first server name in a Client Hello.
+ *
+ * Use `s2n_client_hello_get_server_name_length()` to get the amount of memory needed for the buffer.
+ *
+ * @param ch A pointer to the ClientHello
+ * @param server_name A pointer to the memory which will be populated with the server name
+ * @param length The maximum amount of data that can be written to `server_name`
+ * @param out_length A pointer which will be populated with the size of the server name
+ */
+S2N_API extern int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length);
+
+/**
  * Sets the file descriptor for a s2n connection.
  *
  * @warning If the read end of the pipe is closed unexpectedly, writing to the pipe will raise a SIGPIPE signal.
