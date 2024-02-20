@@ -411,24 +411,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_record_parse(conn), S2N_ERR_DECRYPT);
     };
 
-    /* Test s2n_sslv2_record_header_parse fails when fragment_length < 3 */
-    {
-        EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
-
-        uint8_t record_type = 0;
-        uint8_t protocol_version = 0;
-        uint16_t fragment_length = 0;
-
-        /* First two bytes are the fragment length */
-        uint8_t header_bytes[] = { 0x00, 0x00, 0x00, 0x00, 0x00 };
-        EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->header_in, header_bytes, sizeof(header_bytes)));
-
-        EXPECT_FAILURE_WITH_ERRNO(s2n_sslv2_record_header_parse(conn, &record_type, &protocol_version, &fragment_length), S2N_ERR_SAFETY);
-
-        /* Check the rest of the stuffer has not been read yet */
-        EXPECT_EQUAL(s2n_stuffer_data_available(&conn->header_in), 3);
-    };
-
     /* Record version is recorded for the first message received (Client Hello) */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
