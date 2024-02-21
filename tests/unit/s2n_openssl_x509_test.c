@@ -87,6 +87,8 @@ int main(int argc, char **argv)
         const char *digest;
         int expected_signature_nid;
         int expected_digest_nid;
+        int expected_public_key_nid;
+        int expected_public_key_bits;
     } test_cases[] = {
         {
                 .key_type = "ec",
@@ -95,6 +97,8 @@ int main(int argc, char **argv)
                 .digest = "sha256",
                 .expected_signature_nid = NID_ecdsa_with_SHA256,
                 .expected_digest_nid = NID_sha256,
+                .expected_public_key_nid = NID_secp384r1,
+                .expected_public_key_bits = 384,
         },
         {
                 .key_type = "ec",
@@ -103,6 +107,8 @@ int main(int argc, char **argv)
                 .digest = "sha384",
                 .expected_signature_nid = NID_ecdsa_with_SHA384,
                 .expected_digest_nid = NID_sha384,
+                .expected_public_key_nid = NID_X9_62_prime256v1,
+                .expected_public_key_bits = 256,
         },
         {
                 .key_type = "ec",
@@ -111,6 +117,8 @@ int main(int argc, char **argv)
                 .digest = "sha512",
                 .expected_signature_nid = NID_ecdsa_with_SHA512,
                 .expected_digest_nid = NID_sha512,
+                .expected_public_key_nid = NID_secp521r1,
+                .expected_public_key_bits = 521,
         },
         {
                 .key_type = "rsae",
@@ -119,6 +127,8 @@ int main(int argc, char **argv)
                 .digest = "sha1",
                 .expected_signature_nid = NID_sha1WithRSAEncryption,
                 .expected_digest_nid = NID_sha1,
+                .expected_public_key_nid = NID_rsaEncryption,
+                .expected_public_key_bits = 2048,
         },
         {
                 .key_type = "rsae",
@@ -127,6 +137,8 @@ int main(int argc, char **argv)
                 .digest = "sha224",
                 .expected_signature_nid = NID_sha224WithRSAEncryption,
                 .expected_digest_nid = NID_sha224,
+                .expected_public_key_nid = NID_rsaEncryption,
+                .expected_public_key_bits = 2048,
         },
         {
                 .key_type = "rsae",
@@ -135,6 +147,8 @@ int main(int argc, char **argv)
                 .digest = "sha384",
                 .expected_signature_nid = NID_sha384WithRSAEncryption,
                 .expected_digest_nid = NID_sha384,
+                .expected_public_key_nid = NID_rsaEncryption,
+                .expected_public_key_bits = 3072,
         },
 /* openssl 1.0.* does not support rsapss signatures */
 #if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
@@ -145,6 +159,8 @@ int main(int argc, char **argv)
                 .digest = "sha384",
                 .expected_signature_nid = NID_rsassaPss,
                 .expected_digest_nid = NID_undef,
+                .expected_public_key_nid = NID_rsaEncryption,
+                .expected_public_key_bits = 4096,
         },
         {
                 .key_type = "rsapss",
@@ -153,6 +169,8 @@ int main(int argc, char **argv)
                 .digest = "sha256",
                 .expected_signature_nid = NID_rsassaPss,
                 .expected_digest_nid = NID_undef,
+                .expected_public_key_nid = NID_rsassaPss,
+                .expected_public_key_bits = 2048,
         },
 #endif
     };
@@ -192,15 +210,16 @@ int main(int argc, char **argv)
         /* assert that cert info matches expected values */
         EXPECT_EQUAL(leaf_info.signature_nid, test_cases[i].expected_signature_nid);
         EXPECT_EQUAL(leaf_info.signature_digest_nid, test_cases[i].expected_digest_nid);
+        EXPECT_EQUAL(leaf_info.public_key_nid, test_cases[i].expected_public_key_nid);
+        EXPECT_EQUAL(leaf_info.public_key_bits, test_cases[i].expected_public_key_bits);
         EXPECT_EQUAL(leaf_info.self_signed, false);
 
         /* leaf and intermediate should have the same infos */
         EXPECT_EQUAL(memcmp(&leaf_info, &intermediate_info, sizeof(struct s2n_cert_info)), 0);
 
-        /* root should be self-signed */
-        EXPECT_EQUAL(root_info.signature_nid, test_cases[i].expected_signature_nid);
-        EXPECT_EQUAL(root_info.signature_digest_nid, test_cases[i].expected_digest_nid);
-        EXPECT_EQUAL(root_info.self_signed, true);
+        /* root should be self-signed, but otherwise equal */
+        leaf_info.self_signed = true;
+        EXPECT_EQUAL(memcmp(&leaf_info, &root_info, sizeof(struct s2n_cert_info)), 0);
     }
 
     END_TEST();
