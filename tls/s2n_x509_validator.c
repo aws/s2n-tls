@@ -471,6 +471,10 @@ static S2N_RESULT s2n_x509_validator_check_root_cert(struct s2n_x509_validator *
     const struct s2n_security_policy *sp = NULL;
     RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &sp));
 
+    if (!sp->certificate_preferences_apply_locally) {
+        return S2N_RESULT_OK;
+    }
+
     RESULT_ENSURE_REF(validator->store_ctx);
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain = X509_STORE_CTX_get1_chain(validator->store_ctx),
             s2n_openssl_x509_stack_pop_free);
@@ -484,9 +488,7 @@ static S2N_RESULT s2n_x509_validator_check_root_cert(struct s2n_x509_validator *
     struct s2n_cert_info info = { 0 };
     RESULT_GUARD(s2n_openssl_x509_get_cert_info(root, &info));
 
-    if (sp->certificate_preferences_apply_locally) {
-        RESULT_ENSURE_OK(s2n_security_policy_validate_cert_key(sp, &info), S2N_ERR_CERT_UNTRUSTED);
-    }
+    RESULT_ENSURE_OK(s2n_security_policy_validate_cert_key(sp, &info), S2N_ERR_CERT_UNTRUSTED);
 
     return S2N_RESULT_OK;
 }

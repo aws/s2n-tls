@@ -128,5 +128,8 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
         info->public_key_nid = EVP_PKEY_id(pubkey);
     }
 
+    RESULT_ENSURE(info->public_key_nid > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+    RESULT_ENSURE(info->public_key_nid < UINT16_MAX, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+
     return S2N_RESULT_OK;
 }

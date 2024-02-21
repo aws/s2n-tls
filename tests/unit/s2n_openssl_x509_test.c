@@ -207,19 +207,21 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_openssl_x509_get_cert_info(intermediate, &intermediate_info));
         EXPECT_OK(s2n_openssl_x509_get_cert_info(root, &root_info));
 
-        /* assert that cert info matches expected values */
-        EXPECT_EQUAL(leaf_info.signature_nid, test_cases[i].expected_signature_nid);
-        EXPECT_EQUAL(leaf_info.signature_digest_nid, test_cases[i].expected_digest_nid);
-        EXPECT_EQUAL(leaf_info.public_key_nid, test_cases[i].expected_public_key_nid);
-        EXPECT_EQUAL(leaf_info.public_key_bits, test_cases[i].expected_public_key_bits);
-        EXPECT_EQUAL(leaf_info.self_signed, false);
+        struct s2n_cert_info expected_info = {
+            .signature_nid = test_cases[i].expected_signature_nid,
+            .signature_digest_nid = test_cases[i].expected_digest_nid,
+            .public_key_nid = test_cases[i].expected_public_key_nid,
+            .public_key_bits = test_cases[i].expected_public_key_bits,
+            .self_signed = false,
+        };
 
-        /* leaf and intermediate should have the same infos */
-        EXPECT_EQUAL(memcmp(&leaf_info, &intermediate_info, sizeof(struct s2n_cert_info)), 0);
+        /* assert that cert info matches expected values */
+        EXPECT_EQUAL(memcmp(&leaf_info, &expected_info, sizeof(struct s2n_cert_info)), 0);
+        EXPECT_EQUAL(memcmp(&intermediate_info, &expected_info, sizeof(struct s2n_cert_info)), 0);
 
         /* root should be self-signed, but otherwise equal */
-        leaf_info.self_signed = true;
-        EXPECT_EQUAL(memcmp(&leaf_info, &root_info, sizeof(struct s2n_cert_info)), 0);
+        expected_info.self_signed = true;
+        EXPECT_EQUAL(memcmp(&root_info, &expected_info, sizeof(struct s2n_cert_info)), 0);
     }
 
     END_TEST();

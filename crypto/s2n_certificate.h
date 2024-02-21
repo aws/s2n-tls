@@ -38,7 +38,6 @@ struct s2n_cert_info {
 
 struct s2n_cert {
     s2n_pkey_type pkey_type;
-    uint16_t ec_curve_nid;
     s2n_cert_public_key public_key;
     struct s2n_cert_info info;
     struct s2n_blob raw;
