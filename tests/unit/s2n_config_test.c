@@ -29,8 +29,12 @@
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
 #include "unstable/npn.h"
+#include "utils/s2n_map.h"
 
 #define S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT 30
+
+/* forward declaration */
+int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
@@ -258,6 +262,23 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
             EXPECT_SUCCESS(s2n_config_free(config));
+        };
+
+        /* Test that security policy validation is enforced on the config */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
+            struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+            rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+            config->security_policy = &rfc9151_applied_locally;
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
     };
 
@@ -1086,5 +1107,71 @@ int main(int argc, char **argv)
         }
     }
 
+    /* Test s2n_config_validate_loaded_certificates */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *valid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&valid_cert, "ec", "ecdsa", "p384", "sha384"));
+
+        struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+        rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+
+        /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
+         * so ecdsa_p384_sha256 is invalid and ecdsa_p384_sha384 is valid */
+
+        /* valid certs are accepted */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, valid_cert));
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151));
+        };
+
+        /* when cert preferences don't apply locally, invalid certs are accepted */
+        {
+            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+            non_local_rfc9151.certificate_preferences_apply_locally = false;
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &non_local_rfc9151));
+        };
+
+        /* Certs in an s2n_config are stored in default_certs_by_type, domain_name_to_cert_map, or
+         * both. We want to ensure that the s2n_config_validate_loaded_certificates method will
+         * validate certs in both locations.
+         */
+
+        /* certs in default_certs_by_type are validated */
+        {
+            /* s2n_config_set_cert_chain_and_key_defaults populates default_certs_by_type 
+             * but doesn't populate domain_name_to_cert_map 
+             */
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(config, &invalid_cert, 1));
+
+            /* domain certs is empty */
+            uint32_t domain_certs_count = 0;
+            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &domain_certs_count));
+            EXPECT_EQUAL(domain_certs_count, 0);
+
+            /* certs in default_certs_by_type are validated */
+            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &rfc9151_applied_locally),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        };
+
+        /* certs in the domain map are validated */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_build_domain_name_to_cert_map(config, invalid_cert));
+
+            /* default_certs_by_type is empty. */
+            EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
+
+            /* certs in domain_map are validated */
+            EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &rfc9151_applied_locally),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        };
+    };
     END_TEST();
 }

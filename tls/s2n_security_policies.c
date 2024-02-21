@@ -1213,6 +1213,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
+    POSIX_ENSURE_REF(conn);
     const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
     POSIX_ENSURE_REF(security_policy);
@@ -1223,6 +1224,10 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+    /* If the certificates loaded in the config are incompatible with the security 
+     * policy's certificate preferences, return an error. */
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
 
     conn->security_policy_override = security_policy;
     return 0;
@@ -1465,16 +1470,37 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
 {
     RESULT_ENSURE_REF(info);
     RESULT_ENSURE_REF(security_policy);
-    const struct s2n_signature_preferences *sig_preferences =
-            security_policy->certificate_signature_preferences;
+    const struct s2n_signature_preferences *sig_preferences = security_policy->certificate_signature_preferences;
 
-    RESULT_ENSURE_REF(sig_preferences);
-
-    for (size_t i = 0; i < sig_preferences->count; i++) {
-        if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
-            return S2N_RESULT_OK;
+    if (sig_preferences != NULL) {
+        for (size_t i = 0; i < sig_preferences->count; i++) {
+            if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
+                return S2N_RESULT_OK;
+            }
         }
+
+        RESULT_BAIL(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
     }
 
-    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_security_policy_validate_certificate_chain(
+        const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_chain_and_key *cert_key_pair)
+{
+    RESULT_ENSURE_REF(security_policy);
+    RESULT_ENSURE_REF(cert_key_pair);
+    RESULT_ENSURE_REF(cert_key_pair->cert_chain);
+
+    if (!security_policy->certificate_preferences_apply_locally) {
+        return S2N_RESULT_OK;
+    }
+
+    struct s2n_cert *current = cert_key_pair->cert_chain->head;
+    while (current != NULL) {
+        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &current->info));
+        current = current->next;
+    }
+    return S2N_RESULT_OK;
 }

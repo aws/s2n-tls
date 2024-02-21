@@ -14,6 +14,7 @@
  */
 
 #include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
 
@@ -33,6 +34,7 @@ int main(int argc, char **argv)
 
     const struct s2n_security_policy test_sp = {
         .certificate_signature_preferences = &test_certificate_signature_preferences,
+        .certificate_preferences_apply_locally = true,
     };
 
     const struct s2n_signature_scheme *const pss_sig_scheme_list[] = {
@@ -74,9 +76,8 @@ int main(int argc, char **argv)
                 .signature_nid = NID_rsassaPss,
             };
 
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_security_policy_validate_cert_signature(&test_sp, &info),
-                    S2N_ERR_CERT_UNTRUSTED);
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_cert_signature(&test_sp, &info),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 
         /* Certificates signed with an RSA PSS signature can be validated */
@@ -89,6 +90,112 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_security_policy_validate_cert_signature(&test_pss_sp, &info));
         };
+    };
+
+    /* s2n_security_policy_validate_certificate_chain */
+    {
+        int valid_sig_nid = NID_ecdsa_with_SHA256;
+        int valid_hash_nid = NID_sha256;
+
+        int invalid_sig_nid = NID_sha256WithRSAEncryption;
+        int invalid_hash_nide = NID_sha256;
+
+        struct s2n_cert_info valid = {
+            .self_signed = false,
+            .signature_nid = valid_sig_nid,
+            .signature_digest_nid = valid_hash_nid,
+        };
+        struct s2n_cert root = { 0 };
+        root.info = valid;
+        root.info.self_signed = true;
+
+        struct s2n_cert intermediate = { 0 };
+        intermediate.info = valid;
+        intermediate.next = &root;
+
+        struct s2n_cert leaf = { 0 };
+        leaf.info = valid;
+        leaf.next = &intermediate;
+
+        struct s2n_cert_chain cert_chain = { 0 };
+        cert_chain.head = &leaf;
+
+        struct s2n_cert_chain_and_key chain = { 0 };
+        chain.cert_chain = &cert_chain;
+
+        /* valid chain */
+        {
+            EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
+        };
+
+        /* an invalid root signature causes a failure */
+        {
+            struct s2n_cert_info valid_root = root.info;
+            root.info.signature_nid = invalid_sig_nid;
+            root.info.signature_digest_nid = invalid_hash_nide;
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            /* restore root values */
+            root.info = valid_root;
+        };
+
+        /* an invalid intermediate causes a failure */
+        {
+            intermediate.info.signature_nid = invalid_sig_nid;
+            intermediate.info.signature_digest_nid = invalid_hash_nide;
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        };
+
+        /* when certificate_preferences_apply_locally is false then validation succeeds */
+        {
+            struct s2n_security_policy test_sp_no_local = test_sp;
+            test_sp_no_local.certificate_preferences_apply_locally = false;
+            EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp_no_local, &chain));
+        };
+    };
+
+    /* s2n_connection_set_cipher_preferences */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
+
+        struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+        rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+
+        /* s2n_connection_set_cipher_preferences looks up the security policy from the security_policy_selection table
+         * but none of our current security policies apply certificate preferences locally. So instead we rewrite the
+         * rfc9151 policy from the table to apply cert preference locally. */
+        struct s2n_security_policy_selection *rfc9151_selection = NULL;
+        const struct s2n_security_policy *original_rfc9151 = NULL;
+        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+            if (strcasecmp("rfc9151", security_policy_selection[i].version) == 0) {
+                rfc9151_selection = &security_policy_selection[i];
+                break;
+            }
+        }
+        if (rfc9151_selection == NULL) {
+            FAIL_MSG("unable to find expected security policy");
+        }
+        original_rfc9151 = rfc9151_selection->security_policy;
+        rfc9151_selection->security_policy = &rfc9151_applied_locally;
+
+        /* when certificate preferences apply locally and the connection contains
+         * an invalid config then s2n_connection_set_cipher_preferences fails
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        }
+
+        /* restore security_policy_selection */
+        rfc9151_selection->security_policy = original_rfc9151;
     };
 
     END_TEST();
