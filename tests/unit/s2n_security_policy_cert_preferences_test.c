@@ -181,14 +181,14 @@ int main(int argc, char **argv)
         struct s2n_cert_chain cert_chain = { 0 };
         struct s2n_cert_chain_and_key chain = { 0 };
 
-        /* a valid certificate chain passes validation */
-        {
-            EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
-            EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
-        };
-
         /* test that failures can be detected for any cert in the chain */
         for (size_t i = 0; i < CHAIN_LENGTH; i++) {
+            /* a valid certificate chain passes validation */
+            {
+                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+                EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
+            };
+
             /* an invalid signature causes a failure */
             {
                 EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
