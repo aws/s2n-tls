@@ -174,6 +174,9 @@ int main(int argc, char **argv)
                 break;
             }
         }
+        if (rfc9151_selection == NULL) {
+            FAIL_MSG("unable to find expected security policy");
+        }
         original_rfc9151 = rfc9151_selection->security_policy;
         rfc9151_selection->security_policy = &rfc9151_applied_locally;
 
