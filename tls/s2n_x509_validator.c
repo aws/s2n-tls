@@ -488,7 +488,7 @@ static S2N_RESULT s2n_x509_validator_check_root_cert(struct s2n_x509_validator *
     struct s2n_cert_info info = { 0 };
     RESULT_GUARD(s2n_openssl_x509_get_cert_info(root, &info));
 
-    RESULT_ENSURE_OK(s2n_security_policy_validate_cert_key(sp, &info), S2N_ERR_CERT_UNTRUSTED);
+    RESULT_ENSURE_OK(s2n_security_policy_validate_cert_key(sp, &info), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
     return S2N_RESULT_OK;
 }

@@ -177,20 +177,22 @@ int main(int argc, char **argv)
 
     /* s2n_security_policy_validate_certificate_chain() */
     {
-        struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
-        struct s2n_cert_chain cert_chain = { 0 };
-        struct s2n_cert_chain_and_key chain = { 0 };
+        /* a valid certificate chain passes validation */
+        {
+            struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
+            struct s2n_cert_chain cert_chain = { 0 };
+            struct s2n_cert_chain_and_key chain = { 0 };
+            EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+            EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
+        };
 
         /* test that failures can be detected for any cert in the chain */
         for (size_t i = 0; i < CHAIN_LENGTH; i++) {
-            /* a valid certificate chain passes validation */
-            {
-                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
-                EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
-            };
-
             /* an invalid signature causes a failure */
             {
+                struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
+                struct s2n_cert_chain cert_chain = { 0 };
+                struct s2n_cert_chain_and_key chain = { 0 };
                 EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
                 certs[i].info.signature_nid = invalid_sig_nid;
                 certs[i].info.signature_digest_nid = invalid_hash_nid;
@@ -200,6 +202,9 @@ int main(int argc, char **argv)
 
             /* an invalid key nid causes a failure */
             {
+                struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
+                struct s2n_cert_chain cert_chain = { 0 };
+                struct s2n_cert_chain_and_key chain = { 0 };
                 EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
                 certs[i].info.public_key_nid = invalid_key_nid;
                 EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
@@ -208,6 +213,9 @@ int main(int argc, char **argv)
 
             /* an invalid key size causes a failure */
             {
+                struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
+                struct s2n_cert_chain cert_chain = { 0 };
+                struct s2n_cert_chain_and_key chain = { 0 };
                 EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
                 certs[i].info.public_key_bits = invalid_key_size;
                 EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
@@ -216,10 +224,15 @@ int main(int argc, char **argv)
 
             /* when certificate_preferences_apply_locally is false then validation succeeds */
             {
+
+                struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
+                struct s2n_cert_chain cert_chain = { 0 };
+                struct s2n_cert_chain_and_key chain = { 0 };
+                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+
                 struct s2n_security_policy test_sp_no_local = test_sp;
                 test_sp_no_local.certificate_preferences_apply_locally = false;
 
-                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
                 certs[i].info.signature_nid = invalid_sig_nid;
                 certs[i].info.public_key_nid = invalid_key_nid;
                 EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp_no_local, &chain));

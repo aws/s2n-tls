@@ -52,11 +52,11 @@ extern const struct s2n_signature_scheme s2n_rsa_pkcs1_sha384;
 extern const struct s2n_signature_scheme s2n_rsa_pkcs1_sha512;
 
 /* TLS 1.2 Compatible ECDSA Schemes */
-const struct s2n_signature_scheme s2n_ecdsa_sha1;
-const struct s2n_signature_scheme s2n_ecdsa_sha224;
-const struct s2n_signature_scheme s2n_ecdsa_sha256;
-const struct s2n_signature_scheme s2n_ecdsa_sha384;
-const struct s2n_signature_scheme s2n_ecdsa_sha512;
+extern const struct s2n_signature_scheme s2n_ecdsa_sha1;
+extern const struct s2n_signature_scheme s2n_ecdsa_sha224;
+extern const struct s2n_signature_scheme s2n_ecdsa_sha256;
+extern const struct s2n_signature_scheme s2n_ecdsa_sha384;
+extern const struct s2n_signature_scheme s2n_ecdsa_sha512;
 
 /* TLS 1.3 Compatible ECDSA Schemes */
 extern const struct s2n_signature_scheme s2n_ecdsa_secp256r1_sha256;

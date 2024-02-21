@@ -2280,7 +2280,7 @@ int main(int argc, char **argv)
             s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
             EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
                                             &pkey_type, &public_key_out),
-                    S2N_ERR_CERT_UNTRUSTED);
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
             /* X509_verify_cert finished successfully */
             EXPECT_TRUE(validator.state == VALIDATED);
         };
