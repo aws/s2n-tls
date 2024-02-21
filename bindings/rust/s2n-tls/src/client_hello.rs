@@ -168,6 +168,27 @@ impl ClientHello {
         Ok(session_id)
     }
 
+    fn server_name(&self) -> Result<Vec<u8>, Error> {
+        let mut server_name_length = 0;
+        unsafe {
+            s2n_client_hello_get_server_name_length(self.deref_mut_ptr(), &mut server_name_length)
+                .into_result()?;
+        }
+
+        let mut server_name = vec![0; server_name_length as usize];
+        let mut out_length = 0;
+        unsafe {
+            s2n_client_hello_get_server_name(
+                self.deref_mut_ptr(),
+                server_name.as_mut_ptr(),
+                server_name_length,
+                &mut out_length,
+            )
+            .into_result()?;
+        }
+        Ok(server_name)
+    }
+
     fn raw_message(&self) -> Result<Vec<u8>, Error> {
         let message_length =
             unsafe { s2n_client_hello_get_raw_message_length(self.deref_mut_ptr()).into_result()? };

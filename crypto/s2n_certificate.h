@@ -24,6 +24,13 @@
 
 #define S2N_CERT_TYPE_COUNT S2N_PKEY_TYPE_SENTINEL
 
+struct s2n_cert_info {
+    int signature_nid;
+    /* This field is not populated for RSA_PSS signatures */
+    int signature_digest_nid;
+    bool self_signed;
+};
+
 struct s2n_cert {
     s2n_pkey_type pkey_type;
     uint16_t ec_curve_nid;

@@ -31,7 +31,6 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${BASE_S2N_DIR:=$(pwd)}"
 : "${TEST_DEPS_DIR:=$BASE_S2N_DIR/test-deps}"
 : "${PYTHON_INSTALL_DIR:=$TEST_DEPS_DIR/python}"
-: "${GNUTLS_INSTALL_DIR:=$TEST_DEPS_DIR/gnutls}"
 : "${GNUTLS37_INSTALL_DIR:=$TEST_DEPS_DIR/gnutls37}"
 : "${PRLIMIT_INSTALL_DIR:=$TEST_DEPS_DIR/prlimit}"
 : "${SAW_INSTALL_DIR:=$TEST_DEPS_DIR/saw}"
@@ -39,7 +38,6 @@ source codebuild/bin/s2n_set_build_preset.sh
 : "${LIBFUZZER_INSTALL_DIR:=$TEST_DEPS_DIR/libfuzzer}"
 : "${LATEST_CLANG_INSTALL_DIR:=$TEST_DEPS_DIR/clang}"
 : "${SCAN_BUILD_INSTALL_DIR:=$TEST_DEPS_DIR/scan-build}"
-: "${OPENSSL_0_9_8_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-0.9.8}"
 : "${OPENSSL_1_1_1_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.1.1}"
 : "${OPENSSL_3_0_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-3.0}"
 : "${OPENSSL_1_0_2_INSTALL_DIR:=$TEST_DEPS_DIR/openssl-1.0.2}"
@@ -91,7 +89,6 @@ export TESTS
 export BASE_S2N_DIR
 export TEST_DEPS_DIR
 export PYTHON_INSTALL_DIR
-export GNUTLS_INSTALL_DIR
 export GNUTLS37_INSTALL_DIR
 export PRLIMIT_INSTALL_DIR
 export SAW_INSTALL_DIR
@@ -99,7 +96,6 @@ export Z3_INSTALL_DIR
 export LIBFUZZER_INSTALL_DIR
 export LATEST_CLANG_INSTALL_DIR
 export SCAN_BUILD_INSTALL_DIR
-export OPENSSL_0_9_8_INSTALL_DIR
 export OPENSSL_1_1_1_INSTALL_DIR
 export OPENSSL_3_0_INSTALL_DIR
 export OPENSSL_1_0_2_INSTALL_DIR
@@ -163,7 +159,6 @@ export LIBFUZZER_ROOT=$LIBFUZZER_INSTALL_DIR
 #check if the path contains test dep X, if not and X exists, add to path
 path_overrides="$PYTHON_INSTALL_DIR/bin
 $OPENSSL_1_1_1_INSTALL_DIR/bin
-$GNUTLS_INSTALL_DIR/bin
 $SAW_INSTALL_DIR/bin
 $Z3_INSTALL_DIR/bin
 $SCAN_BUILD_INSTALL_DIR/bin

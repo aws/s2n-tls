@@ -112,10 +112,11 @@ where
         let result = match self.error.take() {
             Some(err) => Err(err),
             None => {
-                ready!(self.tls.with_io(ctx, |context| {
+                let handshake_poll = self.tls.with_io(ctx, |context| {
                     let conn = context.get_mut().as_mut();
                     conn.poll_negotiate().map(|r| r.map(|_| ()))
-                }))
+                });
+                ready!(handshake_poll)
             }
         };
         // If the result isn't a fatal error, return it immediately.

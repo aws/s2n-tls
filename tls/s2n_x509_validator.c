@@ -27,6 +27,7 @@
 #include "tls/s2n_config.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_crl.h"
+#include "tls/s2n_security_policies.h"
 #include "utils/s2n_result.h"
 #include "utils/s2n_rfc5952.h"
 #include "utils/s2n_safety.h"
@@ -399,6 +400,66 @@ S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_s
     return S2N_RESULT_OK;
 }
 
+/**
+* Validates that each certificate in a peer's cert chain contains only signature algorithms in a security policy's
+* certificate_signatures_preference list.
+*/
+S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn, X509 *cert)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(cert);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
+
+    /**
+     * We only restrict the signature algorithm on the certificates in the
+     * peer's certificate chain if the certificate_signature_preferences field
+     * is set in the security policy. This is contrary to the RFC, which
+     * specifies that the signatures in the "signature_algorithms" extension
+     * apply to signatures in the certificate chain in certain scenarios, so RFC
+     * compliance would imply validating that the certificate chain signature
+     * algorithm matches one of the algorithms specified in the
+     * "signature_algorithms" extension.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2
+     *= type=exception
+     *= reason=not implemented due to lack of utility
+     *# If the client provided a "signature_algorithms" extension, then all
+     *# certificates provided by the server MUST be signed by a
+     *# hash/signature algorithm pair that appears in that extension.
+     *
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
+     *= type=exception
+     *= reason=not implemented due to lack of utility
+     *# If no "signature_algorithms_cert" extension is present, then the
+     *# "signature_algorithms" extension also applies to signatures appearing in
+     *# certificates.
+     */
+    if (security_policy->certificate_signature_preferences == NULL) {
+        return S2N_RESULT_OK;
+    }
+
+    struct s2n_cert_info info = { 0 };
+    RESULT_GUARD(s2n_openssl_x509_get_cert_info(cert, &info));
+
+    if (info.self_signed) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Ensure that the certificate signature does not use SHA-1. While this check
+     * would ideally apply to all connections, we only enforce it when certificate
+     * preferences exist to stay backwards compatible.
+     */
+    if (conn->actual_protocol_version == S2N_TLS13) {
+        RESULT_ENSURE(info.signature_digest_nid != NID_sha1, S2N_ERR_CERT_UNTRUSTED);
+    }
+
+    RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &info));
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *validator, struct s2n_connection *conn,
         uint8_t *cert_chain_in, uint32_t cert_chain_len)
 {
@@ -428,8 +489,7 @@ static S2N_RESULT s2n_x509_validator_read_cert_chain(struct s2n_x509_validator *
         }
 
         if (!validator->skip_cert_validation) {
-            RESULT_ENSURE_OK(s2n_validate_certificate_signature(conn, cert),
-                    S2N_ERR_CERT_UNTRUSTED);
+            RESULT_GUARD(s2n_x509_validator_check_cert_preferences(conn, cert));
         }
 
         /* add the cert to the chain */
@@ -862,88 +922,6 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
             RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
     }
 #endif /* S2N_OCSP_STAPLING_SUPPORTED */
-}
-
-S2N_RESULT s2n_validate_certificate_signature(struct s2n_connection *conn, X509 *x509_cert)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(x509_cert);
-
-    const struct s2n_security_policy *security_policy;
-    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
-
-    /**
-     * We only restrict the signature algorithm on the certificates in the
-     * peer's certificate chain if the certificate_signature_preferences field
-     * is set in the security policy. This is contrary to the RFC, which
-     * specifies that the signatures in the "signature_algorithms" extension
-     * apply to signatures in the certificate chain in certain scenarios, so RFC
-     * compliance would imply validating that the certificate chain signature
-     * algorithm matches one of the algorithms specified in the
-     * "signature_algorithms" extension.
-     *
-     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2
-     *= type=exception
-     *= reason=not implemented due to lack of utility
-     *# If the client provided a "signature_algorithms" extension, then all
-     *# certificates provided by the server MUST be signed by a
-     *# hash/signature algorithm pair that appears in that extension.
-     *
-     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
-     *= type=exception
-     *= reason=not implemented due to lack of utility
-     *# If no "signature_algorithms_cert" extension is present, then the
-     *# "signature_algorithms" extension also applies to signatures appearing in
-     *# certificates.
-     */
-    if (security_policy->certificate_signature_preferences == NULL) {
-        return S2N_RESULT_OK;
-    }
-
-    X509_NAME *issuer_name = X509_get_issuer_name(x509_cert);
-    RESULT_ENSURE_REF(issuer_name);
-
-    X509_NAME *subject_name = X509_get_subject_name(x509_cert);
-    RESULT_ENSURE_REF(subject_name);
-
-    /* Do not validate any self-signed certificates */
-    if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
-        return S2N_RESULT_OK;
-    }
-
-    RESULT_GUARD(s2n_validate_sig_scheme_supported(conn, x509_cert, security_policy->certificate_signature_preferences));
-
-    return S2N_RESULT_OK;
-}
-
-S2N_RESULT s2n_validate_sig_scheme_supported(struct s2n_connection *conn, X509 *x509_cert,
-        const struct s2n_signature_preferences *cert_sig_preferences)
-{
-    RESULT_ENSURE_REF(conn);
-    RESULT_ENSURE_REF(x509_cert);
-    RESULT_ENSURE_REF(cert_sig_preferences);
-
-    int nid = 0;
-
-#if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x02070000f)
-    RESULT_ENSURE_REF(x509_cert->sig_alg);
-    nid = OBJ_obj2nid(x509_cert->sig_alg->algorithm);
-#else
-    nid = X509_get_signature_nid(x509_cert);
-#endif
-
-    for (size_t i = 0; i < cert_sig_preferences->count; i++) {
-        if (cert_sig_preferences->signature_schemes[i]->libcrypto_nid == nid) {
-            /* SHA-1 algorithms are not supported in certificate signatures in TLS1.3 */
-            RESULT_ENSURE(!(conn->actual_protocol_version >= S2N_TLS13
-                                  && cert_sig_preferences->signature_schemes[i]->hash_alg == S2N_HASH_SHA1),
-                    S2N_ERR_CERT_UNTRUSTED);
-
-            return S2N_RESULT_OK;
-        }
-    }
-
-    RESULT_BAIL(S2N_ERR_CERT_UNTRUSTED);
 }
 
 bool s2n_x509_validator_is_cert_chain_validated(const struct s2n_x509_validator *validator)

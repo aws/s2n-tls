@@ -14,6 +14,7 @@ static ALLOCATOR: checkers::Allocator = checkers::Allocator::system();
 pub mod error;
 
 pub mod callbacks;
+pub mod cert_chain;
 #[cfg(feature = "unstable-fingerprint")]
 pub mod client_hello;
 pub mod config;

@@ -26,6 +26,7 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "error/s2n_errno.h"
 #include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_client_server_name.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/extensions/s2n_extension_list.h"
 #include "tls/extensions/s2n_server_key_share.h"
@@ -373,6 +374,12 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     /* legacy_version */
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(in, client_protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
 
+    /* Encode the version as a 1 byte representation of the two protocol version bytes, with the
+     * major version in the tens place and the minor version in the ones place. For example, the
+     * TLS 1.2 protocol version is 0x0303, which is encoded as S2N_TLS12 (33).
+     */
+    client_hello->legacy_version = (client_protocol_version[0] * 10) + client_protocol_version[1];
+
     /* random */
     RESULT_GUARD_POSIX(s2n_stuffer_erase_and_read_bytes(in, client_random, S2N_TLS_RANDOM_DATA_LEN));
 
@@ -393,10 +400,12 @@ S2N_RESULT s2n_client_hello_parse_raw(struct s2n_client_hello *client_hello,
     RESULT_ENSURE(cipher_suites != NULL, S2N_ERR_BAD_MESSAGE);
     RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->cipher_suites, cipher_suites, cipher_suites_length));
 
-    /* legacy_compression_methods (ignored) */
-    uint8_t num_compression_methods = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &num_compression_methods));
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(in, num_compression_methods));
+    /* legacy_compression_methods */
+    uint8_t compression_methods_len = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(in, &compression_methods_len));
+    uint8_t *compression_methods = s2n_stuffer_raw_read(in, compression_methods_len);
+    RESULT_ENSURE(compression_methods != NULL, S2N_ERR_BAD_MESSAGE);
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_hello->compression_methods, compression_methods, compression_methods_len));
 
     /* extensions */
     RESULT_GUARD_POSIX(s2n_extension_list_parse(in, &client_hello->extensions));
@@ -917,7 +926,44 @@ int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, u
     return S2N_SUCCESS;
 }
 
-static S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
+int s2n_client_hello_get_compression_methods_length(struct s2n_client_hello *ch, uint32_t *out_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out_length);
+    *out_length = ch->compression_methods.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(list);
+    POSIX_ENSURE_REF(out_length);
+
+    POSIX_ENSURE(list_length >= ch->compression_methods.size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    POSIX_CHECKED_MEMCPY(list, ch->compression_methods.data, ch->compression_methods.size);
+    *out_length = ch->compression_methods.size;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_legacy_protocol_version(struct s2n_client_hello *ch, uint8_t *out)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+    *out = ch->legacy_version;
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(out);
+    POSIX_ENSURE(ch->record_version_recorded, S2N_ERR_INVALID_ARGUMENT);
+    *out = ch->legacy_record_version;
+    return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
         struct s2n_blob *raw_extensions, struct s2n_blob *extension)
 {
     RESULT_ENSURE_REF(raw_extensions);
@@ -998,6 +1044,50 @@ int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t 
     }
 
     *groups_count_out = supported_groups_count;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_t *length)
+{
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(length);
+    *length = 0;
+
+    s2n_parsed_extension *server_name_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
+    POSIX_ENSURE_REF(server_name_extension);
+
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
+
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD_RESULT(s2n_client_server_name_parse(&extension_stuffer, &blob));
+    *length = blob.size;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length)
+{
+    POSIX_ENSURE_REF(out_length);
+    POSIX_ENSURE_REF(ch);
+    POSIX_ENSURE_REF(server_name);
+    *out_length = 0;
+
+    s2n_parsed_extension *server_name_extension = NULL;
+    POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SERVER_NAME, &ch->extensions, &server_name_extension));
+    POSIX_ENSURE_REF(server_name_extension);
+
+    struct s2n_stuffer extension_stuffer = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&extension_stuffer, &server_name_extension->extension));
+
+    struct s2n_blob blob = { 0 };
+    POSIX_GUARD_RESULT(s2n_client_server_name_parse(&extension_stuffer, &blob));
+    POSIX_ENSURE_LTE(blob.size, length);
+    POSIX_CHECKED_MEMCPY(server_name, blob.data, blob.size);
+
+    *out_length = blob.size;
 
     return S2N_SUCCESS;
 }

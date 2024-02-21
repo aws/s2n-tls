@@ -7,6 +7,8 @@ mod api;
 pub use api::*;
 
 mod features;
+
+#[allow(unused_imports)]
 pub use features::*;
 
 // Additional defines that don't get imported with bindgen

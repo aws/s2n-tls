@@ -83,3 +83,36 @@ S2N_RESULT s2n_openssl_x509_parse(struct s2n_blob *asn1der, X509 **cert_out)
 
     return S2N_RESULT_OK;
 }
+
+S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info)
+{
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(info);
+
+    X509_NAME *issuer_name = X509_get_issuer_name(cert);
+    RESULT_ENSURE_REF(issuer_name);
+
+    X509_NAME *subject_name = X509_get_subject_name(cert);
+    RESULT_ENSURE_REF(subject_name);
+
+    if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
+        info->self_signed = true;
+    } else {
+        info->self_signed = false;
+    }
+
+#if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x02070000f)
+    RESULT_ENSURE_REF(cert->sig_alg);
+    info->signature_nid = OBJ_obj2nid(cert->sig_alg->algorithm);
+#else
+    info->signature_nid = X509_get_signature_nid(cert);
+#endif
+    /* These is no method to directly retrieve that signature digest from the X509*
+     * that is available in all libcryptos, so instead we use find_sigid_algs. For
+     * a signature NID_ecdsa_with_SHA256 this will return NID_SHA256 
+     */
+    RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL),
+            S2N_ERR_CERT_TYPE_UNSUPPORTED);
+
+    return S2N_RESULT_OK;
+}
