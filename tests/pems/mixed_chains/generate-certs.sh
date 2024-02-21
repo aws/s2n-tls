@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Usage: ./generate_certs.sh [clean]
-# Generates all necessary certs for benching
+# Generates mixed-chain certs for testing
 # Use argument "clean" to remove all generated certs
 
 # immediately bail if any command fails
