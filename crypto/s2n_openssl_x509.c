@@ -116,7 +116,7 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
     RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL),
             S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
-    DEFER_CLEANUP(EVP_PKEY *pubkey = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
+    EVP_PKEY *pubkey = X509_get0_pubkey(cert);
     RESULT_ENSURE_REF(pubkey);
 
     info->public_key_bits = EVP_PKEY_bits(pubkey);
@@ -125,7 +125,9 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
     if (EVP_PKEY_base_id(pubkey) == EVP_PKEY_EC) {
         const EC_KEY *ec_key = EVP_PKEY_get0_EC_KEY(pubkey);
         RESULT_ENSURE_REF(ec_key);
-        info->public_key_nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(ec_key));
+        const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
+        RESULT_ENSURE_REF(ec_group);
+        info->public_key_nid = EC_GROUP_get_curve_name(ec_group);
     } else {
         info->public_key_nid = EVP_PKEY_id(pubkey);
     }
