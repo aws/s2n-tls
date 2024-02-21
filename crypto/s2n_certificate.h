@@ -32,7 +32,7 @@ struct s2n_cert_info {
      * EC key NID (NID_X9_62_id_ecPublicKey)
      */
     int public_key_nid;
-    uint16_t public_key_bits;
+    int public_key_bits;
     bool self_signed;
 };
 

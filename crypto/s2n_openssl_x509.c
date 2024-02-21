@@ -118,7 +118,9 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
 
     DEFER_CLEANUP(EVP_PKEY *pubkey = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE_REF(pubkey);
+
     info->public_key_bits = EVP_PKEY_bits(pubkey);
+    RESULT_ENSURE(info->public_key_bits > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
     if (EVP_PKEY_base_id(pubkey) == EVP_PKEY_EC) {
         const EC_KEY *ec_key = EVP_PKEY_get0_EC_KEY(pubkey);
@@ -127,7 +129,6 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
     } else {
         info->public_key_nid = EVP_PKEY_id(pubkey);
     }
-
     RESULT_ENSURE(info->public_key_nid > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
     return S2N_RESULT_OK;
