@@ -133,7 +133,7 @@ int main(int argc, char **argv)
             struct s2n_cert_info valid_root = root.info;
             root.info.signature_nid = invalid_sig_nid;
             root.info.signature_digest_nid = invalid_hash_nide;
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain), 
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
             /* restore root values */
             root.info = valid_root;
