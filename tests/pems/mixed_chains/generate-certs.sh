@@ -95,7 +95,7 @@ cert-gen () {
     rm ca-cert.srl
     rm intermediate-cert.srl
 
-    # the private keys of the CA and the intermediat CA are never needed after 
+    # the private keys of the CA and the intermediate CA are never needed after 
     # signing
     rm ca-key.pem
     rm intermediate-key.pem
