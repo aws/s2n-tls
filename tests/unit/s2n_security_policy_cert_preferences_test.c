@@ -167,7 +167,7 @@ int main(int argc, char **argv)
          * but none of our current security policies apply certificate preferences locally. So instead we rewrite the
          * rfc9151 policy from the table to apply cert preference locally. */
         struct s2n_security_policy_selection *rfc9151_selection = NULL;
-        struct s2n_security_policy *original_rfc9151 = NULL;
+        const struct s2n_security_policy *original_rfc9151 = NULL;
         for (int i = 0; security_policy_selection[i].version != NULL; i++) {
             if (strcasecmp("rfc9151", security_policy_selection[i].version) == 0) {
                 rfc9151_selection = &security_policy_selection[i];
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
         }
 
         /* restore security_policy_selection */
-        rfc9151_selection->security_policy = &original_rfc9151;
+        rfc9151_selection->security_policy = original_rfc9151;
     };
 
     END_TEST();
