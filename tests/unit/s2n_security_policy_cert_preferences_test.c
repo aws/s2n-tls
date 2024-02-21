@@ -166,13 +166,16 @@ int main(int argc, char **argv)
         /* s2n_connection_set_cipher_preferences looks up the security policy from the security_policy_selection table
          * but none of our current security policies apply certificate preferences locally. So instead we rewrite the
          * rfc9151 policy from the table to apply cert preference locally. */
+        struct s2n_security_policy_selection *rfc9151_selection = NULL;
+        struct s2n_security_policy *original_rfc9151 = NULL;
         for (int i = 0; security_policy_selection[i].version != NULL; i++) {
             if (strcasecmp("rfc9151", security_policy_selection[i].version) == 0) {
-                security_policy_selection[i].security_policy = &rfc9151_applied_locally;
+                rfc9151_selection = &security_policy_selection[i];
                 break;
             }
         }
-        /* modify*/
+        original_rfc9151 = rfc9151_selection->security_policy;
+        rfc9151_selection->security_policy = &rfc9151_applied_locally;
 
         /* when certificate preferences apply locally and the connection contains
          * an invalid config then s2n_connection_set_cipher_preferences fails
@@ -187,6 +190,9 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
+
+        /* restore security_policy_selection */
+        rfc9151_selection->security_policy = &original_rfc9151;
     };
 
     END_TEST();
