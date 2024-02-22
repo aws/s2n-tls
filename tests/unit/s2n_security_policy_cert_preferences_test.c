@@ -125,7 +125,8 @@ int main(int argc, char **argv)
                 .signature_nid = NID_ecdsa_with_SHA256,
             };
 
-            EXPECT_OK(s2n_security_policy_validate_cert_signature(&test_sp, &info));
+            EXPECT_OK(s2n_security_policy_validate_cert_signature(&test_sp, &info,
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
         };
 
         /* Certificate signature algorithm is not in test certificate signature preferences list */
@@ -136,7 +137,8 @@ int main(int argc, char **argv)
                 .signature_nid = NID_rsassaPss,
             };
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_cert_signature(&test_sp, &info),
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_cert_signature(&test_sp, &info,
+                                            S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
 
@@ -148,7 +150,8 @@ int main(int argc, char **argv)
                 .signature_nid = NID_rsassaPss,
             };
 
-            EXPECT_OK(s2n_security_policy_validate_cert_signature(&test_pss_sp, &info));
+            EXPECT_OK(s2n_security_policy_validate_cert_signature(&test_pss_sp, &info,
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
         };
     };
 
@@ -161,7 +164,8 @@ int main(int argc, char **argv)
                 .public_key_bits = valid_key_size,
             };
 
-            EXPECT_OK(s2n_security_policy_validate_cert_key(&test_sp, &info));
+            EXPECT_OK(s2n_security_policy_validate_cert_key(&test_sp, &info,
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
         };
 
         /* Certificate key is not in test certificate key list */
@@ -171,7 +175,8 @@ int main(int argc, char **argv)
                 .signature_nid = invalid_key_size,
             };
 
-            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_cert_key(&test_sp, &info),
+            EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_cert_key(&test_sp, &info,
+                                            S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
     };
