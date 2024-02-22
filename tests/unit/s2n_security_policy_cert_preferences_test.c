@@ -224,7 +224,6 @@ int main(int argc, char **argv)
 
             /* when certificate_preferences_apply_locally is false then validation succeeds */
             {
-
                 struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
                 struct s2n_cert_chain cert_chain = { 0 };
                 struct s2n_cert_chain_and_key chain = { 0 };
