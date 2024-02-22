@@ -12,10 +12,11 @@ set -e
 
 # Generates certs with given algorithms and bits in $1$2/, ex. ec384/
 # $1: rsa or ec
-# $2: number of bits
-# $3: directory under the `certs/` directory to put certs in
+# $2: size of the key used by the leaf and intermediate
+# $3: size of the key used by the issuing CA
+# $4: digest using in the certificate signatures
+# $5: name of the output directory
 cert-gen () {
-
     key_family=$1
     key_size=$2
     ca_key_size=$3
