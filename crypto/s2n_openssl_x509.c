@@ -17,8 +17,6 @@
 
 #include "api/s2n.h"
 
-DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
-
 S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
 {
     RESULT_ENSURE_REF(*cert_chain);
