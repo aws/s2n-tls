@@ -19,6 +19,7 @@
 
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "crypto/s2n_rsa_pss.h"
 
 S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer,
         struct s2n_blob *asn1_cert);
@@ -161,8 +162,7 @@ int main(int argc, char **argv)
                 .expected_public_key_nid = NID_rsaEncryption,
                 .expected_public_key_bits = 3072,
         },
-/* openssl 1.0.* does not support rsapss signatures */
-#if S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 0)
+#if RSA_PSS_CERTS_SUPPORTED
         {
                 .key_type = "rsae",
                 .signature = "pss",
