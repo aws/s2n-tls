@@ -17,6 +17,8 @@
 
 #include "api/s2n.h"
 
+DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
+
 S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
 {
     RESULT_ENSURE_REF(*cert_chain);
@@ -114,7 +116,7 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
     RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL),
             S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
-    EVP_PKEY *pubkey = X509_get0_pubkey(cert);
+    DEFER_CLEANUP(EVP_PKEY *pubkey = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE_REF(pubkey);
 
     info->public_key_bits = EVP_PKEY_bits(pubkey);

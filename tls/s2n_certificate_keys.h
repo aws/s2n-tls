@@ -15,7 +15,7 @@
 
 #pragma once
 
-#include "api/s2n.h"
+#include <stdint.h>
 
 struct s2n_certificate_key {
     uint16_t public_key_libcrypto_nid;

@@ -23,6 +23,7 @@
 
 static S2N_RESULT s2n_test_construct_cert_chain(
         struct s2n_cert *certs,
+        size_t certs_length,
         struct s2n_cert_chain *cert_chain,
         struct s2n_cert_chain_and_key *chain,
         const struct s2n_cert_info *valid_info)
@@ -32,35 +33,35 @@ static S2N_RESULT s2n_test_construct_cert_chain(
     RESULT_ENSURE_REF(chain);
     RESULT_ENSURE_REF(valid_info);
 
-    for (size_t i = 0; i < CHAIN_LENGTH; i++) {
+    for (size_t i = 0; i < certs_length; i++) {
         certs[i].info = *valid_info;
-        if (i != CHAIN_LENGTH - 1) {
+        if (i != certs_length - 1) {
             certs[i].next = &certs[i + 1];
         }
     }
 
     /* root cert */
-    certs[CHAIN_LENGTH - 1].info.self_signed = true;
+    certs[certs_length - 1].info.self_signed = true;
 
     cert_chain->head = &certs[0];
     chain->cert_chain = cert_chain;
 
     return S2N_RESULT_OK;
-};
+}
 
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    int valid_sig_nid = NID_ecdsa_with_SHA256;
-    int valid_hash_nid = NID_sha256;
-    int valid_key_size = 384;
-    int valid_key_nid = NID_secp384r1;
+    const int valid_sig_nid = NID_ecdsa_with_SHA256;
+    const int valid_hash_nid = NID_sha256;
+    const int valid_key_size = 384;
+    const int valid_key_nid = NID_secp384r1;
 
-    int invalid_sig_nid = NID_sha256WithRSAEncryption;
-    int invalid_hash_nid = NID_sha1;
-    int invalid_key_size = 256;
-    int invalid_key_nid = NID_X9_62_prime256v1;
+    const int invalid_sig_nid = NID_sha256WithRSAEncryption;
+    const int invalid_hash_nid = NID_sha1;
+    const int invalid_key_size = 256;
+    const int invalid_key_nid = NID_X9_62_prime256v1;
 
     const struct s2n_cert_info valid_info = {
         .self_signed = false,
@@ -182,7 +183,7 @@ int main(int argc, char **argv)
             struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
             struct s2n_cert_chain cert_chain = { 0 };
             struct s2n_cert_chain_and_key chain = { 0 };
-            EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+            EXPECT_OK(s2n_test_construct_cert_chain(certs, CHAIN_LENGTH, &cert_chain, &chain, &valid_info));
             EXPECT_OK(s2n_security_policy_validate_certificate_chain(&test_sp, &chain));
         };
 
@@ -193,7 +194,7 @@ int main(int argc, char **argv)
                 struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
                 struct s2n_cert_chain cert_chain = { 0 };
                 struct s2n_cert_chain_and_key chain = { 0 };
-                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+                EXPECT_OK(s2n_test_construct_cert_chain(certs, CHAIN_LENGTH, &cert_chain, &chain, &valid_info));
                 certs[i].info.signature_nid = invalid_sig_nid;
                 certs[i].info.signature_digest_nid = invalid_hash_nid;
                 EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
@@ -205,7 +206,7 @@ int main(int argc, char **argv)
                 struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
                 struct s2n_cert_chain cert_chain = { 0 };
                 struct s2n_cert_chain_and_key chain = { 0 };
-                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+                EXPECT_OK(s2n_test_construct_cert_chain(certs, CHAIN_LENGTH, &cert_chain, &chain, &valid_info));
                 certs[i].info.public_key_nid = invalid_key_nid;
                 EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
                         S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
@@ -216,7 +217,7 @@ int main(int argc, char **argv)
                 struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
                 struct s2n_cert_chain cert_chain = { 0 };
                 struct s2n_cert_chain_and_key chain = { 0 };
-                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+                EXPECT_OK(s2n_test_construct_cert_chain(certs, CHAIN_LENGTH, &cert_chain, &chain, &valid_info));
                 certs[i].info.public_key_bits = invalid_key_size;
                 EXPECT_ERROR_WITH_ERRNO(s2n_security_policy_validate_certificate_chain(&test_sp, &chain),
                         S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
@@ -227,7 +228,7 @@ int main(int argc, char **argv)
                 struct s2n_cert certs[CHAIN_LENGTH] = { 0 };
                 struct s2n_cert_chain cert_chain = { 0 };
                 struct s2n_cert_chain_and_key chain = { 0 };
-                EXPECT_OK(s2n_test_construct_cert_chain(certs, &cert_chain, &chain, &valid_info));
+                EXPECT_OK(s2n_test_construct_cert_chain(certs, CHAIN_LENGTH, &cert_chain, &chain, &valid_info));
 
                 struct s2n_security_policy test_sp_no_local = test_sp;
                 test_sp_no_local.certificate_preferences_apply_locally = false;

@@ -16,7 +16,7 @@
 #include "tls/s2n_security_policies.h"
 
 #include "api/s2n.h"
-#include "s2n_certificate_keys.h"
+#include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 

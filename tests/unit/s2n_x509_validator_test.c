@@ -2189,7 +2189,7 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Ensure that CA's outside of cert preferences aren't used */
+    /* Test that CAs must comply with cert preferences */
     {
         uint8_t invalid_root_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         uint32_t root_pem_len = 0;

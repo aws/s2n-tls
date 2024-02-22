@@ -216,12 +216,12 @@ int main(int argc, char **argv)
         };
 
         /* assert that cert info matches expected values */
-        EXPECT_EQUAL(memcmp(&leaf_info, &expected_info, sizeof(struct s2n_cert_info)), 0);
-        EXPECT_EQUAL(memcmp(&intermediate_info, &expected_info, sizeof(struct s2n_cert_info)), 0);
+        EXPECT_EQUAL(memcmp(&leaf_info, &expected_info, sizeof(expected_info)), 0);
+        EXPECT_EQUAL(memcmp(&intermediate_info, &expected_info, sizeof(expected_info)), 0);
 
         /* root should be self-signed, but otherwise equal */
         expected_info.self_signed = true;
-        EXPECT_EQUAL(memcmp(&root_info, &expected_info, sizeof(struct s2n_cert_info)), 0);
+        EXPECT_EQUAL(memcmp(&root_info, &expected_info, sizeof(expected_info)), 0);
     }
 
     END_TEST();
