@@ -23,7 +23,9 @@
 S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer,
         struct s2n_blob *asn1_cert);
 
-static S2N_RESULT s2n_test_assert_s2n_cert_info_equality(struct s2n_cert_info *info_a, struct s2n_cert_info *info_b) {
+static S2N_RESULT s2n_test_assert_s2n_cert_info_equality(const struct s2n_cert_info *info_a,
+        const struct s2n_cert_info *info_b)
+{
     RESULT_ENSURE_EQ(info_a->public_key_bits, info_b->public_key_bits);
     RESULT_ENSURE_EQ(info_a->public_key_nid, info_b->public_key_nid);
     RESULT_ENSURE_EQ(info_a->signature_nid, info_b->signature_nid);
