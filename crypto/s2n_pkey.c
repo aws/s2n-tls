@@ -117,11 +117,11 @@ int s2n_pkey_free(struct s2n_pkey *key)
 {
     if (key != NULL && key->free != NULL) {
         POSIX_GUARD(key->free(key));
-    }
 
-    if (key->pkey != NULL) {
-        EVP_PKEY_free(key->pkey);
-        key->pkey = NULL;
+        if (key->pkey != NULL) {
+            EVP_PKEY_free(key->pkey);
+            key->pkey = NULL;
+        }
     }
 
     return S2N_SUCCESS;
