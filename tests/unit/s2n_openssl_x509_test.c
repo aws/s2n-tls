@@ -23,6 +23,15 @@
 S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer,
         struct s2n_blob *asn1_cert);
 
+static S2N_RESULT s2n_test_assert_s2n_cert_info_equality(struct s2n_cert_info *info_a, struct s2n_cert_info *info_b) {
+    RESULT_ENSURE_EQ(info_a->public_key_bits, info_b->public_key_bits);
+    RESULT_ENSURE_EQ(info_a->public_key_nid, info_b->public_key_nid);
+    RESULT_ENSURE_EQ(info_a->signature_nid, info_b->signature_nid);
+    RESULT_ENSURE_EQ(info_a->signature_digest_nid, info_b->signature_digest_nid);
+    RESULT_ENSURE_EQ(info_a->self_signed, info_b->self_signed);
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -216,12 +225,11 @@ int main(int argc, char **argv)
         };
 
         /* assert that cert info matches expected values */
-        EXPECT_EQUAL(memcmp(&leaf_info, &expected_info, sizeof(expected_info)), 0);
-        EXPECT_EQUAL(memcmp(&intermediate_info, &expected_info, sizeof(expected_info)), 0);
-
+        EXPECT_OK(s2n_test_assert_s2n_cert_info_equality(&leaf_info, &expected_info));
+        EXPECT_OK(s2n_test_assert_s2n_cert_info_equality(&intermediate_info, &expected_info));
         /* root should be self-signed, but otherwise equal */
         expected_info.self_signed = true;
-        EXPECT_EQUAL(memcmp(&root_info, &expected_info, sizeof(expected_info)), 0);
+        EXPECT_OK(s2n_test_assert_s2n_cert_info_equality(&root_info, &expected_info));
     }
 
     END_TEST();

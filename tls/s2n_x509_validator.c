@@ -469,10 +469,6 @@ static S2N_RESULT s2n_x509_validator_check_root_cert(struct s2n_x509_validator *
     RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
     RESULT_ENSURE_REF(security_policy);
 
-    if (!security_policy->certificate_preferences_apply_locally) {
-        return S2N_RESULT_OK;
-    }
-
     RESULT_ENSURE_REF(validator->store_ctx);
     DEFER_CLEANUP(STACK_OF(X509) *cert_chain = X509_STORE_CTX_get1_chain(validator->store_ctx),
             s2n_openssl_x509_stack_pop_free);
