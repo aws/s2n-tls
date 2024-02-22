@@ -72,7 +72,8 @@ struct s2n_security_policy {
     const struct s2n_ecc_preferences *ecc_preferences;
     /* This field determines what public keys are allowed for use. It restricts
      * both the type of the key (Elliptic Curve, RSA w/ Encryption, RSA PSS) and
-     * the size of the key.
+     * the size of the key. Note that this field structure is likely to change
+     * until https://github.com/aws/s2n-tls/issues/4435 is closed.
      */
     const struct s2n_certificate_key_preferences *certificate_key_preferences;
     /* This field controls whether the certificate_signature_preferences apply 
