@@ -26,7 +26,11 @@ phases:
       # The ugly sed command is used to remove ANSI color from clang-tidy output,
       # since run-clang-tidy turns that on by default the and the version that we 
       # use doesn't have an option to disable it.
-      - run-clang-tidy . -p build/ -quiet -checks=cppcoreguidelines-init-variables | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' > clang-tidy.report
+      - |
+        run-clang-tidy . \
+        -p build/ \
+        -quiet \
+        -checks=-*,cppcoreguidelines-init-variables,clang-analyzer-core.NullDereference,clang-analyzer-core.UndefinedBinaryOperatorResult | sed 's/\x1B\[[0-9;]\{1,\}[A-Za-z]//g' > clang-tidy.report
       - cat clang-tidy.report | grep warning
       # This if statement will exit with a non-zero code if grep found any warnings 
       # in the clang-tidy report.
