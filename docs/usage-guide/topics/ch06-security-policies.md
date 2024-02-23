@@ -118,3 +118,17 @@ Note that legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algo
 |   20190802    |     X     |     X     |        |
 |   20200207    |     X     |     X     |    X   |
 |    rfc9151    |           |     X     |        |
+
+### Certificate Preferences
+
+The security policy struct contains three fields related to certificate preferences. These function differently from the other security policy fields because they are not sent to the peer as part of negotiation. Instead they are a set of rules that the endpoint will enforce locally.
+
+`certificate_signature_preferences` determine which certificate signatures are allowed in certificates. This field is an allowlist of `(signature_algorithm, digest)` tuples. Allowed `signature_algorithm`s are ECDSA, RSA PKCS v1.5, and RSA PSS. Note that s2n-tls does not currently provide support for restricting the digest types of RSA PSS signature, so a security policy using certificate signature preferences must either allow all digests with RSA PSS signatures or disallow RSA PSS signatures entirely.
+
+`certificate_key_preferences` determine which key types are allowed in certificates. This field is an allowlist of `(key type, size)` tuples, where key type is the OID (Object Identifier) contained in the cert. Allowed RSA key types are `rsaEncryption` and `rsassaPSS` with 1024, 2048, 3072, and 4096 bit moduli. Allowed EC key types are `prime256v1`, `secp384r1`, and `secp521r1` with their respective sizes. 
+
+Certificates received from a peer are validated after they have been parsed, but before any cryptographic verification has been done. These certificates will be validated even if they aren't used in the construction of the final cert chain. Note that certificate signature preferences are not enforced on self signed certs, because the signature of a self signed cert does not affect the security of the certificate chain.
+
+Certificates in a trust store are only validated when are used to build a chain. For example, if the security policy certificate key preferences only allows 3096 bit RSA certs, the config could still load a system trust store that contains 2048 bit certs. However no connections will actually be able to use the non-compliant 2048 bit RSA certs, and they will be effectively untrusted by s2n-tls.
+
+Certificates loaded into a config are only validated if the `certificate_preferences_apply_locally` field in the security policy is true. Validation happens when `s2n_connection_set_config` is called, or when `s2n_connection_set_cipher_preferences` is used to set a connection override. If the certificate loaded into the config are not permitted by the certificate preferences, then `s2n_connection_set_config` will fail. Note that certificate signature preferences are enforced on all certs loaded into the config, even if they are self signed.
