@@ -184,7 +184,7 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
     return 0;
 }
 
-static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     uint32_t cn_len = 0;
     POSIX_GUARD_RESULT(s2n_array_num_elements(cert_key_pair->cn_names, &cn_len));
@@ -562,6 +562,41 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     }
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
+        const struct s2n_security_policy *security_policy)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(security_policy);
+
+    /* validate the default certs */
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        struct s2n_cert_chain_and_key *cert = config->default_certs_by_type.certs[i];
+        if (cert == NULL) {
+            continue;
+        }
+        RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
+    }
+
+    /* validate the certs in the domain map */
+    struct s2n_map_iterator iter = { 0 };
+    RESULT_GUARD(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
+
+    while (s2n_map_iterator_has_next(&iter)) {
+        struct s2n_blob value = { 0 };
+        RESULT_GUARD(s2n_map_iterator_next(&iter, &value));
+
+        struct certs_by_type *domain_certs = (void *) value.data;
+        for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+            struct s2n_cert_chain_and_key *cert = domain_certs->certs[i];
+            if (cert == NULL) {
+                continue;
+            }
+            RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
+        }
+    }
+    return S2N_RESULT_OK;
 }
 
 /* Deprecated. Superseded by s2n_config_add_cert_chain_and_key_to_store */
@@ -993,7 +1028,7 @@ struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_con
     return cert;
 }
 
-int s2n_config_get_num_default_certs(struct s2n_config *config)
+int s2n_config_get_num_default_certs(const struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
     int num_certs = 0;
