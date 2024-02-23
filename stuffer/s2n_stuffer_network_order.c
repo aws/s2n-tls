@@ -21,9 +21,10 @@
 /* Writes length bytes of input to stuffer, in network order, starting from the smallest byte of input. */
 int s2n_stuffer_write_network_order(struct s2n_stuffer *stuffer, const uint64_t input, const uint8_t length)
 {
+    POSIX_ENSURE_REF(stuffer);
     POSIX_ENSURE(length <= sizeof(input), S2N_ERR_SAFETY);
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, length));
-    POSIX_ENSURE_REF(stuffer->blob.data);
+    POSIX_ENSURE(stuffer->blob.data != NULL || length == 0, S2N_ERR_SAFETY);
     uint8_t *data = stuffer->blob.data + stuffer->write_cursor - length;
 
     for (int i = 0; i < length; i++) {
