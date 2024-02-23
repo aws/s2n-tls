@@ -443,6 +443,45 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
     }
 
+    /* Ensure that TLS 1.3 is enforced in the supported versions extension for ClientHellos sent in
+     * response to a HelloRetryRequest
+     */
+    for (uint8_t version = S2N_TLS10; version <= S2N_TLS13; version++) {
+        for (size_t is_hrr = 0; is_hrr <= 1; is_hrr++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
+            if (is_hrr) {
+                EXPECT_OK(s2n_handshake_type_set_tls13_flag(conn, HELLO_RETRY_REQUEST));
+                conn->handshake.message_number = 1;
+            }
+
+            uint8_t supported_versions_list[] = { version };
+            uint8_t supported_versions_list_len = sizeof(supported_versions_list);
+
+            DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+            EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_versions_list,
+                    supported_versions_list_len));
+
+            int ret = s2n_client_supported_versions_extension.recv(conn, &extension);
+
+            if (is_hrr && version < S2N_TLS13) {
+                /* It should not be possible to negotiate a protocol version < TLS 1.3 after a
+                 * HelloRetryRequest.
+                 */
+                EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            } else {
+                /* TLS 1.3 should be permitted after a HelloRetryRequest. Also, it should be
+                 * possible to receive < TLS 1.3 in an initial ClientHello.
+                 */
+                EXPECT_SUCCESS(ret);
+
+                EXPECT_EQUAL(conn->client_protocol_version, version);
+                EXPECT_EQUAL(conn->actual_protocol_version, version);
+            }
+        }
+    }
+
     EXPECT_SUCCESS(s2n_config_free(config));
 
     END_TEST();
