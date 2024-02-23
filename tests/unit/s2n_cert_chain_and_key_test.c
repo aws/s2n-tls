@@ -188,6 +188,34 @@ int main(int argc, char **argv)
         };
     };
 
+    /* s2n_cert_chain_and_key_load_pem */
+    {
+        /* when loading a chain, all certs have a info associated with them and root is self-signed */
+        {
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&chain, "ec", "ecdsa",
+                    "p384", "sha256"));
+            struct s2n_cert *leaf = chain->cert_chain->head;
+            EXPECT_EQUAL(leaf->info.self_signed, false);
+            EXPECT_EQUAL(leaf->info.signature_nid, NID_ecdsa_with_SHA256);
+            EXPECT_EQUAL(leaf->info.signature_digest_nid, NID_sha256);
+
+            struct s2n_cert *intermediate = leaf->next;
+            EXPECT_NOT_NULL(intermediate);
+            EXPECT_EQUAL(intermediate->info.self_signed, false);
+            EXPECT_EQUAL(intermediate->info.signature_nid, NID_ecdsa_with_SHA256);
+            EXPECT_EQUAL(intermediate->info.signature_digest_nid, NID_sha256);
+
+            struct s2n_cert *root = intermediate->next;
+            EXPECT_NOT_NULL(intermediate);
+            EXPECT_NULL(root->next);
+            EXPECT_EQUAL(root->info.self_signed, true);
+            EXPECT_EQUAL(root->info.signature_nid, NID_ecdsa_with_SHA256);
+            EXPECT_EQUAL(root->info.signature_digest_nid, NID_sha256);
+        };
+    };
+
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_config_free(client_config));
 

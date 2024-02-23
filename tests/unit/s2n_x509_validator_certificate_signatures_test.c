@@ -138,6 +138,29 @@ int main(int argc, char **argv)
             X509_free(cert);
         };
 
+        /* When the certificate signature algorithm is not in the preferences list, then an S2N_ERR_CERT_UNTRUSTED err
+         * is returned.
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            config->security_policy = &test_sp;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_p384_sha256 = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&ecdsa_p384_sha256, "ec",
+                    "ecdsa", "p384", "sha384"));
+            DEFER_CLEANUP(X509 *test_cert = NULL, X509_free_pointer);
+            EXPECT_OK(s2n_openssl_x509_parse(&ecdsa_p384_sha256->cert_chain->head->raw, &test_cert));
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_check_cert_preferences(conn, test_cert), S2N_ERR_CERT_UNTRUSTED);
+        };
+
         /* Certificate signature algorithm is in the test certificate signature preferences list but signature is SHA-1
          * and TLS 1.3 has been negotiated.
          */

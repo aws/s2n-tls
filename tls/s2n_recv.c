@@ -70,15 +70,14 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
     /* Read the record until we at least have a header */
+    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
     POSIX_GUARD_RESULT(s2n_read_in_bytes(conn, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
 
     uint16_t fragment_length;
 
     /* If the first bit is set then this is an SSLv2 record */
-    if (conn->header_in.blob.data[0] & 0x80) {
-        conn->header_in.blob.data[0] &= 0x7f;
+    if (conn->header_in.blob.data[0] & S2N_TLS_SSLV2_HEADER_FLAG) {
         *isSSLv2 = 1;
-
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length)));
     } else {
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_record_header_parse(conn, record_type, &fragment_length)));
