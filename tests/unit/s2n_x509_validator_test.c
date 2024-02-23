@@ -16,6 +16,7 @@
 #include "crypto/s2n_openssl_x509.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+#include "tls/s2n_certificate_keys.h"
 
 static int mock_time(void *data, uint64_t *timestamp)
 {
@@ -2187,6 +2188,100 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(unsetenv("SSL_CERT_FILE"));
         }
     }
+
+    /* Test that CAs must comply with cert preferences */
+    {
+        uint8_t invalid_root_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        uint32_t root_pem_len = 0;
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_MIXED_CHAIN_CA, &invalid_root_pem[0], &root_pem_len,
+                S2N_MAX_TEST_PEM_SIZE));
+
+        uint8_t chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+        uint32_t chain_pem_len = 0;
+        EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_MIXED_CHAIN_CERTS, &chain_pem[0], &chain_pem_len,
+                S2N_MAX_TEST_PEM_SIZE));
+
+        const struct s2n_certificate_key *const s2n_certificate_key_preferences_list_rfc9151[] = {
+            &s2n_ec_p384,
+            &s2n_rsa_rsae_3072,
+            &s2n_rsa_rsae_4096,
+        };
+
+        const struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 = {
+            .count = s2n_array_len(s2n_certificate_key_preferences_list_rfc9151),
+            .certificate_keys = s2n_certificate_key_preferences_list_rfc9151,
+        };
+
+        struct s2n_security_policy security_policy_not_local = security_policy_rfc9151;
+        security_policy_not_local.certificate_preferences_apply_locally = false;
+        security_policy_not_local.certificate_key_preferences = &s2n_certificate_key_preferences_rfc9151;
+
+        /* when the peer sends the full chain with a non-compliant CA, verification fails when reading in the certs */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, (char *) &invalid_root_pem[0]));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->security_policy_override = &security_policy_not_local;
+            EXPECT_SUCCESS(s2n_set_server_name(conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem_data(conn, &chain_pem[0], chain_pem_len, &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
+                                            &pkey_type, &public_key_out),
+                    S2N_ERR_CERT_UNTRUSTED);
+            /* Failed while processing/reading in the cert chain */
+            EXPECT_TRUE(validator.state == INIT);
+        };
+
+        /* when the peer sends only compliant certs from a non-compliant CA, 
+         * validation fails on the local trust store 
+         */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, (char *) &invalid_root_pem[0]));
+
+            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->security_policy_override = &security_policy_not_local;
+            EXPECT_SUCCESS(s2n_set_server_name(conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+
+            /* `chain_pem_len - root_pem_len`: only use the first two certs in the chain (leaf and intermediate) to 
+             * ensure we are correctly failing on the local trust store and not the chain that the peer sent.
+             */
+            EXPECT_OK(s2n_test_cert_chain_data_from_pem_data(conn, &chain_pem[0], chain_pem_len - root_pem_len,
+                    &cert_chain_stuffer));
+            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+            EXPECT_NOT_NULL(chain_data);
+
+            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
+                                            &pkey_type, &public_key_out),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+            /* X509_verify_cert finished successfully */
+            EXPECT_TRUE(validator.state == VALIDATED);
+        };
+    };
 
     END_TEST();
 }

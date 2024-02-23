@@ -70,6 +70,12 @@ struct s2n_security_policy {
      * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
      */
     const struct s2n_ecc_preferences *ecc_preferences;
+    /* This field determines what public keys are allowed for use. It restricts
+     * both the type of the key (Elliptic Curve, RSA w/ Encryption, RSA PSS) and
+     * the size of the key. Note that this field structure is likely to change
+     * until https://github.com/aws/s2n-tls/issues/4435 is closed.
+     */
+    const struct s2n_certificate_key_preferences *certificate_key_preferences;
     /* This field controls whether the certificate_signature_preferences apply 
      * to local certs loaded on configs.
      */
@@ -203,4 +209,6 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
 S2N_RESULT s2n_security_policy_validate_certificate_chain(const struct s2n_security_policy *security_policy,
         const struct s2n_cert_chain_and_key *cert_key_pair);
 S2N_RESULT s2n_security_policy_validate_cert_signature(
-        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info);
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
+S2N_RESULT s2n_security_policy_validate_cert_key(
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
