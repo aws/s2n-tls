@@ -232,38 +232,39 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
      *# ClientHello without modification, except as follows:
      *
      * All of the exceptions that follow are extensions.
-     * Ignoring the extensions, the client hellos should match /exactly/.
      */
-    ssize_t old_msg_len = old_ch->raw_message.size;
-    /* Also consider the 2-byte size of the extension list */
-    ssize_t old_extensions_len = old_ch->extensions.raw.size + sizeof(uint16_t);
-    RESULT_ENSURE_GT(old_msg_len, old_extensions_len);
-    size_t verify_len = old_msg_len - old_extensions_len;
-    RESULT_ENSURE_LTE(verify_len, new_ch->raw_message.size);
-    RESULT_ENSURE(s2n_constant_time_equals(
-                          old_ch->raw_message.data,
-                          new_ch->raw_message.data,
-                          verify_len),
+    RESULT_ENSURE(old_ch->legacy_version == new_ch->legacy_version, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(old_ch->compression_methods.size == new_ch->compression_methods.size, S2N_ERR_BAD_MESSAGE);
+    RESULT_ENSURE(s2n_constant_time_equals(old_ch->compression_methods.data, new_ch->compression_methods.data,
+                          new_ch->compression_methods.size),
             S2N_ERR_BAD_MESSAGE);
 
-    /* In the past, the s2n-tls client updated the client hello in ways not
-     * allowed by RFC8446: https://github.com/aws/s2n-tls/pull/3311
-     * Although the issue was addressed, its existence means that old versions
-     * of the s2n-tls client will fail this validation.
-     *
-     * So to avoid breaking old s2n-tls clients, we do not enforce this validation
-     * outside of tests. We continue to enforce it during tests to avoid regressions.
+    /* Some clients are not compliant with TLS 1.3 RFC, and send mismatching values in their second
+     * ClientHello. For increased compatibility, these checks are skipped outside of tests. The
+     * checks are still included in tests to ensure the s2n-tls client remains compliant.
      */
     if (s2n_in_test()) {
-        /*
-         * We need to verify the client random separately
-         * because we erase it from the client hello during parsing.
-         * Compare the old value to the current value.
+        /* In the past, the s2n-tls client updated the client random in the second ClientHello
+         * which is not allowed by RFC8446: https://github.com/aws/s2n-tls/pull/3311. Although the
+         * issue was addressed, its existence means that old versions of the s2n-tls client will
+         * fail this validation.
          */
         RESULT_ENSURE(s2n_constant_time_equals(
                               previous_client_random,
                               conn->handshake_params.client_random,
                               S2N_TLS_RANDOM_DATA_LEN),
+                S2N_ERR_BAD_MESSAGE);
+
+        /* Some clients have been found to send a mismatching legacy session ID. */
+        RESULT_ENSURE(old_ch->session_id.size == new_ch->session_id.size, S2N_ERR_BAD_MESSAGE);
+        RESULT_ENSURE(s2n_constant_time_equals(old_ch->session_id.data, new_ch->session_id.data,
+                              new_ch->session_id.size),
+                S2N_ERR_BAD_MESSAGE);
+
+        /* Some clients have been found to send a mismatching cipher suite list. */
+        RESULT_ENSURE(old_ch->cipher_suites.size == new_ch->cipher_suites.size, S2N_ERR_BAD_MESSAGE);
+        RESULT_ENSURE(s2n_constant_time_equals(old_ch->cipher_suites.data, new_ch->cipher_suites.data,
+                              new_ch->cipher_suites.size),
                 S2N_ERR_BAD_MESSAGE);
     }
 
@@ -325,6 +326,17 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
             case TLS_EXTENSION_PRE_SHARED_KEY:
                 /* Handled when parsing the psk extension */
                 break;
+
+            /* Some clients have been found to send mismatching supported versions in their second
+             * ClientHello. The extension isn't compared byte-for-byte for increased compatibility
+             * with these clients.
+             */
+            case TLS_EXTENSION_SUPPORTED_VERSIONS:
+                /* Additional HRR validation for the supported versions extension is performed when
+                 * parsing the extension.
+                 */
+                break;
+
             /*
              * No more exceptions.
              * All other extensions must match.
