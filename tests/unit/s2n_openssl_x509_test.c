@@ -17,9 +17,9 @@
 #include <openssl/pem.h>
 #include <openssl/x509.h>
 
+#include "crypto/s2n_rsa_pss.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
-#include "crypto/s2n_rsa_pss.h"
 
 S2N_RESULT s2n_x509_validator_read_asn1_cert(struct s2n_stuffer *cert_chain_in_stuffer,
         struct s2n_blob *asn1_cert);
