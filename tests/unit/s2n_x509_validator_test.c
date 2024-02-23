@@ -2285,7 +2285,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(validator.state == VALIDATED);
         };
 
-        /* when certificate preference don't apply locally, certs in the trust store are still validated */
+        /* when certificate preference doesn't apply locally, certs in the trust store are still validated */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, (char *) &invalid_root_pem[0]));
