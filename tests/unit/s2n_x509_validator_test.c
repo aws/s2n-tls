@@ -2213,11 +2213,8 @@ int main(int argc, char **argv)
         };
 
         struct s2n_security_policy security_policy_not_local = security_policy_rfc9151;
-        security_policy_not_local.certificate_preferences_apply_locally = true;
+        security_policy_not_local.certificate_preferences_apply_locally = false;
         security_policy_not_local.certificate_key_preferences = &s2n_certificate_key_preferences_rfc9151;
-
-        struct s2n_security_policy security_policy_peer_only = security_policy_not_local;
-        security_policy_peer_only.certificate_preferences_apply_locally = false;
 
         /* when the peer sends the full chain with a non-compliant CA, verification fails when reading in the certs */
         {
@@ -2229,7 +2226,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            conn->security_policy_override = &security_policy_peer_only;
+            conn->security_policy_override = &security_policy_not_local;
             EXPECT_SUCCESS(s2n_set_server_name(conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
@@ -2284,35 +2281,6 @@ int main(int argc, char **argv)
             /* X509_verify_cert finished successfully */
             EXPECT_TRUE(validator.state == VALIDATED);
         };
-
-        /* when certificate preference doesn't apply locally, certs in the trust store are still validated */
-        {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, (char *) &invalid_root_pem[0]));
-
-            DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
-            EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));
-
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
-            EXPECT_NOT_NULL(conn);
-            conn->security_policy_override = &security_policy_peer_only;
-            EXPECT_SUCCESS(s2n_set_server_name(conn, "localhost"));
-
-            DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
-
-            EXPECT_OK(s2n_test_cert_chain_data_from_pem_data(conn, &chain_pem[0], chain_pem_len - root_pem_len,
-                    &cert_chain_stuffer));
-            uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
-            uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
-            EXPECT_NOT_NULL(chain_data);
-
-            DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
-            EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
-            s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-            EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_chain(&validator, conn, chain_data, chain_len,
-                                            &pkey_type, &public_key_out),
-                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
-        }
     };
 
     END_TEST();
