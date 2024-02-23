@@ -40,3 +40,4 @@ S2N_RESULT s2n_get_public_random_bytes_used(uint64_t *bytes_used);
 S2N_RESULT s2n_get_private_random_data(struct s2n_blob *blob);
 S2N_RESULT s2n_get_private_random_bytes_used(uint64_t *bytes_used);
 S2N_RESULT s2n_public_random(int64_t max, uint64_t *output);
+int s2n_openssl_compat_rand(unsigned char *buf, int num);
