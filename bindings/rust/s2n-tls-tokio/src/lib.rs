@@ -20,7 +20,7 @@ use std::{
     },
 };
 use tokio::{
-    io::{AsyncRead, AsyncWrite, ReadBuf},
+    io::{AsyncRead, AsyncWrite, AsyncWriteExt, ReadBuf},
     time::{sleep, Duration, Sleep},
 };
 
@@ -54,7 +54,7 @@ where
         S: AsyncRead + AsyncWrite + Unpin,
     {
         let conn = self.builder.build_connection(Mode::Server)?;
-        TlsStream::open(conn, stream).await
+        TlsStream::open_with_tcp_shutdown(conn, stream).await
     }
 }
 
@@ -84,7 +84,7 @@ where
     {
         let mut conn = self.builder.build_connection(Mode::Client)?;
         conn.as_mut().set_server_name(domain)?;
-        TlsStream::open(conn, stream).await
+        TlsStream::open_with_tcp_shutdown(conn, stream).await
     }
 }
 
@@ -94,7 +94,6 @@ where
     S: AsyncRead + AsyncWrite + Unpin,
 {
     tls: &'a mut TlsStream<S, C>,
-    error: Option<Error>,
 }
 
 impl<S, C> Future for TlsHandshake<'_, S, C>
@@ -109,32 +108,13 @@ where
         // or by polling Connection::poll_negotiate().
         // Connection::poll_negotiate() only completes once,
         // regardless of how often this method is polled.
-        let result = match self.error.take() {
-            Some(err) => Err(err),
-            None => {
-                let handshake_poll = self.tls.with_io(ctx, |context| {
-                    let conn = context.get_mut().as_mut();
-                    conn.poll_negotiate().map(|r| r.map(|_| ()))
-                });
-                ready!(handshake_poll)
-            }
-        };
-        // If the result isn't a fatal error, return it immediately.
-        // Otherwise, poll Connection::poll_shutdown().
-        //
-        // Shutdown is only best-effort.
-        // When Connection::poll_shutdown() completes, even with an error,
-        // we return the original Connection::poll_negotiate() error.
-        match result {
+        let handshake_poll = self.tls.with_io(ctx, |context| {
+            let conn = context.get_mut().as_mut();
+            conn.poll_negotiate().map(|r| r.map(|_| ()))
+        });
+        match ready!(handshake_poll) {
             Ok(r) => Ok(r).into(),
-            Err(e) if e.is_retryable() => Err(e).into(),
-            Err(e) => match Pin::new(&mut self.tls).poll_shutdown(ctx) {
-                Pending => {
-                    self.error = Some(e);
-                    Pending
-                }
-                Ready(_) => Err(e).into(),
-            },
+            Err(e) => Err(e).into(),
         }
     }
 }
@@ -165,20 +145,54 @@ where
         &mut self.stream
     }
 
-    async fn open(mut conn: C, stream: S) -> Result<Self, Error> {
-        conn.as_mut().set_blinding(Blinding::SelfService)?;
+    /// Establish a TLS stream with the peer. This performs a TLS handshake.
+    ///
+    /// On failures, it returns the stream back to the caller. No guarantees are made by this
+    /// function as to the state of the underlying stream at this point (e.g., buffer contents,
+    /// etc.), but this gives an opportunity for callers to try to make use of the stream even
+    /// after handshake failure.
+    ///
+    /// This function applies blinding in the case of a non-retryable handshake error and will try
+    /// to shutdown the underlying TLS stream (`poll_shutdown_send`), but will *not* shutdown the
+    /// underlying transport.
+    ///
+    /// Prefer using the higher level [`TlsAcceptor`] and [`TlsConnector`] APIs. Those APIs take
+    /// care of shutting down the underlying transport and blinding the stream if needed.
+    pub async fn open(mut conn: C, stream: S) -> Result<Self, (S, Error)> {
+        match conn.as_mut().set_blinding(Blinding::SelfService) {
+            Ok(_) => {}
+            Err(e) => return Err((stream, e)),
+        }
         let mut tls = TlsStream {
             conn,
             stream,
             blinding: None,
             shutdown_error: None,
         };
-        TlsHandshake {
-            tls: &mut tls,
-            error: None,
+        let res = TlsHandshake { tls: &mut tls }.await;
+        match res {
+            Ok(()) => Ok(tls),
+            Err(err) if err.is_retryable() => Err((tls.stream, err)),
+            Err(err) => {
+                let _ = tls.apply_blinding().await;
+
+                // Shutdown the TLS stream but *not* the TCP connection.
+                let _ = ShutdownSend { stream: &mut tls }.await;
+
+                Err((tls.stream, err))
+            }
         }
-        .await?;
-        Ok(tls)
+    }
+
+    async fn open_with_tcp_shutdown(conn: C, stream: S) -> Result<Self, Error> {
+        match Self::open(conn, stream).await {
+            Ok(s) => Ok(s),
+            Err((_, e)) if e.is_retryable() => Err(e),
+            Err((mut s, e)) => {
+                let _ = s.shutdown().await;
+                Err(e)
+            }
+        }
     }
 
     fn with_io<F, R>(&mut self, ctx: &mut Context, action: F) -> Poll<Result<R, Error>>
@@ -364,21 +378,14 @@ where
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         ready!(self.as_mut().poll_blinding(ctx))?;
 
-        // s2n_shutdown_send must not be called again if it errors
-        if self.shutdown_error.is_none() {
-            let result = ready!(self.as_mut().with_io(ctx, |mut context| {
-                context
-                    .conn
-                    .as_mut()
-                    .poll_shutdown_send()
-                    .map(|r| r.map(|_| ()))
-            }));
-            if let Err(error) = result {
-                self.shutdown_error = Some(error);
-                // s2n_shutdown_send only writes, so will never trigger blinding again.
-                // So we do not need to poll_blinding again after this error.
-            }
-        };
+        // ShutdownSend doesn't retain any state itself so it's fine to create it on each poll.
+        //
+        // The error is also stashed in self.shutdown_error (so ignoring is OK). We want to
+        // shutdown the TCP stream regardless.
+        let _ = ready!(Pin::new(&mut ShutdownSend {
+            stream: &mut *self.as_mut(),
+        })
+        .poll(ctx));
 
         let tcp_result = ready!(Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx));
 
@@ -427,5 +434,43 @@ where
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
         Pin::new(&mut *self.as_mut().stream).poll_blinding(ctx)
+    }
+}
+
+struct ShutdownSend<'a, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    stream: &'a mut TlsStream<S, C>,
+}
+
+impl<'a, S, C> Future for ShutdownSend<'a, S, C>
+where
+    C: AsRef<Connection> + AsMut<Connection> + Unpin,
+    S: AsyncRead + AsyncWrite + Unpin,
+{
+    type Output = Result<(), Error>;
+
+    fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
+        let mut this = self.as_mut();
+        let mut stream = Pin::new(&mut *this.stream);
+        // s2n_shutdown_send must not be called again if it errors
+        if stream.shutdown_error.is_none() {
+            let result = ready!(stream.as_mut().with_io(ctx, |mut context| {
+                context
+                    .conn
+                    .as_mut()
+                    .poll_shutdown_send()
+                    .map(|r| r.map(|_| ()))
+            }));
+            if let Err(error) = result {
+                stream.shutdown_error = Some(error);
+                // s2n_shutdown_send only writes, so will never trigger blinding again.
+                // So we do not need to poll_blinding again after this error.
+            }
+        };
+
+        Poll::Ready(Ok(()))
     }
 }

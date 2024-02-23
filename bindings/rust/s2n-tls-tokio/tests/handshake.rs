@@ -4,15 +4,18 @@
 use rand::Rng;
 use s2n_tls::{
     config::Config,
-    connection::{Connection, ModifiedBuilder},
+    connection::{Builder, Connection, ModifiedBuilder},
     enums::{ClientAuthType, Mode, Version},
     error::{Error, ErrorType},
     pool::ConfigPoolBuilder,
     security::DEFAULT_TLS13,
 };
-use s2n_tls_tokio::{TlsAcceptor, TlsConnector};
+use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::{collections::VecDeque, time::Duration};
-use tokio::time;
+use tokio::{
+    io::{AsyncReadExt, AsyncWriteExt},
+    time,
+};
 
 pub mod common;
 
@@ -175,6 +178,67 @@ async fn handshake_error_with_blinding() -> Result<(), Box<dyn std::error::Error
     // Handshake MUST eventually gracefully fail after blinding
     let error = result.unwrap_err();
     assert_eq!(error.kind(), ErrorType::ProtocolError);
+
+    Ok(())
+}
+
+#[tokio::test(start_paused = true)]
+async fn low_level_handshake_still_blinded() -> Result<(), Box<dyn std::error::Error>> {
+    let clock = common::TokioTime::default();
+
+    // Config::builder() does not include a trust store.
+    // The client will reject the server certificate as untrusted.
+    let mut bad_config = Config::builder();
+    bad_config.set_security_policy(&DEFAULT_TLS13)?;
+    bad_config.set_monotonic_clock(clock)?;
+    let client_config = bad_config.build()?;
+    let server_config = common::server_config()?.build()?;
+
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let time_start = time::Instant::now();
+
+    let mut client_conn = client_config.build_connection(Mode::Client)?;
+    client_conn.set_server_name("localhost")?;
+    let server_conn = server_config.build_connection(Mode::Server)?;
+    let result = tokio::join!(
+        async move { TlsStream::open(client_conn, client_stream).await },
+        async move { TlsStream::open(server_conn, server_stream).await },
+    );
+    let time_elapsed = time_start.elapsed();
+
+    // Handshake MUST NOT finish faster than minimal blinding time, just like with the high level
+    // APIs.
+    assert!(time_elapsed > common::MIN_BLINDING_SECS);
+
+    // Handshake MUST eventually gracefully fail after blinding
+    let mut client = result.0.unwrap_err();
+    let mut server = result.1.unwrap_err();
+    assert_eq!(client.1.kind(), ErrorType::ProtocolError);
+    // Server receives the TLS-level shutdown.
+    assert_eq!(server.1.kind(), ErrorType::ConnectionClosed);
+
+    let msg = b"underlying connection still open";
+    client.0.write_all(msg).await?;
+    client.0.shutdown().await?;
+    let mut buffer = Vec::new();
+    server.0.read_to_end(&mut buffer).await?;
+    // Message is received in cleartext on the connection after the handshake.
+    //
+    // Note that there may also be garbage (partial TLS frames) in the connection in addition to
+    // just the message we just sent in plaintext.
+    assert!(buffer.windows(msg.len()).any(|w| w == msg));
+
+    let msg = b"underlying connection still open in both directions";
+    server.0.write_all(msg).await?;
+    server.0.shutdown().await?;
+    let mut buffer = Vec::new();
+    client.0.read_to_end(&mut buffer).await?;
+    // Message is received in cleartext on the connection after the handshake.
+    //
+    // Note that there may also be garbage (partial TLS frames) in the connection in addition to
+    // just the message we just sent in plaintext.
+    assert!(buffer.windows(msg.len()).any(|w| w == msg));
 
     Ok(())
 }
