@@ -145,6 +145,15 @@ where
         &mut self.stream
     }
 
+    /// Deconstructs the TlsStream into the underlying IO stream.
+    ///
+    /// This ignores any ongoing TLS state and returns the raw IO stream. Similar to the stream
+    /// returned by [`open`], it is in an indeterminate state (e.g., buffer contents may or may not
+    /// contain TLS data).
+    pub fn unwrap_into_stream(self) -> S {
+        self.stream
+    }
+
     /// Establish a TLS stream with the peer. This performs a TLS handshake.
     ///
     /// On failures, it returns the stream back to the caller. No guarantees are made by this

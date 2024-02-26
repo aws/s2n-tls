@@ -257,5 +257,11 @@ async fn io_stream_access() -> Result<(), Box<dyn std::error::Error>> {
     assert_eq!(client_result.get_ref().local_addr().unwrap(), client_addr);
     assert_eq!(client_result.get_mut().local_addr().unwrap(), client_addr);
 
+    // This is a terminal operation but still makes sense to check it.
+    assert_eq!(
+        client_result.unwrap_into_stream().local_addr().unwrap(),
+        client_addr
+    );
+
     Ok(())
 }
