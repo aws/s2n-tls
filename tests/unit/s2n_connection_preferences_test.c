@@ -256,6 +256,10 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_ecc_preferences(conn, &ecc_preferences), S2N_ERR_INVALID_ECC_PREFERENCES);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* The static configs were mutated. Reset them to allow following unit tests to use them. */
+        s2n_wipe_static_configs();
+        EXPECT_SUCCESS(s2n_config_defaults_init());
     };
 
     /* s2n_connection_get_curve */
