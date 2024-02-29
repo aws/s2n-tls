@@ -102,7 +102,8 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
             break;
         case S2N_KTLS_MODE_RECV:
             RESULT_ENSURE(conn->managed_recv_io, S2N_ERR_KTLS_MANAGED_IO);
-            /* The input stuffer should be empty before enabling kTLS. */
+            /* The input stuffers should be empty before enabling kTLS. */
+            RESULT_ENSURE(s2n_stuffer_data_available(&conn->header_in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
             RESULT_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
             break;
         default:

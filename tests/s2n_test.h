@@ -61,17 +61,12 @@ int test_count;
  * not initialise at the start of the test. Useful for tests that e.g spawn a
  * number of independent childs at the start of a unit test and where you want
  * each child to have its own independently initialised s2n.
- *
- * BEGIN_TEST() prints unit test information to stdout. But this often gets
- * buffered by the kernel and will then be flushed in each child spawned. The
- * result is a number of repeated messages being send to stdout and, in turn,
- * appear in the logs. At the moment, we think this is better than risking not
- * having any printing at all.
  */
 #define BEGIN_TEST_NO_INIT()                                        \
     do {                                                            \
         test_count = 0;                                             \
         fprintf(stdout, "Running %-50s ... ", __FILE__);            \
+        fflush(stdout);                                             \
         EXPECT_SUCCESS_WITHOUT_COUNT(s2n_in_unit_test_set(true));   \
         S2N_TEST_OPTIONALLY_ENABLE_FIPS_MODE();                     \
     } while(0)

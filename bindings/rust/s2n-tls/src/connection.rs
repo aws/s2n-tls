@@ -5,6 +5,7 @@
 
 use crate::{
     callbacks::*,
+    cert_chain::CertificateChain,
     config::Config,
     enums::*,
     error::{Error, Fallible, Pollable},
@@ -851,6 +852,44 @@ impl Connection {
             )
             .into_result()
             .map(|_| ())
+        }
+    }
+
+    /// Returns the validated peer certificate chain.
+    // 'static lifetime is because this copies the certificate chain from the connection into a new
+    // chain, so the lifetime is independent of the connection.
+    pub fn peer_cert_chain(&self) -> Result<CertificateChain<'static>, Error> {
+        unsafe {
+            let mut chain = CertificateChain::new()?;
+            s2n_connection_get_peer_cert_chain(
+                self.connection.as_ptr(),
+                chain.as_mut_ptr().as_ptr(),
+            )
+            .into_result()
+            .map(|_| ())?;
+            Ok(chain)
+        }
+    }
+
+    /// Get the certificate used during the TLS handshake
+    ///
+    /// - If `self` is a server connection, the certificate selected will depend on the
+    ///   ServerName sent by the client and supported ciphers.
+    /// - If `self` is a client connection, the certificate sent in response to a CertificateRequest
+    ///   message is returned. Currently s2n-tls supports loading only one certificate in client mode. Note that
+    ///   not all TLS endpoints will request a certificate.
+    pub fn selected_cert(&self) -> Option<CertificateChain<'_>> {
+        unsafe {
+            // The API only returns null, no error is actually set.
+            // Clippy doesn't realize from_ptr_reference is unsafe.
+            #[allow(clippy::manual_map)]
+            if let Some(ptr) =
+                NonNull::new(s2n_connection_get_selected_cert(self.connection.as_ptr()))
+            {
+                Some(CertificateChain::from_ptr_reference(ptr))
+            } else {
+                None
+            }
         }
     }
 }

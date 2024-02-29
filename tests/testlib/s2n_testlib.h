@@ -186,6 +186,11 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
  * that our certificate validation code does not fail a root certificate signed with SHA-1. */
 #define S2N_SHA1_ROOT_SIGNATURE_CA_CERT "../pems/rsa_1024_sha1_CA_cert.pem"
 
+/* The leaf and intermediate have larger key sizes than the root. */
+#define S2N_MIXED_CHAIN_CERTS "../pems/mixed_chains/ecdsa/server-chain.pem"
+#define S2N_MIXED_CHAIN_KEY   "../pems/mixed_chains/ecdsa/server-key.pem"
+#define S2N_MIXED_CHAIN_CA    "../pems/mixed_chains/ecdsa/ca-cert.pem"
+
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
 #define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
 

@@ -17,6 +17,9 @@
 
 #include "api/s2n.h"
 
+DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
+DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
+
 S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
 {
     RESULT_ENSURE_REF(*cert_chain);
@@ -113,6 +116,23 @@ S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info
      */
     RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL),
             S2N_ERR_CERT_TYPE_UNSUPPORTED);
+
+    DEFER_CLEANUP(EVP_PKEY *pubkey = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
+    RESULT_ENSURE(pubkey != NULL, S2N_ERR_DECODE_CERTIFICATE);
+
+    info->public_key_bits = EVP_PKEY_bits(pubkey);
+    RESULT_ENSURE(info->public_key_bits > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+
+    if (EVP_PKEY_base_id(pubkey) == EVP_PKEY_EC) {
+        DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pubkey), EC_KEY_free_pointer);
+        RESULT_ENSURE_REF(ec_key);
+        const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
+        RESULT_ENSURE_REF(ec_group);
+        info->public_key_nid = EC_GROUP_get_curve_name(ec_group);
+    } else {
+        info->public_key_nid = EVP_PKEY_id(pubkey);
+    }
+    RESULT_ENSURE(info->public_key_nid != NID_undef, S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
     return S2N_RESULT_OK;
 }

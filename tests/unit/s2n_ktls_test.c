@@ -370,14 +370,20 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&server_conn->out, write_byte));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_send(server_conn), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
             /* drain conn->out buffer and assert success case */
-            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&server_conn->out, &read_byte, 1));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&server_conn->out, &read_byte));
             EXPECT_SUCCESS(s2n_connection_ktls_enable_send(server_conn));
 
-            /* write to conn->in buffer and assert error */
+            /* write to conn->header_in and assert error */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&server_conn->header_in, write_byte));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&server_conn->header_in, &read_byte));
+            /* write to conn->in and assert error */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&server_conn->in, write_byte));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
-            /* drain conn->in buffer and assert success case */
-            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&server_conn->in, &read_byte, 1));
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&server_conn->in, &read_byte));
+            /* assert success with both IO buffers drained */
+            EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->header_in), 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&server_conn->in), 0);
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
         };
 
