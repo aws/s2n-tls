@@ -1968,6 +1968,7 @@ struct s2n_cipher_suite *cipher_suites_20210816[] = {
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_gcm_sha384,
 };
 
 const struct s2n_cipher_preferences cipher_preferences_20210816 = {
@@ -1979,6 +1980,7 @@ const struct s2n_cipher_preferences cipher_preferences_20210816 = {
 struct s2n_cipher_suite *cipher_suites_20210816_gcm[] = {
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_gcm_sha384,
     &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
 };
