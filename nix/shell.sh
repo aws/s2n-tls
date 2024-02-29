@@ -14,7 +14,7 @@ function libcrypto_alias {
       alias $1=$2
       echo "Libcrypto $2 available as $1"
       else
-      banner "Could not find libcrdypto $2 for alias"
+      banner "Could not find libcrypto $2 for alias"
     fi
 }
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
