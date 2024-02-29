@@ -10,11 +10,13 @@ banner()
 }
 
 function libcrypto_alias {
-    if [[ -f $2 ]]; then
-      alias $1=$2
-      echo "Libcrypto $2 available as $1"
-      else
-      banner "Could not find libcrypto $2 for alias"
+    local libcrypto_name=$1
+    local libcrypto_binary_path=$2
+    if [[ -f $libcrypto_binary_path ]]; then
+      alias $libcrypto_name=$libcrypto_binary_path
+      echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
+    else
+      banner "Could not find libcrypto $libcrypto_binary_path for alias"
     fi
 }
 libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
@@ -22,8 +24,7 @@ libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
 libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
 libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
 libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
-libcrypto_alias gnutls-cli "${GNUTLS_INSTALL_DIR}/bin/gnutls-cli"
-
+#No need to alias gnutls because of it's included in common_packages (see flake.nix)
 
 function clean {
     banner "Cleanup ./build"
