@@ -241,7 +241,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2));
 
             s2n_extension_type request_extension_type = test_extension_type;
             request_extension_type.is_response = false;
@@ -283,7 +283,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN * 2));
 
             s2n_extension_type response_extension_type = test_extension_type;
             response_extension_type.is_response = true;
@@ -332,7 +332,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN);
+            EXPECT_SUCCESS(s2n_stuffer_alloc(&stuffer, S2N_TEST_DATA_LEN));
 
             s2n_extension_type extension_type_with_failure = test_extension_type;
             extension_type_with_failure.send = s2n_extension_send_unimplemented;
@@ -348,7 +348,7 @@ int main()
         {
             struct s2n_connection conn = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            s2n_stuffer_growable_alloc(&stuffer, 0);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
             s2n_extension_type extension_type_with_too_much_data = test_extension_type;
             extension_type_with_too_much_data.send = test_send_too_much_data;

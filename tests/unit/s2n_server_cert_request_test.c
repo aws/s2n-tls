@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer *in = &server_conn->handshake.io;
         uint8_t cert_types_len;
 
-        s2n_stuffer_read_uint8(in, &cert_types_len);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(in, &cert_types_len));
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
@@ -92,7 +92,7 @@ int main(int argc, char **argv)
         struct s2n_stuffer *in = &server_conn->handshake.io;
         uint8_t cert_types_len;
 
-        s2n_stuffer_read_uint8(in, &cert_types_len);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(in, &cert_types_len));
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
