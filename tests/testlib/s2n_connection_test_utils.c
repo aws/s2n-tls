@@ -58,7 +58,7 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    POSIX_GUARD(s2n_stuffer_read_bytes(in_buf, buf, n_read));
+    POSIX_ENSURE_OK(s2n_stuffer_read_bytes(in_buf, buf, n_read), EIO);
     return n_read;
 }
 
