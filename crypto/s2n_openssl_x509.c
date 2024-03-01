@@ -17,6 +17,9 @@
 
 #include "api/s2n.h"
 
+DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY *, EVP_PKEY_free);
+DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
+
 S2N_CLEANUP_RESULT s2n_openssl_x509_stack_pop_free(STACK_OF(X509) **cert_chain)
 {
     RESULT_ENSURE_REF(*cert_chain);
@@ -80,6 +83,56 @@ S2N_RESULT s2n_openssl_x509_parse(struct s2n_blob *asn1der, X509 **cert_out)
      * Allow this in s2n for backwards compatibility with existing clients. */
     uint32_t trailing_bytes = asn1der->size - parsed_len;
     RESULT_ENSURE(trailing_bytes <= S2N_MAX_ALLOWED_CERT_TRAILING_BYTES, S2N_ERR_DECODE_CERTIFICATE);
+
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info)
+{
+    RESULT_ENSURE_REF(cert);
+    RESULT_ENSURE_REF(info);
+
+    X509_NAME *issuer_name = X509_get_issuer_name(cert);
+    RESULT_ENSURE_REF(issuer_name);
+
+    X509_NAME *subject_name = X509_get_subject_name(cert);
+    RESULT_ENSURE_REF(subject_name);
+
+    if (X509_NAME_cmp(issuer_name, subject_name) == 0) {
+        info->self_signed = true;
+    } else {
+        info->self_signed = false;
+    }
+
+#if defined(LIBRESSL_VERSION_NUMBER) && (LIBRESSL_VERSION_NUMBER < 0x02070000f)
+    RESULT_ENSURE_REF(cert->sig_alg);
+    info->signature_nid = OBJ_obj2nid(cert->sig_alg->algorithm);
+#else
+    info->signature_nid = X509_get_signature_nid(cert);
+#endif
+    /* These is no method to directly retrieve that signature digest from the X509*
+     * that is available in all libcryptos, so instead we use find_sigid_algs. For
+     * a signature NID_ecdsa_with_SHA256 this will return NID_SHA256 
+     */
+    RESULT_GUARD_OSSL(OBJ_find_sigid_algs(info->signature_nid, &info->signature_digest_nid, NULL),
+            S2N_ERR_CERT_TYPE_UNSUPPORTED);
+
+    DEFER_CLEANUP(EVP_PKEY *pubkey = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
+    RESULT_ENSURE(pubkey != NULL, S2N_ERR_DECODE_CERTIFICATE);
+
+    info->public_key_bits = EVP_PKEY_bits(pubkey);
+    RESULT_ENSURE(info->public_key_bits > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
+
+    if (EVP_PKEY_base_id(pubkey) == EVP_PKEY_EC) {
+        DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(pubkey), EC_KEY_free_pointer);
+        RESULT_ENSURE_REF(ec_key);
+        const EC_GROUP *ec_group = EC_KEY_get0_group(ec_key);
+        RESULT_ENSURE_REF(ec_group);
+        info->public_key_nid = EC_GROUP_get_curve_name(ec_group);
+    } else {
+        info->public_key_nid = EVP_PKEY_id(pubkey);
+    }
+    RESULT_ENSURE(info->public_key_nid != NID_undef, S2N_ERR_CERT_TYPE_UNSUPPORTED);
 
     return S2N_RESULT_OK;
 }

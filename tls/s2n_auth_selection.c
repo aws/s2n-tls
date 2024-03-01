@@ -123,7 +123,7 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
         POSIX_ENSURE_REF(cert->cert_chain);
         POSIX_ENSURE_REF(cert->cert_chain->head);
         POSIX_ENSURE_EQ(cert->cert_chain->head->pkey_type, S2N_PKEY_TYPE_ECDSA);
-        POSIX_ENSURE_EQ(cert->cert_chain->head->ec_curve_nid, sig_scheme->signature_curve->libcrypto_nid);
+        POSIX_ENSURE_EQ(cert->cert_chain->head->info.public_key_nid, sig_scheme->signature_curve->libcrypto_nid);
     }
 
     return S2N_SUCCESS;

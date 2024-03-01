@@ -99,18 +99,6 @@ if [[ "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ]]; then
         fi
     fi
 
-    if [[ ! -x "$OPENSSL_0_9_8_INSTALL_DIR/bin/openssl" ]]; then
-      # Download and Install Openssl 0.9.8
-      mkdir -p "$OPENSSL_0_9_8_INSTALL_DIR"||true
-      codebuild/bin/install_openssl_0_9_8.sh "$(mktemp -d)" "$OPENSSL_0_9_8_INSTALL_DIR" "$OS_NAME" > /dev/null ;
-    fi
-
-    if [[ ! -x "$GNUTLS_INSTALL_DIR/bin/gnutls-cli" ]]; then
-      # Download and Install GnuTLS for integration tests
-      mkdir -p "$GNUTLS_INSTALL_DIR"||true
-      codebuild/bin/install_gnutls.sh "$(mktemp -d)" "$GNUTLS_INSTALL_DIR" > /dev/null ;
-    fi
-
     if [[ ! -x "$GNUTLS37_INSTALL_DIR/bin/gnutls-cli" ]]; then
       # Download and Install GnuTLS for integration tests
       mkdir -p "$GNUTLS37_INSTALL_DIR"||true
