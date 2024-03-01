@@ -150,7 +150,7 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_EC_PARAMETERS) != S2N_SUCCESS) {
         POSIX_GUARD(s2n_stuffer_reread(pem));
     }
-    s2n_stuffer_wipe(asn1);
+    POSIX_GUARD(s2n_stuffer_wipe(asn1));
 
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_EC_PRIVATE_KEY) == S2N_SUCCESS) {
         *type = EVP_PKEY_EC;
