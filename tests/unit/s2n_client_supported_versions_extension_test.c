@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer client_hello = conn->handshake.io;
         uint8_t version[2];
-        POSIX_GUARD(s2n_stuffer_read_bytes(&client_hello, version, 2));
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&client_hello, version, 2));
 
         EXPECT_EQUAL(version[0], 0x03);
         EXPECT_EQUAL(version[1], 0x03);
