@@ -2008,7 +2008,7 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
  * @param buf A pointer to a buffer that s2n will write data from
  * @param size The size of buf
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 
@@ -2021,7 +2021,7 @@ S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ss
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write. 
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
 
@@ -2040,7 +2040,7 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  * @param count The number of buffers in `bufs`
  * @param offs The write cursor offset. This should be updated as data is written. See the example code.
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write. 
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
 
@@ -2057,7 +2057,7 @@ S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const 
  * @param buf A pointer to a buffer that s2n will place read data into.
  * @param size Size of `buf`
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns number of bytes read. 0 if the connection was shutdown by peer.
+ * @returns The number of bytes read on success. 0 if the connection was shutdown by the peer. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked);
 
