@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
     struct s2n_blob test_secret = { 0 };
     uint8_t test_secret_bytes[S2N_TLS13_SECRET_MAX_LEN] = "hello world";
-    EXPECT_SUCCESS(s2n_blob_init(&test_secret, test_secret_bytes, sizeof(test_secret_bytes)));
+    EXPECT_OK(s2n_blob_init(&test_secret, test_secret_bytes, sizeof(test_secret_bytes)));
 
     struct s2n_tls13_secrets_test_case test_cases[1000] = { 0 };
     size_t test_cases_count = 0;
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
         {
             uint8_t output_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
             struct s2n_blob output = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
+            EXPECT_OK(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
         {
             uint8_t output_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
             struct s2n_blob output = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
+            EXPECT_OK(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -225,7 +225,7 @@ int main(int argc, char **argv)
         {
             uint8_t output_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
             struct s2n_blob output = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
+            EXPECT_OK(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i < test_cases_count; i++) {
             uint8_t output_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
             struct s2n_blob output = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
+            EXPECT_OK(s2n_blob_init(&output, output_bytes, sizeof(output_bytes)));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(test_cases[i].conn_mode),
                     s2n_connection_ptr_free);
@@ -346,7 +346,7 @@ int main(int argc, char **argv)
 
             struct s2n_blob result = { 0 };
             uint8_t result_bytes[S2N_TLS13_SECRET_MAX_LEN] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&result, result_bytes, sizeof(result_bytes)));
+            EXPECT_OK(s2n_blob_init(&result, result_bytes, sizeof(result_bytes)));
             EXPECT_OK(s2n_tls13_secrets_get(conn, S2N_HANDSHAKE_SECRET, S2N_CLIENT, &result));
 
             EXPECT_TRUE(result.size > 0);

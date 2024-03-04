@@ -357,7 +357,7 @@ static int s2n_test_bad_sign(const struct s2n_pkey *pub_key, s2n_signature_algor
     /* Just write all zeroes.
      * This could accidentally be the correct signature, but it's very unlikely.
      */
-    POSIX_GUARD(s2n_blob_zero(signature));
+    POSIX_GUARD_RESULT(s2n_blob_zero(signature));
     return S2N_SUCCESS;
 }
 
@@ -639,12 +639,12 @@ int main(int argc, char **argv)
         conn->config->async_pkey_cb = async_pkey_decrypt_callback;
 
         struct s2n_blob encrypted_data = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&encrypted_data, test_encrypted_data, test_encrypted_size));
+        EXPECT_OK(s2n_blob_init(&encrypted_data, test_encrypted_data, test_encrypted_size));
 
         struct s2n_blob decrypted_data = { 0 };
         /* Re-use the encrypted data buffer to make sure that the data was actually transformed in the callback. 
          * If we filled this with the decrypted data, we would not know if the decryption happened in the callback. */
-        EXPECT_SUCCESS(s2n_blob_init(&decrypted_data, test_encrypted_data, test_encrypted_size));
+        EXPECT_OK(s2n_blob_init(&decrypted_data, test_encrypted_data, test_encrypted_size));
 
         EXPECT_FALSE(s2n_result_is_ok(s2n_async_pkey_decrypt(conn, &encrypted_data, &decrypted_data, s2n_async_decrypt_complete)));
         EXPECT_TRUE(s2n_errno == S2N_ERR_ASYNC_BLOCKED);

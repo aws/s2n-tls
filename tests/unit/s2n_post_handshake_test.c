@@ -108,7 +108,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < num_key_updates; i++) {
                 uint8_t data[KEY_UPDATE_MESSAGE_SIZE] = { 0 };
                 struct s2n_blob key_update_message = { 0 };
-                EXPECT_SUCCESS(s2n_blob_init(&key_update_message, data, sizeof(data)));
+                EXPECT_OK(s2n_blob_init(&key_update_message, data, sizeof(data)));
                 EXPECT_SUCCESS(s2n_key_update_write(&key_update_message));
                 EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, key_update_message.data, key_update_message.size));
             }

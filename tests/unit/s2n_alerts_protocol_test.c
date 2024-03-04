@@ -148,7 +148,7 @@ int main(int argc, char **argv)
                 /* Send alert */
                 struct s2n_blob alert = { 0 };
                 s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-                EXPECT_SUCCESS(s2n_blob_init(&alert, error_alerts[i], sizeof(error_alerts[0])));
+                EXPECT_OK(s2n_blob_init(&alert, error_alerts[i], sizeof(error_alerts[0])));
                 EXPECT_OK(s2n_record_write(sender, TLS_ALERT, &alert));
                 EXPECT_SUCCESS(s2n_flush(sender, &blocked));
 

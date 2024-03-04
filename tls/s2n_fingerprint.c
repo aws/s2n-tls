@@ -273,7 +273,7 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
     uint8_t string_mem[50] = { 0 };
     struct s2n_blob string_blob = { 0 };
     struct s2n_stuffer string_stuffer = { 0 };
-    POSIX_GUARD(s2n_blob_init(&string_blob, string_mem, sizeof(string_mem)));
+    POSIX_GUARD_RESULT(s2n_blob_init(&string_blob, string_mem, sizeof(string_mem)));
     POSIX_GUARD(s2n_stuffer_init(&string_stuffer, &string_blob));
 
     /* JA3 uses an MD5 hash.
@@ -312,7 +312,7 @@ int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch, s2n_fin
 
     struct s2n_blob output_blob = { 0 };
     struct s2n_stuffer output_stuffer = { 0 };
-    POSIX_GUARD(s2n_blob_init(&output_blob, output, max_size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&output_blob, output, max_size));
     POSIX_GUARD(s2n_stuffer_init(&output_stuffer, &output_blob));
 
     POSIX_GUARD_RESULT(s2n_fingerprint_ja3(ch, &output_stuffer, output_size, NULL));

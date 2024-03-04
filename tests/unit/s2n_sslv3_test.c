@@ -23,7 +23,7 @@ S2N_RESULT s2n_test_send_receive_data(struct s2n_connection *sender, struct s2n_
 {
     uint8_t test_data[S2N_TEST_DATA_SIZE] = { 0 };
     struct s2n_blob test_data_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
+    EXPECT_OK(s2n_blob_init(&test_data_blob, test_data, sizeof(test_data)));
     EXPECT_OK(s2n_get_public_random_data(&test_data_blob));
 
     /* Send data */

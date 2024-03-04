@@ -224,7 +224,7 @@ int main(int argc, char **argv)
     {
         uint8_t protocol3[] = "protocol3";
         struct s2n_blob protocol3_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&protocol3_blob, protocol3, sizeof(protocol3)));
+        EXPECT_OK(s2n_blob_init(&protocol3_blob, protocol3, sizeof(protocol3)));
 
         /* Safety checks */
         {

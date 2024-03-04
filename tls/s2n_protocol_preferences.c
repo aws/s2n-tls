@@ -29,7 +29,7 @@ S2N_RESULT s2n_protocol_preferences_read(struct s2n_stuffer *protocol_preference
     uint8_t *data = s2n_stuffer_raw_read(protocol_preferences, length);
     RESULT_ENSURE_REF(data);
 
-    RESULT_GUARD_POSIX(s2n_blob_init(protocol, data, length));
+    RESULT_GUARD(s2n_blob_init(protocol, data, length));
     return S2N_RESULT_OK;
 }
 

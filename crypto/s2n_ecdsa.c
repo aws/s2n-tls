@@ -102,7 +102,7 @@ static int s2n_ecdsa_sign(const struct s2n_pkey *priv, s2n_signature_algorithm s
     POSIX_GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     struct s2n_blob digest_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&digest_blob, digest_out, digest_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&digest_blob, digest_out, digest_length));
     POSIX_GUARD(s2n_ecdsa_sign_digest(priv, &digest_blob, signature));
 
     POSIX_GUARD(s2n_hash_reset(digest));

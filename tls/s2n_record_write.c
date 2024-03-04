@@ -346,7 +346,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
      */
     struct s2n_blob record_blob = { 0 };
     struct s2n_stuffer record_stuffer = { 0 };
-    POSIX_GUARD(s2n_blob_init(&record_blob,
+    POSIX_GUARD_RESULT(s2n_blob_init(&record_blob,
             conn->out.blob.data + conn->out.write_cursor,
             s2n_stuffer_space_remaining(&conn->out)));
     POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &record_blob));
@@ -401,7 +401,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
         struct s2n_stuffer iv_stuffer = { 0 };
-        POSIX_GUARD(s2n_blob_init(&iv, aad_iv, sizeof(aad_iv)));
+        POSIX_GUARD_RESULT(s2n_blob_init(&iv, aad_iv, sizeof(aad_iv)));
         POSIX_GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
 
         if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
@@ -429,7 +429,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
             POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
         }
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        POSIX_GUARD(s2n_blob_init(&iv, implicit_iv, block_size));
+        POSIX_GUARD_RESULT(s2n_blob_init(&iv, implicit_iv, block_size));
 
         /* For TLS1.1/1.2; write the IV with random data */
         if (conn->actual_protocol_version > S2N_TLS10) {
@@ -450,7 +450,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
                  */
                 struct s2n_blob explicit_iv_placeholder = { 0 };
                 uint8_t zero_block[S2N_TLS_MAX_IV_LEN] = { 0 };
-                POSIX_GUARD(s2n_blob_init(&explicit_iv_placeholder, zero_block, block_size));
+                POSIX_GUARD_RESULT(s2n_blob_init(&explicit_iv_placeholder, zero_block, block_size));
                 POSIX_GUARD_RESULT(s2n_get_public_random_data(&explicit_iv_placeholder));
                 POSIX_GUARD(s2n_stuffer_write(&record_stuffer, &explicit_iv_placeholder));
             } else {
@@ -464,7 +464,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
 
     /* We are done with this sequence number, so we can increment it */
     struct s2n_blob seq = { 0 };
-    POSIX_GUARD(s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    POSIX_GUARD_RESULT(s2n_blob_init(&seq, sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
     POSIX_GUARD(s2n_increment_sequence_number(&seq));
 
     /* Write the plaintext data */

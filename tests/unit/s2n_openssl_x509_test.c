@@ -47,7 +47,7 @@ int main(int argc, char **argv)
                 &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
 
         struct s2n_blob cert_chain_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));
+        EXPECT_OK(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_init_written(&cert_chain_stuffer, &cert_chain_blob));
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
                 &cert_chain_len, S2N_MAX_TEST_PEM_SIZE));
 
         struct s2n_blob cert_chain_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));
+        EXPECT_OK(s2n_blob_init(&cert_chain_blob, cert_chain_data, cert_chain_len));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_init_written(&cert_chain_stuffer, &cert_chain_blob));

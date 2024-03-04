@@ -86,7 +86,7 @@ int s2n_tls13_server_finished_recv(struct s2n_connection *conn)
 
     /* read finished mac from handshake */
     struct s2n_blob wire_finished_mac = { 0 };
-    POSIX_GUARD(s2n_blob_init(&wire_finished_mac, s2n_stuffer_raw_read(&conn->handshake.io, length), length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&wire_finished_mac, s2n_stuffer_raw_read(&conn->handshake.io, length), length));
 
     /* get tls13 keys */
     s2n_tls13_connection_keys(keys, conn);
@@ -98,7 +98,7 @@ int s2n_tls13_server_finished_recv(struct s2n_connection *conn)
 
     /* look up finished secret key */
     struct s2n_blob finished_key = { 0 };
-    POSIX_GUARD(s2n_blob_init(&finished_key, conn->handshake.server_finished, keys.size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&finished_key, conn->handshake.server_finished, keys.size));
 
     /* generate the hashed message authenticated code */
     s2n_tls13_key_blob(server_finished_mac, keys.size);
@@ -124,7 +124,7 @@ int s2n_tls13_server_finished_send(struct s2n_connection *conn)
 
     /* look up finished secret key */
     struct s2n_blob finished_key = { 0 };
-    POSIX_GUARD(s2n_blob_init(&finished_key, conn->handshake.server_finished, keys.size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&finished_key, conn->handshake.server_finished, keys.size));
 
     /* generate the hashed message authenticated code */
     s2n_tls13_key_blob(server_finished_mac, keys.size);

@@ -54,7 +54,7 @@ static int s2n_overwrite_client_hello_cb(struct s2n_connection *conn, void *ctx)
 
     if (context->extension_length) {
         struct s2n_blob supported_versions_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&supported_versions_blob, context->supported_versions_data,
+        EXPECT_OK(s2n_blob_init(&supported_versions_blob, context->supported_versions_data,
                 sizeof(context->supported_versions_data)));
 
         struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
