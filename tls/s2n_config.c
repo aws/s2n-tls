@@ -410,7 +410,7 @@ int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
 {
     POSIX_ENSURE_REF(config);
-    config->client_cert_auth_type_overridden = true;
+    config->client_cert_auth_type_overridden = 1;
     config->client_cert_auth_type = client_auth_type;
     return 0;
 }

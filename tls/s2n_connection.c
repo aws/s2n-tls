@@ -772,7 +772,7 @@ static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_get_client_auth_type(const struct s2n_connection *conn,
+int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
         s2n_cert_auth_type *client_cert_auth_type)
 {
     POSIX_ENSURE_REF(conn);
@@ -783,7 +783,7 @@ int s2n_connection_get_client_auth_type(const struct s2n_connection *conn,
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
 {
-    conn->client_cert_auth_type_overridden = true;
+    conn->client_cert_auth_type_overridden = 1;
     conn->client_cert_auth_type = client_cert_auth_type;
     return 0;
 }
