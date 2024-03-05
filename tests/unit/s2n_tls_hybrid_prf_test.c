@@ -95,9 +95,9 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_blob combined_pms = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&combined_pms, classic_pms.size + kem_pms.size));
         struct s2n_stuffer combined_stuffer = { 0 };
-        s2n_stuffer_init(&combined_stuffer, &combined_pms);
-        s2n_stuffer_write(&combined_stuffer, &classic_pms);
-        s2n_stuffer_write(&combined_stuffer, &kem_pms);
+        EXPECT_SUCCESS(s2n_stuffer_init(&combined_stuffer, &combined_pms));
+        EXPECT_SUCCESS(s2n_stuffer_write(&combined_stuffer, &classic_pms));
+        EXPECT_SUCCESS(s2n_stuffer_write(&combined_stuffer, &kem_pms));
 
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.client_random, client_random, CLIENT_RANDOM_LENGTH);
         EXPECT_MEMCPY_SUCCESS(conn->handshake_params.server_random, server_random, SERVER_RANDOM_LENGTH);
