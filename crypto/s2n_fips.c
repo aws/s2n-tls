@@ -17,6 +17,9 @@
 
 #include <openssl/crypto.h>
 
+#include "utils/s2n_init.h"
+#include "utils/s2n_safety.h"
+
 #if defined(S2N_INTERN_LIBCRYPTO) && defined(OPENSSL_FIPS)
     #error "Interning with OpenSSL fips-validated libcrypto is not currently supported. See https://github.com/aws/s2n-tls/issues/2741"
 #endif
@@ -59,4 +62,17 @@ int s2n_fips_init(void)
 int s2n_is_in_fips_mode(void)
 {
     return s2n_fips_mode;
+}
+
+int s2n_get_fips_mode(bool *fips_mode)
+{
+    POSIX_ENSURE_REF(fips_mode);
+    *fips_mode = false;
+    POSIX_ENSURE(s2n_is_initialized(), S2N_ERR_NOT_INITIALIZED);
+
+    if (s2n_is_in_fips_mode()) {
+        *fips_mode = true;
+    }
+
+    return S2N_SUCCESS;
 }
