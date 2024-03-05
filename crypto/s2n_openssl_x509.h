@@ -19,6 +19,7 @@
 #include <openssl/x509.h>
 #include <stdint.h>
 
+#include "crypto/s2n_certificate.h"
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
@@ -44,3 +45,5 @@ S2N_RESULT s2n_openssl_x509_parse(struct s2n_blob *asn1der, X509 **cert_out);
  * compatability with previous permissive parsing behavior.
  */
 S2N_RESULT s2n_openssl_x509_parse_without_length_validation(struct s2n_blob *asn1der, X509 **cert_out);
+
+S2N_RESULT s2n_openssl_x509_get_cert_info(X509 *cert, struct s2n_cert_info *info);

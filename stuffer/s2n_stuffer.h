@@ -65,10 +65,10 @@ struct s2n_stuffer {
 S2N_RESULT s2n_stuffer_validate(const struct s2n_stuffer *stuffer);
 
 /* Initialize and destroying stuffers */
-int s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in);
-int s2n_stuffer_init_written(struct s2n_stuffer *stuffer, struct s2n_blob *in);
-int s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
-int s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
+int S2N_RESULT_MUST_USE s2n_stuffer_init(struct s2n_stuffer *stuffer, struct s2n_blob *in);
+int S2N_RESULT_MUST_USE s2n_stuffer_init_written(struct s2n_stuffer *stuffer, struct s2n_blob *in);
+int S2N_RESULT_MUST_USE s2n_stuffer_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
+int S2N_RESULT_MUST_USE s2n_stuffer_growable_alloc(struct s2n_stuffer *stuffer, const uint32_t size);
 int s2n_stuffer_free(struct s2n_stuffer *stuffer);
 /**
  * Frees the stuffer without zeroizing the contained data.
@@ -76,30 +76,30 @@ int s2n_stuffer_free(struct s2n_stuffer *stuffer);
  * This should only be used in scenarios where the data is encrypted or has been
  * cleared with `s2n_stuffer_erase_and_read`. In most cases, prefer `s2n_stuffer_free`.
  */
-int s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer);
-int s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
-int s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
-int s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
-int s2n_stuffer_reread(struct s2n_stuffer *stuffer);
-int s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
+int S2N_RESULT_MUST_USE s2n_stuffer_free_without_wipe(struct s2n_stuffer *stuffer);
+int S2N_RESULT_MUST_USE s2n_stuffer_resize(struct s2n_stuffer *stuffer, const uint32_t size);
+int S2N_RESULT_MUST_USE s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer, const uint32_t size);
+int S2N_RESULT_MUST_USE s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
+int S2N_RESULT_MUST_USE s2n_stuffer_reread(struct s2n_stuffer *stuffer);
+int S2N_RESULT_MUST_USE s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer);
 int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t n);
 bool s2n_stuffer_is_consumed(struct s2n_stuffer *stuffer);
 
 /* Basic read and write */
-int s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
-int s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
-int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in);
-int s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *out, uint32_t n);
-int s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t size);
-int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *in, const uint32_t n);
-int s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count,
+int S2N_RESULT_MUST_USE s2n_stuffer_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
+int S2N_RESULT_MUST_USE s2n_stuffer_erase_and_read(struct s2n_stuffer *stuffer, struct s2n_blob *out);
+int S2N_RESULT_MUST_USE s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_bytes(struct s2n_stuffer *stuffer, uint8_t *out, uint32_t n);
+int S2N_RESULT_MUST_USE s2n_stuffer_erase_and_read_bytes(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t size);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *in, const uint32_t n);
+int S2N_RESULT_MUST_USE s2n_stuffer_writev_bytes(struct s2n_stuffer *stuffer, const struct iovec *iov, size_t iov_count,
         uint32_t offs, uint32_t size);
-int s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
-int s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
+int S2N_RESULT_MUST_USE s2n_stuffer_skip_read(struct s2n_stuffer *stuffer, uint32_t n);
+int S2N_RESULT_MUST_USE s2n_stuffer_skip_write(struct s2n_stuffer *stuffer, const uint32_t n);
 
 /* Tries to reserve enough space to write n additional bytes into the stuffer.*/
-int s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n);
+int S2N_RESULT_MUST_USE s2n_stuffer_reserve_space(struct s2n_stuffer *stuffer, uint32_t n);
 
 /* Raw read/write move the cursor along and give you a pointer you can
  * read/write data_len bytes from/to in-place.
@@ -113,17 +113,17 @@ int s2n_stuffer_recv_from_fd(struct s2n_stuffer *stuffer, const int rfd, const u
 int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uint32_t len, uint32_t *bytes_sent);
 
 /* Read and write integers in network order */
-int s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u);
-int s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t *u);
-int s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u);
-int s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u);
-int s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t *u);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_uint8(struct s2n_stuffer *stuffer, uint8_t *u);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_uint16(struct s2n_stuffer *stuffer, uint16_t *u);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_uint24(struct s2n_stuffer *stuffer, uint32_t *u);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_uint32(struct s2n_stuffer *stuffer, uint32_t *u);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_uint64(struct s2n_stuffer *stuffer, uint64_t *u);
 
-int s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u);
-int s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t u);
-int s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u);
-int s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u);
-int s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_uint8(struct s2n_stuffer *stuffer, const uint8_t u);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_uint16(struct s2n_stuffer *stuffer, const uint16_t u);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_uint24(struct s2n_stuffer *stuffer, const uint32_t u);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_uint32(struct s2n_stuffer *stuffer, const uint32_t u);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_uint64(struct s2n_stuffer *stuffer, const uint64_t u);
 
 /* Allocate space now for network order integers that will be written later.
  * These are primarily intended to handle the vector type defined in the RFC:
@@ -135,10 +135,10 @@ struct s2n_stuffer_reservation {
 };
 /* Check basic validity constraints on the s2n_stuffer_reservation: e.g. stuffer validity. */
 S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation *reservation);
-int s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
-int s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
-int s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
-int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation);
+int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
+int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
+int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation);
 
 /* Copy one stuffer to another */
 int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len);
@@ -153,18 +153,18 @@ int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in
 #define s2n_stuffer_write_str(stuffer, c)     s2n_stuffer_write_bytes((stuffer), (const uint8_t *) (c), strlen((c)))
 #define s2n_stuffer_write_text(stuffer, c, n) s2n_stuffer_write_bytes((stuffer), (const uint8_t *) (c), (n))
 #define s2n_stuffer_read_text(stuffer, c, n)  s2n_stuffer_read_bytes((stuffer), (uint8_t *) (c), (n))
-int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected);
-int s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
-int s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
-int s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token);
-int s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *expected);
-int s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer, uint32_t *skipped);
-int s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
-int s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
+int S2N_RESULT_MUST_USE s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expected);
+int S2N_RESULT_MUST_USE s2n_stuffer_peek_char(struct s2n_stuffer *stuffer, char *c);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_token(struct s2n_stuffer *stuffer, struct s2n_stuffer *token, char delim);
+int S2N_RESULT_MUST_USE s2n_stuffer_read_line(struct s2n_stuffer *stuffer, struct s2n_stuffer *token);
+int S2N_RESULT_MUST_USE s2n_stuffer_peek_check_for_str(struct s2n_stuffer *s2n_stuffer, const char *expected);
+int S2N_RESULT_MUST_USE s2n_stuffer_skip_whitespace(struct s2n_stuffer *stuffer, uint32_t *skipped);
+int S2N_RESULT_MUST_USE s2n_stuffer_skip_to_char(struct s2n_stuffer *stuffer, char target);
+int S2N_RESULT_MUST_USE s2n_stuffer_skip_expected_char(struct s2n_stuffer *stuffer, const char expected, const uint32_t min,
         const uint32_t max, uint32_t *skipped);
-int s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target);
-int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
-int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);
+int S2N_RESULT_MUST_USE s2n_stuffer_skip_read_until(struct s2n_stuffer *stuffer, const char *target);
+int S2N_RESULT_MUST_USE s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *str);
+int S2N_RESULT_MUST_USE s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, uint32_t length);
 
 /* Stuffer versions of sprintf methods, except:
  * - They write bytes, not strings. They do not write a final '\0'. Unfortunately,
@@ -173,20 +173,20 @@ int s2n_stuffer_init_ro_from_string(struct s2n_stuffer *stuffer, uint8_t *data, 
  * - vprintf does not consume the vargs. It calls va_copy before using
  *   the varg argument, so can be called repeatedly with the same vargs.
  */
-int s2n_stuffer_printf(struct s2n_stuffer *stuffer, const char *format, ...);
-int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs);
+int S2N_RESULT_MUST_USE s2n_stuffer_printf(struct s2n_stuffer *stuffer, const char *format, ...);
+int S2N_RESULT_MUST_USE s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs);
 
 /* Read a private key from a PEM encoded stuffer to an ASN1/DER encoded one */
-int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type);
+int S2N_RESULT_MUST_USE s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1, int *type);
 
 /* Read a certificate  from a PEM encoded stuffer to an ASN1/DER encoded one */
-int s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
+int S2N_RESULT_MUST_USE s2n_stuffer_certificate_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
 
 /* Read a CRL from a PEM encoded stuffer to an ASN1/DER encoded one */
-int s2n_stuffer_crl_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
+int S2N_RESULT_MUST_USE s2n_stuffer_crl_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *asn1);
 
 /* Read DH parameters om a PEM encoded stuffer to a PKCS3 encoded one */
-int s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3);
+int S2N_RESULT_MUST_USE s2n_stuffer_dhparams_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer *pkcs3);
 
 bool s2n_is_base64_char(unsigned char c);
 
@@ -194,4 +194,4 @@ bool s2n_is_base64_char(unsigned char c);
  * The old blob "out" pointed to is freed.
  * It is the responsibility of the caller to free the free "out".
  */
-int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out);
+int S2N_RESULT_MUST_USE s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out);

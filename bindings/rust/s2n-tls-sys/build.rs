@@ -13,7 +13,8 @@ fn main() {
 }
 
 fn env<N: AsRef<str>>(name: N) -> String {
-    option_env(name).expect("missing env var")
+    let name = name.as_ref();
+    option_env(name).unwrap_or_else(|| panic!("missing env var {name:?}"))
 }
 
 fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
@@ -197,9 +198,9 @@ impl Default for Libcrypto {
 
                     eprintln!("cargo:rerun-if-env-changed={}", name);
 
-                    let link = format!("aws_lc_{version}_crypto");
                     let include = value;
                     let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
+                    let link = env(format!("DEP_AWS_LC_{version}_LIBCRYPTO"));
 
                     return Self {
                         version,

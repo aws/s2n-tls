@@ -1560,6 +1560,47 @@ S2N_API extern int s2n_client_hello_get_session_id_length(struct s2n_client_hell
 S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 /**
+ * Get the length of the compression methods list sent in the Client Hello.
+ *
+ * @param ch A pointer to the Client Hello
+ * @param out_length An out pointer. Will be set to the length of the compression methods list in bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_client_hello_get_compression_methods_length(struct s2n_client_hello *ch, uint32_t *out_length);
+
+/**
+ * Retrieves the list of compression methods sent in the Client Hello.
+ *
+ * Use `s2n_client_hello_get_compression_methods_length()`
+ * to retrieve how much memory should be allocated for the buffer in advance.
+ *
+ * @note Compression methods were removed in TLS1.3 and therefore the only valid value in this list is the
+ * "null" compression method when TLS1.3 is negotiated.
+ *
+ * @note s2n-tls has never supported compression methods in any TLS version and therefore a
+ * compression method will never be negotiated or used.
+ * 
+ * @param ch A pointer to the Client Hello
+ * @param list A pointer to some memory that s2n will write the compression methods to. This memory MUST be the size of `list_length`
+ * @param list_length The size of `list`.
+ * @param out_length An out pointer. s2n will set its value to the size of the compression methods list in bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length);
+
+/**
+ * Access the Client Hello protocol version
+ *
+ * @note This field is a legacy field in TLS1.3 and is no longer used to negotiate the
+ * protocol version of the connection. It will be set to TLS1.2 even if TLS1.3 is negotiated.
+ * Therefore this method should only be used for logging or fingerprinting.
+ *
+ * @param ch A pointer to the client hello struct
+ * @param out The protocol version in the client hello.
+ */
+S2N_API extern int s2n_client_hello_get_legacy_protocol_version(struct s2n_client_hello *ch, uint8_t *out);
+
+/**
  * Retrieves the supported groups received from the client in the supported groups extension.
  *
  * IANA values for each of the received supported groups are written to the provided `groups`
@@ -1583,6 +1624,26 @@ S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, 
  */
 S2N_API extern int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *groups,
         uint16_t groups_count_max, uint16_t *groups_count);
+
+/**
+ * Gets the length of the first server name in a Client Hello.
+ *
+ * @param ch A pointer to the ClientHello
+ * @param length A pointer which will be populated with the length of the server name
+ */
+S2N_API extern int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_t *length);
+
+/**
+ * Gets the first server name in a Client Hello.
+ *
+ * Use `s2n_client_hello_get_server_name_length()` to get the amount of memory needed for the buffer.
+ *
+ * @param ch A pointer to the ClientHello
+ * @param server_name A pointer to the memory which will be populated with the server name
+ * @param length The maximum amount of data that can be written to `server_name`
+ * @param out_length A pointer which will be populated with the size of the server name
+ */
+S2N_API extern int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length);
 
 /**
  * Sets the file descriptor for a s2n connection.
@@ -1947,7 +2008,7 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
  * @param buf A pointer to a buffer that s2n will write data from
  * @param size The size of buf
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 
@@ -1960,7 +2021,7 @@ S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ss
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write. 
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
 
@@ -1979,7 +2040,7 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  * @param count The number of buffers in `bufs`
  * @param offs The write cursor offset. This should be updated as data is written. See the example code.
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write. 
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
 
@@ -1996,7 +2057,7 @@ S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const 
  * @param buf A pointer to a buffer that s2n will place read data into.
  * @param size Size of `buf`
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns number of bytes read. 0 if the connection was shutdown by peer.
+ * @returns The number of bytes read on success. 0 if the connection was shutdown by the peer. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked);
 
@@ -2878,6 +2939,19 @@ S2N_API extern int s2n_connection_get_actual_protocol_version(struct s2n_connect
  * @returns The protocol version used to send the initial client hello message. 
  */
 S2N_API extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
+
+/**
+ * Access the protocol version from the header of the first record that contained the ClientHello message.
+ * 
+ * @note This field has been deprecated and should not be confused with the client hello
+ * version. It is often set very low, usually to TLS1.0 for compatibility reasons,
+ * and should never be set higher than TLS1.2. Therefore this method should only be used
+ * for logging or fingerprinting.
+ *
+ * @param conn A pointer to the client hello struct
+ * @param out The protocol version in the record header containing the Client Hello.
+ */
+S2N_API extern int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out);
 
 /**
  * Check if Client Auth was used for a connection.
