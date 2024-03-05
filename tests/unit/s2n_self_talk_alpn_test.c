@@ -47,22 +47,29 @@ int main(int argc, char **argv)
         const char *expected_protocol;
     } test_cases[] = {
         /* Test no client ALPN request */
-        { .client_protocol_count = 0, .client_protocols = NULL, .expected_protocol = NULL },
-
+        {
+                .client_protocol_count = 0,
+                .client_protocols = NULL,
+                .expected_protocol = NULL,
+        },
         /* Test a matching ALPN request */
-        { .client_protocol_count = s2n_array_len(protocols),
+        {
+                .client_protocol_count = s2n_array_len(protocols),
                 .client_protocols = protocols,
-                .expected_protocol = protocols[0] },
-
+                .expected_protocol = protocols[0],
+        },
         /* Test a lower preferred matching ALPN request */
-        { .client_protocol_count = 1,
+        {
+                .client_protocol_count = 1,
                 .client_protocols = &protocols[1],
-                .expected_protocol = protocols[1] },
-
+                .expected_protocol = protocols[1],
+        },
         /* Test a non-matching ALPN request */
-        { .client_protocol_count = 1,
+        {
+                .client_protocol_count = 1,
                 .client_protocols = mismatch_protocols,
-                .expected_protocol = NULL },
+                .expected_protocol = NULL,
+        },
     };
 
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
