@@ -102,7 +102,7 @@ int main(int argc, char **argv)
                     test_cases[i].expected_protocol);
         }
 
-        /* just send some data to make sure nothing shameful happened with ALPN */
+        /* application data can be sent */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         uint8_t data_send[TEST_DATA_SIZE] = { 3, 1, 4, 1, 5, 9, 2, 6 };
         uint8_t data_recv[TEST_DATA_SIZE] = { 0 };
