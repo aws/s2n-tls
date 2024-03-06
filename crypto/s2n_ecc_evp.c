@@ -23,6 +23,8 @@
 
 #include <stdint.h>
 
+#include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_tls_parameters.h"
@@ -163,6 +165,22 @@ static int s2n_ecc_evp_generate_own_key(const struct s2n_ecc_named_curve *named_
     return named_curve->generate_key(named_curve, evp_pkey);
 }
 
+static S2N_RESULT s2n_ecc_check_key(EC_KEY *ec_key)
+{
+    RESULT_ENSURE_REF(ec_key);
+
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD_OSSL(EC_KEY_check_fips(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+        return S2N_RESULT_OK;
+    }
+#endif
+
+    RESULT_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+
+    return S2N_RESULT_OK;
+}
+
 static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_public, uint16_t iana_id, struct s2n_blob *shared_secret)
 {
     POSIX_ENSURE_REF(peer_public);
@@ -180,7 +198,7 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
         S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
-        POSIX_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+        POSIX_GUARD_RESULT(s2n_ecc_check_key(ec_key));
     }
 
     size_t shared_secret_size;

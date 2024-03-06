@@ -16,6 +16,7 @@
 #include "crypto/s2n_ecc_evp.h"
 
 #include "api/s2n.h"
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
@@ -27,10 +28,25 @@
 
 extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
 
+bool s2n_libcrypto_supports_ec_key_check_fips()
+{
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
+    return true;
+#else
+    return false;
+#endif
+}
+
 int main(int argc, char** argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    /* Test the EC_KEY_CHECK_FIPS feature probe. AWS-LC is a libcrypto known to support this feature. */
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_TRUE(s2n_libcrypto_supports_ec_key_check_fips());
+    }
+
     {
         /* Test generate ephemeral keys for all supported curves */
         for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
