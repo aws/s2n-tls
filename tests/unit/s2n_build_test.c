@@ -23,6 +23,8 @@
 #include "crypto/s2n_openssl.h"
 #include "s2n_test.h"
 
+#define MAX_LIBCRYPTO_NAME_LEN 100
+
 int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
 {
     if (name == NULL || version == NULL || s2n_libcrypto == NULL) {
@@ -42,6 +44,19 @@ int tokenize_s2n_libcrypto(char *s2n_libcrypto, char **name, char **version)
     }
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_test_lowercase_copy(const char *input, char *destination, size_t max_len)
+{
+    RESULT_ENSURE_REF(input);
+    RESULT_ENSURE_REF(destination);
+
+    for (size_t i = 0; i < strlen(input); i++) {
+        RESULT_ENSURE_LT(i, max_len);
+        destination[i] = tolower(input[i]);
+    }
+
+    return S2N_RESULT_OK;
 }
 
 int main()
@@ -69,8 +84,9 @@ int main()
         END_TEST();
     }
 
-    char s2n_libcrypto_copy[100] = { 0 };
-    strncpy(s2n_libcrypto_copy, s2n_libcrypto, 99);
+    char s2n_libcrypto_copy[MAX_LIBCRYPTO_NAME_LEN] = { 0 };
+    EXPECT_TRUE(strlen(s2n_libcrypto) < MAX_LIBCRYPTO_NAME_LEN);
+    EXPECT_OK(s2n_test_lowercase_copy(s2n_libcrypto, &s2n_libcrypto_copy[0], s2n_array_len(s2n_libcrypto_copy)));
     char *name = NULL;
     char *version = NULL;
     EXPECT_SUCCESS(tokenize_s2n_libcrypto(s2n_libcrypto_copy, &name, &version));
@@ -83,8 +99,9 @@ int main()
             EXPECT_TRUE(s2n_libcrypto_is_awslc());
         } else {
             /* Any other library should have the name of the library (modulo case) in its version string.  */
-            const char *ssleay_version_text = SSLeay_version(SSLEAY_VERSION);
-            EXPECT_NOT_NULL(strcasestr(ssleay_version_text, name));
+            char ssleay_version_text[MAX_LIBCRYPTO_NAME_LEN] = { 0 };
+            EXPECT_OK(s2n_test_lowercase_copy(SSLeay_version(SSLEAY_VERSION), &ssleay_version_text[0], MAX_LIBCRYPTO_NAME_LEN));
+            EXPECT_NOT_NULL(strstr(ssleay_version_text, name));
         }
     };
 

@@ -38,6 +38,7 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
     struct s2n_stuffer *in_buf;
     int n_read, n_avail;
+    errno = EIO;
 
     if (buf == NULL) {
         return 0;
@@ -58,7 +59,7 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
         return -1;
     }
 
-    s2n_stuffer_read_bytes(in_buf, buf, n_read);
+    POSIX_GUARD(s2n_stuffer_read_bytes(in_buf, buf, n_read));
     return n_read;
 }
 

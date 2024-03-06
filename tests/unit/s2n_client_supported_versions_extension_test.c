@@ -118,7 +118,7 @@ int main(int argc, char **argv)
         uint16_t expected_length = size_result - S2N_EXTENSION_TYPE_FIELD_LENGTH - S2N_EXTENSION_LENGTH_FIELD_LENGTH;
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, expected_length);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, expected_length));
 
         EXPECT_SUCCESS(s2n_client_supported_versions_extension.send(client_conn, &extension));
 
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1));
 
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
                 supported_version_list_length));
@@ -178,7 +178,7 @@ int main(int argc, char **argv)
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1));
 
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
                 supported_version_list_length));
@@ -203,7 +203,7 @@ int main(int argc, char **argv)
         uint8_t invalid_version_list_length = s2n_array_len(invalid_version_list);
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1));
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
         uint8_t grease_version_list_length = s2n_array_len(grease_version_list);
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1));
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, grease_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
@@ -255,7 +255,7 @@ int main(int argc, char **argv)
         uint8_t invalid_version_list_length = s2n_array_len(invalid_version_list);
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN + 1));
 
         POSIX_GUARD(s2n_stuffer_write_uint8(&extension, invalid_version_list_length * S2N_TLS_PROTOCOL_VERSION_LEN));
 
@@ -282,7 +282,7 @@ int main(int argc, char **argv)
         uint8_t supported_version_list_length = sizeof(supported_version_list);
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, supported_version_list_length * 2 + 1));
 
         EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_version_list,
                 supported_version_list_length));
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, 1));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 0));
 
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, 1);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, 1));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 13));
 
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, 5);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, 5));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 2));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension, 0x0302));
@@ -359,7 +359,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         struct s2n_stuffer extension = { 0 };
-        s2n_stuffer_alloc(&extension, 4);
+        EXPECT_SUCCESS(s2n_stuffer_alloc(&extension, 4));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&extension, 3));
         EXPECT_SUCCESS(s2n_stuffer_write_uint16(&extension, 0x0302));
@@ -382,7 +382,7 @@ int main(int argc, char **argv)
 
         struct s2n_stuffer client_hello = conn->handshake.io;
         uint8_t version[2];
-        s2n_stuffer_read_bytes(&client_hello, version, 2);
+        EXPECT_SUCCESS(s2n_stuffer_read_bytes(&client_hello, version, 2));
 
         EXPECT_EQUAL(version[0], 0x03);
         EXPECT_EQUAL(version[1], 0x03);
@@ -441,6 +441,45 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->client_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server_conn->client_hello_version, S2N_TLS10);
+    }
+
+    /* Ensure that TLS 1.3 is enforced in the supported versions extension for ClientHellos sent in
+     * response to a HelloRetryRequest
+     */
+    for (uint8_t version = S2N_TLS10; version <= S2N_TLS13; version++) {
+        for (size_t is_hrr = 0; is_hrr <= 1; is_hrr++) {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all"));
+            if (is_hrr) {
+                EXPECT_OK(s2n_handshake_type_set_tls13_flag(conn, HELLO_RETRY_REQUEST));
+                conn->handshake.message_number = 1;
+            }
+
+            uint8_t supported_versions_list[] = { version };
+            uint8_t supported_versions_list_len = sizeof(supported_versions_list);
+
+            DEFER_CLEANUP(struct s2n_stuffer extension = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&extension, 0));
+            EXPECT_SUCCESS(write_test_supported_versions_list(&extension, supported_versions_list,
+                    supported_versions_list_len));
+
+            int ret = s2n_client_supported_versions_extension.recv(conn, &extension);
+
+            if (is_hrr && version < S2N_TLS13) {
+                /* It should not be possible to negotiate a protocol version < TLS 1.3 after a
+                 * HelloRetryRequest.
+                 */
+                EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+            } else {
+                /* TLS 1.3 should be permitted after a HelloRetryRequest. Also, it should be
+                 * possible to receive < TLS 1.3 in an initial ClientHello.
+                 */
+                EXPECT_SUCCESS(ret);
+
+                EXPECT_EQUAL(conn->client_protocol_version, version);
+                EXPECT_EQUAL(conn->actual_protocol_version, version);
+            }
+        }
     }
 
     EXPECT_SUCCESS(s2n_config_free(config));

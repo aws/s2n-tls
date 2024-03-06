@@ -63,6 +63,14 @@ int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const 
     return S2N_SUCCESS;
 }
 
+S2N_RESULT s2n_test_cert_permutation_get_server_chain_path(char *output, const char *type,
+        const char *signature, const char *size, const char *digest)
+{
+    sprintf(output, "../pems/permutations/%s_%s_%s_%s/server-chain.pem", type, signature, size,
+            digest);
+    return S2N_RESULT_OK;
+}
+
 int s2n_read_test_pem(const char *pem_path, char *pem_out, long int max_size)
 {
     uint32_t pem_len = 0;
