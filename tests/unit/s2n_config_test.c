@@ -1124,7 +1124,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, valid_cert));
-            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &security_policy_rfc9151));
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &rfc9151_applied_locally));
         };
 
         /* when cert preferences don't apply locally, invalid certs are accepted */

@@ -376,14 +376,6 @@ int s2n_cert_chain_and_key_load(struct s2n_cert_chain_and_key *chain_and_key)
     /* Populate name information from the SAN/CN for the leaf certificate */
     POSIX_GUARD(s2n_cert_chain_and_key_set_names(chain_and_key, leaf_cert));
 
-    /* Populate ec curve libcrypto nid */
-    if (pkey_type == S2N_PKEY_TYPE_ECDSA) {
-        int nid = EC_GROUP_get_curve_name(EC_KEY_get0_group(public_key.key.ecdsa_key.ec_key));
-        POSIX_ENSURE(nid > 0, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        POSIX_ENSURE(nid < UINT16_MAX, S2N_ERR_CERT_TYPE_UNSUPPORTED);
-        head->ec_curve_nid = nid;
-    }
-
     /* populate libcrypto nid's required for cert restrictions */
     struct s2n_cert *current = head->next;
     while (current != NULL) {

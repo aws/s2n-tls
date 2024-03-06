@@ -436,26 +436,54 @@ S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn
      *# "signature_algorithms" extension also applies to signatures appearing in
      *# certificates.
      */
-    if (security_policy->certificate_signature_preferences == NULL) {
-        return S2N_RESULT_OK;
-    }
-
     struct s2n_cert_info info = { 0 };
     RESULT_GUARD(s2n_openssl_x509_get_cert_info(cert, &info));
 
-    if (info.self_signed) {
-        return S2N_RESULT_OK;
-    }
-
-    /* Ensure that the certificate signature does not use SHA-1. While this check
-     * would ideally apply to all connections, we only enforce it when certificate
-     * preferences exist to stay backwards compatible.
-     */
-    if (conn->actual_protocol_version == S2N_TLS13) {
+    bool certificate_preferences_defined = security_policy->certificate_signature_preferences != NULL
+            || security_policy->certificate_key_preferences != NULL;
+    if (certificate_preferences_defined && !info.self_signed && conn->actual_protocol_version == S2N_TLS13) {
+        /* Ensure that the certificate signature does not use SHA-1. While this check
+         * would ideally apply to all connections, we only enforce it when certificate
+         * preferences exist to stay backwards compatible.
+         */
         RESULT_ENSURE(info.signature_digest_nid != NID_sha1, S2N_ERR_CERT_UNTRUSTED);
     }
 
-    RESULT_ENSURE_OK(s2n_security_policy_validate_cert_signature(security_policy, &info), S2N_ERR_CERT_UNTRUSTED);
+    if (!info.self_signed) {
+        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &info, S2N_ERR_CERT_UNTRUSTED));
+    }
+    RESULT_GUARD(s2n_security_policy_validate_cert_key(security_policy, &info, S2N_ERR_CERT_UNTRUSTED));
+
+    return S2N_RESULT_OK;
+}
+
+/* Validates that the root certificate uses a key allowed by the security policy
+ * certificate preferences.
+ */
+static S2N_RESULT s2n_x509_validator_check_root_cert(struct s2n_x509_validator *validator, struct s2n_connection *conn)
+{
+    RESULT_ENSURE_REF(validator);
+    RESULT_ENSURE_REF(conn);
+
+    const struct s2n_security_policy *security_policy = NULL;
+    RESULT_GUARD_POSIX(s2n_connection_get_security_policy(conn, &security_policy));
+    RESULT_ENSURE_REF(security_policy);
+
+    RESULT_ENSURE_REF(validator->store_ctx);
+    DEFER_CLEANUP(STACK_OF(X509) *cert_chain = X509_STORE_CTX_get1_chain(validator->store_ctx),
+            s2n_openssl_x509_stack_pop_free);
+    RESULT_ENSURE_REF(cert_chain);
+
+    const int certs_in_chain = sk_X509_num(cert_chain);
+    RESULT_ENSURE(certs_in_chain > 0, S2N_ERR_CERT_UNTRUSTED);
+    X509 *root = sk_X509_value(cert_chain, certs_in_chain - 1);
+    RESULT_ENSURE_REF(root);
+
+    struct s2n_cert_info info = { 0 };
+    RESULT_GUARD(s2n_openssl_x509_get_cert_info(root, &info));
+
+    RESULT_GUARD(s2n_security_policy_validate_cert_key(security_policy, &info,
+            S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
 
     return S2N_RESULT_OK;
 }
@@ -745,6 +773,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
 
     if (validator->state == READY_TO_VERIFY) {
         RESULT_GUARD(s2n_x509_validator_verify_cert_chain(validator, conn));
+        RESULT_GUARD(s2n_x509_validator_check_root_cert(validator, conn));
     }
 
     if (conn->actual_protocol_version >= S2N_TLS13) {

@@ -28,12 +28,16 @@ struct s2n_cert_info {
     int signature_nid;
     /* This field is not populated for RSA_PSS signatures */
     int signature_digest_nid;
+    /* For EC certs this field is the curve (e.g. NID_secp521r1) and not the generic
+     * EC key NID (NID_X9_62_id_ecPublicKey)
+     */
+    int public_key_nid;
+    int public_key_bits;
     bool self_signed;
 };
 
 struct s2n_cert {
     s2n_pkey_type pkey_type;
-    uint16_t ec_curve_nid;
     s2n_cert_public_key public_key;
     struct s2n_cert_info info;
     struct s2n_blob raw;

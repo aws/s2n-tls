@@ -129,11 +129,7 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
     /* update the connection/config application_protocols with the newly allocated blob */
     *application_protocols = new_protocols;
 
-    /* zero out new_protocols so the DEFER_CLEANUP from above doesn't free
-     * the blob that we created and assigned to application_protocols
-     */
-    /* cppcheck-suppress unreadVariable */
-    new_protocols = (struct s2n_blob){ 0 };
+    ZERO_TO_DISABLE_DEFER_CLEANUP(new_protocols);
 
     return S2N_RESULT_OK;
 }

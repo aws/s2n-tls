@@ -16,6 +16,7 @@
 #include "tls/s2n_security_policies.h"
 
 #include "api/s2n.h"
+#include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
@@ -1465,8 +1466,8 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
     RESULT_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
 }
 
-S2N_RESULT s2n_security_policy_validate_cert_signature(
-        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info)
+S2N_RESULT s2n_security_policy_validate_cert_signature(const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_info *info, s2n_error error)
 {
     RESULT_ENSURE_REF(info);
     RESULT_ENSURE_REF(security_policy);
@@ -1479,9 +1480,27 @@ S2N_RESULT s2n_security_policy_validate_cert_signature(
             }
         }
 
-        RESULT_BAIL(S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        RESULT_BAIL(error);
     }
+    return S2N_RESULT_OK;
+}
 
+S2N_RESULT s2n_security_policy_validate_cert_key(const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_info *info, s2n_error error)
+{
+    RESULT_ENSURE_REF(info);
+    RESULT_ENSURE_REF(security_policy);
+    const struct s2n_certificate_key_preferences *key_preferences = security_policy->certificate_key_preferences;
+
+    if (key_preferences != NULL) {
+        for (size_t i = 0; i < key_preferences->count; i++) {
+            if (key_preferences->certificate_keys[i]->public_key_libcrypto_nid == info->public_key_nid
+                    && key_preferences->certificate_keys[i]->bits == info->public_key_bits) {
+                return S2N_RESULT_OK;
+            }
+        }
+        RESULT_BAIL(error);
+    }
     return S2N_RESULT_OK;
 }
 
@@ -1499,7 +1518,10 @@ S2N_RESULT s2n_security_policy_validate_certificate_chain(
 
     struct s2n_cert *current = cert_key_pair->cert_chain->head;
     while (current != NULL) {
-        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &current->info));
+        RESULT_GUARD(s2n_security_policy_validate_cert_key(security_policy, &current->info,
+                S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
+        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &current->info,
+                S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
         current = current->next;
     }
     return S2N_RESULT_OK;

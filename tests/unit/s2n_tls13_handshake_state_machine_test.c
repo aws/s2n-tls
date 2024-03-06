@@ -655,10 +655,6 @@ int main(int argc, char **argv)
      *# the TLS 1.3 handshake look more like a TLS 1.2 handshake:
      */
     {
-        bool change_cipher_spec_found;
-        uint32_t handshake_type;
-        message_type_t *messages;
-
         /*
          *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
          *= type=test
@@ -668,9 +664,9 @@ int main(int argc, char **argv)
          *# its second ClientHello or before its encrypted handshake flight.
          **/
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
-            change_cipher_spec_found = false;
-            handshake_type = valid_tls13_handshakes[i];
-            messages = tls13_handshakes[handshake_type];
+            bool change_cipher_spec_found = false;
+            uint32_t handshake_type = valid_tls13_handshakes[i];
+            message_type_t *messages = tls13_handshakes[handshake_type];
 
             /* Ignore INITIAL and non-MIDDLEBOX_COMPAT handshakes */
             if (!(handshake_type & NEGOTIATED)
@@ -705,8 +701,8 @@ int main(int argc, char **argv)
          *# first ClientHello.
          */
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
-            handshake_type = valid_tls13_handshakes[i];
-            messages = tls13_handshakes[handshake_type];
+            uint32_t handshake_type = valid_tls13_handshakes[i];
+            message_type_t *messages = tls13_handshakes[handshake_type];
 
             /* Ignore handshakes where early data did not trigger the change in CCS behavior */
             if (!(handshake_type & EARLY_CLIENT_CCS)) {
@@ -728,9 +724,9 @@ int main(int argc, char **argv)
          *# ServerHello or a HelloRetryRequest.
          **/
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
-            change_cipher_spec_found = false;
-            handshake_type = valid_tls13_handshakes[i];
-            messages = tls13_handshakes[handshake_type];
+            bool change_cipher_spec_found = false;
+            uint32_t handshake_type = valid_tls13_handshakes[i];
+            message_type_t *messages = tls13_handshakes[handshake_type];
 
             /* Ignore INITIAL and non-MIDDLEBOX_COMPAT handshakes */
             if (!(handshake_type & NEGOTIATED) || !(handshake_type & MIDDLEBOX_COMPAT)) {
