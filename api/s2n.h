@@ -1888,14 +1888,14 @@ S2N_API extern int s2n_connection_set_cipher_preferences(struct s2n_connection *
  * 
  * @param conn The connection object to trigger the key update on.
  * @param peer_update_requested Indicates if a key update should also be requested 
- * of the peer. If false, then only the sending keys of `conn` will be updated. If
- * true, then the sending keys of conn will be updated AND the peer will be requested
+ * of the peer. If `0`, then only the sending keys of `conn` will be updated. If
+ * non-zero, then the sending keys of conn will be updated AND the peer will be requested
  * to update their sending key. Note that s2n-tls currently only supports 
- * `peer_update_requested` being set to `false` and will return an S2N_FAILURE if
- * `peer_update_requested` is `true`.
+ * `peer_update_requested` being set to `0` and will return an S2N_FAILURE if
+ * `peer_update_requested` is non-zero.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
 */
-S2N_API extern int s2n_connection_request_key_update(struct s2n_connection *conn, bool peer_update_requested);
+S2N_API extern int s2n_connection_request_key_update(struct s2n_connection *conn, uint8_t peer_update_requested);
 /**
  * Appends the provided application protocol to the preference list
  *

@@ -147,11 +147,11 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
     return S2N_SUCCESS;
 }
 
-int s2n_connection_request_key_update(struct s2n_connection *conn, bool peer_update_requested)
+int s2n_connection_request_key_update(struct s2n_connection *conn, uint8_t peer_update_requested)
 {
     POSIX_ENSURE_REF(conn);
     /* s2n-tls does not currently support requesting key updates from peers */
-    POSIX_ENSURE(!peer_update_requested, S2N_ERR_UNIMPLEMENTED);
+    POSIX_ENSURE(peer_update_requested == 0, S2N_ERR_INVALID_ARGUMENT);
     s2n_atomic_flag_set(&conn->key_update_pending);
     return S2N_SUCCESS;
 }
