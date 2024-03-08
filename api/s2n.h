@@ -1895,10 +1895,11 @@ typedef enum {
  * Signals the connection to do a key_update at the next possible opportunity.
  * 
  * @param conn The connection object to trigger the key update on
- * @param update The type of key update. `S2N_UPDATE_REQUESTED` will update the sending key of `conn` and will also
- * request that the peer update their sending key. `S2N_UPDATE_NOT_REQUESTED` will update the sending key of `conn`
- * and inform the peer of the update, but does not request that the peer update their sending keys. Only 
- * `S2N_UPDATE_NOT_REQUESTED` is currently supported.
+ * @param update The type of key update. `S2N_UPDATE_REQUESTED` will update the 
+ * sending key of `conn` and will also request that the peer update their sending
+ * key. `S2N_UPDATE_NOT_REQUESTED` will update the sending key of `conn` and inform
+ * the peer of the update, but does not request that the peer update their sending 
+ * keys. Only `S2N_UPDATE_NOT_REQUESTED` is currently supported.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
 */
 S2N_API extern int s2n_connection_request_key_update(struct s2n_connection *conn, s2n_peer_key_update update);

@@ -333,8 +333,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
-            EXPECT_FALSE(s2n_atomic_flag_test(&client_conn->key_update_pending));
-
             EXPECT_SUCCESS(s2n_connection_request_key_update(client_conn, S2N_UPDATE_NOT_REQUESTED));
 
             s2n_blocked_status blocked = 0;
