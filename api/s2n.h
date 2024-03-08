@@ -1898,8 +1898,8 @@ typedef enum {
  * @param conn The connection object to trigger the key update on.
  * @param peer_request Indicates if a key update should also be requested 
  * of the peer. When set to `S2N_KEY_UPDATE_NOT_REQUESTED`, then only the sending
- * keys of `conn` will be updated. If set to `S2N_KEY_UPDATE_REQUESTED`, then 
- * the sending keys of conn will be updated AND the peer will be requested to 
+ * key of `conn` will be updated. If set to `S2N_KEY_UPDATE_REQUESTED`, then 
+ * the sending key of conn will be updated AND the peer will be requested to 
  * update their sending key. Note that s2n-tls currently only supports 
  * `peer_request` being set to `S2N_KEY_UPDATE_NOT_REQUESTED` and will return
  *  S2N_FAILURE if any other value is used.
