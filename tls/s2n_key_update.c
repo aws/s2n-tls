@@ -151,7 +151,7 @@ int s2n_connection_request_key_update(struct s2n_connection *conn, bool peer_upd
 {
     POSIX_ENSURE_REF(conn);
     /* s2n-tls does not currently support requesting key updates from peers */
-    POSIX_ENSURE(!peer_update_requested, S2N_ERR_T_USAGE);
+    POSIX_ENSURE(!peer_update_requested, S2N_ERR_UNIMPLEMENTED);
     s2n_atomic_flag_set(&conn->key_update_pending);
     return S2N_SUCCESS;
 }

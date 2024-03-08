@@ -687,7 +687,7 @@ int main(int argc, char **argv)
         /* usage */
         {
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
-            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_request_key_update(conn, true), S2N_ERR_T_USAGE);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_request_key_update(conn, true), S2N_ERR_UNIMPLEMENTED);
         };
 
         /* happy path */
