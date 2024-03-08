@@ -1883,6 +1883,30 @@ S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 S2N_API extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 
 /**
+ * Used to indicate the type of key update that is being requested. For further 
+ * information refer to `s2n_connection_request_key_update`.
+*/
+typedef enum {
+    S2N_KEY_UPDATE_NOT_REQUESTED = 0,
+    S2N_KEY_UPDATE_REQUESTED
+} s2n_peer_key_update;
+
+/**
+ * Signals the connection to do a key_update at the next possible opportunity. Note that the resulting key update message
+ * will not be sent until `s2n_send` is called.
+ * 
+ * @param conn The connection object to trigger the key update on.
+ * @param peer_request Indicates if a key update should also be requested 
+ * of the peer. When set to `S2N_KEY_UPDATE_NOT_REQUESTED`, then only the sending
+ * key of `conn` will be updated. If set to `S2N_KEY_UPDATE_REQUESTED`, then 
+ * the sending key of conn will be updated AND the peer will be requested to 
+ * update their sending key. Note that s2n-tls currently only supports 
+ * `peer_request` being set to `S2N_KEY_UPDATE_NOT_REQUESTED` and will return
+ *  S2N_FAILURE if any other value is used.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+*/
+S2N_API extern int s2n_connection_request_key_update(struct s2n_connection *conn, s2n_peer_key_update peer_request);
+/**
  * Appends the provided application protocol to the preference list
  *
  * The data provided in `protocol` parameter will be copied into an internal buffer
