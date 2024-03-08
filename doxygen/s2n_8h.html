@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.5-770d3f30</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.5-d9169425</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -238,6 +238,10 @@ Enumerations</h2></td></tr>
 , <b>S2N_SELF_SERVICE_BLINDING</b>
  }</td></tr>
 <tr class="separator:a364ad496c9dd42fd3117a2f9d3289e62"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:aa8ab6cd4a526f781116a39bd16bab9ba"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aa8ab6cd4a526f781116a39bd16bab9ba">s2n_peer_key_update</a> { <b>S2N_KEY_UPDATE_NOT_REQUESTED</b> = 0
+, <b>S2N_KEY_UPDATE_REQUESTED</b>
+ }</td></tr>
+<tr class="separator:aa8ab6cd4a526f781116a39bd16bab9ba"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:af70ca0b089daa98cd79a424d3f6af15d"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a> { <br />
 &#160;&#160;<b>S2N_NOT_BLOCKED</b> = 0
 , <b>S2N_BLOCKED_ON_READ</b>
@@ -539,6 +543,8 @@ Functions</h2></td></tr>
 <tr class="separator:ab8a2a372d2d13cef62357473b7fea568"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab4544d664e827a426b484b3eaa62063d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ab4544d664e827a426b484b3eaa62063d">s2n_connection_set_cipher_preferences</a> (struct s2n_connection *conn, const char *version)</td></tr>
 <tr class="separator:ab4544d664e827a426b484b3eaa62063d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a824fed871df4202b6bd5428ee791f660"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a824fed871df4202b6bd5428ee791f660">s2n_connection_request_key_update</a> (struct s2n_connection *conn, <a class="el" href="s2n_8h.html#aa8ab6cd4a526f781116a39bd16bab9ba">s2n_peer_key_update</a> peer_request)</td></tr>
+<tr class="separator:a824fed871df4202b6bd5428ee791f660"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1cbf7aa3eb0834357994ea902d6c4847"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a1cbf7aa3eb0834357994ea902d6c4847">s2n_connection_append_protocol_preference</a> (struct s2n_connection *conn, const uint8_t *protocol, uint8_t protocol_len)</td></tr>
 <tr class="separator:a1cbf7aa3eb0834357994ea902d6c4847"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a1e7fc1efa730562ff9a804fe578235b4"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a1e7fc1efa730562ff9a804fe578235b4">s2n_connection_set_protocol_preferences</a> (struct s2n_connection *conn, const char *const *protocols, int protocol_count)</td></tr>
@@ -1643,6 +1649,21 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Used to declare connections as server or client type, respectively. </p>
+
+</div>
+</div>
+<a id="aa8ab6cd4a526f781116a39bd16bab9ba" name="aa8ab6cd4a526f781116a39bd16bab9ba"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#aa8ab6cd4a526f781116a39bd16bab9ba">&#9670;&#160;</a></span>s2n_peer_key_update</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="s2n_8h.html#aa8ab6cd4a526f781116a39bd16bab9ba">s2n_peer_key_update</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Used to indicate the type of key update that is being requested. For further information refer to <code>s2n_connection_request_key_update</code>. </p>
 
 </div>
 </div>
@@ -7551,6 +7572,43 @@ Safety</h1>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n_connection object </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="a824fed871df4202b6bd5428ee791f660" name="a824fed871df4202b6bd5428ee791f660"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a824fed871df4202b6bd5428ee791f660">&#9670;&#160;</a></span>s2n_connection_request_key_update()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_request_key_update </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="s2n_8h.html#aa8ab6cd4a526f781116a39bd16bab9ba">s2n_peer_key_update</a>&#160;</td>
+          <td class="paramname"><em>peer_request</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Signals the connection to do a key_update at the next possible opportunity. Note that the resulting key update message will not be sent until <code>s2n_send</code> is called.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>The connection object to trigger the key update on. </td></tr>
+    <tr><td class="paramname">peer_request</td><td>Indicates if a key update should also be requested of the peer. When set to <code>S2N_KEY_UPDATE_NOT_REQUESTED</code>, then only the sending key of <code>conn</code> will be updated. If set to <code>S2N_KEY_UPDATE_REQUESTED</code>, then the sending key of conn will be updated AND the peer will be requested to update their sending key. Note that s2n-tls currently only supports <code>peer_request</code> being set to <code>S2N_KEY_UPDATE_NOT_REQUESTED</code> and will return S2N_FAILURE if any other value is used. </td></tr>
   </table>
   </dd>
 </dl>
