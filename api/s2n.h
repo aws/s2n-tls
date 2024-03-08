@@ -1883,26 +1883,17 @@ S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 S2N_API extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 
 /**
- * This enums defines the available key update types. For additional information see the documentation for
- * `s2n_connection_request_key_update`.
- */
-typedef enum {
-    S2N_UPDATE_NOT_REQUESTED,
-    S2N_UPDATE_REQUESTED,
-} s2n_peer_key_update;
-
-/**
  * Signals the connection to do a key_update at the next possible opportunity.
  * 
- * @param conn The connection object to trigger the key update on
- * @param update The type of key update. `S2N_UPDATE_REQUESTED` will update the 
- * sending key of `conn` and will also request that the peer update their sending
- * key. `S2N_UPDATE_NOT_REQUESTED` will update the sending key of `conn` and inform
- * the peer of the update, but does not request that the peer update their sending 
- * keys. Only `S2N_UPDATE_NOT_REQUESTED` is currently supported.
+ * @param conn The connection object to trigger the key update on.
+ * @param peer_update_requested Indicates if a key update should also be requested 
+ * of the peer. If false, then only the sending keys of `conn` will be updated. If
+ * true, then the sending keys of conn will be updated AND the peer will be requested
+ * to update their sending key. Note that s2n-tls currently only supports 
+ * `peer_update_requested` being set to `false`.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
 */
-S2N_API extern int s2n_connection_request_key_update(struct s2n_connection *conn, s2n_peer_key_update update);
+S2N_API extern int s2n_connection_request_key_update(struct s2n_connection *conn, bool peer_update_requested);
 /**
  * Appends the provided application protocol to the preference list
  *
