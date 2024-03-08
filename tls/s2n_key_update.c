@@ -146,3 +146,11 @@ int s2n_check_record_limit(struct s2n_connection *conn, struct s2n_blob *sequenc
 
     return S2N_SUCCESS;
 }
+
+int s2n_connection_request_key_update(struct s2n_connection *conn, s2n_peer_key_update update)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE(update == S2N_UPDATE_NOT_REQUESTED, S2N_ERR_T_USAGE);
+    s2n_atomic_flag_set(&conn->key_update_pending);
+    return S2N_SUCCESS;
+}
