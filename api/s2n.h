@@ -2291,7 +2291,31 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
 /**
  * Used to declare what type of client certificate authentication to use.
  *
- * Currently the default for s2n-tls is for neither the server side or the client side to use Client (aka Mutual) authentication.
+ * Currently the default for s2n-tls is for neither the server side or the client side to use
+ * Client (aka Mutual) authentication.
+ *
+ * A s2n_connection will enforce client certificate authentication (mTLS) differently based on
+ * the s2n_cert_auth_type and s2n_mode of the connection.
+ *
+ * Server connection behavior:
+ * - None: don't send CLIENT_CERT_REQ and therefore don't perform client authentication.
+ * - Optional: send CLIENT_CERT_REQ and expect a CLIENT_CERT message. Validate the client
+ *   certificate or simply continue with the handshake if CLIENT_CERT is empty.
+ * - Required: send CLIENT_CERT_REQ and expect a CLIENT_CERT message. Validate the client
+ *   certificate or abort the handshake if CLIENT_CERT is empty.
+ *
+ * Client connection behavior:
+ * - None: if a CLIENT_CERT_REQ is received: abort the handshake.
+ * - Optional: if a CLIENT_CERT_REQ is received: send a CLIENT_CERT with the client's
+ *   certificate. CLIENT_CERT is empty if no client certificate have been set.
+ * - Required: expect to receive a CLIENT_CERT_REQ. If no CLIENT_CERT_REQ is received then
+ *   abort the handshake. Send a CLIENT_CERT with the client's certificate. Abort the handshake
+ *   if no client certificate have been set.
+ *
+ * - 'CLIENT_CERT_REQ': represents the CertificateRequest message sent by the server to request
+ *   client certificate authentication.
+ * - 'CLIENT_CERT': upon receiving a CLIENT_CERT_REQ, the client will respond with its certificate
+ *   in a CLIENT_CERT message.
  */
 typedef enum {
     S2N_CERT_AUTH_NONE,
