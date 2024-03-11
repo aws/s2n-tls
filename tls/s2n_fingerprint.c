@@ -276,13 +276,16 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
     POSIX_GUARD(s2n_blob_init(&string_blob, string_mem, sizeof(string_mem)));
     POSIX_GUARD(s2n_stuffer_init(&string_stuffer, &string_blob));
 
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     /* JA3 uses an MD5 hash.
      * The hash doesn't have to be cryptographically secure,
      * so the weakness of MD5 shouldn't be a problem.
      */
     DEFER_CLEANUP(struct s2n_hash_state md5_hash = { 0 }, s2n_hash_free);
     POSIX_GUARD(s2n_hash_new(&md5_hash));
-    if (s2n_is_in_fips_mode()) {
+    if (fips_mode) {
         /* This hash is unrelated to TLS and does not affect FIPS */
         POSIX_GUARD(s2n_hash_allow_md5_for_fips(&md5_hash));
     }

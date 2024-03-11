@@ -122,8 +122,11 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
     POSIX_ENSURE_REF(conn->handshake.hashes);
     struct s2n_hash_state *workspace = &conn->handshake.hashes->hash_workspace;
 
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     /* FIPS specifically allows MD5 for the legacy PRF */
-    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+    if (fips_mode && conn->actual_protocol_version < S2N_TLS12) {
         POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
     }
 
@@ -190,8 +193,11 @@ static int s2n_evp_pkey_p_hash_digest_init(struct s2n_prf_working_space *ws)
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.evp_digest.ctx);
     POSIX_ENSURE_REF(ws->p_hash.evp_hmac.ctx.evp_pkey);
 
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     /* Ignore the MD5 check when in FIPS mode to comply with the TLS 1.0 RFC */
-    if (s2n_is_in_fips_mode()) {
+    if (fips_mode) {
         POSIX_GUARD(s2n_digest_allow_md5_for_fips(&ws->p_hash.evp_hmac.evp_digest));
     }
 
@@ -402,10 +408,13 @@ static const struct s2n_p_hash_hmac s2n_internal_p_hash_hmac = {
 
 const struct s2n_p_hash_hmac *s2n_get_hmac_implementation()
 {
+    bool fips_mode = false;
+    PTR_GUARD_POSIX(s2n_is_in_fips_mode(&fips_mode));
+
 #if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-    return s2n_is_in_fips_mode() ? &s2n_evp_hmac_p_hash_hmac : &s2n_internal_p_hash_hmac;
+    return fips_mode ? &s2n_evp_hmac_p_hash_hmac : &s2n_internal_p_hash_hmac;
 #else
-    return s2n_is_in_fips_mode() ? &s2n_evp_pkey_p_hash_hmac : &s2n_internal_p_hash_hmac;
+    return fips_mode ? &s2n_evp_pkey_p_hash_hmac : &s2n_internal_p_hash_hmac;
 #endif
 }
 
@@ -416,6 +425,7 @@ static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, 
     POSIX_GUARD(s2n_hmac_digest_size(alg, &digest_size));
 
     const struct s2n_p_hash_hmac *hmac = s2n_get_hmac_implementation();
+    POSIX_ENSURE_REF(hmac);
 
     /* First compute hmac(secret + A(0)) */
     POSIX_GUARD(hmac->init(ws, alg, secret));
@@ -482,6 +492,7 @@ S2N_RESULT s2n_prf_new(struct s2n_connection *conn)
 
     /* Allocate the hmac state */
     const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+    RESULT_ENSURE_REF(hmac_impl);
     RESULT_GUARD_POSIX(hmac_impl->alloc(conn->prf_space));
     return S2N_RESULT_OK;
 }
@@ -492,6 +503,7 @@ S2N_RESULT s2n_prf_wipe(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->prf_space);
 
     const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+    RESULT_ENSURE_REF(hmac_impl);
     RESULT_GUARD_POSIX(hmac_impl->reset(conn->prf_space));
 
     return S2N_RESULT_OK;
@@ -505,6 +517,7 @@ S2N_RESULT s2n_prf_free(struct s2n_connection *conn)
     }
 
     const struct s2n_p_hash_hmac *hmac_impl = s2n_get_hmac_implementation();
+    RESULT_ENSURE_REF(hmac_impl);
     RESULT_GUARD_POSIX(hmac_impl->free(conn->prf_space));
 
     RESULT_GUARD_POSIX(s2n_free_object((uint8_t **) &conn->prf_space, sizeof(struct s2n_prf_working_space)));
@@ -639,10 +652,13 @@ int s2n_prf(struct s2n_connection *conn, struct s2n_blob *secret, struct s2n_blo
         return S2N_SUCCESS;
     }
 
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     /* By default, s2n-tls uses a custom PRF implementation. When operating in FIPS mode, the
      * FIPS-validated libcrypto implementation is used instead, if an implementation is provided.
      */
-    if (s2n_is_in_fips_mode() && s2n_libcrypto_supports_tls_prf()) {
+    if (fips_mode && s2n_libcrypto_supports_tls_prf()) {
         POSIX_GUARD_RESULT(s2n_libcrypto_prf(conn, secret, label, seed_a, seed_b, seed_c, out));
         return S2N_SUCCESS;
     }

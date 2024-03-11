@@ -52,7 +52,10 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    if (s2n_is_in_fips_mode()) {
+    bool fips_mode = false;
+    EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
+    if (fips_mode) {
         /* Skip when FIPS mode is set as FIPS mode does not support SSLv3 */
         END_TEST();
     }

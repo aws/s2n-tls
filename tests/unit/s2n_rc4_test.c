@@ -38,8 +38,11 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_rc4.is_available());
     }
 
+    bool fips_mode = false;
+    EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
     /* Test FIPS does not support RC4 */
-    if (s2n_is_in_fips_mode()) {
+    if (fips_mode) {
         EXPECT_FALSE(s2n_rc4.is_available());
     }
 
@@ -54,7 +57,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    if (s2n_is_in_fips_mode()) {
+    if (fips_mode) {
         /* Skip when FIPS mode is set as FIPS mode does not support RC4 */
         END_TEST();
     }

@@ -52,8 +52,11 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     const struct s2n_signature_scheme *active_sig_scheme = conn->handshake_params.server_cert_sig_scheme;
     POSIX_ENSURE_REF(active_sig_scheme);
 
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     /* FIPS specifically allows MD5 for <TLS1.2 */
-    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+    if (fips_mode && conn->actual_protocol_version < S2N_TLS12) {
         POSIX_GUARD(s2n_hash_allow_md5_for_fips(signature_hash));
     }
 
@@ -267,8 +270,11 @@ int s2n_server_key_send(struct s2n_connection *conn)
         POSIX_GUARD(s2n_stuffer_write_uint16(out, sig_scheme->iana_value));
     }
 
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     /* FIPS specifically allows MD5 for <TLS1.2 */
-    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+    if (fips_mode && conn->actual_protocol_version < S2N_TLS12) {
         POSIX_GUARD(s2n_hash_allow_md5_for_fips(signature_hash));
     }
 

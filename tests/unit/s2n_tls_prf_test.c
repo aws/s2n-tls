@@ -329,6 +329,9 @@ int main(int argc, char **argv)
         s2n_stack_blob(seed_c, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
         s2n_stack_blob(out, TEST_BLOB_SIZE, TEST_BLOB_SIZE);
 
+        bool fips_mode = false;
+        EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
         /* Safety */
         {
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -358,7 +361,7 @@ int main(int argc, char **argv)
         }
 
         /* The custom PRF implementation is used when s2n-tls is not operating in FIPS mode */
-        if (!s2n_is_in_fips_mode()) {
+        if (!fips_mode) {
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
             uint8_t zeros[S2N_MAX_DIGEST_LEN] = { 0 };
@@ -371,7 +374,7 @@ int main(int argc, char **argv)
         }
 
         /* The libcrypto PRF implementation is used when s2n-tls is linked with AWSLC-FIPS */
-        if (s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode()) {
+        if (s2n_libcrypto_is_awslc() && fips_mode) {
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
             uint8_t zeros[S2N_MAX_DIGEST_LEN] = { 0 };

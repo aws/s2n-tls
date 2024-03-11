@@ -416,6 +416,9 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    bool fips_mode = false;
+    EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
 
     for (uint8_t i = 0; i < NUM_TESTS; i++) {
@@ -453,7 +456,7 @@ int main(int argc, char **argv)
     }
 
     /* Ensure that the libcrypto HKDF implementation is supported when s2n-tls is linked with AWSLC-FIPS */
-    if (s2n_libcrypto_is_awslc() && s2n_is_in_fips_mode()) {
+    if (s2n_libcrypto_is_awslc() && fips_mode) {
         EXPECT_TRUE(s2n_libcrypto_supports_hkdf());
     }
 

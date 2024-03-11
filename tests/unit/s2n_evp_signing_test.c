@@ -94,10 +94,13 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    bool fips_mode = false;
+    EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
     /* Sanity check that we're enabling evp signing properly.
      * awslc-fips is known to require evp signing.
      */
-    if (s2n_is_in_fips_mode() && s2n_libcrypto_is_awslc()) {
+    if (fips_mode && s2n_libcrypto_is_awslc()) {
         EXPECT_TRUE(s2n_evp_signing_supported());
     }
 

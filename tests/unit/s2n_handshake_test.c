@@ -128,7 +128,10 @@ int test_cipher_preferences(struct s2n_config *server_config, struct s2n_config 
     const struct s2n_security_policy *security_policy = server_config->security_policy;
     EXPECT_NOT_NULL(security_policy);
 
-    if (s2n_is_in_fips_mode()) {
+    bool fips_mode = false;
+    EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
+    if (fips_mode) {
         /* Override default client config ciphers when in FIPS mode to ensure all FIPS
          * default ciphers are tested.
          */
@@ -275,7 +278,10 @@ int main(int argc, char **argv)
 
         /*  Test: RSA (TLS 1.2) key exchanges with TLS 1.3 client */
         {
-            if (!s2n_is_in_fips_mode()) {
+            bool fips_mode = false;
+            EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
+            if (!fips_mode) {
                 /* Enable TLS 1.3 for the client */
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
                 struct s2n_config *server_config, *client_config;

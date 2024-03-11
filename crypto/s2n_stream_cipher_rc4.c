@@ -32,7 +32,12 @@ static const EVP_CIPHER *s2n_evp_rc4()
 
 static uint8_t s2n_stream_cipher_rc4_available()
 {
-    if (s2n_is_in_fips_mode()) {
+    bool fips_mode = false;
+    if (s2n_is_in_fips_mode(&fips_mode) != S2N_SUCCESS) {
+        return 0;
+    }
+
+    if (fips_mode) {
         return 0;
     }
     /* RC4 MIGHT be available in Openssl-3.0, depending on whether or not the

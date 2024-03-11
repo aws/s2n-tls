@@ -104,10 +104,13 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     POSIX_GUARD(s2n_config_setup_default(config));
     if (s2n_use_default_tls13_config()) {
         POSIX_GUARD(s2n_config_setup_tls13(config));
-    } else if (s2n_is_in_fips_mode()) {
+    } else if (fips_mode) {
         POSIX_GUARD(s2n_config_setup_fips(config));
     }
 
@@ -210,10 +213,13 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
+    bool fips_mode = false;
+    PTR_GUARD_POSIX(s2n_is_in_fips_mode(&fips_mode));
+
     if (s2n_use_default_tls13_config()) {
         return &s2n_default_tls13_config;
     }
-    if (s2n_is_in_fips_mode()) {
+    if (fips_mode) {
         return &s2n_default_fips_config;
     }
     return &s2n_default_config;
@@ -231,8 +237,11 @@ int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 
 int s2n_config_defaults_init(void)
 {
+    bool fips_mode = false;
+    POSIX_GUARD(s2n_is_in_fips_mode(&fips_mode));
+
     /* Set up fips defaults */
-    if (s2n_is_in_fips_mode()) {
+    if (fips_mode) {
         POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
         POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_fips_config));

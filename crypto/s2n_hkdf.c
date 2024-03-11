@@ -203,10 +203,13 @@ const struct s2n_hkdf_impl s2n_libcrypto_hkdf_impl = {
 
 static const struct s2n_hkdf_impl *s2n_get_hkdf_implementation()
 {
+    bool fips_mode = false;
+    PTR_GUARD_POSIX(s2n_is_in_fips_mode(&fips_mode));
+
     /* By default, s2n-tls uses a custom HKDF implementation. When operating in FIPS mode, the
      * FIPS-validated libcrypto implementation is used instead, if an implementation is provided.
      */
-    if (s2n_is_in_fips_mode() && s2n_libcrypto_supports_hkdf()) {
+    if (fips_mode && s2n_libcrypto_supports_hkdf()) {
         return &s2n_libcrypto_hkdf_impl;
     }
 

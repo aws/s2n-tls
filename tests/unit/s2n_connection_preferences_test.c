@@ -28,13 +28,16 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
+    bool fips_mode = false;
+    EXPECT_SUCCESS(s2n_is_in_fips_mode(&fips_mode));
+
     const struct s2n_security_policy *default_security_policy, *tls13_security_policy, *fips_security_policy;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
 
     /* Test default TLS1.2 */
-    if (!s2n_is_in_fips_mode()) {
+    if (!fips_mode) {
         struct s2n_connection *conn = NULL;
         const struct s2n_cipher_preferences *cipher_preferences = NULL;
         const struct s2n_security_policy *security_policy = NULL;
@@ -143,7 +146,7 @@ int main(int argc, char **argv)
 
     /* Test default fips */
 
-    if (s2n_is_in_fips_mode()) {
+    if (fips_mode) {
         struct s2n_connection *conn = NULL;
         const struct s2n_cipher_preferences *cipher_preferences = NULL;
         const struct s2n_security_policy *security_policy = NULL;

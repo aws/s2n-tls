@@ -104,8 +104,11 @@ S2N_RESULT s2n_hash_test(s2n_hash_algorithm hash_alg, struct s2n_blob *digest)
         RESULT_ENSURE_EQ(hash_state.currently_in_hash, 0);
         RESULT_ENSURE_EQ(hash_state.is_ready_for_input, false);
 
+        bool fips_mode = false;
+        RESULT_GUARD_POSIX(s2n_is_in_fips_mode(&fips_mode));
+
         /* Allow MD5 when necessary */
-        if (s2n_is_in_fips_mode() && (hash_alg == S2N_HASH_MD5 || hash_alg == S2N_HASH_MD5_SHA1)) {
+        if (fips_mode && (hash_alg == S2N_HASH_MD5 || hash_alg == S2N_HASH_MD5_SHA1)) {
             RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hash_state));
         }
 

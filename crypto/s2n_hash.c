@@ -32,7 +32,11 @@ static bool s2n_use_custom_md5_sha1()
 
 static bool s2n_use_evp_impl()
 {
-    return s2n_is_in_fips_mode();
+    bool fips_mode = false;
+    if (s2n_is_in_fips_mode(&fips_mode) != S2N_SUCCESS) {
+        return false;
+    }
+    return fips_mode;
 }
 
 bool s2n_hash_evp_fully_supported()
@@ -110,11 +114,16 @@ int s2n_hash_block_size(s2n_hash_algorithm alg, uint64_t *block_size)
 /* Return true if hash algorithm is available, false otherwise. */
 bool s2n_hash_is_available(s2n_hash_algorithm alg)
 {
+    bool fips_mode = false;
+    if (s2n_is_in_fips_mode(&fips_mode) != S2N_SUCCESS) {
+        return false;
+    }
+
     switch (alg) {
         case S2N_HASH_MD5:
         case S2N_HASH_MD5_SHA1:
             /* return false if in FIPS mode, as MD5 algs are not available in FIPS mode. */
-            return !s2n_is_in_fips_mode();
+            return !fips_mode;
         case S2N_HASH_NONE:
         case S2N_HASH_SHA1:
         case S2N_HASH_SHA224:
