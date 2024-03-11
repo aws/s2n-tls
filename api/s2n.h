@@ -252,10 +252,10 @@ S2N_API extern int s2n_cleanup(void);
  * requirements. Applications desiring FIPS compliance should use this API to ensure that s2n-tls
  * has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
  *
- * @param fips_mode Set to true if s2n-tls is in FIPS mode, set to false otherwise.
+ * @param fips Set to true if s2n-tls is in FIPS mode, set to false otherwise.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
-S2N_API extern int s2n_get_fips_mode(bool *fips_mode);
+S2N_API extern int s2n_is_fips(bool *fips);
 
 /**
  * Creates a new s2n_config object. This object can (and should) be associated with many connection

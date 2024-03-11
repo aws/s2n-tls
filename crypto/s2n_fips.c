@@ -64,14 +64,14 @@ int s2n_is_in_fips_mode(void)
     return s2n_fips_mode;
 }
 
-int s2n_get_fips_mode(bool *fips_mode)
+int s2n_is_fips(bool *fips)
 {
-    POSIX_ENSURE_REF(fips_mode);
-    *fips_mode = false;
+    POSIX_ENSURE_REF(fips);
+    *fips = false;
     POSIX_ENSURE(s2n_is_initialized(), S2N_ERR_NOT_INITIALIZED);
 
     if (s2n_is_in_fips_mode()) {
-        *fips_mode = true;
+        *fips = true;
     }
 
     return S2N_SUCCESS;

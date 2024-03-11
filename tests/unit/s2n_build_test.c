@@ -86,13 +86,13 @@ int main()
 
     /* Ensure that FIPS mode is enabled when linked to AWS-LC-FIPS, and disabled when linked to AWS-LC */
     if (strstr(s2n_libcrypto, "awslc") != NULL) {
-        bool fips_mode = false;
-        EXPECT_SUCCESS(s2n_get_fips_mode(&fips_mode));
+        bool fips = false;
+        EXPECT_SUCCESS(s2n_is_fips(&fips));
 
         if (strstr(s2n_libcrypto, "fips") != NULL) {
-            EXPECT_TRUE(fips_mode);
+            EXPECT_TRUE(fips);
         } else {
-            EXPECT_FALSE(fips_mode);
+            EXPECT_FALSE(fips);
         }
     }
 
