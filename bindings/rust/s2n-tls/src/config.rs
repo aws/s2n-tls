@@ -151,7 +151,6 @@ impl Drop for Config {
     }
 }
 
-#[derive(Default)]
 pub struct Builder {
     config: Config,
     load_system_certs: bool,
@@ -740,6 +739,12 @@ impl Builder {
     pub fn enable_quic(&mut self) -> Result<&mut Self, Error> {
         unsafe { s2n_tls_sys::s2n_config_enable_quic(self.as_mut_ptr()).into_result() }?;
         Ok(self)
+    }
+}
+
+impl Default for Builder {
+    fn default() -> Self {
+        Self::new()
     }
 }
 

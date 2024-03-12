@@ -333,7 +333,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
-            s2n_atomic_flag_set(&client_conn->key_update_pending);
+            EXPECT_SUCCESS(s2n_connection_request_key_update(client_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
 
             s2n_blocked_status blocked = 0;
             EXPECT_SUCCESS(s2n_key_update_send(client_conn, &blocked));
@@ -676,6 +676,28 @@ int main(int argc, char **argv)
             EXPECT_TRUE(cipher_suite->record_alg->encryption_limit > 0);
         }
     }
+
+    /* s2n_connection_key_update_requested */
+    {
+        /* null safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_request_key_update(NULL, S2N_KEY_UPDATE_NOT_REQUESTED), S2N_ERR_NULL);
+        };
+
+        /* usage */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_request_key_update(conn, S2N_KEY_UPDATE_REQUESTED), S2N_ERR_INVALID_ARGUMENT);
+        };
+
+        /* happy path */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_FALSE(s2n_atomic_flag_test(&conn->key_update_pending));
+            EXPECT_SUCCESS(s2n_connection_request_key_update(conn, S2N_KEY_UPDATE_NOT_REQUESTED));
+            EXPECT_TRUE(s2n_atomic_flag_test(&conn->key_update_pending));
+        };
+    };
 
     END_TEST();
 }
