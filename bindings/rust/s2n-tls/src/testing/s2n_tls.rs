@@ -756,32 +756,140 @@ mod tests {
         // Load the server certificate into the trust store by overriding the OpenSSL default
         // certificate location.
         temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
-            let mut builder = Builder::new();
-            builder
-                .load_pem(keypair.cert(), keypair.key())
-                .unwrap()
-                .set_security_policy(&security::DEFAULT_TLS13)
-                .unwrap()
-                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-                .unwrap();
+            // Test the Builder itself, and also the Builder produced by the Config builder() API.
+            for mut builder in [Builder::new(), Config::builder()] {
+                builder
+                    .load_pem(keypair.cert(), keypair.key())
+                    .unwrap()
+                    .set_security_policy(&security::DEFAULT_TLS13)
+                    .unwrap()
+                    .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                    .unwrap();
 
-            // Disable loading system certificates
-            builder.with_system_certs(false).unwrap();
+                // Disable loading system certificates
+                builder.with_system_certs(false).unwrap();
 
-            let config = builder.build().unwrap();
-            let mut config_with_system_certs = config.clone();
+                let config = builder.build().unwrap();
+                let mut config_with_system_certs = config.clone();
 
-            let mut pair = tls_pair(config);
+                let mut pair = tls_pair(config);
 
-            // System certificates should not be loaded into the trust store. The handshake
-            // should fail since the certificate should not be trusted.
-            assert!(poll_tls_pair_result(&mut pair).is_err());
+                // System certificates should not be loaded into the trust store. The handshake
+                // should fail since the certificate should not be trusted.
+                assert!(poll_tls_pair_result(&mut pair).is_err());
 
-            // The handshake should succeed after trusting the certificate.
-            unsafe {
-                s2n_tls_sys::s2n_config_load_system_certs(config_with_system_certs.as_mut_ptr());
+                // The handshake should succeed after trusting the certificate.
+                unsafe {
+                    s2n_tls_sys::s2n_config_load_system_certs(
+                        config_with_system_certs.as_mut_ptr(),
+                    );
+                }
+                establish_connection(config_with_system_certs);
             }
-            establish_connection(config_with_system_certs);
         });
+    }
+
+    #[test]
+    fn peer_chain() -> Result<(), Error> {
+        use crate::enums::ClientAuthType;
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_auth_type(ClientAuthType::Optional)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client);
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        for conn in [server, client] {
+            let chain = conn.peer_cert_chain()?;
+            assert_eq!(chain.len(), 1);
+            for cert in chain.iter() {
+                let cert = cert?;
+                let cert = cert.der()?;
+                assert!(!cert.is_empty());
+            }
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn selected_cert() -> Result<(), Error> {
+        use crate::enums::ClientAuthType;
+
+        let config = {
+            let mut config = config_builder(&security::DEFAULT_TLS13)?;
+            config.set_client_auth_type(ClientAuthType::Required)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        // None before handshake...
+        assert!(server.connection.selected_cert().is_none());
+        assert!(client.connection.selected_cert().is_none());
+
+        let pair = Pair::new(server, client);
+
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        for conn in [&server, &client] {
+            let chain = conn.selected_cert().unwrap();
+            assert_eq!(chain.len(), 1);
+            for cert in chain.iter() {
+                let cert = cert?;
+                let cert = cert.der()?;
+                assert!(!cert.is_empty());
+            }
+        }
+
+        // Same config is used for both and we are doing mTLS, so both should select the same
+        // certificate.
+        assert_eq!(
+            server
+                .selected_cert()
+                .unwrap()
+                .iter()
+                .next()
+                .unwrap()?
+                .der()?,
+            client
+                .selected_cert()
+                .unwrap()
+                .iter()
+                .next()
+                .unwrap()?
+                .der()?
+        );
+
+        Ok(())
     }
 }

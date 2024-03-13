@@ -203,6 +203,7 @@ struct s2n_config {
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
 
 int s2n_config_defaults_init(void);
+S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void);
 struct s2n_config *s2n_fetch_default_config(void);
 int s2n_config_set_unsafe_for_testing(struct s2n_config *config);
 
@@ -211,5 +212,10 @@ int s2n_config_free_session_ticket_keys(struct s2n_config *config);
 
 void s2n_wipe_static_configs(void);
 struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_config *config);
-int s2n_config_get_num_default_certs(struct s2n_config *config);
+int s2n_config_get_num_default_certs(const struct s2n_config *config);
 S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
+
+/* Validate that the certificates in `config` respect the certificate preferences
+ * in `security_policy` */
+S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
+        const struct s2n_security_policy *security_policy);

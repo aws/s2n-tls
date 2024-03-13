@@ -22,6 +22,9 @@
 
 #define S2N_TLS_CONTENT_TYPE_LENGTH 1
 
+#define S2N_TLS_SSLV2_HEADER_FLAG        (0x80)
+#define S2N_TLS_SSLV2_HEADER_FLAG_UINT16 (S2N_TLS_SSLV2_HEADER_FLAG << 8)
+
 /* All versions of TLS define the record header the same:
  * ContentType + ProtocolVersion + length
  */
@@ -78,3 +81,4 @@ int s2n_sslv2_record_header_parse(struct s2n_connection *conn, uint8_t *record_t
 int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted);
 S2N_RESULT s2n_aead_aad_init(const struct s2n_connection *conn, uint8_t *sequence_number, uint8_t content_type, uint16_t record_length, struct s2n_blob *ad);
 S2N_RESULT s2n_tls13_aead_aad_init(uint16_t record_length, uint8_t tag_length, struct s2n_blob *ad);
+S2N_RESULT s2n_record_wipe(struct s2n_connection *conn);

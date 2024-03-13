@@ -58,26 +58,28 @@ static int s2n_client_server_name_send(struct s2n_connection *conn, struct s2n_s
     return S2N_SUCCESS;
 }
 
-/* Read the extension up to the first item in ServerNameList. Store the first entry's length in server_name_len.
- * For now s2n ignores all subsequent items in ServerNameList.
+/* Read the extension up to the first item in ServerNameList. Instantiates the server_name blob to
+ * point to the first entry. For now s2n ignores all subsequent items in ServerNameList.
  */
-static int s2n_client_server_name_check(struct s2n_connection *conn, struct s2n_stuffer *extension, uint16_t *server_name_len)
+S2N_RESULT s2n_client_server_name_parse(struct s2n_stuffer *extension, struct s2n_blob *server_name)
 {
-    POSIX_ENSURE_REF(conn);
+    uint16_t list_size = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &list_size));
+    RESULT_ENSURE_LTE(list_size, s2n_stuffer_data_available(extension));
 
-    uint16_t size_of_all;
-    POSIX_GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
-    POSIX_ENSURE_LTE(size_of_all, s2n_stuffer_data_available(extension));
+    uint8_t server_name_type = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(extension, &server_name_type));
+    RESULT_ENSURE_EQ(server_name_type, S2N_NAME_TYPE_HOST_NAME);
 
-    uint8_t server_name_type;
-    POSIX_GUARD(s2n_stuffer_read_uint8(extension, &server_name_type));
-    POSIX_ENSURE_EQ(server_name_type, S2N_NAME_TYPE_HOST_NAME);
+    uint16_t length = 0;
+    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &length));
+    RESULT_ENSURE_LTE(length, s2n_stuffer_data_available(extension));
 
-    POSIX_GUARD(s2n_stuffer_read_uint16(extension, server_name_len));
-    POSIX_ENSURE_LT(*server_name_len, sizeof(conn->server_name));
-    POSIX_ENSURE_LTE(*server_name_len, s2n_stuffer_data_available(extension));
+    uint8_t *data = s2n_stuffer_raw_read(extension, length);
+    RESULT_ENSURE_REF(data);
+    RESULT_GUARD_POSIX(s2n_blob_init(server_name, data, length));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
@@ -89,15 +91,13 @@ static int s2n_client_server_name_recv(struct s2n_connection *conn, struct s2n_s
         return S2N_SUCCESS;
     }
 
-    /* Ignore if malformed. We just won't use the server name. */
-    uint16_t server_name_len;
-    if (s2n_client_server_name_check(conn, extension, &server_name_len) != S2N_SUCCESS) {
+    /* Ignore if malformed or we don't have enough space to store it. We just won't use the server name. */
+    struct s2n_blob server_name = { 0 };
+    if (!s2n_result_is_ok(s2n_client_server_name_parse(extension, &server_name)) || server_name.size > S2N_MAX_SERVER_NAME) {
         return S2N_SUCCESS;
     }
 
-    uint8_t *server_name;
-    POSIX_ENSURE_REF(server_name = s2n_stuffer_raw_read(extension, server_name_len));
-    POSIX_CHECKED_MEMCPY(conn->server_name, server_name, server_name_len);
+    POSIX_CHECKED_MEMCPY(conn->server_name, server_name.data, server_name.size);
 
     return S2N_SUCCESS;
 }

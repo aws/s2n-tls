@@ -139,8 +139,8 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
         return S2N_SUCCESS;
     }
 
-    s2n_stuffer_reread(pem);
-    s2n_stuffer_reread(asn1);
+    POSIX_GUARD(s2n_stuffer_reread(pem));
+    POSIX_GUARD(s2n_stuffer_reread(asn1));
 
     /* By default, OpenSSL tools always generate both "EC PARAMETERS" and "EC PRIVATE
      * KEY" PEM objects in the keyfile. Skip the first "EC PARAMETERS" object so that we're
@@ -148,9 +148,9 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
      * only needed for non-standard curves that aren't currently supported.
      */
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_EC_PARAMETERS) != S2N_SUCCESS) {
-        s2n_stuffer_reread(pem);
+        POSIX_GUARD(s2n_stuffer_reread(pem));
     }
-    s2n_stuffer_wipe(asn1);
+    POSIX_GUARD(s2n_stuffer_wipe(asn1));
 
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS1_EC_PRIVATE_KEY) == S2N_SUCCESS) {
         *type = EVP_PKEY_EC;
@@ -158,8 +158,8 @@ int s2n_stuffer_private_key_from_pem(struct s2n_stuffer *pem, struct s2n_stuffer
     }
 
     /* If it does not match either format, try PKCS#8 */
-    s2n_stuffer_reread(pem);
-    s2n_stuffer_reread(asn1);
+    POSIX_GUARD(s2n_stuffer_reread(pem));
+    POSIX_GUARD(s2n_stuffer_reread(asn1));
     if (s2n_stuffer_data_from_pem(pem, asn1, S2N_PEM_PKCS8_PRIVATE_KEY) == S2N_SUCCESS) {
         *type = EVP_PKEY_RSA;
         return S2N_SUCCESS;

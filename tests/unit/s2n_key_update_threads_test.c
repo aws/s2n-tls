@@ -35,7 +35,7 @@
     _##name##_record_alg.encryption_limit = limit;                       \
     name.record_alg = &_##name##_record_alg;
 
-S2N_RESULT s2n_set_key_update_request_for_testing(keyupdate_request request);
+S2N_RESULT s2n_set_key_update_request_for_testing(s2n_peer_key_update request);
 
 static void *s2n_send_random_data(void *arg)
 {
