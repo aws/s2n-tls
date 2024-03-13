@@ -24,9 +24,8 @@ int main()
 
     /* s2n_is_fips() fails before init */
     {
-        bool fips = true;
+        bool fips = false;
         EXPECT_FAILURE_WITH_ERRNO(s2n_is_fips(&fips), S2N_ERR_NOT_INITIALIZED);
-        EXPECT_FALSE(fips);
     }
 
     EXPECT_SUCCESS(s2n_init());

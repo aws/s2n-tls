@@ -67,12 +67,7 @@ int s2n_is_in_fips_mode(void)
 int s2n_is_fips(bool *fips)
 {
     POSIX_ENSURE_REF(fips);
-    *fips = false;
     POSIX_ENSURE(s2n_is_initialized(), S2N_ERR_NOT_INITIALIZED);
-
-    if (s2n_is_in_fips_mode()) {
-        *fips = true;
-    }
-
+    *fips = s2n_is_in_fips_mode();
     return S2N_SUCCESS;
 }
