@@ -539,7 +539,7 @@ MACROS = {
         * The size of the data pointed to by both the `destination` and `source` parameters,
           shall be at least `len` bytes.
         ''',
-        impl='__S2N_ENSURE_SAFE_MEMCPY((destination), (source), (len), {prefix}ENSURE_REF)',
+        impl='__S2N_ENSURE_SAFE_MEMMOVE((destination), (source), (len), {prefix}ENSURE_REF)',
         harness='''
         static {ret} {prefix}CHECKED_MEMCPY_harness(uint32_t* dest, uint32_t* source, size_t len)
         {{

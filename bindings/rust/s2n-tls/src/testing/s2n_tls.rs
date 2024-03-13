@@ -756,32 +756,36 @@ mod tests {
         // Load the server certificate into the trust store by overriding the OpenSSL default
         // certificate location.
         temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
-            let mut builder = Builder::new();
-            builder
-                .load_pem(keypair.cert(), keypair.key())
-                .unwrap()
-                .set_security_policy(&security::DEFAULT_TLS13)
-                .unwrap()
-                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-                .unwrap();
+            // Test the Builder itself, and also the Builder produced by the Config builder() API.
+            for mut builder in [Builder::new(), Config::builder()] {
+                builder
+                    .load_pem(keypair.cert(), keypair.key())
+                    .unwrap()
+                    .set_security_policy(&security::DEFAULT_TLS13)
+                    .unwrap()
+                    .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                    .unwrap();
 
-            // Disable loading system certificates
-            builder.with_system_certs(false).unwrap();
+                // Disable loading system certificates
+                builder.with_system_certs(false).unwrap();
 
-            let config = builder.build().unwrap();
-            let mut config_with_system_certs = config.clone();
+                let config = builder.build().unwrap();
+                let mut config_with_system_certs = config.clone();
 
-            let mut pair = tls_pair(config);
+                let mut pair = tls_pair(config);
 
-            // System certificates should not be loaded into the trust store. The handshake
-            // should fail since the certificate should not be trusted.
-            assert!(poll_tls_pair_result(&mut pair).is_err());
+                // System certificates should not be loaded into the trust store. The handshake
+                // should fail since the certificate should not be trusted.
+                assert!(poll_tls_pair_result(&mut pair).is_err());
 
-            // The handshake should succeed after trusting the certificate.
-            unsafe {
-                s2n_tls_sys::s2n_config_load_system_certs(config_with_system_certs.as_mut_ptr());
+                // The handshake should succeed after trusting the certificate.
+                unsafe {
+                    s2n_tls_sys::s2n_config_load_system_certs(
+                        config_with_system_certs.as_mut_ptr(),
+                    );
+                }
+                establish_connection(config_with_system_certs);
             }
-            establish_connection(config_with_system_certs);
         });
     }
 
