@@ -553,6 +553,9 @@ S2N_RESULT s2n_rand_init(void)
         return S2N_RESULT_OK;
     }
 
+    /* Unset any existing random engine */
+    RESULT_GUARD_OSSL(RAND_set_rand_engine(NULL), S2N_ERR_OPEN_RANDOM);
+
     /* Create an engine */
     ENGINE *e = ENGINE_new();
 
