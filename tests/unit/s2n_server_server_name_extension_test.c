@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 
     /* should_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         /* By default, do not send */
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
     /* recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         /* Recv reads nothing and always succeeds */

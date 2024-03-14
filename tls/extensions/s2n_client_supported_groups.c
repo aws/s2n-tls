@@ -40,7 +40,7 @@ const s2n_extension_type s2n_client_supported_groups_extension = {
 
 bool s2n_extension_should_send_if_ecc_enabled(struct s2n_connection *conn)
 {
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     return s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS
             && s2n_ecc_is_extension_required(security_policy);
 }

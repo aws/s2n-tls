@@ -332,7 +332,7 @@ int s2n_hmac_reset(struct s2n_hmac_state *state)
     POSIX_ENSURE(state->hash_block_size != 0, S2N_ERR_PRECONDITION_VIOLATION);
     POSIX_GUARD(s2n_hash_copy(&state->inner, &state->inner_just_key));
 
-    uint64_t bytes_in_hash;
+    uint64_t bytes_in_hash = 0;
     POSIX_GUARD(s2n_hash_get_currently_in_hash_total(&state->inner, &bytes_in_hash));
     bytes_in_hash %= state->hash_block_size;
     POSIX_ENSURE(bytes_in_hash <= UINT32_MAX, S2N_ERR_INTEGER_OVERFLOW);

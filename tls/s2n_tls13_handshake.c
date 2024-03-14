@@ -159,7 +159,7 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     /* get tls13 key context */
     s2n_tls13_connection_keys(keys, conn);
 
-    struct s2n_session_key *old_key;
+    struct s2n_session_key *old_key = NULL;
     struct s2n_blob old_app_secret = { 0 };
     struct s2n_blob app_iv = { 0 };
 

@@ -45,14 +45,14 @@ static struct s2n_cert_chain_and_key *test_cert_tiebreak_cb(struct s2n_cert_chai
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *server_config;
-    struct s2n_config *client_config;
-    struct s2n_connection *server_conn;
-    struct s2n_connection *client_conn;
-    char *alligator_cert;
-    char *alligator_key;
-    char *cert_chain;
-    char *private_key;
+    struct s2n_config *server_config = NULL;
+    struct s2n_config *client_config = NULL;
+    struct s2n_connection *server_conn = NULL;
+    struct s2n_connection *client_conn = NULL;
+    char *alligator_cert = NULL;
+    char *alligator_key = NULL;
+    char *cert_chain = NULL;
+    char *private_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     /* Create config with s2n_config_add_cert_chain_and_key_to_store API with multiple certs */
     {
-        struct s2n_cert_chain_and_key *default_cert;
+        struct s2n_cert_chain_and_key *default_cert = NULL;
         /* Associated data to attach to each certificate to use in the tiebreak callback. */
         int tiebreak_priorites[NUM_TIED_CERTS] = { 0 };
         /* Collection of certs with the same domain name that need to have ties resolved. */

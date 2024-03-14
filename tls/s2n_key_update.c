@@ -43,7 +43,7 @@ int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request
     POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_BAD_MESSAGE);
     POSIX_ENSURE(!conn->ktls_recv_enabled, S2N_ERR_KTLS_KEYUPDATE);
 
-    uint8_t key_update_request;
+    uint8_t key_update_request = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(request, &key_update_request));
     if (key_update_request == S2N_KEY_UPDATE_REQUESTED) {
         POSIX_ENSURE(!conn->ktls_send_enabled, S2N_ERR_KTLS_KEYUPDATE);

@@ -63,7 +63,7 @@ int main(int argc, char **argv)
     {
         /* Connection using a security policy with no certificate_signature_preferences allows SHA-1 signatures in certificates */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             struct s2n_config *config = s2n_config_new();
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
 
         /* Connection using the default_tls13 security policy does not validate SHA-1 signatures in certificates */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             struct s2n_config *config = s2n_config_new();
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 
         /* Connection using the default_tls13 security policy ignores a SHA-1 signature on a root certificate */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             struct s2n_config *config = s2n_config_new();
 
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));

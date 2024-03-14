@@ -32,8 +32,8 @@ static const char *private_key_paths[SUPPORTED_CERTIFICATE_FORMATS] = { S2N_RSA_
 void mock_client(struct s2n_test_io_pair *io_pair)
 {
     char buffer[0xffff];
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
 
     /* Give the server a chance to listen */
@@ -52,7 +52,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     uint16_t timeout = 1;
     s2n_connection_set_dynamic_record_threshold(conn, 0x7fff, timeout);
-    int i;
+    int i = 0;
     for (i = 1; i < 0xffff - 100; i += 100) {
         for (int j = 0; j < i; j++) {
             buffer[j] = 33;
@@ -69,7 +69,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
     /* Simulate timeout second conneciton inactivity and tolerate 50 ms error */
     struct timespec sleep_time = { .tv_sec = timeout, .tv_nsec = 50000000 };
-    int r;
+    int r = 0;
     do {
         r = nanosleep(&sleep_time, &sleep_time);
     } while (r != 0);
@@ -98,13 +98,13 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    int status;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
+    int status = 0;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    char *dhparams_pem = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());

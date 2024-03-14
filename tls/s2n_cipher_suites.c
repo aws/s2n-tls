@@ -1089,7 +1089,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     POSIX_ENSURE_REF(conn->secure);
     POSIX_ENSURE_REF(conn->secure->cipher_suite);
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
     POSIX_ENSURE_REF(security_policy);
 
@@ -1232,7 +1232,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         conn->secure_renegotiation = 1;
     }
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;

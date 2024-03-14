@@ -41,12 +41,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, 0x00, 0));
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
 
-        uint8_t byte_length;
+        uint8_t byte_length = 0;
 
         /* uint8_t */
         {
             byte_length = sizeof(uint8_t);
-            uint8_t actual_value;
+            uint8_t actual_value = 0;
 
             for (int i = 0; i <= UINT8_MAX; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
         /* uint16_t */
         {
             byte_length = sizeof(uint16_t);
-            uint16_t actual_value;
+            uint16_t actual_value = 0;
 
             for (int i = 0; i < UINT16_MAX; i++) {
                 EXPECT_SUCCESS(s2n_stuffer_write_network_order(&stuffer, i, byte_length));
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
         /* uint24 */
         {
             byte_length = 3;
-            uint32_t actual_value;
+            uint32_t actual_value = 0;
             uint32_t test_values[] = { 0x000001, 0x0000FF, 0xABCDEF, 0xFFFFFF };
 
             for (size_t i = 0; i < s2n_array_len(test_values); i++) {
@@ -90,7 +90,7 @@ int main(int argc, char **argv)
         /* uint32_t */
         {
             byte_length = sizeof(uint32_t);
-            uint32_t actual_value;
+            uint32_t actual_value = 0;
             uint32_t test_values[] = { 0x00000001, 0x000000FF, 0xABCDEF12, UINT32_MAX };
 
             for (size_t i = 0; i < s2n_array_len(test_values); i++) {
@@ -112,7 +112,7 @@ int main(int argc, char **argv)
 
     /* s2n_stuffer_reserve_uint16 */
     {
-        uint16_t actual_value;
+        uint16_t actual_value = 0;
         struct s2n_stuffer_reservation reservation = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
 
     /* s2n_stuffer_reserve_uint24 */
     {
-        uint16_t actual_value;
+        uint16_t actual_value = 0;
         struct s2n_stuffer_reservation reservation = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 
     /* s2n_stuffer_write_reservation */
     {
-        uint16_t actual_value;
+        uint16_t actual_value = 0;
         struct s2n_stuffer_reservation reservation = { 0 };
         struct s2n_stuffer_reservation other_reservation = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -272,7 +272,7 @@ int main(int argc, char **argv)
 
     /* s2n_stuffer_write_vector_size */
     {
-        uint16_t actual_value;
+        uint16_t actual_value = 0;
         struct s2n_stuffer_reservation reservation = { 0 };
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
 

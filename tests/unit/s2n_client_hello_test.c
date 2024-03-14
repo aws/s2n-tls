@@ -50,7 +50,7 @@ S2N_RESULT s2n_client_hello_get_raw_extension(uint16_t extension_iana,
 
 int main(int argc, char **argv)
 {
-    struct s2n_cert_chain_and_key *chain_and_key, *ecdsa_chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL, *ecdsa_chain_and_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -66,12 +66,12 @@ int main(int argc, char **argv)
     {
         /* Test with invalid parsed extensions */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             s2n_tls_extension_type test_extension_type = S2N_EXTENSION_SERVER_NAME;
 
-            s2n_extension_type_id test_extension_type_id;
+            s2n_extension_type_id test_extension_type_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(test_extension_type, &test_extension_type_id));
 
             uint8_t data[] = "data";
@@ -97,7 +97,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_hello_has_extension */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         uint8_t data[] = {
@@ -214,12 +214,12 @@ int main(int argc, char **argv)
     /* Test setting cert chain on recv */
     {
         s2n_enable_tls13_in_test();
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
         /* TLS13 fails to parse client hello when no certs set */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->client_protocol_version = conn->server_protocol_version;
@@ -236,7 +236,7 @@ int main(int argc, char **argv)
 
         /* TLS13 successfully sets certs */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->client_protocol_version = conn->server_protocol_version;
@@ -311,7 +311,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             }
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &session_id_length));
             EXPECT_EQUAL(session_id_length, S2N_TLS_SESSION_ID_MAX_LEN);
 
-            uint8_t *session_id;
+            uint8_t *session_id = NULL;
             EXPECT_NOT_NULL(session_id = s2n_stuffer_raw_read(hello_stuffer, S2N_TLS_SESSION_ID_MAX_LEN));
             EXPECT_BYTEARRAY_EQUAL(session_id, test_session_id, S2N_TLS_SESSION_ID_MAX_LEN);
 
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
 
             /* Generate a session id by default */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -357,11 +357,11 @@ int main(int argc, char **argv)
              * For now, middlebox compatibility mode is only disabled by QUIC.
              */
             {
-                struct s2n_config *config;
+                struct s2n_config *config = NULL;
                 EXPECT_NOT_NULL(config = s2n_config_new());
                 EXPECT_SUCCESS(s2n_config_enable_quic(config));
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
@@ -421,7 +421,7 @@ int main(int argc, char **argv)
         {
             /* Do NOT generate a session id by default */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
 
@@ -437,11 +437,11 @@ int main(int argc, char **argv)
 
             /* Generate a session id if using tickets */
             {
-                struct s2n_config *config;
+                struct s2n_config *config = NULL;
                 EXPECT_NOT_NULL(config = s2n_config_new());
                 EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
@@ -465,7 +465,7 @@ int main(int argc, char **argv)
         {
             /* TLS 1.3 cipher suites NOT written by client by default */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
                 struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
@@ -478,7 +478,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
                 EXPECT_NOT_EQUAL(list_length, 0);
 
-                uint8_t first_cipher_byte;
+                uint8_t first_cipher_byte = 0;
                 for (int i = 0; i < list_length; i++) {
                     EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
                     EXPECT_NOT_EQUAL(first_cipher_byte, 0x13);
@@ -490,7 +490,7 @@ int main(int argc, char **argv)
 
             /* TLS 1.3 cipher suites NOT written by client even if included in security policy */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
 
@@ -504,7 +504,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
                 EXPECT_NOT_EQUAL(list_length, 0);
 
-                uint8_t first_cipher_byte;
+                uint8_t first_cipher_byte = 0;
                 for (int i = 0; i < list_length; i++) {
                     EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
                     EXPECT_NOT_EQUAL(first_cipher_byte, 0x13);
@@ -519,13 +519,13 @@ int main(int argc, char **argv)
         if (s2n_is_tls13_fully_supported()) {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-            struct s2n_config *config;
+            struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
             s2n_config_set_session_tickets_onoff(config, 0);
 
             /* TLS 1.3 cipher suites written by client */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -540,7 +540,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(hello_stuffer, &list_length));
                 EXPECT_NOT_EQUAL(list_length, 0);
 
-                uint8_t first_cipher_byte;
+                uint8_t first_cipher_byte = 0;
                 int tls13_ciphers_found = 0;
                 for (int i = 0; i < list_length; i++) {
                     EXPECT_SUCCESS(s2n_stuffer_read_uint8(hello_stuffer, &first_cipher_byte));
@@ -705,13 +705,13 @@ int main(int argc, char **argv)
     {
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
         {
             /* TLS 1.3 client cipher preference uses TLS13 version */
-            struct s2n_connection *conn;
-            const struct s2n_security_policy *security_policy;
+            struct s2n_connection *conn = NULL;
+            const struct s2n_security_policy *security_policy = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
@@ -728,12 +728,12 @@ int main(int argc, char **argv)
 
         {
             /* TLS 1.2 client cipher preference uses TLS12 version */
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
 
-            const struct s2n_security_policy *security_policy;
+            const struct s2n_security_policy *security_policy = NULL;
             POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
@@ -747,8 +747,8 @@ int main(int argc, char **argv)
 
         {
             /* TLS 1.3 client cipher preference uses TLS13 version */
-            struct s2n_connection *client_conn, *server_conn;
-            const struct s2n_security_policy *security_policy;
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
+            const struct s2n_security_policy *security_policy = NULL;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
@@ -765,7 +765,7 @@ int main(int argc, char **argv)
 
             /* Server configured with TLS 1.2 negotiates TLS12 version */
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-            struct s2n_config *server_config;
+            struct s2n_config *server_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
@@ -794,8 +794,8 @@ int main(int argc, char **argv)
 
     /* SSlv2 client hello */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
         s2n_blocked_status server_blocked;
 
         uint8_t sslv2_client_hello[] = {
@@ -883,7 +883,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), 0);
 
         /* Verify s2n_client_hello_get_session_id_length correct */
-        uint32_t ch_session_id_length;
+        uint32_t ch_session_id_length = 0;
         EXPECT_SUCCESS(s2n_client_hello_get_session_id_length(client_hello, &ch_session_id_length));
         EXPECT_EQUAL(ch_session_id_length, 0);
 
@@ -917,11 +917,11 @@ int main(int argc, char **argv)
 
     /* Minimal TLS 1.2 client hello. */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
         s2n_blocked_status server_blocked;
-        uint8_t *sent_client_hello;
-        uint8_t *expected_client_hello;
+        uint8_t *sent_client_hello = NULL;
+        uint8_t *expected_client_hello = NULL;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -1030,7 +1030,7 @@ int main(int argc, char **argv)
         /* Verify s2n_connection_get_client_hello returns null if client hello not yet processed */
         EXPECT_NULL(s2n_connection_get_client_hello(server_conn));
 
-        uint8_t *ext_data;
+        uint8_t *ext_data = NULL;
         EXPECT_NOT_NULL(ext_data = malloc(server_name_extension_len));
         /* Verify we don't get extension and it's length when client hello is not yet processed */
         EXPECT_FAILURE(s2n_client_hello_get_extension_length(s2n_connection_get_client_hello(server_conn), S2N_EXTENSION_SERVER_NAME));
@@ -1076,7 +1076,7 @@ int main(int argc, char **argv)
         /* Verify s2n_client_hello_get_raw_message_length correct */
         EXPECT_EQUAL(s2n_client_hello_get_raw_message_length(client_hello), sent_client_hello_len);
 
-        uint8_t *raw_ch_out;
+        uint8_t *raw_ch_out = NULL;
 
         /* Verify s2n_client_hello_get_raw_message retrieves the full message when its len <= max_len */
         EXPECT_TRUE(collected_client_hello_len < S2N_LARGE_RECORD_LENGTH);
@@ -1107,7 +1107,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_cipher_suites_length(client_hello), sizeof(expected_cs));
 
         /* Verify s2n_client_hello_get_cipher_suites correct */
-        uint8_t *cs_out;
+        uint8_t *cs_out = NULL;
 
         /* Verify s2n_client_hello_get_cipher_suites retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->cipher_suites.size < S2N_LARGE_RECORD_LENGTH);
@@ -1137,7 +1137,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_client_hello_get_extensions_length(client_hello), client_extensions_len);
 
         /* Verify s2n_client_hello_get_extensions correct */
-        uint8_t *extensions_out;
+        uint8_t *extensions_out = NULL;
 
         /* Verify s2n_client_hello_get_extensions retrieves the full cipher_suites when its len <= max_len */
         EXPECT_TRUE(client_hello->extensions.raw.size < S2N_LARGE_RECORD_LENGTH);
@@ -1193,7 +1193,7 @@ int main(int argc, char **argv)
         /* Verify s2n_client_hello_get_session_id is what we received in ClientHello */
         uint8_t expected_ch_session_id[] = { ZERO_TO_THIRTY_ONE };
         uint8_t ch_session_id[sizeof(expected_ch_session_id)];
-        uint32_t ch_session_id_length;
+        uint32_t ch_session_id_length = 0;
         EXPECT_SUCCESS(s2n_client_hello_get_session_id_length(client_hello, &ch_session_id_length));
         EXPECT_EQUAL(ch_session_id_length, sizeof(ch_session_id));
         EXPECT_SUCCESS(s2n_client_hello_get_session_id(client_hello, ch_session_id, &ch_session_id_length, sizeof(ch_session_id)));
@@ -1272,7 +1272,7 @@ int main(int argc, char **argv)
     /* Client hello api with NULL inputs */
     {
         uint32_t len = 128;
-        uint8_t *out;
+        uint8_t *out = NULL;
         EXPECT_NOT_NULL(out = malloc(len));
 
         EXPECT_FAILURE(s2n_client_hello_get_raw_message_length(NULL));
@@ -1293,10 +1293,10 @@ int main(int argc, char **argv)
 
     /* test_weird_client_hello_version() */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
         s2n_blocked_status server_blocked;
-        uint8_t *sent_client_hello;
+        uint8_t *sent_client_hello = NULL;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -1438,14 +1438,14 @@ int main(int argc, char **argv)
 
         EXPECT_TRUE(client_cipher_suites[0]->available);
 
-        struct s2n_cert_chain_and_key *ecdsa_cert_chain;
+        struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain, S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
         char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dhparams_pem, S2N_MAX_TEST_PEM_SIZE));
 
         /* Create Configs */
-        struct s2n_config *server_config, *client_config;
+        struct s2n_config *server_config = NULL, *client_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert_chain));
 

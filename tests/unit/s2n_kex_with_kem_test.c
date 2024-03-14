@@ -40,8 +40,8 @@ static struct s2n_cipher_suite kyber_test_suite = {
 
 static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *security_policy_version, const struct s2n_kem *negotiated_kem)
 {
-    struct s2n_connection *client_conn;
-    struct s2n_connection *server_conn;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_connection *server_conn = NULL;
 
     POSIX_GUARD_PTR(client_conn = s2n_connection_new(S2N_CLIENT));
     POSIX_GUARD_PTR(server_conn = s2n_connection_new(S2N_SERVER));
@@ -116,7 +116,7 @@ static int do_kex_with_kem(struct s2n_cipher_suite *cipher_suite, const char *se
 
 static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, const char *security_policy_version, const struct s2n_kem *negotiated_kem)
 {
-    struct s2n_connection *server_conn;
+    struct s2n_connection *server_conn = NULL;
     POSIX_GUARD_PTR(server_conn = s2n_connection_new(S2N_SERVER));
     const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_find_security_policy_from_version(security_policy_version, &security_policy));

@@ -67,15 +67,15 @@ int main(int argc, char **argv)
     /* TLS 1.2 */
     {
         /* Setup connections */
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         /* Setup config */
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
@@ -85,7 +85,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_key_log_cb(client_config, s2n_test_key_log_cb, &client_key_log));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        struct s2n_config *server_config;
+        struct s2n_config *server_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
@@ -118,15 +118,15 @@ int main(int argc, char **argv)
     /* TLS 1.3 */
     if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         /* Setup config */
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_key_log_cb(client_config, s2n_test_key_log_cb, &client_key_log));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
-        struct s2n_config *server_config;
+        struct s2n_config *server_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));

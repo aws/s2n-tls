@@ -32,8 +32,8 @@ int main(int argc, char **argv)
     s2n_enable_tls13_in_test();
 
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
