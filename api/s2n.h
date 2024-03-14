@@ -241,6 +241,27 @@ S2N_API extern int s2n_init(void);
  */
 S2N_API extern int s2n_cleanup(void);
 
+typedef enum {
+    S2N_FIPS_MODE_DISABLED = 0,
+    S2N_FIPS_MODE_ENABLED,
+} s2n_fips_mode;
+
+/**
+ * Determines whether s2n-tls is operating in FIPS mode.
+ *
+ * s2n-tls enters FIPS mode on initialization when the linked libcrypto has FIPS mode enabled. Some
+ * libcryptos, such as AWS-LC-FIPS, have FIPS mode enabled by default. With other libcryptos, such
+ * as OpenSSL, FIPS mode must be enabled before initialization by calling `FIPS_mode_set()`.
+ *
+ * s2n-tls MUST be linked to a FIPS libcrypto and MUST be in FIPS mode in order to comply with FIPS
+ * requirements. Applications desiring FIPS compliance should use this API to ensure that s2n-tls
+ * has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
+ *
+ * @param fips_mode Set to the FIPS mode of s2n-tls.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_get_fips_mode(s2n_fips_mode *fips_mode);
+
 /**
  * Creates a new s2n_config object. This object can (and should) be associated with many connection
  * objects.
