@@ -435,6 +435,7 @@ int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
 
 int s2n_stuffer_shift(struct s2n_stuffer *stuffer)
 {
+    POSIX_ENSURE_REF(stuffer);
     struct s2n_stuffer copy = *stuffer;
     POSIX_GUARD(s2n_stuffer_rewrite(&copy));
     uint8_t *data = stuffer->blob.data + stuffer->read_cursor;
