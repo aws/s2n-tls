@@ -39,7 +39,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
-UNWINDSET += s2n_stuffer_write_network_order.4:9
+UNWINDSET += s2n_stuffer_write_network_order.10:9
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
