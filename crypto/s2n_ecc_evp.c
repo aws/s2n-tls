@@ -180,12 +180,12 @@ static S2N_RESULT s2n_ecc_check_key(EC_KEY *ec_key)
 
 #ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
     if (s2n_is_in_fips_mode()) {
-        RESULT_GUARD_OSSL(EC_KEY_check_fips(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+        RESULT_GUARD_OSSL(EC_KEY_check_fips(ec_key), S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
         return S2N_RESULT_OK;
     }
 #endif
 
-    RESULT_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
+    RESULT_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
 
     return S2N_RESULT_OK;
 }
@@ -195,18 +195,25 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     POSIX_ENSURE_REF(peer_public);
     POSIX_ENSURE_REF(own_key);
 
-    /* From RFC 8446(TLS1.3) Section 4.2.8.2: For the curves secp256r1, secp384r1, and secp521r1, peers MUST validate 
-     * each other's public value Q by ensuring that the point is a valid point on the elliptic curve.
-     * For the curve x25519 and x448 the peer public-key validation check doesn't apply.
-     * From RFC 8422(TLS1.2) Section 5.11: With the NIST curves, each party MUST validate the public key sent by its peer
-     * in the ClientKeyExchange and ServerKeyExchange messages. A receiving party MUST check that the x and y parameters from 
-     * the peer's public value satisfy the curve equation, y^2 = x^3 + ax + b mod p.
-     * Note that the `EC_KEY_check_key` validation is a MUST for only NIST curves, if a non-NIST curve is added to s2n-tls 
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.8.2
+     *# For the curves secp256r1, secp384r1, and secp521r1, peers MUST
+     *# validate each other's public value Q by ensuring that the point is a
+     *# valid point on the elliptic curve.
+     *
+     *= https://tools.ietf.org/rfc/rfc8422#section-5.11
+     *# With the NIST curves, each party MUST validate the public key sent by
+     *# its peer in the ClientKeyExchange and ServerKeyExchange messages.  A
+     *# receiving party MUST check that the x and y parameters from the
+     *# peer's public value satisfy the curve equation, y^2 = x^3 + ax + b
+     *# mod p.
+     *
+     * Note that the `EC_KEY_check_key` validation is a MUST for only NIST curves, if a non-NIST curve is added to s2n-tls
      * this is an additional validation step that increases security but decreases performance.
      */
     if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);
-        S2N_ERROR_IF(ec_key == NULL, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+        POSIX_ENSURE(ec_key, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
         POSIX_GUARD_RESULT(s2n_ecc_check_key(ec_key));
     }
 
