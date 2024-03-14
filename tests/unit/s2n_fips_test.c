@@ -22,24 +22,30 @@ int main()
 {
     BEGIN_TEST_NO_INIT();
 
-    /* s2n_is_fips() fails before init */
+    /* s2n_get_fips_mode() fails before init */
     {
-        bool fips = false;
-        EXPECT_FAILURE_WITH_ERRNO(s2n_is_fips(&fips), S2N_ERR_NOT_INITIALIZED);
+        s2n_fips_mode fips_mode = S2N_FIPS_MODE_ENABLED;
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_fips_mode(&fips_mode), S2N_ERR_NOT_INITIALIZED);
+        EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_DISABLED);
     }
 
     EXPECT_SUCCESS(s2n_init());
 
-    /* Test s2n_is_fips() after init */
+    /* Test s2n_get_fips_mode() after init */
     {
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_is_fips(NULL), S2N_ERR_NULL);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_get_fips_mode(NULL), S2N_ERR_NULL);
 
-        /* FIPS value matches s2n_is_in_fips_mode() */
+        /* FIPS mode matches s2n_is_in_fips_mode() */
         {
-            bool fips = false;
-            EXPECT_SUCCESS(s2n_is_fips(&fips));
-            EXPECT_EQUAL(fips, s2n_is_in_fips_mode());
+            s2n_fips_mode fips_mode = S2N_FIPS_MODE_DISABLED;
+            EXPECT_SUCCESS(s2n_get_fips_mode(&fips_mode));
+
+            if (s2n_is_in_fips_mode()) {
+                EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_ENABLED);
+            } else {
+                EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_DISABLED);
+            }
         }
     }
 
