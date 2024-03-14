@@ -120,6 +120,15 @@ int s2n_is_evp_apis_supported()
     return EVP_APIS_SUPPORTED;
 }
 
+bool s2n_libcrypto_supports_ec_key_check_fips()
+{
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
+    return true;
+#else
+    return false;
+#endif
+}
+
 #if EVP_APIS_SUPPORTED
 static int s2n_ecc_evp_generate_key_x25519(const struct s2n_ecc_named_curve *named_curve, EVP_PKEY **evp_pkey)
 {

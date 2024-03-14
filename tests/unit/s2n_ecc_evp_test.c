@@ -28,15 +28,6 @@
 
 extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
 
-bool s2n_libcrypto_supports_ec_key_check_fips()
-{
-#ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
-    return true;
-#else
-    return false;
-#endif
-}
-
 int main(int argc, char** argv)
 {
     BEGIN_TEST();
