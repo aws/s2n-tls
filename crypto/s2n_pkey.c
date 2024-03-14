@@ -115,7 +115,11 @@ int s2n_pkey_match(const struct s2n_pkey *pub_key, const struct s2n_pkey *priv_k
 
 int s2n_pkey_free(struct s2n_pkey *key)
 {
-    if (key != NULL && key->free != NULL) {
+    if (key == NULL) {
+        return S2N_SUCCESS;
+    }
+
+    if (key->free != NULL) {
         POSIX_GUARD(key->free(key));
     }
 

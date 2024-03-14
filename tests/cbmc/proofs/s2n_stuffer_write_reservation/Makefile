@@ -48,13 +48,6 @@ REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe_n
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
 
-UNWINDSET += s2n_stuffer_write_network_order.0:$(MAX_WRITE_NETWORK_ORDER)
-UNWINDSET += s2n_stuffer_write_network_order.1:$(MAX_WRITE_NETWORK_ORDER)
-UNWINDSET += s2n_stuffer_write_network_order.2:$(MAX_WRITE_NETWORK_ORDER)
-UNWINDSET += s2n_stuffer_write_network_order.3:$(MAX_WRITE_NETWORK_ORDER)
-UNWINDSET += s2n_stuffer_write_network_order.4:$(MAX_WRITE_NETWORK_ORDER)
-UNWINDSET += s2n_stuffer_write_network_order.5:$(MAX_WRITE_NETWORK_ORDER)
-UNWINDSET += s2n_stuffer_write_network_order.6:$(MAX_WRITE_NETWORK_ORDER)
-UNWINDSET += s2n_stuffer_write_network_order.7:$(MAX_WRITE_NETWORK_ORDER)
+UNWINDSET += s2n_stuffer_write_network_order.10:$(MAX_WRITE_NETWORK_ORDER)
 
 include ../Makefile.common

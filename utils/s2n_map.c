@@ -32,6 +32,7 @@
 static S2N_RESULT s2n_map_slot(const struct s2n_map *map, struct s2n_blob *key, uint32_t *slot)
 {
     RESULT_ENSURE_REF(map);
+    RESULT_ENSURE(map->capacity != 0, S2N_ERR_SAFETY);
     union {
         uint8_t u8[32];
         uint32_t u32[8];
