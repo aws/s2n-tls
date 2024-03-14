@@ -54,7 +54,7 @@ int s2n_fips_init(void)
 }
 
 /* Return 1 if FIPS mode is enabled, 0 otherwise. FIPS mode must be enabled prior to calling s2n_init(). */
-int s2n_is_in_fips_mode(void)
+bool s2n_is_in_fips_mode(void)
 {
     return s2n_fips_mode_enabled;
 }
