@@ -87,7 +87,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     let server = TlsAcceptor::new(initial_config.build()?);
 
-    let listener = TcpListener::bind((IpAddr::from(Ipv4Addr::UNSPECIFIED), PORT)).await?;
+    let listener = TcpListener::bind(&format!("0.0.0.0:{PORT}")).await?;
     loop {
         let server = server.clone();
         let (stream, _) = listener.accept().await?;
