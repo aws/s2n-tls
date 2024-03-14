@@ -89,7 +89,6 @@ $(PEDANTIC_VALGRIND_TESTS)::
 		--undef-value-errors=no \
 		--show-leak-kinds=all \
 		--errors-for-leak-kinds=all \
-		--gen-suppressions=all \
 		--suppressions=valgrind.suppressions \
 	./$(@:.pedantic_valgrind=)
 
