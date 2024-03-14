@@ -321,13 +321,13 @@ int s2n_server_hello_send(struct s2n_connection *conn)
 
     struct s2n_stuffer server_random = { 0 };
     struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD_RESULT(s2n_blob_init(&b, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
 
     /* Create the server random data */
     POSIX_GUARD(s2n_stuffer_init(&server_random, &b));
 
     struct s2n_blob rand_data = { 0 };
-    POSIX_GUARD(s2n_blob_init(&rand_data, s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN), S2N_TLS_RANDOM_DATA_LEN));
+    POSIX_GUARD_RESULT(s2n_blob_init(&rand_data, s2n_stuffer_raw_write(&server_random, S2N_TLS_RANDOM_DATA_LEN), S2N_TLS_RANDOM_DATA_LEN));
     POSIX_ENSURE_REF(rand_data.data);
     POSIX_GUARD_RESULT(s2n_get_public_random_data(&rand_data));
 

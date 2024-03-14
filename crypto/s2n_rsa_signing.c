@@ -88,7 +88,7 @@ int s2n_rsa_pkcs1v15_sign(const struct s2n_pkey *priv, struct s2n_hash_state *di
     POSIX_GUARD(s2n_hash_digest(digest, digest_out, digest_length));
 
     struct s2n_blob digest_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&digest_blob, digest_out, digest_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&digest_blob, digest_out, digest_length));
     POSIX_GUARD(s2n_rsa_pkcs1v15_sign_digest(priv, digest->alg, &digest_blob, signature));
 
     return S2N_SUCCESS;
@@ -176,7 +176,7 @@ int s2n_rsa_pss_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest,
     POSIX_GUARD(s2n_hash_digest(digest, digest_data, digest_length));
 
     struct s2n_blob digest_blob = { 0 };
-    POSIX_GUARD(s2n_blob_init(&digest_blob, digest_data, digest_length));
+    POSIX_GUARD_RESULT(s2n_blob_init(&digest_blob, digest_data, digest_length));
     POSIX_GUARD(s2n_rsa_pss_sign_digest(priv, digest->alg, &digest_blob, signature_out));
 
     return S2N_SUCCESS;

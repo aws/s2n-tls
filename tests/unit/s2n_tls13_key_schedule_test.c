@@ -49,7 +49,7 @@ static int s2n_test_secret_cb(void *context, struct s2n_connection *conn,
     POSIX_ENSURE_GTE(secret_type, 0);
     POSIX_ENSURE_LT(secret_type, TRAFFIC_SECRET_COUNT);
     POSIX_ENSURE_EQ(secrets->blobs[secret_type].size, 0);
-    POSIX_GUARD(s2n_blob_init(&secrets->blobs[secret_type],
+    POSIX_GUARD_RESULT(s2n_blob_init(&secrets->blobs[secret_type],
             secrets->bytes[secret_type], secret_size));
     POSIX_CHECKED_MEMCPY(secrets->bytes[secret_type], secret_bytes, secret_size);
     return S2N_SUCCESS;
@@ -86,7 +86,7 @@ static S2N_RESULT s2n_mock_derive_method(struct s2n_connection *conn, struct s2n
     uint8_t size = 0;
     s2n_hmac_algorithm hmac_alg = conn->secure->cipher_suite->prf_alg;
     RESULT_GUARD_POSIX(s2n_hmac_digest_size(hmac_alg, &size));
-    RESULT_GUARD_POSIX(s2n_blob_init(secret, empty_secret, size));
+    RESULT_GUARD(s2n_blob_init(secret, empty_secret, size));
     return S2N_RESULT_OK;
 }
 

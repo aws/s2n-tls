@@ -113,11 +113,11 @@ int main(int argc, char **argv)
     uint8_t output_buf[SHA256_DIGEST_LENGTH] = { 0 };
     struct s2n_blob output = { 0 };
 
-    EXPECT_SUCCESS(s2n_blob_init(&salt, salt_buf, sizeof(salt_buf)));
-    EXPECT_SUCCESS(s2n_blob_init(&ikm, ikm_buf, sizeof(ikm_buf)));
-    EXPECT_SUCCESS(s2n_blob_init(&digest, digest_buf, sizeof(digest_buf)));
-    EXPECT_SUCCESS(s2n_blob_init(&secret, secret_buf, sizeof(secret_buf)));
-    EXPECT_SUCCESS(s2n_blob_init(&output, output_buf, sizeof(output_buf)));
+    EXPECT_OK(s2n_blob_init(&salt, salt_buf, sizeof(salt_buf)));
+    EXPECT_OK(s2n_blob_init(&ikm, ikm_buf, sizeof(ikm_buf)));
+    EXPECT_OK(s2n_blob_init(&digest, digest_buf, sizeof(digest_buf)));
+    EXPECT_OK(s2n_blob_init(&secret, secret_buf, sizeof(secret_buf)));
+    EXPECT_OK(s2n_blob_init(&output, output_buf, sizeof(output_buf)));
 
     struct s2n_hmac_state throwaway;
     EXPECT_SUCCESS(s2n_hmac_new(&throwaway));

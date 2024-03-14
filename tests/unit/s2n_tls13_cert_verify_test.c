@@ -88,13 +88,13 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
+        EXPECT_OK(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
         EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
 
         /* Extract public key from certificate and set it for verifying connection */
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
+        EXPECT_OK(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
             EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, sending_conn->handshake_params.our_chain_and_key->private_key));
@@ -154,12 +154,12 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->handshake_params.client_cert_sig_scheme = &sig_scheme;
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
+        EXPECT_OK(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
         EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
 
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
+        EXPECT_OK(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
             EXPECT_SUCCESS(s2n_pkey_match(&verifying_conn->handshake_params.server_public_key, verifying_conn->handshake_params.our_chain_and_key->private_key));
@@ -210,12 +210,12 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->handshake_params.client_cert_sig_scheme = &sig_scheme;
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
+        EXPECT_OK(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
         EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
 
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
+        EXPECT_OK(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
         } else {
@@ -268,13 +268,13 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         verifying_conn->actual_protocol_version = S2N_TLS13;
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
+        EXPECT_OK(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
         EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
 
         EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
 
         uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
+        EXPECT_OK(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key, &pkey_type, &b));
         } else {

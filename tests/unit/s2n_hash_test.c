@@ -34,7 +34,7 @@ int main(int argc, char **argv)
     struct s2n_stuffer output = { 0 };
     struct s2n_hash_state hash, copy;
     struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, output_pad, sizeof(output_pad)));
+    POSIX_GUARD_RESULT(s2n_blob_init(&out, output_pad, sizeof(output_pad)));
     uint64_t bytes_in_hash;
 
     BEGIN_TEST();

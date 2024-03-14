@@ -114,7 +114,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
     size_t size = size_signed;
     ssize_t bytes_read = 0;
     struct s2n_blob out = { 0 };
-    POSIX_GUARD(s2n_blob_init(&out, (uint8_t *) buf, 0));
+    POSIX_GUARD_RESULT(s2n_blob_init(&out, (uint8_t *) buf, 0));
 
     /*
      * Set the `blocked` status to BLOCKED_ON_READ by default

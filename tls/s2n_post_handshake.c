@@ -82,7 +82,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
      */
     if (s2n_stuffer_is_freed(message)) {
         struct s2n_blob b = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&b, conn->post_handshake.header_in,
+        RESULT_GUARD(s2n_blob_init(&b, conn->post_handshake.header_in,
                 sizeof(conn->post_handshake.header_in)));
         RESULT_GUARD_POSIX(s2n_stuffer_init(message, &b));
     }
@@ -109,7 +109,7 @@ S2N_RESULT s2n_post_handshake_message_recv(struct s2n_connection *conn)
     if (s2n_stuffer_data_available(message) == 0 && s2n_stuffer_data_available(in) >= message_len) {
         struct s2n_stuffer full_message = { 0 };
         struct s2n_blob full_message_blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&full_message_blob, s2n_stuffer_raw_read(in, message_len), message_len));
+        RESULT_GUARD(s2n_blob_init(&full_message_blob, s2n_stuffer_raw_read(in, message_len), message_len));
         RESULT_GUARD_POSIX(s2n_stuffer_init(&full_message, &full_message_blob));
         RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&full_message, message_len));
         RESULT_GUARD(s2n_post_handshake_process(conn, &full_message, message_type));

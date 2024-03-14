@@ -58,7 +58,7 @@ int s2n_create_cert_chain_from_stuffer(struct s2n_cert_chain *cert_chain_out, st
         }
         struct s2n_blob mem = { 0 };
         POSIX_GUARD(s2n_alloc(&mem, sizeof(struct s2n_cert)));
-        POSIX_GUARD(s2n_blob_zero(&mem));
+        POSIX_GUARD_RESULT(s2n_blob_zero(&mem));
         new_node = (struct s2n_cert *) (void *) mem.data;
 
         if (s2n_alloc(&new_node->raw, s2n_stuffer_data_available(&cert_out_stuffer)) != S2N_SUCCESS) {
@@ -188,15 +188,15 @@ struct s2n_cert_chain_and_key *s2n_cert_chain_and_key_new(void)
 {
     DEFER_CLEANUP(struct s2n_blob chain_and_key_mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&chain_and_key_mem, sizeof(struct s2n_cert_chain_and_key)));
-    PTR_GUARD_POSIX(s2n_blob_zero(&chain_and_key_mem));
+    PTR_GUARD_RESULT(s2n_blob_zero(&chain_and_key_mem));
 
     DEFER_CLEANUP(struct s2n_blob cert_chain_mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&cert_chain_mem, sizeof(struct s2n_cert_chain)));
-    PTR_GUARD_POSIX(s2n_blob_zero(&cert_chain_mem));
+    PTR_GUARD_RESULT(s2n_blob_zero(&cert_chain_mem));
 
     DEFER_CLEANUP(struct s2n_blob pkey_mem = { 0 }, s2n_free);
     PTR_GUARD_POSIX(s2n_alloc(&pkey_mem, sizeof(s2n_cert_private_key)));
-    PTR_GUARD_POSIX(s2n_blob_zero(&pkey_mem));
+    PTR_GUARD_RESULT(s2n_blob_zero(&pkey_mem));
 
     DEFER_CLEANUP(struct s2n_array *cn_names = NULL, s2n_array_free_p);
     cn_names = s2n_array_new(sizeof(struct s2n_blob));
@@ -257,7 +257,7 @@ int s2n_cert_chain_and_key_load_sans(struct s2n_cert_chain_and_key *chain_and_ke
             POSIX_CHECKED_MEMCPY(san_blob->data, san_str, san_str_len);
             san_blob->size = san_str_len;
             /* normalize san_blob to lowercase */
-            POSIX_GUARD(s2n_blob_char_to_lower(san_blob));
+            POSIX_GUARD_RESULT(s2n_blob_char_to_lower(san_blob));
         }
     }
 
@@ -330,7 +330,7 @@ int s2n_cert_chain_and_key_load_cns(struct s2n_cert_chain_and_key *chain_and_key
             POSIX_CHECKED_MEMCPY(cn_name->data, utf8_str, utf8_out_len);
             cn_name->size = utf8_out_len;
             /* normalize cn_name to lowercase */
-            POSIX_GUARD(s2n_blob_char_to_lower(cn_name));
+            POSIX_GUARD_RESULT(s2n_blob_char_to_lower(cn_name));
         }
     }
 

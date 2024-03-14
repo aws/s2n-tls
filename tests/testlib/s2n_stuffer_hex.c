@@ -31,7 +31,7 @@ static int s2n_stuffer_read_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, u
 {
     uint8_t hex_data[16] = { 0 };
     struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, hex_data, n / 4));
+    POSIX_GUARD_RESULT(s2n_blob_init(&b, hex_data, n / 4));
 
     POSIX_GUARD(s2n_stuffer_read(stuffer, &b));
 
@@ -125,7 +125,7 @@ static int s2n_stuffer_write_n_bits_hex(struct s2n_stuffer *stuffer, uint8_t n, 
 {
     uint8_t hex_data[16] = { 0 };
     struct s2n_blob b = { 0 };
-    POSIX_GUARD(s2n_blob_init(&b, hex_data, n / 4));
+    POSIX_GUARD_RESULT(s2n_blob_init(&b, hex_data, n / 4));
 
     POSIX_ENSURE_LTE(n, 64);
 

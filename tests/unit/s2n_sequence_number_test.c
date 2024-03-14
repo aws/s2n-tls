@@ -31,7 +31,7 @@ int main(int argc, char **argv)
             uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
             struct s2n_blob sequence_number = { 0 };
 
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
+            EXPECT_OK(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
@@ -45,7 +45,7 @@ int main(int argc, char **argv)
             data[S2N_TLS_SEQUENCE_NUM_LEN - 1] = 1;
             struct s2n_blob sequence_number = { 0 };
 
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
+            EXPECT_OK(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
@@ -58,8 +58,8 @@ int main(int argc, char **argv)
             uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
             struct s2n_blob sequence_number = { 0 };
 
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
-            EXPECT_SUCCESS(s2n_blob_zero(&sequence_number));
+            EXPECT_OK(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
+            EXPECT_OK(s2n_blob_zero(&sequence_number));
 
             for (size_t i = 0; i < S2N_TLS_SEQUENCE_NUM_LEN; i++) {
                 sequence_number.data[i] = UINT8_MAX;
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
             uint8_t data[S2N_TLS_SEQUENCE_NUM_LEN] = { 0, 0, 0, 0, 1, 106, 9, 229 };
             struct s2n_blob sequence_number = { 0 };
 
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
+            EXPECT_OK(s2n_blob_init(&sequence_number, data, S2N_TLS_SEQUENCE_NUM_LEN));
 
             EXPECT_SUCCESS(s2n_sequence_number_to_uint64(&sequence_number, &output));
 
@@ -93,7 +93,7 @@ int main(int argc, char **argv)
             uint8_t stuffer_bytes[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
             struct s2n_blob stuffer_blob = { 0 };
             struct s2n_stuffer stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&stuffer_blob, stuffer_bytes, sizeof(stuffer_bytes)));
+            EXPECT_OK(s2n_blob_init(&stuffer_blob, stuffer_bytes, sizeof(stuffer_bytes)));
             EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &stuffer_blob));
             EXPECT_SUCCESS(s2n_stuffer_write_uint64(&stuffer, input));
 

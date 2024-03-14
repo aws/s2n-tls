@@ -367,7 +367,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_hash_digest(&server_hash, server_digest_out, hash_digest_length));
 
         struct s2n_blob server_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&server_blob, server_digest_out, hash_digest_length));
+        EXPECT_OK(s2n_blob_init(&server_blob, server_digest_out, hash_digest_length));
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
         EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
@@ -388,7 +388,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(s2n_hash_digest(&client_hash, client_digest_out, hash_digest_length));
 
         struct s2n_blob client_blob = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&client_blob, client_digest_out, hash_digest_length));
+        EXPECT_OK(s2n_blob_init(&client_blob, client_digest_out, hash_digest_length));
 
         /* Test that the transcript hash recreated MUST be the same on the server and client side */
         S2N_BLOB_EXPECT_EQUAL(client_blob, server_blob);
@@ -1144,7 +1144,7 @@ int main(int argc, char **argv)
 
             uint8_t extension_data[3] = { 0 };
             struct s2n_blob extension_blob = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
+            EXPECT_OK(s2n_blob_init(&extension_blob, extension_data, sizeof(extension_data)));
             struct s2n_stuffer extension_stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init(&extension_stuffer, &extension_blob));
 

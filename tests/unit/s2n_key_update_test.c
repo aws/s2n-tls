@@ -35,7 +35,7 @@ static S2N_RESULT s2n_write_uint64(uint64_t input, uint8_t *output)
 {
     struct s2n_blob blob = { 0 };
     struct s2n_stuffer stuffer = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&blob, output, S2N_TLS_SEQUENCE_NUM_LEN));
+    EXPECT_OK(s2n_blob_init(&blob, output, S2N_TLS_SEQUENCE_NUM_LEN));
     EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &blob));
     EXPECT_SUCCESS(s2n_stuffer_write_uint64(&stuffer, input));
     return S2N_RESULT_OK;
@@ -73,7 +73,7 @@ int main(int argc, char **argv)
             uint8_t key_update_data[S2N_KEY_UPDATE_MESSAGE_SIZE];
             struct s2n_blob key_update_blob = { 0 };
             struct s2n_stuffer key_update_stuffer = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
+            EXPECT_OK(s2n_blob_init(&key_update_blob, key_update_data, sizeof(key_update_data)));
             EXPECT_SUCCESS(s2n_stuffer_init(&key_update_stuffer, &key_update_blob));
 
             /* Write key update message */
@@ -449,7 +449,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
             struct s2n_blob sequence_number = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number,
+            EXPECT_OK(s2n_blob_init(&sequence_number,
                     client_conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
             EXPECT_OK(s2n_write_uint64(start, client_conn->secure->client_sequence_number));
 
@@ -487,7 +487,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, client_conn));
 
             struct s2n_blob sequence_number = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number,
+            EXPECT_OK(s2n_blob_init(&sequence_number,
                     client_conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
             EXPECT_OK(s2n_write_uint64(start, client_conn->secure->client_sequence_number));
 
@@ -538,7 +538,7 @@ int main(int argc, char **argv)
         {
             struct s2n_blob sequence_number = { 0 };
             uint8_t sequence_number_bytes[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, sequence_number_bytes, sizeof(sequence_number_bytes)));
+            EXPECT_OK(s2n_blob_init(&sequence_number, sequence_number_bytes, sizeof(sequence_number_bytes)));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
@@ -584,7 +584,7 @@ int main(int argc, char **argv)
         {
             struct s2n_blob sequence_number = { 0 };
             uint8_t sequence_number_bytes[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&sequence_number, sequence_number_bytes, sizeof(sequence_number_bytes)));
+            EXPECT_OK(s2n_blob_init(&sequence_number, sequence_number_bytes, sizeof(sequence_number_bytes)));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);

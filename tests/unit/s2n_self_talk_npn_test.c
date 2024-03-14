@@ -28,7 +28,7 @@ static int s2n_wipe_alpn_ext(struct s2n_connection *conn, void *ctx)
     s2n_parsed_extension *parsed_extension = NULL;
     POSIX_GUARD(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_ALPN, &client_hello->extensions, &parsed_extension));
     POSIX_ENSURE_REF(parsed_extension);
-    POSIX_GUARD(s2n_blob_zero(&parsed_extension->extension));
+    POSIX_GUARD_RESULT(s2n_blob_zero(&parsed_extension->extension));
 
     return S2N_SUCCESS;
 }

@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
     uint8_t large_test_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH + 10] = { 0 };
     struct s2n_blob large_data_blob = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&large_data_blob, large_test_data, sizeof(large_test_data)));
+    EXPECT_OK(s2n_blob_init(&large_data_blob, large_test_data, sizeof(large_test_data)));
     EXPECT_OK(s2n_get_public_random_data(&large_data_blob));
 
     /* Small record sizes will require a LOT of calls to s2n_send.
@@ -426,7 +426,7 @@ int main(int argc, char **argv)
         /* Initialize sequence number */
         struct s2n_blob seq_num_blob = { 0 };
         struct s2n_stuffer seq_num_stuffer = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        EXPECT_OK(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         EXPECT_SUCCESS(s2n_stuffer_init(&seq_num_stuffer, &seq_num_blob));
 
         /* Set the sequence number so that a KeyUpdate triggers after one more record. */
@@ -544,7 +544,7 @@ int main(int argc, char **argv)
         /* Initialize sequence number */
         struct s2n_blob seq_num_blob = { 0 };
         struct s2n_stuffer seq_num_stuffer = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+        EXPECT_OK(s2n_blob_init(&seq_num_blob, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
         EXPECT_SUCCESS(s2n_stuffer_init(&seq_num_stuffer, &seq_num_blob));
 
         /* Set the sequence number so that a KeyUpdate triggers after one more record. */

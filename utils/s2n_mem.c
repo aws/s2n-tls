@@ -206,8 +206,8 @@ int s2n_realloc(struct s2n_blob *b, uint32_t size)
         if (size < b->size) {
             /* Zero the existing blob memory before the we release it */
             struct s2n_blob slice = { 0 };
-            POSIX_GUARD(s2n_blob_slice(b, &slice, size, b->size - size));
-            POSIX_GUARD(s2n_blob_zero(&slice));
+            POSIX_GUARD_RESULT(s2n_blob_slice(b, &slice, size, b->size - size));
+            POSIX_GUARD_RESULT(s2n_blob_zero(&slice));
         }
 
         b->size = size;
@@ -302,9 +302,9 @@ int s2n_free(struct s2n_blob *b)
 {
     /* To avoid memory leaks, don't exit the function until the memory
        has been freed */
-    int zero_rc = s2n_blob_zero(b);
+    s2n_result zero_rc = s2n_blob_zero(b);
     POSIX_GUARD(s2n_free_without_wipe(b));
-    return zero_rc;
+    return s2n_result_is_ok(zero_rc) ? S2N_SUCCESS : S2N_FAILURE;
 }
 
 int s2n_free_without_wipe(struct s2n_blob *b)
@@ -326,9 +326,9 @@ int s2n_free_without_wipe(struct s2n_blob *b)
 int s2n_free_or_wipe(struct s2n_blob *b)
 {
     POSIX_ENSURE_REF(b);
-    int zero_rc = s2n_blob_zero(b);
+    s2n_result zero_rc = s2n_blob_zero(b);
     if (b->allocated) {
         POSIX_GUARD(s2n_free_without_wipe(b));
     }
-    return zero_rc;
+    return s2n_result_is_ok(zero_rc) ? S2N_SUCCESS : S2N_FAILURE;
 }

@@ -106,8 +106,8 @@ int s2n_tls13_keys_init(struct s2n_tls13_keys *keys, s2n_hmac_algorithm alg)
     keys->hmac_algorithm = alg;
     POSIX_GUARD(s2n_hmac_hash_alg(alg, &keys->hash_algorithm));
     POSIX_GUARD(s2n_hash_digest_size(keys->hash_algorithm, &keys->size));
-    POSIX_GUARD(s2n_blob_init(&keys->extract_secret, keys->extract_secret_bytes, keys->size));
-    POSIX_GUARD(s2n_blob_init(&keys->derive_secret, keys->derive_secret_bytes, keys->size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&keys->extract_secret, keys->extract_secret_bytes, keys->size));
+    POSIX_GUARD_RESULT(s2n_blob_init(&keys->derive_secret, keys->derive_secret_bytes, keys->size));
     POSIX_GUARD(s2n_hmac_new(&keys->hmac));
 
     return 0;

@@ -75,7 +75,7 @@ static S2N_RESULT s2n_validate_ja3_str(uint8_t *ja3, uint32_t ja3_size,
 {
     struct s2n_blob input_blob = { 0 };
     struct s2n_stuffer input = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&input_blob, ja3, ja3_size));
+    RESULT_GUARD(s2n_blob_init(&input_blob, ja3, ja3_size));
     RESULT_GUARD_POSIX(s2n_stuffer_init(&input, &input_blob));
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&input, ja3_size));
 

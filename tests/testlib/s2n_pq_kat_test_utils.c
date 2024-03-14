@@ -62,7 +62,7 @@ static S2N_RESULT s2n_drbg_generate_for_pq_kat_tests(struct s2n_drbg *drbg, stru
     RESULT_ENSURE_REF(drbg->ctx);
     uint8_t zeros_buffer[S2N_DRBG_MAX_SEED_SIZE] = { 0 };
     struct s2n_blob zeros = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&zeros, zeros_buffer, s2n_drbg_seed_size(drbg)));
+    RESULT_GUARD(s2n_blob_init(&zeros, zeros_buffer, s2n_drbg_seed_size(drbg)));
 
     RESULT_ENSURE(blob->size <= S2N_DRBG_GENERATE_LIMIT, S2N_ERR_DRBG_REQUEST_SIZE);
 
@@ -83,7 +83,7 @@ static S2N_RESULT s2n_get_random_data_for_pq_kat_tests(struct s2n_blob *blob)
     while (remaining) {
         struct s2n_blob slice = { 0 };
 
-        RESULT_GUARD_POSIX(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
+        RESULT_GUARD(s2n_blob_slice(blob, &slice, offset, MIN(remaining, S2N_DRBG_GENERATE_LIMIT)));
         RESULT_GUARD(s2n_drbg_generate_for_pq_kat_tests(&drbg_for_pq_kats, &slice));
 
         remaining -= slice.size;
@@ -97,7 +97,7 @@ S2N_RESULT s2n_get_random_bytes_for_pq_kat_tests(uint8_t *buffer, uint32_t num_b
 {
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     struct s2n_blob out = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&out, buffer, num_bytes));
+    RESULT_GUARD(s2n_blob_init(&out, buffer, num_bytes));
 
     RESULT_GUARD(s2n_get_random_data_for_pq_kat_tests(&out));
 

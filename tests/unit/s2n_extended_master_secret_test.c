@@ -59,7 +59,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer ticket = { 0 };
             struct s2n_blob ticket_blob = { 0 };
             uint8_t ticket_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket with EMS data */
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer ticket = { 0 };
             struct s2n_blob ticket_blob = { 0 };
             uint8_t ticket_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket without EMS data */
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer ticket = { 0 };
             struct s2n_blob ticket_blob = { 0 };
             uint8_t ticket_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
+            EXPECT_OK(s2n_blob_init(&ticket_blob, ticket_data, S2N_TLS12_TICKET_SIZE_IN_BYTES));
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket with EMS data */
