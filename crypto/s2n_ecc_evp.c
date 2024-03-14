@@ -120,7 +120,7 @@ int s2n_is_evp_apis_supported()
     return EVP_APIS_SUPPORTED;
 }
 
-bool s2n_libcrypto_supports_ec_key_check_fips()
+bool s2n_ecc_evp_supports_fips_check()
 {
 #ifdef S2N_LIBCRYPTO_SUPPORTS_EC_KEY_CHECK_FIPS
     return true;
@@ -208,8 +208,8 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
      *# peer's public value satisfy the curve equation, y^2 = x^3 + ax + b
      *# mod p.
      *
-     * Note that the `EC_KEY_check_key` validation is a MUST for only NIST curves, if a non-NIST curve is added to s2n-tls
-     * this is an additional validation step that increases security but decreases performance.
+     * The validation requirement for the public key value only applies to NIST curves. The
+     * validation is skipped with non-NIST curves for increased performance.
      */
     if (iana_id != TLS_EC_CURVE_ECDH_X25519 && iana_id != TLS_EC_CURVE_ECDH_X448) {
         DEFER_CLEANUP(EC_KEY *ec_key = EVP_PKEY_get1_EC_KEY(peer_public), EC_KEY_free_pointer);

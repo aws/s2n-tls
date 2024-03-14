@@ -29,6 +29,9 @@
 
 extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
 
+DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
+DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
+
 int main(int argc, char** argv)
 {
     BEGIN_TEST();
@@ -36,7 +39,7 @@ int main(int argc, char** argv)
 
     /* Test the EC_KEY_CHECK_FIPS feature probe. AWS-LC is a libcrypto known to support this feature. */
     if (s2n_libcrypto_is_awslc()) {
-        EXPECT_TRUE(s2n_libcrypto_supports_ec_key_check_fips());
+        EXPECT_TRUE(s2n_ecc_evp_supports_fips_check());
     }
 
     {
@@ -456,7 +459,8 @@ int main(int argc, char** argv)
             EXPECT_NOT_NULL(client_params.evp_pkey);
 
             /* Retrieve the existing client public key. */
-            EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(client_params.evp_pkey);
+            DEFER_CLEANUP(EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(client_params.evp_pkey),
+                    EC_KEY_free_pointer);
             EXPECT_NOT_NULL(ec_key);
             const EC_GROUP* group = EC_KEY_get0_group(ec_key);
             EXPECT_NOT_NULL(group);
@@ -464,7 +468,8 @@ int main(int argc, char** argv)
             EXPECT_NOT_NULL(public_key);
 
             /* Invalidate the public key by setting the coordinate to infinity. */
-            EC_POINT* invalid_public_key = EC_POINT_dup(public_key, group);
+            DEFER_CLEANUP(EC_POINT* invalid_public_key = EC_POINT_dup(public_key, group),
+                    EC_POINT_free_pointer);
             EXPECT_NOT_NULL(invalid_public_key);
             EXPECT_EQUAL(EC_POINT_set_to_infinity(group, invalid_public_key), 1);
             EXPECT_EQUAL(EC_KEY_set_public_key(ec_key, invalid_public_key), 1);
@@ -477,7 +482,7 @@ int main(int argc, char** argv)
             /* If s2n-tls is in FIPS mode and the libcrypto supports the EC_KEY_check_fips API,
              * ensure that this API is called by checking for the correct error.
              */
-            if (s2n_is_in_fips_mode() && s2n_libcrypto_supports_ec_key_check_fips()) {
+            if (s2n_is_in_fips_mode() && s2n_ecc_evp_supports_fips_check()) {
                 EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
