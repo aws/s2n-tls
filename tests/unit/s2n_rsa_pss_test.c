@@ -27,9 +27,9 @@
 int s2n_flip_random_bit(struct s2n_blob *blob)
 {
     /* Flip a random bit in the blob */
-    uint64_t byte_flip_pos;
+    uint64_t byte_flip_pos = 0;
     POSIX_GUARD_RESULT(s2n_public_random(blob->size, &byte_flip_pos));
-    uint64_t bit_flip_pos;
+    uint64_t bit_flip_pos = 0;
     POSIX_GUARD_RESULT(s2n_public_random(8, &bit_flip_pos));
 
     uint8_t mask = 0x01 << (uint8_t) bit_flip_pos;
@@ -57,10 +57,10 @@ int main(int argc, char **argv)
      * Pseudocode: assert(SUCCESS == verify(Key1_public, message, sign(Key1_private, message)))
      */
     {
-        struct s2n_config *server_config;
-        char *cert_chain_pem;
-        char *private_key_pem;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_config *server_config = NULL;
+        char *cert_chain_pem = NULL;
+        char *private_key_pem = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         struct s2n_pkey public_key = { 0 };
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
@@ -98,10 +98,10 @@ int main(int argc, char **argv)
      * Pseudocode: assert(FAILURE == load_pem_pair(Key1_public, Key2_private))
      */
     {
-        struct s2n_config *server_config;
-        char *leaf_cert_chain_pem;
-        char *root_private_key_pem;
-        struct s2n_cert_chain_and_key *misconfigured_chain_and_key;
+        struct s2n_config *server_config = NULL;
+        char *leaf_cert_chain_pem = NULL;
+        char *root_private_key_pem = NULL;
+        struct s2n_cert_chain_and_key *misconfigured_chain_and_key = NULL;
         struct s2n_pkey public_key = { 0 };
 
         EXPECT_NOT_NULL(leaf_cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
@@ -129,10 +129,10 @@ int main(int argc, char **argv)
      * Pseudocode: assert(FAILURE == verify(Key1_public, message, bitflip(sign(Key1_private, message)))
      */
     {
-        struct s2n_config *server_config;
-        char *cert_chain_pem;
-        char *private_key_pem;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_config *server_config = NULL;
+        char *cert_chain_pem = NULL;
+        char *private_key_pem = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         struct s2n_pkey public_key = { 0 };
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 
@@ -194,13 +194,13 @@ int main(int argc, char **argv)
      * Pseudocode: assert(FAILURE == verify(Key2_public, message, sign(Key1_private, message)))
      */
     {
-        struct s2n_config *server_config;
-        char *root_cert_chain_pem;
-        char *root_private_key_pem;
-        char *leaf_cert_chain_pem;
-        char *leaf_private_key_pem;
-        struct s2n_cert_chain_and_key *root_chain_and_key;
-        struct s2n_cert_chain_and_key *leaf_chain_and_key;
+        struct s2n_config *server_config = NULL;
+        char *root_cert_chain_pem = NULL;
+        char *root_private_key_pem = NULL;
+        char *leaf_cert_chain_pem = NULL;
+        char *leaf_private_key_pem = NULL;
+        struct s2n_cert_chain_and_key *root_chain_and_key = NULL;
+        struct s2n_cert_chain_and_key *leaf_chain_and_key = NULL;
         struct s2n_pkey root_public_key = { 0 };
         struct s2n_pkey leaf_public_key = { 0 };
         s2n_pkey_type root_pkey_type = S2N_PKEY_TYPE_UNKNOWN;
@@ -285,10 +285,10 @@ int main(int argc, char **argv)
      * Pseudocode: assert(FAILURE == verify(Key1_public, bitflip(message), sign(Key1_private, message)))
      */
     {
-        struct s2n_config *server_config;
-        char *cert_chain_pem;
-        char *private_key_pem;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_config *server_config = NULL;
+        char *cert_chain_pem = NULL;
+        char *private_key_pem = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         struct s2n_pkey public_key = { 0 };
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
 

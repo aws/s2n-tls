@@ -288,7 +288,7 @@ int s2n_config_load_system_certs(struct s2n_config *config)
 struct s2n_config *s2n_config_new_minimal(void)
 {
     struct s2n_blob allocator = { 0 };
-    struct s2n_config *new_config;
+    struct s2n_config *new_config = NULL;
 
     PTR_GUARD_POSIX(s2n_alloc(&allocator, sizeof(struct s2n_config)));
     PTR_GUARD_POSIX(s2n_blob_zero(&allocator));

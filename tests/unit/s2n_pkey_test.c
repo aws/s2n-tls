@@ -25,7 +25,7 @@ int main(int argc, char **argv)
     /* Test each combination of s2n_pkey_types to validate that only keys of
      * the same type can be compared */
     {
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         char rsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         char rsa_pss_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         char ecdsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
@@ -94,7 +94,7 @@ int main(int argc, char **argv)
     /* Test the same as above but with non null terminated chain and key and
      * api that accepts length  */
     {
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         uint8_t rsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         uint8_t rsa_pss_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
         uint8_t ecdsa_cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };

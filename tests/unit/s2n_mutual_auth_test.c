@@ -39,13 +39,13 @@ static uint8_t verify_host_fn(const char *host_name, size_t host_name_len, void 
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *config;
-    const struct s2n_security_policy *default_security_policy;
-    const struct s2n_cipher_preferences *default_cipher_preferences;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_config *config = NULL;
+    const struct s2n_security_policy *default_security_policy = NULL;
+    const struct s2n_cipher_preferences *default_cipher_preferences = NULL;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    char *dhparams_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -84,8 +84,8 @@ int main(int argc, char **argv)
         verify_data.callback_invoked = 0;
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
         struct s2n_stuffer client_to_server = { 0 };
         struct s2n_stuffer server_to_client = { 0 };
 
@@ -143,8 +143,8 @@ int main(int argc, char **argv)
     for (size_t cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
         struct s2n_stuffer client_to_server = { 0 };
         struct s2n_stuffer server_to_client = { 0 };
 
@@ -197,8 +197,8 @@ int main(int argc, char **argv)
     for (size_t cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
         struct s2n_stuffer client_to_server = { 0 };
         struct s2n_stuffer server_to_client = { 0 };
 
@@ -257,8 +257,8 @@ int main(int argc, char **argv)
     for (size_t cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy server_security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
         struct s2n_stuffer client_to_server = { 0 };
         struct s2n_stuffer server_to_client = { 0 };
 

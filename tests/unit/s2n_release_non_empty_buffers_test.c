@@ -33,8 +33,8 @@ static const uint8_t buf_to_send[1023] = { 27 };
 
 int mock_client(struct s2n_test_io_pair *io_pair)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *client_config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *client_config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
 
@@ -70,10 +70,10 @@ int mock_client(struct s2n_test_io_pair *io_pair)
 int main(int argc, char **argv)
 {
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
+    int status = 0;
+    pid_t pid = 0;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
     uint8_t buf[sizeof(buf_to_send)];
     uint32_t n = 0;
     ssize_t ret = 0;

@@ -59,7 +59,7 @@ int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, u
     POSIX_ENSURE_GTE(s2n_stuffer_space_remaining(out), n);
 
     for (size_t i = 0; i < n; i++) {
-        uint8_t c;
+        uint8_t c = 0;
         POSIX_GUARD(s2n_stuffer_read_uint8_hex(stuffer, &c));
         POSIX_GUARD(s2n_stuffer_write_uint8(out, c));
     }
@@ -72,7 +72,7 @@ int s2n_stuffer_write_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *in, u
     POSIX_ENSURE_GTE(s2n_stuffer_space_remaining(stuffer), n * 2);
 
     for (size_t i = 0; i < n; i++) {
-        uint8_t c;
+        uint8_t c = 0;
         POSIX_GUARD(s2n_stuffer_read_uint8(in, &c));
         POSIX_GUARD(s2n_stuffer_write_uint8_hex(stuffer, c));
     }
@@ -87,7 +87,7 @@ int s2n_stuffer_read_uint64_hex(struct s2n_stuffer *stuffer, uint64_t *u)
 
 int s2n_stuffer_read_uint32_hex(struct s2n_stuffer *stuffer, uint32_t *u)
 {
-    uint64_t u64;
+    uint64_t u64 = 0;
 
     POSIX_GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 32, &u64));
 
@@ -98,7 +98,7 @@ int s2n_stuffer_read_uint32_hex(struct s2n_stuffer *stuffer, uint32_t *u)
 
 int s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u)
 {
-    uint64_t u64;
+    uint64_t u64 = 0;
 
     POSIX_GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 16, &u64));
 
@@ -109,7 +109,7 @@ int s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u)
 
 int s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u)
 {
-    uint64_t u64;
+    uint64_t u64 = 0;
 
     POSIX_GUARD(s2n_stuffer_read_n_bits_hex(stuffer, 8, &u64));
 

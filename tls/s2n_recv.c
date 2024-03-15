@@ -73,7 +73,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
     POSIX_GUARD_RESULT(s2n_read_in_bytes(conn, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
 
-    uint16_t fragment_length;
+    uint16_t fragment_length = 0;
 
     /* If the first bit is set then this is an SSLv2 record */
     if (conn->header_in.blob.data[0] & S2N_TLS_SSLV2_HEADER_FLAG) {
@@ -150,7 +150,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
     while (size && s2n_connection_check_io_status(conn, S2N_IO_READABLE)) {
         int isSSLv2 = 0;
-        uint8_t record_type;
+        uint8_t record_type = 0;
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
         if (r < 0) {
             /* Don't propagate the error if we already read some bytes. */

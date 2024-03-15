@@ -134,7 +134,7 @@ int main(int argc, char** argv)
         for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params test_params = { 0 };
             struct s2n_stuffer wire = { 0 };
-            uint8_t legacy_form;
+            uint8_t legacy_form = 0;
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 0));
 

@@ -168,7 +168,7 @@ int s2n_tls13_cert_read_and_verify_signature(struct s2n_connection *conn,
     POSIX_GUARD(s2n_hash_new(&message_hash));
 
     /* Get signature size */
-    uint16_t signature_size;
+    uint16_t signature_size = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_size));
     S2N_ERROR_IF(signature_size > s2n_stuffer_data_available(in), S2N_ERR_BAD_MESSAGE);
 
