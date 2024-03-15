@@ -67,7 +67,7 @@ static int s2n_client_cert_status_request_recv(struct s2n_connection *conn, stru
         return S2N_SUCCESS;
     }
 
-    uint8_t type;
+    uint8_t type = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &type));
     if (type != (uint8_t) S2N_STATUS_REQUEST_OCSP) {
         /* We only support OCSP (type 1), ignore the extension */

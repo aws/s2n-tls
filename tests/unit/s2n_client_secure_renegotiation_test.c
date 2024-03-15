@@ -32,8 +32,8 @@
 
 int main(int argc, char **argv)
 {
-    char *cert_chain;
-    char *private_key;
+    char *cert_chain = NULL;
+    char *private_key = NULL;
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
@@ -43,8 +43,8 @@ int main(int argc, char **argv)
 
     /* Success: server sends an empty initial renegotiation_info */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_config *client_config;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_config *client_config = NULL;
         s2n_blocked_status client_blocked;
 
         uint8_t server_extensions[] = {
@@ -136,8 +136,8 @@ int main(int argc, char **argv)
 
     /* Success: server doesn't send an renegotiation_info extension */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_config *client_config;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_config *client_config = NULL;
         s2n_blocked_status client_blocked;
 
         uint8_t server_hello_message[] = {
@@ -214,8 +214,8 @@ int main(int argc, char **argv)
 
     /* Failure: server sends a non-empty initial renegotiation_info */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_config *client_config;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_config *client_config = NULL;
         s2n_blocked_status client_blocked;
 
         uint8_t server_extensions[] = {

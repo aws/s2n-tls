@@ -243,9 +243,9 @@ int main(int argc, char **argv)
     for (test_type = TEST_TYPE_START; test_type < TEST_TYPE_END; test_type++) {
         /*  Test: RSA cert */
         {
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
 
-            struct s2n_cert_chain_and_key *chain_and_key;
+            struct s2n_cert_chain_and_key *chain_and_key = NULL;
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
@@ -278,9 +278,9 @@ int main(int argc, char **argv)
             if (!s2n_is_in_fips_mode()) {
                 /* Enable TLS 1.3 for the client */
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                struct s2n_config *server_config, *client_config;
+                struct s2n_config *server_config = NULL, *client_config = NULL;
 
-                struct s2n_cert_chain_and_key *chain_and_key;
+                struct s2n_cert_chain_and_key *chain_and_key = NULL;
                 EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                         S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
@@ -314,9 +314,9 @@ int main(int argc, char **argv)
 
         /*  Test: ECDSA cert */
         {
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
 
-            struct s2n_cert_chain_and_key *chain_and_key;
+            struct s2n_cert_chain_and_key *chain_and_key = NULL;
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
@@ -358,9 +358,9 @@ int main(int argc, char **argv)
                 .signature_schemes = rsa_pss_rsae_sig_schemes,
             };
 
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
 
-            struct s2n_cert_chain_and_key *chain_and_key;
+            struct s2n_cert_chain_and_key *chain_and_key = NULL;
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
@@ -403,9 +403,9 @@ int main(int argc, char **argv)
         if (s2n_is_rsa_pss_certs_supported()) {
             s2n_enable_tls13_in_test();
 
-            struct s2n_config *server_config, *client_config;
+            struct s2n_config *server_config = NULL, *client_config = NULL;
 
-            struct s2n_cert_chain_and_key *chain_and_key;
+            struct s2n_cert_chain_and_key *chain_and_key = NULL;
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                     S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
 

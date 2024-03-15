@@ -111,7 +111,7 @@ int s2n_rsa_client_key_recv(struct s2n_connection *conn, struct s2n_blob *shared
 
     struct s2n_stuffer *in = &conn->handshake.io;
     uint8_t client_hello_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
-    uint16_t length;
+    uint16_t length = 0;
 
     if (conn->actual_protocol_version == S2N_SSLv3) {
         length = s2n_stuffer_data_available(in);

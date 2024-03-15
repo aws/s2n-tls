@@ -449,7 +449,7 @@ int main(int argc, char **argv)
         conn->handshake.handshake_type = NEGOTIATED | FULL_HANDSHAKE | CLIENT_AUTH | NO_CLIENT_CERT | TLS12_PERFECT_FORWARD_SECRECY | OCSP_STATUS | WITH_SESSION_TICKET | WITH_NPN;
         EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
 
-        const char *handshake_type_name;
+        const char *handshake_type_name = NULL;
         for (int i = 0; i < valid_tls12_handshakes_size; i++) {
             conn->handshake.handshake_type = valid_tls12_handshakes[i];
 

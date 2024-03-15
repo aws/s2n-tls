@@ -410,7 +410,7 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(extension);
 
-    uint16_t key_shares_size;
+    uint16_t key_shares_size = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &key_shares_size));
     POSIX_ENSURE(s2n_stuffer_data_available(extension) == key_shares_size, S2N_ERR_BAD_MESSAGE);
 

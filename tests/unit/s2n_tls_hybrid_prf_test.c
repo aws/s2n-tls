@@ -55,7 +55,7 @@ int main(int argc, char **argv)
         POSIX_ENSURE_GT(fscanf(kat_file, "%u", &count), 0);
         POSIX_ENSURE_EQ(count, i);
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS12;
         /* Really only need for the hash function in the PRF */
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(FindMarker(kat_file, "premaster_kem_secret_length = "));
         POSIX_ENSURE_GT(fscanf(kat_file, "%u", &premaster_kem_secret_length), 0);
 
-        uint8_t *premaster_kem_secret;
+        uint8_t *premaster_kem_secret = NULL;
         POSIX_ENSURE_REF(premaster_kem_secret = malloc(premaster_kem_secret_length));
         POSIX_GUARD(ReadHex(kat_file, premaster_kem_secret, premaster_kem_secret_length, "premaster_kem_secret = "));
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         POSIX_GUARD(FindMarker(kat_file, "client_key_exchange_message_length = "));
         POSIX_ENSURE_GT(fscanf(kat_file, "%u", &client_key_exchange_message_length), 0);
 
-        uint8_t *client_key_exchange_message;
+        uint8_t *client_key_exchange_message = NULL;
         POSIX_ENSURE_REF(client_key_exchange_message = malloc(client_key_exchange_message_length));
         POSIX_GUARD(ReadHex(kat_file, client_key_exchange_message, client_key_exchange_message_length, "client_key_exchange_message = "));
 

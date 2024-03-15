@@ -38,10 +38,10 @@ int main(int argc, char **argv)
 
     /* should_send */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
 
     /* Test send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
 
@@ -87,16 +87,16 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_cert_status_extension.send(conn, &stuffer));
 
-        uint8_t request_type;
+        uint8_t request_type = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &request_type));
         EXPECT_EQUAL(request_type, S2N_STATUS_REQUEST_OCSP);
 
-        uint32_t ocsp_size;
+        uint32_t ocsp_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint24(&stuffer, &ocsp_size));
         EXPECT_EQUAL(ocsp_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(ocsp_size, s2n_array_len(ocsp_data));
 
-        uint8_t *actual_ocsp_data;
+        uint8_t *actual_ocsp_data = NULL;
         EXPECT_NOT_NULL(actual_ocsp_data = s2n_stuffer_raw_read(&stuffer, ocsp_size));
         EXPECT_BYTEARRAY_EQUAL(actual_ocsp_data, ocsp_data, ocsp_size);
 
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
     /* Test recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
 
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
 
     /* Test recv - not ocsp */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
 

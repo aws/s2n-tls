@@ -345,8 +345,8 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
 
     if (conn_settings.session_ticket || conn_settings.session_cache) {
         /* Key initialization */
-        uint8_t *st_key;
-        uint32_t st_key_length;
+        uint8_t *st_key = NULL;
+        uint32_t st_key_length = 0;
 
         if (session_ticket_key_file_path) {
             int fd = open(session_ticket_key_file_path, O_RDONLY);

@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 
         /* Test should_send */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Default cipher preferences do not include PQ, so extension not sent */
@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
         /* Test send */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
 
@@ -66,13 +66,13 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_client_pq_kem_extension.send(conn, &stuffer));
 
             /* Should write correct size */
-            uint16_t size;
+            uint16_t size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &size));
             EXPECT_EQUAL(size, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(size, kem_preferences->kem_count * sizeof(kem_extension_size));
 
             /* Should write ids */
-            uint16_t actual_id;
+            uint16_t actual_id = 0;
             for (size_t i = 0; i < kem_preferences->kem_count; i++) {
                 POSIX_GUARD(s2n_stuffer_read_uint16(&stuffer, &actual_id));
                 EXPECT_EQUAL(actual_id, kem_preferences->kems[i]->kem_extension_id);
@@ -84,7 +84,7 @@ int main(int argc, char **argv)
 
         /* Test receive - malformed length */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
 
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
 
         /* Test receive */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, pq_security_policy_version));
 

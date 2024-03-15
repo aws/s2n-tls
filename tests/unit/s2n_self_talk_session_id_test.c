@@ -142,8 +142,8 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     size_t serialized_session_state_length = 0;
     uint8_t serialized_session_state[256] = { 0 };
 
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
 
@@ -288,18 +288,18 @@ void mock_client(struct s2n_test_io_pair *io_pair)
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    int status = 0;
+    pid_t pid = 0;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     char buffer[256];
-    int bytes_read;
+    int bytes_read = 0;
     int shutdown_rc = -1;
-    uint64_t now;
+    uint64_t now = 0;
     uint8_t session_id_from_server[MAX_KEY_LEN];
     uint8_t session_id_from_client[MAX_KEY_LEN];
 

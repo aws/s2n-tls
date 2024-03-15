@@ -393,7 +393,7 @@ int main(int argc, char **argv)
 
     /* s2n_tls12_serialize_resumption_state */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS12;
 
@@ -448,7 +448,7 @@ int main(int argc, char **argv)
     {
         /* Safety checks */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             struct s2n_stuffer output = { 0 };
 
@@ -464,7 +464,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             conn->actual_protocol_version = S2N_TLS13;
@@ -602,7 +602,7 @@ int main(int argc, char **argv)
             const uint8_t test_early_data_context[] = "context";
             const uint8_t test_app_protocol[] = "protocol";
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_server_early_data_context(conn, test_early_data_context, sizeof(test_early_data_context)));
             EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_app_protocol, sizeof(test_app_protocol));
@@ -770,7 +770,7 @@ int main(int argc, char **argv)
 
         /* Client processes TLS1.2 ticket with EMS data correctly */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->actual_protocol_version = S2N_TLS12;
             /* Security policy must allow chosen cipher suite */
@@ -804,7 +804,7 @@ int main(int argc, char **argv)
 
         /* Server processes TLS1.2 ticket with EMS data correctly */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS12;
 
@@ -1290,9 +1290,9 @@ int main(int argc, char **argv)
 
         /* Check encrypted data can be decrypted correctly for TLS12 */
         {
-            struct s2n_connection *conn;
-            struct s2n_config *config;
-            uint64_t current_time;
+            struct s2n_connection *conn = NULL;
+            struct s2n_config *config = NULL;
+            uint64_t current_time = 0;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -1330,9 +1330,9 @@ int main(int argc, char **argv)
 
         /* Check session ticket can be decrypted with a small secret in TLS13 session resumption. */
         {
-            struct s2n_connection *conn;
-            struct s2n_config *config;
-            uint64_t current_time;
+            struct s2n_connection *conn = NULL;
+            struct s2n_config *config = NULL;
+            uint64_t current_time = 0;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -1372,9 +1372,9 @@ int main(int argc, char **argv)
 
         /* Check session ticket can be decrypted with the maximum size secret in TLS13 session resumption. */
         {
-            struct s2n_connection *conn;
-            struct s2n_config *config;
-            uint64_t current_time;
+            struct s2n_connection *conn = NULL;
+            struct s2n_config *config = NULL;
+            uint64_t current_time = 0;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -1458,8 +1458,8 @@ int main(int argc, char **argv)
 
     /* s2n_config_set_initial_ticket_count */
     {
-        struct s2n_connection *conn;
-        struct s2n_config *config;
+        struct s2n_connection *conn = NULL;
+        struct s2n_config *config = NULL;
         uint8_t num_tickets = 1;
 
         EXPECT_NOT_NULL(config = s2n_config_new());
@@ -1484,7 +1484,7 @@ int main(int argc, char **argv)
     {
         /* New number of session tickets can be set */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             uint8_t original_num_tickets = 1;
             uint8_t new_num_tickets = 10;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -1499,7 +1499,7 @@ int main(int argc, char **argv)
 
         /* Overflow error is caught */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             uint8_t new_num_tickets = 1;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->tickets_to_send = UINT16_MAX;

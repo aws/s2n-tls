@@ -351,7 +351,7 @@ int main(int argc, char **argv)
     EXPECT_OK(s2n_drbg_instantiate(&aes128_drbg, &blob, S2N_AES_128_CTR_NO_DF_PR));
     EXPECT_OK(s2n_drbg_instantiate(&aes256_pr_drbg, &blob, S2N_AES_256_CTR_NO_DF_PR));
 
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
     /* Use the AES128 DRBG for 32MB of data */
