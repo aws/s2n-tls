@@ -29,8 +29,8 @@
 
 extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
 
-DEFINE_POINTER_CLEANUP_FUNC(EC_KEY *, EC_KEY_free);
-DEFINE_POINTER_CLEANUP_FUNC(EC_POINT *, EC_POINT_free);
+DEFINE_POINTER_CLEANUP_FUNC(EC_KEY*, EC_KEY_free);
+DEFINE_POINTER_CLEANUP_FUNC(EC_POINT*, EC_POINT_free);
 
 int main(int argc, char** argv)
 {
