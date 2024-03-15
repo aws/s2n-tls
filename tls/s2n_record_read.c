@@ -165,8 +165,8 @@ static bool s2n_is_tls13_plaintext_content(struct s2n_connection *conn, uint8_t 
 
 int s2n_record_parse(struct s2n_connection *conn)
 {
-    uint8_t content_type;
-    uint16_t encrypted_length;
+    uint8_t content_type = 0;
+    uint16_t encrypted_length = 0;
     POSIX_GUARD(s2n_record_header_parse(conn, &content_type, &encrypted_length));
 
     struct s2n_crypto_parameters *current_client_crypto = conn->client;

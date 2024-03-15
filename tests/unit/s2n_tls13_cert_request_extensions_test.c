@@ -33,7 +33,7 @@ int main(int argc, char **argv)
 
     /* Test correct required extension (sig_alg) sent and received */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         conn->actual_protocol_version = S2N_TLS13;
 
@@ -47,7 +47,7 @@ int main(int argc, char **argv)
 
     /* Test client fails to parse certificate request with no extensions */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 

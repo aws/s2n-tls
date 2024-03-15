@@ -23,10 +23,10 @@ int main(int argc, char **argv)
 {
     uint8_t entropy[2048] = { 0 };
     struct s2n_stuffer stuffer = { 0 };
-    uint8_t u8;
-    uint16_t u16;
-    uint32_t u32;
-    uint64_t u64;
+    uint8_t u8 = 0;
+    uint16_t u16 = 0;
+    uint32_t u32 = 0;
+    uint64_t u64 = 0;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());

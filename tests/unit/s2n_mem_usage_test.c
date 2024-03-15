@@ -76,8 +76,8 @@
 ssize_t get_vm_data_size()
 {
 #ifdef __linux__
-    long page_size;
-    ssize_t size, resident, share, text, lib, data, dt;
+    long page_size = 0;
+    ssize_t size = 0, resident = 0, share = 0, text = 0, lib = 0, data = 0, dt = 0;
 
     page_size = sysconf(_SC_PAGESIZE);
     if (page_size < 0) {
@@ -149,8 +149,8 @@ int main(int argc, char **argv)
 {
     size_t connectionsToUse = MAX_CONNECTIONS;
 
-    char *cert_chain;
-    char *private_key;
+    char *cert_chain = NULL;
+    char *private_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -181,13 +181,13 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
 
-    struct s2n_config *client_config;
+    struct s2n_config *client_config = NULL;
     EXPECT_NOT_NULL(client_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
-    struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_config *server_config;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
+    struct s2n_config *server_config = NULL;
     EXPECT_NOT_NULL(server_config = s2n_config_new());
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
@@ -200,13 +200,13 @@ int main(int argc, char **argv)
 
     /* Allocate all connections */
     for (size_t i = 0; i < connectionsToUse; i++) {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
         clients[i] = client_conn;
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));

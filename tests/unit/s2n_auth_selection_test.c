@@ -47,7 +47,7 @@ static int s2n_test_auth_combo(struct s2n_connection *conn,
         struct s2n_cipher_suite *cipher_suite, const struct s2n_signature_scheme *sig_scheme,
         struct s2n_cert_chain_and_key *expected_cert_chain)
 {
-    struct s2n_cert_chain_and_key *actual_cert_chain;
+    struct s2n_cert_chain_and_key *actual_cert_chain = NULL;
 
     POSIX_GUARD(s2n_is_cipher_suite_valid_for_auth(conn, cipher_suite));
     conn->secure->cipher_suite = cipher_suite;
@@ -65,11 +65,11 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_cert_chain_and_key *rsa_cert_chain;
+    struct s2n_cert_chain_and_key *rsa_cert_chain = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert_chain,
             S2N_RSA_2048_PKCS1_CERT_CHAIN, S2N_RSA_2048_PKCS1_KEY));
 
-    struct s2n_cert_chain_and_key *ecdsa_cert_chain;
+    struct s2n_cert_chain_and_key *ecdsa_cert_chain = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain,
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
         /* Test: If signature algorithm specifies curve, must match cert curve */
         {
-            struct s2n_cert_chain_and_key *ecdsa_cert_chain_for_other_curve;
+            struct s2n_cert_chain_and_key *ecdsa_cert_chain_for_other_curve = NULL;
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain_for_other_curve,
                     S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
 
@@ -298,7 +298,7 @@ int main(int argc, char **argv)
     /* s2n_select_certs_for_server_auth */
     {
         struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
-        struct s2n_cert_chain_and_key *chosen_certs;
+        struct s2n_cert_chain_and_key *chosen_certs = NULL;
 
         /* Requested cert chain exists */
         s2n_connection_set_config(conn, all_certs_config);

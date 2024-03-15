@@ -92,7 +92,7 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
     POSIX_ENSURE_REF(ptr);
 
     /* Page aligned allocation required for mlock */
-    uint32_t allocate;
+    uint32_t allocate = 0;
 
     POSIX_GUARD(s2n_align_to(requested, page_size, &allocate));
 

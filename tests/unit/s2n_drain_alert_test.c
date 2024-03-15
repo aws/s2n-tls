@@ -89,12 +89,12 @@ int main(int argc, char **argv)
         INTERNAL_ERROR_ALERT_HEX,
     };
 
-    struct s2n_connection *server_conn;
-    struct s2n_config *server_config;
+    struct s2n_connection *server_conn = NULL;
+    struct s2n_config *server_config = NULL;
     s2n_blocked_status server_blocked;
     char *cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE);
     char *private_key = malloc(S2N_MAX_TEST_PEM_SIZE);
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     struct s2n_test_io_pair io_pair;
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));

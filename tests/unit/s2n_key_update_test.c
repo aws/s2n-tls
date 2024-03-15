@@ -82,15 +82,15 @@ int main(int argc, char **argv)
             /* Move stuffer write cursor to correct position */
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&key_update_stuffer, S2N_KEY_UPDATE_MESSAGE_SIZE));
 
-            uint8_t post_handshake_id;
+            uint8_t post_handshake_id = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&key_update_stuffer, &post_handshake_id));
             EXPECT_EQUAL(post_handshake_id, TLS_KEY_UPDATE);
 
-            uint32_t request_length;
+            uint32_t request_length = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint24(&key_update_stuffer, &request_length));
             EXPECT_EQUAL(request_length, S2N_KEY_UPDATE_LENGTH);
 
-            uint8_t key_update_request;
+            uint8_t key_update_request = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&key_update_stuffer, &key_update_request));
             EXPECT_EQUAL(key_update_request, S2N_KEY_UPDATE_NOT_REQUESTED);
         };
@@ -111,11 +111,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_alloc(&input, test_data_len));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, test_data_len));
 
-            struct s2n_config *quic_config;
+            struct s2n_config *quic_config = NULL;
             EXPECT_NOT_NULL(quic_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, quic_config));
 
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_alloc(&input, test_data_len));
             EXPECT_SUCCESS(s2n_stuffer_skip_write(&input, test_data_len));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS12;
 
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             /* Write invalid value for key update request type */
             EXPECT_SUCCESS(s2n_stuffer_write_uint8(&input, -1));
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
-            struct s2n_connection *server_conn;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->secure->cipher_suite = cipher_suite_with_limit;
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_stuffer input, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
 
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure->cipher_suite = cipher_suite_with_limit;
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
     {
         /* Key update has been requested */
         {
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure->cipher_suite = cipher_suite_with_limit;
@@ -349,7 +349,7 @@ int main(int argc, char **argv)
 
         /* Key update is triggered by encryption limits */
         {
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure->cipher_suite = cipher_suite_with_limit;
@@ -404,7 +404,7 @@ int main(int argc, char **argv)
 
         /* Key update is not triggered */
         {
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             client_conn->actual_protocol_version = S2N_TLS13;
             client_conn->secure->cipher_suite = cipher_suite_with_limit;

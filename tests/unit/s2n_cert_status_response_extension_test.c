@@ -39,10 +39,10 @@ int main(int argc, char **argv)
 
     /* should_send */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
     /* Test send and recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         EXPECT_SUCCESS(s2n_cert_status_response_extension.send(conn, NULL));

@@ -29,7 +29,7 @@ int main(int argc, char **argv)
      * We should always report the actual error to allow better debugging of tests.
      */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         /* Create nonblocking pipes */

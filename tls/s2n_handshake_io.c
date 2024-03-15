@@ -1397,8 +1397,8 @@ static S2N_RESULT s2n_handshake_app_data_recv(struct s2n_connection *conn)
  */
 static int s2n_handshake_read_io(struct s2n_connection *conn)
 {
-    uint8_t record_type;
-    uint8_t message_type;
+    uint8_t record_type = 0;
+    uint8_t message_type = 0;
     int isSSLv2 = 0;
 
     /* Fill conn->in stuffer necessary for the handshake.
@@ -1487,7 +1487,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     while (s2n_stuffer_data_available(&conn->in)) {
         /* We're done with negotiating but we have trailing data in this record. Bail on the handshake. */
         S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
-        int r;
+        int r = 0;
         POSIX_GUARD((r = s2n_read_full_handshake_message(conn, &message_type)));
 
         /* Do we need more data? This happens for message fragmentation */

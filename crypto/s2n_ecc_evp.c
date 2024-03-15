@@ -183,7 +183,7 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
         POSIX_GUARD_OSSL(EC_KEY_check_key(ec_key), S2N_ERR_ECDHE_SHARED_SECRET);
     }
 
-    size_t shared_secret_size;
+    size_t shared_secret_size = 0;
 
     DEFER_CLEANUP(EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new(own_key, NULL), EVP_PKEY_CTX_free_pointer);
     S2N_ERROR_IF(ctx == NULL, S2N_ERR_ECDHE_SHARED_SECRET);
@@ -233,7 +233,7 @@ int s2n_ecc_evp_compute_shared_secret_as_server(struct s2n_ecc_evp_params *ecc_e
     POSIX_ENSURE_REF(ecc_evp_params->evp_pkey);
     POSIX_ENSURE_REF(Yc_in);
 
-    uint8_t client_public_len;
+    uint8_t client_public_len = 0;
     struct s2n_blob client_public_blob = { 0 };
 
     DEFER_CLEANUP(EVP_PKEY *peer_key = EVP_PKEY_new(), EVP_PKEY_free_pointer);
@@ -345,8 +345,8 @@ int s2n_ecc_evp_read_params(struct s2n_stuffer *in, struct s2n_blob *data_to_ver
         struct s2n_ecdhe_raw_server_params *raw_server_ecc_params)
 {
     POSIX_ENSURE_REF(in);
-    uint8_t curve_type;
-    uint8_t point_length;
+    uint8_t curve_type = 0;
+    uint8_t point_length = 0;
 
     /* Remember where we started reading the data */
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
@@ -507,7 +507,7 @@ int s2n_ecc_evp_find_supported_curve(struct s2n_connection *conn, struct s2n_blo
     for (size_t i = 0; i < ecc_prefs->count; i++) {
         const struct s2n_ecc_named_curve *supported_curve = ecc_prefs->ecc_curves[i];
         for (uint32_t j = 0; j < iana_ids->size / 2; j++) {
-            uint16_t iana_id;
+            uint16_t iana_id = 0;
             POSIX_GUARD(s2n_stuffer_read_uint16(&iana_ids_in, &iana_id));
             if (supported_curve->iana_id == iana_id) {
                 *found = supported_curve;

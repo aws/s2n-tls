@@ -45,8 +45,8 @@ int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
 int mock_client(int writefd, int readfd, const char **protocols, int count, const char *expected)
 {
     char buffer[0xffff];
-    struct s2n_connection *client_conn;
-    struct s2n_config *client_config;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_config *client_config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
 
@@ -103,17 +103,17 @@ int mock_client(int writefd, int readfd, const char **protocols, int count, cons
 int main(int argc, char **argv)
 {
     char buffer[0xffff];
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
+    int status = 0;
+    pid_t pid = 0;
     int server_to_client[2];
     int client_to_server[2];
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    char *dhparams_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     const char *protocols[] = { "http/1.1", "spdy/3.1", "h2" };
     const int protocols_size = s2n_array_len(protocols);
