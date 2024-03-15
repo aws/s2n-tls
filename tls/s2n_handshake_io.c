@@ -133,9 +133,6 @@ static const char *message_names[] = {
     MESSAGE_NAME_ENTRY(CLIENT_NPN),
 };
 
-/* Maximum number of messages in a handshake */
-#define S2N_MAX_HANDSHAKE_LENGTH    32
-
 /* We support different ordering of TLS Handshake messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
