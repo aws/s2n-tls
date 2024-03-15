@@ -378,7 +378,7 @@ static S2N_RESULT s2n_fork_test(
         S2N_RESULT (*s2n_get_random_data_cb)(struct s2n_blob *blob),
         S2N_RESULT (*s2n_get_random_data_cb_thread)(struct s2n_blob *blob))
 {
-    pid_t proc_id;
+    pid_t proc_id = 0;
     int pipes[2];
 
     /* A simple fork test. Generates random data in the parent and child, and
@@ -464,7 +464,7 @@ static S2N_RESULT s2n_clone_tests(
 {
 #if defined(S2N_CLONE_SUPPORTED)
 
-    int proc_id;
+    int proc_id = 0;
     int pipes[2];
 
     EXPECT_SUCCESS(pipe(pipes));

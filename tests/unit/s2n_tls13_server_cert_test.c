@@ -92,7 +92,7 @@ int main(int argc, char **argv)
     /* Test s2n_server_cert_recv() parses tls13 certificate */
     {
         S2N_BLOB_FROM_HEX(tls13_cert, tls13_cert_message_hex);
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         conn->x509_validator.skip_cert_validation = 1;
@@ -115,7 +115,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_server_cert_send() verify server's certificate */
     {
-        char *tls13_cert_chain_hex;
+        char *tls13_cert_chain_hex = NULL;
         /* creating a certificate chain by concatenating
            1. chain header
            2. certificate
@@ -130,8 +130,8 @@ int main(int argc, char **argv)
 
         S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);
 
-        struct s2n_connection *conn;
-        uint8_t certificate_request_context_len;
+        struct s2n_connection *conn = NULL;
+        uint8_t certificate_request_context_len = 0;
 
         struct s2n_cert cert = { .raw = tls13_cert_chain, .next = NULL };
         /* .chain_size is size of cert + 3 for the 3 bytes to express the length */
@@ -172,8 +172,8 @@ int main(int argc, char **argv)
     {
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-        struct s2n_connection *server_conn;
-        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         server_conn->actual_protocol_version = S2N_TLS13;

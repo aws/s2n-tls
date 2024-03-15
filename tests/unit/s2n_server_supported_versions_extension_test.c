@@ -41,12 +41,12 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     uint8_t latest_version = S2N_TLS13;
 
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
     /* Server sends a supported_version the client can parse */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(extension_length, s2n_stuffer_data_available(&extension));
 
         /* Check that the client can process the version */
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
 
     /* Client alerts if supported_version less than min supported by client */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
     /* Client alerts if supported_version greater than max supported by client */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
 
     /* Client alerts if supported_version is empty */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 
     /* Client alerts if supported_version is malformed */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 

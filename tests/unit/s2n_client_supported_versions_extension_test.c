@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 
     uint8_t latest_version = S2N_TLS13;
 
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
     const struct s2n_security_policy *security_policy_with_tls13_and_earlier = &security_policy_20190801;
@@ -109,7 +109,7 @@ int main(int argc, char **argv)
 
     /* Client produces a version list that the server can parse */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(expected_length, s2n_stuffer_data_available(&extension));
 
         /* Check that the server can process the version list */
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
 
     /* Server selects highest supported version shared by client */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -169,7 +169,7 @@ int main(int argc, char **argv)
     /* Server does not process the extension if using TLS1.2. */
     {
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -195,7 +195,7 @@ int main(int argc, char **argv)
 
     /* Server terminates connection if there are no supported version in the list */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -220,7 +220,7 @@ int main(int argc, char **argv)
 
     /* Check grease values for the supported versions */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 
     /* Server selects highest supported protocol among list of invalid protocols (that purposefully test our conversion methods) */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
     /* Server alerts if no shared supported version found */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 
     /* Server alerts if supported version list is empty */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -316,7 +316,7 @@ int main(int argc, char **argv)
 
     /* Server alerts if version list size exceeds the extension size */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -334,7 +334,7 @@ int main(int argc, char **argv)
 
     /* Server alerts if version list size is less than extension size */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -354,7 +354,7 @@ int main(int argc, char **argv)
 
     /* Server alerts if version list size is odd */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -376,7 +376,7 @@ int main(int argc, char **argv)
      * in the client hello, for backwards compatibility the version field
      * should be set to 1.2 even when a higher version is supported. */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_client_hello_send(conn));
 

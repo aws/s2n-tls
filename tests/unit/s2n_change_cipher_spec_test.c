@@ -28,12 +28,12 @@ int main(int argc, char **argv)
 
     /* Test s2n_ccs_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_ccs_send(conn));
 
-        uint8_t result;
+        uint8_t result = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&conn->handshake.io, &result));
         /* Always 0x01: https://tools.ietf.org/html/rfc5246#section-7.1 */
         EXPECT_EQUAL(result, 0x01);
@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 
     /* Test that s2n_basic_ccs_recv can parse the output of s2n_change_cipher_spec_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_ccs_send(conn));
@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
     /* Test that s2n_basic_ccs_recv errors on wrong change cipher spec types */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->handshake.io, 0));
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
     /* Test that s2n_client_ccs_recv errors on wrong change cipher spec types */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->handshake.io, 0));
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
     /* Test that s2n_server_ccs_recv errors on wrong change cipher spec types */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         EXPECT_SUCCESS(s2n_stuffer_write_uint8(&conn->handshake.io, 0));
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_client_ccs_recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         /* Needed to not break prf */
@@ -136,7 +136,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_server_ccs_recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         /* Needed to not break prf */

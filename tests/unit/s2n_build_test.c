@@ -84,6 +84,18 @@ int main()
         END_TEST();
     }
 
+    /* Ensure that FIPS mode is enabled when linked to AWS-LC-FIPS, and disabled when linked to AWS-LC */
+    if (strstr(s2n_libcrypto, "awslc") != NULL) {
+        s2n_fips_mode fips_mode = S2N_FIPS_MODE_DISABLED;
+        EXPECT_SUCCESS(s2n_get_fips_mode(&fips_mode));
+
+        if (strstr(s2n_libcrypto, "fips") != NULL) {
+            EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_ENABLED);
+        } else {
+            EXPECT_EQUAL(fips_mode, S2N_FIPS_MODE_DISABLED);
+        }
+    }
+
     char s2n_libcrypto_copy[MAX_LIBCRYPTO_NAME_LEN] = { 0 };
     EXPECT_TRUE(strlen(s2n_libcrypto) < MAX_LIBCRYPTO_NAME_LEN);
     EXPECT_OK(s2n_test_lowercase_copy(s2n_libcrypto, &s2n_libcrypto_copy[0], s2n_array_len(s2n_libcrypto_copy)));

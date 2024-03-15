@@ -69,17 +69,17 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
         const uint8_t client_hello_message[], const size_t client_hello_len,
         const char cipher_pref_version[], const int expected_kem_id, struct s2n_test_io_pair *io_pair)
 {
-    char *cert_chain;
-    char *private_key;
+    char *cert_chain = NULL;
+    char *private_key = NULL;
 
     POSIX_GUARD_PTR(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     POSIX_GUARD_PTR(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
     POSIX_GUARD(setenv("S2N_DONT_MLOCK", "1", 0));
 
-    struct s2n_connection *server_conn;
-    struct s2n_config *server_config;
+    struct s2n_connection *server_conn = NULL;
+    struct s2n_config *server_config = NULL;
     s2n_blocked_status server_blocked;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     size_t body_len = client_hello_len + client_extensions_len;
     uint8_t message_header[] = {
@@ -130,7 +130,7 @@ static int negotiate_kem(const uint8_t client_extensions[], const size_t client_
         return S2N_FAILURE;
     }
 
-    int negotiated_kem_id;
+    int negotiated_kem_id = 0;
 
     if (server_conn->kex_params.kem_params.kem != NULL) {
         negotiated_kem_id = server_conn->kex_params.kem_params.kem->kem_extension_id;
@@ -168,12 +168,12 @@ int main(int argc, char **argv)
 
     /* Client doesn't use the server name extension. */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -215,15 +215,15 @@ int main(int argc, char **argv)
 
     /* Client uses the server name extension. */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
         const char *sent_server_name = "www.alligator.com";
-        const char *received_server_name;
+        const char *received_server_name = NULL;
 
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -271,12 +271,12 @@ int main(int argc, char **argv)
 
     /* Client sends multiple server names. */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
         s2n_blocked_status server_blocked;
         const char *sent_server_name = "svr";
-        const char *received_server_name;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        const char *received_server_name = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         uint32_t cert_chain_len = 0;
         uint32_t private_key_len = 0;
 
@@ -397,10 +397,10 @@ int main(int argc, char **argv)
 
     /* Client sends duplicate server name extension */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
         s2n_blocked_status server_blocked;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_SERVER_NAME */
@@ -532,10 +532,10 @@ int main(int argc, char **argv)
 
     /* Client sends a valid initial renegotiation_info */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
         s2n_blocked_status server_blocked;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
         uint8_t client_extensions[] = {
             /* Extension type TLS_EXTENSION_RENEGOTIATION_INFO */
@@ -632,10 +632,10 @@ int main(int argc, char **argv)
 
     /* Client sends a non-empty initial renegotiation_info */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
         s2n_blocked_status server_blocked;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         uint8_t buf[5120];
 
         uint8_t client_extensions[] = {
@@ -728,12 +728,12 @@ int main(int argc, char **argv)
 
     /* Client doesn't use the OCSP extension. */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        uint32_t length;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        uint32_t length = 0;
 
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -779,7 +779,7 @@ int main(int argc, char **argv)
 
     /* Cannot enable OCSP stapling if there's no support for it */
     if (!s2n_x509_ocsp_stapling_supported()) {
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_FAILURE(s2n_config_set_check_stapled_ocsp_response(client_config, 1));
         EXPECT_SUCCESS(s2n_config_free(client_config));
@@ -787,12 +787,12 @@ int main(int argc, char **argv)
 
     /* Server doesn't support the OCSP extension. We can't run this test if ocsp isn't supported by the client. */
     if (s2n_x509_ocsp_stapling_supported()) {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        uint32_t length;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
+        uint32_t length = 0;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
@@ -844,12 +844,12 @@ int main(int argc, char **argv)
 
     /* Test with s2n_config_set_extension_data(). Can be removed once API is deprecated */
     if (s2n_x509_ocsp_stapling_supported()) {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        const uint8_t *server_ocsp_reply;
-        uint32_t length;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
+        const uint8_t *server_ocsp_reply = NULL;
+        uint32_t length = 0;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
@@ -895,12 +895,12 @@ int main(int argc, char **argv)
 
     /* Server and client support the OCSP extension. Test only runs if ocsp stapled responses are supported by the client */
     if (s2n_x509_ocsp_stapling_supported()) {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        const uint8_t *server_ocsp_reply;
-        uint32_t length;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
+        const uint8_t *server_ocsp_reply = NULL;
+        uint32_t length = 0;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
@@ -953,12 +953,12 @@ int main(int argc, char **argv)
 
     /* Server and client support the OCSP extension. Test Behavior for TLS 1.3 */
     if (s2n_x509_ocsp_stapling_supported() && s2n_is_tls13_fully_supported()) {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        const uint8_t *server_ocsp_reply;
-        uint32_t length;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
+        const uint8_t *server_ocsp_reply = NULL;
+        uint32_t length = 0;
 
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
@@ -1018,13 +1018,13 @@ int main(int argc, char **argv)
 
     /* Client does not request SCT, but server is configured to serve them. */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
 
-        uint32_t length;
+        uint32_t length = 0;
 
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
@@ -1066,12 +1066,12 @@ int main(int argc, char **argv)
 
     /* Client requests SCT and server does have it. */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *client_config;
-        struct s2n_config *server_config;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *client_config = NULL;
+        struct s2n_config *server_config = NULL;
 
-        uint32_t length;
+        uint32_t length = 0;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
@@ -1118,13 +1118,13 @@ int main(int argc, char **argv)
 
     /* Client requests SCT and server does *not* have it. */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *client_config;
-        struct s2n_config *server_config;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *client_config = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
-        uint32_t length;
+        uint32_t length = 0;
 
         EXPECT_NOT_NULL(client_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
@@ -1173,11 +1173,11 @@ int main(int argc, char **argv)
 
     /* Client requests 512, 1024, 2048, and 4096 maximum fragment lengths */
     for (uint8_t mfl_code = S2N_TLS_MAX_FRAG_LEN_512; mfl_code <= S2N_TLS_MAX_FRAG_LEN_4096; mfl_code++) {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS12;
@@ -1226,11 +1226,11 @@ int main(int argc, char **argv)
 
     /* Client requests invalid maximum fragment length */
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS12;
@@ -1276,11 +1276,11 @@ int main(int argc, char **argv)
 
     /* Server ignores client's request of S2N_TLS_MAX_FRAG_LEN_2048 maximum fragment length when accept_mfl is not set*/
     {
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS12;
