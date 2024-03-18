@@ -32,16 +32,16 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
-    struct s2n_connection *client_conn;
+    struct s2n_connection *client_conn = NULL;
     EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
     EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
     /* should_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     /* recv - decrypt ticket */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 
     /* recv - ignore extension if TLS1.3 */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
     /* recv - ignore extension if not correct size */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
     /* recv - ignore extension if tickets not allowed */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 

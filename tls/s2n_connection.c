@@ -773,7 +773,7 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     struct s2n_blob ctx_mem = { 0 };
-    struct s2n_socket_read_io_context *peer_socket_ctx;
+    struct s2n_socket_read_io_context *peer_socket_ctx = NULL;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
@@ -808,7 +808,7 @@ int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     struct s2n_blob ctx_mem = { 0 };
-    struct s2n_socket_write_io_context *peer_socket_ctx;
+    struct s2n_socket_write_io_context *peer_socket_ctx = NULL;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
@@ -825,7 +825,7 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      */
     POSIX_GUARD(s2n_socket_write_snapshot(conn));
 
-    uint8_t ipv6;
+    uint8_t ipv6 = 0;
     if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
         conn->ipv6 = (ipv6 ? 1 : 0);
     }

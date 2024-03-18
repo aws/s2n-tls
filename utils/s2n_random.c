@@ -463,7 +463,7 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
  */
 S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 {
-    uint64_t r;
+    uint64_t r = 0;
 
     RESULT_ENSURE_GT(bound, 0);
 

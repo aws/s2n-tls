@@ -32,10 +32,10 @@ int main(int argc, char **argv)
 
     /* Test certificate_request_context sent/recv only when TLS 1.3 enabled */
     {
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_OPTIONAL));
@@ -65,10 +65,10 @@ int main(int argc, char **argv)
     /* Test certificate_request_context is zero-length as currently
      * only used for handshake authentication */
     {
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_OPTIONAL));
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), empty_cert_len + certificate_context_len);
 
         uint8_t expected_certificate_request_context_len = 0;
-        uint8_t actual_certificate_request_context_len;
+        uint8_t actual_certificate_request_context_len = 0;
 
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&client_conn->handshake.io, &actual_certificate_request_context_len));
         EXPECT_EQUAL(expected_certificate_request_context_len, actual_certificate_request_context_len);
@@ -89,10 +89,10 @@ int main(int argc, char **argv)
 
     /* Test failure case of non-zero certificate_request_context */
     {
-        struct s2n_config *server_config;
+        struct s2n_config *server_config = NULL;
         EXPECT_NOT_NULL(server_config = s2n_config_new());
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));

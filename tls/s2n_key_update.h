@@ -25,10 +25,5 @@ typedef enum {
     RECEIVING
 } keyupdate_status;
 
-typedef enum {
-    S2N_KEY_UPDATE_NOT_REQUESTED = 0,
-    S2N_KEY_UPDATE_REQUESTED
-} keyupdate_request;
-
 int s2n_key_update_recv(struct s2n_connection *conn, struct s2n_stuffer *request);
 int s2n_key_update_send(struct s2n_connection *conn, s2n_blocked_status *blocked);

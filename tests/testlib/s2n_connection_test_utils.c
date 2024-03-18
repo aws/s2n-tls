@@ -36,8 +36,8 @@ int s2n_fd_set_non_blocking(int fd)
 
 static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 {
-    struct s2n_stuffer *in_buf;
-    int n_read, n_avail;
+    struct s2n_stuffer *in_buf = NULL;
+    int n_read = 0, n_avail = 0;
     errno = EIO;
 
     if (buf == NULL) {
@@ -65,7 +65,7 @@ static int buffer_read(void *io_context, uint8_t *buf, uint32_t len)
 
 static int buffer_write(void *io_context, const uint8_t *buf, uint32_t len)
 {
-    struct s2n_stuffer *out;
+    struct s2n_stuffer *out = NULL;
 
     if (buf == NULL) {
         return 0;

@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
         /* Return NULL by default / for new connection */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_NULL(s2n_get_server_name(conn));
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
         /* Return server_name if set */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_set_server_name(conn, test_server_name));
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
         /* Return server_name if server_name extension parsed, but not yet processed */
         {
-            struct s2n_connection *client_conn, *server_conn;
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
             EXPECT_SUCCESS(s2n_client_server_name_extension.send(client_conn, &stuffer));
 
-            s2n_extension_type_id extension_id;
+            s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SERVER_NAME, &extension_id));
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension_type = TLS_EXTENSION_SERVER_NAME;
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension = stuffer.blob;
@@ -173,15 +173,15 @@ int main(int argc, char **argv)
         {
             s2n_server_name_test_callback_flag = false;
 
-            struct s2n_config *config;
+            struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_server_name_test_callback, &test_server_name));
 
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
 
-            struct s2n_connection *server_conn;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 
     /* s2n_connection_get_protocol_version */
     {
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_set_test_protocol_versions(client_conn));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 
     /* Test: get selected digest alg */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_tls_hash_algorithm output = { 0 };
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 
     /* Test: get selected signature alg */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_tls_signature_algorithm output = { 0 };

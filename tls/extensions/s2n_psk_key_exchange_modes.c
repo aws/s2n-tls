@@ -70,7 +70,7 @@ static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s
 {
     POSIX_ENSURE_REF(conn);
 
-    uint8_t psk_ke_mode_list_len;
+    uint8_t psk_ke_mode_list_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &psk_ke_mode_list_len));
     if (psk_ke_mode_list_len > s2n_stuffer_data_available(extension)) {
         /* Malformed length, ignore the extension */
@@ -78,7 +78,7 @@ static int s2n_psk_key_exchange_modes_recv(struct s2n_connection *conn, struct s
     }
 
     for (size_t i = 0; i < psk_ke_mode_list_len; i++) {
-        uint8_t wire_psk_ke_mode;
+        uint8_t wire_psk_ke_mode = 0;
         POSIX_GUARD(s2n_stuffer_read_uint8(extension, &wire_psk_ke_mode));
 
         /* s2n currently only supports pre-shared keys with (EC)DHE key establishment */

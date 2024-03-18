@@ -21,7 +21,7 @@
 #pragma once
 
 int s2n_fips_init(void);
-int s2n_is_in_fips_mode(void);
+bool s2n_is_in_fips_mode(void);
 bool s2n_libcrypto_is_fips(void);
 
 struct s2n_cipher_suite;

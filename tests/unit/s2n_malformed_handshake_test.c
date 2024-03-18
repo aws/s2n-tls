@@ -228,8 +228,8 @@ void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_le
 int main(int argc, char **argv)
 {
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
+    int status = 0;
+    pid_t pid = 0;
     int p[2];
 
     BEGIN_TEST();

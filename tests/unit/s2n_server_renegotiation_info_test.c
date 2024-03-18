@@ -68,7 +68,7 @@ int main(int argc, char **argv)
      *#    message.
      */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         /* TLS1.2 and secure renegotiation not enabled -> DON'T send */
@@ -104,7 +104,7 @@ int main(int argc, char **argv)
      *# that they have been upgraded.
      */
     {
-        struct s2n_connection *server_conn, *client_conn;
+        struct s2n_connection *server_conn = NULL, *client_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
     /* Test server_renegotiation_info recv during initial handshake - extension too long */
     {
-        struct s2n_connection *server_conn, *client_conn;
+        struct s2n_connection *server_conn = NULL, *client_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
      *#    abort the handshake (by sending a fatal handshake_failure alert).
      */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
         struct s2n_stuffer extension = { 0 };

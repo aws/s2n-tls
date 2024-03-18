@@ -621,7 +621,7 @@ int s2n_hash_const_time_get_currently_in_hash_block(struct s2n_hash_state *state
     POSIX_PRECONDITION(s2n_hash_state_validate(state));
     POSIX_ENSURE(S2N_MEM_IS_WRITABLE_CHECK(out, sizeof(*out)), S2N_ERR_PRECONDITION_VIOLATION);
     POSIX_ENSURE(state->is_ready_for_input, S2N_ERR_HASH_NOT_READY);
-    uint64_t hash_block_size;
+    uint64_t hash_block_size = 0;
     POSIX_GUARD(s2n_hash_block_size(state->alg, &hash_block_size));
 
     /* Requires that hash_block_size is a power of 2. This is true for all hashes we currently support

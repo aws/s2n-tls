@@ -135,7 +135,7 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
     /* Retry requests only require the selected named group, not an actual share.
      * https://tools.ietf.org/html/rfc8446#section-4.2.8 */
     if (s2n_is_hello_retry_message(conn)) {
-        uint16_t named_group_id;
+        uint16_t named_group_id = 0;
         if (curve != NULL) {
             named_group_id = curve->iana_id;
         } else {
@@ -291,7 +291,7 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     POSIX_ENSURE(client_ecc_evp_params->negotiated_curve == server_ecc_evp_params->negotiated_curve, S2N_ERR_BAD_KEY_SHARE);
     POSIX_ENSURE(client_ecc_evp_params->evp_pkey, S2N_ERR_BAD_KEY_SHARE);
 
-    uint16_t share_size;
+    uint16_t share_size = 0;
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) < sizeof(share_size), S2N_ERR_BAD_KEY_SHARE);
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &share_size));
     S2N_ERROR_IF(s2n_stuffer_data_available(extension) < share_size, S2N_ERR_BAD_KEY_SHARE);

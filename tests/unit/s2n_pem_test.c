@@ -61,10 +61,10 @@ static const char *invalid_pem_pairs[][2] = {
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *config;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_config *config = NULL;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
