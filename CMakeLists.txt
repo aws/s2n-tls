@@ -132,6 +132,13 @@ set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE C)
 set_target_properties(${PROJECT_NAME} PROPERTIES VERSION ${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_PATCH})
 set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
+if(CMAKE_COMPILER_IS_GNUCC)
+    if (CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 10)
+        message(STATUS "Turning on static analyer")
+        target_compile_options(${PROJECT_NAME} PRIVATE -fanalyzer)
+    endif()
+endif()
+
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
