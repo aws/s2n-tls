@@ -412,7 +412,7 @@ const struct s2n_p_hash_hmac *s2n_get_hmac_implementation()
 static int s2n_p_hash(struct s2n_prf_working_space *ws, s2n_hmac_algorithm alg, struct s2n_blob *secret, struct s2n_blob *label,
         struct s2n_blob *seed_a, struct s2n_blob *seed_b, struct s2n_blob *seed_c, struct s2n_blob *out)
 {
-    uint8_t digest_size;
+    uint8_t digest_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(alg, &digest_size));
 
     const struct s2n_p_hash_hmac *hmac = s2n_get_hmac_implementation();

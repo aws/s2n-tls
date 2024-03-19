@@ -33,17 +33,17 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *server_conn;
-    struct s2n_connection *client_conn;
-    struct s2n_stuffer *hello_stuffer;
-    struct s2n_config *tls12_config;
-    struct s2n_config *tls13_config;
-    struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_cert_chain_and_key *tls13_chain_and_key;
-    char *cert_chain;
-    char *tls13_cert_chain;
-    char *private_key;
-    char *tls13_private_key;
+    struct s2n_connection *server_conn = NULL;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_stuffer *hello_stuffer = NULL;
+    struct s2n_config *tls12_config = NULL;
+    struct s2n_config *tls13_config = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
+    struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
+    char *cert_chain = NULL;
+    char *tls13_cert_chain = NULL;
+    char *private_key = NULL;
+    char *tls13_private_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
 
         const size_t test_session_id_len = 10;
 
-        struct s2n_config *quic_config;
+        struct s2n_config *quic_config = NULL;
         EXPECT_NOT_NULL(quic_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(quic_config, tls13_chain_and_key));

@@ -62,7 +62,7 @@ static uint8_t s2n_cert_type_preference_list_legacy_dss[] = {
 
 static int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chosen_cert_type_out)
 {
-    uint8_t cert_types_len;
+    uint8_t cert_types_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &cert_types_len));
 
     uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
@@ -100,7 +100,7 @@ int s2n_tls13_cert_req_recv(struct s2n_connection *conn)
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* read request context length */
-    uint8_t request_context_length;
+    uint8_t request_context_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &request_context_length));
     /* RFC 8446: This field SHALL be zero length unless used for the post-handshake authentication */
     S2N_ERROR_IF(request_context_length != 0, S2N_ERR_BAD_MESSAGE);

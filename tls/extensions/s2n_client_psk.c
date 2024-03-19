@@ -288,7 +288,7 @@ static S2N_RESULT s2n_client_psk_recv_binder_list(struct s2n_connection *conn, s
         uint8_t wire_binder_size = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(wire_binders_in, &wire_binder_size));
 
-        uint8_t *wire_binder_data;
+        uint8_t *wire_binder_data = NULL;
         RESULT_ENSURE_REF(wire_binder_data = s2n_stuffer_raw_read(wire_binders_in, wire_binder_size));
 
         struct s2n_blob wire_binder = { 0 };
@@ -311,7 +311,7 @@ static S2N_RESULT s2n_client_psk_recv_identities(struct s2n_connection *conn, st
     uint16_t identity_list_size = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &identity_list_size));
 
-    uint8_t *identity_list_data;
+    uint8_t *identity_list_data = NULL;
     RESULT_ENSURE_REF(identity_list_data = s2n_stuffer_raw_read(extension, identity_list_size));
 
     struct s2n_blob identity_list_blob = { 0 };
@@ -331,7 +331,7 @@ static S2N_RESULT s2n_client_psk_recv_binders(struct s2n_connection *conn, struc
     uint16_t binder_list_size = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(extension, &binder_list_size));
 
-    uint8_t *binder_list_data;
+    uint8_t *binder_list_data = NULL;
     RESULT_ENSURE_REF(binder_list_data = s2n_stuffer_raw_read(extension, binder_list_size));
 
     struct s2n_blob binder_list_blob = { 0 };
@@ -364,7 +364,7 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
      *# Servers MUST check that it is the last extension and otherwise fail
      *# the handshake with an "illegal_parameter" alert.
      */
-    s2n_extension_type_id psk_ext_id;
+    s2n_extension_type_id psk_ext_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
     POSIX_ENSURE_NE(conn->client_hello.extensions.count, 0);
     uint16_t last_wire_index = conn->client_hello.extensions.count - 1;
@@ -379,12 +379,12 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
      * We can safely do this check here because s2n_client_psk is
      * required to be the last extension sent in the list.
      */
-    s2n_extension_type_id psk_ke_mode_ext_id;
+    s2n_extension_type_id psk_ke_mode_ext_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_ext_id));
     POSIX_ENSURE(S2N_CBIT_TEST(conn->extension_requests_received, psk_ke_mode_ext_id), S2N_ERR_MISSING_EXTENSION);
 
     if (conn->psk_params.psk_ke_mode == S2N_PSK_DHE_KE) {
-        s2n_extension_type_id key_share_ext_id;
+        s2n_extension_type_id key_share_ext_id = 0;
         POSIX_GUARD(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_ext_id));
         /* A key_share extension must have been received in order to use a pre-shared key
          * in (EC)DHE key exchange mode.

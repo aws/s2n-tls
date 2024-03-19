@@ -22,7 +22,7 @@
 
 int main(int argc, char **argv)
 {
-    char c;
+    char c = 0;
     uint32_t skipped = 0;
     struct s2n_stuffer stuffer, token;
     struct s2n_blob pad_blob, token_blob;

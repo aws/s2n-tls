@@ -91,7 +91,7 @@ struct s2n_map *s2n_map_new_with_initial_capacity(uint32_t capacity)
 {
     PTR_ENSURE(capacity != 0, S2N_ERR_MAP_INVALID_MAP_SIZE);
     struct s2n_blob mem = { 0 };
-    struct s2n_map *map;
+    struct s2n_map *map = NULL;
 
     PTR_GUARD_POSIX(s2n_alloc(&mem, sizeof(struct s2n_map)));
 

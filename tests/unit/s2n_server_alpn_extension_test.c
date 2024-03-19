@@ -27,7 +27,7 @@ int main(int argc, char **argv)
 
     /* Test should_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         /* Should not send if protocol not set. Protocol not set by default. */
@@ -42,7 +42,7 @@ int main(int argc, char **argv)
 
     /* Test send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_MEMCPY_SUCCESS(conn->application_protocol, test_protocol_name, test_protocol_name_size);
 
@@ -52,18 +52,18 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_server_alpn_extension.send(conn, &stuffer));
 
         /* Should have correct total size */
-        uint16_t protocol_name_list_size;
+        uint16_t protocol_name_list_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &protocol_name_list_size));
         EXPECT_EQUAL(protocol_name_list_size, s2n_stuffer_data_available(&stuffer));
 
         /* Should have correct protocol name size */
-        uint8_t protocol_name_size;
+        uint8_t protocol_name_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &protocol_name_size));
         EXPECT_EQUAL(protocol_name_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(protocol_name_size, test_protocol_name_size);
 
         /* Should have correct protocol name */
-        uint8_t *protocol_name;
+        uint8_t *protocol_name = NULL;
         EXPECT_NOT_NULL(protocol_name = s2n_stuffer_raw_read(&stuffer, protocol_name_size));
         EXPECT_BYTEARRAY_EQUAL(protocol_name, test_protocol_name, test_protocol_name_size);
 
@@ -73,13 +73,13 @@ int main(int argc, char **argv)
 
     /* Test recv */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_MEMCPY_SUCCESS(server_conn->application_protocol, test_protocol_name, test_protocol_name_size);
 
         /* Should accept extension written by send */
         {
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -100,7 +100,7 @@ int main(int argc, char **argv)
 
         /* Should ignore extension if protocol name list size incorrect */
         {
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };

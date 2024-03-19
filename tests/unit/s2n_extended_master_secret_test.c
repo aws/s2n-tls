@@ -23,7 +23,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_conn_set_handshake_type is processing EMS data correctly */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         uint64_t current_time = 0;
         EXPECT_NOT_NULL(config = s2n_config_new());
 

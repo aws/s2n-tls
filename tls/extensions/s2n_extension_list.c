@@ -25,7 +25,7 @@
 
 int s2n_extension_list_send(s2n_extension_list_id list_type, struct s2n_connection *conn, struct s2n_stuffer *out)
 {
-    s2n_extension_type_list *extension_type_list;
+    s2n_extension_type_list *extension_type_list = NULL;
     POSIX_GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
 
     struct s2n_stuffer_reservation total_extensions_size = { 0 };
@@ -80,7 +80,7 @@ int s2n_extension_process(const s2n_extension_type *extension_type, struct s2n_c
     POSIX_ENSURE_REF(parsed_extension_list);
     POSIX_ENSURE_REF(extension_type);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     s2n_parsed_extension *parsed_extension = &parsed_extension_list->parsed_extensions[extension_id];
@@ -94,7 +94,7 @@ int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_conne
 {
     POSIX_ENSURE_REF(parsed_extension_list);
 
-    s2n_extension_type_list *extension_type_list;
+    s2n_extension_type_list *extension_type_list = NULL;
     POSIX_GUARD(s2n_extension_type_list_get(list_type, &extension_type_list));
 
     for (int i = 0; i < extension_type_list->count; i++) {
@@ -123,18 +123,18 @@ static int s2n_extension_parse(struct s2n_stuffer *in, s2n_parsed_extension *par
     POSIX_ENSURE_REF(parsed_extensions);
     POSIX_ENSURE_REF(wire_index);
 
-    uint16_t extension_type;
+    uint16_t extension_type = 0;
     POSIX_ENSURE(s2n_stuffer_read_uint16(in, &extension_type) == S2N_SUCCESS,
             S2N_ERR_BAD_MESSAGE);
 
-    uint16_t extension_size;
+    uint16_t extension_size = 0;
     POSIX_ENSURE(s2n_stuffer_read_uint16(in, &extension_size) == S2N_SUCCESS,
             S2N_ERR_BAD_MESSAGE);
 
     uint8_t *extension_data = s2n_stuffer_raw_read(in, extension_size);
     POSIX_ENSURE(extension_data != NULL, S2N_ERR_BAD_MESSAGE);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     if (s2n_extension_supported_iana_value_to_id(extension_type, &extension_id) != S2N_SUCCESS) {
         /* Ignore unknown extensions */
         return S2N_SUCCESS;
@@ -163,7 +163,7 @@ int s2n_extension_list_parse(struct s2n_stuffer *in, s2n_parsed_extensions_list 
     POSIX_CHECKED_MEMSET((s2n_parsed_extension *) parsed_extension_list->parsed_extensions,
             0, sizeof(parsed_extension_list->parsed_extensions));
 
-    uint16_t total_extensions_size;
+    uint16_t total_extensions_size = 0;
     if (s2n_stuffer_read_uint16(in, &total_extensions_size) != S2N_SUCCESS) {
         total_extensions_size = 0;
     }
