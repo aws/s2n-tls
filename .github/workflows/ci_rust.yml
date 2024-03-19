@@ -146,7 +146,7 @@ jobs:
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./${{env.ROOT_PATH}}/generate.sh
+        run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Run cargo fmt
         uses: actions-rs/cargo@v1.0.3
@@ -178,7 +178,7 @@ jobs:
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ${{env.ROOT_PATH}}/generate.sh
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       # TODO translate json reports to in-action warnings
       - name: Run cargo clippy
