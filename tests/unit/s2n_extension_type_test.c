@@ -251,12 +251,12 @@ int main()
             EXPECT_TRUE(S2N_CBIT_TEST(conn.extension_requests_sent, test_extension_id));
 
             /* writes iana_value */
-            uint16_t iana_value;
+            uint16_t iana_value = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &iana_value));
             EXPECT_EQUAL(iana_value, request_extension_type.iana_value);
 
             /* writes length */
-            uint16_t length;
+            uint16_t length = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, S2N_TEST_DATA_LEN);
@@ -301,12 +301,12 @@ int main()
             EXPECT_BITFIELD_CLEAR(conn.extension_requests_sent);
 
             /* writes iana_value */
-            uint16_t iana_value;
+            uint16_t iana_value = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &iana_value));
             EXPECT_EQUAL(iana_value, response_extension_type.iana_value);
 
             /* writes length */
-            uint16_t length;
+            uint16_t length = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &length));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
             EXPECT_EQUAL(length, S2N_TEST_DATA_LEN);

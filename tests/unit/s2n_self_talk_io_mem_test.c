@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         END_TEST();
     }
 
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 

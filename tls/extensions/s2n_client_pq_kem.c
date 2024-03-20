@@ -40,7 +40,7 @@ const s2n_extension_type s2n_client_pq_kem_extension = {
 
 static bool s2n_client_pq_kem_should_send(struct s2n_connection *conn)
 {
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     return s2n_connection_get_security_policy(conn, &security_policy) == S2N_SUCCESS
             && s2n_pq_kem_is_extension_required(security_policy)
             && s2n_pq_is_enabled();
@@ -62,7 +62,7 @@ static int s2n_client_pq_kem_send(struct s2n_connection *conn, struct s2n_stuffe
 
 static int s2n_client_pq_kem_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    uint16_t size_of_all;
+    uint16_t size_of_all = 0;
     struct s2n_blob *proposed_kems = &conn->kex_params.client_pq_kem_extension;
 
     /* Ignore extension if PQ is disabled */

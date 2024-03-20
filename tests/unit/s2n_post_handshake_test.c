@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     {
         /* post_handshake_recv processes a key update requested message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -60,7 +60,7 @@ int main(int argc, char **argv)
 
         /* post_handshake_recv rejects an unknown post handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
         /* post_handshake_recv processes a malformed post handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 conn->actual_protocol_version = S2N_TLS13;
 
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
                     break;
                 }
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 conn->actual_protocol_version = S2N_TLS13;
 

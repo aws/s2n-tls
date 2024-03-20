@@ -40,7 +40,7 @@ int main(int argc, char **argv)
 
         /* Should fail for pre-TLS1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 
         /* Should send no extensions by default */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             conn->actual_protocol_version = S2N_TLS13;
@@ -66,7 +66,7 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_encrypted_extensions_send(conn));
 
-            uint16_t extension_list_size;
+            uint16_t extension_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(stuffer, &extension_list_size));
             EXPECT_EQUAL(extension_list_size, 0);
             EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), 0);
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
         /* Should send a requested extension */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             conn->actual_protocol_version = S2N_TLS13;
@@ -86,12 +86,12 @@ int main(int argc, char **argv)
             conn->server_name_used = 1;
             EXPECT_SUCCESS(s2n_encrypted_extensions_send(conn));
 
-            uint16_t extension_list_size;
+            uint16_t extension_list_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(stuffer, &extension_list_size));
             EXPECT_NOT_EQUAL(extension_list_size, 0);
             EXPECT_EQUAL(s2n_stuffer_data_available(stuffer), extension_list_size);
 
-            uint16_t extension_type;
+            uint16_t extension_type = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(stuffer, &extension_type));
             EXPECT_EQUAL(extension_type, s2n_server_server_name_extension.iana_value);
 
@@ -106,7 +106,7 @@ int main(int argc, char **argv)
 
         /* Should fail for pre-TLS1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
 
@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
         /* Should parse an empty list */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             conn->actual_protocol_version = S2N_TLS13;
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 
         /* Should parse a requested extension */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
             conn->actual_protocol_version = S2N_TLS13;
@@ -174,11 +174,11 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));

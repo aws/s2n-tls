@@ -121,8 +121,8 @@ int main(int argc, char **argv)
      *       message and client CCS messages.
      */
     {
-        uint32_t original_handshake_type, early_data_handshake_type;
-        message_type_t *original_messages, *early_data_messages;
+        uint32_t original_handshake_type = 0, early_data_handshake_type = 0;
+        message_type_t *original_messages = NULL, *early_data_messages = NULL;
 
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             original_handshake_type = valid_tls13_handshakes[i];
@@ -183,8 +183,8 @@ int main(int argc, char **argv)
     /* Test: A MIDDLEBOX_COMPAT form of every valid, negotiated handshake exists
      *       and matches the non-MIDDLEBOX_COMPAT form EXCEPT for CCS messages */
     {
-        uint32_t handshake_type_original, handshake_type_mc;
-        message_type_t *messages_original, *messages_mc;
+        uint32_t handshake_type_original = 0, handshake_type_mc = 0;
+        message_type_t *messages_original = NULL, *messages_mc = NULL;
 
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             handshake_type_original = valid_tls13_handshakes[i];
@@ -218,8 +218,8 @@ int main(int argc, char **argv)
 
     /* Test: A non-FULL_HANDSHAKE form of every valid, negotiated handshake exists */
     {
-        uint32_t handshake_type_original, handshake_type_fh;
-        message_type_t *messages_original, *messages_fh;
+        uint32_t handshake_type_original = 0, handshake_type_fh = 0;
+        message_type_t *messages_original = NULL, *messages_fh = NULL;
 
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             handshake_type_original = valid_tls13_handshakes[i];
@@ -264,8 +264,8 @@ int main(int argc, char **argv)
     /* Test: A EARLY_CLIENT_CCS form of every middlebox compatible handshake exists.
      * Any handshake could start with early data, even if that early data is later rejected. */
     {
-        uint32_t handshake_type_original, handshake_type_test;
-        message_type_t *messages_original, *messages_test;
+        uint32_t handshake_type_original = 0, handshake_type_test = 0;
+        message_type_t *messages_original = NULL, *messages_test = NULL;
 
         for (size_t i = 0; i < valid_tls13_handshakes_size; i++) {
             handshake_type_original = valid_tls13_handshakes[i];
@@ -933,7 +933,7 @@ int main(int argc, char **argv)
                 | MIDDLEBOX_COMPAT | WITH_EARLY_DATA | EARLY_CLIENT_CCS;
         EXPECT_STRING_EQUAL(all_flags_handshake_type_name, s2n_connection_get_handshake_type_name(conn));
 
-        const char *handshake_type_name;
+        const char *handshake_type_name = NULL;
         for (int i = 0; i < valid_tls13_handshakes_size; i++) {
             conn->handshake.handshake_type = valid_tls13_handshakes[i];
 

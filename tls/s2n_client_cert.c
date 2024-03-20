@@ -102,7 +102,7 @@ static S2N_RESULT s2n_client_cert_chain_store(struct s2n_connection *conn,
 int s2n_client_cert_recv(struct s2n_connection *conn)
 {
     if (conn->actual_protocol_version == S2N_TLS13) {
-        uint8_t certificate_request_context_len;
+        uint8_t certificate_request_context_len = 0;
         POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
         S2N_ERROR_IF(certificate_request_context_len != 0, S2N_ERR_BAD_MESSAGE);
     }

@@ -118,7 +118,7 @@ static int s2n_ecdsa_verify(const struct s2n_pkey *pub, s2n_signature_algorithm 
     const s2n_ecdsa_public_key *key = &pub->key.ecdsa_key;
     POSIX_ENSURE_REF(key->ec_key);
 
-    uint8_t digest_length;
+    uint8_t digest_length = 0;
     POSIX_GUARD(s2n_hash_digest_size(digest->alg, &digest_length));
     POSIX_ENSURE_LTE(digest_length, S2N_MAX_DIGEST_LEN);
 

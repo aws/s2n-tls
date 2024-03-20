@@ -410,9 +410,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.version.tls13.server_handshake_secret,
                     empty_secret, sizeof(empty_secret));
 
-            while (s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
-                conn->handshake.message_number++;
-            }
+            EXPECT_OK(s2n_connection_set_test_message_type(conn, SERVER_HELLO));
             EXPECT_OK(s2n_tls13_secrets_update(conn));
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.client_handshake_secret,
@@ -434,9 +432,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->handshake.server_finished,
                     empty_secret, sizeof(empty_secret));
 
-            while (s2n_conn_get_current_message_type(conn) != SERVER_HELLO) {
-                conn->handshake.message_number++;
-            }
+            EXPECT_OK(s2n_connection_set_test_message_type(conn, SERVER_HELLO));
             EXPECT_OK(s2n_tls13_secrets_update(conn));
 
             uint8_t expected_len = 0;
@@ -460,9 +456,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.version.tls13.server_app_secret,
                     empty_secret, sizeof(empty_secret));
 
-            while (s2n_conn_get_current_message_type(conn) != SERVER_FINISHED) {
-                conn->handshake.message_number++;
-            }
+            EXPECT_OK(s2n_connection_set_test_message_type(conn, SERVER_FINISHED));
             EXPECT_OK(s2n_tls13_secrets_update(conn));
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.client_app_secret,
@@ -481,9 +475,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.version.tls13.resumption_master_secret,
                     empty_secret, sizeof(empty_secret));
 
-            while (s2n_conn_get_current_message_type(conn) != CLIENT_FINISHED) {
-                conn->handshake.message_number++;
-            }
+            EXPECT_OK(s2n_connection_set_test_message_type(conn, CLIENT_FINISHED));
             EXPECT_OK(s2n_tls13_secrets_update(conn));
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.resumption_master_secret,
@@ -503,9 +495,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(conn->secrets.version.tls13.exporter_master_secret,
                     empty_secret, sizeof(empty_secret));
 
-            while (s2n_conn_get_current_message_type(conn) != SERVER_FINISHED) {
-                conn->handshake.message_number++;
-            }
+            EXPECT_OK(s2n_connection_set_test_message_type(conn, SERVER_FINISHED));
             EXPECT_OK(s2n_tls13_secrets_update(conn));
 
             EXPECT_BYTEARRAY_NOT_EQUAL(conn->secrets.version.tls13.exporter_master_secret,

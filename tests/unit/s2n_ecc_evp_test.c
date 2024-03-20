@@ -16,6 +16,8 @@
 #include "crypto/s2n_ecc_evp.h"
 
 #include "api/s2n.h"
+#include "crypto/s2n_fips.h"
+#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
@@ -27,10 +29,19 @@
 
 extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
 
+DEFINE_POINTER_CLEANUP_FUNC(EC_KEY*, EC_KEY_free);
+DEFINE_POINTER_CLEANUP_FUNC(EC_POINT*, EC_POINT_free);
+
 int main(int argc, char** argv)
 {
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+
+    /* Test the EC_KEY_CHECK_FIPS feature probe. AWS-LC is a libcrypto known to support this feature. */
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_TRUE(s2n_ecc_evp_supports_fips_check());
+    }
+
     {
         /* Test generate ephemeral keys for all supported curves */
         for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
@@ -134,7 +145,7 @@ int main(int argc, char** argv)
         for (size_t i = 0; i < s2n_all_supported_curves_list_len; i++) {
             struct s2n_ecc_evp_params test_params = { 0 };
             struct s2n_stuffer wire = { 0 };
-            uint8_t legacy_form;
+            uint8_t legacy_form = 0;
 
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&wire, 0));
 
@@ -405,5 +416,79 @@ int main(int argc, char** argv)
             EXPECT_SUCCESS(s2n_ecc_evp_params_free(&client_params));
         }
     };
+
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.8.2
+     *= type=test
+     *# For the curves secp256r1, secp384r1, and secp521r1, peers MUST
+     *# validate each other's public value Q by ensuring that the point is a
+     *# valid point on the elliptic curve.  The appropriate validation
+     *# procedures are defined in Section 4.3.7 of [ECDSA] and alternatively
+     *# in Section 5.6.2.3 of [KEYAGREEMENT].  This process consists of three
+     *# steps: (1) verify that Q is not the point at infinity (O), (2) verify
+     *# that for Q = (x, y) both integers x and y are in the correct
+     *# interval, and (3) ensure that (x, y) is a correct solution to the
+     *# elliptic curve equation.  For these curves, implementors do not need
+     *# to verify membership in the correct subgroup.
+     *
+     * s2n-tls performs this validation by invoking the libcrypto APIs: EC_KEY_check_key, and
+     * EC_KEY_check_fips. To ensure that these APIs are properly called, step (1) is invalidated.
+     */
+    {
+        const struct s2n_ecc_named_curve* const nist_curves[] = {
+            &s2n_ecc_curve_secp256r1,
+            &s2n_ecc_curve_secp384r1,
+            &s2n_ecc_curve_secp521r1,
+        };
+
+        for (size_t i = 0; i < s2n_array_len(nist_curves); i++) {
+            const struct s2n_ecc_named_curve* curve = nist_curves[i];
+
+            DEFER_CLEANUP(struct s2n_ecc_evp_params server_params = { 0 }, s2n_ecc_evp_params_free);
+            DEFER_CLEANUP(struct s2n_ecc_evp_params client_params = { 0 }, s2n_ecc_evp_params_free);
+            DEFER_CLEANUP(struct s2n_blob shared_key = { 0 }, s2n_free);
+
+            /* Create a server key. */
+            server_params.negotiated_curve = curve;
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&server_params));
+            EXPECT_NOT_NULL(server_params.evp_pkey);
+
+            /* Create a client key. */
+            client_params.negotiated_curve = curve;
+            EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_params));
+            EXPECT_NOT_NULL(client_params.evp_pkey);
+
+            /* Retrieve the existing client public key. */
+            DEFER_CLEANUP(EC_KEY* ec_key = EVP_PKEY_get1_EC_KEY(client_params.evp_pkey),
+                    EC_KEY_free_pointer);
+            EXPECT_NOT_NULL(ec_key);
+            const EC_GROUP* group = EC_KEY_get0_group(ec_key);
+            EXPECT_NOT_NULL(group);
+            const EC_POINT* public_key = EC_KEY_get0_public_key(ec_key);
+            EXPECT_NOT_NULL(public_key);
+
+            /* Invalidate the public key by setting the coordinate to infinity. */
+            DEFER_CLEANUP(EC_POINT* invalid_public_key = EC_POINT_dup(public_key, group),
+                    EC_POINT_free_pointer);
+            EXPECT_NOT_NULL(invalid_public_key);
+            EXPECT_EQUAL(EC_POINT_set_to_infinity(group, invalid_public_key), 1);
+            EXPECT_EQUAL(EC_KEY_set_public_key(ec_key, invalid_public_key), 1);
+            EXPECT_EQUAL(EVP_PKEY_set1_EC_KEY(client_params.evp_pkey, ec_key), 1);
+
+            /* Compute the server's shared secret. */
+            int ret = s2n_ecc_evp_compute_shared_secret_from_params(&server_params,
+                    &client_params, &shared_key);
+
+            /* If s2n-tls is in FIPS mode and the libcrypto supports the EC_KEY_check_fips API,
+             * ensure that this API is called by checking for the correct error.
+             */
+            if (s2n_is_in_fips_mode() && s2n_ecc_evp_supports_fips_check()) {
+                EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS);
+            } else {
+                EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_INVALID_PUBLIC_KEY);
+            }
+        }
+    }
+
     END_TEST();
 }

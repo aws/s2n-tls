@@ -23,12 +23,12 @@
 int s2n_server_cert_recv(struct s2n_connection *conn)
 {
     if (conn->actual_protocol_version == S2N_TLS13) {
-        uint8_t certificate_request_context_len;
+        uint8_t certificate_request_context_len = 0;
         POSIX_GUARD(s2n_stuffer_read_uint8(&conn->handshake.io, &certificate_request_context_len));
         S2N_ERROR_IF(certificate_request_context_len != 0, S2N_ERR_BAD_MESSAGE);
     }
 
-    uint32_t size_of_all_certificates;
+    uint32_t size_of_all_certificates = 0;
     POSIX_GUARD(s2n_stuffer_read_uint24(&conn->handshake.io, &size_of_all_certificates));
 
     S2N_ERROR_IF(size_of_all_certificates > s2n_stuffer_data_available(&conn->handshake.io) || size_of_all_certificates < 3,

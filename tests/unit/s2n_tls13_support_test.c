@@ -37,12 +37,12 @@ int main(int argc, char **argv)
     {
         /* Client does not support or configure TLS 1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_NOT_EQUAL(conn->client_protocol_version, S2N_TLS13);
 
-            const struct s2n_security_policy *security_policy;
+            const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
@@ -51,12 +51,12 @@ int main(int argc, char **argv)
 
         /* Server does not support or configure TLS 1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             EXPECT_NOT_EQUAL(conn->server_protocol_version, S2N_TLS13);
 
-            const struct s2n_security_policy *security_policy;
+            const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
@@ -75,12 +75,12 @@ int main(int argc, char **argv)
     {
         /* Client supports and configures TLS 1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_EQUAL(conn->client_protocol_version, S2N_TLS13);
 
-            const struct s2n_security_policy *security_policy;
+            const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
@@ -89,12 +89,12 @@ int main(int argc, char **argv)
 
         /* Server supports and configures TLS 1.3 */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             EXPECT_EQUAL(conn->server_protocol_version, S2N_TLS13);
 
-            const struct s2n_security_policy *security_policy;
+            const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
             EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
@@ -148,7 +148,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(tls13_server_hello_extensions);
         EXPECT_TRUE(tls13_server_hello_extensions->count > 0);
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
@@ -159,7 +159,7 @@ int main(int argc, char **argv)
         s2n_parsed_extensions_list parsed_extension_list = { 0 };
         for (size_t i = 0; i < tls13_server_hello_extensions->count; i++) {
             const s2n_extension_type *tls13_extension_type = tls13_server_hello_extensions->extension_types[i];
-            s2n_extension_type_id extension_id;
+            s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(tls13_extension_type->iana_value, &extension_id));
             s2n_parsed_extension *parsed_extension = &parsed_extension_list.parsed_extensions[extension_id];
 

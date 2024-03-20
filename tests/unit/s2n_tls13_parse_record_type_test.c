@@ -27,7 +27,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    uint8_t record_type;
+    uint8_t record_type = 0;
 
     /* In tls13 the true record type is inserted in the last byte of the encrypted payload. This
     * test creates a fake unencrypted payload and checks that the helper function

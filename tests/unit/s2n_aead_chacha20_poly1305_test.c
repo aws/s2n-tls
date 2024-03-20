@@ -48,7 +48,7 @@ static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     uint8_t random_data[S2N_SMALL_FRAGMENT_LENGTH + 1];
     uint8_t chacha20_poly1305_key_data[] = "1234567890123456789012345678901";
     struct s2n_blob chacha20_poly1305_key = { 0 };
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
     for (size_t i = 0; i <= max_fragment + 1; i++) {
         struct s2n_blob in = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-        int bytes_written;
+        int bytes_written = 0;
 
         /* TLS packet on the wire using ChaCha20-Poly1305:
          * https://tools.ietf.org/html/rfc5246#section-6.2.3.3
@@ -135,8 +135,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_copy(&conn->out, &conn->in, s2n_stuffer_data_available(&conn->out)));
 
         /* Let's decrypt it */
-        uint8_t content_type;
-        uint16_t fragment_length;
+        uint8_t content_type = 0;
+        uint16_t fragment_length = 0;
         EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
         EXPECT_SUCCESS(s2n_record_parse(conn));
         EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);

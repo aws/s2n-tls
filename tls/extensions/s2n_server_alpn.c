@@ -57,14 +57,14 @@ static int s2n_alpn_recv(struct s2n_connection *conn, struct s2n_stuffer *extens
 {
     POSIX_ENSURE_REF(conn);
 
-    uint16_t size_of_all;
+    uint16_t size_of_all = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(extension, &size_of_all));
     if (size_of_all > s2n_stuffer_data_available(extension) || size_of_all < 3) {
         /* ignore invalid extension size */
         return S2N_SUCCESS;
     }
 
-    uint8_t protocol_len;
+    uint8_t protocol_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &protocol_len));
     POSIX_ENSURE_LT(protocol_len, s2n_array_len(conn->application_protocol));
 

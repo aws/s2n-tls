@@ -24,10 +24,10 @@ int main(int argc, char **argv)
 
     /* Test should_send */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -43,10 +43,10 @@ int main(int argc, char **argv)
 
     /* Test send */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_max_frag_len_extension.send(conn, &stuffer));
 
         /* Should have correct fragment length */
-        uint8_t actual_frag_len;
+        uint8_t actual_frag_len = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &actual_frag_len));
         EXPECT_EQUAL(actual_frag_len, S2N_TLS_MAX_FRAG_LEN_512);
         EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
@@ -69,10 +69,10 @@ int main(int argc, char **argv)
 
     /* Test receive - accept_mfl not set */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -102,11 +102,11 @@ int main(int argc, char **argv)
      *# handshake with an "illegal_parameter" alert.
      */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(config));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -129,11 +129,11 @@ int main(int argc, char **argv)
 
     /* Test receive */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(config));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

@@ -47,6 +47,9 @@
 #define TLS_NPN                       67
 #define TLS_MESSAGE_HASH              254
 
+/* Maximum number of messages in a handshake */
+#define S2N_MAX_HANDSHAKE_LENGTH 32
+
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO = 0,

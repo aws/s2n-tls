@@ -38,12 +38,12 @@ static S2N_RESULT s2n_array_enlarge(struct s2n_array *array, uint32_t capacity)
     RESULT_ENSURE_REF(array);
 
     /* Acquire the memory */
-    uint32_t mem_needed;
+    uint32_t mem_needed = 0;
     RESULT_GUARD_POSIX(s2n_mul_overflow(array->element_size, capacity, &mem_needed));
     RESULT_GUARD_POSIX(s2n_realloc(&array->mem, mem_needed));
 
     /* Zero the extened part */
-    uint32_t array_elements_size;
+    uint32_t array_elements_size = 0;
     RESULT_GUARD_POSIX(s2n_mul_overflow(array->element_size, array->len, &array_elements_size));
     RESULT_CHECKED_MEMSET(array->mem.data + array_elements_size, 0, array->mem.size - array_elements_size);
     RESULT_POSTCONDITION(s2n_array_validate(array));

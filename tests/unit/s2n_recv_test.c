@@ -195,7 +195,7 @@ int main(int argc, char **argv)
     /* s2n_recv cannot be called concurrently */
     {
         /* Setup connection */
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         /* Setup bad recv callback */

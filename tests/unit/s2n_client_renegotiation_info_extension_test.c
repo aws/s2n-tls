@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 
     /* Test receive - too much data */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -63,7 +63,7 @@ int main(int argc, char **argv)
      *# and if it is not, MUST abort the handshake.
      */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     /* Test receive */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };

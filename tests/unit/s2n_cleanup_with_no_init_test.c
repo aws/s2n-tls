@@ -28,7 +28,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST_NO_INIT();
 
-    pthread_key_t my_key;
+    pthread_key_t my_key = 0;
 
     /* Init the pthread key */
     EXPECT_SUCCESS(pthread_key_create(&my_key, my_destructor));

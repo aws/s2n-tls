@@ -35,7 +35,7 @@ int main(int argc, char **argv)
     struct s2n_hash_state hash, copy;
     struct s2n_blob out = { 0 };
     POSIX_GUARD(s2n_blob_init(&out, output_pad, sizeof(output_pad)));
-    uint64_t bytes_in_hash;
+    uint64_t bytes_in_hash = 0;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 
     if (s2n_hash_is_available(S2N_HASH_MD5)) {
         /* Try MD5 */
-        uint8_t md5_digest_size;
+        uint8_t md5_digest_size = 0;
         POSIX_GUARD(s2n_hash_digest_size(S2N_HASH_MD5, &md5_digest_size));
         EXPECT_EQUAL(md5_digest_size, 16);
         EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_MD5));
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
     }
 
     /* Try SHA1 */
-    uint8_t sha1_digest_size;
+    uint8_t sha1_digest_size = 0;
     POSIX_GUARD(s2n_hash_digest_size(S2N_HASH_SHA1, &sha1_digest_size));
     EXPECT_EQUAL(sha1_digest_size, 20);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA1));
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(bytes_in_hash, 0);
 
     /* Try SHA224 and test s2n_hash_free */
-    uint8_t sha224_digest_size;
+    uint8_t sha224_digest_size = 0;
     POSIX_GUARD(s2n_hash_digest_size(S2N_HASH_SHA224, &sha224_digest_size));
     EXPECT_EQUAL(sha224_digest_size, 28);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA224));
@@ -240,7 +240,7 @@ int main(int argc, char **argv)
     EXPECT_FALSE(s2n_hash_is_ready_for_input(&hash));
     EXPECT_FAILURE(s2n_hash_get_currently_in_hash_total(&hash, &bytes_in_hash));
 
-    uint8_t sha256_digest_size;
+    uint8_t sha256_digest_size = 0;
     POSIX_GUARD(s2n_hash_digest_size(S2N_HASH_SHA256, &sha256_digest_size));
     EXPECT_EQUAL(sha256_digest_size, 32);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA256));
@@ -271,7 +271,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(bytes_in_hash, 0);
 
     /* Try SHA384 */
-    uint8_t sha384_digest_size;
+    uint8_t sha384_digest_size = 0;
     POSIX_GUARD(s2n_hash_digest_size(S2N_HASH_SHA384, &sha384_digest_size));
     EXPECT_EQUAL(sha384_digest_size, 48);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA384));
@@ -302,7 +302,7 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(bytes_in_hash, 0);
 
     /* Try SHA512 */
-    uint8_t sha512_digest_size;
+    uint8_t sha512_digest_size = 0;
     POSIX_GUARD(s2n_hash_digest_size(S2N_HASH_SHA512, &sha512_digest_size));
     EXPECT_EQUAL(sha512_digest_size, 64);
     EXPECT_SUCCESS(s2n_hash_init(&hash, S2N_HASH_SHA512));

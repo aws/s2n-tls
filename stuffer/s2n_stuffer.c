@@ -432,3 +432,15 @@ int s2n_stuffer_extract_blob(struct s2n_stuffer *stuffer, struct s2n_blob *out)
     POSIX_POSTCONDITION(s2n_blob_validate(out));
     return S2N_SUCCESS;
 }
+
+int s2n_stuffer_shift(struct s2n_stuffer *stuffer)
+{
+    POSIX_ENSURE_REF(stuffer);
+    struct s2n_stuffer copy = *stuffer;
+    POSIX_GUARD(s2n_stuffer_rewrite(&copy));
+    uint8_t *data = stuffer->blob.data + stuffer->read_cursor;
+    uint32_t data_size = s2n_stuffer_data_available(stuffer);
+    POSIX_GUARD(s2n_stuffer_write_bytes(&copy, data, data_size));
+    *stuffer = copy;
+    return S2N_SUCCESS;
+}

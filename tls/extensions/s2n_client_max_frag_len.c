@@ -51,7 +51,7 @@ static int s2n_client_max_frag_len_recv(struct s2n_connection *conn, struct s2n_
         return S2N_SUCCESS;
     }
 
-    uint8_t mfl_code;
+    uint8_t mfl_code = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
 
     /*

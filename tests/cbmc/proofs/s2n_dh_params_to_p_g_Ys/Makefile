@@ -42,6 +42,6 @@ REMOVE_FUNCTION_BODY += s2n_free
 REMOVE_FUNCTION_BODY += s2n_realloc
 REMOVE_FUNCTION_BODY += s2n_stuffer_wipe
 
-UNWINDSET += s2n_stuffer_write_network_order.4:9
+UNWINDSET += s2n_stuffer_write_network_order.10:9
 
 include ../Makefile.common
