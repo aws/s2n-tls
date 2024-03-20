@@ -176,13 +176,12 @@ static S2N_RESULT s2n_test_peer_requests(struct s2n_connection *conn)
 typedef S2N_RESULT (*s2n_test_scenario)(struct s2n_connection *conn);
 static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
 {
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
-            s2n_cert_chain_and_key_ptr_free);
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     RESULT_GUARD_POSIX(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-            s2n_config_ptr_free);
+    struct s2n_config *config = s2n_config_new();
+    RESULT_ENSURE_REF(config);
     RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
     RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_tls13"));
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -207,6 +206,9 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_OK(scenario_fn(client));
 
         EXPECT_SUCCESS(s2n_connection_free(client));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_config_free(config));
+
         exit(EXIT_SUCCESS);
     }
 
@@ -227,6 +229,9 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_OK(scenario_fn(server));
 
         EXPECT_SUCCESS(s2n_connection_free(server));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_config_free(config));
+
         exit(EXIT_SUCCESS);
     }
 
@@ -235,6 +240,9 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
     RESULT_ENSURE_EQ(status, EXIT_SUCCESS);
     RESULT_ENSURE_EQ(waitpid(server_pid, &status, 0), server_pid);
     RESULT_ENSURE_EQ(status, EXIT_SUCCESS);
+
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    EXPECT_SUCCESS(s2n_config_free(config));
 
     return S2N_RESULT_OK;
 }
