@@ -213,23 +213,22 @@ static S2N_RESULT s2n_test_example_recv_echo(struct s2n_connection *conn,
 typedef S2N_RESULT (*s2n_test_scenario)(struct s2n_connection *conn, struct s2n_blob *input);
 static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
 {
-    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
-            s2n_cert_chain_and_key_ptr_free);
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     RESULT_GUARD_POSIX(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
-    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-            s2n_config_ptr_free);
+    struct s2n_config *config = s2n_config_new();
+    RESULT_ENSURE_REF(config);
     RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
     RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_tls13"));
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
-    DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(&io_pair));
-
-    DEFER_CLEANUP(struct s2n_blob input = { 0 }, s2n_free);
+    struct s2n_blob input = { 0 };
     RESULT_GUARD_POSIX(s2n_alloc(&input, S2N_TEST_BYTES_TO_SEND));
     RESULT_GUARD(s2n_get_public_random_data(&input));
+
+    DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+    RESULT_GUARD_POSIX(s2n_io_pair_init_non_blocking(&io_pair));
 
     pid_t client_pid = fork();
     if (client_pid == 0) {
@@ -239,6 +238,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         fclose(stdout);
 
         struct s2n_connection *client = s2n_connection_new(S2N_CLIENT);
+        EXPECT_NOT_NULL(client);
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
         EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
@@ -247,6 +247,9 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_OK(scenario_fn(client, &input));
 
         EXPECT_SUCCESS(s2n_connection_free(client));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_free(&input));
 
         exit(EXIT_SUCCESS);
     }
@@ -267,6 +270,9 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_OK(scenario_fn(server, &input));
 
         EXPECT_SUCCESS(s2n_connection_free(server));
+        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_free(&input));
 
         exit(EXIT_SUCCESS);
     }
@@ -277,6 +283,10 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
     RESULT_ENSURE_EQ(waitpid(server_pid, &status, 0), server_pid);
     RESULT_ENSURE_EQ(status, EXIT_SUCCESS);
 
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+    EXPECT_SUCCESS(s2n_config_free(config));
+    EXPECT_SUCCESS(s2n_free(&input));
+
     return S2N_RESULT_OK;
 }
 
@@ -285,8 +295,8 @@ static S2N_RESULT s2n_run_failure_tests()
     uint8_t buffer[100] = { 0 };
     size_t buffer_size = sizeof(buffer);
 
-    DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-            s2n_connection_ptr_free);
+    struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
+    EXPECT_NOT_NULL(conn);
     EXPECT_SUCCESS(s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING));
 
     pid_t pid = fork();
@@ -303,12 +313,16 @@ static S2N_RESULT s2n_run_failure_tests()
         EXPECT_EQUAL(s2n_example_recv(conn, buffer, buffer_size), S2N_FAILURE);
         EXPECT_EQUAL(s2n_example_recv_echo(conn, buffer, buffer_size), S2N_FAILURE);
 
+        EXPECT_SUCCESS(s2n_connection_free(conn));
+
         exit(EXIT_SUCCESS);
     }
 
     int status = 0;
     RESULT_ENSURE_EQ(waitpid(pid, &status, 0), pid);
     RESULT_ENSURE_EQ(status, EXIT_SUCCESS);
+
+    EXPECT_SUCCESS(s2n_connection_free(conn));
 
     return S2N_RESULT_OK;
 }
