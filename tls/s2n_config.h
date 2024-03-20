@@ -54,6 +54,11 @@ typedef enum {
     S2N_LIB_OWNED,
 } s2n_cert_ownership;
 
+typedef enum {
+    S2N_SERIALIZED_CONN_NONE = 0,
+    S2N_SERIALIZED_CONN_V1 = 1
+} s2n_serialized_connection_version;
+
 struct s2n_config {
     unsigned use_tickets : 1;
 
@@ -208,6 +213,10 @@ struct s2n_config {
 
     void *renegotiate_request_ctx;
     s2n_renegotiate_request_cb renegotiate_request_cb;
+
+    /* The serialized connection version that the user expects. May be
+     * used to control what is negotiated in the handshake in the future. */
+    s2n_serialized_connection_version serialized_connection_version;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
@@ -229,3 +238,6 @@ S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
  * in `security_policy` */
 S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
         const struct s2n_security_policy *security_policy);
+
+/* APIs that will be moved to s2n.h when the serialized connection feature is released */
+int s2n_config_set_serialized_connection_version(struct s2n_config *config, s2n_serialized_connection_version version);
