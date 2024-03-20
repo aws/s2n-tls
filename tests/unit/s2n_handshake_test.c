@@ -448,7 +448,7 @@ int main(int argc, char **argv)
                 close((int) fd);
             }
 
-            /* use an nested scope to force the DEFER_CLEANUP statements to 
+            /* use a nested scope to force the DEFER_CLEANUP statements to 
              * execute before the exit() call. 
              */
             {
