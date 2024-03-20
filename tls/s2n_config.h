@@ -54,6 +54,11 @@ typedef enum {
     S2N_LIB_OWNED,
 } s2n_cert_ownership;
 
+typedef enum {
+    S2N_SERIALIZED_CONN_NONE = 0,
+    S2N_SERIALIZED_CONN_V1 = 1
+} s2n_serialization_version;
+
 struct s2n_config {
     unsigned use_tickets : 1;
 
@@ -208,6 +213,23 @@ struct s2n_config {
 
     void *renegotiate_request_ctx;
     s2n_renegotiate_request_cb renegotiate_request_cb;
+
+    /* This version is meant as a safeguard against future TLS features which might affect the connection
+     * serialization feature.
+     *
+     * For example, suppose that a new TLS parameter is released which affects how data is sent
+     * post-handshake. This parameter must be available in both the s2n-tls version that serializes the 
+     * connection, as well as the version that deserializes the connection. If not, the serializer
+     * may negotiate this feature with its peer, which would cause an older deserializer to run into errors
+     * sending data to the peer.
+     * 
+     * This kind of version-mismatch can happen during deployments and rollbacks, and therefore we require
+     * the user to tell us which serialized version they support pre-handshake. 
+     * We will not negotiate a new feature until the user requests the serialized connection
+     * version the feature is tied to (i.e. the request indicates they have finished deploying
+     * the new feature to their entire fleet.)
+     */
+    s2n_serialization_version serialized_connection_version;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
@@ -229,3 +251,6 @@ S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
  * in `security_policy` */
 S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
         const struct s2n_security_policy *security_policy);
+
+/* APIs that will be moved to s2n.h when the serialized connection feature is released */
+int s2n_config_set_serialized_connection_version(struct s2n_config *config, s2n_serialization_version version);

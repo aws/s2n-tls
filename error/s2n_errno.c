@@ -308,6 +308,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_KEYUPDATE, "Received KeyUpdate from peer, but kernel does not support updating tls keys") \
     ERR_ENTRY(S2N_ERR_KTLS_KEY_LIMIT, "Reached key encryption limit, but kernel does not support updating tls keys") \
     ERR_ENTRY(S2N_ERR_UNEXPECTED_CERT_REQUEST, "Client does not support mutual authentication") \
+    ERR_ENTRY(S2N_INVALID_SERIALIZED_CONNECTION, "Serialized connection is invalid"); \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

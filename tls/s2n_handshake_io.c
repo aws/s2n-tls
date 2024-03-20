@@ -1591,7 +1591,9 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
 
 bool s2n_handshake_is_complete(struct s2n_connection *conn)
 {
-    return conn && ACTIVE_STATE(conn).writer == 'B';
+    /* A deserialized connection implies that the handshake is complete because
+     * connections cannot be serialized before completing the handshake. */
+    return conn && (ACTIVE_STATE(conn).writer == 'B' || conn->deserialized_conn);
 }
 
 int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
