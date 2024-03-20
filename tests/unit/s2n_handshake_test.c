@@ -462,8 +462,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(test_cipher_preferences(config, config, chain_and_key, S2N_SIGNATURE_RSA));
 
-            s2n_cert_chain_and_key_free(chain_and_key);
-            s2n_config_free(config);
+            EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
+            EXPECT_SUCCESS(s2n_config_free(config));
             exit(EXIT_SUCCESS);
         }
 
