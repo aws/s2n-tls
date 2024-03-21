@@ -65,18 +65,18 @@ impl fmt::Debug for Connection {
 unsafe impl Send for Connection {}
 
 /// # Sync
-/// 
+///
 /// Although NonNull isn't Sync and allows access to mutable pointers even from
 /// immutable references, the Connection interface enforces that all mutating
 /// methods correctly require &mut self.
-/// 
+///
 /// Developers and reviewers MUST ensure that new methods correctly use
 /// either &self or &mut self depending on their behavior. No mechanism enforces this.
-/// 
+///
 /// Note: Although non-mutating methods like getters should be thread-safe by definition,
 /// technically the only thread safety guarantee provided by the underlying C library
 /// is that s2n_send and s2n_recv can be called concurrently.
-/// 
+///
 unsafe impl Sync for Connection {}
 
 impl Connection {
