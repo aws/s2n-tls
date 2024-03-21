@@ -384,7 +384,6 @@ int main(int argc, char **argv)
             server_config->security_policy = &security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
-            client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
             client_config->check_ocsp = 0;
             client_config->disable_x509_validation = 1;
             client_config->security_policy = &security_policy;
@@ -420,7 +419,6 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20200207"));
-            client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
             client_config->check_ocsp = 0;
             client_config->disable_x509_validation = 1;
 

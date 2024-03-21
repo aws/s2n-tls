@@ -59,6 +59,9 @@
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
 #define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= (1 << (i + 1)))
 
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);
+
 /* Allocates and initializes memory for a new connection.
  *
  * Since customers can reuse a connection, ensure that values on the connection are
@@ -296,11 +299,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     s2n_x509_validator_wipe(&conn->x509_validator);
 
-    s2n_cert_auth_type auth_type = config->client_cert_auth_type;
-
-    if (conn->client_cert_auth_type_overridden) {
-        auth_type = conn->client_cert_auth_type;
-    }
+    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+    POSIX_GUARD_RESULT(s2n_connection_and_config_get_client_auth_type(conn, config, &auth_type));
 
     int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (auth_type == S2N_CERT_AUTH_NONE);
 
@@ -748,19 +748,37 @@ int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct 
     return 0;
 }
 
-int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type)
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(client_cert_auth_type);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(client_cert_auth_type);
 
     if (conn->client_cert_auth_type_overridden) {
         *client_cert_auth_type = conn->client_cert_auth_type;
+    } else if (config->client_cert_auth_type_overridden) {
+        *client_cert_auth_type = config->client_cert_auth_type;
+    } else if (conn->mode == S2N_CLIENT) {
+        /* Clients should default to "Optional" so that they handle any
+         * CertificateRequests sent by the server.
+         */
+        *client_cert_auth_type = S2N_CERT_AUTH_OPTIONAL;
     } else {
-        POSIX_ENSURE_REF(conn->config);
-        *client_cert_auth_type = conn->config->client_cert_auth_type;
+        /* Servers should default to "None" so that they send no CertificateRequests. */
+        *client_cert_auth_type = S2N_CERT_AUTH_NONE;
     }
 
-    return 0;
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
+        s2n_cert_auth_type *client_cert_auth_type)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD_RESULT(s2n_connection_and_config_get_client_auth_type(
+            conn, conn->config, client_cert_auth_type));
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)

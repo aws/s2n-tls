@@ -144,6 +144,16 @@ struct s2n_config {
 
     s2n_ct_support_level ct_type;
 
+    /* Track whether the application has overriden the default client auth type.
+     * Clients and servers have different default client auth behavior, and this
+     * config could apply to either.
+     * This should be a bitflag, but that change is blocked on the SAW proofs.
+     */
+    uint8_t client_cert_auth_type_overridden;
+
+    /* Whether or not the client should authenticate itself to the server.
+     * Only used if client_cert_auth_type_overridden is true.
+     */
     s2n_cert_auth_type client_cert_auth_type;
 
     s2n_alert_behavior alert_behavior;

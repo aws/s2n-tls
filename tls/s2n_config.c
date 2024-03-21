@@ -96,10 +96,6 @@ static int s2n_config_init(struct s2n_config *config)
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
-
-    /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
-     * authenticate any client certificates. */
-    config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 1;
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
@@ -222,7 +218,6 @@ struct s2n_config *s2n_fetch_default_config(void)
 int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 {
     POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
-    config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 0;
     config->disable_x509_validation = 1;
 
@@ -415,6 +410,7 @@ int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
 {
     POSIX_ENSURE_REF(config);
+    config->client_cert_auth_type_overridden = 1;
     config->client_cert_auth_type = client_auth_type;
     return 0;
 }

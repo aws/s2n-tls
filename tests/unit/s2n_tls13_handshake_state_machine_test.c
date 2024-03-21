@@ -762,7 +762,7 @@ int main(int argc, char **argv)
         conn->session_ticket_status = S2N_NEW_TICKET;
 
         /* Ensure CLIENT_AUTH is set */
-        conn->config->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(conn, S2N_CERT_AUTH_REQUIRED));
 
         /* Ensure TLS12_PERFECT_FORWARD_SECRECY is set by choosing a cipher suite with is_ephemeral=1 on the kex */
         conn->secure->cipher_suite = &s2n_dhe_rsa_with_chacha20_poly1305_sha256;
