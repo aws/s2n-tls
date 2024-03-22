@@ -234,7 +234,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture},
-        enums::ClientAuthType,
+        enums::{ClientAuthType, PeerKeyUpdate},
         testing::{client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
@@ -889,6 +889,57 @@ mod tests {
                 .unwrap()?
                 .der()?
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn key_updates() -> Result<(), Error> {
+        let config = {
+            let config = config_builder(&security::DEFAULT_TLS13)?;
+            config.build()?
+        };
+
+        let server = {
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            Harness::new(server)
+        };
+
+        let client = {
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let pair = Pair::new(server, client);
+        let mut pair = poll_tls_pair(pair);
+
+        // there haven't been any key updates at the start of the connection
+        #[cfg(feature = "unstable-ktls")]
+        {
+            let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
+            assert_eq!(client_updates, (0, 0));
+            let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
+            assert_eq!(server_updates, (0, 0));
+        }
+
+        pair.server
+            .0
+            .connection
+            .as_mut()
+            .request_key_update(PeerKeyUpdate::KeyUpdateNotRequested)?;
+        assert!(pair.poll_send(Mode::Server, &[0]).is_ready());
+
+        // the server send key has been updated
+        #[cfg(feature = "unstable-ktls")]
+        {
+            println!("testing the key updates");
+            let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
+            assert_eq!(client_updates, (0, 0));
+            let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
+            assert_eq!(server_updates, (1, 0));
+        }
 
         Ok(())
     }

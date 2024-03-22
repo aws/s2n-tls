@@ -252,6 +252,48 @@ impl Connection {
         Ok(self)
     }
 
+    /// Signals the connection to do a key_update at the next possible opportunity.
+    /// Note that the resulting key update message will not be sent until `send` is
+    /// called on the connection.
+    ///
+    /// `peer_request` indicates if a key update should also be requested
+    /// of the peer. When set to `KeyUpdateNotRequested`, then only the sending
+    /// key of the connection will be updated. If set to `KeyUpdateRequested`, then
+    /// the sending key of conn will be updated AND the peer will be requested to
+    /// update their sending key. Note that s2n-tls currently only supports
+    /// `peer_request` being set to `KeyUpdateNotRequested` and will return an error
+    /// if any other value is used.
+    pub fn request_key_update(&mut self, peer_request: PeerKeyUpdate) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_request_key_update(self.connection.as_ptr(), peer_request.into())
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
+    /// Reports the number of times sending and receiving keys have been updated.
+    ///
+    /// This only applies to TLS1.3. Earlier versions do not support key updates.
+    ///
+    /// s2n-tls only tracks up to u8::MAX (255) key updates. If this method
+    /// reports 255 updates, then more than 255 updates may have occurred.
+    ///
+    /// The return value is a tuple of `(send_key_updates, recv_key_updates)`
+    #[cfg(feature = "unstable-ktls")]
+    pub fn key_update_counts(&self) -> Result<(u8, u8), Error> {
+        let mut send_key_updates = 0;
+        let mut recv_key_updates = 0;
+        unsafe {
+            s2n_connection_get_key_update_counts(
+                self.connection.as_ptr(),
+                &mut send_key_updates,
+                &mut recv_key_updates,
+            )
+            .into_result()?;
+        }
+        Ok((send_key_updates, recv_key_updates))
+    }
+
     /// sets the application protocol preferences on an s2n_connection object.
     ///
     /// protocols is a list in order of preference, with most preferred protocol first, and of
