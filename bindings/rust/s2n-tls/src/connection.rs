@@ -61,53 +61,21 @@ impl fmt::Debug for Connection {
 
 /// # Safety
 ///
-/// NonNull / the raw s2n_connection pointer isn't Send because its data may be
-/// aliased (two pointers could point to the same raw memory).
-///
-/// For example: Two NonNull<s2n_connection> objects can both reference the same memory.
-/// If you sent one of the NonNulls to another thread, then both threads would
-/// own references to the same memory and therefore mutate it at the same time,
-/// violating thread safety.
-///
-/// However, the Connection is Send because the interface ensures that only one
-/// owned Connection can exist for each s2n_connection C object.
-///
-/// No mechanism enforces this. Library developers MUST ensure that new methods
-/// do not expose the raw s2n_connection pointer, return owned Connection objects,
-/// or allow the creation of Connections from raw pointers. Because C methods like
-/// callbacks can expose the raw pointers, pay particular attention to the thread
-/// safety of callbacks.
-///
-/// The Context stored on a Connection must also be Send. The Context is essentially
-/// a field on the Connection, just stored in C instead of in Rust.
-/// A test exists to enforce this.
-///
+/// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
-/// # Safety
+/// # Sync
 ///
-/// NonNull / the raw s2n_connection pointer isn't Sync because it allows access
-/// to mutable pointers even from immutable references.
-///
-/// For example: Multiple immutable references to the same NonNull<s2n_connection>
-/// are allowed to exist at once. If one &NonNull is sent to another thread, and
-/// as_ptr() is called on both &NonNull (allowed because NonNull<T> implements From for &T),
-/// then both threads can obtain *mut s2n_connection pointers to the same memory
-/// and therefore mutate it at the same time, violating thread safety.
-///
-/// However, the Connection is Sync because the interface enforces that all mutating
+/// Although NonNull isn't Sync and allows access to mutable pointers even from
+/// immutable references, the Connection interface enforces that all mutating
 /// methods correctly require &mut self.
 ///
-/// No mechanism enforces this. Library developers MUST ensure that new methods
-/// correctly use either &self or &mut self depending on their behavior.
+/// Developers and reviewers MUST ensure that new methods correctly use
+/// either &self or &mut self depending on their behavior. No mechanism enforces this.
 ///
 /// Note: Although non-mutating methods like getters should be thread-safe by definition,
 /// technically the only thread safety guarantee provided by the underlying C library
 /// is that s2n_send and s2n_recv can be called concurrently.
-///
-/// The Context stored on a Connection must also be Sync. The Context is essentially
-/// a field on the Connection, just stored in C instead of in Rust.
-/// A test exists to enforce this.
 ///
 unsafe impl Sync for Connection {}
 
@@ -154,19 +122,13 @@ impl Connection {
         Self::new(Mode::Server)
     }
 
-    /// # Safety
-    ///
-    /// Caller must ensure they are not creating the possibility of duplicate
-    /// Connections (see Send safety note).
-    /// This should ONLY be used to pass the Connection to C methods.
-    pub(crate) unsafe fn as_ptr(&mut self) -> *mut s2n_connection {
+    pub(crate) fn as_ptr(&mut self) -> *mut s2n_connection {
         self.connection.as_ptr()
     }
 
     /// # Safety
     ///
     /// Caller must ensure s2n_connection is a valid reference to a [`s2n_connection`] object
-    /// Caller must ensure they are not creating a duplicate Connection (see Send safety note).
     pub(crate) unsafe fn from_raw(connection: NonNull<s2n_connection>) -> Self {
         Self { connection }
     }

@@ -24,30 +24,13 @@ pub struct PrivateKeyOperation {
 
 /// # Safety
 ///
-/// NonNull / the raw s2n_async_pkey_op pointer isn't Send because its data may
-/// be aliased (two pointers could point to the same raw memory). However, the
-/// PrivateKeyOperation interface ensures that only one owned PrivateKeyOperation
-/// can exist for each s2n_async_pkey_op C object.
-///
-/// In particular, the only method of obtaining a PrivateKeyOperation is via
-/// PrivateKeyCallback::handle_operation, which returns unique memory owned by
-/// the application.
-///
-/// No mechanism enforces this. Library developers MUST ensure that new methods
-/// do not expose the raw s2n_async_pkey_op pointer, return owned PrivateKeyOperation
-/// objects, or allow the creation of PrivateKeyOperations from raw pointers.
-///
+/// Safety: s2n_async_pkey_op objects can be sent across threads
 unsafe impl Send for PrivateKeyOperation {}
 
 /// # Safety
 ///
-/// NonNull / the raw s2n_async_pkey_op pointer isn't Sync because it allows access
-/// to mutable pointers even from immutable references. However, the PrivateKeyOperation
-/// interface enforces that all mutating methods correctly require self or &mut self.
-///
-/// No mechanism enforces this. Library developers MUST ensure that new methods
-/// correctly use either self, &self or &mut self depending on their behavior.
-///
+/// Safety: All C methods that mutate the s2n_async_pkey_op are wrapped
+/// in Rust methods that require a mutable reference.
 unsafe impl Sync for PrivateKeyOperation {}
 
 impl PrivateKeyOperation {

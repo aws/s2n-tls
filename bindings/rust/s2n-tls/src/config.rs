@@ -23,39 +23,13 @@ pub struct Config(NonNull<s2n_config>);
 
 /// # Safety
 ///
-/// NonNull / the raw s2n_config pointer isn't Send because its data may be aliased
-/// (two pointers could point to the same raw memory). Because Config implements
-/// Clone, multiple Configs are expected to point to the same raw memory.
-/// However, the Config is still Send because it is immutable after creation.
-///
-/// For example: an application can create and then clone a Config, creating two
-/// Configs representing the same C s2n_config struct. However, neither Config can
-/// modify that shared memory, so multiple threads accessing it remains safe.
-///
-/// No mechanism enforces this. Library developers MUST ensure that the Config
-/// is NEVER mutated. No method should take a &mut Config argument.
-///
-/// The Context stored on a Config must also be Send. The Context is essentially
-/// a field on the Config, just stored in C instead of in Rust.
-/// A test exists to enforce this. In particular, note that the Context includes
-/// a reference counter, but that reference counter is safely atomic and can be
-/// safely incremented by different Configs on different threads.
-///
+/// Safety: s2n_config objects can be sent across threads
 unsafe impl Send for Config {}
 
 /// # Safety
 ///
-/// NonNull / the raw s2n_config pointer isn't Sync because it allows access
-/// to mutable pointers even from immutable references. However, the Config is
-/// still Sync because it is immutable after creation.
-///
-/// No mechanism enforces this. Library developers MUST ensure that the Config
-/// is NEVER mutated. No method should take a &mut Config argument.
-///
-/// The Context stored on a Config must also be Sync. The Context is essentially
-/// a field on the Config, just stored in C instead of in Rust.
-/// A test exists to enforce this.
-///
+/// Safety: All C methods that mutate the s2n_config are wrapped
+/// in Rust methods that require a mutable reference.
 unsafe impl Sync for Config {}
 
 impl Config {
@@ -87,13 +61,7 @@ impl Config {
         config
     }
 
-    /// # Safety
-    ///
-    /// This method must ONLY be used:
-    /// - In the Builder
-    /// - To call non-mutating C methods
-    /// The Config must NOT be modified after being built!
-    pub(crate) unsafe fn as_mut_ptr(&mut self) -> *mut s2n_config {
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
         self.0.as_ptr()
     }
 
@@ -762,10 +730,7 @@ impl Builder {
     }
 
     fn as_mut_ptr(&mut self) -> *mut s2n_config {
-        // Safety:
-        // The mutable pointer is only used inside the builder, which does not allow
-        // modification of complete Configs or risk thread safety.
-        unsafe { self.config.as_mut_ptr() }
+        self.config.as_mut_ptr()
     }
 }
 
