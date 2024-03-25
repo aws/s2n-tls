@@ -28,6 +28,10 @@ impl CertificateChain<'_> {
         }
     }
 
+    /// # Safety
+    ///
+    /// Caller must ensure ptr is a valid reference to a [`s2n_cert_chain_and_key`] object
+    /// Caller must ensure they are not creating a duplicate CertificateChain (see Send safety note).
     pub(crate) unsafe fn from_ptr_reference<'a>(
         ptr: NonNull<s2n_cert_chain_and_key>,
     ) -> CertificateChain<'a> {
@@ -72,15 +76,39 @@ impl CertificateChain<'_> {
         self.len() == 0
     }
 
-    pub(crate) fn as_mut_ptr(&mut self) -> NonNull<s2n_cert_chain_and_key> {
+    /// # Safety
+    ///
+    /// Caller must ensure they are not creating the possibility of duplicate
+    /// CertificateChain (see Send safety note).
+    /// This should ONLY be used to pass the CertificateChain to C methods.
+    pub(crate) unsafe fn as_mut_ptr(&mut self) -> NonNull<s2n_cert_chain_and_key> {
         self.ptr
     }
 }
 
-// # Safety
-//
-// s2n_cert_chain_and_key objects can be sent across threads.
+/// # Safety
+///
+/// NonNull / the raw s2n_cert_chain_and_key pointer isn't Send because its data
+/// may be aliased (two pointers could point to the same raw memory). However,
+/// the CertificateChain interface ensures that only one owned CertificateChain
+/// can exist for each s2n_cert_chain_and_key C object.
+/// Additionally, the CertificateChain is immutable once created.
+///
+/// No mechanism enforces this. Library developers MUST ensure that new methods
+/// do not expose the raw s2n_cert_chain_and_key pointer, return owned CertificateChain objects,
+/// or allow the creation of CertificateChains from raw pointers. Failing that,
+/// no method should take a &mut CertificateChain argument.
 unsafe impl Send for CertificateChain<'_> {}
+
+/// # Safety
+///
+/// NonNull / the raw s2n_cert_chain_and_key pointer isn't Sync because it allows
+/// access to mutable pointers even from immutable references. However, the CertificateChain
+/// interface enforces that all mutating methods correctly require &mut self.
+///
+/// No mechanism enforces this. Library developers MUST ensure that new methods
+/// correctly use either &self or &mut self depending on their behavior.
+unsafe impl Sync for CertificateChain<'_> {}
 
 impl Drop for CertificateChain<'_> {
     fn drop(&mut self) {
@@ -148,7 +176,24 @@ impl<'a> Certificate<'a> {
     }
 }
 
-// # Safety
-//
-// Certificates just reference data in the chain, so share the Send-ness of the chain.
+/// # Safety
+///
+/// NonNull / the raw s2n_cert pointer isn't Send because its data
+/// may be aliased (two pointers could point to the same raw memory). Multiple
+/// Certificates can reference the same memory, since multiple iterators over
+/// CertificateChain can exist at once. However, the Certificate is still Send
+/// because it is immutable.
+///
+/// No mechanism enforces this. Library developers MUST ensure that the Certificate
+/// is NEVER mutated. No method should take a &mut Certificate argument.
 unsafe impl Send for Certificate<'_> {}
+
+/// # Safety
+///
+/// NonNull / the raw s2n_cert pointer isn't Sync because it allows access
+/// to mutable pointers even from immutable references. However, the Certificate is
+/// still Sync because it is immutable.
+///
+/// No mechanism enforces this. Library developers MUST ensure that the Certificate
+/// is NEVER mutated. No method should take a &mut Certificate argument.
+unsafe impl Sync for Certificate<'_> {}
