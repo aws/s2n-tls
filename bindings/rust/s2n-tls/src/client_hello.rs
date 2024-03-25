@@ -278,7 +278,7 @@ mod tests {
         ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap()
     }
 
-    fn known_value_client_hello() -> Vec<u8>{
+    fn known_value_client_hello() -> Vec<u8> {
         vec![
             0x01, 0x00, 0x00, 0xEC, 0x03, 0x03, 0x90, 0xe8, 0xcc, 0xee, 0xe5, 0x70, 0xa2, 0xa1,
             0x2f, 0x6b, 0x69, 0xd2, 0x66, 0x96, 0x0f, 0xcf, 0x20, 0xd5, 0x32, 0x6e, 0xc4, 0xb2,
@@ -366,7 +366,7 @@ mod tests {
     // known value test case copied from s2n_fingerprint_ja3_test.c
     #[checkers::test]
     fn valid_client_bytes() {
-        let raw_client_hello= known_value_client_hello();
+        let raw_client_hello = known_value_client_hello();
         let expected_fingerprint = "771,49195-49199-52393-52392-49196-49200-\
                                     49162-49161-49171-49172-51-57-47-53-10,0-\
                                     23-65281-10-11-35-16-5-13-28,29-23-24-25,0";
