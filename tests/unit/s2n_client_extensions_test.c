@@ -59,8 +59,6 @@ static uint8_t sct_list[] = {
     0xff, 0xff, 0xff, 0xff, 0xff
 };
 
-message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
-
 /* Helper function to allow us to easily repeat the PQ extension test for many scenarios.
  * If the KEM negotiation is expected to fail (because of e.g. a client/server extension
  * mismatch), pass in expected_kem_id = -1. The tests should always EXPECT_SUCCESS when
