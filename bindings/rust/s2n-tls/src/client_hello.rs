@@ -6,6 +6,7 @@ use s2n_tls_sys::*;
 use std::fmt;
 
 #[derive(Copy, Clone)]
+#[cfg(feature = "unstable-fingerprint")]
 pub enum FingerprintType {
     JA3,
 }
@@ -13,6 +14,7 @@ pub enum FingerprintType {
 // this is the size of the MD5 hash digest that is used for the JA3 fingerprint
 const MD5_HASH_SIZE: u32 = 16;
 
+#[cfg(feature = "unstable-fingerprint")]
 impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
     fn from(value: FingerprintType) -> Self {
         match value {
@@ -94,6 +96,7 @@ impl ClientHello {
     /// to construct a string of appropriate capacity to call
     /// `fingerprint_string`. `output` will be extended if necessary to store
     /// the full hash.
+    #[cfg(feature = "unstable-fingerprint")]
     pub fn fingerprint_hash(
         &self,
         hash: FingerprintType,
@@ -125,6 +128,7 @@ impl ClientHello {
     /// `fingerprint_string` will try to calculate the fingerprint and store the
     /// resulting string in `output`. If `output` does not have sufficient
     /// capacity an Error of `ErrorType::UsageError` will be returned.
+    #[cfg(feature = "unstable-fingerprint")]
     pub fn fingerprint_string(
         &self,
         hash: FingerprintType,
@@ -189,7 +193,7 @@ impl ClientHello {
         Ok(server_name)
     }
 
-    fn raw_message(&self) -> Result<Vec<u8>, Error> {
+    pub fn raw_message(&self) -> Result<Vec<u8>, Error> {
         let message_length =
             unsafe { s2n_client_hello_get_raw_message_length(self.deref_mut_ptr()).into_result()? };
 
@@ -217,6 +221,7 @@ impl Drop for ClientHello {
     }
 }
 
+#[cfg(feature = "unstable-fingerprint")]
 impl fmt::Debug for ClientHello {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let session_id = self.session_id().map_err(|_| fmt::Error)?;
@@ -304,6 +309,7 @@ mod tests {
     // test that a fingerprint can successfully be calculated from ClientHellos
     // returned from a connection
     #[checkers::test]
+    #[cfg(feature = "unstable-fingerprint")]
     fn io_fingerprint_test() {
         let config = crate::testing::config_builder(&security::DEFAULT_TLS13)
             .unwrap()
@@ -333,6 +339,7 @@ mod tests {
         assert!(check_client_hello(client_conn).is_ok());
     }
 
+    #[cfg(feature = "unstable-fingerprint")]
     fn known_test_case(
         raw_client_hello: Vec<u8>,
         expected_string: &str,
@@ -365,6 +372,7 @@ mod tests {
 
     // known value test case copied from s2n_fingerprint_ja3_test.c
     #[checkers::test]
+    #[cfg(feature = "unstable-fingerprint")]
     fn valid_client_bytes() {
         let raw_client_hello = known_value_client_hello();
         let expected_fingerprint = "771,49195-49199-52393-52392-49196-49200-\
@@ -375,6 +383,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable-fingerprint")]
     fn hash_output_resizing() {
         let client_hello = get_client_hello();
         let hash_capacities = vec![0, MD5_HASH_SIZE, 1_000];
@@ -388,6 +397,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "unstable-fingerprint")]
     fn string_output_too_small() {
         let client_hello = get_client_hello();
         let mut fingerprint_string = String::with_capacity(0);
@@ -399,6 +409,7 @@ mod tests {
 
     // make sure that debug doesn't panic and seems reasonable
     #[test]
+    #[cfg(feature = "unstable-fingerprint")]
     fn debug() {
         let client_hello = get_client_hello();
         let mut hash = Vec::new();
