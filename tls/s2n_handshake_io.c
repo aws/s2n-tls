@@ -841,7 +841,7 @@ static const char *tls13_handshake_type_names[] = {
 #define CONNECTION_IS_WRITER(conn) (ACTIVE_STATE(conn).writer == CONNECTION_WRITER(conn))
 
 /* Only used in our test cases. */
-message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
+message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *conn)
 {
     return ACTIVE_MESSAGE(conn);
 }

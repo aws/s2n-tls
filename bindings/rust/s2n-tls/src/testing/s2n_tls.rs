@@ -235,6 +235,7 @@ mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture},
         enums::ClientAuthType,
+        error::ErrorType,
         testing::{client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
@@ -889,6 +890,38 @@ mod tests {
                 .unwrap()?
                 .der()?
         );
+
+        Ok(())
+    }
+
+    #[test]
+    fn master_secret_success() -> Result<(), Error> {
+        let policy = security::Policy::from_version("test_all_tls12")?;
+        let config = config_builder(&policy)?.build()?;
+        let pair = poll_tls_pair(tls_pair(config));
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        let server_secret = server.master_secret()?;
+        let client_secret = client.master_secret()?;
+        assert_eq!(server_secret, client_secret);
+
+        Ok(())
+    }
+
+    #[test]
+    fn master_secret_failure() -> Result<(), Error> {
+        // TLS1.3 does not support getting the master secret
+        let config = config_builder(&security::DEFAULT_TLS13)?.build()?;
+        let pair = poll_tls_pair(tls_pair(config));
+        let server = pair.server.0.connection;
+        let client = pair.client.0.connection;
+
+        let server_error = server.master_secret().unwrap_err();
+        assert_eq!(server_error.kind(), ErrorType::UsageError);
+
+        let client_error = client.master_secret().unwrap_err();
+        assert_eq!(client_error.kind(), ErrorType::UsageError);
 
         Ok(())
     }
