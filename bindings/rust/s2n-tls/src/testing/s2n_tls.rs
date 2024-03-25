@@ -234,6 +234,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture},
+        connection::KeyUpdateCount,
         enums::{ClientAuthType, PeerKeyUpdate},
         testing::{client_hello::*, s2n_tls::*, *},
     };
@@ -893,36 +894,22 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(feature = "unstable-ktls")]
     #[test]
     fn key_updates() -> Result<(), Error> {
-        let config = {
-            let config = config_builder(&security::DEFAULT_TLS13)?;
-            config.build()?
+        let empty_key_updates = KeyUpdateCount {
+            recv_key_updates: 0,
+            send_key_updates: 0,
         };
 
-        let server = {
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            Harness::new(server)
-        };
-
-        let client = {
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let pair = Pair::new(server, client);
+        let pair = tls_pair(build_config(&security::DEFAULT_TLS13)?);
         let mut pair = poll_tls_pair(pair);
 
         // there haven't been any key updates at the start of the connection
-        #[cfg(feature = "unstable-ktls")]
-        {
-            let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
-            assert_eq!(client_updates, (0, 0));
-            let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
-            assert_eq!(server_updates, (0, 0));
-        }
+        let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(client_updates, empty_key_updates);
+        let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(server_updates, empty_key_updates);
 
         pair.server
             .0
@@ -932,14 +919,11 @@ mod tests {
         assert!(pair.poll_send(Mode::Server, &[0]).is_ready());
 
         // the server send key has been updated
-        #[cfg(feature = "unstable-ktls")]
-        {
-            println!("testing the key updates");
-            let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
-            assert_eq!(client_updates, (0, 0));
-            let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
-            assert_eq!(server_updates, (1, 0));
-        }
+        let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(client_updates, empty_key_updates);
+        let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(server_updates.recv_key_updates, 0);
+        assert_eq!(server_updates.send_key_updates, 1);
 
         Ok(())
     }

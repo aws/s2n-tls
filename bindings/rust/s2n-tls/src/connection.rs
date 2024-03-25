@@ -36,6 +36,13 @@ macro_rules! static_const_str {
     };
 }
 
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Default)]
+pub struct KeyUpdateCount {
+    pub send_key_updates: u8,
+    pub recv_key_updates: u8,
+}
+
 pub struct Connection {
     connection: NonNull<s2n_connection>,
 }
@@ -263,12 +270,12 @@ impl Connection {
     /// update their sending key. Note that s2n-tls currently only supports
     /// `peer_request` being set to `KeyUpdateNotRequested` and will return an error
     /// if any other value is used.
-    pub fn request_key_update(&mut self, peer_request: PeerKeyUpdate) -> Result<&mut Self, Error> {
+    pub fn request_key_update(&mut self, peer_request: PeerKeyUpdate) -> Result<(), Error> {
         unsafe {
             s2n_connection_request_key_update(self.connection.as_ptr(), peer_request.into())
                 .into_result()
         }?;
-        Ok(self)
+        Ok(())
     }
 
     /// Reports the number of times sending and receiving keys have been updated.
@@ -280,7 +287,7 @@ impl Connection {
     ///
     /// The return value is a tuple of `(send_key_updates, recv_key_updates)`
     #[cfg(feature = "unstable-ktls")]
-    pub fn key_update_counts(&self) -> Result<(u8, u8), Error> {
+    pub fn key_update_counts(&self) -> Result<KeyUpdateCount, Error> {
         let mut send_key_updates = 0;
         let mut recv_key_updates = 0;
         unsafe {
@@ -291,7 +298,10 @@ impl Connection {
             )
             .into_result()?;
         }
-        Ok((send_key_updates, recv_key_updates))
+        Ok(KeyUpdateCount {
+            send_key_updates,
+            recv_key_updates,
+        })
     }
 
     /// sets the application protocol preferences on an s2n_connection object.
