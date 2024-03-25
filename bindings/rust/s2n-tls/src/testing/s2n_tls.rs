@@ -234,7 +234,6 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture},
-        connection::KeyUpdateCount,
         enums::ClientAuthType,
         testing::{client_hello::*, s2n_tls::*, *},
     };
@@ -897,7 +896,7 @@ mod tests {
     #[cfg(feature = "unstable-ktls")]
     #[test]
     fn key_updates() -> Result<(), Error> {
-        use crate::enums::PeerKeyUpdate;
+        use crate::{connection::KeyUpdateCount, enums::PeerKeyUpdate};
 
         let empty_key_updates = KeyUpdateCount {
             recv_key_updates: 0,
