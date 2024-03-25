@@ -235,7 +235,7 @@ mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture},
         connection::KeyUpdateCount,
-        enums::{ClientAuthType, PeerKeyUpdate},
+        enums::ClientAuthType,
         testing::{client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
@@ -897,6 +897,8 @@ mod tests {
     #[cfg(feature = "unstable-ktls")]
     #[test]
     fn key_updates() -> Result<(), Error> {
+        use crate::enums::PeerKeyUpdate;
+
         let empty_key_updates = KeyUpdateCount {
             recv_key_updates: 0,
             send_key_updates: 0,

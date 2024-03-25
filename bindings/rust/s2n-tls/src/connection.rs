@@ -37,7 +37,7 @@ macro_rules! static_const_str {
 }
 
 #[non_exhaustive]
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq)]
 pub struct KeyUpdateCount {
     pub send_key_updates: u8,
     pub recv_key_updates: u8,
