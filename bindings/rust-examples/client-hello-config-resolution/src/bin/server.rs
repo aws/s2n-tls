@@ -6,12 +6,7 @@ use s2n_tls::{
     security::{Policy, DEFAULT_TLS13},
 };
 use s2n_tls_tokio::TlsAcceptor;
-use std::{
-    collections::HashMap,
-    error::Error,
-    net::{IpAddr, Ipv4Addr},
-    pin::Pin,
-};
+use std::{collections::HashMap, error::Error, pin::Pin};
 use tokio::{io::AsyncWriteExt, net::*};
 
 const PORT: u16 = 1738;
@@ -27,7 +22,8 @@ impl Default for AnimalConfigResolver {
         let mut configs = HashMap::new();
         configs.insert("www.wombat.com".to_owned(), server_config("wombat"));
         configs.insert("www.kangaroo.com".to_owned(), server_config("kangaroo"));
-        Self { configs }    }
+        Self { configs }
+    }
 }
 
 // Servers that wish to do config resolution in an async manner should consider
