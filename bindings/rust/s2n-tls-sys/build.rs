@@ -158,9 +158,8 @@ fn builder(libcrypto: &Libcrypto) -> cc::Build {
     if let Ok(cflags) = std::env::var("CFLAGS") {
         // cc will read the CFLAGS env variable and prepend the compiler
         // command with all flags and includes from it, which may conflict
-        // with the libcrypto includes we specify. To ensure the libcrypto
-        // includes show up first in the compiler command, we prepend our
-        // includes to CFLAGS.
+        // with the includes we specify. To ensure that our includes show
+        // up first in the compiler command, we prepend them to CFLAGS.
         std::env::set_var("CFLAGS", format!("-I {} {}", includes.join(" -I "), cflags));
     } else {
         build.includes(includes);
