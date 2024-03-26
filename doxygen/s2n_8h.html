@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.8-365e10bd</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.8-e1f6f01e</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -711,6 +711,8 @@ Functions</h2></td></tr>
 <tr class="separator:a249408b5a39897276524176bb951dba5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aed6c509e7ec18b2a9ddb47e3e595b565"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aed6c509e7ec18b2a9ddb47e3e595b565">s2n_connection_get_cipher</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:aed6c509e7ec18b2a9ddb47e3e595b565"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ad34a96dd1e2cae7dd2da4812576a65fc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad34a96dd1e2cae7dd2da4812576a65fc">s2n_connection_get_master_secret</a> (const struct s2n_connection *conn, uint8_t *secret_bytes, size_t max_size)</td></tr>
+<tr class="separator:ad34a96dd1e2cae7dd2da4812576a65fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae8c865863e6dcfa38d4de30cd11f7c40"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ae8c865863e6dcfa38d4de30cd11f7c40">s2n_connection_tls_exporter</a> (struct s2n_connection *conn, const uint8_t *label, uint32_t label_length, const uint8_t *context, uint32_t context_length, uint8_t *output, uint32_t output_length)</td></tr>
 <tr class="separator:ae8c865863e6dcfa38d4de30cd11f7c40"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:abc11d4e901bae3b322a5a3bc5dc9a5d1"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#abc11d4e901bae3b322a5a3bc5dc9a5d1">s2n_connection_get_cipher_iana_value</a> (struct s2n_connection *conn, uint8_t *first, uint8_t *second)</td></tr>
@@ -6575,6 +6577,53 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The last message name in the TLS state machine, e.g. "SERVER_HELLO", "APPLICATION_DATA". </dd></dl>
+
+</div>
+</div>
+<a id="ad34a96dd1e2cae7dd2da4812576a65fc" name="ad34a96dd1e2cae7dd2da4812576a65fc"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ad34a96dd1e2cae7dd2da4812576a65fc">&#9670;&#160;</a></span>s2n_connection_get_master_secret()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_get_master_secret </td>
+          <td>(</td>
+          <td class="paramtype">const struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>secret_bytes</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">size_t&#160;</td>
+          <td class="paramname"><em>max_size</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Provides access to the TLS master secret.</p>
+<p >This is a dangerous method and should not be used unless absolutely necessary. Mishandling the master secret can compromise both the current connection and any past or future connections that use the same master secret due to session resumption.</p>
+<p >This method is only supported for older TLS versions, and will report an S2N_ERR_INVALID_STATE usage error if called for a TLS1.3 connection. TLS1.3 includes a new key schedule that derives independent secrets from the master secret for specific purposes, such as separate traffic, session ticket, and exporter secrets. Using the master secret directly circumvents that security feature, reducing the security of the protocol.</p>
+<p >If you need cryptographic material tied to the current TLS session, consider <code>s2n_connection_tls_exporter</code> instead. Although s2n_connection_tls_exporter currently only supports TLS1.3, there is also an RFC that describes exporters for older TLS versions: <a href="https://datatracker.ietf.org/doc/html/rfc5705">https://datatracker.ietf.org/doc/html/rfc5705</a> Using the master secret as-is or defining your own exporter is dangerous.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the connection. </td></tr>
+    <tr><td class="paramname">secret_bytes</td><td>Memory to copy the master secret into. The secret is always 48 bytes long. </td></tr>
+    <tr><td class="paramname">max_size</td><td>The size of the memory available at <code>secret_bytes</code>. Must be at least 48 bytes. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE otherwise. <code>secret_bytes</code> will be set on success. </dd></dl>
 
 </div>
 </div>
