@@ -3030,7 +3030,7 @@ S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn
  * and any past or future connections that use the same master secret due to
  * session resumption.
  *
- * This method is only supported for TLS1.2, and will report an S2N_ERR_INVALID_STATE
+ * This method is only supported for older TLS versions, and will report an S2N_ERR_INVALID_STATE
  * usage error if called for a TLS1.3 connection. TLS1.3 includes a new key schedule
  * that derives independent secrets from the master secret for specific purposes,
  * such as separate traffic, session ticket, and exporter secrets. Using the master
@@ -3040,11 +3040,11 @@ S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn
  * If you need cryptographic material tied to the current TLS session, consider
  * `s2n_connection_tls_exporter` instead. Although s2n_connection_tls_exporter
  * currently only supports TLS1.3, there is also an RFC that describes exporters
- * for TLS1.2: https://datatracker.ietf.org/doc/html/rfc5705 Using the master
- * secret as-is or defining your own exporter is dangerous.
+ * for older TLS versions: https://datatracker.ietf.org/doc/html/rfc5705
+ * Using the master secret as-is or defining your own exporter is dangerous.
  *
  * @param conn A pointer to the connection.
- * @param secret_bytes Memory to copy the master secret into. The TLS1.2 secret
+ * @param secret_bytes Memory to copy the master secret into. The secret
  * is always 48 bytes long.
  * @param max_size The size of the memory available at `secret_bytes`. Must be
  * at least 48 bytes.

@@ -29,13 +29,15 @@ int main()
 
     /* Test s2n_connection_get_master_secret */
     {
-        const uint8_t test_secret[] = {
+        const uint8_t test_secret[S2N_TLS_SECRET_LEN] = {
             0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
             0x11, 0x12, 0x13, 0x14, 0x15, 0x16, 0x17, 0x18, 0x19, 0x20,
             0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x10,
             0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFF,
             0x88, 0x87, 0x86, 0x85, 0x84, 0x83, 0x82, 0x81
         };
+
+        const uint8_t supported_versions[] = { S2N_SSLv3, S2N_TLS10, S2N_TLS11, S2N_TLS12 };
 
         /* s2n_connection_get_master_secret takes a constant connection, so our
          * tests can share the same connection.
@@ -117,39 +119,49 @@ int main()
         };
 
         /* Test: self-talk */
-        {
+        for (size_t i = 0; i < s2n_array_len(supported_versions); i++) {
+            const uint8_t version = supported_versions[i];
+
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls12"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
 
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            client->client_protocol_version = version;
 
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
             EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+            /* Set server master secret to known value to ensure overridden later */
+            memset(server->secrets.version.tls12.master_secret, 1, S2N_TLS_SECRET_LEN);
 
             struct s2n_test_io_pair io_pair = { 0 };
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_EQUAL(server->actual_protocol_version, version);
 
+            /* server output matches master secret */
             uint8_t server_output[S2N_TLS_SECRET_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_connection_get_master_secret(server,
                     server_output, sizeof(server_output)));
             EXPECT_BYTEARRAY_EQUAL(server->secrets.version.tls12.master_secret,
                     server_output, sizeof(server_output));
-            EXPECT_BYTEARRAY_EQUAL(client->secrets.version.tls12.master_secret,
-                    server_output, sizeof(server_output));
 
+            /* client output matches master secret */
             uint8_t client_output[S2N_TLS_SECRET_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_connection_get_master_secret(client,
                     client_output, sizeof(client_output)));
+            EXPECT_BYTEARRAY_EQUAL(client->secrets.version.tls12.master_secret,
+                    client_output, sizeof(client_output));
+
+            /* client and server output match */
             EXPECT_BYTEARRAY_EQUAL(server_output, client_output, sizeof(client_output));
         };
     };
