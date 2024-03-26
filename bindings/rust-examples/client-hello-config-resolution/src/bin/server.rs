@@ -52,8 +52,8 @@ impl ClientHelloCallback for AnimalConfigResolver {
         println!("setting connection config associated with {sni}");
         let config = config_ref.clone();
         connection.set_config(config).unwrap();
-        // Inform s2n-tls that the server name was used so that is can send the
-        // appropriate extension back to the peer.
+        // Inform s2n-tls that the server name was used in configuration so that
+        // the appropriate extension is sent back to the peer.
         // From RFC 6066, section 3
         // > A server that receives a client hello containing the "server_name"
         // > extension MAY use the information contained in the extension to guide
