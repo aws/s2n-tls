@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use clap::Parser;
 use s2n_tls::security::DEFAULT_TLS13;
 
