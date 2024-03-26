@@ -15,6 +15,7 @@
 
 #include "tls/s2n_crypto.h"
 
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 
@@ -121,6 +122,9 @@ int main()
         /* Test: self-talk */
         for (size_t i = 0; i < s2n_array_len(supported_versions); i++) {
             const uint8_t version = supported_versions[i];
+            if (s2n_is_in_fips_mode() && version == S2N_SSLv3) {
+                continue;
+            }
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
