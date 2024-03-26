@@ -20,7 +20,7 @@ use std::fmt;
 // lifetime of the `Connection` struct.
 
 /// ```no_run
-/// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+/// use s2n_tls::client_hello::{fingerprint::FingerprintType, ClientHello};
 /// use s2n_tls::connection::Connection;
 /// use s2n_tls::enums::Mode;
 ///

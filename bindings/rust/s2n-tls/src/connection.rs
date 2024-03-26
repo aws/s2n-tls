@@ -728,7 +728,7 @@ impl Connection {
     //
     /// Returns a reference to the ClientHello associated with the connection.
     /// ```compile_fail
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::{fingerprint::FingerprintType, ClientHello};
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
@@ -742,7 +742,7 @@ impl Connection {
     /// The compilation could be failing for a variety of reasons, so make sure
     /// that the test case is actually good.
     /// ```no_run
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::{fingerprint::FingerprintType, ClientHello};
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
