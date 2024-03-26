@@ -52,6 +52,18 @@ impl ClientHelloCallback for AnimalConfigResolver {
         println!("setting connection config associated with {sni}");
         let config = config_ref.clone();
         connection.set_config(config).unwrap();
+        // Inform s2n-tls that the server name was used so that is can send the
+        // appropriate extension back to the peer.
+        // From RFC 6066, section 3
+        // > A server that receives a client hello containing the "server_name"
+        // > extension MAY use the information contained in the extension to guide
+        // > its selection of an appropriate certificate to return to the client,
+        // > and/or other aspects of security policy.  In this event, the server
+        // > SHALL include an extension of type "server_name" in the (extended)
+        // > server hello.  The "extension_data" field of this extension SHALL be
+        // > empty.
+        // https://datatracker.ietf.org/doc/html/rfc6066#section-3
+        connection.server_name_extension_used();
         // Ok -> the function completed successfully
         // None -> s2n-tls doesn't need to poll this to completion
         Ok(None)
