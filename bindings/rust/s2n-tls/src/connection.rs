@@ -38,6 +38,8 @@ macro_rules! static_const_str {
 
 #[non_exhaustive]
 #[derive(Debug, PartialEq)]
+/// s2n-tls only tracks up to u8::MAX (255) key updates. If any of the fields show
+/// 255 updates, then more than 255 updates may have occurred.
 pub struct KeyUpdateCount {
     pub send_key_updates: u8,
     pub recv_key_updates: u8,
@@ -281,11 +283,6 @@ impl Connection {
     /// Reports the number of times sending and receiving keys have been updated.
     ///
     /// This only applies to TLS1.3. Earlier versions do not support key updates.
-    ///
-    /// s2n-tls only tracks up to u8::MAX (255) key updates. If this method
-    /// reports 255 updates, then more than 255 updates may have occurred.
-    ///
-    /// The return value is a tuple of `(send_key_updates, recv_key_updates)`
     #[cfg(feature = "unstable-ktls")]
     pub fn key_update_counts(&self) -> Result<KeyUpdateCount, Error> {
         let mut send_key_updates = 0;
