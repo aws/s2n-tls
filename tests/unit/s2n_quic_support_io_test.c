@@ -132,7 +132,7 @@ int main(int argc, char **argv)
 
         /* Writes handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             uint8_t message_data[] = "The client says hello";
@@ -160,7 +160,7 @@ int main(int argc, char **argv)
 
         /* Reads basic handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -187,7 +187,7 @@ int main(int argc, char **argv)
 
         /* Blocks on insufficient data for handshake message header */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -206,7 +206,7 @@ int main(int argc, char **argv)
 
         /* Blocks on insufficient data for handshake message data */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -227,7 +227,7 @@ int main(int argc, char **argv)
 
         /* Fails for an impossibly large handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_stuffer stuffer = { 0 };
@@ -265,13 +265,13 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output_stuffer, 0));
 
         /* Setup config */
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_enable_quic(config));
 
         /* Functional: successfully reads full handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -287,7 +287,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully reads fragmented handshake message */
         for (size_t i = 1; i < server_hello.size - 1; i++) {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully reads multiple handshake messages */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -332,7 +332,7 @@ int main(int argc, char **argv)
 
         /* Function: fails to read record instead of handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -352,7 +352,7 @@ int main(int argc, char **argv)
 
         /* Function: fails to read Change Cipher Spec record */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_server_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully writes full handshake message */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -382,11 +382,11 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate(conn, &blocked_status), S2N_ERR_IO_BLOCKED);
             client_hello_length = s2n_stuffer_data_available(&output_stuffer);
 
-            uint8_t actual_message_type;
+            uint8_t actual_message_type = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint8(&output_stuffer, &actual_message_type));
             EXPECT_EQUAL(actual_message_type, TLS_CLIENT_HELLO);
 
-            uint32_t actual_message_size;
+            uint32_t actual_message_size = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint24(&output_stuffer, &actual_message_size));
             EXPECT_EQUAL(actual_message_size, TEST_DATA_SIZE);
 
@@ -401,7 +401,7 @@ int main(int argc, char **argv)
 
         /* Functional: successfully retries after blocked write */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_OK(s2n_setup_conn_for_client_hello(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));

@@ -127,7 +127,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite with TLS 1.3 test vectors */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         struct s2n_session_key session_key = { 0 };
         EXPECT_SUCCESS(s2n_session_key_alloc(&session_key));
 
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_tls13_aes_128_gcm_sha256 cipher suite ENCRYPTION with TLS 1.3 test vectors */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
@@ -268,7 +268,7 @@ int main(int argc, char **argv)
 
     /* Test encrypt-decrypt roundtrip */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS13;
@@ -338,7 +338,7 @@ int main(int argc, char **argv)
     {
         s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
         for (size_t m = 0; m < s2n_array_len(modes); m++) {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
             EXPECT_NOT_NULL(conn = s2n_connection_new(modes[m]));
             conn->actual_protocol_version = S2N_TLS13;

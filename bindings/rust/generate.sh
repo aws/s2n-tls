@@ -2,7 +2,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
-set -e
+set -xe
 
 # cd into the script directory so it can be executed from anywhere
 pushd "$(dirname "${BASH_SOURCE[0]}")"
@@ -51,19 +51,6 @@ cargo test --release
 cargo publish --dry-run --allow-dirty
 cargo publish --dry-run --allow-dirty --all-features
 popd
-
-# if this version has already been published we can run
-# additional validation to ensure there won't be build
-# problems when a new version is published
-if ! ./scripts/detect-new-release; then
-  pushd s2n-tls
-  cargo publish --dry-run --allow-dirty
-  popd
-
-  pushd s2n-tls-tokio
-  cargo publish --dry-run --allow-dirty
-  popd
-fi
 
 pushd integration
 cargo run

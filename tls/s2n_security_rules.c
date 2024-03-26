@@ -219,7 +219,7 @@ S2N_CLEANUP_RESULT s2n_security_rule_result_free(struct s2n_security_rule_result
 {
     if (result) {
         RESULT_GUARD_POSIX(s2n_stuffer_free(&result->output));
+        *result = (struct s2n_security_rule_result){ 0 };
     }
-    *result = (struct s2n_security_rule_result){ 0 };
     return S2N_RESULT_OK;
 }

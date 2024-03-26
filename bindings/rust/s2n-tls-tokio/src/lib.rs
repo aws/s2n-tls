@@ -112,10 +112,11 @@ where
         let result = match self.error.take() {
             Some(err) => Err(err),
             None => {
-                ready!(self.tls.with_io(ctx, |context| {
+                let handshake_poll = self.tls.with_io(ctx, |context| {
                     let conn = context.get_mut().as_mut();
                     conn.poll_negotiate().map(|r| r.map(|_| ()))
-                }))
+                });
+                ready!(handshake_poll)
             }
         };
         // If the result isn't a fatal error, return it immediately.
@@ -363,15 +364,19 @@ where
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
         ready!(self.as_mut().poll_blinding(ctx))?;
 
-        // s2n_shutdown must not be called again if it errors
+        // s2n_shutdown_send must not be called again if it errors
         if self.shutdown_error.is_none() {
             let result = ready!(self.as_mut().with_io(ctx, |mut context| {
-                context.conn.as_mut().poll_shutdown().map(|r| r.map(|_| ()))
+                context
+                    .conn
+                    .as_mut()
+                    .poll_shutdown_send()
+                    .map(|r| r.map(|_| ()))
             }));
             if let Err(error) = result {
                 self.shutdown_error = Some(error);
-                // s2n_shutdown reading might have triggered blinding again
-                ready!(self.as_mut().poll_blinding(ctx))?;
+                // s2n_shutdown_send only writes, so will never trigger blinding again.
+                // So we do not need to poll_blinding again after this error.
             }
         };
 

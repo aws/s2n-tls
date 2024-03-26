@@ -24,6 +24,8 @@ otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
 indicate danger points where you should verify with the S2N-TLS developers that the security of
 the library is not compromised. Turn this OFF to ignore warnings." ON)
+option(S2N_WERROR_ALL "This option will cause all artifacts linked to libs2n to use the 
+-Werror setting." OFF)
 option(S2N_INTERN_LIBCRYPTO "This ensures that s2n-tls is compiled and deployed with a specific
 version of libcrypto by interning the code and hiding symbols. This also enables s2n-tls to be
 loaded in an application with an otherwise conflicting libcrypto version." OFF)
@@ -34,6 +36,7 @@ option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" ON)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
+option(S2N_USE_CRYPTO_SHARED_LIBS "For S2N to use shared libs in Findcrypto" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 
@@ -136,7 +139,9 @@ target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimpl
         -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
 )
 
-if (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
+if (S2N_WERROR_ALL)
+    target_compile_options(${PROJECT_NAME} PUBLIC -Werror)
+elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
@@ -192,7 +197,12 @@ if(ASAN)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
 endif()
 
-if(TSAN OR ASAN)
+if (UBSAN)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=undefined -fno-sanitize-recover=all)
+    target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=undefined -fno-sanitize-recover=all)
+endif()
+
+if(TSAN OR ASAN OR UBSAN)
     # no-omit-frame-pointer and no-optimize-sibling-calls provide better stack traces
     target_compile_options(${PROJECT_NAME} PUBLIC -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 endif()
@@ -488,9 +498,7 @@ if (BUILD_TESTING)
         string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
 
         add_executable(${test_case_name} ${test_case})
-        target_include_directories(${test_case_name} PRIVATE api)
         target_include_directories(${test_case_name} PRIVATE ./)
-        target_include_directories(${test_case_name} PRIVATE tests)
         target_link_libraries(${test_case_name} PRIVATE testss2n)
         if (S2N_INTERN_LIBCRYPTO)
             # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
@@ -500,7 +508,11 @@ if (BUILD_TESTING)
                   find . -name '${test_case_name}.c.o' -exec objcopy --redefine-syms libcrypto.symbols {} \\\;
             )
         endif()
-        target_compile_options(${test_case_name} PRIVATE -Wno-implicit-function-declaration -Wno-deprecated -D_POSIX_C_SOURCE=200809L -std=gnu99)
+        target_compile_options(${test_case_name} PRIVATE 
+                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
+                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
+                -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99)
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
@@ -512,15 +524,11 @@ if (BUILD_TESTING)
 
     add_executable(s2nc "bin/s2nc.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nc ${PROJECT_NAME})
-
-    target_include_directories(s2nc PRIVATE api)
     target_compile_options(s2nc PRIVATE -std=gnu99)
 
 
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
-
-    target_include_directories(s2nd PRIVATE api)
     target_compile_options(s2nd PRIVATE -std=gnu99)
 
     if(S2N_LTO)

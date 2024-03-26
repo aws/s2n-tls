@@ -54,7 +54,7 @@ int main(int argc, char **argv)
 
     /* Test send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -63,11 +63,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_client_cert_status_request_extension.send(conn, &stuffer));
 
-        uint8_t request_type;
+        uint8_t request_type = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &request_type));
         EXPECT_EQUAL(request_type, S2N_STATUS_REQUEST_OCSP);
 
-        uint32_t unused_values;
+        uint32_t unused_values = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint32(&stuffer, &unused_values));
         EXPECT_EQUAL(unused_values, 0);
 
@@ -79,7 +79,7 @@ int main(int argc, char **argv)
 
     /* Test recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
     /* Test recv - malformed length, ignore */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

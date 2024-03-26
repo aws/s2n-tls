@@ -53,9 +53,8 @@ int main(int argc, char **argv)
         /* Test S2N_ERR_T_PROTO */
         {
             /* Test all protocol errors are handled */
-            int ret_val;
             for (size_t i = S2N_ERR_T_PROTO_START; i < S2N_ERR_T_PROTO_END; i++) {
-                ret_val = s2n_error_get_alert(i, &alert);
+                int ret_val = s2n_error_get_alert(i, &alert);
                 if (ret_val != S2N_SUCCESS && s2n_errno == S2N_ERR_UNIMPLEMENTED) {
                     fprintf(stdout, "\n\nNo alert mapping for protocol error %s\n\n", s2n_strerror_name(i));
                     FAIL_MSG("Missing alert mapping for protocol error.");
@@ -102,7 +101,7 @@ int main(int argc, char **argv)
 
         /* Don't mark close_notify_received = true if we receive an alert other than close_notify alert */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Verify state prior to alert */
@@ -122,7 +121,7 @@ int main(int argc, char **argv)
 
         /* Mark close_notify_received = true if we receive a close_notify alert */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             /* Verify state prior to alert */
@@ -146,10 +145,10 @@ int main(int argc, char **argv)
 
         /* Fails if alerts not supported */
         if (s2n_is_tls13_fully_supported()) {
-            struct s2n_config *config;
+            struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -183,7 +182,7 @@ int main(int argc, char **argv)
 
             /* Warnings treated as errors by default in TLS1.2 */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_EQUAL(conn->config->alert_behavior, S2N_ALERT_FAIL_ON_WARNINGS);
                 conn->actual_protocol_version = S2N_TLS12;
@@ -198,7 +197,7 @@ int main(int argc, char **argv)
 
             /* Warnings treated as errors by default in TLS1.3 */
             {
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_EQUAL(conn->config->alert_behavior, S2N_ALERT_FAIL_ON_WARNINGS);
                 conn->actual_protocol_version = S2N_TLS13;
@@ -213,11 +212,11 @@ int main(int argc, char **argv)
 
             /* Warnings ignored in TLS1.2 if alert_behavior == S2N_ALERT_IGNORE_WARNINGS */
             {
-                struct s2n_config *config;
+                struct s2n_config *config = NULL;
                 EXPECT_NOT_NULL(config = s2n_config_new());
                 EXPECT_SUCCESS(s2n_config_set_alert_behavior(config, S2N_ALERT_IGNORE_WARNINGS));
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 conn->actual_protocol_version = S2N_TLS12;
@@ -233,11 +232,11 @@ int main(int argc, char **argv)
 
             /* Warnings treated as errors in TLS1.3 if alert_behavior == S2N_ALERT_IGNORE_WARNINGS */
             {
-                struct s2n_config *config;
+                struct s2n_config *config = NULL;
                 EXPECT_NOT_NULL(config = s2n_config_new());
                 EXPECT_SUCCESS(s2n_config_set_alert_behavior(config, S2N_ALERT_IGNORE_WARNINGS));
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 conn->actual_protocol_version = S2N_TLS13;
@@ -253,10 +252,10 @@ int main(int argc, char **argv)
 
             /* user_canceled ignored in TLS1.3 by default */
             {
-                struct s2n_config *config;
+                struct s2n_config *config = NULL;
                 EXPECT_NOT_NULL(config = s2n_config_new());
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
                 conn->actual_protocol_version = S2N_TLS13;

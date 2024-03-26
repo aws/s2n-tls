@@ -34,7 +34,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_send_empty_cert_chain(&out));
         EXPECT_EQUAL(s2n_stuffer_data_available(&out), 3);
-        uint32_t cert_len;
+        uint32_t cert_len = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint24(&out, &cert_len));
         EXPECT_EQUAL(cert_len, 0);
 
@@ -43,10 +43,10 @@ int main(int argc, char **argv)
 
     /* Client sends the empty cert when no client default chain and key */
     {
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_OPTIONAL));
@@ -59,7 +59,7 @@ int main(int argc, char **argv)
         /* Magic number 3 is the length of the certificate_length field */
         EXPECT_EQUAL(s2n_stuffer_data_available(&client_conn->handshake.io), 3);
 
-        uint32_t cert_len;
+        uint32_t cert_len = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint24(&client_conn->handshake.io, &cert_len));
         EXPECT_EQUAL(cert_len, 0);
 
@@ -69,10 +69,10 @@ int main(int argc, char **argv)
 
     /* Client fails to send empty cert when S2N_CERT_AUTH_REQUIRED */
     {
-        struct s2n_config *client_config;
+        struct s2n_config *client_config = NULL;
         EXPECT_NOT_NULL(client_config = s2n_config_new());
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_REQUIRED));
@@ -86,15 +86,15 @@ int main(int argc, char **argv)
 
     /* Server receives empty cert */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
 
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client_conn, S2N_CERT_AUTH_OPTIONAL));
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_OPTIONAL));

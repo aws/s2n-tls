@@ -76,6 +76,7 @@ int s2n_connection_allow_all_response_extensions(struct s2n_connection *conn);
 int s2n_connection_set_all_protocol_versions(struct s2n_connection *conn, uint8_t version);
 S2N_RESULT s2n_set_all_mutually_supported_groups(struct s2n_connection *conn);
 S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn);
+S2N_RESULT s2n_connection_set_test_message_type(struct s2n_connection *conn, message_type_t expected_message_type);
 
 S2N_RESULT s2n_connection_set_secrets(struct s2n_connection *conn);
 
@@ -186,6 +187,11 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
  * that our certificate validation code does not fail a root certificate signed with SHA-1. */
 #define S2N_SHA1_ROOT_SIGNATURE_CA_CERT "../pems/rsa_1024_sha1_CA_cert.pem"
 
+/* The leaf and intermediate have larger key sizes than the root. */
+#define S2N_MIXED_CHAIN_CERTS "../pems/mixed_chains/ecdsa/server-chain.pem"
+#define S2N_MIXED_CHAIN_KEY   "../pems/mixed_chains/ecdsa/server-key.pem"
+#define S2N_MIXED_CHAIN_CA    "../pems/mixed_chains/ecdsa/ca-cert.pem"
+
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
 #define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
 
@@ -213,6 +219,8 @@ int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **
 
 int s2n_test_cert_permutation_get_ca_path(char *output, const char *type, const char *siganture,
         const char *size, const char *digest);
+S2N_RESULT s2n_test_cert_permutation_get_server_chain_path(char *output, const char *type,
+        const char *siganture, const char *size, const char *digest);
 
 S2N_RESULT s2n_test_cert_chain_data_from_pem(struct s2n_connection *conn, const char *pem_path,
         struct s2n_stuffer *cert_chain_stuffer);

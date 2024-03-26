@@ -59,6 +59,9 @@
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
 #define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= (1 << (i + 1)))
 
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);
+
 /* Allocates and initializes memory for a new connection.
  *
  * Since customers can reuse a connection, ensure that values on the connection are
@@ -283,6 +286,12 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         return 0;
     }
 
+    const struct s2n_security_policy *security_policy = conn->security_policy_override;
+    if (!security_policy) {
+        security_policy = config->security_policy;
+    }
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
+
     /* We only support one client certificate */
     if (s2n_config_get_num_default_certs(config) > 1 && conn->mode == S2N_CLIENT) {
         POSIX_BAIL(S2N_ERR_TOO_MANY_CERTIFICATES);
@@ -290,11 +299,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     s2n_x509_validator_wipe(&conn->x509_validator);
 
-    s2n_cert_auth_type auth_type = config->client_cert_auth_type;
-
-    if (conn->client_cert_auth_type_overridden) {
-        auth_type = conn->client_cert_auth_type;
-    }
+    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+    POSIX_GUARD_RESULT(s2n_connection_and_config_get_client_auth_type(conn, config, &auth_type));
 
     int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (auth_type == S2N_CERT_AUTH_NONE);
 
@@ -742,19 +748,37 @@ int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct 
     return 0;
 }
 
-int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type)
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(client_cert_auth_type);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(client_cert_auth_type);
 
     if (conn->client_cert_auth_type_overridden) {
         *client_cert_auth_type = conn->client_cert_auth_type;
+    } else if (config->client_cert_auth_type_overridden) {
+        *client_cert_auth_type = config->client_cert_auth_type;
+    } else if (conn->mode == S2N_CLIENT) {
+        /* Clients should default to "Optional" so that they handle any
+         * CertificateRequests sent by the server.
+         */
+        *client_cert_auth_type = S2N_CERT_AUTH_OPTIONAL;
     } else {
-        POSIX_ENSURE_REF(conn->config);
-        *client_cert_auth_type = conn->config->client_cert_auth_type;
+        /* Servers should default to "None" so that they send no CertificateRequests. */
+        *client_cert_auth_type = S2N_CERT_AUTH_NONE;
     }
 
-    return 0;
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
+        s2n_cert_auth_type *client_cert_auth_type)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD_RESULT(s2n_connection_and_config_get_client_auth_type(
+            conn, conn->config, client_cert_auth_type));
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
@@ -767,7 +791,7 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     struct s2n_blob ctx_mem = { 0 };
-    struct s2n_socket_read_io_context *peer_socket_ctx;
+    struct s2n_socket_read_io_context *peer_socket_ctx = NULL;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
@@ -802,7 +826,7 @@ int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     struct s2n_blob ctx_mem = { 0 };
-    struct s2n_socket_write_io_context *peer_socket_ctx;
+    struct s2n_socket_write_io_context *peer_socket_ctx = NULL;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
@@ -819,7 +843,7 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      */
     POSIX_GUARD(s2n_socket_write_snapshot(conn));
 
-    uint8_t ipv6;
+    uint8_t ipv6 = 0;
     if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
         conn->ipv6 = (ipv6 ? 1 : 0);
     }

@@ -53,8 +53,8 @@ int main(int argc, char **argv)
     /* Test server cert request default behavior when s2n_config_enable_cert_req_dss_legacy_compat is not called
      * Certificate types enabled should be in s2n_cert_type_preference_list */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -62,9 +62,9 @@ int main(int argc, char **argv)
 
         s2n_cert_req_send(server_conn);
         struct s2n_stuffer *in = &server_conn->handshake.io;
-        uint8_t cert_types_len;
+        uint8_t cert_types_len = 0;
 
-        s2n_stuffer_read_uint8(in, &cert_types_len);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(in, &cert_types_len));
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
@@ -80,8 +80,8 @@ int main(int argc, char **argv)
     /* Test certificate types in server cert request when s2n_config_enable_cert_req_dss_legacy_compat is called
      * Certificate types enabled should be in s2n_cert_type_preference_list_legacy_dss */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -90,9 +90,9 @@ int main(int argc, char **argv)
 
         s2n_cert_req_send(server_conn);
         struct s2n_stuffer *in = &server_conn->handshake.io;
-        uint8_t cert_types_len;
+        uint8_t cert_types_len = 0;
 
-        s2n_stuffer_read_uint8(in, &cert_types_len);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(in, &cert_types_len));
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 

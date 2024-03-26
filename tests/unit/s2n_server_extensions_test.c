@@ -62,19 +62,19 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     /* s2n_server_extensions_send */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
         /* Test Server Extensions Send - No extensions */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
@@ -87,7 +87,7 @@ int main(int argc, char **argv)
 
         /* Test Server Extensions Send - Server Name */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SERVER_NAME, &extension_id));
@@ -121,7 +121,7 @@ int main(int argc, char **argv)
 
         /* Test Server Extensions Send - Application Protocol */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_ALPN, &extension_id));
@@ -152,7 +152,7 @@ int main(int argc, char **argv)
 
         /* Test Server Extensions Send - Maximum Fragment Length (MFL) */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_MAX_FRAG_LEN, &extension_id));
@@ -181,7 +181,7 @@ int main(int argc, char **argv)
 
         /* Test Server Extensions Send - Signed Certificate Timestamp extension */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SCT_LIST, &extension_id));
@@ -191,7 +191,7 @@ int main(int argc, char **argv)
 
             struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
             static uint8_t sct_list[] = { 0xff, 0xff, 0xff };
-            s2n_blob_init(&fake_chain_and_key.sct_list, sct_list, sizeof(sct_list));
+            EXPECT_SUCCESS(s2n_blob_init(&fake_chain_and_key.sct_list, sct_list, sizeof(sct_list)));
 
             conn->ct_level_requested = S2N_CT_SUPPORT_REQUEST;
             conn->handshake_params.our_chain_and_key = &fake_chain_and_key;
@@ -211,7 +211,7 @@ int main(int argc, char **argv)
 
         /* Test Server Extensions Send - OCSP Status Request */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_STATUS_REQUEST, &extension_id));
@@ -221,7 +221,7 @@ int main(int argc, char **argv)
 
             struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
             static uint8_t fake_ocsp[] = { 0xff, 0xff, 0xff };
-            s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp));
+            EXPECT_SUCCESS(s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp)));
 
             conn->status_type = S2N_STATUS_REQUEST_OCSP;
             conn->handshake_params.our_chain_and_key = &fake_chain_and_key;
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 
         /* Test Server Extensions Send - Secure Negotiation */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 
         /* Test Server Extensions Send - New Session Ticket */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &extension_id));
@@ -280,7 +280,7 @@ int main(int argc, char **argv)
         /* Test TLS13 Extensions */
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
         /* Test Secure Negotiation server_hello extension not sent with TLS13 or higher */
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -365,7 +365,7 @@ int main(int argc, char **argv)
         /* Test New Session Ticket server_hello extension not sent with TLS13 or higher */
         {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SESSION_TICKET, &extension_id));
@@ -425,7 +425,7 @@ int main(int argc, char **argv)
             const uint8_t cipher_count_tls13 = sizeof(wire_ciphers_with_tls13) / S2N_TLS_CIPHER_SUITE_LEN;
 
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
 
     /* Test ec_point_format extension */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha;
 
@@ -543,13 +543,13 @@ int main(int argc, char **argv)
     {
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(server_conn));
 
         struct s2n_cert_chain_and_key fake_chain_and_key = { 0 };
         static uint8_t fake_ocsp[] = { 0xff, 0xff, 0xff };
-        s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp));
+        EXPECT_SUCCESS(s2n_blob_init(&fake_chain_and_key.ocsp_status, fake_ocsp, sizeof(fake_ocsp)));
 
         /* For our test status_request extension */
         server_conn->status_type = S2N_STATUS_REQUEST_OCSP;
@@ -561,7 +561,7 @@ int main(int argc, char **argv)
             server_conn->actual_protocol_version = S2N_TLS12;
             server_conn->server_protocol_version = S2N_TLS12;
 
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
 
@@ -590,7 +590,7 @@ int main(int argc, char **argv)
             server_conn->actual_protocol_version = S2N_TLS13;
             server_conn->server_protocol_version = S2N_TLS13;
 
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
 
@@ -640,7 +640,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_write_vector_size(&extension_list_size));
 
             for (size_t is_hrr = 0; is_hrr < 2; is_hrr++) {
-                struct s2n_connection *client_conn;
+                struct s2n_connection *client_conn = NULL;
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                 EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(client_conn));
                 client_conn->actual_protocol_version = S2N_TLS13;

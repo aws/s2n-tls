@@ -78,7 +78,7 @@ int main()
             .if_missing = s2n_extension_noop_if_missing,
         };
 
-        s2n_extension_type_id test_extension_type_internal_id;
+        s2n_extension_type_id test_extension_type_internal_id = 0;
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(test_extension_type.iana_value,
                 &test_extension_type_internal_id));
 
@@ -101,7 +101,7 @@ int main()
                 .extension = extension_blob,
             };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             SET_PARSED_EXTENSION(parsed_extension_list, test_parsed_extension);
@@ -154,7 +154,7 @@ int main()
                 .extension = empty_blob,
             };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             SET_PARSED_EXTENSION(parsed_extension_list, test_parsed_extension);
@@ -176,7 +176,7 @@ int main()
                 .extension = extension_blob,
             };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             parsed_extension_list.parsed_extensions[test_extension_type_internal_id] = test_parsed_extension;
@@ -200,7 +200,7 @@ int main()
                 s2n_extension_type test_required_extension_type = test_extension_type;
                 test_required_extension_type.if_missing = s2n_extension_error_if_missing;
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
                 received_flag = false;
@@ -220,7 +220,7 @@ int main()
                 s2n_extension_type test_optional_extension_type = test_extension_type;
                 test_optional_extension_type.if_missing = s2n_extension_noop_if_missing;
 
-                struct s2n_connection *conn;
+                struct s2n_connection *conn = NULL;
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
                 received_flag = false;
@@ -244,7 +244,7 @@ int main()
 
         /* Set up parsed_extensions for simple real extensions */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             EXPECT_SUCCESS(s2n_setup_test_parsed_extension(&s2n_server_server_name_extension,
@@ -277,7 +277,7 @@ int main()
         {
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
 
@@ -297,7 +297,7 @@ int main()
         {
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
 
@@ -319,7 +319,7 @@ int main()
         {
             s2n_parsed_extensions_list parsed_extension_list = { 0 };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_allow_all_response_extensions(conn));
 

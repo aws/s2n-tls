@@ -5,6 +5,7 @@
 
 use crate::{
     callbacks::*,
+    cert_chain::CertificateChain,
     config::Config,
     enums::*,
     error::{Error, Fallible, Pollable},
@@ -62,6 +63,21 @@ impl fmt::Debug for Connection {
 ///
 /// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
+
+/// # Sync
+///
+/// Although NonNull isn't Sync and allows access to mutable pointers even from
+/// immutable references, the Connection interface enforces that all mutating
+/// methods correctly require &mut self.
+///
+/// Developers and reviewers MUST ensure that new methods correctly use
+/// either &self or &mut self depending on their behavior. No mechanism enforces this.
+///
+/// Note: Although non-mutating methods like getters should be thread-safe by definition,
+/// technically the only thread safety guarantee provided by the underlying C library
+/// is that s2n_send and s2n_recv can be called concurrently.
+///
+unsafe impl Sync for Connection {}
 
 impl Connection {
     pub fn new(mode: Mode) -> Self {
@@ -553,6 +569,22 @@ impl Connection {
         }
     }
 
+    /// Attempts a graceful shutdown of the write side of a TLS connection.
+    ///
+    /// Unlike Self::poll_shutdown, no reponse from the peer is necessary.
+    /// If using TLS1.3, the connection can continue to be used for reading afterwards.
+    pub fn poll_shutdown_send(&mut self) -> Poll<Result<&mut Self, Error>> {
+        if !self.remaining_blinding_delay()?.is_zero() {
+            return Poll::Pending;
+        }
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_shutdown_send(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
+        }
+    }
+
     /// Returns the TLS alert code, if any
     pub fn alert(&self) -> Option<u8> {
         let alert =
@@ -837,6 +869,44 @@ impl Connection {
             .map(|_| ())
         }
     }
+
+    /// Returns the validated peer certificate chain.
+    // 'static lifetime is because this copies the certificate chain from the connection into a new
+    // chain, so the lifetime is independent of the connection.
+    pub fn peer_cert_chain(&self) -> Result<CertificateChain<'static>, Error> {
+        unsafe {
+            let mut chain = CertificateChain::new()?;
+            s2n_connection_get_peer_cert_chain(
+                self.connection.as_ptr(),
+                chain.as_mut_ptr().as_ptr(),
+            )
+            .into_result()
+            .map(|_| ())?;
+            Ok(chain)
+        }
+    }
+
+    /// Get the certificate used during the TLS handshake
+    ///
+    /// - If `self` is a server connection, the certificate selected will depend on the
+    ///   ServerName sent by the client and supported ciphers.
+    /// - If `self` is a client connection, the certificate sent in response to a CertificateRequest
+    ///   message is returned. Currently s2n-tls supports loading only one certificate in client mode. Note that
+    ///   not all TLS endpoints will request a certificate.
+    pub fn selected_cert(&self) -> Option<CertificateChain<'_>> {
+        unsafe {
+            // The API only returns null, no error is actually set.
+            // Clippy doesn't realize from_ptr_reference is unsafe.
+            #[allow(clippy::manual_map)]
+            if let Some(ptr) =
+                NonNull::new(s2n_connection_get_selected_cert(self.connection.as_ptr()))
+            {
+                Some(CertificateChain::from_ptr_reference(ptr))
+            } else {
+                None
+            }
+        }
+    }
 }
 
 struct Context {
@@ -961,5 +1031,12 @@ mod tests {
     fn context_send_test() {
         fn assert_send<T: 'static + Send>() {}
         assert_send::<Context>();
+    }
+
+    // ensure the connection context is sync
+    #[test]
+    fn context_sync_test() {
+        fn assert_sync<T: 'static + Sync>() {}
+        assert_sync::<Context>();
     }
 }

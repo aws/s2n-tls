@@ -70,15 +70,14 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
     /* Read the record until we at least have a header */
+    POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
     POSIX_GUARD_RESULT(s2n_read_in_bytes(conn, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
 
-    uint16_t fragment_length;
+    uint16_t fragment_length = 0;
 
     /* If the first bit is set then this is an SSLv2 record */
-    if (conn->header_in.blob.data[0] & 0x80) {
-        conn->header_in.blob.data[0] &= 0x7f;
+    if (conn->header_in.blob.data[0] & S2N_TLS_SSLV2_HEADER_FLAG) {
         *isSSLv2 = 1;
-
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_sslv2_record_header_parse(conn, record_type, &conn->client_protocol_version, &fragment_length)));
     } else {
         WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_record_header_parse(conn, record_type, &fragment_length)));
@@ -151,7 +150,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
     while (size && s2n_connection_check_io_status(conn, S2N_IO_READABLE)) {
         int isSSLv2 = 0;
-        uint8_t record_type;
+        uint8_t record_type = 0;
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
         if (r < 0) {
             /* Don't propagate the error if we already read some bytes. */
@@ -203,9 +202,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
                     break;
                 }
             }
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-            conn->in_status = ENCRYPTED;
+            POSIX_GUARD_RESULT(s2n_record_wipe(conn));
             continue;
         }
 
@@ -219,9 +216,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
         /* Are we ready for more encrypted data? */
         if (s2n_stuffer_data_available(&conn->in) == 0) {
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-            conn->in_status = ENCRYPTED;
+            POSIX_GUARD_RESULT(s2n_record_wipe(conn));
         }
 
         /* If we've read some data, return it in legacy mode */

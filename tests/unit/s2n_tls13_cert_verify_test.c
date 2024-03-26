@@ -46,18 +46,28 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
     const char *key_file = test_case->key_file;
     struct s2n_signature_scheme sig_scheme = *test_case->sig_scheme;
 
-    struct s2n_config *config = NULL;
-    EXPECT_NOT_NULL(config = s2n_config_new());
+    DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20200207"));
+
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = s2n_cert_chain_and_key_new(),
+            s2n_cert_chain_and_key_ptr_free);
+    EXPECT_NOT_NULL(cert_chain);
+
+    char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+    char private_key_pem[S2N_MAX_TEST_PEM_SIZE] = { 0 };
+
+    EXPECT_SUCCESS(s2n_read_test_pem(cert_file, &cert_chain_pem[0], S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_read_test_pem(key_file, &private_key_pem[0], S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
+
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
 
     /* Successfully send and receive certificate verify */
     {
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
-        struct s2n_cert_chain_and_key *cert_chain = NULL;
-        char *cert_chain_pem = NULL;
-        char *private_key_pem = NULL;
         s2n_pkey_type pkey_type = { 0 };
 
         struct s2n_connection *verifying_conn = NULL, *sending_conn = NULL;
@@ -67,14 +77,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
-        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(sending_conn, config));
         sending_conn->handshake_params.our_chain_and_key = cert_chain;
         sending_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
@@ -125,9 +128,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_FAILURE(s2n_tls13_cert_verify_recv(verifying_conn));
 
         /* Clean up */
-        free(cert_chain_pem);
-        free(private_key_pem);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(sending_conn));
@@ -139,25 +139,15 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
-        struct s2n_cert_chain_and_key *cert_chain = NULL;
-        char *cert_chain_pem = NULL;
-        char *private_key_pem = NULL;
         uint64_t bytes_in_hash = 0;
         s2n_pkey_type pkey_type = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
-        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
         struct s2n_connection *verifying_conn = NULL;
         EXPECT_NOT_NULL(verifying_conn = s2n_connection_new(verifier_mode));
         verifying_conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
         verifying_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
@@ -197,9 +187,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.client_public_key));
 
         /* Clean up */
-        free(cert_chain_pem);
-        free(private_key_pem);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
@@ -209,24 +196,14 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
     {
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
-        struct s2n_cert_chain_and_key *cert_chain = NULL;
-        char *cert_chain_pem = NULL;
-        char *private_key_pem = NULL;
         s2n_pkey_type pkey_type = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
-        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
         struct s2n_connection *verifying_conn = NULL;
         EXPECT_NOT_NULL(verifying_conn = s2n_connection_new(verifier_mode));
         verifying_conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
         verifying_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
@@ -267,9 +244,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
             EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.client_public_key));
         }
 
-        free(cert_chain_pem);
-        free(private_key_pem);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
@@ -280,23 +254,13 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         /* Derive private/public keys and set connection variables */
         struct s2n_stuffer certificate_in = { 0 }, certificate_out = { 0 };
         struct s2n_blob b = { 0 };
-        struct s2n_cert_chain_and_key *cert_chain = NULL;
-        char *cert_chain_pem = NULL;
-        char *private_key_pem = NULL;
         s2n_pkey_type pkey_type = { 0 };
 
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
         EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(cert_chain = s2n_cert_chain_and_key_new());
-        EXPECT_NOT_NULL(cert_chain_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_NOT_NULL(private_key_pem = malloc(S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(cert_file, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_read_test_pem(key_file, private_key_pem, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
         struct s2n_connection *verifying_conn = NULL;
         EXPECT_NOT_NULL(verifying_conn = s2n_connection_new(verifier_mode));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
         verifying_conn->handshake_params.our_chain_and_key = cert_chain;
         verifying_conn->handshake_params.server_cert_sig_scheme = &sig_scheme;
@@ -358,16 +322,10 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
             EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.client_public_key));
         }
 
-        free(cert_chain_pem);
-        free(private_key_pem);
-        EXPECT_SUCCESS(s2n_cert_chain_and_key_free(cert_chain));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_in));
         EXPECT_SUCCESS(s2n_stuffer_free(&certificate_out));
         EXPECT_SUCCESS(s2n_connection_free(verifying_conn));
     };
-
-    EXPECT_SUCCESS(s2n_config_free(config));
-
     return 0;
 }
 

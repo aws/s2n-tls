@@ -136,7 +136,7 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
 
     RESULT_GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
 
-    uint32_t message_len;
+    uint32_t message_len = 0;
     RESULT_GUARD(s2n_handshake_parse_header(&conn->handshake.io, message_type, &message_len));
     RESULT_GUARD_POSIX(s2n_stuffer_reread(&conn->handshake.io));
 

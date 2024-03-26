@@ -20,12 +20,14 @@ S2N_FILES+=" "
 S2N_FILES+=$(find "$PWD"/codebuild/ -type f -name "*.sh")
 S2N_FILES+=" "
 S2N_FILES+=$(find "$PWD"/tests/ -type f -name "*.sh")
+S2N_FILES+=" "
+S2N_FILES+=$(find "$PWD" -type f -name "*.rs" | grep -v target)
 
 FAILED=0
 
 for file in $S2N_FILES; do
-    # The word "Copyright" should appear at least once in the first 3 lines of every file
-    COUNT=`head -3 $file | grep "Copyright" | wc -l`;
+    # The word "Copyright" should appear at least once in the first 4 lines of every file
+    COUNT=`head -4 $file | grep "Copyright" | wc -l`;
     if [ "$COUNT" == "0" ];
     then
         FAILED=1;

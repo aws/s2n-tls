@@ -43,7 +43,7 @@ static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t 
         active = conn->client;
     }
 
-    uint8_t extra;
+    uint8_t extra = 0;
     RESULT_GUARD_POSIX(s2n_hmac_digest_size(active->cipher_suite->record_alg->hmac_alg, &extra));
 
     if (active->cipher_suite->record_alg->cipher->type == S2N_CBC) {
@@ -294,7 +294,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         POSIX_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
     }
 
-    uint8_t mac_digest_size;
+    uint8_t mac_digest_size = 0;
     POSIX_GUARD(s2n_hmac_digest_size(mac->alg, &mac_digest_size));
 
     /* Before we do anything, we need to figure out what the length of the
@@ -379,7 +379,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
         }
 
         /* Outputs number of extra bytes required for MAC and padding */
-        int pad_and_mac_len;
+        int pad_and_mac_len = 0;
         POSIX_GUARD(cipher_suite->record_alg->cipher->io.comp.initial_hmac(session_key, sequence_number, content_type, conn->actual_protocol_version,
                 payload_and_eiv_len, &pad_and_mac_len));
         extra += pad_and_mac_len;
@@ -401,7 +401,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     /* If we're AEAD, write the sequence number as an IV, and generate the AAD */
     if (cipher_suite->record_alg->cipher->type == S2N_AEAD) {
         struct s2n_stuffer iv_stuffer = { 0 };
-        s2n_blob_init(&iv, aad_iv, sizeof(aad_iv));
+        POSIX_GUARD(s2n_blob_init(&iv, aad_iv, sizeof(aad_iv)));
         POSIX_GUARD(s2n_stuffer_init(&iv_stuffer, &iv));
 
         if (cipher_suite->record_alg->flags & S2N_TLS12_AES_GCM_AEAD_NONCE) {
@@ -429,7 +429,7 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
             POSIX_GUARD_RESULT(s2n_aead_aad_init(conn, sequence_number, content_type, data_bytes_to_take, &aad));
         }
     } else if (cipher_suite->record_alg->cipher->type == S2N_CBC || cipher_suite->record_alg->cipher->type == S2N_COMPOSITE) {
-        s2n_blob_init(&iv, implicit_iv, block_size);
+        POSIX_GUARD(s2n_blob_init(&iv, implicit_iv, block_size));
 
         /* For TLS1.1/1.2; write the IV with random data */
         if (conn->actual_protocol_version > S2N_TLS10) {

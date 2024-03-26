@@ -96,10 +96,6 @@ static int s2n_config_init(struct s2n_config *config)
     config->encrypt_decrypt_key_lifetime_in_nanos = S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
-
-    /* By default, only the client will authenticate the Server's Certificate. The Server does not request or
-     * authenticate any client certificates. */
-    config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 1;
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
@@ -129,6 +125,8 @@ static int s2n_config_cleanup(struct s2n_config *config)
     POSIX_GUARD(s2n_config_free_dhparams(config));
     POSIX_GUARD(s2n_free(&config->application_protocols));
     POSIX_GUARD_RESULT(s2n_map_free(config->domain_name_to_cert_map));
+
+    POSIX_CHECKED_MEMSET(config, 0, sizeof(struct s2n_config));
 
     return 0;
 }
@@ -182,7 +180,7 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
     return 0;
 }
 
-static int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
+int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair)
 {
     uint32_t cn_len = 0;
     POSIX_GUARD_RESULT(s2n_array_num_elements(cert_key_pair->cn_names, &cn_len));
@@ -220,7 +218,6 @@ struct s2n_config *s2n_fetch_default_config(void)
 int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 {
     POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
-    config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
     config->check_ocsp = 0;
     config->disable_x509_validation = 1;
 
@@ -241,12 +238,17 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
     }
 
-    /* Set up TLS 1.3 defaults */
+    /* TLS 1.3 default config is only used in tests so avoid initialization costs in applications */
     POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
     POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
-    POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_tls13_config));
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void)
+{
+    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_tls13_config));
+    return S2N_RESULT_OK;
 }
 
 void s2n_wipe_static_configs(void)
@@ -281,7 +283,7 @@ int s2n_config_load_system_certs(struct s2n_config *config)
 struct s2n_config *s2n_config_new_minimal(void)
 {
     struct s2n_blob allocator = { 0 };
-    struct s2n_config *new_config;
+    struct s2n_config *new_config = NULL;
 
     PTR_GUARD_POSIX(s2n_alloc(&allocator, sizeof(struct s2n_config)));
     PTR_GUARD_POSIX(s2n_blob_zero(&allocator));
@@ -408,6 +410,7 @@ int s2n_config_get_client_auth_type(struct s2n_config *config, s2n_cert_auth_typ
 int s2n_config_set_client_auth_type(struct s2n_config *config, s2n_cert_auth_type client_auth_type)
 {
     POSIX_ENSURE_REF(config);
+    config->client_cert_auth_type_overridden = 1;
     config->client_cert_auth_type = client_auth_type;
     return 0;
 }
@@ -555,6 +558,41 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     }
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
+        const struct s2n_security_policy *security_policy)
+{
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(security_policy);
+
+    /* validate the default certs */
+    for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+        struct s2n_cert_chain_and_key *cert = config->default_certs_by_type.certs[i];
+        if (cert == NULL) {
+            continue;
+        }
+        RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
+    }
+
+    /* validate the certs in the domain map */
+    struct s2n_map_iterator iter = { 0 };
+    RESULT_GUARD(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
+
+    while (s2n_map_iterator_has_next(&iter)) {
+        struct s2n_blob value = { 0 };
+        RESULT_GUARD(s2n_map_iterator_next(&iter, &value));
+
+        struct certs_by_type *domain_certs = (void *) value.data;
+        for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
+            struct s2n_cert_chain_and_key *cert = domain_certs->certs[i];
+            if (cert == NULL) {
+                continue;
+            }
+            RESULT_GUARD(s2n_security_policy_validate_certificate_chain(security_policy, cert));
+        }
+    }
+    return S2N_RESULT_OK;
 }
 
 /* Deprecated. Superseded by s2n_config_add_cert_chain_and_key_to_store */
@@ -986,7 +1024,7 @@ struct s2n_cert_chain_and_key *s2n_config_get_single_default_cert(struct s2n_con
     return cert;
 }
 
-int s2n_config_get_num_default_certs(struct s2n_config *config)
+int s2n_config_get_num_default_certs(const struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
     int num_certs = 0;
