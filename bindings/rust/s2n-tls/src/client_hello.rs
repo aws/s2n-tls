@@ -12,6 +12,7 @@ pub enum FingerprintType {
 }
 
 // this is the size of the MD5 hash digest that is used for the JA3 fingerprint
+#[cfg(feature = "unstable-fingerprint")]
 const MD5_HASH_SIZE: u32 = 16;
 
 #[cfg(feature = "unstable-fingerprint")]
@@ -221,19 +222,14 @@ impl Drop for ClientHello {
     }
 }
 
-#[cfg(feature = "unstable-fingerprint")]
 impl fmt::Debug for ClientHello {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let session_id = self.session_id().map_err(|_| fmt::Error)?;
         let session_id = hex::encode(session_id);
         let message_head = self.raw_message().map_err(|_| fmt::Error)?;
-        let mut hash = Vec::new();
-        self.fingerprint_hash(FingerprintType::JA3, &mut hash)
-            .map_err(|_| fmt::Error)?;
         f.debug_struct("ClientHello")
             .field("session_id", &session_id)
             .field("message_len", &(message_head.len()))
-            .field("ja3_fingerprint", &hex::encode(hash))
             .finish_non_exhaustive()
     }
 }
