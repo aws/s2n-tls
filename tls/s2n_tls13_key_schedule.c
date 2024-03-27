@@ -27,8 +27,8 @@
  *# The notation "K_{send,recv} = foo" means "set
  *# the send/recv key to the given key".
  */
-#define K_send(conn, secret_type) RESULT_GUARD(s2n_set_key(conn, secret_type, (conn)->mode))
-#define K_recv(conn, secret_type) RESULT_GUARD(s2n_set_key(conn, secret_type, S2N_PEER_MODE((conn)->mode)))
+#define K_send(conn, secret_type) RESULT_GUARD(s2n_tls13_key_schedule_set_key(conn, secret_type, (conn)->mode))
+#define K_recv(conn, secret_type) RESULT_GUARD(s2n_tls13_key_schedule_set_key(conn, secret_type, S2N_PEER_MODE((conn)->mode)))
 
 static const struct s2n_blob s2n_zero_length_context = { 0 };
 
@@ -119,7 +119,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode)
+S2N_RESULT s2n_tls13_key_schedule_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(conn->secure);

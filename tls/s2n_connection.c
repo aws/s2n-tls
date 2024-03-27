@@ -31,6 +31,7 @@
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_crypto.h"
 #include "crypto/s2n_fips.h"
+#include "crypto/s2n_hmac.h"
 #include "crypto/s2n_openssl_x509.h"
 #include "error/s2n_errno.h"
 #include "tls/extensions/s2n_client_server_name.h"
@@ -45,6 +46,7 @@
 #include "tls/s2n_resume.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls.h"
+#include "tls/s2n_tls13_key_schedule.h"
 #include "tls/s2n_tls_parameters.h"
 #include "utils/s2n_atomic.h"
 #include "utils/s2n_blob.h"
@@ -1724,5 +1726,141 @@ int s2n_connection_get_key_update_counts(struct s2n_connection *conn,
     POSIX_ENSURE_REF(recv_key_updates);
     *send_key_updates = conn->send_key_updated;
     *recv_key_updates = conn->recv_key_updated;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_serialize_length(struct s2n_connection *conn, uint32_t *length)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    POSIX_ENSURE_REF(length);
+
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        uint8_t secret_size = 0;
+        POSIX_GUARD(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
+        *length = S2N_SERIALIZED_CONN_FIXED_SIZE + (secret_size * 3);
+    } else {
+        *length = S2N_SERIALIZED_CONN_TLS12_SIZE;
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+    POSIX_ENSURE_REF(conn->secure->cipher_suite);
+    POSIX_ENSURE_REF(conn->config);
+
+    /* Supported format version must be set before calling this function */
+    POSIX_ENSURE(conn->config->serialized_connection_version != S2N_SERIALIZED_CONN_NONE, S2N_ERR_INVALID_STATE);
+
+    /* This method must be called after negotiation */
+    POSIX_ENSURE(s2n_handshake_is_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+
+    /* Best effort check for pending input or output data.
+     * This method should not be called until the application has stopped sending and receiving.
+     * Saving partial read or partial write state would complicate this problem.
+     */
+    POSIX_ENSURE(s2n_stuffer_data_available(&conn->header_in) == 0, S2N_ERR_INVALID_STATE);
+    POSIX_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_INVALID_STATE);
+    POSIX_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_INVALID_STATE);
+
+    uint32_t context_length = 0;
+    POSIX_GUARD(s2n_connection_serialize_length(conn, &context_length));
+    POSIX_ENSURE(buffer_length >= context_length, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+
+    struct s2n_blob context_blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&context_blob, buffer, buffer_length));
+    struct s2n_stuffer output = { 0 };
+    POSIX_GUARD(s2n_stuffer_init(&output, &context_blob));
+
+    POSIX_GUARD(s2n_stuffer_write_uint64(&output, S2N_SERIALIZED_CONN_V1));
+
+    POSIX_GUARD(s2n_stuffer_write_uint8(&output, conn->actual_protocol_version / 10));
+    POSIX_GUARD(s2n_stuffer_write_uint8(&output, conn->actual_protocol_version % 10));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN));
+
+    POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->secure->client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->secure->server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+    POSIX_GUARD(s2n_stuffer_write_uint16(&output, conn->max_outgoing_fragment_length));
+
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        uint8_t secret_size = 0;
+        POSIX_GUARD(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
+
+        POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->secrets.version.tls13.client_app_secret, secret_size));
+        POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->secrets.version.tls13.server_app_secret, secret_size));
+        POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->secrets.version.tls13.resumption_master_secret, secret_size));
+    } else {
+        POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+        POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+        POSIX_GUARD(s2n_stuffer_write_bytes(&output, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
+    }
+
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(conn->secure);
+
+    struct s2n_blob context_blob = { 0 };
+    POSIX_GUARD(s2n_blob_init(&context_blob, buffer, buffer_length));
+    struct s2n_stuffer input = { 0 };
+    POSIX_GUARD(s2n_stuffer_init_written(&input, &context_blob));
+
+    uint64_t context_version = 0;
+    POSIX_GUARD(s2n_stuffer_read_uint64(&input, &context_version));
+    /* No other version is supported currently */
+    POSIX_ENSURE(context_version == S2N_SERIALIZED_CONN_V1, S2N_ERR_INVALID_STATE);
+
+    uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
+    POSIX_GUARD(s2n_stuffer_read_bytes(&input, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
+    conn->actual_protocol_version = (protocol_version[0] * 10) + protocol_version[1];
+    conn->server_protocol_version = conn->actual_protocol_version;
+    conn->client_protocol_version = conn->actual_protocol_version;
+
+    uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
+    POSIX_GUARD(s2n_stuffer_read_bytes(&input, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
+    POSIX_GUARD_RESULT(s2n_cipher_suite_from_iana(cipher_suite, S2N_TLS_CIPHER_SUITE_LEN, &conn->secure->cipher_suite));
+
+    /* Sequence numbers get zeroed during the TLS1.3 key expansion so they are read into temp variables */
+    uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+    uint8_t server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
+    POSIX_GUARD(s2n_stuffer_read_bytes(&input, client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+    POSIX_GUARD(s2n_stuffer_read_bytes(&input, server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN));
+
+    POSIX_GUARD(s2n_stuffer_read_uint16(&input, &conn->max_outgoing_fragment_length));
+
+    /* Artificially move through the state machine so connection knows it's post-handshake */
+    POSIX_GUARD_RESULT(s2n_skip_handshake(conn));
+
+    if (conn->actual_protocol_version >= S2N_TLS13) {
+        uint8_t secret_size = 0;
+        POSIX_GUARD(s2n_hmac_digest_size(conn->secure->cipher_suite->prf_alg, &secret_size));
+
+        POSIX_GUARD(s2n_stuffer_read_bytes(&input, conn->secrets.version.tls13.client_app_secret, secret_size));
+        POSIX_GUARD(s2n_stuffer_read_bytes(&input, conn->secrets.version.tls13.server_app_secret, secret_size));
+        POSIX_GUARD(s2n_stuffer_read_bytes(&input, conn->secrets.version.tls13.resumption_master_secret, secret_size));
+
+        POSIX_GUARD_RESULT(s2n_tls13_key_schedule_set_key(conn, S2N_MASTER_SECRET, S2N_SERVER));
+        POSIX_GUARD_RESULT(s2n_tls13_key_schedule_set_key(conn, S2N_MASTER_SECRET, S2N_CLIENT));
+    } else {
+        POSIX_GUARD(s2n_stuffer_read_bytes(&input, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+        POSIX_GUARD(s2n_stuffer_read_bytes(&input, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+        POSIX_GUARD(s2n_stuffer_read_bytes(&input, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN));
+        POSIX_GUARD(s2n_prf_key_expansion(conn));
+    }
+    POSIX_CHECKED_MEMCPY(conn->secure->client_sequence_number, client_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
+    POSIX_CHECKED_MEMCPY(conn->secure->server_sequence_number, server_sequence_number, S2N_TLS_SEQUENCE_NUM_LEN);
+
+    conn->client = conn->secure;
+    conn->server = conn->secure;
+
     return S2N_SUCCESS;
 }

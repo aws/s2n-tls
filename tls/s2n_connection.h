@@ -47,6 +47,9 @@
 
 #define S2N_PEER_MODE(our_mode) ((our_mode + 1) % 2)
 
+#define S2N_SERIALIZED_CONN_TLS12_SIZE 142
+#define S2N_SERIALIZED_CONN_FIXED_SIZE 22
+
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
 typedef enum {
@@ -428,3 +431,9 @@ S2N_RESULT s2n_connection_set_max_fragment_length(struct s2n_connection *conn, u
 S2N_RESULT s2n_connection_get_secure_cipher(struct s2n_connection *conn, const struct s2n_cipher **cipher);
 S2N_RESULT s2n_connection_get_sequence_number(struct s2n_connection *conn,
         s2n_mode mode, struct s2n_blob *seq_num);
+S2N_RESULT s2n_skip_handshake(struct s2n_connection *conn);
+
+/* APIs that will be moved to s2n.h when the connection serialize feature is released */
+int s2n_connection_serialize_length(struct s2n_connection *conn, uint32_t *length);
+int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
+int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);

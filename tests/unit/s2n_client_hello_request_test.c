@@ -24,27 +24,6 @@ static const uint8_t hello_request_msg[] = {
     /* empty message body */
 };
 
-static S2N_RESULT s2n_test_send_and_recv(struct s2n_connection *send_conn, struct s2n_connection *recv_conn)
-{
-    RESULT_ENSURE_REF(send_conn);
-    RESULT_ENSURE_REF(recv_conn);
-
-    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-
-    const uint8_t send_data[] = "hello world";
-    ssize_t send_size = s2n_send(send_conn, send_data, sizeof(send_data), &blocked);
-    RESULT_GUARD_POSIX(send_size);
-    RESULT_ENSURE_EQ(send_size, sizeof(send_data));
-
-    uint8_t recv_data[sizeof(send_data)] = { 0 };
-    ssize_t recv_size = s2n_recv(recv_conn, recv_data, send_size, &blocked);
-    RESULT_GUARD_POSIX(recv_size);
-    RESULT_ENSURE_EQ(recv_size, send_size);
-    EXPECT_BYTEARRAY_EQUAL(recv_data, send_data, send_size);
-
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_send_client_hello_request(struct s2n_connection *server_conn)
 {
     RESULT_ENSURE_REF(server_conn);
@@ -213,16 +192,16 @@ int main(int argc, char **argv)
         EXPECT_TRUE(client_conn->secure_renegotiation);
 
         /* Send some data */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+        EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
 
         /* Send the hello request message. */
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
         /* Send some more data */
         for (size_t i = 0; i < 10; i++) {
-            EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-            EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+            EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
             EXPECT_TRUE(s2n_connection_check_io_status(client_conn, S2N_IO_FULL_DUPLEX));
         }
     };
@@ -261,8 +240,8 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
         /* no_renegotation alert NOT sent and received */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+        EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
 
         /* Callback was not set */
         EXPECT_NULL(client_conn->config->renegotiate_request_cb);
@@ -309,8 +288,8 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
         /* no_renegotation alert sent and received */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(client_conn, server_conn), S2N_ERR_ALERT);
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+        EXPECT_ERROR_WITH_ERRNO(s2n_send_and_recv_test(client_conn, server_conn), S2N_ERR_ALERT);
         EXPECT_EQUAL(s2n_connection_get_alert(server_conn), S2N_TLS_ALERT_NO_RENEGOTIATION);
 
         /* Callback triggered */
@@ -353,8 +332,8 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
         /* no_renegotation alert NOT sent and received */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+        EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
 
         /* Callback triggered */
         EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
@@ -391,8 +370,8 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
         /* no_renegotation alert NOT sent and received */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_OK(s2n_test_send_and_recv(client_conn, server_conn));
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+        EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
 
         /* Callback triggered */
         EXPECT_NOT_NULL(client_conn->config->renegotiate_request_cb);
@@ -445,8 +424,8 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_send_client_hello_request(server_conn));
 
         /* no_renegotation alert sent and received */
-        EXPECT_OK(s2n_test_send_and_recv(server_conn, client_conn));
-        EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(client_conn, server_conn), S2N_ERR_ALERT);
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+        EXPECT_ERROR_WITH_ERRNO(s2n_send_and_recv_test(client_conn, server_conn), S2N_ERR_ALERT);
         EXPECT_EQUAL(s2n_connection_get_alert(server_conn), S2N_TLS_ALERT_NO_RENEGOTIATION);
 
         /* Callback was not triggered */
@@ -491,7 +470,7 @@ int main(int argc, char **argv)
          * Applications won't be able to set s2n_errno to a meaningful value,
          * so we need to set it to S2N_ERR_CANCELED for them.
          */
-        EXPECT_ERROR_WITH_ERRNO(s2n_test_send_and_recv(server_conn, client_conn), S2N_ERR_CANCELLED);
+        EXPECT_ERROR_WITH_ERRNO(s2n_send_and_recv_test(server_conn, client_conn), S2N_ERR_CANCELLED);
     };
 
     /* Test: SSLv3 sends a fatal handshake_failure alert instead of no_renegotiate
