@@ -907,6 +907,20 @@ impl Connection {
             }
         }
     }
+
+    pub fn master_secret(&self) -> Result<Vec<u8>, Error> {
+        // TLS1.2 master secrets are always 48 bytes
+        let mut secret = vec![0; 48];
+        unsafe {
+            s2n_connection_get_master_secret(
+                self.connection.as_ptr(),
+                secret.as_mut_ptr(),
+                secret.len(),
+            )
+            .into_result()?;
+        }
+        Ok(secret)
+    }
 }
 
 struct Context {
