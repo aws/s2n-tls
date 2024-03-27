@@ -30,6 +30,7 @@ impl Default for AnimalConfigResolver {
 // using the ConfigResolver: https://docs.rs/s2n-tls/latest/s2n_tls/callbacks/struct.ConfigResolver.html#
 // This is useful if servers need to read from disk or make network calls as part
 // of the configuration, and want to avoid blocking the tokio task while doing so.
+// An example of this implementation is contained in the "async_load_server".
 impl ClientHelloCallback for AnimalConfigResolver {
     fn on_client_hello(
         &self,
