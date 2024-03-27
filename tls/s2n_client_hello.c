@@ -557,7 +557,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
      * Negotiate protocol version, cipher suite, ALPN, select a cert, etc. */
     struct s2n_client_hello *client_hello = &conn->client_hello;
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
@@ -701,7 +701,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     const struct s2n_cipher_preferences *cipher_preferences = security_policy->cipher_preferences;
@@ -821,7 +821,7 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_skip_write(&in_stuffer, client_hello->raw_message.size));
     struct s2n_stuffer *in = &in_stuffer;
 
-    const struct s2n_security_policy *security_policy;
+    const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     if (conn->client_protocol_version < security_policy->minimum_protocol_version) {
@@ -831,15 +831,15 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     conn->actual_protocol_version = MIN(conn->client_protocol_version, conn->server_protocol_version);
 
     /* We start 5 bytes into the record */
-    uint16_t cipher_suites_length;
+    uint16_t cipher_suites_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &cipher_suites_length));
     POSIX_ENSURE(cipher_suites_length > 0, S2N_ERR_BAD_MESSAGE);
     POSIX_ENSURE(cipher_suites_length % S2N_SSLv2_CIPHER_SUITE_LEN == 0, S2N_ERR_BAD_MESSAGE);
 
-    uint16_t session_id_length;
+    uint16_t session_id_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &session_id_length));
 
-    uint16_t challenge_length;
+    uint16_t challenge_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &challenge_length));
 
     S2N_ERROR_IF(challenge_length > S2N_TLS_RANDOM_DATA_LEN, S2N_ERR_BAD_MESSAGE);
@@ -879,7 +879,7 @@ int s2n_client_hello_get_parsed_extension(s2n_tls_extension_type extension_type,
     POSIX_ENSURE_REF(parsed_extension_list);
     POSIX_ENSURE_REF(parsed_extension);
 
-    s2n_extension_type_id extension_type_id;
+    s2n_extension_type_id extension_type_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type, &extension_type_id));
 
     s2n_parsed_extension *found_parsed_extension = &parsed_extension_list->parsed_extensions[extension_type_id];

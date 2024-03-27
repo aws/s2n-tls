@@ -227,7 +227,7 @@ int s2n_socket_is_ipv6(int fd, uint8_t *ipv6)
 {
     POSIX_ENSURE_REF(ipv6);
 
-    socklen_t len;
+    socklen_t len = 0;
     struct sockaddr_storage addr;
     len = sizeof(addr);
     POSIX_GUARD(getpeername(fd, (struct sockaddr *) &addr, &len));

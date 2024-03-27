@@ -241,6 +241,27 @@ S2N_API extern int s2n_init(void);
  */
 S2N_API extern int s2n_cleanup(void);
 
+typedef enum {
+    S2N_FIPS_MODE_DISABLED = 0,
+    S2N_FIPS_MODE_ENABLED,
+} s2n_fips_mode;
+
+/**
+ * Determines whether s2n-tls is operating in FIPS mode.
+ *
+ * s2n-tls enters FIPS mode on initialization when the linked libcrypto has FIPS mode enabled. Some
+ * libcryptos, such as AWS-LC-FIPS, have FIPS mode enabled by default. With other libcryptos, such
+ * as OpenSSL, FIPS mode must be enabled before initialization by calling `FIPS_mode_set()`.
+ *
+ * s2n-tls MUST be linked to a FIPS libcrypto and MUST be in FIPS mode in order to comply with FIPS
+ * requirements. Applications desiring FIPS compliance should use this API to ensure that s2n-tls
+ * has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
+ *
+ * @param fips_mode Set to the FIPS mode of s2n-tls.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_get_fips_mode(s2n_fips_mode *fips_mode);
+
 /**
  * Creates a new s2n_config object. This object can (and should) be associated with many connection
  * objects.
@@ -3000,6 +3021,38 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
  * @returns A string indicating the cipher suite negotiated by s2n in OpenSSL format.
  */
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
+
+/**
+ * Provides access to the TLS master secret.
+ *
+ * This is a dangerous method and should not be used unless absolutely necessary.
+ * Mishandling the master secret can compromise both the current connection
+ * and any past or future connections that use the same master secret due to
+ * session resumption.
+ *
+ * This method is only supported for older TLS versions, and will report an S2N_ERR_INVALID_STATE
+ * usage error if called for a TLS1.3 connection. TLS1.3 includes a new key schedule
+ * that derives independent secrets from the master secret for specific purposes,
+ * such as separate traffic, session ticket, and exporter secrets. Using the master
+ * secret directly circumvents that security feature, reducing the security of
+ * the protocol.
+ *
+ * If you need cryptographic material tied to the current TLS session, consider
+ * `s2n_connection_tls_exporter` instead. Although s2n_connection_tls_exporter
+ * currently only supports TLS1.3, there is also an RFC that describes exporters
+ * for older TLS versions: https://datatracker.ietf.org/doc/html/rfc5705
+ * Using the master secret as-is or defining your own exporter is dangerous.
+ *
+ * @param conn A pointer to the connection.
+ * @param secret_bytes Memory to copy the master secret into. The secret
+ * is always 48 bytes long.
+ * @param max_size The size of the memory available at `secret_bytes`. Must be
+ * at least 48 bytes.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `secret_bytes`
+ * will be set on success.
+ */
+S2N_API extern int s2n_connection_get_master_secret(const struct s2n_connection *conn,
+        uint8_t *secret_bytes, size_t max_size);
 
 /**
  * Provides access to the TLS-Exporter functionality.

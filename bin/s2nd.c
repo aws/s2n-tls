@@ -254,8 +254,8 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai;
-    int r, sockfd = 0;
+    struct addrinfo hints, *ai = NULL;
+    int r = 0, sockfd = 0;
 
     /* required args */
     const char *host = NULL;
@@ -629,7 +629,7 @@ int main(int argc, char *const *argv)
                 "Failed to set key log callback");
     }
 
-    int fd;
+    int fd = 0;
     while ((fd = accept(sockfd, ai->ai_addr, &ai->ai_addrlen)) > 0) {
         if (non_blocking) {
             int flags = fcntl(sockfd, F_GETFL, 0);

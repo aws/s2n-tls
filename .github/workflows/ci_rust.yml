@@ -11,8 +11,9 @@ on:
 env:
   # Pin the nightly toolchain to prevent breakage.
   # This should be occasionally updated.
-  RUST_NIGHTLY_TOOLCHAIN: nightly-2022-08-03
+  RUST_NIGHTLY_TOOLCHAIN: nightly-2024-01-01
   ROOT_PATH: bindings/rust
+  EXAMPLE_WORKSPACE: bindings/rust-examples
 
 jobs:
   generate:
@@ -78,6 +79,24 @@ jobs:
       - name: bench tests
         working-directory: ${{env.ROOT_PATH}}/bench
         run: cargo test
+  
+  s2n-tls-binding-examples:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions-rs/toolchain@v1
+        id: toolchain
+        with:
+          toolchain: stable
+          override: true
+      
+      - name: generate bindings
+        run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
+
+      - name: build examples
+        working-directory: ${{env.EXAMPLE_WORKSPACE}}
+        run: cargo build
 
   generate-openssl-102:
     runs-on: ubuntu-latest

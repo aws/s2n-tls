@@ -82,6 +82,7 @@ int S2N_RESULT_MUST_USE s2n_stuffer_resize_if_empty(struct s2n_stuffer *stuffer,
 int S2N_RESULT_MUST_USE s2n_stuffer_rewind_read(struct s2n_stuffer *stuffer, const uint32_t size);
 int S2N_RESULT_MUST_USE s2n_stuffer_reread(struct s2n_stuffer *stuffer);
 int S2N_RESULT_MUST_USE s2n_stuffer_rewrite(struct s2n_stuffer *stuffer);
+int S2N_RESULT_MUST_USE s2n_stuffer_shift(struct s2n_stuffer *stuffer);
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer);
 int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t n);
 bool s2n_stuffer_is_consumed(struct s2n_stuffer *stuffer);

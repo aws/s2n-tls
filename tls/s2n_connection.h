@@ -224,15 +224,15 @@ struct s2n_connection {
     /* The PRF needs some storage elements to work with */
     struct s2n_prf_working_space *prf_space;
 
-    /* Whether to use client_cert_auth_type stored in s2n_config or in this s2n_connection.
-     *
-     * By default the s2n_connection will defer to s2n_config->client_cert_auth_type on whether or not to use Client Auth.
-     * But users can override Client Auth at the connection level using s2n_connection_set_client_auth_type() without mutating
-     * s2n_config since s2n_config can be shared between multiple s2n_connections. */
+    /* Indicates whether the application has overridden the client auth behavior
+     * inherited from the config.
+     * This should be a bitflag, but that change is blocked on the SAW proofs.
+     */
     uint8_t client_cert_auth_type_overridden;
 
-    /* Whether or not the s2n_connection should require the Client to authenticate itself to the server. Only used if
-     * client_cert_auth_type_overridden is non-zero. */
+    /* Whether or not the client should authenticate itself to the server.
+     * Only used if client_cert_auth_type_overridden is true.
+     */
     s2n_cert_auth_type client_cert_auth_type;
 
     /* Our workhorse stuffers, used for buffering the plaintext

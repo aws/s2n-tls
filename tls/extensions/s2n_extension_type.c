@@ -86,7 +86,7 @@ int s2n_extension_send(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_ENSURE_REF(extension_type->send);
     POSIX_ENSURE_REF(conn);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not send response if request not received. */
@@ -131,7 +131,7 @@ int s2n_extension_recv(const s2n_extension_type *extension_type, struct s2n_conn
     POSIX_ENSURE_REF(extension_type->recv);
     POSIX_ENSURE_REF(conn);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /**
@@ -180,7 +180,7 @@ int s2n_extension_is_missing(const s2n_extension_type *extension_type, struct s2
     POSIX_ENSURE_REF(extension_type->if_missing);
     POSIX_ENSURE_REF(conn);
 
-    s2n_extension_type_id extension_id;
+    s2n_extension_type_id extension_id = 0;
     POSIX_GUARD(s2n_extension_supported_iana_value_to_id(extension_type->iana_value, &extension_id));
 
     /* Do not consider an extension missing if we did not send a request */

@@ -81,7 +81,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_extensions_server_key_share_send_size */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         EXPECT_EQUAL(0, s2n_extensions_server_key_share_send_size(conn));
@@ -200,8 +200,8 @@ int main(int argc, char **argv)
 
         int i = 0;
         do {
-            struct s2n_connection *server_send_conn;
-            struct s2n_connection *client_recv_conn;
+            struct s2n_connection *server_send_conn = NULL;
+            struct s2n_connection *client_recv_conn = NULL;
             EXPECT_NOT_NULL(server_send_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(client_recv_conn = s2n_connection_new(S2N_CLIENT));
 
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 
             for (int i = 0; i < 3; i++) {
                 struct s2n_stuffer extension_stuffer = { 0 };
-                struct s2n_connection *client_conn;
+                struct s2n_connection *client_conn = NULL;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
@@ -276,7 +276,7 @@ int main(int argc, char **argv)
              * if tls1.3 not enabled */
             {
                 struct s2n_stuffer extension_stuffer = { 0 };
-                struct s2n_connection *client_conn;
+                struct s2n_connection *client_conn = NULL;
 
                 EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
@@ -312,7 +312,7 @@ int main(int argc, char **argv)
         /* Test error handling parsing broken/trancated p256 key share */
         {
             struct s2n_stuffer extension_stuffer = { 0 };
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             const char *p256 = "001700410474cfd75c0ab7b57247761a277e1c92b5810dacb251bb758f43e9d15aaf292c4a2be43e886425ba55653ebb7a4f32fe368bacce3df00c618645cf1eb6";
@@ -329,7 +329,7 @@ int main(int argc, char **argv)
         /* Test failure for receiving p256 key share for client configured p384 key share */
         {
             struct s2n_stuffer extension_stuffer = { 0 };
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
 
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             const struct s2n_ecc_preferences *ecc_pref = NULL;
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 
     /* Test Shared Key Generation */
     {
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         struct s2n_stuffer key_share_extension = { 0 };
 
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -424,7 +424,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_server_key_share_extension.send with supported curve not in s2n_ecc_preferences list selected */
     if (s2n_is_evp_apis_supported()) {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(conn->config);
 
@@ -441,7 +441,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_server_key_share_extension.recv with supported curve not in s2n_ecc_preferences list selected  */
     if (s2n_is_evp_apis_supported()) {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         struct s2n_stuffer *extension_stuffer = &conn->handshake.io;
 
@@ -464,8 +464,8 @@ int main(int argc, char **argv)
         /* For a HelloRetryRequest, we won't have a key share. We just have the server selected group/negotiated curve.
          * Test that s2n_server_key_share_extension.recv obtains the server negotiate curve successfully. */
         {
-            struct s2n_connection *client_conn;
-            struct s2n_connection *server_conn;
+            struct s2n_connection *client_conn = NULL;
+            struct s2n_connection *server_conn = NULL;
 
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -682,7 +682,7 @@ int main(int argc, char **argv)
                         if (!s2n_kem_group_is_available(kem_group)) {
                             continue;
                         }
-                        struct s2n_connection *client_conn;
+                        struct s2n_connection *client_conn = NULL;
                         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
                         client_conn->security_policy_override = &test_security_policy;
 

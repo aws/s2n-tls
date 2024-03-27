@@ -348,7 +348,7 @@ S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *c
 
 int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs)
 {
-    uint16_t length_of_all_pairs;
+    uint16_t length_of_all_pairs = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &length_of_all_pairs));
     if (length_of_all_pairs > s2n_stuffer_data_available(in)) {
         /* Malformed length, ignore the extension */

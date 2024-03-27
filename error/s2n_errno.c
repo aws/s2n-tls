@@ -88,6 +88,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ECDHE_GEN_KEY, "Failed to generate an ECDHE key") \
     ERR_ENTRY(S2N_ERR_ECDHE_SHARED_SECRET, "Error computing ECDHE shared secret") \
     ERR_ENTRY(S2N_ERR_ECDHE_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDHE handshake") \
+    ERR_ENTRY(S2N_ERR_ECDHE_INVALID_PUBLIC_KEY, "Failed to validate the peer's point on the elliptic curve") \
+    ERR_ENTRY(S2N_ERR_ECDHE_INVALID_PUBLIC_KEY_FIPS, "Failed to validate the peer's point on the elliptic curve, per FIPS requirements") \
     ERR_ENTRY(S2N_ERR_ECDSA_UNSUPPORTED_CURVE, "Unsupported EC curve was presented during an ECDSA SignatureScheme handshake") \
     ERR_ENTRY(S2N_ERR_ECDHE_SERIALIZING, "Error serializing ECDHE public") \
     ERR_ENTRY(S2N_ERR_KEM_UNSUPPORTED_PARAMS, "Unsupported KEM params was presented during a handshake that uses a KEM") \

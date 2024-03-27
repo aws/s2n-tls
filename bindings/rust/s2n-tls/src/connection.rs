@@ -64,6 +64,21 @@ impl fmt::Debug for Connection {
 /// s2n_connection objects can be sent across threads
 unsafe impl Send for Connection {}
 
+/// # Sync
+///
+/// Although NonNull isn't Sync and allows access to mutable pointers even from
+/// immutable references, the Connection interface enforces that all mutating
+/// methods correctly require &mut self.
+///
+/// Developers and reviewers MUST ensure that new methods correctly use
+/// either &self or &mut self depending on their behavior. No mechanism enforces this.
+///
+/// Note: Although non-mutating methods like getters should be thread-safe by definition,
+/// technically the only thread safety guarantee provided by the underlying C library
+/// is that s2n_send and s2n_recv can be called concurrently.
+///
+unsafe impl Sync for Connection {}
+
 impl Connection {
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
@@ -892,6 +907,20 @@ impl Connection {
             }
         }
     }
+
+    pub fn master_secret(&self) -> Result<Vec<u8>, Error> {
+        // TLS1.2 master secrets are always 48 bytes
+        let mut secret = vec![0; 48];
+        unsafe {
+            s2n_connection_get_master_secret(
+                self.connection.as_ptr(),
+                secret.as_mut_ptr(),
+                secret.len(),
+            )
+            .into_result()?;
+        }
+        Ok(secret)
+    }
 }
 
 struct Context {
@@ -1016,5 +1045,12 @@ mod tests {
     fn context_send_test() {
         fn assert_send<T: 'static + Send>() {}
         assert_send::<Context>();
+    }
+
+    // ensure the connection context is sync
+    #[test]
+    fn context_sync_test() {
+        fn assert_sync<T: 'static + Sync>() {}
+        assert_sync::<Context>();
     }
 }

@@ -26,8 +26,8 @@
 
 int mock_client(struct s2n_test_io_pair *io_pair, uint8_t version)
 {
-    struct s2n_connection *client_conn;
-    struct s2n_config *client_config;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_config *client_config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
 
@@ -63,7 +63,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t version)
 int main(int argc, char **argv)
 {
     s2n_blocked_status blocked;
-    int status;
+    int status = 0;
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
 

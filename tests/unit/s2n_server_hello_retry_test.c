@@ -78,7 +78,7 @@ static int client_hello_detect_duplicate_calls(struct s2n_connection *conn, void
 
 int s2n_client_hello_poll_cb(struct s2n_connection *conn, void *ctx)
 {
-    struct client_hello_context *client_hello_ctx;
+    struct client_hello_context *client_hello_ctx = NULL;
     if (ctx == NULL) {
         return -1;
     }
@@ -157,8 +157,8 @@ int main(int argc, char **argv)
 
     /* Send Hello Retry Request messages */
     {
-        struct s2n_config *server_config;
-        struct s2n_connection *server_conn;
+        struct s2n_config *server_config = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -203,8 +203,8 @@ int main(int argc, char **argv)
 
     /* Verify the requires_retry flag causes a retry to be sent */
     {
-        struct s2n_config *conf;
-        struct s2n_connection *conn;
+        struct s2n_config *conf = NULL;
+        struct s2n_connection *conn = NULL;
 
         EXPECT_NOT_NULL(conf = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -228,8 +228,8 @@ int main(int argc, char **argv)
 
     /* Retry requests with incorrect random data are not accepted */
     {
-        struct s2n_config *conf;
-        struct s2n_connection *conn;
+        struct s2n_config *conf = NULL;
+        struct s2n_connection *conn = NULL;
 
         EXPECT_NOT_NULL(conf = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -267,8 +267,8 @@ int main(int argc, char **argv)
 
     /* Verify the client key share extension properly handles HelloRetryRequests */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_connection *client_conn = NULL;
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -317,8 +317,8 @@ int main(int argc, char **argv)
     /* Verify that the hash transcript recreation function correctly takes the existing ClientHello1
      * hash, and generates a synthetic message. */
     {
-        struct s2n_config *conf;
-        struct s2n_connection *conn;
+        struct s2n_config *conf = NULL;
+        struct s2n_connection *conn = NULL;
 
         EXPECT_NOT_NULL(conf = s2n_config_new());
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
@@ -385,13 +385,13 @@ int main(int argc, char **argv)
 
     /* Send and receive Hello Retry Request messages */
     {
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
 
-        struct s2n_connection *server_conn;
-        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_connection *client_conn = NULL;
 
-        struct s2n_cert_chain_and_key *tls13_chain_and_key;
+        struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -459,13 +459,13 @@ int main(int argc, char **argv)
 
     /* Send and receive Hello Retry Request messages, test for non blocking client hello callback */
     {
-        struct s2n_config *server_config;
-        struct s2n_config *client_config;
+        struct s2n_config *server_config = NULL;
+        struct s2n_config *client_config = NULL;
 
-        struct s2n_connection *server_conn;
-        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_connection *client_conn = NULL;
 
-        struct s2n_cert_chain_and_key *tls13_chain_and_key;
+        struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(client_config = s2n_config_new());
@@ -527,7 +527,7 @@ int main(int argc, char **argv)
     /* Test s2n_set_hello_retry_required correctly sets the handshake type to HELLO_RETRY_REQUEST,
      * when conn->actual_protocol_version is set to TLS1.3 version */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
 
@@ -540,7 +540,7 @@ int main(int argc, char **argv)
     /* Test s2n_set_hello_retry_required raises a S2N_ERR_INVALID_HELLO_RETRY error
      * when conn->actual_protocol_version is less than TLS1.3 */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         conn->actual_protocol_version = S2N_TLS12;
 

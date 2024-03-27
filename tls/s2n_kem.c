@@ -242,7 +242,7 @@ int s2n_choose_kem_with_peer_pref_list(const uint8_t iana_value[S2N_TLS_CIPHER_S
         }
 
         for (uint8_t j = 0; j < num_client_candidate_kems; j++) {
-            kem_extension_size candidate_client_kem_id;
+            kem_extension_size candidate_client_kem_id = 0;
             POSIX_GUARD(s2n_stuffer_read_uint16(&client_kem_ids_stuffer, &candidate_client_kem_id));
 
             if (candidate_server_kem->kem_extension_id == candidate_client_kem_id) {
