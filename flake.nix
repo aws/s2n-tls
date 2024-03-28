@@ -94,6 +94,12 @@
           buildInputs = [ pkgs.cmake openssl_3_0 ];
           packages = common_packages;
           S2N_LIBCRYPTO = "openssl-3.0";
+          OPENSSL_1_0_2_INSTALL_DIR = "${openssl_1_0_2}";
+          OPENSSL_1_1_1_INSTALL_DIR = "${openssl_1_1_1}";
+          OPENSSL_3_0_INSTALL_DIR = "${openssl_3_0}";
+          AWSLC_INSTALL_DIR = "${aws-lc}";
+          GNUTLS_INSTALL_DIR = "${pkgs.gnutls}";
+          LIBRESSL_INSTALL_DIR = "${libressl}";
           # Integ s_client/server tests expect openssl 1.1.1.
           shellHook = ''
             echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
@@ -141,7 +147,7 @@
             # Integ s_client/server tests expect openssl 1.1.1.
             # GnuTLS-cli and serv utilities needed for some integration tests.
             shellHook = ''
-              echo Setting up $S2N_LIBCRYPTO enviornment from flake.nix...
+              echo Setting up $S2N_LIBCRYPTO environment from flake.nix...
               export PATH=${openssl_1_1_1}/bin:$PATH
               export PS1="[nix $S2N_LIBCRYPTO] $PS1"
               source ${writeScript ./nix/shell.sh}

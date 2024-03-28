@@ -9,6 +9,22 @@ banner()
     echo "+---------------------------------------------------------+"
 }
 
+function libcrypto_alias {
+    local libcrypto_name=$1
+    local libcrypto_binary_path=$2
+    if [[ -f $libcrypto_binary_path ]]; then
+      alias $libcrypto_name=$libcrypto_binary_path
+      echo "Libcrypto binary $libcrypto_binary_path available as $libcrypto_name"
+    else
+      banner "Could not find libcrypto $libcrypto_binary_path for alias"
+    fi
+}
+libcrypto_alias openssl102 "${OPENSSL_1_0_2_INSTALL_DIR}/bin/openssl"
+libcrypto_alias openssl111 "${OPENSSL_1_1_1_INSTALL_DIR}/bin/openssl"
+libcrypto_alias openssl30 "${OPENSSL_3_0_INSTALL_DIR}/bin/openssl"
+libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
+libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
+#No need to alias gnutls because it is included in common_packages (see flake.nix).
 
 function clean {
     banner "Cleanup ./build"
@@ -118,7 +134,7 @@ function do-clang-format {
 
 function test_toolchain_counts {
     # This is a starting point for a unit test of the devShell.
-    # The choosen S2N_LIBCRYPTO should be 2, and the others should be zero.
+    # The chosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
     echo $CMAKE_INCLUDE_PATH|gawk 'BEGIN{RS=":"; o10=0; o11=0; o3=0;awslc=0;libre=0}
       /openssl-3.0/{o3++}
