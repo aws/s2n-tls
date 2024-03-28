@@ -752,7 +752,6 @@ impl Connection {
     /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
     /// drop(conn);
     /// ```
-    #[cfg(feature = "unstable-fingerprint")]
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
         let mut handle =
             unsafe { s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()? };
