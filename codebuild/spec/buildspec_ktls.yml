@@ -9,7 +9,7 @@ phases:
   pre_build:
     commands:
       - aws s3 --quiet sync s3://s2n-ktls-testing ./qemu
-      - cd qemu; bash ./run.sh; cd ..
+      - cd qemu; bash ./runbig.sh; cd ..
       - rsync -avz --exclude=qemu --exclude=tests/fuzz -e 'ssh -p 2222' . codebuild@localhost:/home/codebuild/s2n-tls
   build:
     commands:
