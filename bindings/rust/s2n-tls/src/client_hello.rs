@@ -397,12 +397,10 @@ impl fmt::Debug for ClientHello {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         let session_id = self.session_id().map_err(|_| fmt::Error)?;
         let session_id = hex::encode(session_id);
-        let server_name = self.server_name().map_err(|_| fmt::Error)?;
         let message_head = self.raw_message().map_err(|_| fmt::Error)?;
         f.debug_struct("ClientHello")
             .field("session_id", &session_id)
             .field("message_len", &(message_head.len()))
-            .field("server_name", &server_name)
             .finish_non_exhaustive()
     }
 }
