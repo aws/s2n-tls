@@ -144,6 +144,7 @@ pub mod fingerprint {
 
     use super::ClientHello;
 
+    #[non_exhaustive]
     #[derive(Copy, Clone)]
     pub enum FingerprintType {
         JA3,
