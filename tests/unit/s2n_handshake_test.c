@@ -384,7 +384,6 @@ int main(int argc, char **argv)
             server_config->security_policy = &security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
-            client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
             client_config->check_ocsp = 0;
             client_config->disable_x509_validation = 1;
             client_config->security_policy = &security_policy;
@@ -420,7 +419,6 @@ int main(int argc, char **argv)
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20200207"));
-            client_config->client_cert_auth_type = S2N_CERT_AUTH_NONE;
             client_config->check_ocsp = 0;
             client_config->disable_x509_validation = 1;
 
@@ -448,19 +446,24 @@ int main(int argc, char **argv)
                 close((int) fd);
             }
 
-            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
-                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
-            EXPECT_NOT_NULL(chain_and_key);
+            /* use a nested scope to force the DEFER_CLEANUP statements to 
+             * execute before the exit() call. 
+             */
+            {
+                DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
+                EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                        S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+                EXPECT_NOT_NULL(chain_and_key);
 
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+                EXPECT_NOT_NULL(config);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+                EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+                EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
 
-            EXPECT_SUCCESS(test_cipher_preferences(config, config, chain_and_key, S2N_SIGNATURE_RSA));
+                EXPECT_SUCCESS(test_cipher_preferences(config, config, chain_and_key, S2N_SIGNATURE_RSA));
+            }
 
             exit(EXIT_SUCCESS);
         }

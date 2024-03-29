@@ -379,6 +379,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
         /* Enable client auth on the server, but not on the client */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, S2N_CERT_AUTH_NONE));
         EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
@@ -387,6 +388,32 @@ int main(int argc, char **argv)
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
                 S2N_ERR_UNEXPECTED_CERT_REQUEST);
+    };
+
+    /* By default, client accepts certificate requests */
+    {
+        DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, client_config));
+
+        DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_config));
+
+        /* Enable client auth on the server */
+        EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
+
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+        EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
     };
 
     END_TEST();

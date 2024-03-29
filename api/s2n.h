@@ -3023,6 +3023,38 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 
 /**
+ * Provides access to the TLS master secret.
+ *
+ * This is a dangerous method and should not be used unless absolutely necessary.
+ * Mishandling the master secret can compromise both the current connection
+ * and any past or future connections that use the same master secret due to
+ * session resumption.
+ *
+ * This method is only supported for older TLS versions, and will report an S2N_ERR_INVALID_STATE
+ * usage error if called for a TLS1.3 connection. TLS1.3 includes a new key schedule
+ * that derives independent secrets from the master secret for specific purposes,
+ * such as separate traffic, session ticket, and exporter secrets. Using the master
+ * secret directly circumvents that security feature, reducing the security of
+ * the protocol.
+ *
+ * If you need cryptographic material tied to the current TLS session, consider
+ * `s2n_connection_tls_exporter` instead. Although s2n_connection_tls_exporter
+ * currently only supports TLS1.3, there is also an RFC that describes exporters
+ * for older TLS versions: https://datatracker.ietf.org/doc/html/rfc5705
+ * Using the master secret as-is or defining your own exporter is dangerous.
+ *
+ * @param conn A pointer to the connection.
+ * @param secret_bytes Memory to copy the master secret into. The secret
+ * is always 48 bytes long.
+ * @param max_size The size of the memory available at `secret_bytes`. Must be
+ * at least 48 bytes.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `secret_bytes`
+ * will be set on success.
+ */
+S2N_API extern int s2n_connection_get_master_secret(const struct s2n_connection *conn,
+        uint8_t *secret_bytes, size_t max_size);
+
+/**
  * Provides access to the TLS-Exporter functionality.
  *
  * See https://datatracker.ietf.org/doc/html/rfc5705 and https://www.rfc-editor.org/rfc/rfc8446.

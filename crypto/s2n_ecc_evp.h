@@ -85,3 +85,4 @@ int s2n_ecc_evp_parse_params(struct s2n_connection *conn,
 int s2n_ecc_evp_find_supported_curve(struct s2n_connection *conn, struct s2n_blob *iana_ids, const struct s2n_ecc_named_curve **found);
 int s2n_ecc_evp_params_free(struct s2n_ecc_evp_params *ecc_evp_params);
 int s2n_is_evp_apis_supported();
+bool s2n_ecc_evp_supports_fips_check();
