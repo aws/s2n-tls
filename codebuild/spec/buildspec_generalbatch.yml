@@ -356,13 +356,14 @@ batch:
     - identifier: ktls
       buildspec: codebuild/spec/buildspec_ktls.yml
       env:
-        compute-type: BUILD_GENERAL1_2XLARGE
+        debug-session: true
+        compute-type: BUILD_GENERAL1_XLARGE
         image: aws/codebuild/standard:7.0
         privileged-mode: true
     - identifier: ktlsASAN
       buildspec: codebuild/spec/buildspec_ktls.yml
       env:
-        compute-type: BUILD_GENERAL1_2XLARGE
+        compute-type: BUILD_GENERAL1_XLARGE
         image: aws/codebuild/standard:7.0
         privileged-mode: true
         variables:
