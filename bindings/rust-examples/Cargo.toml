@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "client-hello-config-resolution",
+]
+resolver = "2"
+
+[workspace.package]
+version = "0.0.1"
+authors = ["AWS s2n"]
+publish = false
+license = "Apache-2.0"
+edition = "2021"
