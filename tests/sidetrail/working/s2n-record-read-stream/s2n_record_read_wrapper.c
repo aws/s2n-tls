@@ -99,7 +99,7 @@ int s2n_record_parse_wrapper(int *xor_pad,
   
   struct s2n_cipher stream_cipher = {
     .type = S2N_STREAM,
-    .io.cbc.decrypt = decrypt_stream,
+    .io.stream.decrypt = decrypt_stream,
   };
   
   struct s2n_record_algorithm record_algorithm = {

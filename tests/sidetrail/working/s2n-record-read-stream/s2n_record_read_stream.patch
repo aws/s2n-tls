@@ -1,0 +1,14 @@
+diff --git a/tls/s2n_record_read_stream.c b/tls/s2n_record_read_stream.c
+index f40621b..06871ed 100644
+--- a/tls/s2n_record_read_stream.c
++++ b/tls/s2n_record_read_stream.c
+@@ -80,6 +80,9 @@ int s2n_record_parse_stream(
+         POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
+     }
+
++    /* All information is declassified after the MAC is successfully verified. */
++    __VERIFIER_assume(0);
++
+     /* O.k., we've successfully read and decrypted the record, now we need to align the stuffer
+      * for reading the plaintext data.
+      */
