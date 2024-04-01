@@ -460,7 +460,7 @@ int main(int argc, char **argv)
             "20190121",
             "20190122",
             "20201021",
-            "20230317_12",
+            "20240331",
             "test_all_ecdsa",
             "test_ecdsa_priority",
             "test_all_tls12",
@@ -986,35 +986,35 @@ int main(int argc, char **argv)
             }
         };
 
-        /* 20230317_12 */
+        /* 20240331 */
         {
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default", rsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_tls13", rsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_fips", rsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "20230317", rsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
-                    "20230317_12", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "20240331", rsa_chain_and_key));
 
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_tls13", ecdsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_fips", ecdsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "20230317", ecdsa_chain_and_key));
-            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317_12,
-                    "20230317_12", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "20240331", ecdsa_chain_and_key));
 
             /* Can't negotiate TLS1.3 */
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_test_security_policies_compatible(&security_policy_20230317_12,
+                    s2n_test_security_policies_compatible(&security_policy_20240331,
                             "test_all_tls13", rsa_chain_and_key),
                     S2N_ERR_CIPHER_NOT_SUPPORTED);
             EXPECT_ERROR_WITH_ERRNO(
-                    s2n_test_security_policies_compatible(&security_policy_20230317_12,
+                    s2n_test_security_policies_compatible(&security_policy_20240331,
                             "test_all_tls13", ecdsa_chain_and_key),
                     S2N_ERR_CIPHER_NOT_SUPPORTED);
         };

@@ -307,7 +307,7 @@ const struct s2n_cipher_preferences cipher_preferences_20230317 = {
  * FIPS compliant.
  * No DHE (would require extra setup with s2n_config_add_dhparams)
  */
-struct s2n_cipher_suite *cipher_suites_20230317_12[] = {
+struct s2n_cipher_suite *cipher_suites_20240331[] = {
     /* TLS1.2 with ECDSA */
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
@@ -321,9 +321,9 @@ struct s2n_cipher_suite *cipher_suites_20230317_12[] = {
     &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
 };
 
-const struct s2n_cipher_preferences cipher_preferences_20230317_12 = {
-    .count = s2n_array_len(cipher_suites_20230317_12),
-    .suites = cipher_suites_20230317_12,
+const struct s2n_cipher_preferences cipher_preferences_20240331 = {
+    .count = s2n_array_len(cipher_suites_20240331),
+    .suites = cipher_suites_20240331,
     .allow_chacha20_boosting = false,
 };
 
