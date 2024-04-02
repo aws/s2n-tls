@@ -16,6 +16,7 @@ The following chart maps the security policy version to protocol version and cip
 |    version    | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3 | AES-CBC | AES-GCM | CHACHAPOLY | 3DES | RC4 | DHE | ECDHE | RSA kx |
 |---------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|--------|
 |   20230317    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
+|   20240331    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |    default    |    X   |    X   |    X   |        |    X    |    X    |      X     |      |     |     |   X   |    X   |
 | default_tls13 |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
 | default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |  X  |   X   |        |
@@ -42,7 +43,7 @@ The following chart maps the security policy version to protocol version and cip
 The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
 In general, customers prefer to use numbered versions for production use cases to prevent impact from library updates.
 
-"20230317" is a FIPS compliant policy. It offers more limited but more secure options than "default". It only supports TLS1.2 and TLS1.3. Consider this policy if you plan to enable FIPS mode or don't need or want to support less secure legacy options like TLS1.1 or SHA1.
+"20230317" offers more limited but more secure options than the default policies. Consider it if you don't need or want to support less secure legacy options like TLS1.1 or SHA1. It is also FIPS compliant and supports TLS1.3. If you need a version of this policy that doesn't support TLS1.3, choose "20240331" instead.
 
 "20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.
 
