@@ -69,6 +69,19 @@ const struct s2n_security_policy security_policy_20230317 = {
     },
 };
 
+const struct s2n_security_policy security_policy_20240331 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20240331,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20230317,
+    .certificate_signature_preferences = &s2n_signature_preferences_20230317,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
 const struct s2n_security_policy security_policy_20190801 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20190801,
@@ -1062,6 +1075,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "default_tls13", .security_policy = &security_policy_default_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_fips", .security_policy = &security_policy_default_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20230317", .security_policy = &security_policy_20230317, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20240331", .security_policy = &security_policy_20240331, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy = &security_policy_elb_2015_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-05", .security_policy = &security_policy_elb_2016_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },

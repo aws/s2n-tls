@@ -302,6 +302,31 @@ const struct s2n_cipher_preferences cipher_preferences_20230317 = {
     .allow_chacha20_boosting = false,
 };
 
+/*
+ * No TLS1.3 support.
+ * FIPS compliant.
+ * No DHE (would require extra setup with s2n_config_add_dhparams)
+ */
+struct s2n_cipher_suite *cipher_suites_20240331[] = {
+    /* TLS1.2 with ECDSA */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+
+    /* TLS1.2 with RSA */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20240331 = {
+    .count = s2n_array_len(cipher_suites_20240331),
+    .suites = cipher_suites_20240331,
+    .allow_chacha20_boosting = false,
+};
+
 /* Same as 20160411, but with ChaCha20 added as 1st in Preference List */
 struct s2n_cipher_suite *cipher_suites_20190122[] = {
     &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
