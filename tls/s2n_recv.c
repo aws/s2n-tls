@@ -48,7 +48,7 @@ S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint3
     RESULT_ENSURE_LTE(remaining, s2n_stuffer_space_remaining(&conn->buffer_in));
 
     uint8_t *data = s2n_stuffer_raw_read(&conn->buffer_in, written);
-    RESULT_GUARD_PTR(data);
+    RESULT_ENSURE_REF(data);
     RESULT_GUARD_POSIX(s2n_stuffer_free(&conn->in));
     RESULT_GUARD_POSIX(s2n_blob_init(&conn->in.blob, data, total));
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&conn->in, written));

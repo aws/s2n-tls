@@ -283,7 +283,7 @@ S2N_RESULT s2n_record_wipe(struct s2n_connection *conn)
      * We want to avoid an expensive shift / copy later if possible.
      */
     if (s2n_stuffer_is_consumed(&conn->buffer_in)) {
-     RESULT_GUARD_POSIX(s2n_stuffer_rewrite(&conn->buffer_in));
+        RESULT_GUARD_POSIX(s2n_stuffer_rewrite(&conn->buffer_in));
     }
     return S2N_RESULT_OK;
 }

@@ -499,6 +499,7 @@ int main(int argc, char **argv)
                 S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
 
         /* Consume the full first record */
+        /* cppcheck-suppress redundantAssignment */
         io_pair.server_in.write_cursor = test_record_size * 2;
         EXPECT_EQUAL(s2n_recv(server, buffer, sizeof(buffer), &blocked), sizeof(test_data));
         EXPECT_BYTEARRAY_EQUAL(buffer, test_data, sizeof(test_data));
