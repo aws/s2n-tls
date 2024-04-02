@@ -98,13 +98,14 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
         case S2N_KTLS_MODE_SEND:
             RESULT_ENSURE(conn->managed_send_io, S2N_ERR_KTLS_MANAGED_IO);
             /* The output stuffer should be empty before enabling kTLS. */
-            RESULT_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->out), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
             break;
         case S2N_KTLS_MODE_RECV:
             RESULT_ENSURE(conn->managed_recv_io, S2N_ERR_KTLS_MANAGED_IO);
             /* The input stuffers should be empty before enabling kTLS. */
-            RESULT_ENSURE(s2n_stuffer_data_available(&conn->header_in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
-            RESULT_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->header_in), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->in), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->buffer_in), S2N_ERR_KTLS_UNSUPPORTED_CONN);
             break;
         default:
             RESULT_BAIL(S2N_ERR_SAFETY);

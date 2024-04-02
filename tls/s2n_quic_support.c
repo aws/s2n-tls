@@ -132,7 +132,7 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
     RESULT_ENSURE_REF(conn);
 
     /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
-    RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
+    RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->buffer_in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
 
     RESULT_GUARD(s2n_read_in_bytes(conn, &conn->handshake.io, TLS_HANDSHAKE_HEADER_LENGTH));
 
@@ -141,8 +141,14 @@ S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t 
     RESULT_GUARD_POSIX(s2n_stuffer_reread(&conn->handshake.io));
 
     RESULT_ENSURE(message_len < S2N_MAXIMUM_HANDSHAKE_MESSAGE_LENGTH, S2N_ERR_BAD_MESSAGE);
-    RESULT_GUARD(s2n_read_in_bytes(conn, &conn->in, message_len));
+    RESULT_GUARD(s2n_read_in_bytes(conn, &conn->buffer_in, message_len));
 
+    /* Although we call s2n_read_in_bytes, recv_greedy is always disabled for quic.
+     * Therefore buffer_in will always contain exactly message_len bytes of data.
+     * So we don't need to handle the possibility of extra data in buffer_in.
+     */
+    RESULT_ENSURE_EQ(s2n_stuffer_data_available(&conn->buffer_in), message_len);
+    RESULT_GUARD(s2n_recv_in_init(conn, message_len, message_len));
     return S2N_RESULT_OK;
 }
 
