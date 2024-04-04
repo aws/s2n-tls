@@ -514,7 +514,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(resumption_config, ticket_key_name, strlen((char *) ticket_key_name),
                 ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
 
-        /* Session ticket sent by server arrives after the client does a TLS transfer. */
+        /* Client is serialized. Can read a session ticket after deserialization. */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -533,9 +533,9 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
 
-            /* Client will be serialized before reading the session ticket sent by the server. */
             EXPECT_EQUAL(s2n_stuffer_data_available(&cb_session_data), 0);
 
+            /* Client will be serialized before reading the session ticket sent by the server. */
             uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
             EXPECT_SUCCESS(s2n_connection_serialize(client_conn, buffer, sizeof(buffer)));
 
@@ -575,7 +575,7 @@ int main(int argc, char **argv)
             EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
         };
 
-        /* Server can write a session ticket after a TLS transfer */
+        /* Server is serialized. Can write a session ticket after deserialization. */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -616,8 +616,8 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server_conn, &io_pair));
 
             /* The server automatically sends a ticket right after the handshake completes. However,
-             * we're interested in what happens after the server has been resurrected with the traffic
-             * context. Therefore we add another ticket for the server to send */
+             * we're interested in what happens after the server has been deserialized. Therefore we
+             * add another ticket for the server to send. */
             EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(new_server_conn, 1));
 
             /* We want the server to be able to send a ticket so we reset the config */
@@ -718,9 +718,9 @@ int main(int argc, char **argv)
     };
 
     /* Self talk: Test interaction between renegotiation and serialization. Renegotiation is not available
-     * after serialization/deserialization. This is because the information needed to perform
-     * renegotiation(client/server finished verify data and secure renegotiation flag) 
-     * isn't stored during the serialization process and therefore isn't available post-deserialization.
+     * after serialization/deserialization. The information needed to perform renegotiation (i.e.
+     * client/server finished verify data and secure renegotiation flag) isn't stored during the
+     * serialization process and therefore isn't available post-deserialization.
      * We could add that data to the serialized struct in the future, but for now, the user will get
      * an error if they attempt to perform renegotiation after serialization. */
     {
