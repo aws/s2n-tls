@@ -122,19 +122,6 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
     return S2N_SUCCESS;
 }
 
-struct s2n_tls12_fields {
-    uint8_t master_secret[S2N_TLS_SECRET_LEN];
-    uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
-    uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
-};
-
-struct s2n_tls13_fields {
-    uint8_t secret_size;
-    uint8_t client_application_secret[S2N_TLS_SECRET_LEN];
-    uint8_t server_application_secret[S2N_TLS_SECRET_LEN];
-    uint8_t resumption_master_secret[S2N_TLS_SECRET_LEN];
-};
-
 struct s2n_connection_deserialize {
     uint8_t protocol_version;
     struct s2n_cipher_suite *cipher_suite;
@@ -142,8 +129,17 @@ struct s2n_connection_deserialize {
     uint8_t server_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN];
     uint16_t max_fragment_len;
     union {
-        struct s2n_tls12_fields tls12;
-        struct s2n_tls13_fields tls13;
+        struct {
+            uint8_t master_secret[S2N_TLS_SECRET_LEN];
+            uint8_t client_random[S2N_TLS_RANDOM_DATA_LEN];
+            uint8_t server_random[S2N_TLS_RANDOM_DATA_LEN];
+        } tls12;
+        struct {
+            uint8_t secret_size;
+            uint8_t client_application_secret[S2N_TLS_SECRET_LEN];
+            uint8_t server_application_secret[S2N_TLS_SECRET_LEN];
+            uint8_t resumption_master_secret[S2N_TLS_SECRET_LEN];
+        } tls13;
     } version;
 };
 
