@@ -240,7 +240,7 @@ int main(int argc, char **argv)
         size_t expected_count = 0;
 
         /* Test: manually copy some of the record into the read buffer */
-        if (false) {
+        {
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_EQUAL(s2n_send(client, test_data, sizeof(test_data), &blocked), sizeof(test_data));
             EXPECT_EQUAL(s2n_stuffer_data_available(&io_pair.server_in), test_record_size);

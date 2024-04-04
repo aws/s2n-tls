@@ -1739,7 +1739,8 @@ int s2n_connection_get_key_update_counts(struct s2n_connection *conn,
 int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled)
 {
     POSIX_ENSURE_REF(conn);
-    conn->recv_greedy = enabled;
-    conn->recv_greedy_set = true;
+    /* QUIC support is not currently compatible with recv_buffering */
+    POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_INVALID_STATE);
+    conn->recv_buffering = enabled;
     return S2N_SUCCESS;
 }

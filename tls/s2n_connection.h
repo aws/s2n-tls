@@ -140,10 +140,10 @@ struct s2n_connection {
     /* Indicates s2n_recv should reduce read calls by attempting to buffer more
      * data than is required for a single record.
      *
-     * This is more efficient, but will break any custom IO that behaves like MSG_WAITALL.
+     * This is more efficient, but will break application that expect exact reads,
+     * for example any custom IO that behaves like MSG_WAITALL.
      */
-    unsigned recv_greedy : 1;
-    unsigned recv_greedy_set : 1;
+    unsigned recv_buffering : 1;
 
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;

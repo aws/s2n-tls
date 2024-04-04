@@ -55,35 +55,11 @@ S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint3
     return S2N_RESULT_OK;
 }
 
-static bool s2n_recv_is_greedy(struct s2n_connection *conn)
-{
-    if (!conn) {
-        return false;
-    }
-    if (conn->quic_enabled) {
-        return false;
-    }
-    if (conn->recv_greedy_set) {
-        return conn->recv_greedy;
-    }
-    /* Turn on recv_greedy in unit tests only to get more test coverage */
-    if (s2n_in_unit_test()) {
-        return conn->managed_recv_io;
-    }
-    /* recv_greedy changes how s2n_recv consumes data, potentially
-     * breaking existing application event loops. For example, if an event loop
-     * assumes that it only needs to successfully call s2n_recv once per poll,
-     * it may miss data leftover in buffer_in after the single s2n_recv call.
-     * Disable by default-- applications can opt-in after verifying safety.
-     */
-    return false;
-}
-
 S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length)
 {
     while (s2n_stuffer_data_available(output) < length) {
         uint32_t remaining = length - s2n_stuffer_data_available(output);
-        if (s2n_recv_is_greedy(conn)) {
+        if (conn->recv_buffering) {
             remaining = MAX(remaining, s2n_stuffer_space_remaining(output));
         }
         errno = 0;

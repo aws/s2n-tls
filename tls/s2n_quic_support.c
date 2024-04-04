@@ -45,6 +45,8 @@ int s2n_connection_enable_quic(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD_RESULT(s2n_connection_validate_tls13_support(conn));
+    /* QUIC support is not currently compatible with recv_buffering */
+    POSIX_ENSURE(!conn->recv_buffering, S2N_ERR_INVALID_STATE);
     conn->quic_enabled = true;
     return S2N_SUCCESS;
 }
@@ -130,6 +132,10 @@ int s2n_recv_quic_post_handshake_message(struct s2n_connection *conn, s2n_blocke
 S2N_RESULT s2n_quic_read_handshake_message(struct s2n_connection *conn, uint8_t *message_type)
 {
     RESULT_ENSURE_REF(conn);
+    /* The use of handshake.io here would complicate recv_buffering, and there's
+     * no real use case for recv_buffering when QUIC is handling the IO.
+     */
+    RESULT_ENSURE(!conn->recv_buffering, S2N_ERR_INVALID_STATE);
 
     /* Allocate stuffer space now so that we don't have to realloc later in the handshake. */
     RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->buffer_in, S2N_EXPECTED_QUIC_MESSAGE_SIZE));
