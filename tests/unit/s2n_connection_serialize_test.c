@@ -723,8 +723,8 @@ int main(int argc, char **argv)
      * isn't stored during the serialization process and therefore isn't available post-deserialization.
      * We could add that data to the serialized struct in the future, but for now, the user will get
      * an error if they attempt to perform renegotiation after serialization. */
-    {   
-        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), 
+    {
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -751,7 +751,7 @@ int main(int argc, char **argv)
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(new_client_conn);
         EXPECT_SUCCESS(s2n_connection_deserialize(new_client_conn, buffer, sizeof(buffer)));
-        
+
         EXPECT_FAILURE_WITH_ERRNO(s2n_renegotiate_wipe(new_client_conn), S2N_ERR_NO_RENEGOTIATION);
     };
 
