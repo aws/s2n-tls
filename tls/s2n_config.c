@@ -1219,3 +1219,14 @@ int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups,
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_serialized_connection_version(struct s2n_config *config, s2n_serialization_version version)
+{
+    POSIX_ENSURE_REF(config);
+
+    /* Currently there is only one format version supported */
+    POSIX_ENSURE_EQ(version, S2N_SERIALIZED_CONN_V1);
+    config->serialized_connection_version = version;
+
+    return S2N_SUCCESS;
+}

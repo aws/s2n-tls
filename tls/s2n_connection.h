@@ -133,6 +133,10 @@ struct s2n_connection {
     /* Indicates whether the connection should request OCSP stapling from the peer */
     unsigned request_ocsp_status : 1;
 
+    /* Indicates that the connection was created from deserialization
+     * and therefore knowledge of the original handshake is limited. */
+    unsigned deserialized_conn : 1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
