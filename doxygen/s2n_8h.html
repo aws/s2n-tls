@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.9-b36c578b</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.9-b169d76b</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -537,6 +537,8 @@ Functions</h2></td></tr>
 <tr class="separator:a11c72914bfc09a9174b6a7b019e5aa5c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a9b4fafb7e9b8277f408af0ad17ab6e19"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a9b4fafb7e9b8277f408af0ad17ab6e19">s2n_connection_prefer_low_latency</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:a9b4fafb7e9b8277f408af0ad17ab6e19"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:ae30791c458875956ef9f4cdbd8c8c19f"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ae30791c458875956ef9f4cdbd8c8c19f">s2n_connection_set_recv_buffering</a> (struct s2n_connection *conn, bool enabled)</td></tr>
+<tr class="separator:ae30791c458875956ef9f4cdbd8c8c19f"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a5399ba44a921d36ed34661038a509d1a"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a5399ba44a921d36ed34661038a509d1a">s2n_connection_set_dynamic_buffers</a> (struct s2n_connection *conn, bool enabled)</td></tr>
 <tr class="separator:a5399ba44a921d36ed34661038a509d1a"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:add5f14855b2810a9857b1a41f2cc92f9"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#add5f14855b2810a9857b1a41f2cc92f9">s2n_connection_set_dynamic_record_threshold</a> (struct s2n_connection *conn, uint32_t resize_threshold, uint16_t timeout_threshold)</td></tr>
@@ -8118,6 +8120,57 @@ Safety</h1>
   <table class="params">
     <tr><td class="paramname">conn</td><td>A pointer to the s2n connection </td></tr>
     <tr><td class="paramname">readfd</td><td>The new read file descriptor </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="ae30791c458875956ef9f4cdbd8c8c19f" name="ae30791c458875956ef9f4cdbd8c8c19f"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#ae30791c458875956ef9f4cdbd8c8c19f">&#9670;&#160;</a></span>s2n_connection_set_recv_buffering()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_set_recv_buffering </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>enabled</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Configure the connection to reduce potentially expensive calls to recv.</p>
+<p >If this setting is disabled, s2n-tls will call read twice for every TLS record, which can be expensive but ensures that s2n-tls will always attempt to read the exact number of bytes it requires. If this setting is enabled, s2n-tls will instead reduce the number of calls to read by attempting to read as much data as possible in each read call, storing the extra in the existing IO buffers. This may cause it to request more data than will ever actually be available.</p>
+<p >There is no additional memory cost of enabling this setting. It reuses the existing IO buffers.</p>
+<p >This setting is disabled by default. Depending on how your application detects data available for reading, buffering reads may break your event loop. In particular, note that:</p>
+<ol type="1">
+<li>File descriptor reads or calls to your custom s2n_recv_cb may request more data than is available. Reads must return partial data when available rather than blocking until all requested data is available.</li>
+<li>s2n_negotiate may read and buffer application data records. You must call s2n_recv at least once after negotiation to ensure that you handle any buffered data.</li>
+<li>s2n_recv may read and buffer more records than it parses and decrypts. You must call s2n_recv until it reports S2N_ERR_T_BLOCKED, rather than just until it reports S2N_SUCCESS.</li>
+<li>s2n_peek reports available decrypted data. It does not report any data buffered by this feature.</li>
+<li>s2n_connection_release_buffers will not release the input buffer if it contains buffered data.</li>
+</ol>
+<p >For example: if your event loop uses <code>poll</code>, you will receive a POLLIN event for your read file descriptor when new data is available. When you call s2n_recv to read that data, s2n-tls reads one or more TLS records from the file descriptor. If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those records may remain in s2n-tls's read buffer. If you read part of a record, s2n_peek will report the remainder of that record as available. But if you don't read any of a record, it remains encrypted and is not reported by s2n_peek. And because the data is buffered in s2n-tls instead of in the file descriptor, another call to <code>poll</code> will NOT report any more data available. Your application may hang waiting for more data.</p>
+<dl class="section warning"><dt>Warning</dt><dd>This feature cannot be enabled for a connection that will enable kTLS for receiving.</dd>
+<dd>
+This feature may work with blocking IO, if used carefully. Your blocking IO must support partial reads (so MSG_WAITALL cannot be used). You will need to know how much data will eventually be available rather than relying on S2N_ERR_T_BLOCKED as noted in #3 above.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>The connection object being updated </td></tr>
+    <tr><td class="paramname">enabled</td><td>Set to <code>true</code> to enable, <code>false</code> to disable. </td></tr>
   </table>
   </dd>
 </dl>
