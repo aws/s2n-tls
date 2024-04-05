@@ -1842,7 +1842,8 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  *    until it reports S2N_SUCCESS.
  *
  * 4. s2n_peek reports available decrypted data. It does not report any data
- *    buffered by this feature.
+ *    buffered by this feature. However, s2n_peek_buffered does report data
+ *    buffered by not decrypted.
  *
  * 5. s2n_connection_release_buffers will not release the input buffer if it
  *    contains buffered data.
@@ -1853,10 +1854,10 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  * If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those
  * records may remain in s2n-tls's read buffer. If you read part of a record,
  * s2n_peek will report the remainder of that record as available. But if you don't
- * read any of a record, it remains encrypted and is not reported by s2n_peek.
- * And because the data is buffered in s2n-tls instead of in the file descriptor,
- * another call to `poll` will NOT report any more data available. Your application
- * may hang waiting for more data.
+ * read any of a record, it remains encrypted and is not reported by s2n_peek, but
+ * is still reported by s2n_peek_buffered. And because the data is buffered in s2n-tls
+ * instead of in the file descriptor, another call to `poll` will NOT report any
+ * more data available. Your application may hang waiting for more data.
  *
  * @warning This feature cannot be enabled for a connection that will enable kTLS for receiving.
  *
@@ -1870,6 +1871,21 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
+
+/**
+ * Reports how many bytes of encrypted data is buffered due to the optimization
+ * enabled by `s2n_connection_set_recv_buffering`.
+ *
+ * While `s2n_peek` reports decrypted data that is ready for the application to consume,
+ * `s2n_peek_buffered` reports encrypted data that needs to be parsed and decrypted before
+ * the application can consume it. `s2n_peek_buffered` is not a replacement for
+ * `s2n_peek`: both must be checked to determine whether there is still work for
+ * `s2n_recv` to perform.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @returns The number of buffered encrypted bytes
+ */
+S2N_API extern uint32_t s2n_peek_buffered(struct s2n_connection *conn);
 
 /**
  * Configure the connection to free IO buffers when they are not currently in use.
