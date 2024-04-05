@@ -1105,7 +1105,7 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
 {
     s2n_cert_auth_type client_cert_auth_type;
     POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-    S2N_ERROR_IF(client_cert_auth_type != S2N_CERT_AUTH_OPTIONAL, S2N_ERR_BAD_MESSAGE);
+    POSIX_ENSURE(client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL, S2N_ERR_MISSING_CLIENT_CERT);
 
     POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, NO_CLIENT_CERT));
 
@@ -1499,8 +1499,9 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         s2n_cert_auth_type client_cert_auth_type;
         POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
-        /* If we're a Client, and received a ClientCertRequest message, and ClientAuth
-         * is set to optional, then switch the State Machine that we're using to expect the ClientCertRequest. */
+        /* If client auth is optional, we initially assume it will not be requested.
+         * If we received a request, switch to a client auth handshake.
+         */
         if (conn->mode == S2N_CLIENT
                 && client_cert_auth_type != S2N_CERT_AUTH_REQUIRED
                 && message_type == TLS_CERT_REQ) {
@@ -1527,6 +1528,12 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             POSIX_GUARD_RESULT(s2n_client_hello_request_validate(conn));
             POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
             continue;
+        }
+
+        /* Check for missing Certificate Requests to surface a more specific error */
+        if (EXPECTED_MESSAGE_TYPE(conn) == TLS_CERT_REQ) {
+            POSIX_ENSURE(message_type == TLS_CERT_REQ,
+                    S2N_ERR_MISSING_CERT_REQUEST);
         }
 
         POSIX_ENSURE(record_type == EXPECTED_RECORD_TYPE(conn), S2N_ERR_BAD_MESSAGE);
