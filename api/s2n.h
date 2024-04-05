@@ -1813,6 +1813,65 @@ S2N_API extern int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
+ * Configure the connection to reduce potentially expensive calls to recv.
+ *
+ * If this setting is disabled, s2n-tls will call read twice for every TLS record,
+ * which can be expensive but ensures that s2n-tls will always attempt to read the
+ * exact number of bytes it requires. If this setting is enabled, s2n-tls will
+ * instead reduce the number of calls to read by attempting to read as much data
+ * as possible in each read call, storing the extra in the existing IO buffers.
+ * This may cause it to request more data than will ever actually be available.
+ *
+ * There is no additional memory cost of enabling this setting. It reuses the
+ * existing IO buffers.
+ *
+ * This setting is disabled by default. Depending on how your application detects
+ * data available for reading, buffering reads may break your event loop.
+ * In particular, note that:
+ *
+ * 1. File descriptor reads or calls to your custom s2n_recv_cb may request more
+ *    data than is available. Reads must return partial data when available rather
+ *    than blocking until all requested data is available.
+ *
+ * 2. s2n_negotiate may read and buffer application data records.
+ *    You must call s2n_recv at least once after negotiation to ensure that you
+ *    handle any buffered data.
+ *
+ * 3. s2n_recv may read and buffer more records than it parses and decrypts.
+ *    You must call s2n_recv until it reports S2N_ERR_T_BLOCKED, rather than just
+ *    until it reports S2N_SUCCESS.
+ *
+ * 4. s2n_peek reports available decrypted data. It does not report any data
+ *    buffered by this feature.
+ *
+ * 5. s2n_connection_release_buffers will not release the input buffer if it
+ *    contains buffered data.
+ *
+ * For example: if your event loop uses `poll`, you will receive a POLLIN event
+ * for your read file descriptor when new data is available. When you call s2n_recv
+ * to read that data, s2n-tls reads one or more TLS records from the file descriptor.
+ * If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those
+ * records may remain in s2n-tls's read buffer. If you read part of a record,
+ * s2n_peek will report the remainder of that record as available. But if you don't
+ * read any of a record, it remains encrypted and is not reported by s2n_peek.
+ * And because the data is buffered in s2n-tls instead of in the file descriptor,
+ * another call to `poll` will NOT report any more data available. Your application
+ * may hang waiting for more data.
+ *
+ * @warning This feature cannot be enabled for a connection that will enable kTLS for receiving.
+ *
+ * @warning This feature may work with blocking IO, if used carefully. Your blocking
+ * IO must support partial reads (so MSG_WAITALL cannot be used). You will need
+ * to know how much data will eventually be available rather than relying on
+ * S2N_ERR_T_BLOCKED as noted in #3 above.
+ *
+ * @param conn The connection object being updated
+ * @param enabled Set to `true` to enable, `false` to disable.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
+
+/**
  * Configure the connection to free IO buffers when they are not currently in use.
  *
  * This configuration can be used to minimize connection memory footprint size, at the cost

@@ -36,11 +36,32 @@
 #include "utils/s2n_safety.h"
 #include "utils/s2n_socket.h"
 
+S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint32_t total)
+{
+    RESULT_ENSURE_REF(conn);
+
+    /* If we're going to initialize conn->in to point to more memory than
+     * is actually readable, make sure that the additional memory exists.
+     */
+    RESULT_ENSURE_LTE(written, total);
+    uint32_t remaining = total - written;
+    RESULT_ENSURE_LTE(remaining, s2n_stuffer_space_remaining(&conn->buffer_in));
+
+    uint8_t *data = s2n_stuffer_raw_read(&conn->buffer_in, written);
+    RESULT_ENSURE_REF(data);
+    RESULT_GUARD_POSIX(s2n_stuffer_free(&conn->in));
+    RESULT_GUARD_POSIX(s2n_blob_init(&conn->in.blob, data, total));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&conn->in, written));
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *output, uint32_t length)
 {
     while (s2n_stuffer_data_available(output) < length) {
         uint32_t remaining = length - s2n_stuffer_data_available(output);
-
+        if (conn->recv_buffering) {
+            remaining = MAX(remaining, s2n_stuffer_space_remaining(output));
+        }
         errno = 0;
         int r = s2n_connection_recv_stuffer(output, conn, remaining);
         if (r == 0) {
@@ -50,6 +71,20 @@ S2N_RESULT s2n_read_in_bytes(struct s2n_connection *conn, struct s2n_stuffer *ou
         conn->wire_bytes_in += r;
     }
 
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_recv_buffer_in(struct s2n_connection *conn, size_t min_size)
+{
+    RESULT_GUARD_POSIX(s2n_stuffer_resize_if_empty(&conn->buffer_in, S2N_LARGE_FRAGMENT_LENGTH));
+    uint32_t buffer_in_available = s2n_stuffer_data_available(&conn->buffer_in);
+    if (buffer_in_available < min_size) {
+        uint32_t remaining = min_size - buffer_in_available;
+        if (s2n_stuffer_space_remaining(&conn->buffer_in) < remaining) {
+            RESULT_GUARD_POSIX(s2n_stuffer_shift(&conn->buffer_in));
+        }
+        RESULT_GUARD(s2n_read_in_bytes(conn, &conn->buffer_in, min_size));
+    }
     return S2N_RESULT_OK;
 }
 
@@ -67,11 +102,17 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
         *record_type = TLS_APPLICATION_DATA;
         return S2N_SUCCESS;
     }
-    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_LARGE_FRAGMENT_LENGTH));
 
     /* Read the record until we at least have a header */
     POSIX_GUARD(s2n_stuffer_reread(&conn->header_in));
-    POSIX_GUARD_RESULT(s2n_read_in_bytes(conn, &conn->header_in, S2N_TLS_RECORD_HEADER_LENGTH));
+    uint32_t header_available = s2n_stuffer_data_available(&conn->header_in);
+    if (header_available < S2N_TLS_RECORD_HEADER_LENGTH) {
+        uint32_t header_remaining = S2N_TLS_RECORD_HEADER_LENGTH - header_available;
+        s2n_result ret = s2n_recv_buffer_in(conn, header_remaining);
+        uint32_t header_read = MIN(header_remaining, s2n_stuffer_data_available(&conn->buffer_in));
+        POSIX_GUARD(s2n_stuffer_copy(&conn->buffer_in, &conn->header_in, header_read));
+        POSIX_GUARD_RESULT(ret);
+    }
 
     uint16_t fragment_length = 0;
 
@@ -84,7 +125,14 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     }
 
     /* Read enough to have the whole record */
-    POSIX_GUARD_RESULT(s2n_read_in_bytes(conn, &conn->in, fragment_length));
+    uint32_t fragment_available = s2n_stuffer_data_available(&conn->in);
+    if (fragment_available < fragment_length || fragment_length == 0) {
+        POSIX_GUARD(s2n_stuffer_rewind_read(&conn->buffer_in, fragment_available));
+        s2n_result ret = s2n_recv_buffer_in(conn, fragment_length);
+        uint32_t fragment_read = MIN(fragment_length, s2n_stuffer_data_available(&conn->buffer_in));
+        POSIX_GUARD_RESULT(s2n_recv_in_init(conn, fragment_read, fragment_length));
+        POSIX_GUARD_RESULT(ret);
+    }
 
     if (*isSSLv2) {
         return 0;

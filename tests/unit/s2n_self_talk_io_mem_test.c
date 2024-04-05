@@ -184,8 +184,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         /* All IO buffers empty */
-        EXPECT_EQUAL(client_conn->in.blob.size, 0);
-        EXPECT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_EQUAL(client_conn->buffer_in.blob.size, 0);
+        EXPECT_EQUAL(server_conn->buffer_in.blob.size, 0);
         EXPECT_EQUAL(client_conn->out.blob.size, 0);
         EXPECT_EQUAL(server_conn->out.blob.size, 0);
 
@@ -199,16 +199,16 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn, SERVER_CERT));
 
         /* All IO buffers not empty */
-        EXPECT_NOT_EQUAL(client_conn->in.blob.size, 0);
-        EXPECT_NOT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_NOT_EQUAL(client_conn->buffer_in.blob.size, 0);
+        EXPECT_NOT_EQUAL(server_conn->buffer_in.blob.size, 0);
         EXPECT_NOT_EQUAL(client_conn->out.blob.size, 0);
         EXPECT_NOT_EQUAL(server_conn->out.blob.size, 0);
 
         /* Wipe connections */
         EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
         EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
-        EXPECT_EQUAL(client_conn->in.blob.size, 0);
-        EXPECT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_EQUAL(client_conn->buffer_in.blob.size, 0);
+        EXPECT_EQUAL(server_conn->buffer_in.blob.size, 0);
         EXPECT_EQUAL(client_conn->out.blob.size, 0);
         EXPECT_EQUAL(server_conn->out.blob.size, 0);
 
@@ -244,9 +244,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
 
         /* all IO buffers should be empty after the handshake */
-        EXPECT_EQUAL(client_conn->in.blob.size, 0);
+        EXPECT_EQUAL(client_conn->buffer_in.blob.size, 0);
         EXPECT_EQUAL(client_conn->out.blob.size, 0);
-        EXPECT_EQUAL(server_conn->in.blob.size, 0);
+        EXPECT_EQUAL(server_conn->buffer_in.blob.size, 0);
         EXPECT_EQUAL(server_conn->out.blob.size, 0);
 
         /* block the server from sending */
@@ -283,13 +283,13 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_recv(client_conn, &buf, s2n_array_len(buf) / 2, &blocked), s2n_array_len(buf) / 2);
 
         /* the `in` buffer should not be freed until it's completely flushed to the application */
-        EXPECT_NOT_EQUAL(client_conn->in.blob.size, 0);
+        EXPECT_NOT_EQUAL(client_conn->buffer_in.blob.size, 0);
 
         /* Receive the second half of the payload on the second call */
         EXPECT_EQUAL(s2n_recv(client_conn, &buf, s2n_array_len(buf) / 2, &blocked), s2n_array_len(buf) / 2);
 
         /* at this point the application has received the full message and the `in` buffer should be freed */
-        EXPECT_EQUAL(client_conn->in.blob.size, 0);
+        EXPECT_EQUAL(client_conn->buffer_in.blob.size, 0);
     };
 
     EXPECT_SUCCESS(s2n_config_free(config));
