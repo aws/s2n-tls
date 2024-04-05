@@ -1873,14 +1873,18 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
 S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
 
 /**
- * Reports how many bytes of encrypted data is buffered due to the optimization
+ * Reports how many bytes of unprocessed TLS records is buffered due to the optimization
  * enabled by `s2n_connection_set_recv_buffering`.
  *
- * While `s2n_peek` reports decrypted data that is ready for the application to consume,
- * `s2n_peek_buffered` reports encrypted data that needs to be parsed and decrypted before
- * the application can consume it. `s2n_peek_buffered` is not a replacement for
- * `s2n_peek`: both must be checked to determine whether there is still work for
- * `s2n_recv` to perform.
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
+ * While `s2n_peek` reports application data that is ready for the application
+ * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
+ * records that still need to be parsed and likely decrypted. Those records may
+ * contain application data, but they also may only contain TLS control messages.
+ *
+ * If an application needs to determine whether there is any data left to handle
+ * (for example, before calling `poll` to wait on the read file descriptor) then
+ * that application must check both `s2n_peek` and `s2n_peek_buffered`.
  *
  * @param conn A pointer to the s2n_connection object
  * @returns The number of buffered encrypted bytes
