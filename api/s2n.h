@@ -1847,10 +1847,10 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  * 5. s2n_connection_release_buffers will not release the input buffer if it
  *    contains buffered data.
  *
- * For example: if your event loop uses `poll`, you will receive an POLLIN event
+ * For example: if your event loop uses `poll`, you will receive a POLLIN event
  * for your read file descriptor when new data is available. When you call s2n_recv
  * to read that data, s2n-tls reads one or more TLS records from the file descriptor.
- * If you do not call s2n_recv until it reports S2N_ERR_T_BLOCKED, some of those
+ * If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those
  * records may remain in s2n-tls's read buffer. If you read part of a record,
  * s2n_peek will report the remainder of that record as available. But if you don't
  * read any of a record, it remains encrypted and is not reported by s2n_peek.
