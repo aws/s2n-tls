@@ -1843,7 +1843,7 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  *
  * 4. s2n_peek reports available decrypted data. It does not report any data
  *    buffered by this feature. However, s2n_peek_buffered does report data
- *    buffered by not decrypted.
+ *    buffered by this feature.
  *
  * 5. s2n_connection_release_buffers will not release the input buffer if it
  *    contains buffered data.
@@ -1862,9 +1862,10 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  * @warning This feature cannot be enabled for a connection that will enable kTLS for receiving.
  *
  * @warning This feature may work with blocking IO, if used carefully. Your blocking
- * IO must support partial reads (so MSG_WAITALL cannot be used). You will need
- * to know how much data will eventually be available rather than relying on
- * S2N_ERR_T_BLOCKED as noted in #3 above.
+ * IO must support partial reads (so MSG_WAITALL cannot be used). You will either
+ * need to know exactly how much data your peer is sending, or will need to use
+ * `s2n_peek` and `s2n_peek_buffered` rather than relying on S2N_ERR_T_BLOCKED
+ * as noted in #3 above.
  *
  * @param conn The connection object being updated
  * @param enabled Set to `true` to enable, `false` to disable.
@@ -1873,14 +1874,14 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
 S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
 
 /**
- * Reports how many bytes of unprocessed TLS records is buffered due to the optimization
+ * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
  * enabled by `s2n_connection_set_recv_buffering`.
  *
  * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
  * While `s2n_peek` reports application data that is ready for the application
  * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
  * records that still need to be parsed and likely decrypted. Those records may
- * contain application data, but they also may only contain TLS control messages.
+ * contain application data, but they may also only contain TLS control messages.
  *
  * If an application needs to determine whether there is any data left to handle
  * (for example, before calling `poll` to wait on the read file descriptor) then
