@@ -742,15 +742,11 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
 
-            /* The server automatically sends a ticket right after the handshake completes. However,
-             * we're interested in what happens after the server has been deserialized. Therefore we
-             * add another ticket for the server to send. */
-            EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(server_conn, 1));
-
-            /* We want the server to be able to send a ticket so we reset the config */
+            /* We want the server to be able to send a ticket so we reset the config. */
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, resumption_config));
 
-            /* Get the client to do a read to pick up the session ticket */
+            /* The number of tickets already sent isn't serialized, so the deserialized server
+             * sends another ticket with this send call.  */
             EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
 
             /* Client should have received ST */
