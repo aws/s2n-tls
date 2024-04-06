@@ -317,3 +317,11 @@ uint32_t s2n_peek(struct s2n_connection *conn)
 
     return s2n_stuffer_data_available(&conn->in);
 }
+
+uint32_t s2n_peek_buffered(struct s2n_connection *conn)
+{
+    if (conn == NULL) {
+        return 0;
+    }
+    return s2n_stuffer_data_available(&conn->buffer_in);
+}

@@ -65,6 +65,13 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
 
+    DEFER_CLEANUP(struct s2n_config *multi_config = s2n_config_new(),
+            s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(multi_config, chain_and_key));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(multi_config, "default_tls13"));
+    EXPECT_SUCCESS(s2n_config_disable_x509_verification(multi_config));
+    EXPECT_SUCCESS(s2n_config_set_recv_multi_record(multi_config, true));
+
     /* Test: Read a single record */
     uint32_t test_record_size_val = 0;
     {
@@ -215,6 +222,38 @@ int main(int argc, char **argv)
         /* If all data is consumed, the input buffer can be released */
         EXPECT_SUCCESS(s2n_connection_release_buffers(server));
         EXPECT_EQUAL(server->buffer_in.blob.allocated, 0);
+    }
+
+    /* Test: Read multiple small records with "multi_record" enabled */
+    {
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, multi_config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, multi_config));
+
+        EXPECT_SUCCESS(s2n_connection_set_recv_buffering(client, true));
+        EXPECT_SUCCESS(s2n_connection_set_recv_buffering(server, true));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        struct s2n_recv_wrapper counter = { 0 };
+        EXPECT_OK(s2n_connection_set_counting_read(server, &counter));
+
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        for (size_t i = 0; i < sizeof(test_data); i++) {
+            EXPECT_EQUAL(s2n_send(client, test_data + i, 1, &blocked), 1);
+        }
+
+        uint8_t buffer[sizeof(test_data)] = { 0 };
+        EXPECT_EQUAL(s2n_recv(server, buffer, sizeof(buffer), &blocked), sizeof(test_data));
+        EXPECT_BYTEARRAY_EQUAL(buffer, test_data, sizeof(test_data));
+        EXPECT_EQUAL(counter.count, 1);
     }
 
     /* Test: Read the rest of a partial record */
@@ -512,6 +551,68 @@ int main(int argc, char **argv)
         /* Consume the full second record */
         EXPECT_EQUAL(s2n_recv(server, buffer, sizeof(buffer), &blocked), sizeof(test_data));
         EXPECT_BYTEARRAY_EQUAL(buffer, test_data, sizeof(test_data));
+    }
+
+    /* Test: s2n_peek_buffered */
+    {
+        EXPECT_EQUAL(s2n_peek_buffered(NULL), 0);
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, multi_config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, multi_config));
+
+        struct {
+            uint32_t read_size;
+            uint32_t expect_available;
+            uint32_t expect_buffered;
+        } test_cases[] = {
+            {
+                    .read_size = 1,
+                    .expect_available = sizeof(test_data) - 1,
+                    .expect_buffered = test_record_size,
+            },
+            {
+                    .read_size = sizeof(test_data) - 1,
+                    .expect_available = 1,
+                    .expect_buffered = test_record_size,
+            },
+            {
+                    .read_size = sizeof(test_data),
+                    .expect_available = 0,
+                    .expect_buffered = test_record_size,
+            },
+            {
+                    .read_size = sizeof(test_data) + 1,
+                    .expect_available = sizeof(test_data) - 1,
+                    .expect_buffered = 0,
+            },
+        };
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &io_pair));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&io_pair.server_in));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            uint8_t buffer[sizeof(test_data) * 2] = { 0 };
+
+            EXPECT_EQUAL(s2n_send(client, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+            EXPECT_EQUAL(s2n_send(client, test_data, sizeof(test_data), &blocked), sizeof(test_data));
+
+            uint32_t read_size = test_cases[i].read_size;
+            EXPECT_SUCCESS(s2n_connection_set_recv_buffering(server, true));
+            EXPECT_EQUAL(s2n_recv(server, buffer, read_size, &blocked), read_size);
+            EXPECT_EQUAL(s2n_peek_buffered(server), test_cases[i].expect_buffered);
+            EXPECT_EQUAL(s2n_peek(server), test_cases[i].expect_available);
+
+            EXPECT_SUCCESS(s2n_connection_wipe(client));
+            EXPECT_SUCCESS(s2n_connection_wipe(server));
+        }
     }
 
     END_TEST();
