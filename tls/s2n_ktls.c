@@ -92,10 +92,10 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
 
     /* Prevent kTLS from being enabled on connections that might be serialized.
      *
-     * When kTLS is enabled the socket takes over tracking sequence numbers. This means
-     * s2n-tls doesn't know the sequence numbers, a requirement for serializing
-     * without errors. This might change in the future, but for now, we don't allow
-     * kTLS if the serialization version is set.
+     * The socket takes over tracking sequence numbers when kTLS is enabled.
+     * We would need to call getsockopt to retrieve the current sequence numbers for
+     * serialization. This would complicate the serialization implementation so
+     * for now, do not support kTLS with serialization.
      */
     RESULT_ENSURE(config->serialized_connection_version == S2N_SERIALIZED_CONN_NONE,
             S2N_ERR_KTLS_UNSUPPORTED_CONN);
