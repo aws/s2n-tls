@@ -287,12 +287,12 @@ impl Connection {
     /// update their sending key. Note that s2n-tls currently only supports
     /// `peer_request` being set to `KeyUpdateNotRequested` and will return an error
     /// if any other value is used.
-    pub fn request_key_update(&mut self, peer_request: PeerKeyUpdate) -> Result<(), Error> {
+    pub fn request_key_update(&mut self, peer_request: PeerKeyUpdate) -> Result<&mut Self, Error> {
         unsafe {
             s2n_connection_request_key_update(self.connection.as_ptr(), peer_request.into())
                 .into_result()
         }?;
-        Ok(())
+        Ok(self)
     }
 
     /// Reports the number of times sending and receiving keys have been updated.
