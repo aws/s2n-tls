@@ -204,7 +204,7 @@ struct s2n_handshake {
 };
 
 /* Only used in our test cases. */
-message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *conn);
 
 /* s2n_handshake */
 int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);

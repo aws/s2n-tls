@@ -1813,6 +1813,86 @@ S2N_API extern int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
+ * Configure the connection to reduce potentially expensive calls to recv.
+ *
+ * If this setting is disabled, s2n-tls will call read twice for every TLS record,
+ * which can be expensive but ensures that s2n-tls will always attempt to read the
+ * exact number of bytes it requires. If this setting is enabled, s2n-tls will
+ * instead reduce the number of calls to read by attempting to read as much data
+ * as possible in each read call, storing the extra in the existing IO buffers.
+ * This may cause it to request more data than will ever actually be available.
+ *
+ * There is no additional memory cost of enabling this setting. It reuses the
+ * existing IO buffers.
+ *
+ * This setting is disabled by default. Depending on how your application detects
+ * data available for reading, buffering reads may break your event loop.
+ * In particular, note that:
+ *
+ * 1. File descriptor reads or calls to your custom s2n_recv_cb may request more
+ *    data than is available. Reads must return partial data when available rather
+ *    than blocking until all requested data is available.
+ *
+ * 2. s2n_negotiate may read and buffer application data records.
+ *    You must call s2n_recv at least once after negotiation to ensure that you
+ *    handle any buffered data.
+ *
+ * 3. s2n_recv may read and buffer more records than it parses and decrypts.
+ *    You must call s2n_recv until it reports S2N_ERR_T_BLOCKED, rather than just
+ *    until it reports S2N_SUCCESS.
+ *
+ * 4. s2n_peek reports available decrypted data. It does not report any data
+ *    buffered by this feature. However, s2n_peek_buffered does report data
+ *    buffered by this feature.
+ *
+ * 5. s2n_connection_release_buffers will not release the input buffer if it
+ *    contains buffered data.
+ *
+ * For example: if your event loop uses `poll`, you will receive a POLLIN event
+ * for your read file descriptor when new data is available. When you call s2n_recv
+ * to read that data, s2n-tls reads one or more TLS records from the file descriptor.
+ * If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those
+ * records may remain in s2n-tls's read buffer. If you read part of a record,
+ * s2n_peek will report the remainder of that record as available. But if you don't
+ * read any of a record, it remains encrypted and is not reported by s2n_peek, but
+ * is still reported by s2n_peek_buffered. And because the data is buffered in s2n-tls
+ * instead of in the file descriptor, another call to `poll` will NOT report any
+ * more data available. Your application may hang waiting for more data.
+ *
+ * @warning This feature cannot be enabled for a connection that will enable kTLS for receiving.
+ *
+ * @warning This feature may work with blocking IO, if used carefully. Your blocking
+ * IO must support partial reads (so MSG_WAITALL cannot be used). You will either
+ * need to know exactly how much data your peer is sending, or will need to use
+ * `s2n_peek` and `s2n_peek_buffered` rather than relying on S2N_ERR_T_BLOCKED
+ * as noted in #3 above.
+ *
+ * @param conn The connection object being updated
+ * @param enabled Set to `true` to enable, `false` to disable.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
+
+/**
+ * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
+ * enabled by `s2n_connection_set_recv_buffering`.
+ *
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
+ * While `s2n_peek` reports application data that is ready for the application
+ * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
+ * records that still need to be parsed and likely decrypted. Those records may
+ * contain application data, but they may also only contain TLS control messages.
+ *
+ * If an application needs to determine whether there is any data left to handle
+ * (for example, before calling `poll` to wait on the read file descriptor) then
+ * that application must check both `s2n_peek` and `s2n_peek_buffered`.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @returns The number of buffered encrypted bytes
+ */
+S2N_API extern uint32_t s2n_peek_buffered(struct s2n_connection *conn);
+
+/**
  * Configure the connection to free IO buffers when they are not currently in use.
  *
  * This configuration can be used to minimize connection memory footprint size, at the cost
@@ -3021,6 +3101,38 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
  * @returns A string indicating the cipher suite negotiated by s2n in OpenSSL format.
  */
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
+
+/**
+ * Provides access to the TLS master secret.
+ *
+ * This is a dangerous method and should not be used unless absolutely necessary.
+ * Mishandling the master secret can compromise both the current connection
+ * and any past or future connections that use the same master secret due to
+ * session resumption.
+ *
+ * This method is only supported for older TLS versions, and will report an S2N_ERR_INVALID_STATE
+ * usage error if called for a TLS1.3 connection. TLS1.3 includes a new key schedule
+ * that derives independent secrets from the master secret for specific purposes,
+ * such as separate traffic, session ticket, and exporter secrets. Using the master
+ * secret directly circumvents that security feature, reducing the security of
+ * the protocol.
+ *
+ * If you need cryptographic material tied to the current TLS session, consider
+ * `s2n_connection_tls_exporter` instead. Although s2n_connection_tls_exporter
+ * currently only supports TLS1.3, there is also an RFC that describes exporters
+ * for older TLS versions: https://datatracker.ietf.org/doc/html/rfc5705
+ * Using the master secret as-is or defining your own exporter is dangerous.
+ *
+ * @param conn A pointer to the connection.
+ * @param secret_bytes Memory to copy the master secret into. The secret
+ * is always 48 bytes long.
+ * @param max_size The size of the memory available at `secret_bytes`. Must be
+ * at least 48 bytes.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `secret_bytes`
+ * will be set on success.
+ */
+S2N_API extern int s2n_connection_get_master_secret(const struct s2n_connection *conn,
+        uint8_t *secret_bytes, size_t max_size);
 
 /**
  * Provides access to the TLS-Exporter functionality.

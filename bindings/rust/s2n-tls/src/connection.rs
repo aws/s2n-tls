@@ -801,7 +801,6 @@ impl Connection {
     /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
     /// drop(conn);
     /// ```
-    #[cfg(feature = "unstable-fingerprint")]
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
         let mut handle =
             unsafe { s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()? };
@@ -955,6 +954,20 @@ impl Connection {
                 None
             }
         }
+    }
+
+    pub fn master_secret(&self) -> Result<Vec<u8>, Error> {
+        // TLS1.2 master secrets are always 48 bytes
+        let mut secret = vec![0; 48];
+        unsafe {
+            s2n_connection_get_master_secret(
+                self.connection.as_ptr(),
+                secret.as_mut_ptr(),
+                secret.len(),
+            )
+            .into_result()?;
+        }
+        Ok(secret)
     }
 }
 

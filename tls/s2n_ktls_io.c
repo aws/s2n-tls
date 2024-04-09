@@ -532,9 +532,9 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->in, S2N_DEFAULT_FRAGMENT_LENGTH));
+    POSIX_GUARD(s2n_stuffer_resize_if_empty(&conn->buffer_in, S2N_DEFAULT_FRAGMENT_LENGTH));
 
-    struct s2n_stuffer record_stuffer = conn->in;
+    struct s2n_stuffer record_stuffer = conn->buffer_in;
     size_t len = s2n_stuffer_space_remaining(&record_stuffer);
     uint8_t *buf = s2n_stuffer_raw_write(&record_stuffer, len);
     POSIX_ENSURE_REF(buf);
@@ -549,6 +549,12 @@ int s2n_ktls_read_full_record(struct s2n_connection *conn, uint8_t *record_type)
             buf, len, &blocked, &bytes_read);
     WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(result));
 
-    POSIX_GUARD(s2n_stuffer_skip_write(&conn->in, bytes_read));
+    POSIX_GUARD(s2n_stuffer_skip_write(&conn->buffer_in, bytes_read));
+
+    /* We don't care about returning a full fragment because we don't need to decrypt.
+     * kTLS handled decryption already.
+     * So we can always set conn->in equal to the full buffer_in.
+     */
+    POSIX_GUARD_RESULT(s2n_recv_in_init(conn, bytes_read, bytes_read));
     return S2N_SUCCESS;
 }

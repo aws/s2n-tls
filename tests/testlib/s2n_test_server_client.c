@@ -149,3 +149,24 @@ int s2n_shutdown_test_server_and_client(struct s2n_connection *server_conn, stru
     int rc = (server_rc == 0 && client_rc == 0) ? 0 : -1;
     return rc;
 }
+
+S2N_RESULT s2n_send_and_recv_test(struct s2n_connection *send_conn, struct s2n_connection *recv_conn)
+{
+    RESULT_ENSURE_REF(send_conn);
+    RESULT_ENSURE_REF(recv_conn);
+
+    s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+
+    const uint8_t send_data[] = "hello world";
+    ssize_t send_size = s2n_send(send_conn, send_data, sizeof(send_data), &blocked);
+    RESULT_GUARD_POSIX(send_size);
+    RESULT_ENSURE_EQ(send_size, sizeof(send_data));
+
+    uint8_t recv_data[sizeof(send_data)] = { 0 };
+    ssize_t recv_size = s2n_recv(recv_conn, recv_data, send_size, &blocked);
+    RESULT_GUARD_POSIX(recv_size);
+    RESULT_ENSURE_EQ(recv_size, send_size);
+    RESULT_ENSURE_EQ(memcmp(recv_data, send_data, send_size), 0);
+
+    return S2N_RESULT_OK;
+}
