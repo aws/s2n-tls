@@ -748,13 +748,15 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         /* Deserialized client can do a keyupdate */
         {
-            struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
             uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
 
             /* Initial handshake */
             {
-                struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(client_conn);
 
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
@@ -776,7 +778,8 @@ int main(int argc, char **argv)
 
             /* Deserialize and keyupdate */
             {
-                struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(client_conn);
                 EXPECT_SUCCESS(s2n_connection_deserialize(client_conn, buffer, sizeof(buffer)));
 
@@ -790,13 +793,15 @@ int main(int argc, char **argv)
 
         /* Deserialized server can do a keyupdate */
         {
-            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
 
             /* Initial handshake */
             {
-                struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(server_conn);
 
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
@@ -818,7 +823,8 @@ int main(int argc, char **argv)
 
             /* Deserialize and keyupdate */
             {
-                struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(server_conn);
                 EXPECT_SUCCESS(s2n_connection_deserialize(server_conn, buffer, sizeof(buffer)));
 
