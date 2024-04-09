@@ -519,10 +519,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(resumption_config, S2N_SERIALIZED_CONN_V1));
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(resumption_config));
 
-        /* Session tickets get sent during the handshake in TLS1.2, so they won't be available
-         * post-serialization. This test confirms that. */
+        uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+
+        /* Initial handshake */
         {
-            struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -541,21 +543,18 @@ int main(int argc, char **argv)
             /* Session ticket should have been received in the handshake */
             EXPECT_TRUE(s2n_connection_get_session_length(client_conn) > 0);
 
-            /* Serialize and then free the client connection */
-            uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
             EXPECT_SUCCESS(s2n_connection_serialize(client_conn, buffer, sizeof(buffer)));
+        };
 
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
-            /* Re-init a client connection and deserialize the connection */
-            client_conn = s2n_connection_new(S2N_CLIENT);
+        /* Deserialized connection has no ticket to retrieve */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_deserialize(client_conn, buffer, sizeof(buffer)));
 
             /* Once deserialized the session ticket is no longer available. */
             EXPECT_TRUE(s2n_connection_get_session_length(client_conn) == 0);
-
-            EXPECT_SUCCESS(s2n_connection_free(client_conn));
         };
     };
 
