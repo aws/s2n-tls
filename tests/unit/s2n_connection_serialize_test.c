@@ -26,7 +26,7 @@
                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 
-static S2N_RESULT s2n_initiate_and_test_key_update(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
+static S2N_RESULT s2n_test_key_update(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
 {
     /* One side initiates key update */
     RESULT_GUARD_POSIX(s2n_connection_request_key_update(client_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
@@ -750,7 +750,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
                 EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
 
-                EXPECT_OK(s2n_initiate_and_test_key_update(client_conn, server_conn));
+                EXPECT_OK(s2n_test_key_update(client_conn, server_conn));
             };
         };
 
@@ -792,7 +792,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
                 EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
 
-                EXPECT_OK(s2n_initiate_and_test_key_update(client_conn, server_conn));
+                EXPECT_OK(s2n_test_key_update(client_conn, server_conn));
             };
         };
     };
