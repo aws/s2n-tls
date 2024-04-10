@@ -40,17 +40,10 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --all-features
 
-      # This is necessary because "test" is not a subset of "test --all-features".
-      # For example, "test --all-features" will not run doc tests.
+      # Ensure that all tests pass with the default feature set
       - name: Default Tests
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
-
-      # when "--all-features" is the only argument passed to cargo, doc tests
-      # are disabled. So we have to explicitly test them.
-      - name: Doc Tests
-        working-directory: ${{env.ROOT_PATH}}
-        run: cargo test --doc --all-features
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
