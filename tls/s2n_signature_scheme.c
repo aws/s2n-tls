@@ -263,6 +263,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207[] = {
     &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
     &s2n_ecdsa_secp384r1_sha384,
     &s2n_ecdsa_sha512,
+    &s2n_ecdsa_secp521r1_sha512,
     &s2n_ecdsa_sha224,
 
     /* SHA-1 Legacy */
@@ -399,6 +400,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201110[] = {
     &s2n_ecdsa_sha384, /* same iana value as TLS 1.3 s2n_ecdsa_secp384r1_sha384 */
     &s2n_ecdsa_secp384r1_sha384,
     &s2n_ecdsa_sha512,
+    &s2n_ecdsa_secp521r1_sha512,
     &s2n_ecdsa_sha224,
 };
 
