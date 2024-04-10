@@ -76,7 +76,6 @@ int s2n_record_parse_stream(
     POSIX_GUARD(s2n_hmac_digest(mac, check_digest, mac_digest_size));
 
     if (s2n_hmac_digest_verify(en.data + payload_length, check_digest, mac_digest_size) < 0) {
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
         POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
     }
 

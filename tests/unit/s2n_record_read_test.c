@@ -25,6 +25,11 @@ int main(int argc, char *argv[])
 {
     BEGIN_TEST();
 
+    DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+            s2n_cert_chain_and_key_ptr_free);
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+            S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+
     /* Test s2n_sslv2_record_header_parse */
     {
         const struct {
@@ -158,6 +163,53 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_stuffer_reread(&conn->header_in));
         };
     };
+
+    /* Ensure that the input buffer is wiped after failing to read a record */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair stuffer_pair = { 0 },
+                s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&stuffer_pair));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &stuffer_pair));
+
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        /* Send some test data to the server. */
+        uint8_t test_data[] = "hello world";
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        ssize_t send_size = s2n_send(client, test_data, sizeof(test_data), &blocked);
+        EXPECT_EQUAL(send_size, sizeof(test_data));
+
+        /* Invalidate an encrypted byte to cause decryption to fail. */
+        struct s2n_stuffer invalidation_stuffer = stuffer_pair.server_in;
+        uint8_t *first_byte = s2n_stuffer_raw_read(&invalidation_stuffer, 1);
+        EXPECT_NOT_NULL(first_byte);
+        *first_byte += 1;
+
+        /* Receive the invalid data. */
+        uint8_t buffer[sizeof(test_data)] = { 0 };
+        ssize_t ret = s2n_recv(server, buffer, sizeof(buffer), &blocked);
+        EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_DECRYPT);
+
+        /* Ensure that the invalid data has been wiped from the input buffer. */
+        EXPECT_TRUE(s2n_stuffer_is_wiped(&server->in));
+    }
 
     END_TEST();
 }
