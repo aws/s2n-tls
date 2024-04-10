@@ -467,10 +467,10 @@ int main(int argc, char **argv)
         size_t test_case_count = 0;
 
         for (size_t client_i = 0; client_i < s2n_array_len(all_options); client_i++) {
-            EXPECT_TRUE(test_case_count < s2n_array_len(test_cases));
             for (size_t server_i = 0; server_i < s2n_array_len(all_options); server_i++) {
                 for (size_t cert_i = 0; cert_i <= 1; cert_i++) {
                     for (size_t version = S2N_TLS12; version <= S2N_TLS13; version++) {
+                        EXPECT_TRUE(test_case_count < s2n_array_len(test_cases));
                         test_cases[test_case_count].client_auth_type = all_options[client_i];
                         test_cases[test_case_count].server_auth_type = all_options[server_i];
                         test_cases[test_case_count].client_cert_exists = (cert_i == 1);
