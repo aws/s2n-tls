@@ -33,8 +33,8 @@
 #define RSA_PKCS1_SIG_SCHEME         &s2n_rsa_pkcs1_md5_sha1
 #define RSA_PSS_PSS_SIG_SCHEME       &s2n_rsa_pss_pss_sha256
 #define RSA_PSS_RSAE_SIG_SCHEME      &s2n_rsa_pss_rsae_sha256
-#define ECDSA_SIG_SCHEME             &s2n_ecdsa_secp384r1_sha384
-#define ECDSA_SIG_SCHEME_OTHER_CURVE &s2n_ecdsa_secp256r1_sha256
+#define ECDSA_SIG_SCHEME             &s2n_ecdsa_sha384
+#define ECDSA_SIG_SCHEME_OTHER_CURVE &s2n_ecdsa_sha256
 
 #define EXPECT_SUCCESS_IF_RSA_PSS_CERTS_SUPPORTED(x) \
     if (s2n_is_rsa_pss_certs_supported()) {          \
@@ -179,8 +179,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(conn, ECDSA_SIG_SCHEME));
         }
 
-        /* Test: If signature algorithm specifies curve, must match cert curve */
+        /* Test: If signature algorithm is TLS1.3 ECDSA, must match cert curve */
         {
+            DEFER_CLEANUP(struct s2n_connection *test_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            test_conn->actual_protocol_version = S2N_TLS13;
+
             struct s2n_cert_chain_and_key *ecdsa_cert_chain_for_other_curve = NULL;
             EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_cert_chain_for_other_curve,
                     S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
@@ -189,15 +193,15 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(
                     ecdsa_cert_config_for_other_curve, ecdsa_cert_chain_for_other_curve));
 
-            conn->secure->cipher_suite = NO_AUTH_CIPHER_SUITE;
+            test_conn->secure->cipher_suite = NO_AUTH_CIPHER_SUITE;
 
-            s2n_connection_set_config(conn, ecdsa_cert_config);
-            EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(conn, ECDSA_SIG_SCHEME));
-            EXPECT_FAILURE(s2n_is_sig_scheme_valid_for_auth(conn, ECDSA_SIG_SCHEME_OTHER_CURVE));
+            s2n_connection_set_config(test_conn, ecdsa_cert_config);
+            EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(test_conn, ECDSA_SIG_SCHEME));
+            EXPECT_FAILURE(s2n_is_sig_scheme_valid_for_auth(test_conn, ECDSA_SIG_SCHEME_OTHER_CURVE));
 
-            s2n_connection_set_config(conn, ecdsa_cert_config_for_other_curve);
-            EXPECT_FAILURE(s2n_is_sig_scheme_valid_for_auth(conn, ECDSA_SIG_SCHEME));
-            EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(conn, ECDSA_SIG_SCHEME_OTHER_CURVE));
+            s2n_connection_set_config(test_conn, ecdsa_cert_config_for_other_curve);
+            EXPECT_FAILURE(s2n_is_sig_scheme_valid_for_auth(test_conn, ECDSA_SIG_SCHEME));
+            EXPECT_SUCCESS(s2n_is_sig_scheme_valid_for_auth(test_conn, ECDSA_SIG_SCHEME_OTHER_CURVE));
 
             EXPECT_SUCCESS(s2n_config_free(ecdsa_cert_config_for_other_curve));
             EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_cert_chain_for_other_curve));

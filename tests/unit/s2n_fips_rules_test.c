@@ -120,7 +120,6 @@ int main(int argc, char **argv)
         const struct s2n_signature_scheme *valid[] = {
             &s2n_ecdsa_sha256,
             &s2n_rsa_pkcs1_sha384,
-            &s2n_ecdsa_secp521r1_sha512,
             &s2n_rsa_pss_pss_sha256,
         };
         for (size_t i = 0; i < s2n_array_len(valid); i++) {
