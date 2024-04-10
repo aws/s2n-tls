@@ -38,6 +38,7 @@
  *   The TLS kernel module currently doesn't support renegotiation.
  * - By default, you must negotiate TLS1.2. See s2n_config_ktls_enable_tls13
  *   for the requirements to also support TLS1.3.
+ * - You must not use s2n_connection_set_recv_buffering
  */
 
 /**

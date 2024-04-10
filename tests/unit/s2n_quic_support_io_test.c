@@ -244,6 +244,87 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_free(&stuffer));
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
+
+        /* Succeeds for a handshake message larger than the input buffer */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            uint8_t actual_message_type = 0;
+
+            /* Read a small message to initialize the input buffer */
+            const size_t small_message_size = 10;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, small_message_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, small_message_size));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), small_message_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+            EXPECT_OK(s2n_record_wipe(conn));
+            const size_t max_buffer_size = s2n_stuffer_space_remaining(&conn->buffer_in);
+            EXPECT_TRUE(max_buffer_size > small_message_size);
+
+            /* Read a large message to force the input buffer to resize */
+            const size_t large_message_size = max_buffer_size + 10;
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, large_message_size));
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&stuffer, large_message_size));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), large_message_size);
+
+            EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+            EXPECT_OK(s2n_record_wipe(conn));
+            const size_t resized_buffer_size = s2n_stuffer_space_remaining(&conn->buffer_in);
+            EXPECT_TRUE(resized_buffer_size >= large_message_size);
+
+            /* Read another message to check that the resize doesn't prevent future reads */
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+            EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+            EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+            EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), TEST_DATA_SIZE);
+            EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->in, TEST_DATA_SIZE),
+                    TEST_DATA, sizeof(TEST_DATA));
+        };
+
+        /* Succeeds for multiple messages */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+            EXPECT_SUCCESS(s2n_connection_set_io_stuffers(&stuffer, &stuffer, conn));
+
+            uint8_t actual_message_type = 0;
+            size_t expected_buffer_size = 0;
+            for (size_t i = 0; i < 100; i++) {
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&stuffer, 7));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint24(&stuffer, TEST_DATA_SIZE));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&stuffer, TEST_DATA, TEST_DATA_SIZE));
+                EXPECT_OK(s2n_quic_read_handshake_message(conn, &actual_message_type));
+                EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), TEST_DATA_SIZE);
+                EXPECT_BYTEARRAY_EQUAL(s2n_stuffer_raw_read(&conn->in, TEST_DATA_SIZE),
+                        TEST_DATA, sizeof(TEST_DATA));
+
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->handshake.io));
+                EXPECT_OK(s2n_record_wipe(conn));
+
+                /* Ensure buffer size stays constant */
+                const size_t buffer_size = s2n_stuffer_space_remaining(&conn->buffer_in);
+                if (i == 0) {
+                    expected_buffer_size = buffer_size;
+                }
+                EXPECT_EQUAL(expected_buffer_size, buffer_size);
+            }
+        };
     };
 
     /* Functional Tests */

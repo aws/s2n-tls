@@ -33,10 +33,13 @@ void s2n_stuffer_is_consumed_harness()
     save_byte_from_blob(&stuffer->blob, &old_byte_from_stuffer);
 
     /* Operation under verification. */
-    if (s2n_stuffer_is_consumed(stuffer)) {
-        assert(stuffer->read_cursor == old_stuffer.write_cursor);
+    bool result = s2n_stuffer_is_consumed(stuffer);
+    if (old_stuffer.read_cursor != old_stuffer.write_cursor) {
+        assert(result == false);
+    } else if (old_stuffer.tainted) {
+        assert(result == false);
     } else {
-        assert(stuffer->read_cursor != old_stuffer.write_cursor);
+        assert(result == true);
     }
 
     /* Post-conditions. */

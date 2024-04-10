@@ -85,6 +85,7 @@ S2N_RESULT s2n_handshake_parse_header(struct s2n_stuffer *io, uint8_t *message_t
 int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int *isSSLv2);
 S2N_RESULT s2n_sendv_with_offset_total_size(const struct iovec *bufs, ssize_t count,
         ssize_t offs, ssize_t *total_size_out);
+S2N_RESULT s2n_recv_in_init(struct s2n_connection *conn, uint32_t written, uint32_t size);
 
 extern uint16_t mfl_code_to_length[5];
 
