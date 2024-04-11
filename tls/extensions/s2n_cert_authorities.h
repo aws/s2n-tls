@@ -19,6 +19,18 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
 
+/* This limit isn't based on any practical requirements, and could be raised.
+ * It is just intended to avoid situations where customers inadvertently configure
+ * a large trust store or enable this feature in an unexpected environment.
+ */
+#define S2N_CERT_AUTHORITIES_MAX_COUNT 10
+
+/* This limit is based on the requirement that the certificate_authorities
+ * must fit in an extension with a uint16_t size field.
+ */
+#define S2N_CERT_AUTHORITIES_MAX_SIZE (UINT16_MAX - sizeof(uint16_t))
+
 extern const s2n_extension_type s2n_cert_authorities_extension;
 
+bool s2n_cert_authorities_supported_from_trust_store();
 int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out);
