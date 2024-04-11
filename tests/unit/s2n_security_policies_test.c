@@ -22,6 +22,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "tls/s2n_tls.h"
 
 static S2N_RESULT s2n_test_security_policies_compatible(const struct s2n_security_policy *policy,
         const char *default_policy, struct s2n_cert_chain_and_key *cert_chain)
@@ -50,6 +51,60 @@ static S2N_RESULT s2n_test_security_policies_compatible(const struct s2n_securit
     RESULT_GUARD_POSIX(s2n_connections_set_io_pair(client, server, &test_io_pair));
     RESULT_GUARD_POSIX(s2n_negotiate_test_server_and_client(server, client));
 
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_test_get_missing_duplicate_signature_scheme(
+        const struct s2n_signature_scheme *const *policy_schemes, size_t policy_schemes_count,
+        uint8_t minimum_policy_version, uint8_t maximum_policy_version,
+        const struct s2n_signature_scheme **duplicate)
+{
+    if (policy_schemes_count > 0) {
+        RESULT_ENSURE_REF(policy_schemes);
+    }
+    RESULT_ENSURE_REF(duplicate);
+    *duplicate = NULL;
+
+    const struct s2n_signature_preferences *all_schemes = security_policy_test_all.signature_preferences;
+
+    /* Check all schemes in target policy */
+    for (int i = 0; i < policy_schemes_count; i++) {
+        const struct s2n_signature_scheme *from_policy = policy_schemes[i];
+        EXPECT_NOT_NULL(from_policy);
+
+        /* Check if duplicates exist for the scheme */
+        for (size_t j = 0; j < all_schemes->count; j++) {
+            const struct s2n_signature_scheme *from_all = all_schemes->signature_schemes[j];
+            EXPECT_NOT_NULL(from_all);
+
+            /* Skip if not a duplicate */
+            if (from_all == from_policy) {
+                continue;
+            } else if (from_all->iana_value != from_policy->iana_value) {
+                continue;
+            } else if (from_all->maximum_protocol_version
+                    && from_all->maximum_protocol_version < minimum_policy_version) {
+                continue;
+            } else if (from_all->minimum_protocol_version
+                    && from_all->minimum_protocol_version > maximum_policy_version) {
+                continue;
+            }
+            *duplicate = from_all;
+
+            /* Check whether duplicate is also in the target policy */
+            for (size_t k = 0; k < policy_schemes_count; k++) {
+                const struct s2n_signature_scheme *possible_match = policy_schemes[k];
+                EXPECT_NOT_NULL(possible_match);
+                if (*duplicate == possible_match) {
+                    *duplicate = NULL;
+                    break;
+                }
+            }
+            if (*duplicate) {
+                return S2N_RESULT_OK;
+            }
+        }
+    }
     return S2N_RESULT_OK;
 }
 
@@ -1019,6 +1074,53 @@ int main(int argc, char **argv)
                     S2N_ERR_CIPHER_NOT_SUPPORTED);
         };
     };
+
+    /* Policies must include all signature schemes that share an IANA value */
+    {
+        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
+            security_policy = security_policy_selection[i].security_policy;
+            EXPECT_NOT_NULL(security_policy);
+            const uint8_t max_protocol_version = security_policy_selection[i].supports_tls13 ?
+                    s2n_highest_protocol_version :
+                    S2N_TLS12;
+
+            /* Check signature scheme preferences */
+            {
+                const struct s2n_signature_scheme *duplicate = NULL;
+                EXPECT_OK(s2n_test_get_missing_duplicate_signature_scheme(
+                        security_policy->signature_preferences->signature_schemes,
+                        security_policy->signature_preferences->count,
+                        security_policy->minimum_protocol_version,
+                        max_protocol_version,
+                        &duplicate));
+
+                if (duplicate) {
+                    fprintf(stderr, "Policy: %s Scheme: %04x\n",
+                            security_policy_selection[i].version,
+                            duplicate->iana_value);
+                    FAIL_MSG("Missing signature scheme");
+                }
+            }
+
+            /* Check certificate signature scheme preferences */
+            if (security_policy->certificate_signature_preferences) {
+                const struct s2n_signature_scheme *duplicate = NULL;
+                EXPECT_OK(s2n_test_get_missing_duplicate_signature_scheme(
+                        security_policy->certificate_signature_preferences->signature_schemes,
+                        security_policy->certificate_signature_preferences->count,
+                        security_policy->minimum_protocol_version,
+                        max_protocol_version,
+                        &duplicate));
+
+                if (duplicate) {
+                    fprintf(stderr, "Policy: %s Scheme: %04x\n",
+                            security_policy_selection[i].version,
+                            duplicate->iana_value);
+                    FAIL_MSG("Missing certificate signature scheme");
+                }
+            }
+        }
+    }
 
     END_TEST();
 }
