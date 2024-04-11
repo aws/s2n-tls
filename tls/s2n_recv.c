@@ -142,16 +142,7 @@ int s2n_read_full_record(struct s2n_connection *conn, uint8_t *record_type, int 
     if (s2n_early_data_is_trial_decryption_allowed(conn, *record_type)) {
         POSIX_ENSURE(s2n_record_parse(conn) >= S2N_SUCCESS, S2N_ERR_EARLY_DATA_TRIAL_DECRYPT);
     } else {
-        int ret = s2n_record_parse(conn);
-
-        /* If record parsing fails, ensure that conn->in doesn't contain any leftover invalid or
-         * unauthenticated data.
-         */
-        if (ret != S2N_SUCCESS) {
-            POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
-        }
-
-        WITH_ERROR_BLINDING(conn, POSIX_GUARD(ret));
+        WITH_ERROR_BLINDING(conn, POSIX_GUARD(s2n_record_parse(conn)));
     }
 
     /* In TLS 1.3, encrypted handshake records would appear to be of record type
