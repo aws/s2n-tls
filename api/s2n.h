@@ -3763,6 +3763,28 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
  */
 S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
 
+/* Load all acceptable certificate authorities from the currently configured trust store.
+ *
+ * The loaded certificate authorities will be advertised during the handshake.
+ * This can help your peer select a certificate if they have multiple certificate
+ * chains available.
+ *
+ * For now, s2n-tls only supports advertising certificate authorities to support
+ * client auth, so only servers will send the list of certificate authorities.
+ *
+ * To avoid configuration mistakes, certificate authorities cannot be loaded from
+ * a trust store that includes the default system certificates. That means that
+ * s2n_config_new_minimal should be used instead of s2n_config_new to create the
+ * config object. Additionally, the trust store cannot contain more than 10
+ * certificate authorities.
+ *
+ * @param config A pointer to the s2n_config object.
+ * @param count The number of certificate authorities loaded from the trust store.
+ * Can be used for logging or to sanity check the trust store configuration.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config, size_t *count);
+
 #ifdef __cplusplus
 }
 #endif
