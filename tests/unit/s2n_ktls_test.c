@@ -452,6 +452,23 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server));
         }
 
+        /* Fail if serialization is a possibility */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+            EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(client), S2N_ERR_KTLS_UNSUPPORTED_CONN);
+
+            /* Removing the intent to serialize means that ktls enable now succeeds */
+            config->serialized_connection_version = S2N_SERIALIZED_CONN_NONE;
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(client));
+        }
+
         /* Call setsockopt correctly to configure tls crypto */
         {
             struct s2n_cipher_suite test_cipher_suite = s2n_rsa_with_aes_256_gcm_sha384;

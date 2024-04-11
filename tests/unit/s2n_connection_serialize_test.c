@@ -26,6 +26,44 @@
                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, \
                           0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
 
+static S2N_RESULT s2n_test_key_update(struct s2n_connection *client_conn, struct s2n_connection *server_conn)
+{
+    /* One side initiates key update */
+    RESULT_GUARD_POSIX(s2n_connection_request_key_update(client_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
+
+    /* Sending and receiving is successful after key update */
+    EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+    EXPECT_EQUAL(client_conn->send_key_updated, 1);
+    EXPECT_EQUAL(server_conn->recv_key_updated, 1);
+
+    /* Other side initiates key update */
+    EXPECT_SUCCESS(s2n_connection_request_key_update(server_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
+
+    /* Sending and receiving is successful after key update */
+    EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+    EXPECT_EQUAL(client_conn->recv_key_updated, 1);
+    EXPECT_EQUAL(server_conn->send_key_updated, 1);
+
+    return S2N_RESULT_OK;
+}
+
+static S2N_RESULT s2n_ticket_pickup(struct s2n_connection *conn, struct s2n_blob *session_ticket)
+{
+    int session_length = s2n_connection_get_session_length(conn);
+    EXPECT_NOT_EQUAL(session_length, 0);
+    EXPECT_SUCCESS(s2n_realloc(session_ticket, session_length));
+    EXPECT_SUCCESS(s2n_connection_get_session(conn, session_ticket->data, session_length));
+    session_ticket->size = session_length;
+
+    return S2N_RESULT_OK;
+}
+
+static int s2n_test_reneg_cb(struct s2n_connection *conn, void *context,
+        s2n_renegotiate_response *response)
+{
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -471,6 +509,361 @@ int main(int argc, char **argv)
         /* Server can send and recv as usual */
         EXPECT_OK(s2n_send_and_recv_test(new_server_conn, client_conn));
         EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server_conn));
+    };
+
+    /* Self-talk: Test interaction between TLS1.2 session resumption and serialization */
+    {
+        DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(resumption_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(resumption_config));
+        EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(resumption_config, S2N_SERIALIZED_CONN_V1));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(resumption_config));
+
+        uint8_t serialized_conn[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+
+        /* Initial handshake */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, resumption_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, resumption_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS12);
+
+            /* Session ticket should have been received in the handshake */
+            EXPECT_TRUE(s2n_connection_get_session_length(client_conn) > 0);
+
+            EXPECT_SUCCESS(s2n_connection_serialize(client_conn, serialized_conn, sizeof(serialized_conn)));
+        };
+
+        /* Deserialized connection has no ticket to retrieve */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_deserialize(client_conn, serialized_conn, sizeof(serialized_conn)));
+
+            /* Once deserialized the session ticket is no longer available. */
+            EXPECT_TRUE(s2n_connection_get_session_length(client_conn) == 0);
+        };
+    };
+
+    /* Self-talk: Test interaction between TLS1.3 session resumption and serialization. */
+    if (s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(resumption_config, chain_and_key));
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(resumption_config));
+        EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(resumption_config, S2N_SERIALIZED_CONN_V1));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(resumption_config, "default_tls13"));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(resumption_config));
+
+        /* Client is serialized. Can read a session ticket before/after deserialization and resume with it. */
+        {
+            uint8_t serialized_conn[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            DEFER_CLEANUP(struct s2n_blob session_ticket_0 = { 0 }, s2n_free);
+            DEFER_CLEANUP(struct s2n_blob session_ticket_1 = { 0 }, s2n_free);
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, resumption_config));
+
+            /* Initial handshake */
+            {
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, resumption_config));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+
+                /* Client does a read here. Picks up initial ticket */
+                EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+                EXPECT_OK(s2n_ticket_pickup(client_conn, &session_ticket_0));
+
+                EXPECT_SUCCESS(s2n_connection_serialize(client_conn, serialized_conn, sizeof(serialized_conn)));
+            };
+
+            /* Pick up ticket after deserialization */
+            {
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_deserialize(client_conn, serialized_conn, sizeof(serialized_conn)));
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, resumption_config));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_connection_add_new_tickets_to_send(server_conn, 1));
+                EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+
+                EXPECT_OK(s2n_ticket_pickup(client_conn, &session_ticket_1));
+            };
+
+            /* Resumption handshake with initial ticket */
+            {
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, resumption_config));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn, session_ticket_0.data, session_ticket_0.size));
+                EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            };
+
+            /* Successful resumption handshake with second ticket */
+            {
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, resumption_config));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn, session_ticket_1.data, session_ticket_1.size));
+                EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            };
+        };
+
+        /* Server is serialized. Can write a session ticket before/after deserialization and resumption can
+         * occur with it. */
+        {
+            uint8_t serialized_conn[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            DEFER_CLEANUP(struct s2n_blob session_ticket_0 = { 0 }, s2n_free);
+            DEFER_CLEANUP(struct s2n_blob session_ticket_1 = { 0 }, s2n_free);
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, resumption_config));
+
+            /* Initial handshake */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, resumption_config));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+
+                /* Client picks up the first ticket */
+                EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+                EXPECT_OK(s2n_ticket_pickup(client_conn, &session_ticket_0));
+
+                EXPECT_SUCCESS(s2n_connection_serialize(server_conn, serialized_conn, sizeof(serialized_conn)));
+            };
+
+            /* Send ticket after deserialization */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_deserialize(server_conn, serialized_conn, sizeof(serialized_conn)));
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, resumption_config));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+                EXPECT_OK(s2n_ticket_pickup(client_conn, &session_ticket_1));
+            };
+
+            /* Resumption handshake with initial ticket */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, resumption_config));
+                EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn, session_ticket_0.data, session_ticket_0.size));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            };
+
+            /* Resumption handshake with second ticket */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, resumption_config));
+                EXPECT_SUCCESS(s2n_connection_wipe(client_conn));
+                EXPECT_SUCCESS(s2n_connection_set_session(client_conn, session_ticket_1.data, session_ticket_1.size));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(client_conn));
+                EXPECT_FALSE(IS_FULL_HANDSHAKE(server_conn));
+            };
+        };
+    };
+
+    /* Self talk: Test interaction between key update and serialization */
+    if (s2n_is_tls13_fully_supported()) {
+        /* Deserialized client can do a keyupdate */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+            uint8_t serialized_conn[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+
+            /* Initial handshake */
+            {
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+
+                /* Preliminary send and receive */
+                EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+                EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+
+                EXPECT_SUCCESS(s2n_connection_serialize(client_conn, serialized_conn, sizeof(serialized_conn)));
+            };
+
+            /* Deserialize and keyupdate */
+            {
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_deserialize(client_conn, serialized_conn, sizeof(serialized_conn)));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_OK(s2n_test_key_update(client_conn, server_conn));
+            };
+        };
+
+        /* Deserialized server can do a keyupdate */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+
+            uint8_t serialized_conn[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+
+            /* Initial handshake */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+                EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+
+                /* Preliminary send and receive */
+                EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+                EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+
+                EXPECT_SUCCESS(s2n_connection_serialize(server_conn, serialized_conn, sizeof(serialized_conn)));
+            };
+
+            /* Deserialize and keyupdate */
+            {
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_deserialize(server_conn, serialized_conn, sizeof(serialized_conn)));
+
+                DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+                EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+                EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+                EXPECT_OK(s2n_test_key_update(client_conn, server_conn));
+            };
+        };
+    };
+
+    /* Test: Renegotiation and serialization cannot both be set.
+     *
+     * Renegotiation is not available after serialization/deserialization.
+     * The information needed to perform renegotiation (i.e. client/server finished verify data
+     * and secure renegotiation flag) isn't stored during the serialization process and therefore
+     * isn't available post-deserialization.
+     * 
+     * We could add that data to the serialized struct in the future, but for now, the user will get
+     * an error if they attempt to configure renegotiation after serialization, and vice versa.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+
+        /* Setting a renegotiation callback means you cannot set a serialization version. */
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb, NULL));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1),
+                S2N_ERR_INVALID_STATE);
+
+        /* Reset renegotiate cb */
+        EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, NULL, NULL));
+
+        /* Setting a serialized version means that you cannot set a renegotiation callback. */
+        EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1));
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb,
+                                          NULL),
+                S2N_ERR_INVALID_STATE);
     };
 
     END_TEST();
