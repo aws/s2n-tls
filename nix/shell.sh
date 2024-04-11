@@ -1,6 +1,7 @@
-echo nix/shell.sh: Entering a devShell
+echo nix/shell.sh: Entering a devShell...checking environment.
 export SRC_ROOT=$(pwd)
 export PATH=$SRC_ROOT/build/bin:$PATH
+pytest -rfs -v ./nix/test_devshell.py
 
 banner()
 {
@@ -8,7 +9,6 @@ banner()
     printf "| %-55s |\n" "$1"
     echo "+---------------------------------------------------------+"
 }
-
 
 function clean {
     banner "Cleanup ./build"
