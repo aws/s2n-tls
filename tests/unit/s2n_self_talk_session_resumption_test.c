@@ -32,7 +32,7 @@ struct s2n_early_data_test_case {
     bool ticket_supported;
     bool client_supported;
     bool server_supported;
-    bool expect_success;
+    bool expect_early_data;
 };
 
 static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
@@ -165,11 +165,11 @@ static S2N_RESULT s2n_test_negotiate(struct s2n_connection *server_conn, struct 
     RESULT_GUARD(s2n_negotiate_test_server_and_client_with_early_data(server_conn, client_conn,
             &early_data_send, &early_data_recv));
 
-    if (early_data_case->expect_success) {
+    if (early_data_case->expect_early_data) {
         RESULT_ENSURE_EQ(early_data_recv.size, sizeof(early_data));
         EXPECT_BYTEARRAY_EQUAL(early_data_recv.data, early_data, sizeof(early_data));
     } else {
-        RESULT_ENSURE_EQ(early_data_recv.size, sizeof(empty_data));
+        RESULT_ENSURE_EQ(early_data_recv.size, 0);
         EXPECT_BYTEARRAY_EQUAL(early_data_recv.data, empty_data, sizeof(empty_data));
     }
 
@@ -218,21 +218,24 @@ int main(int argc, char **argv)
     size_t test_case_i = 0;
     struct s2n_early_data_test_case early_data_test_cases[2 * 2 * 2] = { 0 };
     for (size_t ticket_supported = 0; ticket_supported < 2; ticket_supported++) {
-        early_data_test_cases[test_case_i].ticket_supported = ticket_supported;
         for (size_t client_supported = 0; client_supported < 2; client_supported++) {
-            early_data_test_cases[test_case_i].client_supported = client_supported;
             for (size_t server_supported = 0; server_supported < 2; server_supported++) {
+                EXPECT_TRUE(test_case_i < s2n_array_len(early_data_test_cases));
+                early_data_test_cases[test_case_i].ticket_supported = ticket_supported;
+                early_data_test_cases[test_case_i].client_supported = client_supported;
                 early_data_test_cases[test_case_i].server_supported = server_supported;
-                early_data_test_cases[test_case_i].expect_success = client_supported && server_supported && ticket_supported;
+                early_data_test_cases[test_case_i].expect_early_data = client_supported && server_supported && ticket_supported;
+                test_case_i++;
             }
         }
-        test_case_i++;
     }
+    EXPECT_EQUAL(test_case_i, s2n_array_len(early_data_test_cases));
+
     /* For some session resumption test cases, we don't want to test or don't care about 0-RTT */
     const struct s2n_early_data_test_case no_early_data = {
         .client_supported = false,
         .server_supported = false,
-        .expect_success = false
+        .expect_early_data = false
     };
 
     /* Setup server config */
@@ -478,7 +481,7 @@ int main(int argc, char **argv)
     for (size_t early_data_i = 0; early_data_i < s2n_array_len(early_data_test_cases); early_data_i++) {
         struct s2n_early_data_test_case early_data_case = early_data_test_cases[early_data_i];
         /* Early data is never sent in TLS1.2 (or in a full handshake) */
-        early_data_case.expect_success = false;
+        early_data_case.expect_early_data = false;
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
@@ -592,7 +595,7 @@ int main(int argc, char **argv)
     for (size_t early_data_i = 0; early_data_i < s2n_array_len(early_data_test_cases); early_data_i++) {
         struct s2n_early_data_test_case early_data_case = early_data_test_cases[early_data_i];
         /* Never use early data on a HRR */
-        early_data_case.expect_success = false;
+        early_data_case.expect_early_data = false;
 
         struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
         struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);

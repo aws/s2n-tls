@@ -1842,6 +1842,7 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  *    until it reports S2N_SUCCESS.
  *
  * 4. s2n_peek reports available decrypted data. It does not report any data
+ *    buffered by this feature. However, s2n_peek_buffered does report data
  *    buffered by this feature.
  *
  * 5. s2n_connection_release_buffers will not release the input buffer if it
@@ -1853,23 +1854,43 @@ S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn
  * If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those
  * records may remain in s2n-tls's read buffer. If you read part of a record,
  * s2n_peek will report the remainder of that record as available. But if you don't
- * read any of a record, it remains encrypted and is not reported by s2n_peek.
- * And because the data is buffered in s2n-tls instead of in the file descriptor,
- * another call to `poll` will NOT report any more data available. Your application
- * may hang waiting for more data.
+ * read any of a record, it remains encrypted and is not reported by s2n_peek, but
+ * is still reported by s2n_peek_buffered. And because the data is buffered in s2n-tls
+ * instead of in the file descriptor, another call to `poll` will NOT report any
+ * more data available. Your application may hang waiting for more data.
  *
  * @warning This feature cannot be enabled for a connection that will enable kTLS for receiving.
  *
  * @warning This feature may work with blocking IO, if used carefully. Your blocking
- * IO must support partial reads (so MSG_WAITALL cannot be used). You will need
- * to know how much data will eventually be available rather than relying on
- * S2N_ERR_T_BLOCKED as noted in #3 above.
+ * IO must support partial reads (so MSG_WAITALL cannot be used). You will either
+ * need to know exactly how much data your peer is sending, or will need to use
+ * `s2n_peek` and `s2n_peek_buffered` rather than relying on S2N_ERR_T_BLOCKED
+ * as noted in #3 above.
  *
  * @param conn The connection object being updated
  * @param enabled Set to `true` to enable, `false` to disable.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
 S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
+
+/**
+ * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
+ * enabled by `s2n_connection_set_recv_buffering`.
+ *
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
+ * While `s2n_peek` reports application data that is ready for the application
+ * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
+ * records that still need to be parsed and likely decrypted. Those records may
+ * contain application data, but they may also only contain TLS control messages.
+ *
+ * If an application needs to determine whether there is any data left to handle
+ * (for example, before calling `poll` to wait on the read file descriptor) then
+ * that application must check both `s2n_peek` and `s2n_peek_buffered`.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @returns The number of buffered encrypted bytes
+ */
+S2N_API extern uint32_t s2n_peek_buffered(struct s2n_connection *conn);
 
 /**
  * Configure the connection to free IO buffers when they are not currently in use.

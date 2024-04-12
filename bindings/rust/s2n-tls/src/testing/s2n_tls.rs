@@ -925,4 +925,40 @@ mod tests {
 
         Ok(())
     }
+
+    #[cfg(feature = "unstable-ktls")]
+    #[test]
+    fn key_updates() -> Result<(), Error> {
+        use crate::{connection::KeyUpdateCount, enums::PeerKeyUpdate};
+
+        let empty_key_updates = KeyUpdateCount {
+            recv_key_updates: 0,
+            send_key_updates: 0,
+        };
+
+        let pair = tls_pair(build_config(&security::DEFAULT_TLS13)?);
+        let mut pair = poll_tls_pair(pair);
+
+        // there haven't been any key updates at the start of the connection
+        let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(client_updates, empty_key_updates);
+        let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(server_updates, empty_key_updates);
+
+        pair.server
+            .0
+            .connection
+            .as_mut()
+            .request_key_update(PeerKeyUpdate::KeyUpdateNotRequested)?;
+        assert!(pair.poll_send(Mode::Server, &[0]).is_ready());
+
+        // the server send key has been updated
+        let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(client_updates, empty_key_updates);
+        let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
+        assert_eq!(server_updates.recv_key_updates, 0);
+        assert_eq!(server_updates.send_key_updates, 1);
+
+        Ok(())
+    }
 }
