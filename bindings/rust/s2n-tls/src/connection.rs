@@ -971,7 +971,7 @@ impl Connection {
     }
 
     /// Retrieves the size of the serialized connection
-    pub fn serialized_connection_length(&self) -> Result<usize, Error> {
+    pub fn serialization_length(&self) -> Result<usize, Error> {
         unsafe {
             let mut length = 0;
             s2n_connection_serialization_length(self.connection.as_ptr(), &mut length)
