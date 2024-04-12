@@ -461,7 +461,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
-            EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1));
+            EXPECT_SUCCESS(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(client), S2N_ERR_KTLS_UNSUPPORTED_CONN);
 
             /* Removing the intent to serialize means that ktls enable now succeeds */

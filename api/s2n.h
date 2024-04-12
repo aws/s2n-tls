@@ -3679,6 +3679,89 @@ S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_d
 S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
         uint16_t *groups_count);
 
+/* Indicates which serialized connection version will be provided. The default value is
+ * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off. */
+typedef enum {
+    S2N_SERIALIZED_CONN_NONE = 0,
+    S2N_SERIALIZED_CONN_V1 = 1
+} s2n_serialization_version;
+
+/**
+ * Set what version to use when serializing connections
+ *
+ * A version is required to serialize connections. Versioning ensures that all features negotiated
+ * during the handshake will be available wherever the connection is deserialized. Applications may
+ * need to update this version to pick up new features, since versioning may disable newer TLS
+ * features to ensure compatibility.
+ *
+ * @param config A pointer to the config object.
+ * @param version The requested version.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_config_set_serialization_version(struct s2n_config *config, s2n_serialization_version version);
+
+/**
+ * Retrieves the length of the serialized connection from `s2n_connection_serialize()`. Should be
+ * used to allocate enough memory for the serialized connection buffer.
+ *
+ * @note The size of the serialized connection changes based on parameters negotiated in the TLS
+ * handshake. Do not expect the size to always remain the same.
+ *
+ * @param conn A pointer to the connection object.
+ * @param length Output parameter where the length will be written.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *length);
+
+/**
+ * Serializes the s2n_connection into the provided buffer.
+ *
+ * This API takes an established s2n-tls connection object and "serializes" it
+ * into a transferable object to be sent off-box or to another process. This transferable object can
+ * then be "deserialized" using the `s2n_connection_deserialize` method to instantiate an s2n-tls
+ * connection object that can talk to the original peer with the same encryption keys.
+ *
+ * @warning This feature is dangerous because it provides cryptographic material from a TLS session
+ * in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide
+ * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
+ * without encryption.
+ *
+ * @note You MUST have used `s2n_config_set_serialization_version()` to set a version on the
+ * s2n_config object associated with this connection before this connection began its TLS handshake.
+ * @note Call `s2n_connection_serialization_length` to retrieve the amount of memory needed for the
+ * buffer parameter.
+ * @note This API will error if the handshake is not yet complete.
+ *
+ * @param conn A pointer to the connection object.
+ * @param buffer A pointer to the buffer where the serialized connection will be written.
+ * @param buffer_length Maximum amount of data that can be written to the buffer param.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
+
+/**
+ * Deserializes the provided buffer into the `s2n_connection` parameter.
+ *
+ * @warning s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully 
+ * deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume
+ * sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized 
+ * connection before sending it off-box and deserializing it.
+ *
+ * @warning Only a minimal amount of information about the original TLS connection is serialized.
+ * Therefore, after deserialization, the connection will behave like a new `s2n_connection` from the 
+ * `s2n_connection_new()` call, except that it can read/write encrypted data from a peer. Any desired
+ * config-level or connection-level configuration will need to be re-applied to the deserialized connection.
+ * For this same reason none of the connection getters will return useful information about the 
+ * original connection after deserialization. Any information about the original connection needs to
+ * be retrieved before serialization.
+ *
+ * @param conn A pointer to the connection object. Should be a new s2n_connection object.
+ * @param buffer A pointer to the buffer where the serialized connection will be read from.
+ * @param buffer_length Maximum amount of data that can be read from the buffer parameter.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
+
 #ifdef __cplusplus
 }
 #endif

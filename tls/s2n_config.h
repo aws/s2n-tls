@@ -54,11 +54,6 @@ typedef enum {
     S2N_LIB_OWNED,
 } s2n_cert_ownership;
 
-typedef enum {
-    S2N_SERIALIZED_CONN_NONE = 0,
-    S2N_SERIALIZED_CONN_V1 = 1
-} s2n_serialization_version;
-
 struct s2n_config {
     unsigned use_tickets : 1;
 
@@ -251,6 +246,3 @@ S2N_RESULT s2n_config_wall_clock(struct s2n_config *config, uint64_t *output);
  * in `security_policy` */
 S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *config,
         const struct s2n_security_policy *security_policy);
-
-/* APIs that will be moved to s2n.h when the serialized connection feature is released */
-int s2n_config_set_serialized_connection_version(struct s2n_config *config, s2n_serialization_version version);
