@@ -720,7 +720,7 @@ impl Builder {
     }
 
     /// Sets the expected connection serialization version. Must be set
-    /// before calling serialize_connection.
+    /// before serializing the connection.
     pub fn set_serialization_version(
         &mut self,
         version: SerializationVersion,
