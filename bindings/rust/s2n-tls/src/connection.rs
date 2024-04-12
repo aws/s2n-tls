@@ -981,7 +981,7 @@ impl Connection {
     }
 
     /// Serializes the TLS connection into the provided buffer
-    pub fn serialize_connection(&self, output: &mut [u8]) -> Result<(), Error> {
+    pub fn serialize(&self, output: &mut [u8]) -> Result<(), Error> {
         unsafe {
             s2n_connection_serialize(
                 self.connection.as_ptr(),
@@ -995,20 +995,19 @@ impl Connection {
 
     /// Deserializes the input buffer into a new TLS connection that can send/recv
     /// data from the original peer.
-    pub fn deserialize_connection(mode: Mode, input: &[u8]) -> Result<Self, Error> {
-        let mut connection = Connection::new(mode);
+    pub fn deserialize(&mut self, input: &[u8]) -> Result<(), Error> {
         let size = input.len();
         /* This is not ideal, we know that s2n_connection_deserialize will not mutate the
          * input value, however, the mut is needed to use the stuffer functions. */
         let input = input.as_ptr() as *mut u8;
         unsafe {
             s2n_connection_deserialize(
-                connection.as_ptr(),
+                self.as_ptr(),
                 input,
                 size.try_into().map_err(|_| Error::INVALID_INPUT)?,
             )
             .into_result()?;
-            Ok(connection)
+            Ok(())
         }
     }
 }
