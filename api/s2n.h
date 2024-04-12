@@ -3722,7 +3722,7 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  *
  * @warning This feature is dangerous because it provides cryptographic material from a TLS session
  * in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide
- * secrecy and integrity if this material is transported off-box. DO NOT send this material off-box
+ * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
  * without encryption.
  *
  * @note You MUST have used `s2n_config_set_serialized_connection_version()` to set a version on the
@@ -3734,6 +3734,7 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * @param conn A pointer to the connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be written.
  * @param buffer_length Maximum amount of data that can be written to the buffer param.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
 S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
 
@@ -3756,6 +3757,7 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
  * @param conn A pointer to the connection object. Should be a new s2n_connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be read from.
  * @param buffer_length Maximum amount of data that can be read from the buffer parameter.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
 S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
 
