@@ -1375,12 +1375,13 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
-    /* Self-Talk test: ECDSA signature scheme curves must only match certificate
-     * curves and only for TLS1.3
+    /* Self-Talk test: In TLS1.3, the ECDSA signature scheme curve must match
+     * the ECDSA certificate curve.
      *
-     * Signature schemes do NOT have to match ECDHE curves.
-     * Signature schemes do NOT have to match certificate curves for TLS1.2.
-     * Signature schemes do NOT have to match PRF hashes.
+     * But:
+     * Signature scheme curves do NOT have to match certificate curves in TLS1.2.
+     * Signature scheme curves do NOT have to match the ECDHE curve.
+     * Signature scheme hashes do NOT have to match PRF hashes.
      */
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
