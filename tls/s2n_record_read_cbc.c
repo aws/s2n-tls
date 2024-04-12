@@ -103,7 +103,6 @@ int s2n_record_parse_cbc(
 
     /* Padding. This finalizes the provided HMAC. */
     if (s2n_verify_cbc(conn, mac, &en) < 0) {
-        POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
         POSIX_BAIL(S2N_ERR_BAD_MESSAGE);
     }
 
