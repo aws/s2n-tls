@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.11-4220a4d2</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.11-d1b9adde</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -306,6 +306,10 @@ Enumerations</h2></td></tr>
 , <b>S2N_EARLY_DATA_STATUS_END</b>
  }</td></tr>
 <tr class="separator:ab11b47e128bd2074bf486e1e47864033"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a8d830314bad02fd3dea9e9e7b7c8db8c"><td class="memItemLeft" align="right" valign="top"><a id="a8d830314bad02fd3dea9e9e7b7c8db8c" name="a8d830314bad02fd3dea9e9e7b7c8db8c"></a>enum &#160;</td><td class="memItemRight" valign="bottom"><b>s2n_serialization_version</b> { <b>S2N_SERIALIZED_CONN_NONE</b> = 0
+, <b>S2N_SERIALIZED_CONN_V1</b> = 1
+ }</td></tr>
+<tr class="separator:a8d830314bad02fd3dea9e9e7b7c8db8c"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="func-members" name="func-members"></a>
 Functions</h2></td></tr>
@@ -791,6 +795,14 @@ Functions</h2></td></tr>
 <tr class="separator:a675dc5ad09b3950ef36c62f4a43a7414"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad1465c4cb90a8956a26a32aa8e53808c"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad1465c4cb90a8956a26a32aa8e53808c">s2n_config_get_supported_groups</a> (struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max, uint16_t *groups_count)</td></tr>
 <tr class="separator:ad1465c4cb90a8956a26a32aa8e53808c"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a619375c69a21184f06fb22d7810c3831"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a619375c69a21184f06fb22d7810c3831">s2n_config_set_serialization_version</a> (struct s2n_config *config, s2n_serialization_version version)</td></tr>
+<tr class="separator:a619375c69a21184f06fb22d7810c3831"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a978a1d8977b97f7f4faae7111a0404d3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a978a1d8977b97f7f4faae7111a0404d3">s2n_connection_serialization_length</a> (struct s2n_connection *conn, uint32_t *length)</td></tr>
+<tr class="separator:a978a1d8977b97f7f4faae7111a0404d3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a5d020f94e2f7324b8a5eee91287c18b3"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a5d020f94e2f7324b8a5eee91287c18b3">s2n_connection_serialize</a> (struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length)</td></tr>
+<tr class="separator:a5d020f94e2f7324b8a5eee91287c18b3"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a79859a910905832157c08251d1a76888"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a79859a910905832157c08251d1a76888">s2n_connection_deserialize</a> (struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length)</td></tr>
+<tr class="separator:a79859a910905832157c08251d1a76888"><td class="memSeparator" colspan="2">&#160;</td></tr>
 </table><table class="memberdecls">
 <tr class="heading"><td colspan="2"><h2 class="groupheader"><a id="var-members" name="var-members"></a>
 Variables</h2></td></tr>
@@ -5376,6 +5388,44 @@ Safety</h1>
 
 </div>
 </div>
+<a id="a619375c69a21184f06fb22d7810c3831" name="a619375c69a21184f06fb22d7810c3831"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a619375c69a21184f06fb22d7810c3831">&#9670;&#160;</a></span>s2n_config_set_serialization_version()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_set_serialization_version </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *&#160;</td>
+          <td class="paramname"><em>config</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">s2n_serialization_version&#160;</td>
+          <td class="paramname"><em>version</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Set what version to use when serializing connections</p>
+<p >A version is required to serialize connections. Versioning ensures that all features negotiated during the handshake will be available wherever the connection is deserialized. Applications may need to update this version to pick up new features, since versioning may disable newer TLS features to ensure compatibility.</p>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">config</td><td>A pointer to the config object. </td></tr>
+    <tr><td class="paramname">version</td><td>The requested version. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE on error. </dd></dl>
+
+</div>
+</div>
 <a id="abf75ca7a2f3ac18b228e8b3509c35895" name="abf75ca7a2f3ac18b228e8b3509c35895"></a>
 <h2 class="memtitle"><span class="permalink"><a href="#abf75ca7a2f3ac18b228e8b3509c35895">&#9670;&#160;</a></span>s2n_config_set_server_max_early_data_size()</h2>
 
@@ -6020,6 +6070,53 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>1 if the handshake completed and Client Auth was negotiated during then handshake. </dd></dl>
+
+</div>
+</div>
+<a id="a79859a910905832157c08251d1a76888" name="a79859a910905832157c08251d1a76888"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a79859a910905832157c08251d1a76888">&#9670;&#160;</a></span>s2n_connection_deserialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_deserialize </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>buffer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>buffer_length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Deserializes the provided buffer into the <code>s2n_connection</code> parameter.</p>
+<dl class="section warning"><dt>Warning</dt><dd>s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized connection before sending it off-box and deserializing it.</dd>
+<dd>
+Only a minimal amount of information about the original TLS connection is serialized. Therefore, after deserialization, the connection will behave like a new <code>s2n_connection</code> from the <code><a class="el" href="s2n_8h.html#a58005ebdc3e4caf6b6f40321bbc5b1e5">s2n_connection_new()</a></code> call, except that it can read/write encrypted data from a peer. Any desired config-level or connection-level configuration will need to be re-applied to the deserialized connection. For this same reason none of the connection getters will return useful information about the original connection after deserialization. Any information about the original connection needs to be retrieved before serialization.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the connection object. Should be a new s2n_connection object. </td></tr>
+    <tr><td class="paramname">buffer</td><td>A pointer to the buffer where the serialized connection will be read from. </td></tr>
+    <tr><td class="paramname">buffer_length</td><td>Maximum amount of data that can be read from the buffer parameter. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE on error. </dd></dl>
 
 </div>
 </div>
@@ -7672,6 +7769,95 @@ Safety</h1>
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
+
+</div>
+</div>
+<a id="a978a1d8977b97f7f4faae7111a0404d3" name="a978a1d8977b97f7f4faae7111a0404d3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a978a1d8977b97f7f4faae7111a0404d3">&#9670;&#160;</a></span>s2n_connection_serialization_length()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_serialization_length </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t *&#160;</td>
+          <td class="paramname"><em>length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Retrieves the length of the serialized connection from <code><a class="el" href="s2n_8h.html#a5d020f94e2f7324b8a5eee91287c18b3">s2n_connection_serialize()</a></code>. Should be used to allocate enough memory for the serialized connection buffer.</p>
+<dl class="section note"><dt>Note</dt><dd>The size of the serialized connection changes based on parameters negotiated in the TLS handshake. Do not expect the size to always remain the same.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the connection object. </td></tr>
+    <tr><td class="paramname">length</td><td>Output parameter where the length will be written. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE on error. </dd></dl>
+
+</div>
+</div>
+<a id="a5d020f94e2f7324b8a5eee91287c18b3" name="a5d020f94e2f7324b8a5eee91287c18b3"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a5d020f94e2f7324b8a5eee91287c18b3">&#9670;&#160;</a></span>s2n_connection_serialize()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_serialize </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint8_t *&#160;</td>
+          <td class="paramname"><em>buffer</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">uint32_t&#160;</td>
+          <td class="paramname"><em>buffer_length</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Serializes the s2n_connection into the provided buffer.</p>
+<p >This API takes an established s2n-tls connection object and "serializes" it into a transferable object to be sent off-box or to another process. This transferable object can then be "deserialized" using the <code>s2n_connection_deserialize</code> method to instantiate an s2n-tls connection object that can talk to the original peer with the same encryption keys.</p>
+<dl class="section warning"><dt>Warning</dt><dd>This feature is dangerous because it provides cryptographic material from a TLS session in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box without encryption.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>You MUST have used <code><a class="el" href="s2n_8h.html#a619375c69a21184f06fb22d7810c3831">s2n_config_set_serialization_version()</a></code> to set a version on the s2n_config object associated with this connection before this connection began its TLS handshake. </dd>
+<dd>
+Call <code>s2n_connection_serialization_length</code> to retrieve the amount of memory needed for the buffer parameter. </dd>
+<dd>
+This API will error if the handshake is not yet complete.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the connection object. </td></tr>
+    <tr><td class="paramname">buffer</td><td>A pointer to the buffer where the serialized connection will be written. </td></tr>
+    <tr><td class="paramname">buffer_length</td><td>Maximum amount of data that can be written to the buffer param. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success, S2N_FAILURE on error. </dd></dl>
 
 </div>
 </div>
