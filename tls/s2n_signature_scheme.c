@@ -195,7 +195,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20140601[] = {
     &s2n_rsa_pkcs1_sha512,
     &s2n_rsa_pkcs1_sha224,
 
-    /* ECDSA - TLS 1.2 */
+    /* ECDSA */
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
     &s2n_ecdsa_sha512,
@@ -222,7 +222,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20200207[] = {
     &s2n_rsa_pkcs1_sha512,
     &s2n_rsa_pkcs1_sha224,
 
-    /* ECDSA - TLS 1.2 */
+    /* ECDSA */
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
     &s2n_ecdsa_sha512,
@@ -243,7 +243,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_default_fips[]
     &s2n_rsa_pkcs1_sha384,
     &s2n_rsa_pkcs1_sha512,
 
-    /* ECDSA - TLS 1.2 */
+    /* ECDSA */
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
     &s2n_ecdsa_sha512,
@@ -300,7 +300,7 @@ const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20201021[] = {
     &s2n_rsa_pkcs1_sha512,
     &s2n_rsa_pkcs1_sha224,
 
-    /* ECDSA - TLS 1.2 */
+    /* ECDSA */
     &s2n_ecdsa_sha256,
     &s2n_ecdsa_sha384,
     &s2n_ecdsa_sha512,
