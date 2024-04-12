@@ -723,7 +723,7 @@ impl Builder {
     /// before calling serialize_connection.
     pub fn set_serialization_version(
         &mut self,
-        version: SerializedVersion,
+        version: SerializationVersion,
     ) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_set_serialization_version(self.as_mut_ptr(), version.into()).into_result()

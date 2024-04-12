@@ -194,18 +194,18 @@ impl From<PeerKeyUpdate> for s2n_peer_key_update::Type {
     }
 }
 
-pub enum SerializedVersion {
+pub enum SerializationVersion {
     SerializedConnectionNone,
     SerializedConnectionV1,
 }
 
-impl From<SerializedVersion> for s2n_serialization_version::Type {
-    fn from(input: SerializedVersion) -> s2n_serialization_version::Type {
+impl From<SerializationVersion> for s2n_serialization_version::Type {
+    fn from(input: SerializationVersion) -> s2n_serialization_version::Type {
         match input {
-            SerializedVersion::SerializedConnectionNone => {
+            SerializationVersion::SerializedConnectionNone => {
                 s2n_serialization_version::SERIALIZED_CONN_NONE
             }
-            SerializedVersion::SerializedConnectionV1 => {
+            SerializationVersion::SerializedConnectionV1 => {
                 s2n_serialization_version::SERIALIZED_CONN_V1
             }
         }
