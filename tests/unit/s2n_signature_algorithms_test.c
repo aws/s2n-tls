@@ -25,6 +25,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_tls.h"
 
 #define LENGTH       (s2n_array_len(test_signature_schemes))
 #define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
@@ -53,6 +54,7 @@ const struct s2n_signature_scheme *const test_signature_schemes[] = {
     &s2n_rsa_pkcs1_sha224,
     &s2n_rsa_pkcs1_sha1,
     &s2n_ecdsa_sha1,
+    &s2n_ecdsa_sha256,
 };
 
 const struct s2n_signature_preferences test_preferences = {
@@ -184,6 +186,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < s2n_array_len(test_signature_schemes); i++) {
                 EXPECT_EQUAL(signatures.iana_list[i], test_signature_schemes[i]->iana_value);
             }
+            EXPECT_EQUAL(s2n_stuffer_data_available(&result), 0);
         };
 
         /* Test: do not send TLS1.2 signature schemes if QUIC enabled */
@@ -204,12 +207,14 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, s2n_stuffer_data_available(&result));
 
             for (size_t i = 0; i < s2n_array_len(test_signature_schemes); i++) {
-                if (test_signature_schemes[i]->minimum_protocol_version >= S2N_TLS13) {
+                if (test_signature_schemes[i]->maximum_protocol_version == 0
+                        || test_signature_schemes[i]->maximum_protocol_version >= S2N_TLS13) {
                     uint16_t iana_value = 0;
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
                     EXPECT_EQUAL(iana_value, test_signature_schemes[i]->iana_value);
                 }
             }
+            EXPECT_EQUAL(s2n_stuffer_data_available(&result), 0);
         };
     };
 
