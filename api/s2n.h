@@ -3679,7 +3679,8 @@ S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_d
 S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
         uint16_t *groups_count);
 
-/* Indicates which serialized connection version will be provided. */
+/* Indicates which serialized connection version will be provided. The default value is
+ * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off. */
 typedef enum {
     S2N_SERIALIZED_CONN_NONE = 0,
     S2N_SERIALIZED_CONN_V1 = 1
@@ -3697,7 +3698,7 @@ typedef enum {
  * @param version The requested version.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
  */
-S2N_API int s2n_config_set_serialized_connection_version(struct s2n_config *config, s2n_serialization_version version);
+S2N_API int s2n_config_set_serialization_version(struct s2n_config *config, s2n_serialization_version version);
 
 /**
  * Retrieves the length of the serialized connection from `s2n_connection_serialize()`. Should be
@@ -3725,7 +3726,7 @@ S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uin
  * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
  * without encryption.
  *
- * @note You MUST have used `s2n_config_set_serialized_connection_version()` to set a version on the
+ * @note You MUST have used `s2n_config_set_serialization_version()` to set a version on the
  * s2n_config object associated with this connection before this connection began its TLS handshake.
  * @note Call `s2n_connection_serialization_length` to retrieve the amount of memory needed for the
  * buffer parameter.

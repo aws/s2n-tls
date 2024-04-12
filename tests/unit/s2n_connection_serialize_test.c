@@ -76,12 +76,12 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_config *tls12_config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls12_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls12_config));
-    EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(tls12_config, S2N_SERIALIZED_CONN_V1));
+    EXPECT_SUCCESS(s2n_config_set_serialization_version(tls12_config, S2N_SERIALIZED_CONN_V1));
 
     DEFER_CLEANUP(struct s2n_config *tls13_config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls13_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls13_config));
-    EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(tls13_config, S2N_SERIALIZED_CONN_V1));
+    EXPECT_SUCCESS(s2n_config_set_serialization_version(tls13_config, S2N_SERIALIZED_CONN_V1));
     /* Security policy that can negotiate TLS13 and has aes_128_gcm_sha256 as its preferred cipher suite */
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_config, "20210825"));
 
@@ -161,7 +161,7 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_STATE);
 
             /* Negotiation must be complete before calling this function */
-            EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1));
+            EXPECT_SUCCESS(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_serialize(conn, buffer, length),
                     S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
@@ -516,7 +516,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(resumption_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(resumption_config));
-        EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(resumption_config, S2N_SERIALIZED_CONN_V1));
+        EXPECT_SUCCESS(s2n_config_set_serialization_version(resumption_config, S2N_SERIALIZED_CONN_V1));
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(resumption_config));
 
         uint8_t serialized_conn[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(resumption_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(resumption_config));
-        EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(resumption_config, S2N_SERIALIZED_CONN_V1));
+        EXPECT_SUCCESS(s2n_config_set_serialization_version(resumption_config, S2N_SERIALIZED_CONN_V1));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(resumption_config, "default_tls13"));
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(resumption_config));
 
@@ -853,14 +853,14 @@ int main(int argc, char **argv)
 
         /* Setting a renegotiation callback means you cannot set a serialization version. */
         EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb, NULL));
-        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1),
+        EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1),
                 S2N_ERR_INVALID_STATE);
 
         /* Reset renegotiate cb */
         EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, NULL, NULL));
 
         /* Setting a serialized version means that you cannot set a renegotiation callback. */
-        EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1));
+        EXPECT_SUCCESS(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1));
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb,
                                           NULL),
                 S2N_ERR_INVALID_STATE);
