@@ -32,6 +32,11 @@
 
 extern uint8_t s2n_unknown_protocol_version;
 
+/* In TLS1.3 the record type is obfuscated as APPLICATION_DATA once the handshake begins to be encrypted.
+ * The real record type is encrypted and written in the final byte of the record.
+ * In TLS1.2 the record type is always cleartext. */
+#define RECORD_TYPE(is_tls13_record, content_type) (is_tls13_record ? TLS_APPLICATION_DATA : content_type)
+
 /* How much overhead does the IV, MAC, TAG and padding bytes introduce ? */
 static S2N_RESULT s2n_tls_record_overhead(struct s2n_connection *conn, uint16_t *out)
 {
@@ -155,7 +160,7 @@ S2N_RESULT s2n_record_min_write_payload_size(struct s2n_connection *conn, uint16
     return S2N_RESULT_OK;
 }
 
-int s2n_record_write_protocol_version(struct s2n_connection *conn, struct s2n_stuffer *out)
+int s2n_record_write_protocol_version(struct s2n_connection *conn, uint8_t record_type, struct s2n_stuffer *out)
 {
     uint8_t record_protocol_version = conn->actual_protocol_version;
 
@@ -170,11 +175,13 @@ int s2n_record_write_protocol_version(struct s2n_connection *conn, struct s2n_st
      * use that assumed value here in case we are talking to a legacy
      * server that expects TLS1.0.
      *
-     * If we are requesting early data, we can assume that we aren't talking to
-     * a legacy server as a legacy server would not know how to handle early data.
+     * Both TLS 1.3 early data and a deserialized connection will
+     * send data without the server_protocol_version being known. However,
+     * the record type would be set to APPLICATION_DATA in their cases
+     * so this check is avoided.
      **/
     if (conn->server_protocol_version == s2n_unknown_protocol_version
-            && conn->early_data_state != S2N_EARLY_DATA_REQUESTED) {
+            && record_type == TLS_HANDSHAKE) {
         record_protocol_version = MIN(record_protocol_version, S2N_TLS10);
     }
 
@@ -352,10 +359,9 @@ int s2n_record_writev(struct s2n_connection *conn, uint8_t content_type, const s
     POSIX_GUARD(s2n_stuffer_init(&record_stuffer, &record_blob));
 
     /* Now that we know the length, start writing the record */
-    POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, is_tls13_record ?
-                    /* tls 1.3 opaque type */ TLS_APPLICATION_DATA :
-                    /* actual content_type */ content_type));
-    POSIX_GUARD(s2n_record_write_protocol_version(conn, &record_stuffer));
+    uint8_t record_type = RECORD_TYPE(is_tls13_record, content_type);
+    POSIX_GUARD(s2n_stuffer_write_uint8(&record_stuffer, record_type));
+    POSIX_GUARD(s2n_record_write_protocol_version(conn, record_type, &record_stuffer));
 
     /* First write a header that has the payload length, this is for the MAC */
     POSIX_GUARD(s2n_stuffer_write_uint16(&record_stuffer, data_bytes_to_take));

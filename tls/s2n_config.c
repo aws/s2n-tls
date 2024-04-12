@@ -1127,6 +1127,10 @@ int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after
 int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n_renegotiate_request_cb cb, void *ctx)
 {
     POSIX_ENSURE_REF(config);
+
+    /* This feature cannot be used with serialization currently */
+    POSIX_ENSURE(config->serialized_connection_version == S2N_SERIALIZED_CONN_NONE, S2N_ERR_INVALID_STATE);
+
     config->renegotiate_request_cb = cb;
     config->renegotiate_request_ctx = ctx;
     return S2N_SUCCESS;
@@ -1216,6 +1220,20 @@ int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups,
     }
 
     *groups_count_out = groups_count;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_serialized_connection_version(struct s2n_config *config, s2n_serialization_version version)
+{
+    POSIX_ENSURE_REF(config);
+
+    /* This feature cannot be used with renegotiation currently */
+    POSIX_ENSURE(config->renegotiate_request_cb == NULL, S2N_ERR_INVALID_STATE);
+
+    /* Currently there is only one format version supported */
+    POSIX_ENSURE_EQ(version, S2N_SERIALIZED_CONN_V1);
+    config->serialized_connection_version = version;
 
     return S2N_SUCCESS;
 }

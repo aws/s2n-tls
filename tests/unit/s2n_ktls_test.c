@@ -387,6 +387,22 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
         };
 
+        /* Fail if buffer_in contains any data.
+         * A connection that will enable ktls needs to disable recv_greedy
+         */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(server_conn));
+
+            EXPECT_SUCCESS(s2n_stuffer_write_uint8(&server_conn->buffer_in, 1));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(server_conn),
+                    S2N_ERR_KTLS_UNSUPPORTED_CONN);
+
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&server_conn->buffer_in, 1));
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server_conn));
+        };
+
         /* Fail if not using managed IO for send */
         {
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -434,6 +450,23 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_test_reneg_cb, NULL));
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(client), S2N_ERR_KTLS_RENEG);
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(server));
+        }
+
+        /* Fail if serialization is a possibility */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_OK(s2n_test_configure_connection_for_ktls(client));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+            EXPECT_SUCCESS(s2n_config_set_serialized_connection_version(config, S2N_SERIALIZED_CONN_V1));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_ktls_enable_recv(client), S2N_ERR_KTLS_UNSUPPORTED_CONN);
+
+            /* Removing the intent to serialize means that ktls enable now succeeds */
+            config->serialized_connection_version = S2N_SERIALIZED_CONN_NONE;
+            EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(client));
         }
 
         /* Call setsockopt correctly to configure tls crypto */
