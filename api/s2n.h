@@ -3746,13 +3746,13 @@ S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffe
  * sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized 
  * connection before sending it off-box and deserializing it.
  *
- * @warning Only the minimal amount of information about the original TLS connection is serialized.
+ * @warning Only a minimal amount of information about the original TLS connection is serialized.
  * Therefore, after deserialization, the connection will behave like a new `s2n_connection` from the 
- * `s2n_connection_new()` call, except that it can read/write encrypted data from a peer. None of the
- * connection getters will return useful information about the original connection after deserialization.
- * Any information about the original connection needs to be retrieved before serialization.
- * For this same reason any config-level or connection-level configuration will need to be re-applied to the
- * deserialized connection.
+ * `s2n_connection_new()` call, except that it can read/write encrypted data from a peer. Any desired
+ * config-level or connection-level configuration will need to be re-applied to the deserialized connection.
+ * For this same reason none of the connection getters will return useful information about the 
+ * original connection after deserialization. Any information about the original connection needs to
+ * be retrieved before serialization.
  *
  * @param conn A pointer to the connection object. Should be a new s2n_connection object.
  * @param buffer A pointer to the buffer where the serialized connection will be read from.
