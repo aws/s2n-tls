@@ -25,6 +25,7 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
+#include "tls/s2n_tls.h"
 
 #define LENGTH       (s2n_array_len(test_signature_schemes))
 #define STUFFER_SIZE (LENGTH * TLS_SIGNATURE_SCHEME_LEN + 10)
@@ -33,12 +34,27 @@
 #define ECDSA_CIPHER_SUITE &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha
 #define TLS13_CIPHER_SUITE &s2n_tls13_aes_128_gcm_sha256
 
+/* The only TLS1.3-only signature schemes are RSA-PSS-PSS, which
+ * are difficult to test with due to mixed libcrypto support.
+ * Use a test scheme instead.
+ */
+const struct s2n_signature_scheme s2n_test_tls13_ecdsa_sha384 = {
+    .iana_value = TLS_SIGNATURE_SCHEME_ECDSA_SHA384,
+    .hash_alg = S2N_HASH_SHA384,
+    .sig_alg = S2N_SIGNATURE_ECDSA,
+    .libcrypto_nid = NID_ecdsa_with_SHA384,
+    .signature_curve = &s2n_ecc_curve_secp384r1,
+    /* Only supports TLS1.3 for testing */
+    .minimum_protocol_version = S2N_TLS13,
+};
+
 const struct s2n_signature_scheme *const test_signature_schemes[] = {
-    &s2n_ecdsa_secp384r1_sha384,
+    &s2n_test_tls13_ecdsa_sha384,
     &s2n_rsa_pkcs1_sha256,
     &s2n_rsa_pkcs1_sha224,
     &s2n_rsa_pkcs1_sha1,
     &s2n_ecdsa_sha1,
+    &s2n_ecdsa_sha256,
 };
 
 const struct s2n_signature_preferences test_preferences = {
@@ -141,7 +157,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(size, s2n_stuffer_data_available(&result));
 
             for (size_t i = 0; i < s2n_array_len(test_signature_schemes); i++) {
-                if (test_signature_schemes[i] != &s2n_ecdsa_secp384r1_sha384) {
+                if (test_signature_schemes[i] != &s2n_test_tls13_ecdsa_sha384) {
                     uint16_t iana_value = 0;
                     EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
                     EXPECT_EQUAL(iana_value, test_signature_schemes[i]->iana_value);
@@ -170,6 +186,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < s2n_array_len(test_signature_schemes); i++) {
                 EXPECT_EQUAL(signatures.iana_list[i], test_signature_schemes[i]->iana_value);
             }
+            EXPECT_EQUAL(s2n_stuffer_data_available(&result), 0);
         };
 
         /* Test: do not send TLS1.2 signature schemes if QUIC enabled */
@@ -189,9 +206,14 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &size));
             EXPECT_EQUAL(size, s2n_stuffer_data_available(&result));
 
-            uint16_t iana_value = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
-            EXPECT_EQUAL(iana_value, s2n_ecdsa_secp384r1_sha384.iana_value);
+            for (size_t i = 0; i < s2n_array_len(test_signature_schemes); i++) {
+                if (test_signature_schemes[i]->maximum_protocol_version == 0
+                        || test_signature_schemes[i]->maximum_protocol_version >= S2N_TLS13) {
+                    uint16_t iana_value = 0;
+                    EXPECT_SUCCESS(s2n_stuffer_read_uint16(&result, &iana_value));
+                    EXPECT_EQUAL(iana_value, test_signature_schemes[i]->iana_value);
+                }
+            }
             EXPECT_EQUAL(s2n_stuffer_data_available(&result), 0);
         };
     };
@@ -218,7 +240,6 @@ int main(int argc, char **argv)
              * just not going to choose them.
              */
             const struct s2n_signature_scheme *test_schemes[] = {
-                &s2n_ecdsa_secp384r1_sha384,
                 &s2n_ecdsa_sha384,
                 &s2n_rsa_pss_rsae_sha256,
                 &s2n_rsa_pss_pss_sha256,
@@ -414,7 +435,7 @@ int main(int argc, char **argv)
             /* Test: scheme not valid for higher protocol version */
             {
                 /* Valid TLS1.3 ECDSA sig schemes include associated curves */
-                const struct s2n_signature_scheme *invalid = &s2n_ecdsa_sha256;
+                const struct s2n_signature_scheme *invalid = &s2n_ecdsa_sha224;
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
@@ -441,8 +462,7 @@ int main(int argc, char **argv)
 
             /* Test: scheme not valid for lower protocol version */
             {
-                /* Valid TLS1.2 ECDSA sig schemes do not include associated curves */
-                const struct s2n_signature_scheme *invalid = &s2n_ecdsa_secp384r1_sha384;
+                const struct s2n_signature_scheme *invalid = &s2n_test_tls13_ecdsa_sha384;
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
@@ -472,7 +492,7 @@ int main(int argc, char **argv)
                 /* No SHA1 signature schemes for TLS1.3 actually exist.
                  * Create one for testing.
                  */
-                struct s2n_signature_scheme sha1_tls13_scheme = s2n_ecdsa_secp384r1_sha384;
+                struct s2n_signature_scheme sha1_tls13_scheme = s2n_ecdsa_sha384;
                 sha1_tls13_scheme.hash_alg = s2n_ecdsa_sha1.hash_alg;
                 const struct s2n_signature_scheme *invalid = &sha1_tls13_scheme;
 
@@ -494,7 +514,7 @@ int main(int argc, char **argv)
                         S2N_ERR_NO_VALID_SIGNATURE_SCHEME);
 
                 /* Succeeds without SHA1 */
-                sha1_tls13_scheme.hash_alg = s2n_ecdsa_secp384r1_sha384.hash_alg;
+                sha1_tls13_scheme.hash_alg = s2n_ecdsa_sha384.hash_alg;
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
             };
 
@@ -600,8 +620,8 @@ int main(int argc, char **argv)
              * extension is used instead. See https://github.com/aws/s2n-tls/issues/4274
              */
             {
-                const struct s2n_signature_scheme *ecdsa384 = &s2n_ecdsa_secp384r1_sha384;
-                const struct s2n_signature_scheme *ecdsa256 = &s2n_ecdsa_secp256r1_sha256;
+                const struct s2n_signature_scheme *ecdsa384 = &s2n_ecdsa_sha384;
+                const struct s2n_signature_scheme *ecdsa256 = &s2n_ecdsa_sha256;
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
@@ -637,16 +657,16 @@ int main(int argc, char **argv)
             conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
             EXPECT_SUCCESS(s2n_connection_set_config(conn, client_ecdsa_config));
 
-            const struct s2n_signature_scheme *expected = &s2n_ecdsa_secp384r1_sha384;
+            const struct s2n_signature_scheme *expected = &s2n_ecdsa_sha384;
             const struct s2n_signature_scheme *schemes[] = {
                 /* No RSA certificates */
                 &s2n_rsa_pss_rsae_sha256,
                 &s2n_rsa_pss_pss_sha256,
                 &s2n_rsa_pkcs1_sha256,
                 /* Only valid for TLS1.2 */
-                &s2n_ecdsa_sha384,
+                &s2n_ecdsa_sha224,
                 /* Wrong curve */
-                &s2n_ecdsa_secp256r1_sha256,
+                &s2n_ecdsa_sha256,
                 expected
             };
 
@@ -691,16 +711,14 @@ int main(int argc, char **argv)
 
         /* Test: no schemes offered by the peer */
         {
-            const struct s2n_signature_scheme *ecdsa_not_default_tls12 = &s2n_ecdsa_sha384;
-            const struct s2n_signature_scheme *ecdsa_not_default_tls13 = &s2n_ecdsa_secp384r1_sha384;
+            const struct s2n_signature_scheme *ecdsa_not_default = &s2n_ecdsa_sha384;
             const struct s2n_signature_scheme *rsa_not_default = &s2n_rsa_pkcs1_sha256;
 
             /* Test: defaults allowed by security policy */
             {
                 /* We should need to skip valid non-default schemes to choose the defaults */
                 const struct s2n_signature_scheme *schemes_with_defaults[] = {
-                    ecdsa_not_default_tls12,
-                    ecdsa_not_default_tls13,
+                    ecdsa_not_default,
                     rsa_not_default,
                     rsa_default,
                     ecdsa_default
@@ -730,18 +748,17 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
-                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default_tls13);
+                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default);
             }
 
             /* Test: defaults not allowed by security policy */
             {
                 const struct s2n_signature_scheme *schemes_without_defaults[] = {
-                    ecdsa_not_default_tls12,
-                    ecdsa_not_default_tls13,
+                    ecdsa_not_default,
                     rsa_not_default,
                     /* Add some more, less preferred non-defaults.
                      * We only choose the most preferred though. */
-                    &s2n_ecdsa_secp384r1_sha384,
+                    &s2n_ecdsa_sha512,
                     &s2n_ecdsa_sha256,
                     &s2n_rsa_pss_rsae_sha384,
                 };
@@ -758,7 +775,7 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS12;
                 conn->secure->cipher_suite = ECDSA_CIPHER_SUITE;
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
-                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default_tls12);
+                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default);
 
                 /* TLS1.2 with RSA does not choose default */
                 conn->actual_protocol_version = S2N_TLS12;
@@ -770,21 +787,21 @@ int main(int argc, char **argv)
                 conn->actual_protocol_version = S2N_TLS13;
                 conn->secure->cipher_suite = TLS13_CIPHER_SUITE;
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
-                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default_tls13);
+                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default);
             };
 
             /* Test: skip invalid fallback candidates to choose valid one */
             {
-                const struct s2n_signature_scheme *expected = &s2n_ecdsa_secp384r1_sha384;
+                const struct s2n_signature_scheme *expected = &s2n_ecdsa_sha384;
                 const struct s2n_signature_scheme *schemes[] = {
                     /* No RSA certificates */
                     &s2n_rsa_pss_rsae_sha256,
                     &s2n_rsa_pss_pss_sha256,
                     &s2n_rsa_pkcs1_sha256,
                     /* Only valid for TLS1.2 */
-                    &s2n_ecdsa_sha384,
+                    &s2n_ecdsa_sha224,
                     /* Wrong curve */
-                    &s2n_ecdsa_secp256r1_sha256,
+                    &s2n_ecdsa_sha256,
                     expected
                 };
 
@@ -808,8 +825,7 @@ int main(int argc, char **argv)
          * the peer offered no signature schemes at all.
          */
         {
-            const struct s2n_signature_scheme *ecdsa_not_default_tls12 = &s2n_ecdsa_sha384;
-            const struct s2n_signature_scheme *ecdsa_not_default_tls13 = &s2n_ecdsa_secp384r1_sha384;
+            const struct s2n_signature_scheme *ecdsa_not_default = &s2n_ecdsa_sha384;
             const struct s2n_signature_scheme *rsa_not_default = &s2n_rsa_pss_rsae_sha256;
 
             /* Test: TLS1.2 chooses defaults */
@@ -820,8 +836,7 @@ int main(int argc, char **argv)
                 /* We should need to skip valid non-default schemes to choose the defaults */
                 const struct s2n_signature_scheme *local_schemes[] = {
                     invalid_scheme,
-                    ecdsa_not_default_tls12,
-                    ecdsa_not_default_tls13,
+                    ecdsa_not_default,
                     rsa_not_default,
                     rsa_default,
                     ecdsa_default
@@ -857,13 +872,13 @@ int main(int argc, char **argv)
             {
                 /* We should need to skip valid non-default schemes to choose the defaults */
                 const struct s2n_signature_scheme *local_schemes[] = {
-                    ecdsa_not_default_tls12,
+                    &s2n_ecdsa_sha224,
                     rsa_default,
                     ecdsa_default,
-                    ecdsa_not_default_tls13
+                    ecdsa_not_default
                 };
                 const struct s2n_signature_scheme *peer_schemes[] = {
-                    ecdsa_not_default_tls12,
+                    &s2n_ecdsa_sha224,
                     /* TLS1.3 does not support the TLS1.2 defaults */
                     rsa_default,
                     ecdsa_default
@@ -882,7 +897,7 @@ int main(int argc, char **argv)
                         peer_schemes, s2n_array_len(peer_schemes)));
 
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
-                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default_tls13);
+                EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, ecdsa_not_default);
             };
         };
     };
@@ -1039,44 +1054,6 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(s2n_signature_algorithm_recv(conn, &input),
                     S2N_ERR_INVALID_SIGNATURE_SCHEME);
         };
-    };
-
-    /* Test: choose correct signature for duplicate iana values.
-     * Some signature schemes have the same iana, but are different for
-     * different protocol versions. */
-    {
-        const struct s2n_signature_scheme *const dup_test_signature_schemes[] = {
-            &s2n_ecdsa_secp384r1_sha384,
-            &s2n_ecdsa_sha384,
-        };
-
-        const struct s2n_signature_preferences dup_test_preferences = {
-            .count = 2,
-            .signature_schemes = dup_test_signature_schemes,
-        };
-
-        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-
-        const struct s2n_security_policy *security_policy = NULL;
-        EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_NOT_NULL(security_policy);
-        struct s2n_security_policy test_security_policy = *security_policy;
-        test_security_policy.signature_preferences = &dup_test_preferences;
-        conn->security_policy_override = &test_security_policy;
-
-        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
-        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
-
-        conn->actual_protocol_version = S2N_TLS13;
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_ecdsa_sha384.iana_value));
-        EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
-        EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, &s2n_ecdsa_secp384r1_sha384);
-
-        conn->actual_protocol_version = S2N_TLS12;
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_ecdsa_sha384.iana_value));
-        EXPECT_OK(s2n_signature_algorithm_recv(conn, &input));
-        EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme, &s2n_ecdsa_sha384);
     };
 
     /* Test: send and receive default signature preferences */
@@ -1395,6 +1372,107 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(server_conn->actual_protocol_version, S2N_TLS12);
         };
     };
+
+    EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
+    /* Self-Talk test: In TLS1.3, the ECDSA signature scheme curve must match
+     * the ECDSA certificate curve.
+     *
+     * But:
+     * Signature scheme curves do NOT have to match certificate curves in TLS1.2.
+     * Signature scheme curves do NOT have to match the ECDHE curve.
+     * Signature scheme hashes do NOT have to match PRF hashes.
+     */
+    if (s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+
+        /* Certificate uses p521 */
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *ecdsa_p521_chain = NULL,
+                s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&ecdsa_p521_chain,
+                S2N_ECDSA_P512_CERT_CHAIN, S2N_ECDSA_P512_KEY));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_p521_chain));
+
+        /* Cipher should use SHA256 for PRF */
+        struct s2n_cipher_suite *cipher_suite_tls13 = &s2n_tls13_aes_128_gcm_sha256;
+        struct s2n_cipher_suite *cipher_suite_tls12 = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+        struct s2n_cipher_preferences cipher_prefs = {
+            .count = 1,
+            .suites = NULL
+        };
+        /* TLS1.2 prefers SHA224 for signatures.
+         * TLS1.3 has to use SHA512 to match the certificate.
+         * Include another valid TLS1.3 option (SHA256) to verify SHA512 is still chosen.
+         */
+        const struct s2n_signature_scheme *sig_schemes[] = {
+            &s2n_ecdsa_sha224,
+            &s2n_ecdsa_sha256,
+            &s2n_ecdsa_sha512
+        };
+        struct s2n_signature_preferences sig_prefs = {
+            .count = s2n_array_len(sig_schemes),
+            .signature_schemes = sig_schemes
+        };
+        /* Key exchange prefers SHA384 */
+        const struct s2n_ecc_named_curve *curves[] = {
+            &s2n_ecc_curve_secp384r1,
+            &s2n_ecc_curve_secp521r1
+        };
+        struct s2n_ecc_preferences ecc_prefs = {
+            .count = s2n_array_len(curves),
+            .ecc_curves = curves
+        };
+        struct s2n_security_policy policy = security_policy_20230317;
+        policy.cipher_preferences = &cipher_prefs;
+        policy.signature_preferences = &sig_prefs;
+        policy.ecc_preferences = &ecc_prefs;
+        config->security_policy = &policy;
+
+        for (uint8_t version = S2N_TLS12; version <= S2N_TLS13; version++) {
+            if (version >= S2N_TLS13) {
+                cipher_prefs.suites = &cipher_suite_tls13;
+            } else {
+                cipher_prefs.suites = &cipher_suite_tls12;
+            }
+
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_EQUAL(client->actual_protocol_version, version);
+            EXPECT_EQUAL(server->actual_protocol_version, version);
+
+            if (version >= S2N_TLS13) {
+                /* TLS1.3 sig scheme does have to match certificate: 512 */
+                EXPECT_EQUAL(server->handshake_params.server_cert_sig_scheme, &s2n_ecdsa_sha512);
+            } else {
+                /* TLS1.2 sig scheme does not have to match certificate: 224 */
+                EXPECT_NOT_EQUAL(server->handshake_params.server_cert_sig_scheme, &s2n_ecdsa_sha512);
+                EXPECT_EQUAL(server->handshake_params.server_cert_sig_scheme, &s2n_ecdsa_sha224);
+            }
+
+            /* PRF does not have to match certificate or sig scheme: 256 */
+            EXPECT_NOT_EQUAL(server->secure->cipher_suite->prf_alg, S2N_HMAC_SHA512);
+            EXPECT_EQUAL(server->secure->cipher_suite->prf_alg, S2N_HMAC_SHA256);
+
+            /* KEX does not have to match certificate or sig scheme or PRF: 384 */
+            EXPECT_NOT_EQUAL(server->kex_params.server_ecc_evp_params.negotiated_curve,
+                    &s2n_ecc_curve_secp521r1);
+            EXPECT_EQUAL(server->kex_params.server_ecc_evp_params.negotiated_curve,
+                    &s2n_ecc_curve_secp384r1);
+        }
+    }
 
     END_TEST();
 

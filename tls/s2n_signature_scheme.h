@@ -30,7 +30,7 @@ struct s2n_signature_scheme {
     uint8_t maximum_protocol_version;
     uint16_t libcrypto_nid;
 
-    /* Curve is only specified for ECDSA Signatures */
+    /* Curve is only defined for TLS1.3 ECDSA Signatures */
     struct s2n_ecc_named_curve const *signature_curve;
 };
 
@@ -51,17 +51,11 @@ extern const struct s2n_signature_scheme s2n_rsa_pkcs1_sha256;
 extern const struct s2n_signature_scheme s2n_rsa_pkcs1_sha384;
 extern const struct s2n_signature_scheme s2n_rsa_pkcs1_sha512;
 
-/* TLS 1.2 Compatible ECDSA Schemes */
 extern const struct s2n_signature_scheme s2n_ecdsa_sha1;
 extern const struct s2n_signature_scheme s2n_ecdsa_sha224;
 extern const struct s2n_signature_scheme s2n_ecdsa_sha256;
 extern const struct s2n_signature_scheme s2n_ecdsa_sha384;
 extern const struct s2n_signature_scheme s2n_ecdsa_sha512;
-
-/* TLS 1.3 Compatible ECDSA Schemes */
-extern const struct s2n_signature_scheme s2n_ecdsa_secp256r1_sha256;
-extern const struct s2n_signature_scheme s2n_ecdsa_secp384r1_sha384;
-extern const struct s2n_signature_scheme s2n_ecdsa_secp521r1_sha512;
 
 /* RSA PSS */
 /*
