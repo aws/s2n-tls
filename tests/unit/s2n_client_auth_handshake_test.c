@@ -47,8 +47,8 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     client_conn->server_protocol_version = S2N_TLS13;
     client_conn->client_protocol_version = S2N_TLS13;
     client_conn->actual_protocol_version = S2N_TLS13;
-    client_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_secp256r1_sha256;
-    client_conn->handshake_params.client_cert_sig_scheme = &s2n_ecdsa_secp256r1_sha256;
+    client_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha256;
+    client_conn->handshake_params.client_cert_sig_scheme = &s2n_ecdsa_sha256;
     client_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     if (!no_cert) {
         client_conn->handshake_params.our_chain_and_key = ecdsa_cert;
@@ -58,7 +58,7 @@ int s2n_test_client_auth_negotiation(struct s2n_config *server_config, struct s2
     server_conn->server_protocol_version = S2N_TLS13;
     server_conn->client_protocol_version = S2N_TLS13;
     server_conn->actual_protocol_version = S2N_TLS13;
-    server_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_secp256r1_sha256;
+    server_conn->handshake_params.server_cert_sig_scheme = &s2n_ecdsa_sha256;
     server_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
 
     if (no_cert) {
@@ -467,10 +467,10 @@ int main(int argc, char **argv)
         size_t test_case_count = 0;
 
         for (size_t client_i = 0; client_i < s2n_array_len(all_options); client_i++) {
-            EXPECT_TRUE(test_case_count < s2n_array_len(test_cases));
             for (size_t server_i = 0; server_i < s2n_array_len(all_options); server_i++) {
                 for (size_t cert_i = 0; cert_i <= 1; cert_i++) {
                     for (size_t version = S2N_TLS12; version <= S2N_TLS13; version++) {
+                        EXPECT_TRUE(test_case_count < s2n_array_len(test_cases));
                         test_cases[test_case_count].client_auth_type = all_options[client_i];
                         test_cases[test_case_count].server_auth_type = all_options[server_i];
                         test_cases[test_case_count].client_cert_exists = (cert_i == 1);

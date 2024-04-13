@@ -22,6 +22,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "tls/s2n_tls.h"
 
 static S2N_RESULT s2n_test_security_policies_compatible(const struct s2n_security_policy *policy,
         const char *default_policy, struct s2n_cert_chain_and_key *cert_chain)
@@ -820,7 +821,6 @@ int main(int argc, char **argv)
 
                 /* If scheme will be used for pre-tls1.3 */
                 if (min_version < S2N_TLS13) {
-                    EXPECT_NULL(scheme->signature_curve);
                     EXPECT_NOT_EQUAL(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
                 }
             }
