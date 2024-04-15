@@ -34,6 +34,11 @@ int main(int argc, char **argv)
             s2n_cert_authorities_extension.iana_value, &temp_id));
     const s2n_extension_type_id ca_ext_id = temp_id;
 
+    /* Test: awslc should always support loading from the trust store */
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_TRUE(s2n_cert_authorities_supported_from_trust_store());
+    }
+
     /* Test: s2n_config_set_cert_authorities_from_trust_store */
     {
         /* Test: Safety */
@@ -48,6 +53,27 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_config_set_cert_authorities_from_trust_store(config, NULL),
                     S2N_ERR_NULL);
+        };
+
+        /* Test: fails if not supported */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config,
+                    S2N_ECDSA_P512_CERT_CHAIN, NULL));
+
+            size_t count = 0;
+            if (s2n_cert_authorities_supported_from_trust_store()) {
+                EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config, &count));
+                EXPECT_EQUAL(count, 1);
+                EXPECT_NOT_EQUAL(config->cert_authorities.size, 0);
+            } else {
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_config_set_cert_authorities_from_trust_store(config, &count),
+                        S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+                EXPECT_EQUAL(config->cert_authorities.size, 0);
+            }
         };
 
         /* Test: not allowed with system trust store */
@@ -74,7 +100,7 @@ int main(int argc, char **argv)
         };
 
         /* Test: too many CAs in trust store */
-        {
+        if (s2n_cert_authorities_supported_from_trust_store()) {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             /* This is just a copy of the default trust store from an Amazon Linux instance */
@@ -163,7 +189,7 @@ int main(int argc, char **argv)
     };
 
     /* Known value test: compare our extension to openssl s_server */
-    if (s2n_is_rsa_pss_certs_supported()) {
+    if (s2n_is_rsa_pss_certs_supported() && s2n_cert_authorities_supported_from_trust_store()) {
         /* clang-format off */
         const struct {
             const char *cert_name;
@@ -287,7 +313,7 @@ int main(int argc, char **argv)
     }
 
     /* Self-talk test */
-    if (s2n_is_tls13_fully_supported()) {
+    if (s2n_is_tls13_fully_supported() && s2n_cert_authorities_supported_from_trust_store()) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));

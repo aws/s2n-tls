@@ -18,6 +18,15 @@
 
 #include "utils/s2n_safety.h"
 
+bool s2n_cert_authorities_supported_from_trust_store()
+{
+#if S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST
+    return true;
+#else
+    return false;
+#endif
+}
+
 S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *config, size_t *count)
 {
     RESULT_ENSURE_REF(config);
@@ -28,6 +37,7 @@ S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *config, 
         return S2N_RESULT_OK;
     }
 
+#if S2N_LIBCRYPTO_SUPPORTS_X509_STORE_LIST
     DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
     RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&output, 256));
 
@@ -60,6 +70,9 @@ S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *config, 
 
     RESULT_GUARD_POSIX(s2n_stuffer_extract_blob(&output, &config->cert_authorities));
     return S2N_RESULT_OK;
+#else
+    RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+#endif
 }
 
 int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config, size_t *count)
@@ -83,7 +96,8 @@ static int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stu
 
 static bool s2n_cert_authorities_should_send(struct s2n_connection *conn)
 {
-    return s2n_extension_send_if_tls13_connection(conn) && conn && conn->config
+    return s2n_extension_send_if_tls13_connection(conn)
+            && conn && conn->config
             && conn->config->cert_authorities.size > 0;
 }
 

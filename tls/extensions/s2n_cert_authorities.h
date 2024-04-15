@@ -26,3 +26,5 @@
 #define S2N_CERT_AUTHORITIES_MAX 10
 
 extern const s2n_extension_type s2n_cert_authorities_extension;
+
+bool s2n_cert_authorities_supported_from_trust_store();
