@@ -254,7 +254,7 @@ int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uin
     /* Read parsed values into a temporary struct so that the connection is unaltered if parsing fails */
     struct s2n_connection_deserialize parsed_values = { 0 };
     POSIX_ENSURE(s2n_result_is_ok(s2n_connection_deserialize_parse(buffer, buffer_length, &parsed_values)),
-            S2N_INVALID_SERIALIZED_CONNECTION);
+            S2N_ERR_INVALID_SERIALIZED_CONNECTION);
 
     /* Rehydrate fields now that parsing has completed successfully */
     conn->actual_protocol_version = parsed_values.protocol_version;

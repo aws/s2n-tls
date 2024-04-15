@@ -124,7 +124,7 @@
  *#      quic_transport_parameters(0x39), (65535)
  *#   } ExtensionType;
  */
-#define TLS_QUIC_TRANSPORT_PARAMETERS 0x39
+#define TLS_EXTENSION_QUIC_TRANSPORT_PARAMETERS 0x39
 
 /* TLS SignatureScheme (Backwards compatible with SigHash and SigAlg values above) */
 /* Defined here: https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-signaturescheme */
