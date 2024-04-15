@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.11-0216a243</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.11-9774bd7f</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -845,23 +845,24 @@ $(function() {
 <div class="line"><a id="l03680" name="l03680"></a><span class="lineno"> 3680</span>        uint16_t *groups_count);</div>
 <div class="line"><a id="l03681" name="l03681"></a><span class="lineno"> 3681</span> </div>
 <div class="line"><a id="l03682" name="l03682"></a><span class="lineno"> 3682</span><span class="comment">/* Indicates which serialized connection version will be provided. The default value is</span></div>
-<div class="line"><a id="l03683" name="l03683"></a><span class="lineno"> 3683</span><span class="comment"> * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off. */</span></div>
-<div class="line"><a id="l03684" name="l03684"></a><span class="lineno"> 3684</span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
-<div class="line"><a id="l03685" name="l03685"></a><span class="lineno"> 3685</span>    S2N_SERIALIZED_CONN_NONE = 0,</div>
-<div class="line"><a id="l03686" name="l03686"></a><span class="lineno"> 3686</span>    S2N_SERIALIZED_CONN_V1 = 1</div>
-<div class="line"><a id="l03687" name="l03687"></a><span class="lineno"> 3687</span>} s2n_serialization_version;</div>
-<div class="line"><a id="l03688" name="l03688"></a><span class="lineno"> 3688</span> </div>
-<div class="line"><a id="l03701" name="l03701"></a><span class="lineno"><a class="line" href="s2n_8h.html#a619375c69a21184f06fb22d7810c3831"> 3701</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a619375c69a21184f06fb22d7810c3831">s2n_config_set_serialization_version</a>(<span class="keyword">struct</span> s2n_config *config, s2n_serialization_version version);</div>
-<div class="line"><a id="l03702" name="l03702"></a><span class="lineno"> 3702</span> </div>
-<div class="line"><a id="l03714" name="l03714"></a><span class="lineno"><a class="line" href="s2n_8h.html#a978a1d8977b97f7f4faae7111a0404d3"> 3714</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a978a1d8977b97f7f4faae7111a0404d3">s2n_connection_serialization_length</a>(<span class="keyword">struct</span> s2n_connection *conn, uint32_t *length);</div>
-<div class="line"><a id="l03715" name="l03715"></a><span class="lineno"> 3715</span> </div>
-<div class="line"><a id="l03740" name="l03740"></a><span class="lineno"><a class="line" href="s2n_8h.html#a5d020f94e2f7324b8a5eee91287c18b3"> 3740</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a5d020f94e2f7324b8a5eee91287c18b3">s2n_connection_serialize</a>(<span class="keyword">struct</span> s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);</div>
-<div class="line"><a id="l03741" name="l03741"></a><span class="lineno"> 3741</span> </div>
-<div class="line"><a id="l03763" name="l03763"></a><span class="lineno"><a class="line" href="s2n_8h.html#a79859a910905832157c08251d1a76888"> 3763</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a79859a910905832157c08251d1a76888">s2n_connection_deserialize</a>(<span class="keyword">struct</span> s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);</div>
-<div class="line"><a id="l03764" name="l03764"></a><span class="lineno"> 3764</span> </div>
-<div class="line"><a id="l03765" name="l03765"></a><span class="lineno"> 3765</span><span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a id="l03766" name="l03766"></a><span class="lineno"> 3766</span>}</div>
-<div class="line"><a id="l03767" name="l03767"></a><span class="lineno"> 3767</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l03683" name="l03683"></a><span class="lineno"> 3683</span><span class="comment"> * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off.</span></div>
+<div class="line"><a id="l03684" name="l03684"></a><span class="lineno"> 3684</span><span class="comment"> */</span></div>
+<div class="line"><a id="l03685" name="l03685"></a><span class="lineno"> 3685</span><span class="keyword">typedef</span> <span class="keyword">enum</span> {</div>
+<div class="line"><a id="l03686" name="l03686"></a><span class="lineno"> 3686</span>    S2N_SERIALIZED_CONN_NONE = 0,</div>
+<div class="line"><a id="l03687" name="l03687"></a><span class="lineno"> 3687</span>    S2N_SERIALIZED_CONN_V1 = 1</div>
+<div class="line"><a id="l03688" name="l03688"></a><span class="lineno"> 3688</span>} s2n_serialization_version;</div>
+<div class="line"><a id="l03689" name="l03689"></a><span class="lineno"> 3689</span> </div>
+<div class="line"><a id="l03702" name="l03702"></a><span class="lineno"><a class="line" href="s2n_8h.html#a619375c69a21184f06fb22d7810c3831"> 3702</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a619375c69a21184f06fb22d7810c3831">s2n_config_set_serialization_version</a>(<span class="keyword">struct</span> s2n_config *config, s2n_serialization_version version);</div>
+<div class="line"><a id="l03703" name="l03703"></a><span class="lineno"> 3703</span> </div>
+<div class="line"><a id="l03715" name="l03715"></a><span class="lineno"><a class="line" href="s2n_8h.html#a978a1d8977b97f7f4faae7111a0404d3"> 3715</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a978a1d8977b97f7f4faae7111a0404d3">s2n_connection_serialization_length</a>(<span class="keyword">struct</span> s2n_connection *conn, uint32_t *length);</div>
+<div class="line"><a id="l03716" name="l03716"></a><span class="lineno"> 3716</span> </div>
+<div class="line"><a id="l03741" name="l03741"></a><span class="lineno"><a class="line" href="s2n_8h.html#a5d020f94e2f7324b8a5eee91287c18b3"> 3741</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a5d020f94e2f7324b8a5eee91287c18b3">s2n_connection_serialize</a>(<span class="keyword">struct</span> s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);</div>
+<div class="line"><a id="l03742" name="l03742"></a><span class="lineno"> 3742</span> </div>
+<div class="line"><a id="l03764" name="l03764"></a><span class="lineno"><a class="line" href="s2n_8h.html#a79859a910905832157c08251d1a76888"> 3764</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a79859a910905832157c08251d1a76888">s2n_connection_deserialize</a>(<span class="keyword">struct</span> s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);</div>
+<div class="line"><a id="l03765" name="l03765"></a><span class="lineno"> 3765</span> </div>
+<div class="line"><a id="l03766" name="l03766"></a><span class="lineno"> 3766</span><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a id="l03767" name="l03767"></a><span class="lineno"> 3767</span>}</div>
+<div class="line"><a id="l03768" name="l03768"></a><span class="lineno"> 3768</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="as2n_8h_html_a012950b0841dad53f4ce0b7bd9892757"><div class="ttname"><a href="s2n_8h.html#a012950b0841dad53f4ce0b7bd9892757">s2n_config_set_session_state_lifetime</a></div><div class="ttdeci">S2N_API int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs)</div></div>
 <div class="ttc" id="as2n_8h_html_a01514c68f7b4d7926f6435e4beec8de0"><div class="ttname"><a href="s2n_8h.html#a01514c68f7b4d7926f6435e4beec8de0">s2n_connection_append_psk</a></div><div class="ttdeci">S2N_API int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk)</div></div>
 <div class="ttc" id="as2n_8h_html_a03486ad1c3bd4bfbea168e696c23b880"><div class="ttname"><a href="s2n_8h.html#a03486ad1c3bd4bfbea168e696c23b880">s2n_async_pkey_op_get_input</a></div><div class="ttdeci">S2N_API int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len)</div></div>
