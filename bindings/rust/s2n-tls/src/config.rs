@@ -719,6 +719,18 @@ impl Builder {
         Ok(self)
     }
 
+    /// Sets the expected connection serialization version. Must be set
+    /// before serializing the connection.
+    pub fn set_serialization_version(
+        &mut self,
+        version: SerializationVersion,
+    ) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_config_set_serialization_version(self.as_mut_ptr(), version.into()).into_result()
+        }?;
+        Ok(self)
+    }
+
     pub fn build(mut self) -> Result<Config, Error> {
         if self.load_system_certs {
             unsafe {
