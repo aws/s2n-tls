@@ -23,8 +23,3 @@
         + S2N_TLS_SEQUENCE_NUM_LEN + S2N_TLS_SEQUENCE_NUM_LEN + 2)
 #define S2N_SERIALIZED_CONN_TLS12_SIZE (S2N_SERIALIZED_CONN_FIXED_SIZE + S2N_TLS_SECRET_LEN \
         + S2N_TLS_RANDOM_DATA_LEN + S2N_TLS_RANDOM_DATA_LEN)
-
-/* APIs that will be moved to s2n.h when the connection serialize feature is released */
-int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *length);
-int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
-int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);

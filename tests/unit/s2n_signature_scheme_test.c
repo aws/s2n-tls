@@ -35,10 +35,20 @@ int main(int argc, char **argv)
             EXPECT_NOT_EQUAL(sig_scheme->libcrypto_nid, 0);
 
             if (sig_scheme->sig_alg == S2N_SIGNATURE_ECDSA
-                    && sig_scheme->minimum_protocol_version == S2N_TLS13) {
+                    && sig_scheme->maximum_protocol_version != S2N_TLS12) {
                 EXPECT_NOT_NULL(sig_scheme->signature_curve);
             } else {
                 EXPECT_NULL(sig_scheme->signature_curve);
+            }
+
+            /* No duplicate signature schemes are allowed */
+            for (size_t dup_i = 0; dup_i < sig_prefs->count; dup_i++) {
+                if (dup_i == sig_i) {
+                    continue;
+                }
+                const struct s2n_signature_scheme *const potential_duplicate =
+                        sig_prefs->signature_schemes[dup_i];
+                EXPECT_NOT_EQUAL(sig_scheme->iana_value, potential_duplicate->iana_value);
             }
         }
         policy_i++;
