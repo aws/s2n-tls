@@ -310,7 +310,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_UNEXPECTED_CERT_REQUEST, "Client forbids mutual authentication, but server requested a cert") \
     ERR_ENTRY(S2N_ERR_MISSING_CERT_REQUEST, "Client requires mutual authentication, but server did not request a cert") \
     ERR_ENTRY(S2N_ERR_MISSING_CLIENT_CERT, "Server requires client certificate") \
-    ERR_ENTRY(S2N_INVALID_SERIALIZED_CONNECTION, "Serialized connection is invalid"); \
+    ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_CONNECTION, "Serialized connection is invalid"); \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

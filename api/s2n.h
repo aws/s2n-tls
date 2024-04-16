@@ -3680,7 +3680,8 @@ S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t 
         uint16_t *groups_count);
 
 /* Indicates which serialized connection version will be provided. The default value is
- * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off. */
+ * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off.
+ */
 typedef enum {
     S2N_SERIALIZED_CONN_NONE = 0,
     S2N_SERIALIZED_CONN_V1 = 1
