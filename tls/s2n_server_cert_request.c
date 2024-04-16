@@ -17,6 +17,7 @@
 #include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
 #include "extensions/s2n_extension_list.h"
+#include "extensions/s2n_cert_authorities.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_config.h"
@@ -174,10 +175,8 @@ int s2n_cert_req_send(struct s2n_connection *conn)
         POSIX_GUARD_RESULT(s2n_signature_algorithms_supported_list_send(conn, out));
     }
 
-    /* RFC 5246 7.4.4 - If the certificate_authorities list is empty, then the
-     * client MAY send any certificate of the appropriate ClientCertificateType */
-    uint16_t acceptable_cert_authorities_len = 0;
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, acceptable_cert_authorities_len));
+    /* In TLS1.2, certificate_authorities is part of the message instead of an extension */
+    POSIX_GUARD(s2n_cert_authorities_send(conn, out));
 
-    return 0;
+    return S2N_SUCCESS;
 }

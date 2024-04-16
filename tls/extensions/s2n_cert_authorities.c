@@ -83,7 +83,7 @@ int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config, 
     return S2N_SUCCESS;
 }
 
-static int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out)
+int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);

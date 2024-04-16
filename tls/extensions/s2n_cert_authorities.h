@@ -28,3 +28,4 @@
 extern const s2n_extension_type s2n_cert_authorities_extension;
 
 bool s2n_cert_authorities_supported_from_trust_store();
+int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out);
