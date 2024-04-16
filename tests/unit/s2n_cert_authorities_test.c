@@ -79,9 +79,6 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-
             conn->actual_protocol_version = S2N_TLS12;
             EXPECT_FALSE(s2n_cert_authorities_extension.should_send(conn));
 
@@ -97,9 +94,6 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-
             EXPECT_FALSE(s2n_cert_authorities_extension.should_send(conn));
 
             EXPECT_SUCCESS(s2n_alloc(&config->cert_authorities, 10));
@@ -112,7 +106,7 @@ int main(int argc, char **argv)
 
     /* Test: ClientHello extension ignored
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.4
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
      *= type=test
      *# The client MAY send the "certificate_authorities" extension in the
      *# ClientHello message.
@@ -172,7 +166,7 @@ int main(int argc, char **argv)
 
     /* Self-talk test: CertificateRequest extension parsed
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.4
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
      *= type=test
      *# The server MAY send it in the CertificateRequest message.
      **/

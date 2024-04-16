@@ -133,13 +133,13 @@ static const s2n_extension_type *const cert_req_extensions[] = {
     &s2n_server_signature_algorithms_extension,
     &s2n_server_cert_status_request_extension,
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.4
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
      *= type=exception
      *= reason=Currently only supported for servers -- no client use case
      *# The client MAY send the "certificate_authorities" extension in the
      *# ClientHello message.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.4
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
      *# The server MAY send it in the CertificateRequest message.
      */
     &s2n_cert_authorities_extension,
