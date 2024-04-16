@@ -193,3 +193,19 @@ impl From<PeerKeyUpdate> for s2n_peer_key_update::Type {
         }
     }
 }
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum SerializationVersion {
+    None,
+    V1,
+}
+
+impl From<SerializationVersion> for s2n_serialization_version::Type {
+    fn from(input: SerializationVersion) -> s2n_serialization_version::Type {
+        match input {
+            SerializationVersion::None => s2n_serialization_version::SERIALIZED_CONN_NONE,
+            SerializationVersion::V1 => s2n_serialization_version::SERIALIZED_CONN_V1,
+        }
+    }
+}

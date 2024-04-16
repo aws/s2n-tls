@@ -969,6 +969,47 @@ impl Connection {
         }
         Ok(secret)
     }
+
+    /// Retrieves the size of the serialized connection
+    pub fn serialization_length(&self) -> Result<usize, Error> {
+        unsafe {
+            let mut length = 0;
+            s2n_connection_serialization_length(self.connection.as_ptr(), &mut length)
+                .into_result()?;
+            Ok(length.try_into().unwrap())
+        }
+    }
+
+    /// Serializes the TLS connection into the provided buffer
+    pub fn serialize(&self, output: &mut [u8]) -> Result<(), Error> {
+        unsafe {
+            s2n_connection_serialize(
+                self.connection.as_ptr(),
+                output.as_mut_ptr(),
+                output.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+            )
+            .into_result()?;
+            Ok(())
+        }
+    }
+
+    /// Deserializes the input buffer into a new TLS connection that can send/recv
+    /// data from the original peer.
+    pub fn deserialize(&mut self, input: &[u8]) -> Result<(), Error> {
+        let size = input.len();
+        /* This is not ideal, we know that s2n_connection_deserialize will not mutate the
+         * input value, however, the mut is needed to use the stuffer functions. */
+        let input = input.as_ptr() as *mut u8;
+        unsafe {
+            s2n_connection_deserialize(
+                self.as_ptr(),
+                input,
+                size.try_into().map_err(|_| Error::INVALID_INPUT)?,
+            )
+            .into_result()?;
+            Ok(())
+        }
+    }
 }
 
 struct Context {
