@@ -124,6 +124,7 @@ static int s2n_config_cleanup(struct s2n_config *config)
     POSIX_GUARD(s2n_config_free_cert_chain_and_key(config));
     POSIX_GUARD(s2n_config_free_dhparams(config));
     POSIX_GUARD(s2n_free(&config->application_protocols));
+    POSIX_GUARD(s2n_free(&config->cert_authorities));
     POSIX_GUARD_RESULT(s2n_map_free(config->domain_name_to_cert_map));
 
     POSIX_CHECKED_MEMSET(config, 0, sizeof(struct s2n_config));

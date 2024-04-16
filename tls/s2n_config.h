@@ -225,6 +225,9 @@ struct s2n_config {
      * the new feature to their entire fleet.)
      */
     s2n_serialization_version serialized_connection_version;
+
+    /* List of certificate authorities supported */
+    struct s2n_blob cert_authorities;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);
