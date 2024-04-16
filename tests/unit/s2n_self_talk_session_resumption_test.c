@@ -88,30 +88,6 @@ static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, st
     return S2N_SUCCESS;
 }
 
-static int s2n_setup_test_ticket_key(struct s2n_config *config)
-{
-    POSIX_ENSURE_REF(config);
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
-     *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
-     *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
-     **/
-    S2N_BLOB_FROM_HEX(ticket_key,
-            "077709362c2e32df0ddc3f0dc47bba63"
-            "90b6c73bb50f9c3122ec844ad7c2b3e5");
-
-    /* Set up encryption key */
-    uint64_t current_time = 0;
-    uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-    EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
-    EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-    EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
-            ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
-
-    return S2N_SUCCESS;
-}
-
 static S2N_RESULT s2n_test_issue_new_session_ticket(struct s2n_connection *server_conn, struct s2n_connection *client_conn,
         const struct s2n_early_data_test_case *early_data_case)
 {
@@ -248,7 +224,7 @@ int main(int argc, char **argv)
             S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, tls13_chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, true));
-    EXPECT_SUCCESS(s2n_setup_test_ticket_key(server_config));
+    EXPECT_OK(s2n_resumption_test_ticket_key_setup(server_config));
 
     /* Setup TLS1.2 server config */
     struct s2n_config *tls12_server_config = s2n_config_new();
@@ -260,7 +236,7 @@ int main(int argc, char **argv)
             S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls12_server_config, tls12_chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(tls12_server_config, true));
-    EXPECT_SUCCESS(s2n_setup_test_ticket_key(tls12_server_config));
+    EXPECT_OK(s2n_resumption_test_ticket_key_setup(tls12_server_config));
 
     /* Setup TLS1.3 client config */
     struct s2n_config *tls13_client_config = s2n_config_new();

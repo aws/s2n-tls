@@ -74,28 +74,6 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
-static int s2n_setup_ticket_key(struct s2n_config *config)
-{
-    /**
-     *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
-     *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
-     *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
-     **/
-    S2N_BLOB_FROM_HEX(ticket_key,
-            "077709362c2e32df0ddc3f0dc47bba63"
-            "90b6c73bb50f9c3122ec844ad7c2b3e5");
-
-    /* Set up encryption key */
-    uint64_t current_time = 0;
-    uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-
-    POSIX_GUARD(s2n_config_set_session_tickets_onoff(config, 1));
-    POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &current_time));
-    POSIX_GUARD(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
-            ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
-    return S2N_SUCCESS;
-}
-
 static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
     conn->tls13_ticket_fields = (struct s2n_ticket_fields){ 0 };
@@ -701,7 +679,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -736,7 +714,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -809,7 +787,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -1044,11 +1022,11 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config_with_cb);
             uint16_t expected_wire_choice = 0;
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config_with_cb, s2n_test_select_psk_identity_callback, &expected_wire_choice));
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config_with_cb));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config_with_cb));
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -1549,7 +1527,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
-        EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
