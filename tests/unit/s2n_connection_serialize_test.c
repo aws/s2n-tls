@@ -400,7 +400,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_deserialize(client_conn, test_context,
                                               sizeof(test_context)),
-                    S2N_INVALID_SERIALIZED_CONNECTION);
+                    S2N_ERR_INVALID_SERIALIZED_CONNECTION);
         };
 
         /* Succeeds if format version is known */
