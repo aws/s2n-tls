@@ -43,9 +43,10 @@ impl fmt::Debug for Policy {
         f.debug_tuple("Policy").field(&self.as_cstr()).finish()
     }
 }
+
 macro_rules! policy {
     ($version:expr) => {
-        Policy(Context::Static(concat!($version, "\0").as_bytes()));
+        Policy(Context::Static(concat!($version, "\0").as_bytes()))
     };
 }
 
