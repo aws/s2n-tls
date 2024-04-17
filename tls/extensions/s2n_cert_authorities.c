@@ -29,13 +29,12 @@ int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *o
 
 static bool s2n_cert_authorities_should_send(struct s2n_connection *conn)
 {
-    return s2n_extension_send_if_tls13_connection(conn)
-            && conn && conn->config
-            && conn->config->cert_authorities.size > 0;
+    return conn && conn->config && conn->config->cert_authorities.size > 0;
 }
 
 const s2n_extension_type s2n_cert_authorities_extension = {
     .iana_value = TLS_EXTENSION_CERT_AUTHORITIES,
+    .minimum_version = S2N_TLS13,
     .is_response = false,
     .send = s2n_cert_authorities_send,
     .should_send = s2n_cert_authorities_should_send,

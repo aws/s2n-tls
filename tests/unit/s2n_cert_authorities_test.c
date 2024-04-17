@@ -79,11 +79,18 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
             conn->actual_protocol_version = S2N_TLS12;
-            EXPECT_FALSE(s2n_cert_authorities_extension.should_send(conn));
+            EXPECT_SUCCESS(s2n_extension_send(&s2n_cert_authorities_extension,
+                    conn, &output));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&output), 0);
 
             conn->actual_protocol_version = S2N_TLS13;
-            EXPECT_TRUE(s2n_cert_authorities_extension.should_send(conn));
+            EXPECT_SUCCESS(s2n_extension_send(&s2n_cert_authorities_extension,
+                    conn, &output));
+            EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&output), 0);
         };
 
         /* Test: do not send if no CA data set */
@@ -144,6 +151,7 @@ int main(int argc, char **argv)
         /* Write the certificate_authorities extension.
          * The client isn't allowed to write it, so use the server.
          */
+        server->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_extension_send(&s2n_cert_authorities_extension,
                 server, input));
 
