@@ -89,7 +89,7 @@ unsafe impl Send for Connection {}
 unsafe impl Sync for Connection {}
 
 impl Connection {
-    /// # Safety
+    /// # Warning
     ///
     /// The newly created connection uses the default security policy.
     /// Consider changing this depending on your security and availability requirements

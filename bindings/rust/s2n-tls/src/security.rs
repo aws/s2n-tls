@@ -51,7 +51,7 @@ macro_rules! policy {
 
 /// Default policy
 ///
-/// # Safety
+/// # Warning
 ///
 /// Cipher suites, curves, signature algorithms, or other security policy options
 /// may be added or removed from "default" in order to keep it up to date with
@@ -68,7 +68,7 @@ pub const DEFAULT: Policy = policy!("default");
 
 /// Default policy supporting TLS1.3
 ///
-/// # Safety
+/// # Warning
 ///
 /// Cipher suites, curves, signature algorithms, or other security policy options
 /// may be added or removed from "default_tls13" in order to keep it up to date with

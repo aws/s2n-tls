@@ -37,7 +37,7 @@ impl Config {
     ///
     /// Use the [`Builder`] if custom configuration is desired.
     ///
-    /// # Safety:
+    /// # Warning
     ///
     /// By default, the newly created Config uses the default security policy.
     /// Consider changing this depending on your security and availability requirements
@@ -166,7 +166,7 @@ pub struct Builder {
 }
 
 impl Builder {
-    /// # Safety
+    /// # Warning
     ///
     /// By default, the newly created Builder uses the default security policy.
     /// Consider changing this depending on your security and availability requirements
@@ -769,7 +769,7 @@ impl Builder {
     }
 }
 
-/// # Safety
+/// # Warning
 ///
 /// The newly created Builder uses the default security policy.
 /// Consider changing this depending on your security and availability requirements
