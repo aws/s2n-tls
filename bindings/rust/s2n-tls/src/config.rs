@@ -39,7 +39,7 @@ impl Config {
     ///
     /// # Warning
     ///
-    /// By default, the newly created Config uses the default security policy.
+    /// The newly created Config will use the default security policy.
     /// Consider changing this depending on your security and availability requirements
     /// by using [`Builder`] and [`Builder::set_security_policy`].
     /// See the s2n-tls usage guide:
@@ -168,7 +168,7 @@ pub struct Builder {
 impl Builder {
     /// # Warning
     ///
-    /// By default, the newly created Builder uses the default security policy.
+    /// The newly created Builder will create Configs that use the default security policy.
     /// Consider changing this depending on your security and availability requirements
     /// by calling [`Builder::set_security_policy`].
     /// See the s2n-tls usage guide:
