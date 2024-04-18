@@ -48,7 +48,10 @@ static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *c
     RESULT_ENSURE(objects_count >= 0, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
     for (int i = 0; i < objects_count; i++) {
-        X509 *cert = X509_OBJECT_get0_X509(sk_X509_OBJECT_value(objects, i));
+        X509_OBJECT *x509_object = sk_X509_OBJECT_value(objects, i);
+        RESULT_ENSURE(x509_object, S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+
+        X509 *cert = X509_OBJECT_get0_X509(x509_object);
         if (cert == NULL) {
             /* X509_OBJECTs can also be CRLs, resulting in NULL here. Skip. */
             continue;

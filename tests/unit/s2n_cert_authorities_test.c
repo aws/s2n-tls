@@ -85,10 +85,17 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
 
+            /* Fails with default system trust store */
             uint16_t count = 0;
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_config_set_cert_authorities_from_trust_store(config, &count),
                     S2N_ERR_INVALID_STATE);
+            EXPECT_EQUAL(config->cert_authorities.size, 0);
+
+            /* Succeeds again after wiping trust store */
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(config));
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config, &count));
+            EXPECT_EQUAL(count, 0);
             EXPECT_EQUAL(config->cert_authorities.size, 0);
         };
 
