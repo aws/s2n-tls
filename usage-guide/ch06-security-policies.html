@@ -208,19 +208,20 @@
 <tr><td>rfc9151</td><td></td><td></td><td>X</td><td>X</td><td></td><td>X</td><td></td><td></td><td></td><td>X</td><td>X</td><td>X</td></tr>
 </tbody></table>
 </div>
-<p>The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes and ciphersuites and protocol versions may be added and removed, or their internal order of preference might change. Numbered versions are fixed and will never change.
-In general, customers prefer to use numbered versions for production use cases to prevent impact from library updates.</p>
+<p>The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. <strong>Warning</strong>: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.</p>
+<p>In contrast, numbered or dated versions are fixed and will never change.</p>
 <p>"20230317" offers more limited but more secure options than the default policies. Consider it if you don't need or want to support less secure legacy options like TLS1.1 or SHA1. It is also FIPS compliant and supports TLS1.3. If you need a version of this policy that doesn't support TLS1.3, choose "20240331" instead.</p>
 <p>"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.</p>
-<p>"rfc9151" is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.</p>
+<p>"rfc9151" is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
+Like the default policies, this policy may also change if the source RFC definition changes.</p>
 <p>s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:</p>
-<p><em>NOTE</em>: All ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is not built with an Openssl 1.1.1 libcrypto. The underlying encrypt/decrypt functions are not available in older versions.</p>
 <ol>
 <li>Always prefer the highest protocol version supported</li>
 <li>Always use forward secrecy where possible. Prefer ECDHE over DHE.</li>
 <li>Prefer encryption ciphers in the following order: AES128, AES256, ChaCha20, 3DES, RC4.</li>
 <li>Prefer record authentication modes in the following order: GCM, Poly1305, SHA256, SHA1, MD5.</li>
 </ol>
+<p><em>NOTE</em>: ChaCha20-Poly1305 cipher suites will not be available if s2n-tls is built with an older libcrypto like openssl-1.0.2. The underlying encrypt/decrypt functions are not available in older versions.</p>
 <h4 id="chacha20-boosting"><a class="header" href="#chacha20-boosting">ChaCha20 Boosting</a></h4>
 <p>s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly mobile or IOT devices-- do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers "ChaCha20 boosted" security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20. This is available in the "CloudFront-TLS-1-2-2021-ChaCha20-Boosted" policy, which is identical to the "CloudFront-TLS-1-2-2021" policy listed above but with ChaCha20 Boosting enabled.</p>
 <h3 id="chart-security-policy-version-to-supported-signature-schemes"><a class="header" href="#chart-security-policy-version-to-supported-signature-schemes">Chart: Security Policy Version To Supported Signature Schemes</a></h3>
@@ -250,7 +251,8 @@ In general, customers prefer to use numbered versions for production use cases t
 <tr><td>rfc9151</td><td>X</td><td>X</td><td></td><td>X</td></tr>
 </tbody></table>
 </div>
-<p>Note that legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algorithms will be supported only if TLS1.2 has been negotiated and the security policy allows them.</p>
+<p><em>NOTE</em>: Legacy SHA-1 algorithms are not supported in TLS1.3. Legacy SHA-1 algorithms will be supported only if TLS1.2 has been negotiated and the security policy allows them.</p>
+<p><em>NOTE</em>: RSA-PSS certificates will not be available if s2n-tls is built with an older libcrypto like openssl-1.0.2. RSA certificate signatures with PSS padding (RSA-PSS-RSAE) will still be available, but RSA-PSS certificate signatures with PSS padding (RSA-PSS-PSS) will not be available.</p>
 <h3 id="chart-security-policy-version-to-supported-curvesgroups"><a class="header" href="#chart-security-policy-version-to-supported-curvesgroups">Chart: Security policy version to supported curves/groups</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>version</th><th>secp256r1</th><th>secp384r1</th><th>x25519</th></tr></thead><tbody>
 <tr><td>20230317</td><td>X</td><td>X</td><td></td></tr>
