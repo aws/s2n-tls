@@ -65,7 +65,6 @@ static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *c
         RESULT_GUARD_OSSL(X509_NAME_get0_der(name, &name_bytes, &name_size),
                 S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
 
-        RESULT_ENSURE(*count < S2N_CERT_AUTHORITIES_MAX_COUNT, S2N_ERR_TOO_MANY_CAS);
         RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&output, name_size));
         RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&output, name_bytes, name_size));
         RESULT_ENSURE(s2n_stuffer_data_available(&output) <= S2N_CERT_AUTHORITIES_MAX_SIZE,

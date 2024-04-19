@@ -3774,9 +3774,9 @@ S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buf
  *
  * To avoid configuration mistakes, certificate authorities cannot be loaded from
  * a trust store that includes the default system certificates. That means that
- * s2n_config_new_minimal should be used instead of s2n_config_new to create the
- * config object. Additionally, the trust store cannot contain more than 10
- * certificate authorities.
+ * s2n_config_new_minimal or s2n_config_wipe_trust_store should be used.
+ *
+ * s2n-tls limits the total certificate authorities size to 10k bytes.
  *
  * @param config A pointer to the s2n_config object.
  * @param count The number of certificate authorities loaded from the trust store.

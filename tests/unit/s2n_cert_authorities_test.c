@@ -120,7 +120,6 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(
                     s2n_config_set_cert_authorities_from_trust_store(config, &count),
                     S2N_ERR_TOO_MANY_CAS);
-            EXPECT_EQUAL(count, S2N_CERT_AUTHORITIES_MAX_COUNT);
             EXPECT_EQUAL(config->cert_authorities.size, 0);
         };
     };
