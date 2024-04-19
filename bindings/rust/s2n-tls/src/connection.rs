@@ -89,6 +89,15 @@ unsafe impl Send for Connection {}
 unsafe impl Sync for Connection {}
 
 impl Connection {
+    /// # Warning
+    ///
+    /// The newly created connection uses the default security policy.
+    /// Consider changing this depending on your security and compatibility requirements
+    /// by calling [`Connection::set_security_policy`].
+    /// Alternatively, you can use [`crate::config::Builder`], [`crate::config::Builder::set_security_policy`],
+    /// and [`Connection::set_config`] to set the policy on the Config instead of on the Connection.
+    /// See the s2n-tls usage guide:
+    /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
 

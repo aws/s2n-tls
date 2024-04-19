@@ -36,6 +36,14 @@ impl Config {
     /// Returns a Config object with pre-defined defaults.
     ///
     /// Use the [`Builder`] if custom configuration is desired.
+    ///
+    /// # Warning
+    ///
+    /// The newly created Config will use the default security policy.
+    /// Consider changing this depending on your security and compatibility requirements
+    /// by using [`Builder`] and [`Builder::set_security_policy`].
+    /// See the s2n-tls usage guide:
+    /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
     pub fn new() -> Self {
         Self::default()
     }
@@ -158,6 +166,13 @@ pub struct Builder {
 }
 
 impl Builder {
+    /// # Warning
+    ///
+    /// The newly created Builder will create Configs that use the default security policy.
+    /// Consider changing this depending on your security and compatibility requirements
+    /// by calling [`Builder::set_security_policy`].
+    /// See the s2n-tls usage guide:
+    /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
     pub fn new() -> Self {
         crate::init::init();
         let config = unsafe { s2n_config_new_minimal().into_result() }.unwrap();
@@ -754,6 +769,13 @@ impl Builder {
     }
 }
 
+/// # Warning
+///
+/// The newly created Builder uses the default security policy.
+/// Consider changing this depending on your security and compatibility requirements
+/// by using [`Builder::new`] instead and calling [`Builder::set_security_policy`].
+/// See the s2n-tls usage guide:
+/// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
 impl Default for Builder {
     fn default() -> Self {
         Self::new()
