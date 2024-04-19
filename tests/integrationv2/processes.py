@@ -180,6 +180,15 @@ class _processCommunicator(object):
                         if not data:
                             selector.unregister(key.fileobj)
                         data_str = str(data)
+
+                        # Prepends 100 bytes of the previously-seen stdout to the chunk we'll be searching
+                        # through. This ensures a marker doesn't get split between chunks and we miss it.
+                        # All markers are smaller than 100 bytes.
+                        if self._fileobj2output[key.fileobj] is not None:
+                            stored_stdout_list = self._fileobj2output[key.fileobj]
+                            if len(stored_stdout_list) > 0:
+                                data_str = str(stored_stdout_list[-1][-100:] + data)
+
                         data_debug = data_str[:_DEBUG_LEN]
                         if len(data_str) > _DEBUG_LEN:
                             data_debug += f' ...({len(data_str) - _DEBUG_LEN} more bytes)'
@@ -322,6 +331,9 @@ class ManagedProcess(threading.Thread):
         if send_marker_list is not None:
             if type(send_marker_list) is not list:
                 self.send_marker_list = [send_marker_list]
+            for elem in self.send_marker_list:
+                # Each send marker has to be smaller than 100 bytes
+                assert len(elem.encode('utf-8')) <= 100
 
     def run(self):
         with self.results_condition:
