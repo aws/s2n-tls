@@ -92,7 +92,7 @@ impl Connection {
     /// # Warning
     ///
     /// The newly created connection uses the default security policy.
-    /// Consider changing this depending on your security and availability requirements
+    /// Consider changing this depending on your security and compatibility requirements
     /// by calling [`Connection::set_security_policy`].
     /// Alternatively, you can use [`crate::config::Builder`], [`crate::config::Builder::set_security_policy`],
     /// and [`Connection::set_config`] to set the policy on the Config instead of on the Connection.
