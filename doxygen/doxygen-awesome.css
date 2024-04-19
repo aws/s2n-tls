@@ -1046,7 +1046,7 @@ blockquote::after {
 blockquote p {
     margin: var(--spacing-small) 0 var(--spacing-medium) 0;
 }
-.paramname {
+.paramname, .paramname em {
     font-weight: 600;
     color: var(--primary-dark-color);
 }
@@ -1096,7 +1096,7 @@ div.contents .toc {
     border: 0;
     border-left: 1px solid var(--separator-color);
     border-radius: 0;
-    background-color: transparent;
+    background-color: var(--page-background-color);
     box-shadow: none;
     position: sticky;
     top: var(--toc-sticky-top);
@@ -1988,14 +1988,16 @@ hr {
 }
 
 .contents hr {
-    box-shadow: 100px 0 0 var(--separator-color),
-                -100px 0 0 var(--separator-color),
-                500px 0 0 var(--separator-color),
-                -500px 0 0 var(--separator-color),
-                1500px 0 0 var(--separator-color),
-                -1500px 0 0 var(--separator-color),
-                2000px 0 0 var(--separator-color),
-                -2000px 0 0 var(--separator-color);
+    box-shadow: 100px 0 var(--separator-color),
+                -100px 0 var(--separator-color),
+                500px 0 var(--separator-color),
+                -500px 0 var(--separator-color),
+                900px 0 var(--separator-color),
+                -900px 0 var(--separator-color),
+                1400px 0 var(--separator-color),
+                -1400px 0 var(--separator-color),
+                1900px 0 var(--separator-color),
+                -1900px 0 var(--separator-color);       
 }
 
 .contents img, .contents .center, .contents center, .contents div.image object {
