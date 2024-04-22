@@ -173,7 +173,7 @@ class _processCommunicator(object):
                                 input_data_offset = 0
                                 if send_marker_list:
                                     send_marker = send_marker_list.pop(0)
-                                print(f'{self.name}: next send_marker is {send_marker}')
+                                    print(f'{self.name}: next send_marker is {send_marker}')
                     elif key.fileobj in (self.proc.stdout, self.proc.stderr):
                         print(f'{self.name}: stdout available')
                         data = os.read(key.fd, 32768)
@@ -184,10 +184,11 @@ class _processCommunicator(object):
                         # Prepends 100 bytes of the previously-seen stdout to the chunk we'll be searching
                         # through. This ensures a marker doesn't get split between chunks and we miss it.
                         # All markers are smaller than 100 bytes.
-                        if self._fileobj2output[key.fileobj] is not None:
+                        if self._fileobj2output[key.fileobj] and send_marker:
                             stored_stdout_list = self._fileobj2output[key.fileobj]
+                            send_marker_len = len(send_marker) - 1
                             if len(stored_stdout_list) > 0:
-                                data_str = str(stored_stdout_list[-1][-100:] + data)
+                                data_str = str(stored_stdout_list[-1][-send_marker_len:] + data)
 
                         data_debug = data_str[:_DEBUG_LEN]
                         if len(data_str) > _DEBUG_LEN:
@@ -204,6 +205,7 @@ class _processCommunicator(object):
                             print(f'{self.name}: looking for send_marker {send_marker} in {data_debug}')
                         if send_marker is not None and send_marker in data_str:
                             print(f'{self.name}: found {send_marker}')
+                            send_marker = None
                             if self.proc.stdin and input_data:
                                 selector.register(
                                     self.proc.stdin, selectors.EVENT_WRITE)
@@ -331,9 +333,6 @@ class ManagedProcess(threading.Thread):
         if send_marker_list is not None:
             if type(send_marker_list) is not list:
                 self.send_marker_list = [send_marker_list]
-            for elem in self.send_marker_list:
-                # Each send marker has to be smaller than 100 bytes
-                assert len(elem.encode('utf-8')) <= 100
 
     def run(self):
         with self.results_condition:
