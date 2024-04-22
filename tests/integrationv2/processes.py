@@ -181,9 +181,9 @@ class _processCommunicator(object):
                             selector.unregister(key.fileobj)
                         data_str = str(data)
 
-                        # Prepends 100 bytes of the previously-seen stdout to the chunk we'll be searching
-                        # through. This ensures a marker doesn't get split between chunks and we miss it.
-                        # All markers are smaller than 100 bytes.
+                        # Prepends n - 1 bytes of previously-seen stdout to the chunk we'll be searching
+                        # through, where n is the size of the send_marker we're currently looking for.
+                        # This ensures a marker doesn't get split between chunks and we miss it.
                         if self._fileobj2output[key.fileobj] and send_marker:
                             stored_stdout_list = self._fileobj2output[key.fileobj]
                             send_marker_len = len(send_marker) - 1
