@@ -2,7 +2,7 @@ import copy
 import pytest
 
 from configuration import available_ports, TLS13_CIPHERS
-from common import ProviderOptions, Protocols, data_bytes
+from common import ProviderOptions, Protocols, data_bytes, strip_string_of_bytes
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
@@ -53,7 +53,7 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
     server_options.data_to_send = [server_data]
 
     server = managed_process(
-        S2N, server_options, send_marker=[str(client_data)], timeout=30
+        S2N, server_options, send_marker=strip_string_of_bytes(str(client_data)), timeout=30
     )
     client = managed_process(
         provider,
@@ -120,8 +120,8 @@ def test_s2n_client_key_update(managed_process, cipher, provider, other_provider
     client = managed_process(
         S2N,
         client_options,
-        send_marker=[str(server_data)],
-        close_marker=str(server_data),
+        send_marker=strip_string_of_bytes(str(server_data)),
+        close_marker=strip_string_of_bytes(str(server_data)),
         timeout=30,
     )
 

@@ -28,6 +28,10 @@ def data_bytes(n_bytes):
 
     return bytes(byte_array)
 
+def strip_string_of_bytes(s: str) -> str:
+    # s has the form `b'<>'`. We need to strip the literal `b'` and the last `'`
+    return s[2:-1]
+
 
 def pq_enabled():
     """
