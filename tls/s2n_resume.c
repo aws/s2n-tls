@@ -871,17 +871,17 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     uint64_t now = 0;
     POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
 
-    /* If the key is in decrypt-only state, then a new key is assigned
-     * for the ticket.
+    /* If the key is in decrypt-only state, then a new key is assigned for the ticket. 
+     * Checks if a key in encrypt-decrypt state is available, and is using TLS 1.2
      */
-    if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
-        /* Check if a key in encrypt-decrypt state is available */
-        if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
-            conn->session_ticket_status = S2N_NEW_TICKET;
-            POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
-            return S2N_SUCCESS;
-        }
+    if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos &&
+        s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1 &&
+        s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+        conn->session_ticket_status = S2N_NEW_TICKET;
+        POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
+        return S2N_SUCCESS;
     }
+
     return S2N_SUCCESS;
 }
 
