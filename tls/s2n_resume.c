@@ -874,9 +874,10 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     /* A new key is assigned for the ticket if the key is in decrypt-only state, 
      * a key in encrypt-decrypt state is available, and TLS 1.2 is being used.
      */
-    if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos &&
-        s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1 &&
-        s2n_connection_get_protocol_version(conn) < S2N_TLS13) {
+    bool is_in_decrypt_only_state = now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos;
+    bool valid_key_available = s2n_config_is_encrypt_decrypt_key_available(conn->config);
+    bool is_protocol_below_tls13 = s2n_connection_get_protocol_version(conn) < S2N_TLS13;
+    if (is_in_decrypt_only_state && valid_key_available && is_protocol_below_tls13) {
         conn->session_ticket_status = S2N_NEW_TICKET;
         POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
         return S2N_SUCCESS;
