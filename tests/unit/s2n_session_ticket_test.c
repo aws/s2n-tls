@@ -1349,56 +1349,48 @@ int main(int argc, char **argv)
     }
 
     /* Session key decryption with TLS 1.3 using decrypt-only session key */
-    {
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+    if (s2n_is_tls13_fully_supported()) {
+        DEFER_CLEANUP(struct s2n_connection *client_connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
 
         /* Set client ST and session state */
-        EXPECT_SUCCESS(s2n_connection_set_session(client_conn, tls13_serialized_session_state.blob.data, s2n_stuffer_data_available(&tls13_serialized_session_state)));
+        EXPECT_SUCCESS(s2n_connection_set_session(client_connection, tls13_serialized_session_state.blob.data, s2n_stuffer_data_available(&tls13_serialized_session_state)));
 
-        EXPECT_NOT_NULL(client_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_config, 1));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "default_tls13"));
+        DEFER_CLEANUP(struct s2n_config *client_configuration = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_connection, client_configuration));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_connection, "default_tls13"));
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
+        DEFER_CLEANUP(struct s2n_connection *server_connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
-        EXPECT_NOT_NULL(server_config = s2n_config_new());
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_config, 1));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default_tls13"));
+        DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_connection, "default_tls13"));
 
         /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_connection, server_connection, &io_pair));
 
         /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
-        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_config, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
+        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_configuration, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
 
         /* Add one ST key */
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
-        uint64_t mock_delay = server_config->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_config, mock_nanoseconds_since_epoch, &mock_delay));
+        uint64_t mock_delay = server_configuration->encrypt_decrypt_key_lifetime_in_nanos;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_configuration, mock_nanoseconds_since_epoch, &mock_delay));
 
         /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
-        POSIX_GUARD(server_config->wall_clock(server_config->sys_clock_ctx, &now));
+        POSIX_GUARD(server_configuration->wall_clock(server_configuration->sys_clock_ctx, &now));
         uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name2, s2n_array_len(ticket_key_name2),
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name2, s2n_array_len(ticket_key_name2),
                 ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
 
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_connection, server_configuration));
 
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_connection, client_connection));
 
         /* Verify that the server did an abbreviated handshake using ST */
-        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
-
-        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
-
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-
-        EXPECT_SUCCESS(s2n_config_free(server_config));
-        EXPECT_SUCCESS(s2n_config_free(client_config));
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_connection));
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
