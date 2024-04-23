@@ -1391,6 +1391,14 @@ int main(int argc, char **argv)
 
         /* Verify that the server did an abbreviated handshake using ST */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_conn));
+
+        EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
+
+        EXPECT_SUCCESS(s2n_connection_free(server_conn));
+        EXPECT_SUCCESS(s2n_connection_free(client_conn));
+
+        EXPECT_SUCCESS(s2n_config_free(server_config));
+        EXPECT_SUCCESS(s2n_config_free(client_config));
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
