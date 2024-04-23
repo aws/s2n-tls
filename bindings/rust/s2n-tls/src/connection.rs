@@ -786,28 +786,26 @@ impl Connection {
     //
     /// Returns a reference to the ClientHello associated with the connection.
     /// ```compile_fail
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::ClientHello;
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-    /// let mut hash = Vec::new();
     /// drop(conn);
-    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// client_hello.raw_message();
     /// ```
     ///
     /// The compilation could be failing for a variety of reasons, so make sure
     /// that the test case is actually good.
     /// ```no_run
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::ClientHello;
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-    /// let mut hash = Vec::new();
-    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// client_hello.raw_message();
     /// drop(conn);
     /// ```
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {

@@ -42,7 +42,10 @@ The following chart maps the security policy version to protocol version and cip
 
 The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. **Warning**: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.
 
-In contrast, numbered or dated versions are fixed and will never change.
+In contrast, numbered or dated versions are fixed and will never change. The numbered equivalents of the default policies are currently:
+* "default": "20170210"
+* "default_tls13": "20240417"
+* "default_fips": "20240416"
 
 "20230317" offers more limited but more secure options than the default policies. Consider it if you don't need or want to support less secure legacy options like TLS1.1 or SHA1. It is also FIPS compliant and supports TLS1.3. If you need a version of this policy that doesn't support TLS1.3, choose "20240331" instead.
 
