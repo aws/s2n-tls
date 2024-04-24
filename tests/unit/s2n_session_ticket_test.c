@@ -1348,32 +1348,31 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     }
 
-    /* Session key decryption with TLS 1.3 using decrypt-only session key */
+    /* Test: TLS1.3 resumption is successful when key used to encrypt ticket is in decrypt-only state */
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_connection *client_connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
 
         /* Set client ST and session state */
-        EXPECT_SUCCESS(s2n_connection_set_session(client_connection, tls13_serialized_session_state.blob.data, s2n_stuffer_data_available(&tls13_serialized_session_state)));
+        EXPECT_SUCCESS(s2n_connection_set_session(client_connection, tls13_serialized_session_state.blob.data,
+                s2n_stuffer_data_available(&tls13_serialized_session_state)));
 
         DEFER_CLEANUP(struct s2n_config *client_configuration = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(client_connection, client_configuration));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_connection, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_configuration, "default_tls13"));
 
         DEFER_CLEANUP(struct s2n_connection *server_connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
 
         DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_connection, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "default_tls13"));
 
         /* Create nonblocking pipes */
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_connection, server_connection, &io_pair));
 
-        /* Set session state lifetime for 15 hours which is equal to the default lifetime of a ticket key */
-        EXPECT_SUCCESS(s2n_config_set_session_state_lifetime(server_configuration, S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS));
-
         /* Add one ST key */
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1,
+                s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         /* Add a mock delay such that key 1 moves to decrypt-only state */
         uint64_t mock_delay = server_configuration->encrypt_decrypt_key_lifetime_in_nanos;
@@ -1382,8 +1381,8 @@ int main(int argc, char **argv)
         /* Add one session ticket key with an intro time in the past so that the key is immediately valid */
         POSIX_GUARD(server_configuration->wall_clock(server_configuration->sys_clock_ctx, &now));
         uint64_t key_intro_time = (now / ONE_SEC_IN_NANOS) - ONE_SEC_DELAY;
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name2, s2n_array_len(ticket_key_name2),
-                ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name2,
+                s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_connection, server_configuration));
 
