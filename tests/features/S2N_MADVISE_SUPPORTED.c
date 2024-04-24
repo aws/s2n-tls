@@ -14,7 +14,7 @@
  */
 
 /* Keep in sync with utils/s2n_fork_detection.c */
-#if defined(__FreeBSD__)
+#if defined(__FreeBSD__) || defined(__OpenBSD__)
     /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
      * Without the below line, <sys/mman.h> cannot be imported (it requires __BSD_VISIBLE) */
     #undef _POSIX_C_SOURCE
