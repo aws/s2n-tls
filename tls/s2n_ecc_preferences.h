@@ -25,6 +25,8 @@ struct s2n_ecc_preferences {
     uint8_t count;
     const struct s2n_ecc_named_curve *const *ecc_curves;
 };
+
+extern const struct s2n_ecc_preferences s2n_ecc_preferences_20240501;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_20140601;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_20200310;
 extern const struct s2n_ecc_preferences s2n_ecc_preferences_20230623;
