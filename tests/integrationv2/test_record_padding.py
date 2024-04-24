@@ -3,7 +3,7 @@ import pytest
 import re
 
 from configuration import available_ports, TLS13_CIPHERS, ALL_TEST_CURVES, MINIMAL_TEST_CERTS
-from common import ProviderOptions, Protocols, data_bytes, strip_string_of_bytes
+from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name, get_expected_s2n_version, to_bytes
@@ -24,6 +24,11 @@ PAYLOAD_SIZE = 1024
 OPENSSL_RECORD_WRITTEN_PATTERN = r"write to .*?\\n(.*?)\\n"
 OPENSSL_APP_DATA_HEADER_PATTERN = r"17 03 03 ([0-9a-f]{2} [0-9a-f]{2})"
 RECORD_SIZE_GROUP = 1
+
+
+def strip_string_of_bytes(s: str) -> str:
+    # s has the form `b'<>'`. We need to strip the literal `b'` and the last `'`
+    return s[2:-1]
 
 
 def get_payload_size_from_openssl_trace(record_size_bytes: str) -> int:
