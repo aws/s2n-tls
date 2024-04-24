@@ -26,17 +26,37 @@
 /* Include C file directly to access static functions */
 #include "tls/s2n_handshake_io.c"
 
-const struct s2n_kem_group *s2n_get_highest_priority_shared_kem_group(const struct s2n_kem_preferences *client_prefs, const struct s2n_kem_preferences *server_prefs)
+const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct s2n_kem_preferences *client_prefs, const struct s2n_kem_preferences *server_prefs)
 {
     PTR_ENSURE_REF(client_prefs);
     PTR_ENSURE_REF(server_prefs);
-    for (int i = 0; i < client_prefs->tls13_kem_group_count; i++) {
-        for (int j = 0; j < server_prefs->tls13_kem_group_count; j++) {
-            const struct s2n_kem_group *client_group = client_prefs->tls13_kem_groups[i];
-            const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[j];
+
+    /* Client will offer their highest priority PQ KeyShare in their ClientHello. This PQ KeyShare will be most preferred
+     * since it can be negotiated in 1-RTT (even if there are other mutually supported PQ KeyShares that the server would
+     * prefer over this one but would require 2-RTT's). */
+    const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
+    for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
+          const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
+          PTR_ENSURE_REF(client_default);
+          PTR_ENSURE_REF(server_group);
+          if (s2n_kem_group_is_available(client_default) && s2n_kem_group_is_available(server_group)
+                  && client_default->iana_id == server_group->iana_id
+                  && s2n_kem_group_is_available(client_default) == s2n_kem_group_is_available(server_group)) {
+              return client_default;
+          }
+    }
+
+    /* Otherwise, if the client's default isn't supported, and a 2-RTT PQ handshake is required, the server will choose
+     * whichever mutually supported PQ KeyShare that is highest on the server's preference list. */
+    for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
+        const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
+
+        for (int j = 0; j < client_prefs->tls13_kem_group_count; j++) {
+            const struct s2n_kem_group *client_group = client_prefs->tls13_kem_groups[j];
             PTR_ENSURE_REF(client_group);
             PTR_ENSURE_REF(server_group);
             if (s2n_kem_group_is_available(client_group) && s2n_kem_group_is_available(server_group)
+                    && client_group->iana_id == server_group->iana_id
                     && s2n_kem_group_is_available(client_group) == s2n_kem_group_is_available(server_group)) {
                 return client_group;
             }
@@ -46,12 +66,17 @@ const struct s2n_kem_group *s2n_get_highest_priority_shared_kem_group(const stru
 }
 
 int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
-        const struct s2n_security_policy *server_sec_policy,
+        const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
         const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected, bool len_prefix_expected)
 {
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
-    const struct s2n_kem_group *expected_kem_group = s2n_get_highest_priority_shared_kem_group(client_sec_policy->kem_preferences, server_sec_policy->kem_preferences);
     POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
+
+    if (expected_kem_group != NULL) {
+      const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_sec_policy->kem_preferences, server_sec_policy->kem_preferences);
+      POSIX_ENSURE_REF(predicted_kem_group);
+      POSIX_ENSURE_EQ(expected_kem_group->iana_id, predicted_kem_group->iana_id);
+    }
 
     /* Set up connections */
     struct s2n_connection *client_conn = NULL, *server_conn = NULL;
@@ -118,11 +143,7 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     /* Server sends ServerHello or HRR */
     POSIX_GUARD(s2n_conn_set_handshake_type(server_conn));
-    if (hrr_expected) {
-        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), HELLO_RETRY_MSG);
-    } else {
-        POSIX_ENSURE_EQ(s2n_conn_get_current_message_type(server_conn), SERVER_HELLO);
-    }
+    POSIX_ENSURE_EQ(hrr_expected, s2n_handshake_type_check_tls13_flag(server_conn, HELLO_RETRY_REQUEST));
     POSIX_GUARD(s2n_handshake_write_io(server_conn));
 
     /* Server sends CCS */
@@ -352,6 +373,7 @@ int main()
     struct pq_handshake_test_vector {
         const struct s2n_security_policy *client_policy;
         const struct s2n_security_policy *server_policy;
+        const struct s2n_kem_group *expected_kem_group;
         const struct s2n_ecc_named_curve *expected_curve;
         bool hrr_expected;
         bool len_prefix_expected;
@@ -361,10 +383,19 @@ int main()
      * If PQ is disabled, the expected negotiation outcome is overridden below
      * before performing the handshake test. */
     const struct pq_handshake_test_vector test_vectors[] = {
+        {
+                .client_policy = &security_policy_pq_tls_1_3_2023_06_01,
+                .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
+                .expected_curve = NULL,
+                .hrr_expected = true,
+                .len_prefix_expected = false,
+        },
         /* Server and Client both support PQ and TLS 1.3 */
         {
                 .client_policy = &security_policy_pq_tls_1_1_2021_05_21,
                 .server_policy = &security_policy_pq_tls_1_1_2021_05_21,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -372,6 +403,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_22,
                 .server_policy = &security_policy_pq_tls_1_0_2021_05_22,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -379,6 +411,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_23,
                 .server_policy = &security_policy_pq_tls_1_0_2021_05_23,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -386,6 +419,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -393,6 +427,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_26,
                 .server_policy = &security_policy_pq_tls_1_0_2021_05_26,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -400,6 +435,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
                 .server_policy = &security_policy_pq_tls_1_0_2023_01_24,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -411,6 +447,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_3_2023_06_01,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+                .expected_kem_group = &s2n_secp256r1_kyber_768_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -418,6 +455,7 @@ int main()
         {
                 .client_policy = &kyber1024_test_policy,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+                .expected_kem_group = &s2n_secp521r1_kyber_1024_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -425,6 +463,7 @@ int main()
         {
                 .client_policy = &kyber768_test_policy,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+                .expected_kem_group = &s2n_secp384r1_kyber_768_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -436,6 +475,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_1_2021_05_21,
                 .server_policy = &security_policy_pq_tls_1_3_2023_06_01,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = !s2n_pq_is_enabled(),
                 .len_prefix_expected = true,
@@ -444,6 +484,7 @@ int main()
         {
                 .client_policy = &kyber_test_policy_draft0,
                 .server_policy = &kyber_test_policy_draft5,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -451,6 +492,7 @@ int main()
         {
                 .client_policy = &kyber_test_policy_draft5,
                 .server_policy = &kyber_test_policy_draft0,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -458,6 +500,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .server_policy = &security_policy_pq_tls_1_0_2023_01_24,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -465,6 +508,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2023_01_24,
                 .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
@@ -475,6 +519,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -486,6 +531,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
                 .server_policy = &kyber_test_policy_draft0,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -497,6 +543,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
                 .server_policy = &kyber_test_policy_draft5,
+                .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -507,6 +554,7 @@ int main()
         {
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
                 .server_policy = &security_policy_test_all_tls13,
+                .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -517,6 +565,7 @@ int main()
         {
                 .client_policy = &ecc_retry_policy,
                 .server_policy = &security_policy_test_all_tls13,
+                .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
@@ -527,6 +576,7 @@ int main()
         {
                 .client_policy = &security_policy_test_all_tls13,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
@@ -537,6 +587,7 @@ int main()
         {
                 .client_policy = &security_policy_test_tls13_retry,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
+                .expected_kem_group = NULL,
                 .expected_curve = expected_curve,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
@@ -547,6 +598,7 @@ int main()
         const struct pq_handshake_test_vector *vector = &test_vectors[i];
         const struct s2n_security_policy *client_policy = vector->client_policy;
         const struct s2n_security_policy *server_policy = vector->server_policy;
+        const struct s2n_kem_group *kem_group = vector->expected_kem_group;
         const struct s2n_ecc_named_curve *curve = vector->expected_curve;
         bool hrr_expected = vector->hrr_expected;
         bool len_prefix_expected = vector->len_prefix_expected;
@@ -564,7 +616,7 @@ int main()
             }
         }
 
-        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, curve, hrr_expected, len_prefix_expected));
+        EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));
     }
 
     END_TEST();
