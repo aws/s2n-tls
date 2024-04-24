@@ -173,10 +173,12 @@ if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
 endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
+target_compile_options(${PROJECT_NAME} PRIVATE -include utils/s2n_prelude.h)
 
-add_definitions(-D_POSIX_C_SOURCE=200809L)
-if(CMAKE_BUILD_TYPE MATCHES Release)
-    add_definitions(-D_FORTIFY_SOURCE=2)
+# Match on Release, RelWithDebInfo and MinSizeRel
+# See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html#variable:CMAKE_BUILD_TYPE
+if(CMAKE_BUILD_TYPE MATCHES Rel)
+    add_definitions(-DS2N_BUILD_RELEASE)
 endif()
 
 if(NO_STACK_PROTECTOR)
@@ -309,12 +311,12 @@ function(feature_probe PROBE_NAME)
         SOURCES "${CMAKE_CURRENT_LIST_DIR}/tests/features/${PROBE_NAME}.c"
         LINK_LIBRARIES ${LINK_LIB} ${OS_LIBS}
         CMAKE_FLAGS ${ADDITIONAL_FLAGS}
-        COMPILE_DEFINITIONS -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
+        COMPILE_DEFINITIONS -include "${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h" -c ${GLOBAL_FLAGS} ${PROBE_FLAGS}
         ${ARGN}
         OUTPUT_VARIABLE TRY_COMPILE_OUTPUT
     )
     # Uncomment the line below to get the output of the try_compile command
-    #message(STATUS "Output of try_compile: ${TRY_COMPILE_OUTPUT}")
+    message(STATUS "Output of try_compile: ${TRY_COMPILE_OUTPUT}")
 
     # Set the result of the probe
     feature_probe_result(${PROBE_NAME} ${IS_AVAILABLE})
@@ -449,7 +451,7 @@ if (BUILD_TESTING)
 
     add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC} ${EXAMPLES_SRC})
     target_include_directories(testss2n PUBLIC tests)
-    target_compile_options(testss2n PRIVATE -std=gnu99)
+    target_compile_options(testss2n PRIVATE -std=gnu99 -include utils/s2n_prelude.h)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
 
     if (S2N_INTERN_LIBCRYPTO)
