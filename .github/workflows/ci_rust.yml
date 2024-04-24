@@ -40,6 +40,11 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --all-features
 
+      # Ensure that all tests pass with the default feature set
+      - name: Default Tests
+        working-directory: ${{env.ROOT_PATH}}
+        run: cargo test
+
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
         # included. For a symbol to be visible in a shared lib, the

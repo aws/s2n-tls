@@ -208,6 +208,26 @@ struct s2n_config {
 
     void *renegotiate_request_ctx;
     s2n_renegotiate_request_cb renegotiate_request_cb;
+
+    /* This version is meant as a safeguard against future TLS features which might affect the connection
+     * serialization feature.
+     *
+     * For example, suppose that a new TLS parameter is released which affects how data is sent
+     * post-handshake. This parameter must be available in both the s2n-tls version that serializes the 
+     * connection, as well as the version that deserializes the connection. If not, the serializer
+     * may negotiate this feature with its peer, which would cause an older deserializer to run into errors
+     * sending data to the peer.
+     * 
+     * This kind of version-mismatch can happen during deployments and rollbacks, and therefore we require
+     * the user to tell us which serialized version they support pre-handshake. 
+     * We will not negotiate a new feature until the user requests the serialized connection
+     * version the feature is tied to (i.e. the request indicates they have finished deploying
+     * the new feature to their entire fleet.)
+     */
+    s2n_serialization_version serialized_connection_version;
+
+    /* List of certificate authorities supported */
+    struct s2n_blob cert_authorities;
 };
 
 S2N_CLEANUP_RESULT s2n_config_ptr_free(struct s2n_config **config);

@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include <stdint.h>
+
+#include "tls/s2n_connection.h"
+
 #pragma once
 
-#include "tls/s2n_tls13_secrets.h"
-#include "utils/s2n_result.h"
-
-struct s2n_key_material;
-S2N_RESULT s2n_tls13_key_schedule_generate_key_material(struct s2n_connection *conn,
-        s2n_mode sender, struct s2n_key_material *key_material);
-
-S2N_RESULT s2n_tls13_key_schedule_update(struct s2n_connection *conn);
-S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn);
-S2N_RESULT s2n_tls13_key_schedule_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode);
+#define S2N_SERIALIZED_CONN_FIXED_SIZE (8 + S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_CIPHER_SUITE_LEN \
+        + S2N_TLS_SEQUENCE_NUM_LEN + S2N_TLS_SEQUENCE_NUM_LEN + 2)
+#define S2N_SERIALIZED_CONN_TLS12_SIZE (S2N_SERIALIZED_CONN_FIXED_SIZE + S2N_TLS_SECRET_LEN \
+        + S2N_TLS_RANDOM_DATA_LEN + S2N_TLS_RANDOM_DATA_LEN)

@@ -1118,7 +1118,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
             EXPECT_EQUAL(record_type, TLS_ALERT);
 
-            EXPECT_EQUAL(conn->in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(conn->buffer_in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(conn->in.blob.size, max_frag_len);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), max_frag_len);
             uint8_t *read = s2n_stuffer_raw_read(&conn->in, max_frag_len);
             EXPECT_BYTEARRAY_EQUAL(read, test_data, max_frag_len);
@@ -1152,7 +1153,8 @@ int main(int argc, char **argv)
             /* Verify that conn->in reflects the correct size of the "record"
              * read and doesn't just assume the maximum read size.
              */
-            EXPECT_EQUAL(conn->in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(conn->buffer_in.blob.allocated, max_frag_len);
+            EXPECT_EQUAL(conn->in.blob.size, small_frag_len);
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), small_frag_len);
             uint8_t *read = s2n_stuffer_raw_read(&conn->in, small_frag_len);
             EXPECT_BYTEARRAY_EQUAL(read, test_data, small_frag_len);
@@ -1172,6 +1174,8 @@ int main(int argc, char **argv)
             /* Write half the test data into conn->in */
             const size_t offset = sizeof(test_data) / 2;
             EXPECT_SUCCESS(s2n_stuffer_write_bytes(&conn->in, test_data, offset));
+            /* Resize conn->buffer_in to match conn->in */
+            EXPECT_SUCCESS(s2n_stuffer_resize(&conn->buffer_in, offset));
 
             /* Write the other half into a new record */
             size_t written = 0;
@@ -1200,6 +1204,41 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), offset_iovec.iov_len);
             read = s2n_stuffer_raw_read(&conn->in, offset_iovec.iov_len);
             EXPECT_BYTEARRAY_EQUAL(read, offset_iovec.iov_base, offset_iovec.iov_len);
+        };
+
+        /* Test: Receive multiple records */
+        {
+            const size_t small_frag_len = 10;
+            EXPECT_TRUE(small_frag_len < max_frag_len);
+            EXPECT_TRUE(small_frag_len < sizeof(test_data));
+            struct iovec small_test_iovec = test_iovec;
+            small_test_iovec.iov_len = small_frag_len;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_test_ktls_io_stuffer_pair pair = { 0 },
+                    s2n_ktls_io_stuffer_pair_free);
+            EXPECT_OK(s2n_test_init_ktls_io_stuffer(conn, conn, &pair));
+            struct s2n_test_ktls_io_stuffer *ctx = &pair.client_in;
+
+            for (size_t i = 0; i < 100; i++) {
+                size_t written = 0;
+                EXPECT_OK(s2n_ktls_sendmsg(ctx, TLS_ALERT, &small_test_iovec, 1, &blocked, &written));
+                EXPECT_EQUAL(written, small_frag_len);
+
+                uint8_t record_type = 0;
+                EXPECT_SUCCESS(s2n_ktls_read_full_record(conn, &record_type));
+                EXPECT_EQUAL(record_type, TLS_ALERT);
+                EXPECT_EQUAL(s2n_stuffer_data_available(&conn->in), written);
+                uint8_t *read = s2n_stuffer_raw_read(&conn->in, small_frag_len);
+                EXPECT_BYTEARRAY_EQUAL(read, test_data, small_frag_len);
+
+                EXPECT_OK(s2n_record_wipe(conn));
+                size_t space_remaining = s2n_stuffer_space_remaining(&conn->buffer_in);
+                EXPECT_EQUAL(space_remaining, max_frag_len);
+            }
         };
     };
 

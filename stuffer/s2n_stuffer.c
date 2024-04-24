@@ -215,7 +215,7 @@ int s2n_stuffer_wipe_n(struct s2n_stuffer *stuffer, const uint32_t size)
 
 bool s2n_stuffer_is_consumed(struct s2n_stuffer *stuffer)
 {
-    return stuffer && (stuffer->read_cursor == stuffer->write_cursor);
+    return stuffer && (stuffer->read_cursor == stuffer->write_cursor) && !stuffer->tainted;
 }
 
 int s2n_stuffer_wipe(struct s2n_stuffer *stuffer)

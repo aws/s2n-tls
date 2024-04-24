@@ -15,13 +15,10 @@
 
 #pragma once
 
-#include "tls/s2n_tls13_secrets.h"
-#include "utils/s2n_result.h"
+#include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_extension_type.h"
+#include "tls/s2n_connection.h"
 
-struct s2n_key_material;
-S2N_RESULT s2n_tls13_key_schedule_generate_key_material(struct s2n_connection *conn,
-        s2n_mode sender, struct s2n_key_material *key_material);
+extern const s2n_extension_type s2n_cert_authorities_extension;
 
-S2N_RESULT s2n_tls13_key_schedule_update(struct s2n_connection *conn);
-S2N_RESULT s2n_tls13_key_schedule_reset(struct s2n_connection *conn);
-S2N_RESULT s2n_tls13_key_schedule_set_key(struct s2n_connection *conn, s2n_extract_secret_type_t secret_type, s2n_mode mode);
+int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out);

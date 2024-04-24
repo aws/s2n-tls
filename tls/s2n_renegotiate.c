@@ -72,6 +72,11 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn)
     POSIX_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_INVALID_STATE);
     POSIX_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_INVALID_STATE);
 
+    /* buffer_in might contain data needed to read the next records. */
+    DEFER_CLEANUP(struct s2n_stuffer buffer_in = conn->buffer_in, s2n_stuffer_free);
+    conn->buffer_in = (struct s2n_stuffer){ 0 };
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->buffer_in, 0));
+
     /* Save the crypto parameters.
      * We need to continue encrypting / decrypting with the old secure parameters.
      */
@@ -152,6 +157,8 @@ int s2n_renegotiate_wipe(struct s2n_connection *conn)
     conn->recv = recv_fn;
     conn->recv_io_context = recv_ctx;
     conn->secure_renegotiation = secure_renegotiation;
+    conn->buffer_in = buffer_in;
+    ZERO_TO_DISABLE_DEFER_CLEANUP(buffer_in);
 
     conn->handshake.renegotiation = true;
     return S2N_SUCCESS;

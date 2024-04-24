@@ -1813,6 +1813,86 @@ S2N_API extern int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
+ * Configure the connection to reduce potentially expensive calls to recv.
+ *
+ * If this setting is disabled, s2n-tls will call read twice for every TLS record,
+ * which can be expensive but ensures that s2n-tls will always attempt to read the
+ * exact number of bytes it requires. If this setting is enabled, s2n-tls will
+ * instead reduce the number of calls to read by attempting to read as much data
+ * as possible in each read call, storing the extra in the existing IO buffers.
+ * This may cause it to request more data than will ever actually be available.
+ *
+ * There is no additional memory cost of enabling this setting. It reuses the
+ * existing IO buffers.
+ *
+ * This setting is disabled by default. Depending on how your application detects
+ * data available for reading, buffering reads may break your event loop.
+ * In particular, note that:
+ *
+ * 1. File descriptor reads or calls to your custom s2n_recv_cb may request more
+ *    data than is available. Reads must return partial data when available rather
+ *    than blocking until all requested data is available.
+ *
+ * 2. s2n_negotiate may read and buffer application data records.
+ *    You must call s2n_recv at least once after negotiation to ensure that you
+ *    handle any buffered data.
+ *
+ * 3. s2n_recv may read and buffer more records than it parses and decrypts.
+ *    You must call s2n_recv until it reports S2N_ERR_T_BLOCKED, rather than just
+ *    until it reports S2N_SUCCESS.
+ *
+ * 4. s2n_peek reports available decrypted data. It does not report any data
+ *    buffered by this feature. However, s2n_peek_buffered does report data
+ *    buffered by this feature.
+ *
+ * 5. s2n_connection_release_buffers will not release the input buffer if it
+ *    contains buffered data.
+ *
+ * For example: if your event loop uses `poll`, you will receive a POLLIN event
+ * for your read file descriptor when new data is available. When you call s2n_recv
+ * to read that data, s2n-tls reads one or more TLS records from the file descriptor.
+ * If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those
+ * records may remain in s2n-tls's read buffer. If you read part of a record,
+ * s2n_peek will report the remainder of that record as available. But if you don't
+ * read any of a record, it remains encrypted and is not reported by s2n_peek, but
+ * is still reported by s2n_peek_buffered. And because the data is buffered in s2n-tls
+ * instead of in the file descriptor, another call to `poll` will NOT report any
+ * more data available. Your application may hang waiting for more data.
+ *
+ * @warning This feature cannot be enabled for a connection that will enable kTLS for receiving.
+ *
+ * @warning This feature may work with blocking IO, if used carefully. Your blocking
+ * IO must support partial reads (so MSG_WAITALL cannot be used). You will either
+ * need to know exactly how much data your peer is sending, or will need to use
+ * `s2n_peek` and `s2n_peek_buffered` rather than relying on S2N_ERR_T_BLOCKED
+ * as noted in #3 above.
+ *
+ * @param conn The connection object being updated
+ * @param enabled Set to `true` to enable, `false` to disable.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
+
+/**
+ * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
+ * enabled by `s2n_connection_set_recv_buffering`.
+ *
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
+ * While `s2n_peek` reports application data that is ready for the application
+ * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
+ * records that still need to be parsed and likely decrypted. Those records may
+ * contain application data, but they may also only contain TLS control messages.
+ *
+ * If an application needs to determine whether there is any data left to handle
+ * (for example, before calling `poll` to wait on the read file descriptor) then
+ * that application must check both `s2n_peek` and `s2n_peek_buffered`.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @returns The number of buffered encrypted bytes
+ */
+S2N_API extern uint32_t s2n_peek_buffered(struct s2n_connection *conn);
+
+/**
  * Configure the connection to free IO buffers when they are not currently in use.
  *
  * This configuration can be used to minimize connection memory footprint size, at the cost
@@ -3598,6 +3678,90 @@ S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_d
  */
 S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
         uint16_t *groups_count);
+
+/* Indicates which serialized connection version will be provided. The default value is
+ * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off.
+ */
+typedef enum {
+    S2N_SERIALIZED_CONN_NONE = 0,
+    S2N_SERIALIZED_CONN_V1 = 1
+} s2n_serialization_version;
+
+/**
+ * Set what version to use when serializing connections
+ *
+ * A version is required to serialize connections. Versioning ensures that all features negotiated
+ * during the handshake will be available wherever the connection is deserialized. Applications may
+ * need to update this version to pick up new features, since versioning may disable newer TLS
+ * features to ensure compatibility.
+ *
+ * @param config A pointer to the config object.
+ * @param version The requested version.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_config_set_serialization_version(struct s2n_config *config, s2n_serialization_version version);
+
+/**
+ * Retrieves the length of the serialized connection from `s2n_connection_serialize()`. Should be
+ * used to allocate enough memory for the serialized connection buffer.
+ *
+ * @note The size of the serialized connection changes based on parameters negotiated in the TLS
+ * handshake. Do not expect the size to always remain the same.
+ *
+ * @param conn A pointer to the connection object.
+ * @param length Output parameter where the length will be written.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *length);
+
+/**
+ * Serializes the s2n_connection into the provided buffer.
+ *
+ * This API takes an established s2n-tls connection object and "serializes" it
+ * into a transferable object to be sent off-box or to another process. This transferable object can
+ * then be "deserialized" using the `s2n_connection_deserialize` method to instantiate an s2n-tls
+ * connection object that can talk to the original peer with the same encryption keys.
+ *
+ * @warning This feature is dangerous because it provides cryptographic material from a TLS session
+ * in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide
+ * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
+ * without encryption.
+ *
+ * @note You MUST have used `s2n_config_set_serialization_version()` to set a version on the
+ * s2n_config object associated with this connection before this connection began its TLS handshake.
+ * @note Call `s2n_connection_serialization_length` to retrieve the amount of memory needed for the
+ * buffer parameter.
+ * @note This API will error if the handshake is not yet complete.
+ *
+ * @param conn A pointer to the connection object.
+ * @param buffer A pointer to the buffer where the serialized connection will be written.
+ * @param buffer_length Maximum amount of data that can be written to the buffer param.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
+
+/**
+ * Deserializes the provided buffer into the `s2n_connection` parameter.
+ *
+ * @warning s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully 
+ * deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume
+ * sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized 
+ * connection before sending it off-box and deserializing it.
+ *
+ * @warning Only a minimal amount of information about the original TLS connection is serialized.
+ * Therefore, after deserialization, the connection will behave like a new `s2n_connection` from the 
+ * `s2n_connection_new()` call, except that it can read/write encrypted data from a peer. Any desired
+ * config-level or connection-level configuration will need to be re-applied to the deserialized connection.
+ * For this same reason none of the connection getters will return useful information about the 
+ * original connection after deserialization. Any information about the original connection needs to
+ * be retrieved before serialization.
+ *
+ * @param conn A pointer to the connection object. Should be a new s2n_connection object.
+ * @param buffer A pointer to the buffer where the serialized connection will be read from.
+ * @param buffer_length Maximum amount of data that can be read from the buffer parameter.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
 
 #ifdef __cplusplus
 }

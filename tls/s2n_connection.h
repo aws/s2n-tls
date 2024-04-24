@@ -133,6 +133,18 @@ struct s2n_connection {
     /* Indicates whether the connection should request OCSP stapling from the peer */
     unsigned request_ocsp_status : 1;
 
+    /* Indicates that the connection was created from deserialization
+     * and therefore knowledge of the original handshake is limited. */
+    unsigned deserialized_conn : 1;
+
+    /* Indicates s2n_recv should reduce read calls by attempting to buffer more
+     * data than is required for a single record.
+     *
+     * This is more efficient, but will break applications that expect exact reads,
+     * for example any custom IO that behaves like MSG_WAITALL.
+     */
+    unsigned recv_buffering : 1;
+
     /* The configuration (cert, key .. etc ) */
     struct s2n_config *config;
 
@@ -240,6 +252,7 @@ struct s2n_connection {
      */
     uint8_t header_in_data[S2N_TLS_RECORD_HEADER_LENGTH];
     struct s2n_stuffer header_in;
+    struct s2n_stuffer buffer_in;
     struct s2n_stuffer in;
     struct s2n_stuffer out;
     enum {
