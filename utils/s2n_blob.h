@@ -71,3 +71,7 @@ int S2N_RESULT_MUST_USE s2n_blob_slice(const struct s2n_blob *b, struct s2n_blob
 #define S2N_BLOB_FROM_HEX(name, hex)                                    \
     s2n_stack_blob(name, (sizeof(hex) - 1) / 2, (sizeof(hex) - 1) / 2); \
     POSIX_GUARD(s2n_hex_string_to_bytes((const uint8_t *) hex, &name));
+
+#define S2N_RESULT_BLOB_FROM_HEX(name, hex)                                \
+    RESULT_STACK_BLOB(name, (sizeof(hex) - 1) / 2, (sizeof(hex) - 1) / 2); \
+    RESULT_GUARD_POSIX(s2n_hex_string_to_bytes((const uint8_t *) hex, &name));
