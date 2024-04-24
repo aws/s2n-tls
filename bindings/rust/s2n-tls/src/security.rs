@@ -1,6 +1,10 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+//! Security options like cipher suites, signature algorithms, versions, etc.
+//!
+//! See <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+
 use crate::error::Error;
 use core::fmt;
 use std::ffi::{CStr, CString};
@@ -25,6 +29,8 @@ impl Policy {
         }
     }
 
+    /// See the s2n-tls usage guide for details on available policies:
+    /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
     pub fn from_version(version: &str) -> Result<Policy, Error> {
         let cstr = CString::new(version).map_err(|_| Error::INVALID_INPUT)?;
         let context = Context::Owned(cstr);
@@ -39,16 +45,47 @@ impl fmt::Debug for Policy {
 }
 
 macro_rules! policy {
-    ($name:ident, $version:expr) => {
-        pub const $name: Policy = Policy(Context::Static(concat!($version, "\0").as_bytes()));
+    ($version:expr) => {
+        Policy(Context::Static(concat!($version, "\0").as_bytes()))
     };
 }
 
-policy!(DEFAULT, "default");
-policy!(DEFAULT_TLS13, "default_tls13");
+/// Default policy
+///
+/// # Warning
+///
+/// Cipher suites, curves, signature algorithms, or other security policy options
+/// may be added or removed from "default" in order to keep it up to date with
+/// current security best practices.
+///
+/// That means that updating the library may cause the policy to change. If peers
+/// are expected to be reasonably modern and support standard options, then this
+/// should not be a problem. But if peers rely on a deprecated option that is removed,
+/// they may be unable to connect.
+///
+/// If you instead need a static, versioned policy, choose one according to the s2n-tls usage guide:
+/// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+pub const DEFAULT: Policy = policy!("default");
+
+/// Default policy supporting TLS1.3
+///
+/// # Warning
+///
+/// Cipher suites, curves, signature algorithms, or other security policy options
+/// may be added or removed from "default_tls13" in order to keep it up to date with
+/// current security best practices.
+///
+/// That means that updating the library may cause the policy to change. If peers
+/// are expected to be reasonably modern and support standard options, then this
+/// should not be a problem. But if peers rely on a deprecated option that is removed,
+/// they may be unable to connect.
+///
+/// If you instead need a static, versioned policy, choose one according to the s2n-tls usage guide:
+/// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+pub const DEFAULT_TLS13: Policy = policy!("default_tls13");
 
 #[cfg(feature = "pq")]
-policy!(TESTING_PQ, "PQ-TLS-1-0-2021-05-26");
+pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
 
 pub const ALL_POLICIES: &[Policy] = &[
     DEFAULT,

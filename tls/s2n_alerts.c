@@ -43,6 +43,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
     switch (error_code) {
         S2N_ALERT_CASE(S2N_ERR_MISSING_EXTENSION, S2N_TLS_ALERT_MISSING_EXTENSION);
         S2N_ALERT_CASE(S2N_ERR_NO_VALID_SIGNATURE_SCHEME, S2N_TLS_ALERT_HANDSHAKE_FAILURE);
+        S2N_ALERT_CASE(S2N_ERR_MISSING_CLIENT_CERT, S2N_TLS_ALERT_CERTIFICATE_REQUIRED);
 
         /* TODO: The ERR_BAD_MESSAGE -> ALERT_UNEXPECTED_MESSAGE mapping
          * isn't always correct. Sometimes s2n-tls uses ERR_BAD_MESSAGE
@@ -52,6 +53,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
          */
         S2N_ALERT_CASE(S2N_ERR_BAD_MESSAGE, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
         S2N_ALERT_CASE(S2N_ERR_UNEXPECTED_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
+        S2N_ALERT_CASE(S2N_ERR_MISSING_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
         /* For errors involving secure renegotiation:
          *= https://tools.ietf.org/rfc/rfc5746#3.4

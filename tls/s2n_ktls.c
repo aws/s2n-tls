@@ -90,6 +90,16 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
     bool may_renegotiate = may_receive_hello_request && config->renegotiate_request_cb;
     RESULT_ENSURE(!may_renegotiate, S2N_ERR_KTLS_RENEG);
 
+    /* Prevent kTLS from being enabled on connections that might be serialized.
+     *
+     * The socket takes over tracking sequence numbers when kTLS is enabled.
+     * We would need to call getsockopt to retrieve the current sequence numbers for
+     * serialization. This would complicate the serialization implementation so
+     * for now, do not support kTLS with serialization.
+     */
+    RESULT_ENSURE(config->serialized_connection_version == S2N_SERIALIZED_CONN_NONE,
+            S2N_ERR_KTLS_UNSUPPORTED_CONN);
+
     /* kTLS I/O functionality is managed by s2n-tls. kTLS cannot be enabled if the
      * application sets custom I/O (managed_send_io == false means application has
      * set custom I/O).
@@ -98,13 +108,14 @@ static S2N_RESULT s2n_ktls_validate(struct s2n_connection *conn, s2n_ktls_mode k
         case S2N_KTLS_MODE_SEND:
             RESULT_ENSURE(conn->managed_send_io, S2N_ERR_KTLS_MANAGED_IO);
             /* The output stuffer should be empty before enabling kTLS. */
-            RESULT_ENSURE(s2n_stuffer_data_available(&conn->out) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->out), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
             break;
         case S2N_KTLS_MODE_RECV:
             RESULT_ENSURE(conn->managed_recv_io, S2N_ERR_KTLS_MANAGED_IO);
             /* The input stuffers should be empty before enabling kTLS. */
-            RESULT_ENSURE(s2n_stuffer_data_available(&conn->header_in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
-            RESULT_ENSURE(s2n_stuffer_data_available(&conn->in) == 0, S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->header_in), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->in), S2N_ERR_RECORD_STUFFER_NEEDS_DRAINING);
+            RESULT_ENSURE(s2n_stuffer_is_consumed(&conn->buffer_in), S2N_ERR_KTLS_UNSUPPORTED_CONN);
             break;
         default:
             RESULT_BAIL(S2N_ERR_SAFETY);
