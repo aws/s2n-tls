@@ -15,11 +15,11 @@ The following chart maps the security policy version to protocol version and cip
 
 |    version    | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3 | AES-CBC | AES-GCM | CHACHAPOLY | 3DES | RC4 | DHE | ECDHE | RSA kx |
 |---------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|--------|
-|   20230317    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
-|   20240331    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |    default    |    X   |    X   |    X   |        |    X    |    X    |      X     |      |     |     |   X   |    X   |
 | default_tls13 |    X   |    X   |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |    X   |
 | default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |  X  |   X   |        |
+|   20230317    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
+|   20240331    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20190214    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |  X  |   X   |    X   |
 |   20170718    |    X   |    X   |    X   |        |    X    |    X    |            |      |     |     |   X   |    X   |
 |   20170405    |    X   |    X   |    X   |        |    X    |    X    |            |   X  |     |     |   X   |    X   |
@@ -71,10 +71,10 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 
 |    version    | RSA PKCS1 | ECDSA | SHA-1 Legacy | RSA PSS |
 |---------------|-----------|-------|--------------|---------|
-|   20230317    |     X     |   X   |              |    X    |
 |    default    |     X     |       |       X      |         |
 | default_tls13 |     X     |   X   |       X      |    X    |
 | default_fips  |     X     |   X   |              |         |
+|   20230317    |     X     |   X   |              |    X    |
 |   20190214    |     X     |   X   |       X      |         |
 |   20170718    |     X     |       |       X      |         |
 |   20170405    |     X     |       |       X      |         |
@@ -103,10 +103,10 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 
 |    version    | secp256r1 | secp384r1 | x25519 |
 |---------------|-----------|-----------|--------|
-|   20230317    |     X     |     X     |        |
 |    default    |     X     |     X     |        |
 | default_tls13 |     X     |     X     |    X   |
 | default_fips  |     X     |     X     |        |
+|   20230317    |     X     |     X     |        |
 |   20190214    |     X     |     X     |        |
 |   20170718    |     X     |     X     |        |
 |   20170405    |     X     |     X     |        |
