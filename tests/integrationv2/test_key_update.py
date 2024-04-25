@@ -16,6 +16,7 @@ CLIENT_DATA = f"Some random data from the client:" + "".join(
     random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
 )
 
+
 def test_nothing():
     """
     Sometimes the key update test parameters in combination with the s2n libcrypto
