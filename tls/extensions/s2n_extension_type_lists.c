@@ -16,6 +16,7 @@
 #include "tls/extensions/s2n_extension_type_lists.h"
 
 #include "api/s2n.h"
+#include "tls/extensions/s2n_cert_authorities.h"
 #include "tls/extensions/s2n_cert_status.h"
 #include "tls/extensions/s2n_cert_status_response.h"
 #include "tls/extensions/s2n_client_alpn.h"
@@ -131,6 +132,17 @@ static const s2n_extension_type *const encrypted_extensions[] = {
 static const s2n_extension_type *const cert_req_extensions[] = {
     &s2n_server_signature_algorithms_extension,
     &s2n_server_cert_status_request_extension,
+    /**
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
+     *= type=exception
+     *= reason=Currently only supported for servers -- no client use case
+     *# The client MAY send the "certificate_authorities" extension in the
+     *# ClientHello message.
+     *
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
+     *# The server MAY send it in the CertificateRequest message.
+     */
+    &s2n_cert_authorities_extension,
 };
 
 static const s2n_extension_type *const certificate_extensions[] = {

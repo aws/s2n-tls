@@ -76,7 +76,7 @@ static int s2n_custom_hkdf_expand(struct s2n_hmac_state *hmac, s2n_hmac_algorith
     POSIX_ENSURE(total_rounds <= MAX_HKDF_ROUNDS, S2N_ERR_HKDF_OUTPUT_SIZE);
 
     for (uint32_t curr_round = 1; curr_round <= total_rounds; curr_round++) {
-        uint32_t cat_len;
+        uint32_t cat_len = 0;
         POSIX_GUARD(s2n_hmac_init(hmac, alg, pseudo_rand_key->data, pseudo_rand_key->size));
         if (curr_round != 1) {
             POSIX_GUARD(s2n_hmac_update(hmac, prev, hash_len));

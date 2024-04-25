@@ -36,7 +36,7 @@ int main(int argc, char **argv)
 
     /* Test config append */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_EQUAL(config->application_protocols.size, 0);
         size_t prev_size = 0;
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
 
     /* Test connection append */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, 0);
         size_t prev_size = 0;
@@ -103,7 +103,7 @@ int main(int argc, char **argv)
 
     /* Test config set */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_EQUAL(config->application_protocols.size, 0);
 
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
     /* Test connection set */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_EQUAL(conn->application_protocols_overridden.size, 0);
 

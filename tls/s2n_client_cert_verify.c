@@ -37,7 +37,7 @@ int s2n_client_cert_verify_recv(struct s2n_connection *conn)
     const struct s2n_signature_scheme *chosen_sig_scheme = conn->handshake_params.client_cert_sig_scheme;
     POSIX_ENSURE_REF(chosen_sig_scheme);
 
-    uint16_t signature_size;
+    uint16_t signature_size = 0;
     struct s2n_blob signature = { 0 };
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_size));
     signature.size = signature_size;

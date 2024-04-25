@@ -26,10 +26,10 @@ int mock_clock(void *in, uint64_t *out)
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     struct s2n_timer timer;
-    uint64_t nanoseconds;
-    uint64_t mock_time;
+    uint64_t nanoseconds = 0;
+    uint64_t mock_time = 0;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());

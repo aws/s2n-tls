@@ -1,0 +1,13 @@
+[package]
+name = "client-hello-config-resolution"
+version.workspace = true
+authors.workspace = true
+publish.workspace = true
+license.workspace = true
+edition.workspace = true
+
+[dependencies]
+clap = { version = "4", features = ["derive"] }
+s2n-tls = { path = "../../rust/s2n-tls" }
+s2n-tls-tokio = { path = "../../rust/s2n-tls-tokio" }
+tokio = { version = "1", features = ["full"] }

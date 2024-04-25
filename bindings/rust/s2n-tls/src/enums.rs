@@ -177,3 +177,35 @@ impl TryFrom<s2n_tls_hash_algorithm::Type> for HashAlgorithm {
         Ok(version)
     }
 }
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum PeerKeyUpdate {
+    KeyUpdateNotRequested,
+    KeyUpdatedRequested,
+}
+
+impl From<PeerKeyUpdate> for s2n_peer_key_update::Type {
+    fn from(input: PeerKeyUpdate) -> s2n_peer_key_update::Type {
+        match input {
+            PeerKeyUpdate::KeyUpdateNotRequested => s2n_peer_key_update::KEY_UPDATE_NOT_REQUESTED,
+            PeerKeyUpdate::KeyUpdatedRequested => s2n_peer_key_update::KEY_UPDATE_REQUESTED,
+        }
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum SerializationVersion {
+    None,
+    V1,
+}
+
+impl From<SerializationVersion> for s2n_serialization_version::Type {
+    fn from(input: SerializationVersion) -> s2n_serialization_version::Type {
+        match input {
+            SerializationVersion::None => s2n_serialization_version::SERIALIZED_CONN_NONE,
+            SerializationVersion::V1 => s2n_serialization_version::SERIALIZED_CONN_V1,
+        }
+    }
+}

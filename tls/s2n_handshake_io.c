@@ -133,9 +133,6 @@ static const char *message_names[] = {
     MESSAGE_NAME_ENTRY(CLIENT_NPN),
 };
 
-/* Maximum number of messages in a handshake */
-#define S2N_MAX_HANDSHAKE_LENGTH    32
-
 /* We support different ordering of TLS Handshake messages, depending on what is being negotiated. There's also a dummy "INITIAL" handshake
  * that everything starts out as until we know better.
  */
@@ -844,7 +841,7 @@ static const char *tls13_handshake_type_names[] = {
 #define CONNECTION_IS_WRITER(conn) (ACTIVE_STATE(conn).writer == CONNECTION_WRITER(conn))
 
 /* Only used in our test cases. */
-message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn)
+message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *conn)
 {
     return ACTIVE_MESSAGE(conn);
 }
@@ -1108,7 +1105,7 @@ int s2n_conn_set_handshake_no_client_cert(struct s2n_connection *conn)
 {
     s2n_cert_auth_type client_cert_auth_type;
     POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
-    S2N_ERROR_IF(client_cert_auth_type != S2N_CERT_AUTH_OPTIONAL, S2N_ERR_BAD_MESSAGE);
+    POSIX_ENSURE(client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL, S2N_ERR_MISSING_CLIENT_CERT);
 
     POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, NO_CLIENT_CERT));
 
@@ -1397,8 +1394,8 @@ static S2N_RESULT s2n_handshake_app_data_recv(struct s2n_connection *conn)
  */
 static int s2n_handshake_read_io(struct s2n_connection *conn)
 {
-    uint8_t record_type;
-    uint8_t message_type;
+    uint8_t record_type = 0;
+    uint8_t message_type = 0;
     int isSSLv2 = 0;
 
     /* Fill conn->in stuffer necessary for the handshake.
@@ -1487,7 +1484,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
     while (s2n_stuffer_data_available(&conn->in)) {
         /* We're done with negotiating but we have trailing data in this record. Bail on the handshake. */
         S2N_ERROR_IF(EXPECTED_RECORD_TYPE(conn) == TLS_APPLICATION_DATA, S2N_ERR_BAD_MESSAGE);
-        int r;
+        int r = 0;
         POSIX_GUARD((r = s2n_read_full_handshake_message(conn, &message_type)));
 
         /* Do we need more data? This happens for message fragmentation */
@@ -1502,8 +1499,9 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         s2n_cert_auth_type client_cert_auth_type;
         POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
 
-        /* If we're a Client, and received a ClientCertRequest message, and ClientAuth
-         * is set to optional, then switch the State Machine that we're using to expect the ClientCertRequest. */
+        /* If client auth is optional, we initially assume it will not be requested.
+         * If we received a request, switch to a client auth handshake.
+         */
         if (conn->mode == S2N_CLIENT
                 && client_cert_auth_type != S2N_CERT_AUTH_REQUIRED
                 && message_type == TLS_CERT_REQ) {
@@ -1530,6 +1528,12 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             POSIX_GUARD_RESULT(s2n_client_hello_request_validate(conn));
             POSIX_GUARD(s2n_stuffer_wipe(&conn->handshake.io));
             continue;
+        }
+
+        /* Check for missing Certificate Requests to surface a more specific error */
+        if (EXPECTED_MESSAGE_TYPE(conn) == TLS_CERT_REQ) {
+            POSIX_ENSURE(message_type == TLS_CERT_REQ,
+                    S2N_ERR_MISSING_CERT_REQUEST);
         }
 
         POSIX_ENSURE(record_type == EXPECTED_RECORD_TYPE(conn), S2N_ERR_BAD_MESSAGE);
@@ -1594,7 +1598,9 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
 
 bool s2n_handshake_is_complete(struct s2n_connection *conn)
 {
-    return conn && ACTIVE_STATE(conn).writer == 'B';
+    /* A deserialized connection implies that the handshake is complete because
+     * connections cannot be serialized before completing the handshake. */
+    return conn && (ACTIVE_STATE(conn).writer == 'B' || conn->deserialized_conn);
 }
 
 int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
