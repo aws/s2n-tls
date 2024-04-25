@@ -53,18 +53,18 @@ int main(int argc, char **argv)
     /* Test server cert request default behavior when s2n_config_enable_cert_req_dss_legacy_compat is not called
      * Certificate types enabled should be in s2n_cert_type_preference_list */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        s2n_cert_req_send(server_conn);
+        EXPECT_SUCCESS(s2n_cert_req_send(server_conn));
         struct s2n_stuffer *in = &server_conn->handshake.io;
-        uint8_t cert_types_len;
+        uint8_t cert_types_len = 0;
 
-        s2n_stuffer_read_uint8(in, &cert_types_len);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(in, &cert_types_len));
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
@@ -80,19 +80,19 @@ int main(int argc, char **argv)
     /* Test certificate types in server cert request when s2n_config_enable_cert_req_dss_legacy_compat is called
      * Certificate types enabled should be in s2n_cert_type_preference_list_legacy_dss */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_config *server_config;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_config *server_config = NULL;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
         EXPECT_SUCCESS(s2n_config_enable_cert_req_dss_legacy_compat(server_config));
 
-        s2n_cert_req_send(server_conn);
+        EXPECT_SUCCESS(s2n_cert_req_send(server_conn));
         struct s2n_stuffer *in = &server_conn->handshake.io;
-        uint8_t cert_types_len;
+        uint8_t cert_types_len = 0;
 
-        s2n_stuffer_read_uint8(in, &cert_types_len);
+        EXPECT_SUCCESS(s2n_stuffer_read_uint8(in, &cert_types_len));
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
@@ -105,6 +105,78 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     };
 
+    /* Test: certificate_authorities supported */
+    {
+        /* Test: no cert_authorities sent by default */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            conn->actual_protocol_version = S2N_TLS12;
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_SUCCESS(s2n_cert_req_send(conn));
+            struct s2n_stuffer *output = &conn->handshake.io;
+
+            uint8_t cert_types_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(output, &cert_types_len));
+            EXPECT_TRUE(cert_types_len > 0);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(output, cert_types_len));
+
+            uint16_t sig_algs_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(output, &sig_algs_len));
+            EXPECT_TRUE(sig_algs_len > 0);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(output, sig_algs_len));
+
+            uint16_t cert_authorities_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(output, &cert_authorities_len));
+            EXPECT_EQUAL(cert_authorities_len, 0);
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(output), 0);
+        };
+
+        /* Test: cert_authorities sent if configured */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* If we use TLS1.1 instead of TLS1.2, we don't need to worry about
+             * skipping the signature algorithms.
+             */
+            conn->actual_protocol_version = S2N_TLS11;
+
+            const uint8_t ca_data[] = "these are my CAs";
+            EXPECT_SUCCESS(s2n_alloc(&config->cert_authorities, sizeof(ca_data)));
+            EXPECT_MEMCPY_SUCCESS(config->cert_authorities.data, ca_data, sizeof(ca_data));
+
+            EXPECT_SUCCESS(s2n_cert_req_send(conn));
+            struct s2n_stuffer *output = &conn->handshake.io;
+
+            uint8_t cert_types_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint8(output, &cert_types_len));
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(output, cert_types_len));
+
+            uint16_t cert_authorities_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(output, &cert_authorities_len));
+            EXPECT_EQUAL(cert_authorities_len, sizeof(ca_data));
+
+            uint8_t *cert_authorities_data = s2n_stuffer_raw_read(output, cert_authorities_len);
+            EXPECT_NOT_NULL(cert_authorities_data);
+            EXPECT_BYTEARRAY_EQUAL(cert_authorities_data, ca_data, sizeof(ca_data));
+
+            EXPECT_EQUAL(s2n_stuffer_data_available(output), 0);
+        };
+    };
+
     END_TEST();
-    return 0;
 }

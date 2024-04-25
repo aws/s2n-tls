@@ -35,7 +35,7 @@ index 401ab760..f39cc7e2 100644
   */
  int s2n_verify_cbc(struct s2n_connection *conn, struct s2n_hmac_state *hmac, struct s2n_blob *decrypted)
  {
--    uint8_t mac_digest_size;
+-    uint8_t mac_digest_size = 0;
 -    POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));
 +    uint8_t mac_digest_size = DIGEST_SIZE;
 +    //POSIX_GUARD(s2n_hmac_digest_size(hmac->alg, &mac_digest_size));

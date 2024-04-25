@@ -37,7 +37,7 @@ int main(int argc, char **argv)
     /* s2n_negotiate can't be called recursively */
     {
         /* Setup connections */
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_OK(s2n_connection_set_secrets(conn));
 

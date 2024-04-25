@@ -68,7 +68,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
     /* Initialize *some* handshake type. Not terribly relevant for this test. */

@@ -25,7 +25,7 @@ int main(int argc, char **argv)
 
     /* should_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         /* server_name not set -> don't send */
@@ -44,7 +44,7 @@ int main(int argc, char **argv)
 
     /* send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_set_server_name(conn, test_server_name));
 
@@ -53,20 +53,20 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_client_server_name_extension.send(conn, &stuffer));
 
-        uint16_t server_name_list_size;
+        uint16_t server_name_list_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &server_name_list_size));
         EXPECT_EQUAL(server_name_list_size, s2n_stuffer_data_available(&stuffer));
 
-        uint8_t name_type;
+        uint8_t name_type = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &name_type));
         EXPECT_EQUAL(name_type, 0);
 
-        uint16_t server_name_size;
+        uint16_t server_name_size = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&stuffer, &server_name_size));
         EXPECT_EQUAL(server_name_size, s2n_stuffer_data_available(&stuffer));
         EXPECT_EQUAL(server_name_size, strlen(test_server_name));
 
-        char *server_name_data;
+        char *server_name_data = NULL;
         EXPECT_NOT_NULL(server_name_data = s2n_stuffer_raw_read(&stuffer, server_name_size));
         EXPECT_BYTEARRAY_EQUAL(server_name_data, test_server_name, strlen(test_server_name));
 
@@ -78,10 +78,10 @@ int main(int argc, char **argv)
 
     /* recv - basic */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -103,10 +103,10 @@ int main(int argc, char **argv)
 
     /* recv - server name already set */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_CLIENT));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -126,10 +126,10 @@ int main(int argc, char **argv)
 
     /* recv - extra data ignored */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };
@@ -150,10 +150,10 @@ int main(int argc, char **argv)
 
     /* recv - malformed */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
 
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         struct s2n_stuffer stuffer = { 0 };

@@ -25,14 +25,14 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *client_config;
-    struct s2n_config *server_config;
-    const struct s2n_security_policy *default_security_policy;
-    const struct s2n_cipher_preferences *default_cipher_preferences;
-    char *cert_chain_pem;
-    char *private_key_pem;
-    char *dhparams_pem;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_config *client_config = NULL;
+    struct s2n_config *server_config = NULL;
+    const struct s2n_security_policy *default_security_policy = NULL;
+    const struct s2n_cipher_preferences *default_cipher_preferences = NULL;
+    char *cert_chain_pem = NULL;
+    char *private_key_pem = NULL;
+    char *dhparams_pem = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -77,8 +77,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_security_policy->cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -141,8 +141,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -204,8 +204,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -268,8 +268,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -337,8 +337,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
@@ -414,8 +414,8 @@ int main(int argc, char **argv)
     for (int cipher_idx = 0; cipher_idx < default_cipher_preferences->count; cipher_idx++) {
         struct s2n_cipher_preferences server_cipher_preferences;
         struct s2n_security_policy security_policy;
-        struct s2n_connection *client_conn;
-        struct s2n_connection *server_conn;
+        struct s2n_connection *client_conn = NULL;
+        struct s2n_connection *server_conn = NULL;
 
         /* Craft a cipher preference with a cipher_idx cipher. */
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));

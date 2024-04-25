@@ -32,15 +32,15 @@ int main(int argc, char **argv)
 
     /* Test the output of s2n_tls13_cert_req_send() */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         server_conn->actual_protocol_version = S2N_TLS13;
 
         EXPECT_SUCCESS(s2n_tls13_cert_req_send(server_conn));
 
         /* verify output */
-        uint8_t request_context_length;
-        uint16_t extensions_length, extension_size, extension_type;
+        uint8_t request_context_length = 0;
+        uint16_t extensions_length = 0, extension_size = 0, extension_type = 0;
         EXPECT_TRUE(s2n_stuffer_data_available(&server_conn->handshake.io) > 7);
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&server_conn->handshake.io, &request_context_length));
         EXPECT_SUCCESS(s2n_stuffer_read_uint16(&server_conn->handshake.io, &extensions_length));
@@ -56,8 +56,8 @@ int main(int argc, char **argv)
 
     /* Test client can receive and parse certificate request */
     {
-        struct s2n_connection *server_conn;
-        struct s2n_connection *client_conn;
+        struct s2n_connection *server_conn = NULL;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         server_conn->actual_protocol_version = S2N_TLS13;
@@ -77,7 +77,7 @@ int main(int argc, char **argv)
 
     /* Test request context length other than 0 fails */
     {
-        struct s2n_connection *client_conn;
+        struct s2n_connection *client_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         client_conn->actual_protocol_version = S2N_TLS13;
 

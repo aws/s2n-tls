@@ -59,6 +59,9 @@
 #define S2N_SET_KEY_SHARE_LIST_EMPTY(keyshares) (keyshares |= 1)
 #define S2N_SET_KEY_SHARE_REQUEST(keyshares, i) (keyshares |= (1 << (i + 1)))
 
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type);
+
 /* Allocates and initializes memory for a new connection.
  *
  * Since customers can reuse a connection, ensure that values on the connection are
@@ -99,7 +102,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
     PTR_GUARD_POSIX(s2n_blob_init(&blob, conn->header_in_data, S2N_TLS_RECORD_HEADER_LENGTH));
     PTR_GUARD_POSIX(s2n_stuffer_init(&conn->header_in, &blob));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->out, 0));
-    PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->in, 0));
+    PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->buffer_in, 0));
     PTR_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->handshake.io, 0));
     PTR_GUARD_RESULT(s2n_timer_start(conn->config, &conn->write_timer));
 
@@ -259,6 +262,7 @@ int s2n_connection_free(struct s2n_connection *conn)
     POSIX_GUARD(s2n_free(&conn->peer_quic_transport_parameters));
     POSIX_GUARD(s2n_free(&conn->server_early_data_context));
     POSIX_GUARD(s2n_free(&conn->tls13_ticket_fields.session_secret));
+    POSIX_GUARD(s2n_stuffer_free(&conn->buffer_in));
     POSIX_GUARD(s2n_stuffer_free(&conn->in));
     POSIX_GUARD(s2n_stuffer_free(&conn->out));
     POSIX_GUARD(s2n_stuffer_free(&conn->handshake.io));
@@ -283,6 +287,12 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         return 0;
     }
 
+    const struct s2n_security_policy *security_policy = conn->security_policy_override;
+    if (!security_policy) {
+        security_policy = config->security_policy;
+    }
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
+
     /* We only support one client certificate */
     if (s2n_config_get_num_default_certs(config) > 1 && conn->mode == S2N_CLIENT) {
         POSIX_BAIL(S2N_ERR_TOO_MANY_CERTIFICATES);
@@ -290,11 +300,8 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     s2n_x509_validator_wipe(&conn->x509_validator);
 
-    s2n_cert_auth_type auth_type = config->client_cert_auth_type;
-
-    if (conn->client_cert_auth_type_overridden) {
-        auth_type = conn->client_cert_auth_type;
-    }
+    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+    POSIX_GUARD_RESULT(s2n_connection_and_config_get_client_auth_type(conn, config, &auth_type));
 
     int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (auth_type == S2N_CERT_AUTH_NONE);
 
@@ -401,7 +408,9 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_resize(&conn->out, 0));
 
     POSIX_ENSURE(s2n_stuffer_is_consumed(&conn->in), S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
-    POSIX_GUARD(s2n_stuffer_resize(&conn->in, 0));
+    if (s2n_stuffer_is_consumed(&conn->buffer_in)) {
+        POSIX_GUARD(s2n_stuffer_resize(&conn->buffer_in, 0));
+    }
 
     POSIX_ENSURE(s2n_stuffer_is_consumed(&conn->post_handshake.in), S2N_ERR_STUFFER_HAS_UNPROCESSED_DATA);
     POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
@@ -458,7 +467,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     struct s2n_stuffer client_ticket_to_decrypt = { 0 };
     struct s2n_stuffer handshake_io = { 0 };
     struct s2n_stuffer header_in = { 0 };
-    struct s2n_stuffer in = { 0 };
+    struct s2n_stuffer buffer_in = { 0 };
     struct s2n_stuffer out = { 0 };
 
     /* Some required structures might have been freed to conserve memory between handshakes.
@@ -495,11 +504,12 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_wipe(&conn->post_handshake.in));
     POSIX_GUARD(s2n_blob_zero(&conn->client_hello.raw_message));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->header_in));
-    POSIX_GUARD(s2n_stuffer_wipe(&conn->in));
+    POSIX_GUARD(s2n_stuffer_wipe(&conn->buffer_in));
     POSIX_GUARD(s2n_stuffer_wipe(&conn->out));
 
     /* Free stuffers we plan to just recreate */
     POSIX_GUARD(s2n_stuffer_free(&conn->post_handshake.in));
+    POSIX_GUARD(s2n_stuffer_free(&conn->in));
 
     POSIX_GUARD_RESULT(s2n_psk_parameters_wipe(&conn->psk_params));
 
@@ -520,7 +530,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
 
     /* Truncate the message buffers to save memory, we will dynamically resize it as needed */
     POSIX_GUARD(s2n_free(&conn->client_hello.raw_message));
-    POSIX_GUARD(s2n_stuffer_resize(&conn->in, 0));
+    POSIX_GUARD(s2n_stuffer_resize(&conn->buffer_in, 0));
     POSIX_GUARD(s2n_stuffer_resize(&conn->out, 0));
 
     /* Remove context associated with connection */
@@ -539,7 +549,7 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&client_ticket_to_decrypt, &conn->client_ticket_to_decrypt, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&handshake_io, &conn->handshake.io, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&header_in, &conn->header_in, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&in, &conn->in, sizeof(struct s2n_stuffer));
+    POSIX_CHECKED_MEMCPY(&buffer_in, &conn->buffer_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&out, &conn->out, sizeof(struct s2n_stuffer));
 #ifdef S2N_DIAGNOSTICS_POP_SUPPORTED
     #pragma GCC diagnostic pop
@@ -551,8 +561,13 @@ int s2n_connection_wipe(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(&conn->client_ticket_to_decrypt, &client_ticket_to_decrypt, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->handshake.io, &handshake_io, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->header_in, &header_in, sizeof(struct s2n_stuffer));
-    POSIX_CHECKED_MEMCPY(&conn->in, &in, sizeof(struct s2n_stuffer));
+    POSIX_CHECKED_MEMCPY(&conn->buffer_in, &buffer_in, sizeof(struct s2n_stuffer));
     POSIX_CHECKED_MEMCPY(&conn->out, &out, sizeof(struct s2n_stuffer));
+
+    /* conn->in will eventually point to part of conn->buffer_in, but we initialize
+     * it as growable and allocated to support legacy tests.
+     */
+    POSIX_GUARD(s2n_stuffer_growable_alloc(&conn->in, 0));
 
     conn->handshake.hashes = handshake_hashes;
     conn->prf_space = prf_workspace;
@@ -742,19 +757,37 @@ int s2n_connection_get_protocol_preferences(struct s2n_connection *conn, struct 
     return 0;
 }
 
-int s2n_connection_get_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type *client_cert_auth_type)
+static S2N_RESULT s2n_connection_and_config_get_client_auth_type(const struct s2n_connection *conn,
+        const struct s2n_config *config, s2n_cert_auth_type *client_cert_auth_type)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(client_cert_auth_type);
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(client_cert_auth_type);
 
     if (conn->client_cert_auth_type_overridden) {
         *client_cert_auth_type = conn->client_cert_auth_type;
+    } else if (config->client_cert_auth_type_overridden) {
+        *client_cert_auth_type = config->client_cert_auth_type;
+    } else if (conn->mode == S2N_CLIENT) {
+        /* Clients should default to "Optional" so that they handle any
+         * CertificateRequests sent by the server.
+         */
+        *client_cert_auth_type = S2N_CERT_AUTH_OPTIONAL;
     } else {
-        POSIX_ENSURE_REF(conn->config);
-        *client_cert_auth_type = conn->config->client_cert_auth_type;
+        /* Servers should default to "None" so that they send no CertificateRequests. */
+        *client_cert_auth_type = S2N_CERT_AUTH_NONE;
     }
 
-    return 0;
+    return S2N_RESULT_OK;
+}
+
+int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
+        s2n_cert_auth_type *client_cert_auth_type)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_GUARD_RESULT(s2n_connection_and_config_get_client_auth_type(
+            conn, conn->config, client_cert_auth_type));
+    return S2N_SUCCESS;
 }
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
@@ -767,7 +800,7 @@ int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_au
 int s2n_connection_set_read_fd(struct s2n_connection *conn, int rfd)
 {
     struct s2n_blob ctx_mem = { 0 };
-    struct s2n_socket_read_io_context *peer_socket_ctx;
+    struct s2n_socket_read_io_context *peer_socket_ctx = NULL;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_read_io_context)));
@@ -802,7 +835,7 @@ int s2n_connection_get_read_fd(struct s2n_connection *conn, int *readfd)
 int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
 {
     struct s2n_blob ctx_mem = { 0 };
-    struct s2n_socket_write_io_context *peer_socket_ctx;
+    struct s2n_socket_write_io_context *peer_socket_ctx = NULL;
 
     POSIX_ENSURE_REF(conn);
     POSIX_GUARD(s2n_alloc(&ctx_mem, sizeof(struct s2n_socket_write_io_context)));
@@ -819,7 +852,7 @@ int s2n_connection_set_write_fd(struct s2n_connection *conn, int wfd)
      */
     POSIX_GUARD(s2n_socket_write_snapshot(conn));
 
-    uint8_t ipv6;
+    uint8_t ipv6 = 0;
     if (0 == s2n_socket_is_ipv6(wfd, &ipv6)) {
         conn->ipv6 = (ipv6 ? 1 : 0);
     }
@@ -1190,6 +1223,9 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
     if (*conn == NULL) {
         return S2N_RESULT_OK;
     }
+
+    /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
+    RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
 
     int error_code = s2n_errno;
     int error_type = s2n_error_get_type(error_code);
@@ -1604,13 +1640,13 @@ S2N_RESULT s2n_connection_dynamic_free_in_buffer(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
 
-    /* free the `in` buffer if we're in dynamic mode and it's completely flushed */
-    if (conn->dynamic_buffers && s2n_stuffer_is_consumed(&conn->in)) {
+    /* free `buffer_in` if we're in dynamic mode and it's completely flushed */
+    if (conn->dynamic_buffers && s2n_stuffer_is_consumed(&conn->buffer_in)) {
         /* when copying the buffer into the application, we use `s2n_stuffer_erase_and_read`, which already zeroes the memory */
-        RESULT_GUARD_POSIX(s2n_stuffer_free_without_wipe(&conn->in));
+        RESULT_GUARD_POSIX(s2n_stuffer_free_without_wipe(&conn->buffer_in));
 
         /* reset the stuffer to its initial state */
-        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->in, 0));
+        RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&conn->buffer_in, 0));
     }
 
     return S2N_RESULT_OK;
@@ -1700,5 +1736,14 @@ int s2n_connection_get_key_update_counts(struct s2n_connection *conn,
     POSIX_ENSURE_REF(recv_key_updates);
     *send_key_updates = conn->send_key_updated;
     *recv_key_updates = conn->recv_key_updated;
+    return S2N_SUCCESS;
+}
+
+int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled)
+{
+    POSIX_ENSURE_REF(conn);
+    /* QUIC support is not currently compatible with recv_buffering */
+    POSIX_ENSURE(!s2n_connection_is_quic_enabled(conn), S2N_ERR_INVALID_STATE);
+    conn->recv_buffering = enabled;
     return S2N_SUCCESS;
 }

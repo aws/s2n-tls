@@ -47,6 +47,9 @@
 #define TLS_NPN                       67
 #define TLS_MESSAGE_HASH              254
 
+/* Maximum number of messages in a handshake */
+#define S2N_MAX_HANDSHAKE_LENGTH 32
+
 /* This is the list of message types that we support */
 typedef enum {
     CLIENT_HELLO = 0,
@@ -201,7 +204,7 @@ struct s2n_handshake {
 };
 
 /* Only used in our test cases. */
-message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
+message_type_t s2n_conn_get_current_message_type(const struct s2n_connection *conn);
 
 /* s2n_handshake */
 int s2n_handshake_require_all_hashes(struct s2n_handshake *handshake);

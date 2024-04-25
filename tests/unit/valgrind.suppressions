@@ -28,12 +28,3 @@
    fun:s2n_test_case_madv_wipeonfork_cb
    fun:main
 }
-
-# TODO: fix the pedantic leak errors from s2n_self_talk_alpn_test
-{
-   ignore_s2n_self_talk_alpn_test
-   Memcheck:Leak
-   match-leak-kinds: reachable
-   ...
-   fun:main
-}

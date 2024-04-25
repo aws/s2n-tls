@@ -85,15 +85,15 @@ struct small_name_ticket {
 
 int main(int argc, char **argv)
 {
-    char *cert_chain;
-    char *private_key;
-    struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_connection *client_conn;
-    struct s2n_connection *server_conn;
-    struct s2n_config *client_config;
-    struct s2n_config *server_config;
-    uint64_t now;
-    struct s2n_ticket_key *ticket_key;
+    char *cert_chain = NULL;
+    char *private_key = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_connection *server_conn = NULL;
+    struct s2n_config *client_config = NULL;
+    struct s2n_config *server_config = NULL;
+    uint64_t now = 0;
+    struct s2n_ticket_key *ticket_key = NULL;
     uint32_t ticket_keys_len = 0;
 
     size_t serialized_session_state_length = 0;

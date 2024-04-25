@@ -22,6 +22,7 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_kem.h"
 #include "tls/s2n_signature_algorithms.h"
+#include "tls/s2n_tls.h"
 
 static S2N_RESULT s2n_test_security_policies_compatible(const struct s2n_security_policy *policy,
         const char *default_policy, struct s2n_cert_chain_and_key *cert_chain)
@@ -460,6 +461,7 @@ int main(int argc, char **argv)
             "20190121",
             "20190122",
             "20201021",
+            "20240331",
             "test_all_ecdsa",
             "test_ecdsa_priority",
             "test_all_tls12",
@@ -478,6 +480,7 @@ int main(int argc, char **argv)
             "20190801",
             "20190802",
             "KMS-TLS-1-2-2023-06",
+            "20230317",
             /* CloudFront viewer facing */
             "CloudFront-SSL-v-3",
             "CloudFront-TLS-1-0-2014",
@@ -602,7 +605,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(config->security_policy->ecc_preferences, &s2n_ecc_preferences_20140601);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-        EXPECT_EQUAL(config->security_policy, &security_policy_default_tls13);
+        EXPECT_EQUAL(config->security_policy, &security_policy_20240417);
         EXPECT_EQUAL(config->security_policy->cipher_preferences, &cipher_preferences_20210831);
         EXPECT_EQUAL(config->security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(config->security_policy->signature_preferences, &s2n_signature_preferences_20200207);
@@ -728,7 +731,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default_tls13"));
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_EQUAL(security_policy, &security_policy_default_tls13);
+        EXPECT_EQUAL(security_policy, &security_policy_20240417);
         EXPECT_EQUAL(security_policy->cipher_preferences, &cipher_preferences_20210831);
         EXPECT_EQUAL(security_policy->kem_preferences, &kem_preferences_null);
         EXPECT_EQUAL(security_policy->signature_preferences, &s2n_signature_preferences_20200207);
@@ -818,7 +821,6 @@ int main(int argc, char **argv)
 
                 /* If scheme will be used for pre-tls1.3 */
                 if (min_version < S2N_TLS13) {
-                    EXPECT_NULL(scheme->signature_curve);
                     EXPECT_NOT_EQUAL(scheme->sig_alg, S2N_SIGNATURE_RSA_PSS_PSS);
                 }
             }
@@ -973,6 +975,48 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_tls13", rsa_pss_chain_and_key));
                 EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "20230317", rsa_pss_chain_and_key));
             }
+
+            if (s2n_is_tls13_fully_supported()) {
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317,
+                        "test_all_tls13", rsa_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317,
+                        "test_all_tls13", rsa_pss_chain_and_key));
+                EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317,
+                        "test_all_tls13", ecdsa_chain_and_key));
+            }
+        };
+
+        /* 20240331 */
+        {
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "default", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "default_tls13", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "default_fips", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "20230317", rsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "20240331", rsa_chain_and_key));
+
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "default_tls13", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "default_fips", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "20230317", ecdsa_chain_and_key));
+            EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
+                    "20240331", ecdsa_chain_and_key));
+
+            /* Can't negotiate TLS1.3 */
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_test_security_policies_compatible(&security_policy_20240331,
+                            "test_all_tls13", rsa_chain_and_key),
+                    S2N_ERR_CIPHER_NOT_SUPPORTED);
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_test_security_policies_compatible(&security_policy_20240331,
+                            "test_all_tls13", ecdsa_chain_and_key),
+                    S2N_ERR_CIPHER_NOT_SUPPORTED);
         };
     };
 

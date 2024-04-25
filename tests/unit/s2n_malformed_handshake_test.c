@@ -196,8 +196,6 @@ static uint8_t certificate_too_large[] = {
     0x00, 0x00, 0x10
 };
 
-message_type_t s2n_conn_get_current_message_type(struct s2n_connection *conn);
-
 void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_len, uint8_t *server_cert, uint32_t server_cert_len)
 {
     uint8_t record_header[5] = { TLS_HANDSHAKE, 0x03, 0x03, (server_hello_len >> 8), server_hello_len & 0xff };
@@ -228,8 +226,8 @@ void send_messages(int write_fd, uint8_t *server_hello, uint32_t server_hello_le
 int main(int argc, char **argv)
 {
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
+    int status = 0;
+    pid_t pid = 0;
     int p[2];
 
     BEGIN_TEST();

@@ -16,6 +16,6 @@ set -ex
 
 # Add all of our test dependencies to the PATH. Use Openssl 1.1.1 so the latest openssl is used for s_client
 # integration tests.
-export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_1_INSTALL_DIR/bin:$GNUTLS_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PRLIMIT_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:`pwd`/codebuild/bin:~/.local/bin:$PATH
+export PATH=$PYTHON_INSTALL_DIR/bin:$OPENSSL_1_1_1_INSTALL_DIR/bin:$SAW_INSTALL_DIR/bin:$Z3_INSTALL_DIR/bin:$SCAN_BUILD_INSTALL_DIR/bin:$PRLIMIT_INSTALL_DIR/bin:$LATEST_CLANG_INSTALL_DIR/bin:`pwd`/codebuild/bin:~/.local/bin:$PATH
 export LD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH; 
 export DYLD_LIBRARY_PATH=$OPENSSL_1_1_1_INSTALL_DIR/lib:$LD_LIBRARY_PATH;

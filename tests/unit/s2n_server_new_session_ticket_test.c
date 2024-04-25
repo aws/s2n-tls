@@ -58,30 +58,6 @@ static int s2n_test_session_ticket_cb(struct s2n_connection *conn, void *ctx, st
     return S2N_SUCCESS;
 }
 
-static int s2n_setup_test_ticket_key(struct s2n_config *config)
-{
-    POSIX_ENSURE_REF(config);
-
-    /**
-     *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
-     *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
-     *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
-     **/
-    S2N_BLOB_FROM_HEX(ticket_key,
-            "077709362c2e32df0ddc3f0dc47bba63"
-            "90b6c73bb50f9c3122ec844ad7c2b3e5");
-
-    /* Set up encryption key */
-    uint64_t current_time;
-    uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-    EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
-    EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
-    EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
-            ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
-
-    return S2N_SUCCESS;
-}
-
 static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
@@ -112,12 +88,12 @@ int main(int argc, char **argv)
     {
         /* Check session ticket message is correctly written. */
         {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
+            struct s2n_config *config = NULL;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -184,12 +160,12 @@ int main(int argc, char **argv)
 
         /* tickets_sent overflow */
         {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
+            struct s2n_config *config = NULL;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -214,12 +190,12 @@ int main(int argc, char **argv)
          *#  for each ticket it sends.
          **/
         {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
+            struct s2n_config *config = NULL;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -261,7 +237,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
@@ -300,7 +276,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(server_conn);
@@ -327,7 +303,7 @@ int main(int argc, char **argv)
     /* s2n_generate_ticket_lifetime */
     {
         uint32_t min_lifetime = 0;
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         /* Test: encrypt + decrypt key has shortest lifetime */
@@ -655,7 +631,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
 
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
@@ -688,7 +664,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
@@ -726,7 +702,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
@@ -829,7 +805,7 @@ int main(int argc, char **argv)
     {
         /* Mode is not server */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->actual_protocol_version = S2N_TLS13;
             conn->tickets_to_send = 1;
@@ -854,7 +830,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -882,7 +858,7 @@ int main(int argc, char **argv)
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
@@ -916,7 +892,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                     s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -945,11 +921,11 @@ int main(int argc, char **argv)
 
         /* Sends one new session ticket */
         {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
+            struct s2n_config *config = NULL;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -998,7 +974,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
@@ -1130,12 +1106,12 @@ int main(int argc, char **argv)
 
         /* Sends multiple new session tickets */
         {
-            struct s2n_config *config;
-            struct s2n_connection *conn;
+            struct s2n_config *config = NULL;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -1176,7 +1152,7 @@ int main(int argc, char **argv)
         {
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
             EXPECT_NOT_NULL(conn);
@@ -1269,15 +1245,15 @@ int main(int argc, char **argv)
     /* Functional test: s2n_negotiate sends new session tickets after the handshake is complete */
     if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         /* Setup config */
-        struct s2n_cert_chain_and_key *chain_and_key;
+        struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
@@ -1285,7 +1261,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
-        EXPECT_SUCCESS(s2n_setup_test_ticket_key(config));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         uint16_t tickets_to_send = 5;

@@ -37,7 +37,7 @@ int fake_send(void *io_context, const uint8_t *buf, uint32_t len)
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     s2n_blocked_status blocked;
 
     BEGIN_TEST();

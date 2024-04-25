@@ -163,7 +163,7 @@ int main(int argc, char **argv)
 
         /* Set transport data */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             s2n_connection_set_quic_transport_parameters(conn, TEST_DATA, sizeof(TEST_DATA));
@@ -199,7 +199,7 @@ int main(int argc, char **argv)
             const uint8_t *data_buffer = TEST_DATA;
             uint16_t data_buffer_len = sizeof(TEST_DATA);
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_SUCCESS(s2n_connection_get_quic_transport_parameters(conn, &data_buffer, &data_buffer_len));
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
             const uint8_t *data_buffer = NULL;
             uint16_t data_buffer_len = 0;
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_SUCCESS(s2n_alloc(&conn->peer_quic_transport_parameters, sizeof(TEST_DATA)));
@@ -230,11 +230,11 @@ int main(int argc, char **argv)
 
     /* Test s2n_connection_set_secret_callback */
     {
-        uint8_t test_context;
+        uint8_t test_context = 0;
 
         /* Safety checks */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_secret_callback(NULL, s2n_test_noop_secret_handler, &test_context), S2N_ERR_NULL);
@@ -248,7 +248,7 @@ int main(int argc, char **argv)
 
         /* Succeeds with NULL context */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_EQUAL(conn->secret_cb, NULL);
             EXPECT_EQUAL(conn->secret_cb_context, NULL);
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
 
         /* Succeeds with context */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_EQUAL(conn->secret_cb, NULL);
             EXPECT_EQUAL(conn->secret_cb_context, NULL);
@@ -279,11 +279,11 @@ int main(int argc, char **argv)
 
     /* Test: no API that sends/receives application data is allowed when QUIC is enabled */
     {
-        struct s2n_config *config;
+        struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_enable_quic(config));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

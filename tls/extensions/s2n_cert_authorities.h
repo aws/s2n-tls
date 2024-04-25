@@ -13,15 +13,12 @@
  * permissions and limitations under the License.
  */
 
-void swap(int *__restrict__ left, int *__restrict__ right) {
-    int temp = *left;
-    *left = *right;
-    *right = temp;
-}
+#pragma once
 
-int main() {
-    int a = 1, b = 2;
-    swap(&a, &b);
-    return 0;
-}
+#include "stuffer/s2n_stuffer.h"
+#include "tls/extensions/s2n_extension_type.h"
+#include "tls/s2n_connection.h"
 
+extern const s2n_extension_type s2n_cert_authorities_extension;
+
+int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out);

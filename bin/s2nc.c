@@ -278,8 +278,8 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
 
 int main(int argc, char *const *argv)
 {
-    struct addrinfo hints, *ai_list, *ai;
-    int r, sockfd = 0;
+    struct addrinfo hints, *ai_list = NULL, *ai = NULL;
+    int r = 0, sockfd = 0;
     bool session_ticket_recv = 0;
     /* Optional args */
     const char *alpn_protocols = NULL;

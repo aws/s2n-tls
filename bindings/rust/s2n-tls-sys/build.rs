@@ -13,12 +13,13 @@ fn main() {
 }
 
 fn env<N: AsRef<str>>(name: N) -> String {
-    option_env(name).expect("missing env var")
+    let name = name.as_ref();
+    option_env(name).unwrap_or_else(|| panic!("missing env var {name:?}"))
 }
 
 fn option_env<N: AsRef<str>>(name: N) -> Option<String> {
     let name = name.as_ref();
-    eprintln!("cargo:rerun-if-env-changed={}", name);
+    println!("cargo:rerun-if-env-changed={}", name);
     std::env::var(name).ok()
 }
 
@@ -153,20 +154,18 @@ fn build_vendored() {
 fn builder(libcrypto: &Libcrypto) -> cc::Build {
     let mut build = cc::Build::new();
 
+    let includes = [&libcrypto.include, "lib", "lib/api"];
     if let Ok(cflags) = std::env::var("CFLAGS") {
         // cc will read the CFLAGS env variable and prepend the compiler
         // command with all flags and includes from it, which may conflict
-        // with the libcrypto includes we specify. To ensure the libcrypto
-        // includes show up first in the compiler command, we prepend our
-        // includes to CFLAGS.
-        std::env::set_var("CFLAGS", format!("-I {} {}", libcrypto.include, cflags));
+        // with the includes we specify. To ensure that our includes show
+        // up first in the compiler command, we prepend them to CFLAGS.
+        std::env::set_var("CFLAGS", format!("-I {} {}", includes.join(" -I "), cflags));
     } else {
-        build.include(&libcrypto.include);
+        build.includes(includes);
     };
 
     build
-        .include("lib")
-        .include("lib/api")
         .flag("-std=c11")
         .flag("-fgnu89-inline")
         // make sure the stack is non-executable
@@ -195,11 +194,11 @@ impl Default for Libcrypto {
                 if let Some(version) = version.strip_suffix("_INCLUDE") {
                     let version = version.to_string();
 
-                    eprintln!("cargo:rerun-if-env-changed={}", name);
+                    println!("cargo:rerun-if-env-changed={}", name);
 
-                    let link = format!("aws_lc_{version}_crypto");
                     let include = value;
                     let root = env(format!("DEP_AWS_LC_{version}_ROOT"));
+                    let link = env(format!("DEP_AWS_LC_{version}_LIBCRYPTO"));
 
                     return Self {
                         version,

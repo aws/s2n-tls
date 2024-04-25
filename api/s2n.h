@@ -241,6 +241,27 @@ S2N_API extern int s2n_init(void);
  */
 S2N_API extern int s2n_cleanup(void);
 
+typedef enum {
+    S2N_FIPS_MODE_DISABLED = 0,
+    S2N_FIPS_MODE_ENABLED,
+} s2n_fips_mode;
+
+/**
+ * Determines whether s2n-tls is operating in FIPS mode.
+ *
+ * s2n-tls enters FIPS mode on initialization when the linked libcrypto has FIPS mode enabled. Some
+ * libcryptos, such as AWS-LC-FIPS, have FIPS mode enabled by default. With other libcryptos, such
+ * as OpenSSL, FIPS mode must be enabled before initialization by calling `FIPS_mode_set()`.
+ *
+ * s2n-tls MUST be linked to a FIPS libcrypto and MUST be in FIPS mode in order to comply with FIPS
+ * requirements. Applications desiring FIPS compliance should use this API to ensure that s2n-tls
+ * has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
+ *
+ * @param fips_mode Set to the FIPS mode of s2n-tls.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_get_fips_mode(s2n_fips_mode *fips_mode);
+
 /**
  * Creates a new s2n_config object. This object can (and should) be associated with many connection
  * objects.
@@ -1560,6 +1581,47 @@ S2N_API extern int s2n_client_hello_get_session_id_length(struct s2n_client_hell
 S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, uint8_t *out, uint32_t *out_length, uint32_t max_length);
 
 /**
+ * Get the length of the compression methods list sent in the Client Hello.
+ *
+ * @param ch A pointer to the Client Hello
+ * @param out_length An out pointer. Will be set to the length of the compression methods list in bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_client_hello_get_compression_methods_length(struct s2n_client_hello *ch, uint32_t *out_length);
+
+/**
+ * Retrieves the list of compression methods sent in the Client Hello.
+ *
+ * Use `s2n_client_hello_get_compression_methods_length()`
+ * to retrieve how much memory should be allocated for the buffer in advance.
+ *
+ * @note Compression methods were removed in TLS1.3 and therefore the only valid value in this list is the
+ * "null" compression method when TLS1.3 is negotiated.
+ *
+ * @note s2n-tls has never supported compression methods in any TLS version and therefore a
+ * compression method will never be negotiated or used.
+ * 
+ * @param ch A pointer to the Client Hello
+ * @param list A pointer to some memory that s2n will write the compression methods to. This memory MUST be the size of `list_length`
+ * @param list_length The size of `list`.
+ * @param out_length An out pointer. s2n will set its value to the size of the compression methods list in bytes.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_client_hello_get_compression_methods(struct s2n_client_hello *ch, uint8_t *list, uint32_t list_length, uint32_t *out_length);
+
+/**
+ * Access the Client Hello protocol version
+ *
+ * @note This field is a legacy field in TLS1.3 and is no longer used to negotiate the
+ * protocol version of the connection. It will be set to TLS1.2 even if TLS1.3 is negotiated.
+ * Therefore this method should only be used for logging or fingerprinting.
+ *
+ * @param ch A pointer to the client hello struct
+ * @param out The protocol version in the client hello.
+ */
+S2N_API extern int s2n_client_hello_get_legacy_protocol_version(struct s2n_client_hello *ch, uint8_t *out);
+
+/**
  * Retrieves the supported groups received from the client in the supported groups extension.
  *
  * IANA values for each of the received supported groups are written to the provided `groups`
@@ -1583,6 +1645,26 @@ S2N_API extern int s2n_client_hello_get_session_id(struct s2n_client_hello *ch, 
  */
 S2N_API extern int s2n_client_hello_get_supported_groups(struct s2n_client_hello *ch, uint16_t *groups,
         uint16_t groups_count_max, uint16_t *groups_count);
+
+/**
+ * Gets the length of the first server name in a Client Hello.
+ *
+ * @param ch A pointer to the ClientHello
+ * @param length A pointer which will be populated with the length of the server name
+ */
+S2N_API extern int s2n_client_hello_get_server_name_length(struct s2n_client_hello *ch, uint16_t *length);
+
+/**
+ * Gets the first server name in a Client Hello.
+ *
+ * Use `s2n_client_hello_get_server_name_length()` to get the amount of memory needed for the buffer.
+ *
+ * @param ch A pointer to the ClientHello
+ * @param server_name A pointer to the memory which will be populated with the server name
+ * @param length The maximum amount of data that can be written to `server_name`
+ * @param out_length A pointer which will be populated with the size of the server name
+ */
+S2N_API extern int s2n_client_hello_get_server_name(struct s2n_client_hello *ch, uint8_t *server_name, uint16_t length, uint16_t *out_length);
 
 /**
  * Sets the file descriptor for a s2n connection.
@@ -1731,6 +1813,86 @@ S2N_API extern int s2n_connection_prefer_throughput(struct s2n_connection *conn)
 S2N_API extern int s2n_connection_prefer_low_latency(struct s2n_connection *conn);
 
 /**
+ * Configure the connection to reduce potentially expensive calls to recv.
+ *
+ * If this setting is disabled, s2n-tls will call read twice for every TLS record,
+ * which can be expensive but ensures that s2n-tls will always attempt to read the
+ * exact number of bytes it requires. If this setting is enabled, s2n-tls will
+ * instead reduce the number of calls to read by attempting to read as much data
+ * as possible in each read call, storing the extra in the existing IO buffers.
+ * This may cause it to request more data than will ever actually be available.
+ *
+ * There is no additional memory cost of enabling this setting. It reuses the
+ * existing IO buffers.
+ *
+ * This setting is disabled by default. Depending on how your application detects
+ * data available for reading, buffering reads may break your event loop.
+ * In particular, note that:
+ *
+ * 1. File descriptor reads or calls to your custom s2n_recv_cb may request more
+ *    data than is available. Reads must return partial data when available rather
+ *    than blocking until all requested data is available.
+ *
+ * 2. s2n_negotiate may read and buffer application data records.
+ *    You must call s2n_recv at least once after negotiation to ensure that you
+ *    handle any buffered data.
+ *
+ * 3. s2n_recv may read and buffer more records than it parses and decrypts.
+ *    You must call s2n_recv until it reports S2N_ERR_T_BLOCKED, rather than just
+ *    until it reports S2N_SUCCESS.
+ *
+ * 4. s2n_peek reports available decrypted data. It does not report any data
+ *    buffered by this feature. However, s2n_peek_buffered does report data
+ *    buffered by this feature.
+ *
+ * 5. s2n_connection_release_buffers will not release the input buffer if it
+ *    contains buffered data.
+ *
+ * For example: if your event loop uses `poll`, you will receive a POLLIN event
+ * for your read file descriptor when new data is available. When you call s2n_recv
+ * to read that data, s2n-tls reads one or more TLS records from the file descriptor.
+ * If you stop calling s2n_recv before it reports S2N_ERR_T_BLOCKED, some of those
+ * records may remain in s2n-tls's read buffer. If you read part of a record,
+ * s2n_peek will report the remainder of that record as available. But if you don't
+ * read any of a record, it remains encrypted and is not reported by s2n_peek, but
+ * is still reported by s2n_peek_buffered. And because the data is buffered in s2n-tls
+ * instead of in the file descriptor, another call to `poll` will NOT report any
+ * more data available. Your application may hang waiting for more data.
+ *
+ * @warning This feature cannot be enabled for a connection that will enable kTLS for receiving.
+ *
+ * @warning This feature may work with blocking IO, if used carefully. Your blocking
+ * IO must support partial reads (so MSG_WAITALL cannot be used). You will either
+ * need to know exactly how much data your peer is sending, or will need to use
+ * `s2n_peek` and `s2n_peek_buffered` rather than relying on S2N_ERR_T_BLOCKED
+ * as noted in #3 above.
+ *
+ * @param conn The connection object being updated
+ * @param enabled Set to `true` to enable, `false` to disable.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_connection_set_recv_buffering(struct s2n_connection *conn, bool enabled);
+
+/**
+ * Reports how many bytes of unprocessed TLS records are buffered due to the optimization
+ * enabled by `s2n_connection_set_recv_buffering`.
+ *
+ * `s2n_peek_buffered` is not a replacement for `s2n_peek`.
+ * While `s2n_peek` reports application data that is ready for the application
+ * to read with no additional processing, `s2n_peek_buffered` reports raw TLS
+ * records that still need to be parsed and likely decrypted. Those records may
+ * contain application data, but they may also only contain TLS control messages.
+ *
+ * If an application needs to determine whether there is any data left to handle
+ * (for example, before calling `poll` to wait on the read file descriptor) then
+ * that application must check both `s2n_peek` and `s2n_peek_buffered`.
+ *
+ * @param conn A pointer to the s2n_connection object
+ * @returns The number of buffered encrypted bytes
+ */
+S2N_API extern uint32_t s2n_peek_buffered(struct s2n_connection *conn);
+
+/**
  * Configure the connection to free IO buffers when they are not currently in use.
  *
  * This configuration can be used to minimize connection memory footprint size, at the cost
@@ -1821,6 +1983,30 @@ S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
  */
 S2N_API extern int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version);
 
+/**
+ * Used to indicate the type of key update that is being requested. For further 
+ * information refer to `s2n_connection_request_key_update`.
+*/
+typedef enum {
+    S2N_KEY_UPDATE_NOT_REQUESTED = 0,
+    S2N_KEY_UPDATE_REQUESTED
+} s2n_peer_key_update;
+
+/**
+ * Signals the connection to do a key_update at the next possible opportunity. Note that the resulting key update message
+ * will not be sent until `s2n_send` is called.
+ * 
+ * @param conn The connection object to trigger the key update on.
+ * @param peer_request Indicates if a key update should also be requested 
+ * of the peer. When set to `S2N_KEY_UPDATE_NOT_REQUESTED`, then only the sending
+ * key of `conn` will be updated. If set to `S2N_KEY_UPDATE_REQUESTED`, then 
+ * the sending key of conn will be updated AND the peer will be requested to 
+ * update their sending key. Note that s2n-tls currently only supports 
+ * `peer_request` being set to `S2N_KEY_UPDATE_NOT_REQUESTED` and will return
+ *  S2N_FAILURE if any other value is used.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+*/
+S2N_API extern int s2n_connection_request_key_update(struct s2n_connection *conn, s2n_peer_key_update peer_request);
 /**
  * Appends the provided application protocol to the preference list
  *
@@ -1947,7 +2133,7 @@ S2N_API extern int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status
  * @param buf A pointer to a buffer that s2n will write data from
  * @param size The size of buf
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ssize_t size, s2n_blocked_status *blocked);
 
@@ -1960,7 +2146,7 @@ S2N_API extern ssize_t s2n_send(struct s2n_connection *conn, const void *buf, ss
  * @param bufs A pointer to a vector of buffers that s2n will write data from.
  * @param count The number of buffers in `bufs`
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write. 
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, s2n_blocked_status *blocked);
 
@@ -1979,7 +2165,7 @@ S2N_API extern ssize_t s2n_sendv(struct s2n_connection *conn, const struct iovec
  * @param count The number of buffers in `bufs`
  * @param offs The write cursor offset. This should be updated as data is written. See the example code.
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns The number of bytes written, and may indicate a partial write. 
+ * @returns The number of bytes written on success, which may indicate a partial write. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const struct iovec *bufs, ssize_t count, ssize_t offs, s2n_blocked_status *blocked);
 
@@ -1996,7 +2182,7 @@ S2N_API extern ssize_t s2n_sendv_with_offset(struct s2n_connection *conn, const 
  * @param buf A pointer to a buffer that s2n will place read data into.
  * @param size Size of `buf`
  * @param blocked A pointer which will be set to the blocked status if an `S2N_ERR_T_BLOCKED` error is returned.
- * @returns number of bytes read. 0 if the connection was shutdown by peer.
+ * @returns The number of bytes read on success. 0 if the connection was shutdown by the peer. S2N_FAILURE on failure.
  */
 S2N_API extern ssize_t s2n_recv(struct s2n_connection *conn, void *buf, ssize_t size, s2n_blocked_status *blocked);
 
@@ -2880,6 +3066,19 @@ S2N_API extern int s2n_connection_get_actual_protocol_version(struct s2n_connect
 S2N_API extern int s2n_connection_get_client_hello_version(struct s2n_connection *conn);
 
 /**
+ * Access the protocol version from the header of the first record that contained the ClientHello message.
+ * 
+ * @note This field has been deprecated and should not be confused with the client hello
+ * version. It is often set very low, usually to TLS1.0 for compatibility reasons,
+ * and should never be set higher than TLS1.2. Therefore this method should only be used
+ * for logging or fingerprinting.
+ *
+ * @param conn A pointer to the client hello struct
+ * @param out The protocol version in the record header containing the Client Hello.
+ */
+S2N_API extern int s2n_client_hello_get_legacy_record_version(struct s2n_client_hello *ch, uint8_t *out);
+
+/**
  * Check if Client Auth was used for a connection.
  *
  * @param conn A pointer to the connection
@@ -2902,6 +3101,38 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
  * @returns A string indicating the cipher suite negotiated by s2n in OpenSSL format.
  */
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
+
+/**
+ * Provides access to the TLS master secret.
+ *
+ * This is a dangerous method and should not be used unless absolutely necessary.
+ * Mishandling the master secret can compromise both the current connection
+ * and any past or future connections that use the same master secret due to
+ * session resumption.
+ *
+ * This method is only supported for older TLS versions, and will report an S2N_ERR_INVALID_STATE
+ * usage error if called for a TLS1.3 connection. TLS1.3 includes a new key schedule
+ * that derives independent secrets from the master secret for specific purposes,
+ * such as separate traffic, session ticket, and exporter secrets. Using the master
+ * secret directly circumvents that security feature, reducing the security of
+ * the protocol.
+ *
+ * If you need cryptographic material tied to the current TLS session, consider
+ * `s2n_connection_tls_exporter` instead. Although s2n_connection_tls_exporter
+ * currently only supports TLS1.3, there is also an RFC that describes exporters
+ * for older TLS versions: https://datatracker.ietf.org/doc/html/rfc5705
+ * Using the master secret as-is or defining your own exporter is dangerous.
+ *
+ * @param conn A pointer to the connection.
+ * @param secret_bytes Memory to copy the master secret into. The secret
+ * is always 48 bytes long.
+ * @param max_size The size of the memory available at `secret_bytes`. Must be
+ * at least 48 bytes.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE otherwise. `secret_bytes`
+ * will be set on success.
+ */
+S2N_API extern int s2n_connection_get_master_secret(const struct s2n_connection *conn,
+        uint8_t *secret_bytes, size_t max_size);
 
 /**
  * Provides access to the TLS-Exporter functionality.
@@ -3447,6 +3678,90 @@ S2N_API int s2n_offered_early_data_accept(struct s2n_offered_early_data *early_d
  */
 S2N_API int s2n_config_get_supported_groups(struct s2n_config *config, uint16_t *groups, uint16_t groups_count_max,
         uint16_t *groups_count);
+
+/* Indicates which serialized connection version will be provided. The default value is
+ * S2N_SERIALIZED_CONN_NONE, which indicates the feature is off.
+ */
+typedef enum {
+    S2N_SERIALIZED_CONN_NONE = 0,
+    S2N_SERIALIZED_CONN_V1 = 1
+} s2n_serialization_version;
+
+/**
+ * Set what version to use when serializing connections
+ *
+ * A version is required to serialize connections. Versioning ensures that all features negotiated
+ * during the handshake will be available wherever the connection is deserialized. Applications may
+ * need to update this version to pick up new features, since versioning may disable newer TLS
+ * features to ensure compatibility.
+ *
+ * @param config A pointer to the config object.
+ * @param version The requested version.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_config_set_serialization_version(struct s2n_config *config, s2n_serialization_version version);
+
+/**
+ * Retrieves the length of the serialized connection from `s2n_connection_serialize()`. Should be
+ * used to allocate enough memory for the serialized connection buffer.
+ *
+ * @note The size of the serialized connection changes based on parameters negotiated in the TLS
+ * handshake. Do not expect the size to always remain the same.
+ *
+ * @param conn A pointer to the connection object.
+ * @param length Output parameter where the length will be written.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *length);
+
+/**
+ * Serializes the s2n_connection into the provided buffer.
+ *
+ * This API takes an established s2n-tls connection object and "serializes" it
+ * into a transferable object to be sent off-box or to another process. This transferable object can
+ * then be "deserialized" using the `s2n_connection_deserialize` method to instantiate an s2n-tls
+ * connection object that can talk to the original peer with the same encryption keys.
+ *
+ * @warning This feature is dangerous because it provides cryptographic material from a TLS session
+ * in plaintext. Users MUST both encrypt and MAC the contents of the outputted material to provide
+ * secrecy and integrity if this material is transported off-box. DO NOT store or send this material off-box
+ * without encryption.
+ *
+ * @note You MUST have used `s2n_config_set_serialization_version()` to set a version on the
+ * s2n_config object associated with this connection before this connection began its TLS handshake.
+ * @note Call `s2n_connection_serialization_length` to retrieve the amount of memory needed for the
+ * buffer parameter.
+ * @note This API will error if the handshake is not yet complete.
+ *
+ * @param conn A pointer to the connection object.
+ * @param buffer A pointer to the buffer where the serialized connection will be written.
+ * @param buffer_length Maximum amount of data that can be written to the buffer param.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
+
+/**
+ * Deserializes the provided buffer into the `s2n_connection` parameter.
+ *
+ * @warning s2n-tls DOES NOT check the integrity of the provided buffer. s2n-tls may successfully 
+ * deserialize a corrupted buffer which WILL cause a connection failure when attempting to resume
+ * sending/receiving encrypted data. To avoid this, it is recommended to MAC and encrypt the serialized 
+ * connection before sending it off-box and deserializing it.
+ *
+ * @warning Only a minimal amount of information about the original TLS connection is serialized.
+ * Therefore, after deserialization, the connection will behave like a new `s2n_connection` from the 
+ * `s2n_connection_new()` call, except that it can read/write encrypted data from a peer. Any desired
+ * config-level or connection-level configuration will need to be re-applied to the deserialized connection.
+ * For this same reason none of the connection getters will return useful information about the 
+ * original connection after deserialization. Any information about the original connection needs to
+ * be retrieved before serialization.
+ *
+ * @param conn A pointer to the connection object. Should be a new s2n_connection object.
+ * @param buffer A pointer to the buffer where the serialized connection will be read from.
+ * @param buffer_length Maximum amount of data that can be read from the buffer parameter.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on error.
+ */
+S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);
 
 #ifdef __cplusplus
 }
