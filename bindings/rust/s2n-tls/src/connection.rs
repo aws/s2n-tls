@@ -689,7 +689,7 @@ impl Connection {
     pub fn session(&mut self) -> Result<Vec<u8>, Error> {
         let size;
         unsafe {
-            size = dbg!(s2n_connection_get_session_length(self.connection.as_ptr()));
+            size = s2n_connection_get_session_length(self.connection.as_ptr());
         }
         if size <= 0 {
             return Ok(Vec::default());
