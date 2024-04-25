@@ -92,6 +92,10 @@ struct s2n_cipher_suite {
 
     /* Cipher name in Openssl format */
     const char *name;
+
+    /* Cipher name in IANA format */
+    const char *iana_name;
+
     const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN];
 
     const struct s2n_kex *key_exchange_alg;
