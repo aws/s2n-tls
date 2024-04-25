@@ -881,10 +881,10 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
      */
     uint64_t now = 0;
     POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
-    bool is_encrypt_decrypt_key_available = false;
-    POSIX_GUARD_RESULT(s2n_config_is_encrypt_decrypt_key_available(conn->config, &is_encrypt_decrypt_key_available));
     if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
-        if (is_encrypt_decrypt_key_available) {
+        bool key_available = false;
+        POSIX_GUARD_RESULT(s2n_config_is_encrypt_decrypt_key_available(conn->config, &key_available));
+        if (key_available) {
             conn->session_ticket_status = S2N_NEW_TICKET;
             POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
         }

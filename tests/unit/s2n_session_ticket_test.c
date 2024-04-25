@@ -1350,10 +1350,10 @@ int main(int argc, char **argv)
 
     /* Test: TLS1.3 resumption is successful when key used to encrypt ticket is in decrypt-only state */
     if (s2n_is_tls13_fully_supported()) {
+        /* Initialize client and server connections with TLS 1.3 configurations */
         DEFER_CLEANUP(struct s2n_connection *client_connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_connection);
 
-        /* Set client ST and session state */
         EXPECT_SUCCESS(s2n_connection_set_session(client_connection, tls13_serialized_session_state.blob.data,
                 s2n_stuffer_data_available(&tls13_serialized_session_state)));
 
@@ -1371,10 +1371,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "default_tls13"));
 
-        /* Create nonblocking pipes */
-        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_connection, server_connection, &io_pair));
-
-        /* Add one ST key */
+        /* Add the key that encrypted the session ticket so that the server will be able to decrypt the ticket successfully. */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1,
                 s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
@@ -1389,6 +1386,9 @@ int main(int argc, char **argv)
                 s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
 
         EXPECT_SUCCESS(s2n_connection_set_config(server_connection, server_configuration));
+
+        /* Create nonblocking pipes */
+        EXPECT_SUCCESS(s2n_connections_set_io_pair(client_connection, server_connection, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_connection, client_connection));
 
