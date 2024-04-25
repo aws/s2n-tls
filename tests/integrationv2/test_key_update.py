@@ -78,7 +78,6 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
     for results in server.get_results():
         results.assert_success()
         assert CLIENT_DATA.encode() in results.stdout
-    assert 1 == 0
 
 
 @pytest.mark.flaky(reruns=5)
