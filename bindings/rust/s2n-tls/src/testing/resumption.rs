@@ -6,7 +6,7 @@ mod tests {
     use crate::{
         callbacks::{SessionTicket, SessionTicketCallback},
         config::ConnectionInitializer,
-        connection,
+        connection::{self, Connection},
         testing::{s2n_tls::*, *},
     };
     use futures_test::task::noop_waker;
@@ -50,6 +50,15 @@ mod tests {
     const KEY: [u8; 16] = [0; 16];
     const KEYNAME: [u8; 3] = [1, 3, 4];
 
+    fn validate_session_ticket(c: &mut Connection) -> Result<(), Box<dyn Error>> {
+        assert!(c.session_ticket_length()? > 0);
+        let mut session = vec![0; c.session_ticket_length()?];
+        //load the ticket and make sure session is no longer empty
+        assert_eq!(c.session_ticket(&mut session)?, c.session_ticket_length()?);
+        assert_ne!(session, vec![0; c.session_ticket_length()?]);
+        Ok(())
+    }
+
     #[test]
     fn resume_session() -> Result<(), Box<dyn Error>> {
         let keypair = CertKeyPair::default();
@@ -71,7 +80,7 @@ mod tests {
             .set_session_ticket_callback(handler.clone())?
             .trust_pem(keypair.cert())?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
-            .set_connection_initializer(handler.clone())?;
+            .set_connection_initializer(handler)?;
         let client_config = client_config_builder.build()?;
 
         // create and configure a server connection
@@ -101,8 +110,7 @@ mod tests {
             client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY|WITH_SESSION_TICKET"
         );
-        // validate that a ticket is available
-        assert!(client.session()?.len() > 0);
+        validate_session_ticket(client)?;
 
         // create and configure a client/server connection again
         let mut server = connection::Connection::new_server();
@@ -129,8 +137,8 @@ mod tests {
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED");
         // validate that a ticket is available
-        assert!(client.session()?.len() > 0);
-        assert!(server.session()?.len() > 0);
+        validate_session_ticket(client)?;
+        validate_session_ticket(server)?;
         Ok(())
     }
 
@@ -153,7 +161,7 @@ mod tests {
         client_config_builder
             .enable_session_tickets(true)?
             .set_session_ticket_callback(handler.clone())?
-            .set_connection_initializer(handler.clone())?
+            .set_connection_initializer(handler)?
             .trust_pem(keypair.cert())?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
             .set_security_policy(&security::DEFAULT_TLS13)?;
@@ -190,7 +198,7 @@ mod tests {
             "NEGOTIATED|FULL_HANDSHAKE|MIDDLEBOX_COMPAT"
         );
         // validate that a ticket is available
-        assert!(client.session()?.len() > 0);
+        validate_session_ticket(client)?;
 
         // create and configure a client/server connection again
         let mut server = connection::Connection::new_server();
@@ -220,7 +228,7 @@ mod tests {
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED|MIDDLEBOX_COMPAT");
         // validate that a ticket is available
-        assert!(client.session()?.len() > 0);
+        validate_session_ticket(client)?;
         Ok(())
     }
 }

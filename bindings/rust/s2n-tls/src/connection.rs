@@ -679,30 +679,31 @@ impl Connection {
         Ok(self)
     }
 
-    /// Serializes the session state from the connection.
+    /// Retrieves the size of the session ticket.
+    pub fn session_ticket_length(&mut self) -> Result<usize, Error> {
+        let len =
+            unsafe { s2n_connection_get_session_length(self.connection.as_ptr()).into_result()? };
+        Ok(len.try_into().expect("into_result cannot be < 0"))
+    }
+
+    /// Serializes the session state from the connection into `output` and returns
+    /// the length of the session ticket.
     ///
-    /// If no ticket or an invalid ticket is found, returns an empty buffer.
+    /// If the buffer does not have the size for the session_ticket,
+    /// `Error::INVALID_INPUT` is returned.
     ///
     /// Note: This function is not recommended for > TLS1.2 because in TLS1.3
     /// servers can send multiple session tickets and this will return only
     /// the most recently received ticket.
-    pub fn session(&mut self) -> Result<Vec<u8>, Error> {
-        let size;
-        unsafe {
-            size = s2n_connection_get_session_length(self.connection.as_ptr());
+    pub fn session_ticket(&mut self, output: &mut [u8]) -> Result<usize, Error> {
+        if output.len() < self.session_ticket_length()? {
+            return Err(Error::INVALID_INPUT);
         }
-        if size <= 0 {
-            return Ok(Vec::default());
-        }
-        let mut buf = vec![0; size as usize];
-        unsafe {
-            if s2n_connection_get_session(self.connection.as_ptr(), buf.as_mut_ptr(), size as usize)
-                != size
-            {
-                return Ok(Vec::default());
-            }
-        }
-        return Ok(buf);
+        let written = unsafe {
+            s2n_connection_get_session(self.connection.as_ptr(), output.as_mut_ptr(), output.len())
+                .into_result()?
+        };
+        Ok(written.try_into().expect("into_result < 0"))
     }
 
     /// Sets a Waker on the connection context or clears it if `None` is passed.
