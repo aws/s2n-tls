@@ -14,6 +14,7 @@
  */
 
 #include "crypto/s2n_ecdsa.h"
+#include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
