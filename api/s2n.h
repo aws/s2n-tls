@@ -3776,14 +3776,16 @@ S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buf
  * a trust store that includes the default system certificates. That means that
  * s2n_config_new_minimal or s2n_config_wipe_trust_store should be used.
  *
- * s2n-tls limits the total certificate authorities size to 10k bytes.
+ * s2n-tls currently limits the total certificate authorities size to 10k bytes.
+ * This method will fail if the certificate authorities retrieved from the trust
+ * store exceed that limit.
  *
  * @param config A pointer to the s2n_config object.
  * @param count The number of certificate authorities loaded from the trust store.
  * Can be used for logging or to sanity check the trust store configuration.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
-S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config, uint16_t *count);
+S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config);
 
 #ifdef __cplusplus
 }

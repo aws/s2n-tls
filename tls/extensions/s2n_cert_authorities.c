@@ -27,11 +27,9 @@ bool s2n_cert_authorities_supported_from_trust_store()
 #endif
 }
 
-static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *config, uint16_t *count)
+static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *config)
 {
     RESULT_ENSURE_REF(config);
-    RESULT_ENSURE_REF(count);
-    *count = 0;
 
     if (!config->trust_store.trust_store) {
         return S2N_RESULT_OK;
@@ -69,7 +67,6 @@ static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *c
         RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&output, name_bytes, name_size));
         RESULT_ENSURE(s2n_stuffer_data_available(&output) <= S2N_CERT_AUTHORITIES_MAX_SIZE,
                 S2N_ERR_TOO_MANY_CAS);
-        (*count)++;
     }
 
     RESULT_GUARD_POSIX(s2n_stuffer_extract_blob(&output, &config->cert_authorities));
@@ -79,11 +76,11 @@ static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *c
 #endif
 }
 
-int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config, uint16_t *count)
+int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config)
 {
     POSIX_ENSURE_REF(config);
     POSIX_ENSURE(!config->trust_store.loaded_system_certs, S2N_ERR_INVALID_STATE);
-    POSIX_GUARD_RESULT(s2n_cert_authorities_set_from_trust_store(config, count));
+    POSIX_GUARD_RESULT(s2n_cert_authorities_set_from_trust_store(config));
     return S2N_SUCCESS;
 }
 

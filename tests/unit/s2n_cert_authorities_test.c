@@ -46,15 +46,8 @@ int main(int argc, char **argv)
     {
         /* Test: Safety */
         {
-            uint16_t count = 0;
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_config_set_cert_authorities_from_trust_store(NULL, &count),
-                    S2N_ERR_NULL);
-
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
-            EXPECT_NOT_NULL(config);
-            EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_config_set_cert_authorities_from_trust_store(config, NULL),
+                    s2n_config_set_cert_authorities_from_trust_store(NULL),
                     S2N_ERR_NULL);
         };
 
@@ -66,14 +59,12 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config,
                     S2N_ECDSA_P512_CERT_CHAIN, NULL));
 
-            uint16_t count = 0;
             if (s2n_cert_authorities_supported_from_trust_store()) {
-                EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config, &count));
-                EXPECT_EQUAL(count, 1);
+                EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
                 EXPECT_NOT_EQUAL(config->cert_authorities.size, 0);
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(
-                        s2n_config_set_cert_authorities_from_trust_store(config, &count),
+                        s2n_config_set_cert_authorities_from_trust_store(config),
                         S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
                 EXPECT_EQUAL(config->cert_authorities.size, 0);
             }
@@ -86,16 +77,14 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
 
             /* Fails with default system trust store */
-            uint16_t count = 0;
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_config_set_cert_authorities_from_trust_store(config, &count),
+                    s2n_config_set_cert_authorities_from_trust_store(config),
                     S2N_ERR_INVALID_STATE);
             EXPECT_EQUAL(config->cert_authorities.size, 0);
 
             /* Succeeds again after wiping trust store */
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(config));
-            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config, &count));
-            EXPECT_EQUAL(count, 0);
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
             EXPECT_EQUAL(config->cert_authorities.size, 0);
         };
 
@@ -103,9 +92,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            uint16_t count = 0;
-            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config, &count));
-            EXPECT_EQUAL(count, 0);
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
             EXPECT_EQUAL(config->cert_authorities.size, 0);
         };
 
@@ -116,9 +103,8 @@ int main(int argc, char **argv)
             /* This is just a copy of the default trust store from an Amazon Linux instance */
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_TEST_TRUST_STORE, NULL));
 
-            uint16_t count = 0;
             EXPECT_FAILURE_WITH_ERRNO(
-                    s2n_config_set_cert_authorities_from_trust_store(config, &count),
+                    s2n_config_set_cert_authorities_from_trust_store(config),
                     S2N_ERR_TOO_MANY_CAS);
             EXPECT_EQUAL(config->cert_authorities.size, 0);
         };
@@ -303,13 +289,11 @@ int main(int argc, char **argv)
         /* clang-format off */
         const struct {
             const char *cert_name;
-            uint8_t expected_count;
             uint8_t expected_bytes_size;
             uint8_t expected_bytes[1000];
         } test_cases[] = {
             {
                 .cert_name = S2N_RSA_PSS_2048_SHA256_LEAF_CERT,
-                .expected_count = 1,
                 .expected_bytes_size = 32,
                 .expected_bytes = {
                     0x00, 0x2f, 0x00, 0x1c, 0x00, 0x1a, 0x00, 0x18,
@@ -320,7 +304,6 @@ int main(int argc, char **argv)
             },
             {
                 .cert_name = S2N_ECDSA_P512_CERT_CHAIN,
-                .expected_count = 1,
                 .expected_bytes_size = 107,
                 .expected_bytes = {
                     0x00, 0x2f, 0x00, 0x67, 0x00, 0x65, 0x00, 0x63,
@@ -341,7 +324,6 @@ int main(int argc, char **argv)
             },
             {
                 .cert_name = S2N_RSA_2048_SHA256_URI_SANS_CERT,
-                .expected_count = 2,
                 .expected_bytes_size = 192,
                 .expected_bytes = {
                     0x00, 0x2f, 0x00, 0xbc, 0x00, 0xba, 0x00, 0x53,
@@ -372,7 +354,6 @@ int main(int argc, char **argv)
             },
             {
                 .cert_name = S2N_RSA_2048_PKCS1_CERT_CHAIN,
-                .expected_count = 3,
                 .expected_bytes_size = 94,
                 .expected_bytes = {
                     0x00, 0x2f, 0x00, 0x5a, 0x00, 0x58, 0x00, 0x1a,
@@ -398,9 +379,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config,
                     test_cases[i].cert_name, NULL));
 
-            uint16_t count = 0;
-            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config, &count));
-            EXPECT_EQUAL(count, test_cases[i].expected_count);
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
