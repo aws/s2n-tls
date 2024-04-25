@@ -28,8 +28,8 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
     port = next(available_ports)
 
     update_requested = b"K"
-    server_data = "server data"
-    client_data = "client data"
+    server_data = "Some data from the server!"
+    client_data = "Some data from the client!"
     starting_marker = "Verify return code"
     key_update_marker = "KEYUPDATE"
 
@@ -84,8 +84,8 @@ def test_s2n_client_key_update(managed_process, cipher, provider, other_provider
     port = next(available_ports)
 
     update_requested = b"K\n"
-    server_data = "server data"
-    client_data = "client data"
+    server_data = "Some data from the server!"
+    client_data = "Some data from the client!"
     # Last statement printed out by Openssl after handshake
     starting_marker = "Secure Renegotiation IS supported"
     key_update_marker = "TLSv1.3 write server key update"
