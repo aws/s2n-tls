@@ -25,11 +25,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          override: true
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
 
       - uses: camshaft/rust-cache@v1
 
@@ -72,11 +72,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          override: true
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
 
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
@@ -90,11 +90,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          override: true
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
       
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
@@ -108,11 +108,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          override: true
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
 
       - uses: camshaft/rust-cache@v1
 
@@ -157,13 +157,11 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions-rs/toolchain@v1.0.7
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
-          profile: minimal
-          override: true
-          components: rustfmt
+        run: |
+          rustup toolchain install ${{ env.RUST_NIGHTLY_TOOLCHAIN }} --profile minimal --component rustfmt
+          rustup override set ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
 
       - uses: camshaft/rust-cache@v1
 
@@ -173,10 +171,8 @@ jobs:
         run: ./${{env.ROOT_PATH}}/generate.sh
 
       - name: Run cargo fmt
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: fmt
-          args: --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
+        run: |
+          cargo fmt --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
 
   clippy:
     runs-on: ubuntu-latest
@@ -185,13 +181,11 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions-rs/toolchain@v1.0.7
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          components: clippy
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup override set stable
 
       - uses: camshaft/rust-cache@v1
 
@@ -206,10 +200,9 @@ jobs:
 
       # TODO translate json reports to in-action warnings
       - name: Run cargo clippy
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: clippy
-          args: --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
+        run: |
+          cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
+
   msrv:
     runs-on: ubuntu-latest
     steps:
