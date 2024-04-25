@@ -679,6 +679,32 @@ impl Connection {
         Ok(self)
     }
 
+    /// Serializes the session state from the connection.
+    ///
+    /// If no ticket or an invalid ticket is found, returns an empty buffer.
+    ///
+    /// Note: This function is not recommended for > TLS1.2 because in TLS1.3
+    /// servers can send multiple session tickets and this will return only
+    /// the most recently received ticket.
+    pub fn session(&mut self) -> Result<Vec<u8>, Error> {
+        let size;
+        unsafe {
+            size = dbg!(s2n_connection_get_session_length(self.connection.as_ptr()));
+        }
+        if size <= 0 {
+            return Ok(Vec::default());
+        }
+        let mut buf = vec![0; size as usize];
+        unsafe {
+            if s2n_connection_get_session(self.connection.as_ptr(), buf.as_mut_ptr(), size as usize)
+                != size
+            {
+                return Ok(Vec::default());
+            }
+        }
+        return Ok(buf);
+    }
+
     /// Sets a Waker on the connection context or clears it if `None` is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();

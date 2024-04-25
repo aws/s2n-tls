@@ -92,15 +92,17 @@ mod tests {
         let server = Harness::new(server);
         let client = Harness::new(client);
         let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
+        let mut pair = poll_tls_pair(pair);
 
-        let client = pair.client.0.connection();
+        let client = pair.client.0.connection_mut();
 
         // Check connection was full handshake and a session ticket was included
         assert_eq!(
             client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY|WITH_SESSION_TICKET"
         );
+        // validate that a ticket is available
+        assert!(client.session()?.len() > 0);
 
         // create and configure a client/server connection again
         let mut server = connection::Connection::new_server();
@@ -119,12 +121,16 @@ mod tests {
         let server = Harness::new(server);
         let client = Harness::new(client);
         let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
+        let mut pair = poll_tls_pair(pair);
 
-        let client = pair.client.0.connection();
+        let client = pair.client.0.connection_mut();
+        let server = pair.server.0.connection_mut();
 
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED");
+        // validate that a ticket is available
+        assert!(client.session()?.len() > 0);
+        assert!(server.session()?.len() > 0);
         Ok(())
     }
 
@@ -177,12 +183,14 @@ mod tests {
         let mut recv_buffer: [u8; 10] = [0; 10];
         assert!(pair.poll_recv(Mode::Client, &mut recv_buffer).is_pending());
 
-        let client = pair.client.0.connection();
+        let client = pair.client.0.connection_mut();
         // Check connection was full handshake
         assert_eq!(
             client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|MIDDLEBOX_COMPAT"
         );
+        // validate that a ticket is available
+        assert!(client.session()?.len() > 0);
 
         // create and configure a client/server connection again
         let mut server = connection::Connection::new_server();
@@ -200,12 +208,19 @@ mod tests {
         let server = Harness::new(server);
         let client = Harness::new(client);
         let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
+        let mut pair = poll_tls_pair(pair);
 
-        let client = pair.client.0.connection();
+        // Do a recv call on the client side to read a session ticket. Poll function
+        // returns pending since no application data was read, however it is enough
+        // to collect the session ticket.
+        let mut recv_buffer: [u8; 10] = [0; 10];
+        assert!(pair.poll_recv(Mode::Client, &mut recv_buffer).is_pending());
 
+        let client = pair.client.0.connection_mut();
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED|MIDDLEBOX_COMPAT");
+        // validate that a ticket is available
+        assert!(client.session()?.len() > 0);
         Ok(())
     }
 }
