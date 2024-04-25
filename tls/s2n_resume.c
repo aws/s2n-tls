@@ -612,6 +612,9 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
 
 S2N_RESULT s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config, bool *out)
 {
+    RESULT_ENSURE_REF(config);
+    RESULT_ENSURE_REF(out);
+
     uint64_t now = 0;
     struct s2n_ticket_key *ticket_key = NULL;
     RESULT_GUARD(s2n_config_wall_clock(config, &now));
@@ -869,7 +872,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD(s2n_stuffer_skip_write(&state_stuffer, state_blob_size));
     POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &from->blob, &state_stuffer));
 
-    if (s2n_connection_get_protocol_version(conn) == S2N_TLS13) {
+    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
         return S2N_SUCCESS;
     }
 
@@ -880,11 +883,11 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
     bool is_encrypt_decrypt_key_available = false;
     POSIX_GUARD_RESULT(s2n_config_is_encrypt_decrypt_key_available(conn->config, &is_encrypt_decrypt_key_available));
-    if (is_encrypt_decrypt_key_available
-            && now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
-        conn->session_ticket_status = S2N_NEW_TICKET;
-        POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
-        return S2N_SUCCESS;
+    if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
+        if (is_encrypt_decrypt_key_available) {
+            conn->session_ticket_status = S2N_NEW_TICKET;
+            POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
+        }
     }
     return S2N_SUCCESS;
 }

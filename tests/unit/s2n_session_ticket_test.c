@@ -1351,19 +1351,23 @@ int main(int argc, char **argv)
     /* Test: TLS1.3 resumption is successful when key used to encrypt ticket is in decrypt-only state */
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_connection *client_connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_connection);
 
         /* Set client ST and session state */
         EXPECT_SUCCESS(s2n_connection_set_session(client_connection, tls13_serialized_session_state.blob.data,
                 s2n_stuffer_data_available(&tls13_serialized_session_state)));
 
         DEFER_CLEANUP(struct s2n_config *client_configuration = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
         EXPECT_SUCCESS(s2n_connection_set_config(client_connection, client_configuration));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_configuration, "default_tls13"));
 
         DEFER_CLEANUP(struct s2n_connection *server_connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_connection);
 
         DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "default_tls13"));
 
