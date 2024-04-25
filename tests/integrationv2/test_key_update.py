@@ -1,4 +1,6 @@
 import copy
+import random
+import string
 import pytest
 
 from configuration import available_ports, TLS13_CIPHERS
@@ -7,6 +9,8 @@ from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
+SERVER_DATA = "Some random data from the server:".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
+CLIENT_DATA = "Some random data from the client:".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(10))
 
 def test_nothing():
     """
@@ -28,8 +32,6 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
     port = next(available_ports)
 
     update_requested = b"K"
-    server_data = "Some data from the server!"
-    client_data = "Some data from the client!"
     starting_marker = "Verify return code"
     key_update_marker = "KEYUPDATE"
 
@@ -40,7 +42,7 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
         host=host,
         port=port,
         cipher=cipher,
-        data_to_send=[update_requested, client_data.encode()],
+        data_to_send=[update_requested, CLIENT_DATA.encode()],
         insecure=True,
         protocol=protocol,
     )
@@ -50,27 +52,27 @@ def test_s2n_server_key_update(managed_process, cipher, provider, other_provider
     server_options.mode = Provider.ServerMode
     server_options.key = "../pems/ecdsa_p384_pkcs1_key.pem"
     server_options.cert = "../pems/ecdsa_p384_pkcs1_cert.pem"
-    server_options.data_to_send = [server_data.encode()]
+    server_options.data_to_send = [SERVER_DATA.encode()]
 
     server = managed_process(
-        S2N, server_options, send_marker=client_data, timeout=30
+        S2N, server_options, send_marker=CLIENT_DATA, timeout=30
     )
     client = managed_process(
         provider,
         client_options,
         send_marker=send_marker_list,
-        close_marker=server_data,
+        close_marker=SERVER_DATA,
         timeout=30,
     )
 
     for results in client.get_results():
         results.assert_success()
         assert key_update_marker in str(results.stderr)
-        assert server_data.encode() in results.stdout
+        assert SERVER_DATA.encode() in results.stdout
 
     for results in server.get_results():
         results.assert_success()
-        assert client_data.encode() in results.stdout
+        assert CLIENT_DATA.encode() in results.stdout
 
 
 @pytest.mark.flaky(reruns=5)
@@ -84,8 +86,6 @@ def test_s2n_client_key_update(managed_process, cipher, provider, other_provider
     port = next(available_ports)
 
     update_requested = b"K\n"
-    server_data = "Some data from the server!"
-    client_data = "Some data from the client!"
     # Last statement printed out by Openssl after handshake
     starting_marker = "Secure Renegotiation IS supported"
     key_update_marker = "TLSv1.3 write server key update"
@@ -98,7 +98,7 @@ def test_s2n_client_key_update(managed_process, cipher, provider, other_provider
         host=host,
         port=port,
         cipher=cipher,
-        data_to_send=[client_data.encode()],
+        data_to_send=[CLIENT_DATA.encode()],
         insecure=True,
         protocol=protocol,
     )
@@ -108,28 +108,28 @@ def test_s2n_client_key_update(managed_process, cipher, provider, other_provider
     server_options.mode = Provider.ServerMode
     server_options.key = "../pems/ecdsa_p384_pkcs1_key.pem"
     server_options.cert = "../pems/ecdsa_p384_pkcs1_cert.pem"
-    server_options.data_to_send = [update_requested, server_data.encode()]
+    server_options.data_to_send = [update_requested, SERVER_DATA.encode()]
 
     server = managed_process(
         provider,
         server_options,
         send_marker=send_marker_list,
-        close_marker=client_data,
+        close_marker=CLIENT_DATA,
         timeout=30,
     )
     client = managed_process(
         S2N,
         client_options,
-        send_marker=server_data,
-        close_marker=server_data,
+        send_marker=SERVER_DATA,
+        close_marker=SERVER_DATA,
         timeout=30,
     )
 
     for results in client.get_results():
         results.assert_success()
-        assert server_data.encode() in results.stdout
+        assert SERVER_DATA.encode() in results.stdout
 
     for results in server.get_results():
         results.assert_success()
         assert read_key_update_marker in results.stderr
-        assert client_data.encode() in results.stdout
+        assert CLIENT_DATA.encode() in results.stdout
