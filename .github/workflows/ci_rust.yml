@@ -31,6 +31,13 @@ jobs:
           rustup toolchain install stable
           rustup override set stable
 
+      # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
+      # go required to build aws-lc-rs in FIPS mode
+      - name: Install go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.18'
+
       - uses: camshaft/rust-cache@v1
 
       - name: Generate
@@ -163,21 +170,30 @@ jobs:
           rustup toolchain install stable
           rustup override set stable
 
+      # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
+      # go required to build aws-lc-rs in FIPS mode
+      - name: Install go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.18'
+
       - uses: camshaft/rust-cache@v1
 
       - name: Generate
         run: ./${{env.ROOT_PATH}}/generate.sh
 
       - name: Test fips
+        working-directory: ${{env.ROOT_PATH}}
         run: |
           cargo test --features fips
 
       # Explicitly test without the `fips` feature flag.
       #
       # The `fips` feature flag results in building s2n-tls with `aws-lc-fips-sys`
-      # instead of `aws-lc-sys`. Since other tasks use `--all-features` for testing,
-      # we don't currently test building s2n-tls with `aws-lc-sys` (non-fips).
+      # instead of `aws-lc-sys`. Since other tasks use `--all-features` and automatically
+      # enable `fips`, testing with `aws-lc-sys` (non-fips) is missing without this step.
       - name: Test non-fips
+        working-directory: ${{env.ROOT_PATH}}
         run: |
           cargo test
 
