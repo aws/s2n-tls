@@ -49,7 +49,7 @@ const struct s2n_security_policy security_policy_20240502 = {
 /* TLS1.3 default as of 05/24 */
 const struct s2n_security_policy security_policy_20240503 = {
     .minimum_protocol_version = S2N_TLS12,
-    .cipher_preferences = &cipher_preferences_20230317,
+    .cipher_preferences = &cipher_preferences_20231214,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20240501,
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
