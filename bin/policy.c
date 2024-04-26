@@ -22,6 +22,8 @@
 
 #define BOOL_STR(b) ((b) ? "yes" : "no")
 
+extern const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT];
+
 const char *version_strs[] = {
     [S2N_SSLv2] = "SSLv2",
     [S2N_SSLv3] = "SSLv3",
@@ -58,8 +60,9 @@ int main(int argc, char *const *argv)
     printf("min version: %s\n", version_str ? version_str : "None");
 
     printf("rules:\n");
-    printf("- forward secret: %s\n", BOOL_STR(policy->rules[S2N_PERFECT_FORWARD_SECRECY]));
-    printf("- supports fips: %s\n", BOOL_STR(policy->rules[S2N_FIPS_140_3]));
+    for (size_t i = 0; i < S2N_SECURITY_RULES_COUNT; i++) {
+        printf("- %s: %s\n", security_rule_definitions[i].name, BOOL_STR(policy->rules[i]));
+    }
 
     printf("cipher suites:\n");
     if (policy->cipher_preferences->allow_chacha20_boosting) {

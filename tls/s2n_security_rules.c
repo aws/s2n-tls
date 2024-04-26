@@ -77,7 +77,7 @@ static S2N_RESULT s2n_security_rule_all_versions(uint8_t version, bool *valid)
     return S2N_RESULT_OK;
 }
 
-const struct s2n_security_rule security_rule_definitions[] = {
+const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT] = {
     [S2N_PERFECT_FORWARD_SECRECY] = {
             .name = "Perfect Forward Secrecy",
             .validate_cipher_suite = s2n_security_rule_validate_forward_secret,
