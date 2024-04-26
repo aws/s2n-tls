@@ -61,7 +61,7 @@ static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2
     }
 
     bool key_available = false;
-    POSIX_GUARD_RESULT(s2n_config_is_encrypt_decrypt_key_available(conn->config, &key_available));
+    POSIX_GUARD_RESULT(s2n_config_is_encrypt_key_available(conn->config, &key_available));
     if (s2n_stuffer_data_available(extension) == S2N_TLS12_TICKET_SIZE_IN_BYTES) {
         conn->session_ticket_status = S2N_DECRYPT_TICKET;
         POSIX_GUARD(s2n_stuffer_copy(extension, &conn->client_ticket_to_decrypt, S2N_TLS12_TICKET_SIZE_IN_BYTES));

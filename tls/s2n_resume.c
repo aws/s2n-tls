@@ -610,7 +610,7 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
     }
 }
 
-S2N_RESULT s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config, bool *key_exists_flag)
+S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config, bool *key_exists_flag)
 {
     RESULT_ENSURE_REF(config);
     RESULT_ENSURE_REF(key_exists_flag);
@@ -883,7 +883,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
     if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
         bool key_available = false;
-        POSIX_GUARD_RESULT(s2n_config_is_encrypt_decrypt_key_available(conn->config, &key_available));
+        POSIX_GUARD_RESULT(s2n_config_is_encrypt_key_available(conn->config, &key_available));
         if (key_available) {
             conn->session_ticket_status = S2N_NEW_TICKET;
             POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
