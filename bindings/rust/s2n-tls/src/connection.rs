@@ -683,7 +683,7 @@ impl Connection {
     pub fn session_ticket_length(&mut self) -> Result<usize, Error> {
         let len =
             unsafe { s2n_connection_get_session_length(self.connection.as_ptr()).into_result()? };
-        Ok(len.try_into().expect("into_result cannot be < 0"))
+        Ok(len.try_into().unwrap())
     }
 
     /// Serializes the session state from the connection into `output` and returns
@@ -703,7 +703,7 @@ impl Connection {
             s2n_connection_get_session(self.connection.as_ptr(), output.as_mut_ptr(), output.len())
                 .into_result()?
         };
-        Ok(written.try_into().expect("into_result < 0"))
+        Ok(written.try_into().unwrap())
     }
 
     /// Sets a Waker on the connection context or clears it if `None` is passed.

@@ -50,12 +50,15 @@ mod tests {
     const KEY: [u8; 16] = [0; 16];
     const KEYNAME: [u8; 3] = [1, 3, 4];
 
-    fn validate_session_ticket(c: &mut Connection) -> Result<(), Box<dyn Error>> {
-        assert!(c.session_ticket_length()? > 0);
-        let mut session = vec![0; c.session_ticket_length()?];
+    fn validate_session_ticket(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
+        assert!(conn.session_ticket_length()? > 0);
+        let mut session = vec![0; conn.session_ticket_length()?];
         //load the ticket and make sure session is no longer empty
-        assert_eq!(c.session_ticket(&mut session)?, c.session_ticket_length()?);
-        assert_ne!(session, vec![0; c.session_ticket_length()?]);
+        assert_eq!(
+            conn.session_ticket(&mut session)?,
+            conn.session_ticket_length()?
+        );
+        assert_ne!(session, vec![0; conn.session_ticket_length()?]);
         Ok(())
     }
 
@@ -188,8 +191,7 @@ mod tests {
         // Do a recv call on the client side to read a session ticket. Poll function
         // returns pending since no application data was read, however it is enough
         // to collect the session ticket.
-        let mut recv_buffer: [u8; 10] = [0; 10];
-        assert!(pair.poll_recv(Mode::Client, &mut recv_buffer).is_pending());
+        assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
 
         let client = pair.client.0.connection_mut();
         // Check connection was full handshake
@@ -221,8 +223,7 @@ mod tests {
         // Do a recv call on the client side to read a session ticket. Poll function
         // returns pending since no application data was read, however it is enough
         // to collect the session ticket.
-        let mut recv_buffer: [u8; 10] = [0; 10];
-        assert!(pair.poll_recv(Mode::Client, &mut recv_buffer).is_pending());
+        assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
 
         let client = pair.client.0.connection_mut();
         // Check new connection was resumed
