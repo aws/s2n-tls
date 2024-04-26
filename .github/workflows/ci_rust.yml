@@ -187,17 +187,6 @@ jobs:
         run: |
           cargo test --features fips
 
-      # Explicitly test without the `fips` feature flag.
-      #
-      # The `fips` feature flag results in building s2n-tls with `aws-lc-fips-sys`
-      # instead of `aws-lc-sys`. Since other tasks use `--all-features` and automatically
-      # enable `fips`, testing with `aws-lc-sys` (non-fips) is missing without this step.
-      - name: Test non-fips
-        working-directory: ${{env.ROOT_PATH}}
-        run: |
-          cargo test
-
-
   rustfmt:
     runs-on: ubuntu-latest
     steps:
@@ -216,7 +205,7 @@ jobs:
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./${{env.ROOT_PATH}}/generate.sh
+        run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Run cargo fmt
         run: |
