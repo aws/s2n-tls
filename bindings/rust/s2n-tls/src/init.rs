@@ -51,9 +51,9 @@ pub fn init() {
 /// FIPS requirements. Applications desiring FIPS compliance should use this API to ensure that
 /// s2n-tls has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
 pub fn fips_mode() -> Result<FipsMode, Error> {
-    let fips_mode = s2n_fips_mode::FIPS_MODE_DISABLED;
+    let mut fips_mode = s2n_fips_mode::FIPS_MODE_DISABLED;
     unsafe {
-        s2n_get_fips_mode(fips_mode as _).into_result()?;
+        s2n_get_fips_mode(&mut fips_mode as *mut _).into_result()?;
     }
     fips_mode.try_into()
 }
