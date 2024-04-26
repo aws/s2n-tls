@@ -1371,7 +1371,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "default_tls13"));
 
-        /* Add the key that encrypted the session ticket so that the server will be able to decrypt the ticket successfully. */
+        /* Add the key that encrypted the session ticket so that the server will be able to decrypt 
+         * the ticket successfully. 
+         */
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1,
                 s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
@@ -1391,6 +1393,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_connection, server_connection, &io_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_connection, client_connection));
+
+        /* Verify that TLS1.3 was negotiated */
+        EXPECT_EQUAL(client_connection->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server_connection->actual_protocol_version, S2N_TLS13);
 
         /* Verify that the server did an abbreviated handshake using ST */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_connection));
