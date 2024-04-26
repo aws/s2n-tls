@@ -84,7 +84,7 @@ jobs:
       - name: bench tests
         working-directory: ${{env.ROOT_PATH}}/bench
         run: cargo test
-  
+
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
@@ -95,7 +95,7 @@ jobs:
         run: |
           rustup toolchain install stable
           rustup override set stable
-      
+
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
@@ -149,6 +149,38 @@ jobs:
       - name: Tests
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --all-features
+
+  fips:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ./${{env.ROOT_PATH}}/generate.sh
+
+      - name: Test fips
+        run: |
+          cargo test --features fips
+
+      # Explicitly test without the `fips` feature flag.
+      #
+      # The `fips` feature flag results in building s2n-tls with `aws-lc-fips-sys`
+      # instead of `aws-lc-sys`. Since other tasks use `--all-features` for testing,
+      # we don't currently test building s2n-tls with `aws-lc-sys` (non-fips).
+      - name: Test non-fips
+        run: |
+          cargo test
+
 
   rustfmt:
     runs-on: ubuntu-latest
