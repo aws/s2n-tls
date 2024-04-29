@@ -3781,8 +3781,6 @@ S2N_API int s2n_connection_deserialize(struct s2n_connection *conn, uint8_t *buf
  * store exceed that limit.
  *
  * @param config A pointer to the s2n_config object.
- * @param count The number of certificate authorities loaded from the trust store.
- * Can be used for logging or to sanity check the trust store configuration.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
 S2N_API int s2n_config_set_cert_authorities_from_trust_store(struct s2n_config *config);
