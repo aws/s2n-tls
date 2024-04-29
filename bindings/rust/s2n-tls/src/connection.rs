@@ -679,6 +679,33 @@ impl Connection {
         Ok(self)
     }
 
+    /// Retrieves the size of the session ticket.
+    pub fn session_ticket_length(&self) -> Result<usize, Error> {
+        let len =
+            unsafe { s2n_connection_get_session_length(self.connection.as_ptr()).into_result()? };
+        Ok(len.try_into().unwrap())
+    }
+
+    /// Serializes the session state from the connection into `output` and returns
+    /// the length of the session ticket.
+    ///
+    /// If the buffer does not have the size for the session_ticket,
+    /// `Error::INVALID_INPUT` is returned.
+    ///
+    /// Note: This function is not recommended for > TLS1.2 because in TLS1.3
+    /// servers can send multiple session tickets and this will return only
+    /// the most recently received ticket.
+    pub fn session_ticket(&self, output: &mut [u8]) -> Result<usize, Error> {
+        if output.len() < self.session_ticket_length()? {
+            return Err(Error::INVALID_INPUT);
+        }
+        let written = unsafe {
+            s2n_connection_get_session(self.connection.as_ptr(), output.as_mut_ptr(), output.len())
+                .into_result()?
+        };
+        Ok(written.try_into().unwrap())
+    }
+
     /// Sets a Waker on the connection context or clears it if `None` is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();
