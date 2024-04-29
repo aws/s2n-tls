@@ -36,14 +36,14 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
      * prefer over this one but would require 2-RTT's). */
     const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
     for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
-          const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
-          PTR_ENSURE_REF(client_default);
-          PTR_ENSURE_REF(server_group);
-          if (s2n_kem_group_is_available(client_default) && s2n_kem_group_is_available(server_group)
-                  && client_default->iana_id == server_group->iana_id
-                  && s2n_kem_group_is_available(client_default) == s2n_kem_group_is_available(server_group)) {
-              return client_default;
-          }
+        const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
+        PTR_ENSURE_REF(client_default);
+        PTR_ENSURE_REF(server_group);
+        if (s2n_kem_group_is_available(client_default) && s2n_kem_group_is_available(server_group)
+                && client_default->iana_id == server_group->iana_id
+                && s2n_kem_group_is_available(client_default) == s2n_kem_group_is_available(server_group)) {
+            return client_default;
+        }
     }
 
     /* Otherwise, if the client's default isn't supported, and a 2-RTT PQ handshake is required, the server will choose
@@ -65,6 +65,44 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
     return NULL;
 }
 
+const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const struct s2n_security_policy *client_sec_policy,
+        const struct s2n_security_policy *server_sec_policy)
+{
+    PTR_ENSURE_REF(client_sec_policy);
+    PTR_ENSURE_REF(server_sec_policy);
+
+    /* Client will offer their highest priority ECDHE KeyShare in their ClientHello. This KeyShare will be most preferred
+     * since it can be negotiated in 1-RTT (even if there are other mutually supported ECDHE KeyShares that the server would
+     * prefer over this one but would require 2-RTT's). */
+    const struct s2n_ecc_named_curve *client_default = client_sec_policy->ecc_preferences->ecc_curves[0];
+    for (int i = 0; i < server_sec_policy->ecc_preferences->count; i++) {
+        const struct s2n_ecc_named_curve *server_curve = server_sec_policy->ecc_preferences->ecc_curves[i];
+
+        PTR_ENSURE_REF(client_default);
+        PTR_ENSURE_REF(server_curve);
+
+        if (server_curve->iana_id == client_default->iana_id) {
+            return client_default;
+        }
+    }
+
+    /* Otherwise, if the client's default isn't supported, and a 2-RTT handshake is required, the server will choose
+     * whichever mutually supported PQ KeyShare that is highest on the server's preference list. */
+    for (int i = 0; i < server_sec_policy->ecc_preferences->count; i++) {
+        const struct s2n_ecc_named_curve *server_curve = server_sec_policy->ecc_preferences->ecc_curves[i];
+
+        for (int j = 0; j < client_sec_policy->ecc_preferences->count; j++) {
+            const struct s2n_ecc_named_curve *client_curve = client_sec_policy->ecc_preferences->ecc_curves[j];
+            PTR_ENSURE_REF(client_curve);
+            PTR_ENSURE_REF(server_curve);
+            if (client_curve->iana_id == server_curve->iana_id) {
+                return client_curve;
+            }
+        }
+    }
+    return NULL;
+}
+
 int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_policy,
         const struct s2n_security_policy *server_sec_policy, const struct s2n_kem_group *expected_kem_group,
         const struct s2n_ecc_named_curve *expected_curve, bool hrr_expected, bool len_prefix_expected)
@@ -73,9 +111,9 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
 
     if (expected_kem_group != NULL) {
-      const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_sec_policy->kem_preferences, server_sec_policy->kem_preferences);
-      POSIX_ENSURE_REF(predicted_kem_group);
-      POSIX_ENSURE_EQ(expected_kem_group->iana_id, predicted_kem_group->iana_id);
+        const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_sec_policy->kem_preferences, server_sec_policy->kem_preferences);
+        POSIX_ENSURE_REF(predicted_kem_group);
+        POSIX_ENSURE_EQ(expected_kem_group->iana_id, predicted_kem_group->iana_id);
     }
 
     /* Set up connections */
@@ -364,10 +402,10 @@ int main()
         .ecc_preferences = security_policy_test_tls13_retry.ecc_preferences,
     };
 
-    const struct s2n_ecc_named_curve *expected_curve = &s2n_ecc_curve_x25519;
+    const struct s2n_ecc_named_curve *default_curve = &s2n_ecc_curve_x25519;
 
     if (!s2n_is_evp_apis_supported()) {
-        expected_curve = &s2n_ecc_curve_secp256r1;
+        default_curve = &s2n_ecc_curve_secp256r1;
     }
 
     struct pq_handshake_test_vector {
@@ -388,7 +426,7 @@ int main()
                 .server_policy = &security_policy_pq_tls_1_0_2021_05_24,
                 .expected_kem_group = &s2n_x25519_kyber_512_r3,
                 .expected_curve = NULL,
-                .hrr_expected = true,
+                .hrr_expected = s2n_pq_is_enabled(),
                 .len_prefix_expected = false,
         },
         /* Server and Client both support PQ and TLS 1.3 */
@@ -555,7 +593,7 @@ int main()
                 .client_policy = &security_policy_pq_tls_1_0_2020_12,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
         },
@@ -566,7 +604,7 @@ int main()
                 .client_policy = &ecc_retry_policy,
                 .server_policy = &security_policy_test_all_tls13,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
         },
@@ -577,7 +615,7 @@ int main()
                 .client_policy = &security_policy_test_all_tls13,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = false,
                 .len_prefix_expected = true,
         },
@@ -588,7 +626,7 @@ int main()
                 .client_policy = &security_policy_test_tls13_retry,
                 .server_policy = &security_policy_pq_tls_1_0_2020_12,
                 .expected_kem_group = NULL,
-                .expected_curve = expected_curve,
+                .expected_curve = default_curve,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
         },
@@ -609,11 +647,29 @@ int main()
              * curves, so if the server policy doesn't contain x25519, modify
              * that expectation to a NIST curve.
              */
-            if (!s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, expected_curve->iana_id)) {
+
+            const struct s2n_ecc_named_curve *client_default = client_policy->ecc_preferences->ecc_curves[0];
+            const struct s2n_ecc_named_curve *predicted_curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
+
+            /* If either policy doesn't support the default curve, fall back to p256 as it should be in common with every ECC preference list. */
+            if (!s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, default_curve->iana_id)
+                    || !s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, default_curve->iana_id)) {
+                EXPECT_TRUE(s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
+                EXPECT_TRUE(s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
                 curve = &s2n_ecc_curve_secp256r1;
-            } else {
-                curve = expected_curve;
             }
+
+            /* The client's preferred curve will be a higher priority than the default if both sides support TLS 1.3 since it can be chosen in 1-RTT. */
+            if (s2n_security_policy_supports_tls13(client_policy) && s2n_security_policy_supports_tls13(server_policy)
+                    && s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, client_default->iana_id)) {
+                curve = client_default;
+            }
+
+            EXPECT_EQUAL(curve->iana_id, predicted_curve->iana_id);
+        }
+
+        if (!s2n_kem_group_is_available(kem_group)) {
+            kem_group = NULL;
         }
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));

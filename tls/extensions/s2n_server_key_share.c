@@ -377,7 +377,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
      * support PQ, but the client sent only EC key shares, then we will negotiate ECHDE. */
 
     /* Option 1: Select the best mutually supported PQ Hybrid Group that can be negotiated in 1-RTT */
-    if (client_kem_group) {
+    if (client_kem_group != NULL) {
         POSIX_ENSURE_REF(conn->kex_params.client_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_REF(conn->kex_params.client_kem_group_params.kem_params.kem);
 
@@ -388,8 +388,8 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 2: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select it */
-    if (client_kem_group == NULL && server_kem_group != NULL) {
+    /* Option 2: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select it.*/
+    if (server_kem_group != NULL) {
         /* Null out any available ECC curves so that they won't be sent in the ClientHelloRetry */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
         POSIX_GUARD(s2n_set_hello_retry_required(conn));
