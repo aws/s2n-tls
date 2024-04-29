@@ -680,7 +680,7 @@ impl Connection {
     }
 
     /// Retrieves the size of the session ticket.
-    pub fn session_ticket_length(&mut self) -> Result<usize, Error> {
+    pub fn session_ticket_length(&self) -> Result<usize, Error> {
         let len =
             unsafe { s2n_connection_get_session_length(self.connection.as_ptr()).into_result()? };
         Ok(len.try_into().unwrap())
@@ -695,7 +695,7 @@ impl Connection {
     /// Note: This function is not recommended for > TLS1.2 because in TLS1.3
     /// servers can send multiple session tickets and this will return only
     /// the most recently received ticket.
-    pub fn session_ticket(&mut self, output: &mut [u8]) -> Result<usize, Error> {
+    pub fn session_ticket(&self, output: &mut [u8]) -> Result<usize, Error> {
         if output.len() < self.session_ticket_length()? {
             return Err(Error::INVALID_INPUT);
         }

@@ -50,7 +50,7 @@ mod tests {
     const KEY: [u8; 16] = [0; 16];
     const KEYNAME: [u8; 3] = [1, 3, 4];
 
-    fn validate_session_ticket(conn: &mut Connection) -> Result<(), Box<dyn Error>> {
+    fn validate_session_ticket(conn: &Connection) -> Result<(), Box<dyn Error>> {
         assert!(conn.session_ticket_length()? > 0);
         let mut session = vec![0; conn.session_ticket_length()?];
         //load the ticket and make sure session is no longer empty
@@ -104,9 +104,9 @@ mod tests {
         let server = Harness::new(server);
         let client = Harness::new(client);
         let pair = Pair::new(server, client);
-        let mut pair = poll_tls_pair(pair);
+        let pair = poll_tls_pair(pair);
 
-        let client = pair.client.0.connection_mut();
+        let client = pair.client.0.connection();
 
         // Check connection was full handshake and a session ticket was included
         assert_eq!(
@@ -132,10 +132,10 @@ mod tests {
         let server = Harness::new(server);
         let client = Harness::new(client);
         let pair = Pair::new(server, client);
-        let mut pair = poll_tls_pair(pair);
+        let pair = poll_tls_pair(pair);
 
-        let client = pair.client.0.connection_mut();
-        let server = pair.server.0.connection_mut();
+        let client = pair.client.0.connection();
+        let server = pair.server.0.connection();
 
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED");
@@ -193,7 +193,7 @@ mod tests {
         // to collect the session ticket.
         assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
 
-        let client = pair.client.0.connection_mut();
+        let client = pair.client.0.connection();
         // Check connection was full handshake
         assert_eq!(
             client.handshake_type()?,
@@ -225,7 +225,7 @@ mod tests {
         // to collect the session ticket.
         assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
 
-        let client = pair.client.0.connection_mut();
+        let client = pair.client.0.connection();
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED|MIDDLEBOX_COMPAT");
         // validate that a ticket is available
