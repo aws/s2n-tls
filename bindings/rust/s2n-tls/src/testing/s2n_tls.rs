@@ -963,7 +963,7 @@ mod tests {
     }
 
     #[test]
-    fn test_fips_mod() -> Result<(), Error> {
+    fn test_fips_mode() -> Result<(), Error> {
         use crate::{enums::FipsMode, init};
 
         init::init();
