@@ -89,6 +89,15 @@ unsafe impl Send for Connection {}
 unsafe impl Sync for Connection {}
 
 impl Connection {
+    /// # Warning
+    ///
+    /// The newly created connection uses the default security policy.
+    /// Consider changing this depending on your security and compatibility requirements
+    /// by calling [`Connection::set_security_policy`].
+    /// Alternatively, you can use [`crate::config::Builder`], [`crate::config::Builder::set_security_policy`],
+    /// and [`Connection::set_config`] to set the policy on the Config instead of on the Connection.
+    /// See the s2n-tls usage guide:
+    /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
 
@@ -670,6 +679,33 @@ impl Connection {
         Ok(self)
     }
 
+    /// Retrieves the size of the session ticket.
+    pub fn session_ticket_length(&self) -> Result<usize, Error> {
+        let len =
+            unsafe { s2n_connection_get_session_length(self.connection.as_ptr()).into_result()? };
+        Ok(len.try_into().unwrap())
+    }
+
+    /// Serializes the session state from the connection into `output` and returns
+    /// the length of the session ticket.
+    ///
+    /// If the buffer does not have the size for the session_ticket,
+    /// `Error::INVALID_INPUT` is returned.
+    ///
+    /// Note: This function is not recommended for > TLS1.2 because in TLS1.3
+    /// servers can send multiple session tickets and this will return only
+    /// the most recently received ticket.
+    pub fn session_ticket(&self, output: &mut [u8]) -> Result<usize, Error> {
+        if output.len() < self.session_ticket_length()? {
+            return Err(Error::INVALID_INPUT);
+        }
+        let written = unsafe {
+            s2n_connection_get_session(self.connection.as_ptr(), output.as_mut_ptr(), output.len())
+                .into_result()?
+        };
+        Ok(written.try_into().unwrap())
+    }
+
     /// Sets a Waker on the connection context or clears it if `None` is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();
@@ -777,28 +813,26 @@ impl Connection {
     //
     /// Returns a reference to the ClientHello associated with the connection.
     /// ```compile_fail
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::ClientHello;
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-    /// let mut hash = Vec::new();
     /// drop(conn);
-    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// client_hello.raw_message();
     /// ```
     ///
     /// The compilation could be failing for a variety of reasons, so make sure
     /// that the test case is actually good.
     /// ```no_run
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::ClientHello;
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-    /// let mut hash = Vec::new();
-    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// client_hello.raw_message();
     /// drop(conn);
     /// ```
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {

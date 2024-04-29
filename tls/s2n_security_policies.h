@@ -114,8 +114,8 @@ extern const struct s2n_security_policy security_policy_20190801;
 extern const struct s2n_security_policy security_policy_20190802;
 extern const struct s2n_security_policy security_policy_20230317;
 extern const struct s2n_security_policy security_policy_20240331;
-extern const struct s2n_security_policy security_policy_default_tls13;
-extern const struct s2n_security_policy security_policy_default_fips;
+extern const struct s2n_security_policy security_policy_20240417;
+extern const struct s2n_security_policy security_policy_20240416;
 extern const struct s2n_security_policy security_policy_rfc9151;
 extern const struct s2n_security_policy security_policy_test_all;
 

@@ -19,23 +19,6 @@ use std::fmt;
 // the connection struct. This is best represented as a reference tied to the
 // lifetime of the `Connection` struct.
 
-/// ```no_run
-/// use s2n_tls::client_hello::{ClientHello, FingerprintType};
-/// use s2n_tls::connection::Connection;
-/// use s2n_tls::enums::Mode;
-///
-/// let mut conn = Connection::new(Mode::Server);
-/// // handshake happens
-/// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-/// let mut hash = Vec::new();
-/// let string_size = client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash).unwrap();
-/// // hash has been resized so that it can store the fingerprint hash
-///
-/// let mut string = String::with_capacity(string_size as usize);
-/// // string will not be resized, and the method will fail with
-/// // ErrorType::UsageError if the string doesn't have enough capacity
-/// client_hello.fingerprint_string(FingerprintType::JA3, &mut string).unwrap();
-/// ```
 pub struct ClientHello(s2n_client_hello);
 
 impl ClientHello {
@@ -167,6 +150,24 @@ pub mod fingerprint {
         /// to construct a string of appropriate capacity to call
         /// `fingerprint_string`. `output` will be extended if necessary to store
         /// the full hash.
+        ///
+        /// ```no_run
+        /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+        /// use s2n_tls::connection::Connection;
+        /// use s2n_tls::enums::Mode;
+        ///
+        /// let mut conn = Connection::new(Mode::Server);
+        /// // handshake happens
+        /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
+        /// let mut hash = Vec::new();
+        /// let string_size = client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash).unwrap();
+        /// // hash has been resized so that it can store the fingerprint hash
+        ///
+        /// let mut string = String::with_capacity(string_size as usize);
+        /// // string will not be resized, and the method will fail with
+        /// // ErrorType::UsageError if the string doesn't have enough capacity
+        /// client_hello.fingerprint_string(FingerprintType::JA3, &mut string).unwrap();
+        /// ```
         pub fn fingerprint_hash(
             &self,
             hash: FingerprintType,
