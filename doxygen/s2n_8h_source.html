@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.12-e7ba5b3e</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.12-d6baf1f5</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -860,9 +860,31 @@ $(function() {
 <div class="line"><a id="l03742" name="l03742"></a><span class="lineno"> 3742</span> </div>
 <div class="line"><a id="l03764" name="l03764"></a><span class="lineno"><a class="line" href="s2n_8h.html#a79859a910905832157c08251d1a76888"> 3764</a></span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> <a class="code hl_function" href="s2n_8h.html#a79859a910905832157c08251d1a76888">s2n_connection_deserialize</a>(<span class="keyword">struct</span> s2n_connection *conn, uint8_t *buffer, uint32_t buffer_length);</div>
 <div class="line"><a id="l03765" name="l03765"></a><span class="lineno"> 3765</span> </div>
-<div class="line"><a id="l03766" name="l03766"></a><span class="lineno"> 3766</span><span class="preprocessor">#ifdef __cplusplus</span></div>
-<div class="line"><a id="l03767" name="l03767"></a><span class="lineno"> 3767</span>}</div>
-<div class="line"><a id="l03768" name="l03768"></a><span class="lineno"> 3768</span><span class="preprocessor">#endif</span></div>
+<div class="line"><a id="l03766" name="l03766"></a><span class="lineno"> 3766</span><span class="comment">/* Load all acceptable certificate authorities from the currently configured trust store.</span></div>
+<div class="line"><a id="l03767" name="l03767"></a><span class="lineno"> 3767</span><span class="comment"> *</span></div>
+<div class="line"><a id="l03768" name="l03768"></a><span class="lineno"> 3768</span><span class="comment"> * The loaded certificate authorities will be advertised during the handshake.</span></div>
+<div class="line"><a id="l03769" name="l03769"></a><span class="lineno"> 3769</span><span class="comment"> * This can help your peer select a certificate if they have multiple certificate</span></div>
+<div class="line"><a id="l03770" name="l03770"></a><span class="lineno"> 3770</span><span class="comment"> * chains available.</span></div>
+<div class="line"><a id="l03771" name="l03771"></a><span class="lineno"> 3771</span><span class="comment"> *</span></div>
+<div class="line"><a id="l03772" name="l03772"></a><span class="lineno"> 3772</span><span class="comment"> * For now, s2n-tls only supports advertising certificate authorities to support</span></div>
+<div class="line"><a id="l03773" name="l03773"></a><span class="lineno"> 3773</span><span class="comment"> * client auth, so only servers will send the list of certificate authorities.</span></div>
+<div class="line"><a id="l03774" name="l03774"></a><span class="lineno"> 3774</span><span class="comment"> *</span></div>
+<div class="line"><a id="l03775" name="l03775"></a><span class="lineno"> 3775</span><span class="comment"> * To avoid configuration mistakes, certificate authorities cannot be loaded from</span></div>
+<div class="line"><a id="l03776" name="l03776"></a><span class="lineno"> 3776</span><span class="comment"> * a trust store that includes the default system certificates. That means that</span></div>
+<div class="line"><a id="l03777" name="l03777"></a><span class="lineno"> 3777</span><span class="comment"> * s2n_config_new_minimal or s2n_config_wipe_trust_store should be used.</span></div>
+<div class="line"><a id="l03778" name="l03778"></a><span class="lineno"> 3778</span><span class="comment"> *</span></div>
+<div class="line"><a id="l03779" name="l03779"></a><span class="lineno"> 3779</span><span class="comment"> * s2n-tls currently limits the total certificate authorities size to 10k bytes.</span></div>
+<div class="line"><a id="l03780" name="l03780"></a><span class="lineno"> 3780</span><span class="comment"> * This method will fail if the certificate authorities retrieved from the trust</span></div>
+<div class="line"><a id="l03781" name="l03781"></a><span class="lineno"> 3781</span><span class="comment"> * store exceed that limit.</span></div>
+<div class="line"><a id="l03782" name="l03782"></a><span class="lineno"> 3782</span><span class="comment"> *</span></div>
+<div class="line"><a id="l03783" name="l03783"></a><span class="lineno"> 3783</span><span class="comment"> * @param config A pointer to the s2n_config object.</span></div>
+<div class="line"><a id="l03784" name="l03784"></a><span class="lineno"> 3784</span><span class="comment"> * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.</span></div>
+<div class="line"><a id="l03785" name="l03785"></a><span class="lineno"> 3785</span><span class="comment"> */</span></div>
+<div class="line"><a id="l03786" name="l03786"></a><span class="lineno"> 3786</span><a class="code hl_define" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> <span class="keywordtype">int</span> s2n_config_set_cert_authorities_from_trust_store(<span class="keyword">struct</span> s2n_config *config);</div>
+<div class="line"><a id="l03787" name="l03787"></a><span class="lineno"> 3787</span> </div>
+<div class="line"><a id="l03788" name="l03788"></a><span class="lineno"> 3788</span><span class="preprocessor">#ifdef __cplusplus</span></div>
+<div class="line"><a id="l03789" name="l03789"></a><span class="lineno"> 3789</span>}</div>
+<div class="line"><a id="l03790" name="l03790"></a><span class="lineno"> 3790</span><span class="preprocessor">#endif</span></div>
 <div class="ttc" id="as2n_8h_html_a012950b0841dad53f4ce0b7bd9892757"><div class="ttname"><a href="s2n_8h.html#a012950b0841dad53f4ce0b7bd9892757">s2n_config_set_session_state_lifetime</a></div><div class="ttdeci">S2N_API int s2n_config_set_session_state_lifetime(struct s2n_config *config, uint64_t lifetime_in_secs)</div></div>
 <div class="ttc" id="as2n_8h_html_a01514c68f7b4d7926f6435e4beec8de0"><div class="ttname"><a href="s2n_8h.html#a01514c68f7b4d7926f6435e4beec8de0">s2n_connection_append_psk</a></div><div class="ttdeci">S2N_API int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk)</div></div>
 <div class="ttc" id="as2n_8h_html_a03486ad1c3bd4bfbea168e696c23b880"><div class="ttname"><a href="s2n_8h.html#a03486ad1c3bd4bfbea168e696c23b880">s2n_async_pkey_op_get_input</a></div><div class="ttdeci">S2N_API int s2n_async_pkey_op_get_input(struct s2n_async_pkey_op *op, uint8_t *data, uint32_t data_len)</div></div>
