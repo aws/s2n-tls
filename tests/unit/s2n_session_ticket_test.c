@@ -1418,7 +1418,7 @@ int main(int argc, char **argv)
     /* Test TLS 1.3 Server does not send a zero-length ticket in the NewSessionTicket handshake
      * if the ticket key was expired after SERVER_HELLO
      */
-    {
+    if (s2n_is_tls13_fully_supported()) {
         /* Initialize client and server configurations with TLS 1.2 */
         DEFER_CLEANUP(struct s2n_config *client_configuration = s2n_config_new(),
                 s2n_config_ptr_free);
