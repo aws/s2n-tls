@@ -36,4 +36,3 @@ checkers = "0.6"
 # cargo package / cargo publish, as those commands do not respect the version pin
 # in downstream dev-dependencies (in s2n-tls-sys, in this case)
 jobserver = "=0.1.26"
-cfg-if = "1"

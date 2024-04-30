@@ -962,20 +962,12 @@ mod tests {
         Ok(())
     }
 
+    #[cfg(feature = "fips")]
     #[test]
-    fn test_fips_mode() -> Result<(), Error> {
+    fn test_fips_mode() {
         use crate::{enums::FipsMode, init};
 
         init::init();
-
-        cfg_if::cfg_if! {
-            if #[cfg(feature = "fips")] {
-                assert_eq!(init::fips_mode().unwrap(), FipsMode::Enabled);
-            } else {
-                assert_eq!(init::fips_mode().unwrap(), FipsMode::Disabled);
-            }
-        }
-
-        Ok(())
+        assert_eq!(init::fips_mode().unwrap(), FipsMode::Enabled);
     }
 }
