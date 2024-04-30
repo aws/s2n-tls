@@ -82,8 +82,10 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     uint32_t lifetime_hint_in_secs =
             (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
 
-    /* When server changes it's mind mid handshake send lifetime hint and session ticket length as zero */
-    if (!conn->config->use_tickets) {
+    /* When server changes it's mind mid handshake, or when session key is expired, 
+     * send lifetime hint and session ticket length as zero 
+     */
+    if (!conn->config->use_tickets || !s2n_config_is_encrypt_decrypt_key_available(conn->config)) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
