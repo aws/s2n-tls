@@ -21,6 +21,17 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_mem.h"
 
+int nondet_int(void);
+
+int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
+{
+  if(size > 0)
+    __CPROVER_havoc_slice(str, size);
+  (void)*fmt;
+  (void)*(char **)ap;
+  return nondet_int();
+}
+
 void s2n_stuffer_printf_harness()
 {
     nondet_s2n_mem_init();
@@ -34,7 +45,10 @@ void s2n_stuffer_printf_harness()
     /* CBMC defines va_list as void** */
     size_t va_list_size;
     __CPROVER_assume(va_list_size % sizeof(void*) == 0);
+    __CPROVER_assume(va_list_size > 0);
     void** va_list_mem = malloc(va_list_size);
+    __CPROVER_assume(va_list_mem != NULL);
+    va_list_mem[va_list_size / sizeof(void*) - 1] = NULL;
 
     /* Store the stuffer to compare after the write */
     struct s2n_stuffer            old_stuffer = *stuffer;
