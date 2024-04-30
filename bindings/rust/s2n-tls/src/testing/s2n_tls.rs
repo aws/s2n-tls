@@ -965,9 +965,9 @@ mod tests {
     #[cfg(feature = "fips")]
     #[test]
     fn test_fips_mode() {
-        use crate::{enums::FipsMode, init};
+        use crate::init;
 
         init::init();
-        assert_eq!(init::fips_mode().unwrap(), FipsMode::Enabled);
+        assert!(init::fips_mode().unwrap().is_enabled());
     }
 }

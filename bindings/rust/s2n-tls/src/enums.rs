@@ -31,23 +31,26 @@ impl<T, E> From<Result<T, E>> for CallbackResult {
     }
 }
 
+#[non_exhaustive]
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum FipsMode {
     Disabled,
     Enabled,
 }
 
-impl TryFrom<s2n_fips_mode::Type> for FipsMode {
-    type Error = Error;
+impl FipsMode {
+    pub fn is_enabled(&self) -> bool {
+        matches!(self, FipsMode::Enabled)
+    }
+}
 
-    fn try_from(input: s2n_fips_mode::Type) -> Result<Self, Self::Error> {
-        let mode = match input {
+impl From<s2n_fips_mode::Type> for FipsMode {
+    fn from(input: s2n_fips_mode::Type) -> Self {
+        match input {
             s2n_fips_mode::FIPS_MODE_DISABLED => FipsMode::Disabled,
             s2n_fips_mode::FIPS_MODE_ENABLED => FipsMode::Enabled,
-            _ => return Err(Error::INVALID_INPUT),
-        };
-
-        Ok(mode)
+            _ => unreachable!(),
+        }
     }
 }
 
