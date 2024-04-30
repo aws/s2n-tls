@@ -1350,7 +1350,6 @@ int main(int argc, char **argv)
 
     /* Test: TLS1.3 resumption is successful when key used to encrypt ticket is in decrypt-only state */
     if (s2n_is_tls13_fully_supported()) {
-        /* Initialize client and server configurations with TLS 1.3*/
         DEFER_CLEANUP(struct s2n_config *client_configuration = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_configuration);
@@ -1384,34 +1383,34 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name2,
                 s2n_array_len(ticket_key_name2), ticket_key2, s2n_array_len(ticket_key2), key_intro_time));
 
-        /* Initialize client and server connections*/
-        DEFER_CLEANUP(struct s2n_connection *client_connection = s2n_connection_new(S2N_CLIENT),
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client_connection);
-        EXPECT_SUCCESS(s2n_connection_set_session(client_connection, tls13_serialized_session_state.blob.data,
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_session(client, tls13_serialized_session_state.blob.data,
                 s2n_stuffer_data_available(&tls13_serialized_session_state)));
-        EXPECT_SUCCESS(s2n_connection_set_config(client_connection, client_configuration));
-        DEFER_CLEANUP(struct s2n_connection *server_connection = s2n_connection_new(S2N_SERVER),
+        EXPECT_SUCCESS(s2n_connection_set_config(client, client_configuration));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server_connection);
-        EXPECT_SUCCESS(s2n_connection_set_config(server_connection, server_configuration));
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_configuration));
 
         /* Create nonblocking pipes */
-        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair input_output_pair = { 0 },
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
                 s2n_io_stuffer_pair_free);
-        EXPECT_OK(s2n_io_stuffer_pair_init(&input_output_pair));
-        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_connection, server_connection,
-                &input_output_pair));
+        EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
 
-        /* Expected to perform a resumption handshake. Otheriwise a full handshake will take place */
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_connection, client_connection));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
 
         /* Verify that TLS1.3 was negotiated */
-        EXPECT_EQUAL(client_connection->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server_connection->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
+        EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
 
-        /* Verify that the server did an abbreviated handshake using ST */
-        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server_connection));
+        /* Expect a resumption handshake by replacing expired key with a valid key. A full handshake 
+         * will take place instead if session ticket key is not re-assigned after expiring
+         */
+        EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server));
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));

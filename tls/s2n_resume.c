@@ -876,9 +876,7 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
         return S2N_SUCCESS;
     }
 
-    /* A new key is assigned for the ticket if the key is in decrypt-only state, 
-     * a key in encrypt-decrypt state is available, and TLS 1.2 is being used.
-     */
+    /* A new key is assigned for the ticket if the key used to encrypt current ticket is expired */
     uint64_t now = 0;
     POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
     if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
