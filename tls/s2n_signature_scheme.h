@@ -24,6 +24,7 @@
 
 struct s2n_signature_scheme {
     uint16_t iana_value;
+    const char *iana_name;
     s2n_hash_algorithm hash_alg;
     s2n_signature_algorithm sig_alg;
     uint8_t minimum_protocol_version;
