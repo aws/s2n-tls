@@ -1372,8 +1372,6 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
-        // EXPECT_SUCCESS(s2n_connection_set_session(client, serialized_session_state,
-        //         serialized_session_state_length));
         EXPECT_SUCCESS(s2n_connection_set_config(client, client_configuration));
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
@@ -1386,10 +1384,10 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
 
-        /* Negotiate until session ticket is encrypted with session ticket key */
+        /* Perform initial part of handshake to verify that a valid key exists */
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, CLIENT_FINISHED));
 
-        /* After session ticket is encrypted, expire current session ticket key */
+        /* Expire current session ticket key so that server no longer holds a valid key */
         uint64_t mock_delay = server_configuration->encrypt_decrypt_key_lifetime_in_nanos;
         EXPECT_SUCCESS(s2n_config_set_wall_clock(server_configuration, mock_nanoseconds_since_epoch,
                 &mock_delay));

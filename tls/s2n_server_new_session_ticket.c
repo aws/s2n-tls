@@ -85,9 +85,15 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     /* When server changes it's mind mid handshake, or if session key used to encrypt session ticket
      * is expired, send lifetime hint and session ticket length as zero 
      *
-     *= https://tools.ietf.org/rfc/rfc5077#3.3
+     *= https://tools.ietf.org/rfc/rfc5077#section-3.3
      *# This message MUST be sent if the server included
      *# a SessionTicket extension in the ServerHello.
+     *
+     *= https://tools.ietf.org/rfc/rfc5077#section-3.3
+     *# If the server determines that it does not want to include a
+     *# ticket after it has included the SessionTicket extension in the
+     *# ServerHello, then it sends a zero-length ticket in the
+     *# NewSessionTicket handshake message.
      **/
     if (!conn->config->use_tickets || s2n_config_is_encrypt_decrypt_key_available(conn->config) == 0) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
