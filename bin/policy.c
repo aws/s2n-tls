@@ -66,7 +66,7 @@ int main(int argc, char *const *argv)
 
     printf("cipher suites:\n");
     if (policy->cipher_preferences->allow_chacha20_boosting) {
-        printf("- chacha20 boosting enabled");
+        printf("- chacha20 boosting enabled\n");
     }
     for (size_t i = 0; i < policy->cipher_preferences->count; i++) {
         printf("- %s\n", policy->cipher_preferences->suites[i]->iana_name);
