@@ -35,6 +35,14 @@
         }                         \
     } while (0)
 
+#define ENSURE_EXIT(x, msg)       \
+    do {                          \
+        if (!(x)) {               \
+            print_s2n_error(msg); \
+            exit(1);              \
+        }                         \
+    } while (0)
+
 #define GUARD_RETURN(x, msg)      \
     do {                          \
         if ((x) < 0) {            \
@@ -74,6 +82,8 @@ struct conn_settings {
     int max_conns;
     const char *ca_dir;
     const char *ca_file;
+    const char *serialize_out;
+    const char *deserialize_in;
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
     size_t psk_list_len;
 };

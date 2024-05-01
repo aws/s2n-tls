@@ -131,7 +131,9 @@ static char default_private_key[] =
         "ggF9KQ0xWz7Km3GXv5+bwM5bcgt1A/s6sZCimXuj3Fle3RqOTF0="
         "-----END RSA PRIVATE KEY-----";
 
-#define OPT_BUFFERED_SEND 1000
+#define OPT_BUFFERED_SEND  1000
+#define OPT_SERIALIZE_OUT  1001
+#define OPT_DESERIALIZE_IN 1002
 
 void usage()
 {
@@ -185,6 +187,10 @@ void usage()
     fprintf(stderr, "    Location of key file used for encryption and decryption of session ticket.\n");
     fprintf(stderr, "  -T,--no-session-ticket\n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
+    fprintf(stderr, "  --serialize-out [file path]\n");
+    fprintf(stderr, "    Path to a file where a serialized connection can be stored.\n");
+    fprintf(stderr, "  --deserialize-in [file path]\n");
+    fprintf(stderr, "    Path to a file where a serialized connection lives. Will be used to skip the handshake and start sending encrypted data.\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  --non-blocking\n");
@@ -223,7 +229,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
     s2n_setup_server_connection(conn, fd, config, settings);
 
-    if (negotiate(conn, fd) != S2N_SUCCESS) {
+    if (!settings.deserialize_in && negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
             if (!s2n_connection_client_cert_used(conn)) {
                 print_s2n_error("Error: Mutual Auth was required, but not negotiated");
@@ -232,6 +238,16 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
 
         /* Error is printed in negotiate */
         S2N_ERROR_PRESERVE_ERRNO();
+    }
+
+    if (settings.serialize_out) {
+        uint32_t serialize_length = 0;
+        GUARD_EXIT(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
+        uint8_t *mem = malloc(serialize_length);
+        GUARD_EXIT_NULL(mem);
+        GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
+        GUARD_EXIT(write_array_to_file(settings.serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
+        free(mem);
     }
 
     GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
@@ -307,6 +323,8 @@ int main(int argc, char *const *argv)
         { "ca-file", required_argument, 0, 't' },
         { "insecure", no_argument, 0, 'i' },
         { "stk-file", required_argument, 0, 'a' },
+        { "serialize-out", required_argument, 0, OPT_SERIALIZE_OUT },
+        { "deserialize-in", required_argument, 0, OPT_DESERIALIZE_IN },
         { "no-session-ticket", no_argument, 0, 'T' },
         { "corked-io", no_argument, 0, 'C' },
         { "max-conns", optional_argument, 0, 'X' },
@@ -426,6 +444,11 @@ int main(int argc, char *const *argv)
                 send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
                 break;
             }
+            case OPT_SERIALIZE_OUT:
+                conn_settings.serialize_out = optarg;
+                break;
+            case OPT_DESERIALIZE_IN:
+                conn_settings.deserialize_in = optarg;
             case 'A':
                 alpn = optarg;
                 break;
@@ -614,6 +637,11 @@ int main(int argc, char *const *argv)
 
     if (npn) {
         GUARD_EXIT(s2n_config_set_npn(config, 1), "Error setting npn support");
+    }
+
+    if (conn_settings.serialize_out) {
+        GUARD_EXIT(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1),
+                "Error setting serialized version");
     }
 
     FILE *key_log_file = NULL;
