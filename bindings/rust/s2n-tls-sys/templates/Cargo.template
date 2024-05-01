@@ -27,6 +27,7 @@ default = []
 # preserve the cmake feature in case any consumers had it enabled before
 cmake = []
 quic = []
+fips = ["aws-lc-rs/fips"]
 pq = []
 internal = []
 stacktrace = []
