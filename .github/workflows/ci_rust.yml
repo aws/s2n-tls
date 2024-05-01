@@ -31,6 +31,13 @@ jobs:
           rustup toolchain install stable
           rustup override set stable
 
+      # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
+      # go required to build aws-lc-rs in FIPS mode
+      - name: Install go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.18'
+
       - uses: camshaft/rust-cache@v1
 
       - name: Generate
@@ -84,7 +91,7 @@ jobs:
       - name: bench tests
         working-directory: ${{env.ROOT_PATH}}/bench
         run: cargo test
-  
+
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
@@ -95,7 +102,7 @@ jobs:
         run: |
           rustup toolchain install stable
           rustup override set stable
-      
+
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
@@ -150,6 +157,36 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --all-features
 
+  fips:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
+      # go required to build aws-lc-rs in FIPS mode
+      - name: Install go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.18'
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ./${{env.ROOT_PATH}}/generate.sh
+
+      - name: Test fips
+        working-directory: ${{env.ROOT_PATH}}
+        run: |
+          cargo test --features fips
+
   rustfmt:
     runs-on: ubuntu-latest
     steps:
@@ -168,7 +205,7 @@ jobs:
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./${{env.ROOT_PATH}}/generate.sh
+        run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Run cargo fmt
         run: |
