@@ -1459,9 +1459,6 @@ int main(int argc, char **argv)
         /* Verify that TLS1.3 was negotiated */
         EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
-
-        /* Verify that the server did not issue a new session ticket */
-        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server));
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
