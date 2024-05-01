@@ -85,7 +85,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     /* When server changes it's mind mid handshake, or if session key used to encrypt session ticket
      * is expired, send lifetime hint and session ticket length as zero 
      */
-    if (!conn->config->use_tickets || !s2n_config_is_encrypt_decrypt_key_available(conn->config)) {
+    if (!conn->config->use_tickets || s2n_config_is_encrypt_decrypt_key_available(conn->config) == 0) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 

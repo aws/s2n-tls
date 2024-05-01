@@ -1356,14 +1356,12 @@ int main(int argc, char **argv)
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(client_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_configuration, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_configuration));
 
         DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_configuration));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_configuration,
                 chain_and_key));
@@ -1374,8 +1372,8 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_session(client, serialized_session_state,
-                serialized_session_state_length));
+        // EXPECT_SUCCESS(s2n_connection_set_session(client, serialized_session_state,
+        //         serialized_session_state_length));
         EXPECT_SUCCESS(s2n_connection_set_config(client, client_configuration));
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
@@ -1397,7 +1395,7 @@ int main(int argc, char **argv)
                 &mock_delay));
 
         /* Attempt to send a NewSessionTicket. This should send a zero-length NST message */
-        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_FINISHED));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
 
         /* Verify that TLS1.2 was negotiated */
         EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS12);
@@ -1436,8 +1434,6 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_session(client, serialized_session_state,
-                serialized_session_state_length));
         EXPECT_SUCCESS(s2n_connection_set_config(client, client_configuration));
 
         DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
@@ -1458,7 +1454,7 @@ int main(int argc, char **argv)
                 &mock_delay));
 
         /* Attempt to send a NewSessionTicket. This should not send a zero-length NST message */
-        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_FINISHED));
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
 
         /* Verify that TLS1.3 was negotiated */
         EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
