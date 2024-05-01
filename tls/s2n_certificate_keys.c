@@ -19,55 +19,66 @@
 
 const struct s2n_certificate_key s2n_rsa_rsae_1024 = {
     .public_key_libcrypto_nid = NID_rsaEncryption,
+    .name = "rsa_1024",
     .bits = 1024,
 };
 
 const struct s2n_certificate_key s2n_rsa_rsae_2048 = {
     .public_key_libcrypto_nid = NID_rsaEncryption,
+    .name = "rsa_2048",
     .bits = 2048,
 };
 
 const struct s2n_certificate_key s2n_rsa_rsae_3072 = {
     .public_key_libcrypto_nid = NID_rsaEncryption,
+    .name = "rsa_3072",
     .bits = 3072,
 };
 
 const struct s2n_certificate_key s2n_rsa_rsae_4096 = {
     .public_key_libcrypto_nid = NID_rsaEncryption,
+    .name = "rsa_4096",
     .bits = 4096,
 };
 
 const struct s2n_certificate_key s2n_rsa_pss_1024 = {
     .public_key_libcrypto_nid = NID_rsassaPss,
+    .name = "rsa_pss_1024",
     .bits = 1024,
 };
 
 const struct s2n_certificate_key s2n_rsa_pss_2048 = {
     .public_key_libcrypto_nid = NID_rsassaPss,
+    .name = "rsa_pss_2048",
     .bits = 2048,
 };
 
 const struct s2n_certificate_key s2n_rsa_pss_3072 = {
     .public_key_libcrypto_nid = NID_rsassaPss,
+    .name = "rsa_pss_3072",
     .bits = 3072,
 };
 
 const struct s2n_certificate_key s2n_rsa_pss_4096 = {
     .public_key_libcrypto_nid = NID_rsassaPss,
+    .name = "rsa_pss_4096",
     .bits = 4096,
 };
 
 const struct s2n_certificate_key s2n_ec_p256 = {
     .public_key_libcrypto_nid = NID_X9_62_prime256v1,
+    .name = "ecdsa_p256",
     .bits = 256,
 };
 
 const struct s2n_certificate_key s2n_ec_p384 = {
     .public_key_libcrypto_nid = NID_secp384r1,
+    .name = "ecdsa_p384",
     .bits = 384,
 };
 
 const struct s2n_certificate_key s2n_ec_p521 = {
     .public_key_libcrypto_nid = NID_secp521r1,
+    .name = "ecdsa_p521",
     .bits = 521,
 };
