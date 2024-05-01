@@ -610,10 +610,10 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
     }
 }
 
-S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config, bool *key_exists_flag)
+S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config, bool *key_exists)
 {
     RESULT_ENSURE_REF(config);
-    RESULT_ENSURE_REF(key_exists_flag);
+    RESULT_ENSURE_REF(key_exists);
 
     uint64_t now = 0;
     struct s2n_ticket_key *ticket_key = NULL;
@@ -630,7 +630,7 @@ S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config, bool *
 
         if (key_intro_time < now
                 && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
-            *key_exists_flag = true;
+            *key_exists = true;
             return S2N_RESULT_OK;
         }
     }
