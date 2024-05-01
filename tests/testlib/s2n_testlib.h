@@ -192,6 +192,8 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 #define S2N_MIXED_CHAIN_KEY   "../pems/mixed_chains/ecdsa/server-key.pem"
 #define S2N_MIXED_CHAIN_CA    "../pems/mixed_chains/ecdsa/ca-cert.pem"
 
+#define S2N_TEST_TRUST_STORE "../pems/trust-store/ca-bundle.crt"
+
 #define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
 #define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
 

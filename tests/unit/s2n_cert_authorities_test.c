@@ -37,6 +37,79 @@ int main(int argc, char **argv)
             s2n_cert_authorities_extension.iana_value, &temp_id));
     const s2n_extension_type_id ca_ext_id = temp_id;
 
+    /* Test: awslc should always support loading from the trust store */
+    if (s2n_libcrypto_is_awslc()) {
+        EXPECT_TRUE(s2n_cert_authorities_supported_from_trust_store());
+    }
+
+    /* Test: s2n_config_set_cert_authorities_from_trust_store */
+    {
+        /* Test: Safety */
+        {
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_config_set_cert_authorities_from_trust_store(NULL),
+                    S2N_ERR_NULL);
+        };
+
+        /* Test: fails if not supported */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(),
+                    s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config,
+                    S2N_ECDSA_P512_CERT_CHAIN, NULL));
+
+            if (s2n_cert_authorities_supported_from_trust_store()) {
+                EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
+                EXPECT_NOT_EQUAL(config->cert_authorities.size, 0);
+            } else {
+                EXPECT_FAILURE_WITH_ERRNO(
+                        s2n_config_set_cert_authorities_from_trust_store(config),
+                        S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+                EXPECT_EQUAL(config->cert_authorities.size, 0);
+            }
+        };
+
+        /* Test: not allowed with system trust store */
+        {
+            /* s2n_config_new configures the default trust store */
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            /* Fails with default system trust store */
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_config_set_cert_authorities_from_trust_store(config),
+                    S2N_ERR_INVALID_STATE);
+            EXPECT_EQUAL(config->cert_authorities.size, 0);
+
+            /* Succeeds again after wiping trust store */
+            EXPECT_SUCCESS(s2n_config_wipe_trust_store(config));
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
+            EXPECT_EQUAL(config->cert_authorities.size, 0);
+        };
+
+        /* Test: empty trust store */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
+            EXPECT_EQUAL(config->cert_authorities.size, 0);
+        };
+
+        /* Test: too many CAs in trust store */
+        if (s2n_cert_authorities_supported_from_trust_store()) {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            /* This is just a copy of the default trust store from an Amazon Linux instance */
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_TEST_TRUST_STORE, NULL));
+
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_config_set_cert_authorities_from_trust_store(config),
+                    S2N_ERR_TOO_MANY_CAS);
+            EXPECT_EQUAL(config->cert_authorities.size, 0);
+        };
+    };
+
     /* Test: s2n_certificate_authorities_extension.send */
     {
         /* Test: writes whatever CA data is available */
@@ -209,6 +282,123 @@ int main(int argc, char **argv)
         /* Client received extension */
         EXPECT_FALSE(S2N_CBIT_TEST(client->extension_requests_sent, ca_ext_id));
         EXPECT_TRUE(S2N_CBIT_TEST(client->extension_requests_received, ca_ext_id));
+    };
+
+    /* Known value test: compare our extension to openssl s_server */
+    if (s2n_is_rsa_pss_certs_supported() && s2n_cert_authorities_supported_from_trust_store()) {
+        /* clang-format off */
+        const struct {
+            const char *cert_name;
+            uint8_t expected_bytes_size;
+            uint8_t expected_bytes[1000];
+        } test_cases[] = {
+            {
+                .cert_name = S2N_RSA_PSS_2048_SHA256_LEAF_CERT,
+                .expected_bytes_size = 32,
+                .expected_bytes = {
+                    0x00, 0x2f, 0x00, 0x1c, 0x00, 0x1a, 0x00, 0x18,
+                    0x30, 0x16, 0x31, 0x14, 0x30, 0x12, 0x06, 0x03,
+                    0x55, 0x04, 0x03, 0x0c, 0x0b, 0x65, 0x78, 0x61,
+                    0x6d, 0x70, 0x6c, 0x65, 0x2e, 0x63, 0x6f, 0x6d
+                },
+            },
+            {
+                .cert_name = S2N_ECDSA_P512_CERT_CHAIN,
+                .expected_bytes_size = 107,
+                .expected_bytes = {
+                    0x00, 0x2f, 0x00, 0x67, 0x00, 0x65, 0x00, 0x63,
+                    0x30, 0x61, 0x31, 0x0b, 0x30, 0x09, 0x06, 0x03,
+                    0x55, 0x04, 0x06, 0x13, 0x02, 0x55, 0x53, 0x31,
+                    0x0b, 0x30, 0x09, 0x06, 0x03, 0x55, 0x04, 0x08,
+                    0x0c, 0x02, 0x57, 0x41, 0x31, 0x10, 0x30, 0x0e,
+                    0x06, 0x03, 0x55, 0x04, 0x07, 0x0c, 0x07, 0x53,
+                    0x65, 0x61, 0x74, 0x74, 0x6c, 0x65, 0x31, 0x0f,
+                    0x30, 0x0d, 0x06, 0x03, 0x55, 0x04, 0x0a, 0x0c,
+                    0x06, 0x41, 0x6d, 0x61, 0x7a, 0x6f, 0x6e, 0x31,
+                    0x0c, 0x30, 0x0a, 0x06, 0x03, 0x55, 0x04, 0x0b,
+                    0x0c, 0x03, 0x73, 0x32, 0x6e, 0x31, 0x14, 0x30,
+                    0x12, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c, 0x0b,
+                    0x73, 0x32, 0x6e, 0x54, 0x65, 0x73, 0x74, 0x43,
+                    0x65, 0x72, 0x74
+                },
+            },
+            {
+                .cert_name = S2N_RSA_2048_SHA256_URI_SANS_CERT,
+                .expected_bytes_size = 192,
+                .expected_bytes = {
+                    0x00, 0x2f, 0x00, 0xbc, 0x00, 0xba, 0x00, 0x53,
+                    0x30, 0x51, 0x31, 0x0b, 0x30, 0x09, 0x06, 0x03,
+                    0x55, 0x04, 0x06, 0x13, 0x02, 0x55, 0x53, 0x31,
+                    0x0b, 0x30, 0x09, 0x06, 0x03, 0x55, 0x04, 0x08,
+                    0x0c, 0x02, 0x57, 0x41, 0x31, 0x0f, 0x30, 0x0d,
+                    0x06, 0x03, 0x55, 0x04, 0x0a, 0x0c, 0x06, 0x41,
+                    0x6d, 0x61, 0x7a, 0x6f, 0x6e, 0x31, 0x0c, 0x30,
+                    0x0a, 0x06, 0x03, 0x55, 0x04, 0x0b, 0x0c, 0x03,
+                    0x73, 0x32, 0x6e, 0x31, 0x16, 0x30, 0x14, 0x06,
+                    0x03, 0x55, 0x04, 0x03, 0x0c, 0x0d, 0x73, 0x32,
+                    0x6e, 0x54, 0x65, 0x73, 0x74, 0x53, 0x65, 0x72,
+                    0x76, 0x65, 0x72, 0x00, 0x63, 0x30, 0x61, 0x31,
+                    0x0b, 0x30, 0x09, 0x06, 0x03, 0x55, 0x04, 0x06,
+                    0x13, 0x02, 0x55, 0x53, 0x31, 0x0b, 0x30, 0x09,
+                    0x06, 0x03, 0x55, 0x04, 0x08, 0x0c, 0x02, 0x57,
+                    0x41, 0x31, 0x10, 0x30, 0x0e, 0x06, 0x03, 0x55,
+                    0x04, 0x07, 0x0c, 0x07, 0x53, 0x65, 0x61, 0x74,
+                    0x74, 0x6c, 0x65, 0x31, 0x0f, 0x30, 0x0d, 0x06,
+                    0x03, 0x55, 0x04, 0x0a, 0x0c, 0x06, 0x41, 0x6d,
+                    0x61, 0x7a, 0x6f, 0x6e, 0x31, 0x0c, 0x30, 0x0a,
+                    0x06, 0x03, 0x55, 0x04, 0x0b, 0x0c, 0x03, 0x73,
+                    0x32, 0x6e, 0x31, 0x14, 0x30, 0x12, 0x06, 0x03,
+                    0x55, 0x04, 0x03, 0x0c, 0x0b, 0x73, 0x32, 0x6e,
+                    0x54, 0x65, 0x73, 0x74, 0x52, 0x6f, 0x6f, 0x74
+                },
+            },
+            {
+                .cert_name = S2N_RSA_2048_PKCS1_CERT_CHAIN,
+                .expected_bytes_size = 94,
+                .expected_bytes = {
+                    0x00, 0x2f, 0x00, 0x5a, 0x00, 0x58, 0x00, 0x1a,
+                    0x30, 0x18, 0x31, 0x16, 0x30, 0x14, 0x06, 0x03,
+                    0x55, 0x04, 0x03, 0x0c, 0x0d, 0x73, 0x32, 0x6e,
+                    0x54, 0x65, 0x73, 0x74, 0x53, 0x65, 0x72, 0x76,
+                    0x65, 0x72, 0x00, 0x20, 0x30, 0x1e, 0x31, 0x1c,
+                    0x30, 0x1a, 0x06, 0x03, 0x55, 0x04, 0x03, 0x0c,
+                    0x13, 0x73, 0x32, 0x6e, 0x54, 0x65, 0x73, 0x74,
+                    0x49, 0x6e, 0x74, 0x65, 0x72, 0x6d, 0x65, 0x64,
+                    0x69, 0x61, 0x74, 0x65, 0x00, 0x18, 0x30, 0x16,
+                    0x31, 0x14, 0x30, 0x12, 0x06, 0x03, 0x55, 0x04,
+                    0x03, 0x0c, 0x0b, 0x73, 0x32, 0x6e, 0x54, 0x65,
+                    0x73, 0x74, 0x52, 0x6f, 0x6f, 0x74
+                },
+            },
+        };
+        /* clang-format on */
+
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config,
+                    test_cases[i].cert_name, NULL));
+
+            EXPECT_SUCCESS(s2n_config_set_cert_authorities_from_trust_store(config));
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->actual_protocol_version = S2N_TLS13;
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+            EXPECT_SUCCESS(s2n_extension_send(&s2n_cert_authorities_extension,
+                    conn, &output));
+
+            size_t output_size = s2n_stuffer_data_available(&output);
+            EXPECT_EQUAL(test_cases[i].expected_bytes_size, output_size);
+
+            uint8_t *output_bytes = s2n_stuffer_raw_read(&output, output_size);
+            EXPECT_NOT_NULL(output_bytes);
+            EXPECT_BYTEARRAY_EQUAL(test_cases[i].expected_bytes, output_bytes, output_size);
+        }
     };
 
     END_TEST();
