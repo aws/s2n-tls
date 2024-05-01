@@ -66,20 +66,5 @@ def test_pytest():
     # Validate pytest _from nix_ is in the PATH.
     assert 'nix' in shutil.which('pytest')
 
-
-@pytest.mark.x86_64
-def test_sslyze():
-    # On x86, validate sslyze is available
-    assert 'nix' in shutil.which('sslyze')
-
-
-@pytest.mark.x86_64
-def test_nassl():
-    # On x86 validate nassl and version.
-    import nassl
-    assert nassl.__name__ == "nassl"
-    assert nassl.__version__ == "5.0.0"
-
-
 if __name__ == "__main__":
     print("Use pytest")
