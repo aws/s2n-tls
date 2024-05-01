@@ -44,13 +44,17 @@ impl FipsMode {
     }
 }
 
-impl From<s2n_fips_mode::Type> for FipsMode {
-    fn from(input: s2n_fips_mode::Type) -> Self {
-        match input {
+impl TryFrom<s2n_fips_mode::Type> for FipsMode {
+    type Error = Error;
+
+    fn try_from(input: s2n_fips_mode::Type) -> Result<Self, Self::Error> {
+        let mode = match input {
             s2n_fips_mode::FIPS_MODE_DISABLED => FipsMode::Disabled,
             s2n_fips_mode::FIPS_MODE_ENABLED => FipsMode::Enabled,
-            _ => unreachable!(),
-        }
+            _ => return Err(Error::INVALID_INPUT),
+        };
+
+        Ok(mode)
     }
 }
 

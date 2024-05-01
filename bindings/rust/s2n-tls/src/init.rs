@@ -55,7 +55,7 @@ pub fn fips_mode() -> Result<FipsMode, Error> {
     unsafe {
         s2n_get_fips_mode(&mut fips_mode as *mut _).into_result()?;
     }
-    Ok(fips_mode.into())
+    fips_mode.try_into()
 }
 
 mod mem {
