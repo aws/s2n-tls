@@ -48,7 +48,7 @@ impl<F: 'static + Send + Future<Output = Result<Config, Error>>> ConfigResolver<
     }
 }
 
-impl<F: 'static + Send + Future<Output = Result<Config, Error>>> ConnectionFuture
+impl<F: 'static + Send + Sync + Future<Output = Result<Config, Error>>> ConnectionFuture
     for ConfigResolver<F>
 {
     fn poll(

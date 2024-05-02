@@ -41,8 +41,8 @@ struct client_hello_context {
 
 int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect_server_name_used)
 {
-    struct s2n_connection *conn;
-    struct s2n_config *config;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
     int rc = 0;
@@ -106,10 +106,10 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
 
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 {
-    struct client_hello_context *client_hello_ctx;
+    struct client_hello_context *client_hello_ctx = NULL;
     struct s2n_client_hello *client_hello = s2n_connection_get_client_hello(conn);
     const char *sent_server_name = "example.com";
-    const char *received_server_name;
+    const char *received_server_name = NULL;
     if (ctx == NULL) {
         return -1;
     }
@@ -168,7 +168,7 @@ int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 
 int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
 {
-    struct client_hello_context *client_hello_ctx;
+    struct client_hello_context *client_hello_ctx = NULL;
 
     if (ctx == NULL) {
         return -1;
@@ -281,7 +281,7 @@ static int test_case_clean(struct s2n_connection *conn, pid_t client_pid,
         struct client_hello_context *ch_ctx, struct s2n_cert_chain_and_key *chain_and_key)
 {
     s2n_blocked_status blocked;
-    int status;
+    int status = 0;
 
     EXPECT_SUCCESS(s2n_shutdown(conn, &blocked));
     EXPECT_EQUAL(waitpid(-1, &status, 0), client_pid);
@@ -301,11 +301,11 @@ int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
         struct client_hello_context *ch_ctx)
 {
     struct s2n_test_io_pair io_pair;
-    struct s2n_config *config;
-    struct s2n_connection *conn;
-    struct s2n_config *swap_config;
-    pid_t pid;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_config *config = NULL;
+    struct s2n_connection *conn = NULL;
+    struct s2n_config *swap_config = NULL;
+    pid_t pid = 0;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 1));
 
@@ -359,10 +359,10 @@ int run_test_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode,
 int run_test_no_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode, struct client_hello_context *ch_ctx)
 {
     struct s2n_test_io_pair io_pair;
-    struct s2n_config *config;
-    struct s2n_connection *conn;
-    pid_t pid;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_config *config = NULL;
+    struct s2n_connection *conn = NULL;
+    pid_t pid = 0;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 0));
 
@@ -396,11 +396,11 @@ int run_test_no_config_swap_ch_cb(s2n_client_hello_cb_mode cb_mode, struct clien
 int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode, struct client_hello_context *ch_ctx)
 {
     struct s2n_test_io_pair io_pair;
-    struct s2n_config *config;
-    struct s2n_connection *conn;
-    pid_t pid;
+    struct s2n_config *config = NULL;
+    struct s2n_connection *conn = NULL;
+    pid_t pid = 0;
     s2n_blocked_status blocked;
-    struct s2n_cert_chain_and_key *chain_and_key;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 1, 0));
 

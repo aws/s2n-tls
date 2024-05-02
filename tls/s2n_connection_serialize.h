@@ -13,15 +13,13 @@
  * permissions and limitations under the License.
  */
 
-void swap(int *__restrict__ left, int *__restrict__ right) {
-    int temp = *left;
-    *left = *right;
-    *right = temp;
-}
+#include <stdint.h>
 
-int main() {
-    int a = 1, b = 2;
-    swap(&a, &b);
-    return 0;
-}
+#include "tls/s2n_connection.h"
 
+#pragma once
+
+#define S2N_SERIALIZED_CONN_FIXED_SIZE (8 + S2N_TLS_PROTOCOL_VERSION_LEN + S2N_TLS_CIPHER_SUITE_LEN \
+        + S2N_TLS_SEQUENCE_NUM_LEN + S2N_TLS_SEQUENCE_NUM_LEN + 2)
+#define S2N_SERIALIZED_CONN_TLS12_SIZE (S2N_SERIALIZED_CONN_FIXED_SIZE + S2N_TLS_SECRET_LEN \
+        + S2N_TLS_RANDOM_DATA_LEN + S2N_TLS_RANDOM_DATA_LEN)

@@ -16,6 +16,7 @@
 #include "api/s2n.h"
 #include "crypto/s2n_certificate.h"
 #include "error/s2n_errno.h"
+#include "extensions/s2n_cert_authorities.h"
 #include "extensions/s2n_extension_list.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_cipher_suites.h"
@@ -62,7 +63,7 @@ static uint8_t s2n_cert_type_preference_list_legacy_dss[] = {
 
 static int s2n_recv_client_cert_preferences(struct s2n_stuffer *in, s2n_cert_type *chosen_cert_type_out)
 {
-    uint8_t cert_types_len;
+    uint8_t cert_types_len = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &cert_types_len));
 
     uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
@@ -100,7 +101,7 @@ int s2n_tls13_cert_req_recv(struct s2n_connection *conn)
     struct s2n_stuffer *in = &conn->handshake.io;
 
     /* read request context length */
-    uint8_t request_context_length;
+    uint8_t request_context_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &request_context_length));
     /* RFC 8446: This field SHALL be zero length unless used for the post-handshake authentication */
     S2N_ERROR_IF(request_context_length != 0, S2N_ERR_BAD_MESSAGE);
@@ -174,10 +175,8 @@ int s2n_cert_req_send(struct s2n_connection *conn)
         POSIX_GUARD_RESULT(s2n_signature_algorithms_supported_list_send(conn, out));
     }
 
-    /* RFC 5246 7.4.4 - If the certificate_authorities list is empty, then the
-     * client MAY send any certificate of the appropriate ClientCertificateType */
-    uint16_t acceptable_cert_authorities_len = 0;
-    POSIX_GUARD(s2n_stuffer_write_uint16(out, acceptable_cert_authorities_len));
+    /* Before TLS1.3, certificate_authorities is part of the message instead of an extension */
+    POSIX_GUARD(s2n_cert_authorities_send(conn, out));
 
-    return 0;
+    return S2N_SUCCESS;
 }

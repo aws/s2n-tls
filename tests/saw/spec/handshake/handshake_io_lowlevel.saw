@@ -154,8 +154,13 @@ let setup_connection_common chosen_psk_null = do {
    cork_val <- crucible_fresh_var "corked" (llvm_int 2);
    crucible_ghost_value corked cork_val;
 
+   // We assume that the client_cert_auth_type_overridden flag in s2n_connection is set.
+   // If that flag is not set, auth_type / "cca_type" could be determined by the config
+   // or just set to a default value. Since we're primarily interested in the handshake
+   // here and the end result is the same, just consider the connection auth_type.
    cca_ov <- crucible_fresh_var "cca_ov" (llvm_int 8);
    crucible_points_to (cca_type_ov pconn) (crucible_term cca_ov);
+   crucible_equal (crucible_term cca_ov) (crucible_term {{1 : [8]}});
 
    cca <- crucible_fresh_var "cca" (llvm_int 32);
    crucible_points_to (cca_type pconn) (crucible_term cca);
@@ -174,9 +179,6 @@ let setup_connection_common chosen_psk_null = do {
 
    config <- crucible_alloc (llvm_struct "struct.s2n_config");
    crucible_points_to (conn_config pconn) config;
-
-   config_cca <- crucible_fresh_var "config_cca" (llvm_int 32);
-   crucible_points_to (config_cca_type config) (crucible_term config_cca);
 
    cak <- crucible_alloc (llvm_struct "struct.s2n_cert_chain_and_key");
    crucible_points_to (conn_chain_and_key pconn) cak;
@@ -226,8 +228,6 @@ let setup_connection_common chosen_psk_null = do {
 
    no_client_cert <- crucible_fresh_var "no_client_cert" (llvm_int 8);
 
-   let client_cert_auth_type = {{ if cca_ov != 0 then cca else config_cca }};
-
    npn_negotiated <- llvm_fresh_var "npn_negotiated" (llvm_int 1);
    llvm_points_to_bitfield pconn "npn_negotiated" (llvm_term npn_negotiated);
    let npn_negotiated_bit = {{ bv1_to_bit npn_negotiated }};
@@ -246,8 +246,8 @@ let setup_connection_common chosen_psk_null = do {
                             ((ocsp_flag == 1) && (status_size > 0)) ||
                             ((mode == 1) && (ocsp_flag == 1))
                      ,resume_from_cache = False
-                     ,client_auth_flag = if mode == S2N_CLIENT then client_cert_auth_type == S2N_CERT_AUTH_REQUIRED else
-                                         if mode == S2N_SERVER then client_cert_auth_type != S2N_CERT_AUTH_NONE     else False
+                     ,client_auth_flag = if mode == S2N_CLIENT then cca == S2N_CERT_AUTH_REQUIRED else
+                                         if mode == S2N_SERVER then cca != S2N_CERT_AUTH_NONE     else False
                      ,no_client_cert = no_client_cert != zero
                      ,actual_protocol_version = version
                      ,early_data_state = early_data_state
@@ -292,9 +292,7 @@ let s2n_allowed_to_cache_connection_spec = do {
     crucible_return (crucible_term {{ 0 : [32] }});
 };
 
-
-let s2n_connection_get_client_auth_type_spec = do{
-
+let s2n_connection_get_client_auth_type_spec = do {
     pconn <- crucible_alloc_readonly (llvm_struct "struct.s2n_connection");
     auth_type <- crucible_alloc (llvm_int 32);
 
@@ -304,18 +302,28 @@ let s2n_connection_get_client_auth_type_spec = do{
     config <- crucible_alloc_readonly (llvm_struct "struct.s2n_config");
     crucible_points_to (conn_config pconn) config;
 
+    config_cca_ov <- llvm_fresh_var "config_cca_ov" (llvm_int 8);
+    crucible_points_to (crucible_field config "client_cert_auth_type_overridden") (crucible_term config_cca_ov);
+
     config_cca <- crucible_fresh_var "config_cca" (llvm_int 32);
     crucible_points_to (config_cca_type config) (crucible_term config_cca);
 
     cca <- crucible_fresh_var "cca" (llvm_int 32);
     crucible_points_to (cca_type pconn) (crucible_term cca);
 
+    mode <- crucible_fresh_var "mode" (llvm_int 32);
+    crucible_points_to (conn_mode pconn) (crucible_term mode);
+
     crucible_execute_func [pconn, auth_type];
 
-    crucible_points_to (auth_type) (crucible_term {{if cca_ov != zero then cca else config_cca}});
+    crucible_points_to (auth_type) (crucible_term {{
+        if cca_ov != zero then cca else
+        if config_cca_ov != zero then config_cca else
+        if mode == S2N_CLIENT then S2N_CERT_AUTH_OPTIONAL else
+        S2N_CERT_AUTH_NONE
+    }});
 
     crucible_return (crucible_term {{ 0 : [32] }});
-
 };
 
 // Specification for s2n_conn_set_handshake_type that sets up simulation of it

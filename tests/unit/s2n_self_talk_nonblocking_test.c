@@ -35,8 +35,8 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
 {
     uint8_t *buffer = malloc(size);
     uint8_t *ptr = buffer;
-    struct s2n_connection *client_conn;
-    struct s2n_config *client_config;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_config *client_config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
     /* If something goes wrong, and the server never finishes sending,
@@ -97,11 +97,11 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
 
 int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_t iov_size)
 {
-    struct s2n_connection *client_conn;
-    struct s2n_config *client_config;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_config *client_config = NULL;
     s2n_blocked_status blocked;
     int result = 0;
-    int total_size = 0, i;
+    int total_size = 0, i = 0;
     int should_block = 1;
 
     for (i = 0; i < iov_size; i++) {
@@ -190,8 +190,8 @@ S2N_RESULT cleanup_io_data(struct iovec **iov, int iov_size, struct s2n_blob *bl
 int test_send(int use_tls13, int use_iov, int prefer_throughput)
 {
     s2n_blocked_status blocked;
-    int status;
-    pid_t pid;
+    int status = 0;
+    pid_t pid = 0;
     char cert_chain_pem[S2N_MAX_TEST_PEM_SIZE];
     char private_key_pem[S2N_MAX_TEST_PEM_SIZE];
     char dhparams_pem[S2N_MAX_TEST_PEM_SIZE];

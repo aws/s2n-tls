@@ -463,7 +463,7 @@ static int s2n_rand_get_entropy_from_urandom(void *ptr, uint32_t size)
  */
 S2N_RESULT s2n_public_random(int64_t bound, uint64_t *output)
 {
-    uint64_t r;
+    uint64_t r = 0;
 
     RESULT_ENSURE_GT(bound, 0);
 
@@ -552,6 +552,9 @@ S2N_RESULT s2n_rand_init(void)
     if (s2n_is_in_fips_mode()) {
         return S2N_RESULT_OK;
     }
+
+    /* Unset any existing random engine */
+    RESULT_GUARD_OSSL(RAND_set_rand_engine(NULL), S2N_ERR_OPEN_RANDOM);
 
     /* Create an engine */
     ENGINE *e = ENGINE_new();

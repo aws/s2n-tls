@@ -31,6 +31,33 @@ impl<T, E> From<Result<T, E>> for CallbackResult {
     }
 }
 
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum FipsMode {
+    Disabled,
+    Enabled,
+}
+
+impl FipsMode {
+    pub fn is_enabled(&self) -> bool {
+        matches!(self, FipsMode::Enabled)
+    }
+}
+
+impl TryFrom<s2n_fips_mode::Type> for FipsMode {
+    type Error = Error;
+
+    fn try_from(input: s2n_fips_mode::Type) -> Result<Self, Self::Error> {
+        let mode = match input {
+            s2n_fips_mode::FIPS_MODE_DISABLED => FipsMode::Disabled,
+            s2n_fips_mode::FIPS_MODE_ENABLED => FipsMode::Enabled,
+            _ => return Err(Error::INVALID_INPUT),
+        };
+
+        Ok(mode)
+    }
+}
+
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Mode {
     Server,
@@ -175,5 +202,37 @@ impl TryFrom<s2n_tls_hash_algorithm::Type> for HashAlgorithm {
             _ => return Err(Error::INVALID_INPUT),
         };
         Ok(version)
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum PeerKeyUpdate {
+    KeyUpdateNotRequested,
+    KeyUpdatedRequested,
+}
+
+impl From<PeerKeyUpdate> for s2n_peer_key_update::Type {
+    fn from(input: PeerKeyUpdate) -> s2n_peer_key_update::Type {
+        match input {
+            PeerKeyUpdate::KeyUpdateNotRequested => s2n_peer_key_update::KEY_UPDATE_NOT_REQUESTED,
+            PeerKeyUpdate::KeyUpdatedRequested => s2n_peer_key_update::KEY_UPDATE_REQUESTED,
+        }
+    }
+}
+
+#[non_exhaustive]
+#[derive(Debug, PartialEq, Copy, Clone)]
+pub enum SerializationVersion {
+    None,
+    V1,
+}
+
+impl From<SerializationVersion> for s2n_serialization_version::Type {
+    fn from(input: SerializationVersion) -> s2n_serialization_version::Type {
+        match input {
+            SerializationVersion::None => s2n_serialization_version::SERIALIZED_CONN_NONE,
+            SerializationVersion::V1 => s2n_serialization_version::SERIALIZED_CONN_V1,
+        }
     }
 }

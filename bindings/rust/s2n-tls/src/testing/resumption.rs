@@ -6,7 +6,7 @@ mod tests {
     use crate::{
         callbacks::{SessionTicket, SessionTicketCallback},
         config::ConnectionInitializer,
-        connection,
+        connection::{self, Connection},
         testing::{s2n_tls::*, *},
     };
     use futures_test::task::noop_waker;
@@ -50,6 +50,18 @@ mod tests {
     const KEY: [u8; 16] = [0; 16];
     const KEYNAME: [u8; 3] = [1, 3, 4];
 
+    fn validate_session_ticket(conn: &Connection) -> Result<(), Box<dyn Error>> {
+        assert!(conn.session_ticket_length()? > 0);
+        let mut session = vec![0; conn.session_ticket_length()?];
+        //load the ticket and make sure session is no longer empty
+        assert_eq!(
+            conn.session_ticket(&mut session)?,
+            conn.session_ticket_length()?
+        );
+        assert_ne!(session, vec![0; conn.session_ticket_length()?]);
+        Ok(())
+    }
+
     #[test]
     fn resume_session() -> Result<(), Box<dyn Error>> {
         let keypair = CertKeyPair::default();
@@ -71,7 +83,7 @@ mod tests {
             .set_session_ticket_callback(handler.clone())?
             .trust_pem(keypair.cert())?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
-            .set_connection_initializer(handler.clone())?;
+            .set_connection_initializer(handler)?;
         let client_config = client_config_builder.build()?;
 
         // create and configure a server connection
@@ -101,6 +113,7 @@ mod tests {
             client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|TLS12_PERFECT_FORWARD_SECRECY|WITH_SESSION_TICKET"
         );
+        validate_session_ticket(client)?;
 
         // create and configure a client/server connection again
         let mut server = connection::Connection::new_server();
@@ -122,9 +135,13 @@ mod tests {
         let pair = poll_tls_pair(pair);
 
         let client = pair.client.0.connection();
+        let server = pair.server.0.connection();
 
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED");
+        // validate that a ticket is available
+        validate_session_ticket(client)?;
+        validate_session_ticket(server)?;
         Ok(())
     }
 
@@ -147,7 +164,7 @@ mod tests {
         client_config_builder
             .enable_session_tickets(true)?
             .set_session_ticket_callback(handler.clone())?
-            .set_connection_initializer(handler.clone())?
+            .set_connection_initializer(handler)?
             .trust_pem(keypair.cert())?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
             .set_security_policy(&security::DEFAULT_TLS13)?;
@@ -174,8 +191,7 @@ mod tests {
         // Do a recv call on the client side to read a session ticket. Poll function
         // returns pending since no application data was read, however it is enough
         // to collect the session ticket.
-        let mut recv_buffer: [u8; 10] = [0; 10];
-        assert!(pair.poll_recv(Mode::Client, &mut recv_buffer).is_pending());
+        assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
 
         let client = pair.client.0.connection();
         // Check connection was full handshake
@@ -183,6 +199,8 @@ mod tests {
             client.handshake_type()?,
             "NEGOTIATED|FULL_HANDSHAKE|MIDDLEBOX_COMPAT"
         );
+        // validate that a ticket is available
+        validate_session_ticket(client)?;
 
         // create and configure a client/server connection again
         let mut server = connection::Connection::new_server();
@@ -200,12 +218,18 @@ mod tests {
         let server = Harness::new(server);
         let client = Harness::new(client);
         let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
+        let mut pair = poll_tls_pair(pair);
+
+        // Do a recv call on the client side to read a session ticket. Poll function
+        // returns pending since no application data was read, however it is enough
+        // to collect the session ticket.
+        assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
 
         let client = pair.client.0.connection();
-
         // Check new connection was resumed
         assert_eq!(client.handshake_type()?, "NEGOTIATED|MIDDLEBOX_COMPAT");
+        // validate that a ticket is available
+        validate_session_ticket(client)?;
         Ok(())
     }
 }

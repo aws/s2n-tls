@@ -23,12 +23,12 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_config *config;
+    struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
 
     /* Test server should_send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         /* Do not send for null connection */
@@ -57,7 +57,7 @@ int main(int argc, char **argv)
 
     /* Test send */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -66,11 +66,11 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_client_ec_point_format_extension.send(conn, &stuffer));
 
-        uint8_t length;
+        uint8_t length = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &length));
         EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
 
-        uint8_t point_format;
+        uint8_t point_format = 0;
         EXPECT_SUCCESS(s2n_stuffer_read_uint8(&stuffer, &point_format));
         EXPECT_EQUAL(point_format, TLS_EC_POINT_FORMAT_UNCOMPRESSED);
 
@@ -82,7 +82,7 @@ int main(int argc, char **argv)
 
     /* Test recv */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 

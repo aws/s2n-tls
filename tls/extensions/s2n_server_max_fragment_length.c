@@ -54,7 +54,7 @@ static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(conn->config);
 
-    uint8_t mfl_code;
+    uint8_t mfl_code = 0;
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
 
     /*

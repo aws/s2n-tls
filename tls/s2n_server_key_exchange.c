@@ -65,7 +65,7 @@ int s2n_server_key_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_hash_update(signature_hash, data_to_verify.data, data_to_verify.size));
 
     /* Verify the signature */
-    uint16_t signature_length;
+    uint16_t signature_length = 0;
     POSIX_GUARD(s2n_stuffer_read_uint16(in, &signature_length));
 
     struct s2n_blob signature = { 0 };
@@ -107,9 +107,9 @@ int s2n_dhe_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
     struct s2n_stuffer *in = &conn->handshake.io;
     struct s2n_dhe_raw_server_points *dhe_data = &raw_server_data->dhe_data;
 
-    uint16_t p_length;
-    uint16_t g_length;
-    uint16_t Ys_length;
+    uint16_t p_length = 0;
+    uint16_t g_length = 0;
+    uint16_t Ys_length = 0;
 
     /* Keep a copy to the start of the whole structure for the signature check */
     data_to_verify->data = s2n_stuffer_raw_read(in, 0);
@@ -162,7 +162,7 @@ int s2n_kem_server_key_recv_read_data(struct s2n_connection *conn, struct s2n_bl
 
     struct s2n_stuffer kem_id_stuffer = { 0 };
     uint8_t kem_id_arr[2];
-    kem_extension_size kem_id;
+    kem_extension_size kem_id = 0;
     struct s2n_blob kem_id_blob = { 0 };
     POSIX_GUARD(s2n_blob_init(&kem_id_blob, kem_id_arr, s2n_array_len(kem_id_arr)));
     POSIX_GUARD(s2n_stuffer_init(&kem_id_stuffer, &kem_id_blob));

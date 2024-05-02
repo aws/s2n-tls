@@ -123,7 +123,7 @@ int main(int argc, char **argv)
 
         /* Return NULL by default / for new connection */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             EXPECT_NULL(s2n_get_server_name(conn));
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 
         /* Return server_name if set */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_set_server_name(conn, test_server_name));
 
@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 
         /* Return server_name if server_name extension parsed, but not yet processed */
         {
-            struct s2n_connection *client_conn, *server_conn;
+            struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
             EXPECT_SUCCESS(s2n_client_server_name_extension.send(client_conn, &stuffer));
 
-            s2n_extension_type_id extension_id;
+            s2n_extension_type_id extension_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_SERVER_NAME, &extension_id));
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension_type = TLS_EXTENSION_SERVER_NAME;
             server_conn->client_hello.extensions.parsed_extensions[extension_id].extension = stuffer.blob;
@@ -173,15 +173,15 @@ int main(int argc, char **argv)
         {
             s2n_server_name_test_callback_flag = false;
 
-            struct s2n_config *config;
+            struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_server_name_test_callback, &test_server_name));
 
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_set_server_name(client_conn, test_server_name));
 
-            struct s2n_connection *server_conn;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
@@ -204,7 +204,7 @@ int main(int argc, char **argv)
 
     /* s2n_connection_get_protocol_version */
     {
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_set_test_protocol_versions(client_conn));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 
     /* Test: get selected digest alg */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_tls_hash_algorithm output = { 0 };
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 
     /* Test: get selected signature alg */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         s2n_tls_signature_algorithm output = { 0 };
@@ -627,6 +627,29 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     };
 
+    /* Test s2n_connection_set_config */
+    {
+        /* when the config is not compliant with the security policy override, then
+         * s2n_connection_set_config will fail 
+         */
+        {
+            struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
+            rfc9151_applied_locally.certificate_preferences_apply_locally = true;
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
+
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
+            conn->security_policy_override = &rfc9151_applied_locally;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        };
+    };
+
     /* Test s2n_connection_get_wire_bytes_out */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -905,6 +928,59 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(send_count, expected_send_count);
         EXPECT_EQUAL(recv_count, expected_recv_count);
     }
+
+    /* Test s2n_connection_get_client_auth_type */
+    {
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, config));
+
+        /* Test: use defaults if no overrides set */
+        {
+            /* Ensure that defaults are still used if the override flags are not set,
+             * even if client_cert_auth_type is somehow set.
+             */
+            server->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+            client->client_cert_auth_type = S2N_CERT_AUTH_REQUIRED;
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_REQUIRED;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_OPTIONAL);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_NONE);
+        };
+
+        /* Test: use config overrides if set */
+        {
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_REQUIRED);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_REQUIRED);
+        };
+
+        /* Test: use connection overrides if set */
+        {
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(client, S2N_CERT_AUTH_NONE));
+            EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server, S2N_CERT_AUTH_OPTIONAL));
+
+            s2n_cert_auth_type auth_type = S2N_CERT_AUTH_REQUIRED;
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(client, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_NONE);
+            EXPECT_SUCCESS(s2n_connection_get_client_auth_type(server, &auth_type));
+            EXPECT_EQUAL(auth_type, S2N_CERT_AUTH_OPTIONAL);
+        };
+    };
 
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(rsa_chain_and_key));

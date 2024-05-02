@@ -119,3 +119,19 @@ S2N_RESULT s2n_crypto_parameters_switch(struct s2n_connection *conn)
 
     return S2N_RESULT_OK;
 }
+
+int s2n_connection_get_master_secret(const struct s2n_connection *conn,
+        uint8_t *secret_bytes, size_t max_size)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(secret_bytes);
+    POSIX_ENSURE(max_size >= S2N_TLS_SECRET_LEN, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    POSIX_ENSURE(conn->actual_protocol_version < S2N_TLS13, S2N_ERR_INVALID_STATE);
+    /* Technically the master secret is available earlier, but after the handshake
+     * is the simplest rule and matches our TLS1.3 exporter behavior. */
+    POSIX_ENSURE(is_handshake_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+    /* Final sanity check: TLS1.2 doesn't use the extract_secret_type field */
+    POSIX_ENSURE_EQ(conn->secrets.extract_secret_type, S2N_NONE_SECRET);
+    POSIX_CHECKED_MEMCPY(secret_bytes, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN);
+    return S2N_SUCCESS;
+}

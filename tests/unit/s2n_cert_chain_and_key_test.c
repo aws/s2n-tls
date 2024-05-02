@@ -45,14 +45,14 @@ static struct s2n_cert_chain_and_key *test_cert_tiebreak_cb(struct s2n_cert_chai
 
 int main(int argc, char **argv)
 {
-    struct s2n_config *server_config;
-    struct s2n_config *client_config;
-    struct s2n_connection *server_conn;
-    struct s2n_connection *client_conn;
-    char *alligator_cert;
-    char *alligator_key;
-    char *cert_chain;
-    char *private_key;
+    struct s2n_config *server_config = NULL;
+    struct s2n_config *client_config = NULL;
+    struct s2n_connection *server_conn = NULL;
+    struct s2n_connection *client_conn = NULL;
+    char *alligator_cert = NULL;
+    char *alligator_key = NULL;
+    char *cert_chain = NULL;
+    char *private_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     /* Create config with s2n_config_add_cert_chain_and_key_to_store API with multiple certs */
     {
-        struct s2n_cert_chain_and_key *default_cert;
+        struct s2n_cert_chain_and_key *default_cert = NULL;
         /* Associated data to attach to each certificate to use in the tiebreak callback. */
         int tiebreak_priorites[NUM_TIED_CERTS] = { 0 };
         /* Collection of certs with the same domain name that need to have ties resolved. */
@@ -185,6 +185,34 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key(config, cert_chain, private_key),
                     S2N_ERR_CERT_OWNERSHIP);
             EXPECT_EQUAL(config->cert_ownership, S2N_APP_OWNED);
+        };
+    };
+
+    /* s2n_cert_chain_and_key_load_pem */
+    {
+        /* when loading a chain, all certs have a info associated with them and root is self-signed */
+        {
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&chain, "ec", "ecdsa",
+                    "p384", "sha256"));
+            struct s2n_cert *leaf = chain->cert_chain->head;
+            EXPECT_EQUAL(leaf->info.self_signed, false);
+            EXPECT_EQUAL(leaf->info.signature_nid, NID_ecdsa_with_SHA256);
+            EXPECT_EQUAL(leaf->info.signature_digest_nid, NID_sha256);
+
+            struct s2n_cert *intermediate = leaf->next;
+            EXPECT_NOT_NULL(intermediate);
+            EXPECT_EQUAL(intermediate->info.self_signed, false);
+            EXPECT_EQUAL(intermediate->info.signature_nid, NID_ecdsa_with_SHA256);
+            EXPECT_EQUAL(intermediate->info.signature_digest_nid, NID_sha256);
+
+            struct s2n_cert *root = intermediate->next;
+            EXPECT_NOT_NULL(intermediate);
+            EXPECT_NULL(root->next);
+            EXPECT_EQUAL(root->info.self_signed, true);
+            EXPECT_EQUAL(root->info.signature_nid, NID_ecdsa_with_SHA256);
+            EXPECT_EQUAL(root->info.signature_digest_nid, NID_sha256);
         };
     };
 

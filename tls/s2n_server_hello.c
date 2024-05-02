@@ -99,8 +99,8 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn->secure);
 
     struct s2n_stuffer *in = &conn->handshake.io;
-    uint8_t compression_method;
-    uint8_t session_id_len;
+    uint8_t compression_method = 0;
+    uint8_t session_id_len = 0;
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN];
     uint8_t session_id[S2N_TLS_SESSION_ID_MAX_LEN];
 
@@ -212,7 +212,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          */
         POSIX_ENSURE(conn->early_data_state != S2N_EARLY_DATA_REQUESTED, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
-        const struct s2n_security_policy *security_policy;
+        const struct s2n_security_policy *security_policy = NULL;
         POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
         if (conn->server_protocol_version < security_policy->minimum_protocol_version

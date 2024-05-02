@@ -122,12 +122,12 @@ int main(int argc, char **argv)
 
     /* Test s2n_record_max_write_payload_size() have proper checks in place */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         /* we deal with the default null cipher suite for now, as it makes reasoning
          * about easier s2n_record_max_write_payload_size(), as it incur 0 overheads */
-        uint16_t size;
+        uint16_t size = 0;
         server_conn->max_outgoing_fragment_length = ONE_BLOCK;
         EXPECT_OK(s2n_record_max_write_payload_size(server_conn, &size));
         EXPECT_EQUAL(size, ONE_BLOCK);
@@ -231,7 +231,7 @@ int main(int argc, char **argv)
 
     /* Test s2n_record_min_write_payload_size() */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         uint16_t size = 0;
@@ -397,7 +397,7 @@ int main(int argc, char **argv)
 
     /* Test large fragment/record sending for TLS 1.3 */
     {
-        struct s2n_connection *server_conn;
+        struct s2n_connection *server_conn = NULL;
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         struct s2n_cipher_suite *cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
         server_conn->actual_protocol_version = S2N_TLS13;
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
         small_io_vec.iov_base = small_blob.data;
         small_io_vec.iov_len = small_blob.size;
 
-        int bytes_taken;
+        int bytes_taken = 0;
 
         const uint16_t TLS13_RECORD_OVERHEAD = 22;
         EXPECT_SUCCESS(bytes_taken = s2n_record_writev(server_conn, TLS_APPLICATION_DATA, &small_io_vec, 1, 0, small_blob.size));

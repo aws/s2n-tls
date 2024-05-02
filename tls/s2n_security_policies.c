@@ -16,6 +16,7 @@
 #include "tls/s2n_security_policies.h"
 
 #include "api/s2n.h"
+#include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
 #include "utils/s2n_safety.h"
 
@@ -27,7 +28,7 @@ const struct s2n_security_policy security_policy_20170210 = {
     .ecc_preferences = &s2n_ecc_preferences_20140601,
 };
 
-const struct s2n_security_policy security_policy_default_tls13 = {
+const struct s2n_security_policy security_policy_20240417 = {
     .minimum_protocol_version = S2N_TLS10,
     .cipher_preferences = &cipher_preferences_20210831,
     .kem_preferences = &kem_preferences_null,
@@ -42,7 +43,7 @@ const struct s2n_security_policy security_policy_default_tls13 = {
  *
  * Supports TLS1.2
  */
-const struct s2n_security_policy security_policy_default_fips = {
+const struct s2n_security_policy security_policy_20240416 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_default_fips,
     .kem_preferences = &kem_preferences_null,
@@ -58,6 +59,19 @@ const struct s2n_security_policy security_policy_default_fips = {
 const struct s2n_security_policy security_policy_20230317 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20230317,
+    .kem_preferences = &kem_preferences_null,
+    .signature_preferences = &s2n_signature_preferences_20230317,
+    .certificate_signature_preferences = &s2n_signature_preferences_20230317,
+    .ecc_preferences = &s2n_ecc_preferences_20201021,
+    .rules = {
+            [S2N_PERFECT_FORWARD_SECRECY] = true,
+            [S2N_FIPS_140_3] = true,
+    },
+};
+
+const struct s2n_security_policy security_policy_20240331 = {
+    .minimum_protocol_version = S2N_TLS12,
+    .cipher_preferences = &cipher_preferences_20240331,
     .kem_preferences = &kem_preferences_null,
     .signature_preferences = &s2n_signature_preferences_20230317,
     .certificate_signature_preferences = &s2n_signature_preferences_20230317,
@@ -1058,9 +1072,12 @@ const struct s2n_security_policy security_policy_null = {
 
 struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "default", .security_policy = &security_policy_20170210, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "default_tls13", .security_policy = &security_policy_default_tls13, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
-    { .version = "default_fips", .security_policy = &security_policy_default_fips, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_tls13", .security_policy = &security_policy_20240417, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "default_fips", .security_policy = &security_policy_20240416, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20230317", .security_policy = &security_policy_20230317, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20240331", .security_policy = &security_policy_20240331, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20240417", .security_policy = &security_policy_20240417, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    { .version = "20240416", .security_policy = &security_policy_20240416, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-04", .security_policy = &security_policy_elb_2015_04, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     /* Not a mistake. TLS-1-0-2015-05 and 2016-08 are equivalent */
     { .version = "ELBSecurityPolicy-TLS-1-0-2015-05", .security_policy = &security_policy_elb_2016_08, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1213,6 +1230,7 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
 
 int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const char *version)
 {
+    POSIX_ENSURE_REF(conn);
     const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_find_security_policy_from_version(version, &security_policy));
     POSIX_ENSURE_REF(security_policy);
@@ -1223,6 +1241,10 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
 
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
+
+    /* If the certificates loaded in the config are incompatible with the security 
+     * policy's certificate preferences, return an error. */
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
 
     conn->security_policy_override = security_policy;
     return 0;
@@ -1458,4 +1480,65 @@ S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *sec
         }
     }
     RESULT_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
+}
+
+S2N_RESULT s2n_security_policy_validate_cert_signature(const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_info *info, s2n_error error)
+{
+    RESULT_ENSURE_REF(info);
+    RESULT_ENSURE_REF(security_policy);
+    const struct s2n_signature_preferences *sig_preferences = security_policy->certificate_signature_preferences;
+
+    if (sig_preferences != NULL) {
+        for (size_t i = 0; i < sig_preferences->count; i++) {
+            if (sig_preferences->signature_schemes[i]->libcrypto_nid == info->signature_nid) {
+                return S2N_RESULT_OK;
+            }
+        }
+
+        RESULT_BAIL(error);
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_security_policy_validate_cert_key(const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_info *info, s2n_error error)
+{
+    RESULT_ENSURE_REF(info);
+    RESULT_ENSURE_REF(security_policy);
+    const struct s2n_certificate_key_preferences *key_preferences = security_policy->certificate_key_preferences;
+
+    if (key_preferences != NULL) {
+        for (size_t i = 0; i < key_preferences->count; i++) {
+            if (key_preferences->certificate_keys[i]->public_key_libcrypto_nid == info->public_key_nid
+                    && key_preferences->certificate_keys[i]->bits == info->public_key_bits) {
+                return S2N_RESULT_OK;
+            }
+        }
+        RESULT_BAIL(error);
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_security_policy_validate_certificate_chain(
+        const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_chain_and_key *cert_key_pair)
+{
+    RESULT_ENSURE_REF(security_policy);
+    RESULT_ENSURE_REF(cert_key_pair);
+    RESULT_ENSURE_REF(cert_key_pair->cert_chain);
+
+    if (!security_policy->certificate_preferences_apply_locally) {
+        return S2N_RESULT_OK;
+    }
+
+    struct s2n_cert *current = cert_key_pair->cert_chain->head;
+    while (current != NULL) {
+        RESULT_GUARD(s2n_security_policy_validate_cert_key(security_policy, &current->info,
+                S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
+        RESULT_GUARD(s2n_security_policy_validate_cert_signature(security_policy, &current->info,
+                S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT));
+        current = current->next;
+    }
+    return S2N_RESULT_OK;
 }

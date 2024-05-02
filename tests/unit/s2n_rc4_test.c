@@ -43,7 +43,7 @@ int main(int argc, char **argv)
         EXPECT_FALSE(s2n_rc4.is_available());
     }
 
-    struct s2n_connection *conn;
+    struct s2n_connection *conn = NULL;
     uint8_t mac_key[] = "sample mac key";
     uint8_t rc4_key[] = "123456789012345";
     struct s2n_blob key_iv = { 0 };
@@ -80,7 +80,7 @@ int main(int argc, char **argv)
         for (size_t i = 0; i <= S2N_DEFAULT_FRAGMENT_LENGTH + 1; i++) {
             struct s2n_blob in = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&in, random_data, i));
-            int bytes_written;
+            int bytes_written = 0;
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->out));
 
@@ -115,8 +115,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(bytes_written + 20, s2n_stuffer_data_available(&conn->in));
 
             /* Let's decrypt it */
-            uint8_t content_type;
-            uint16_t fragment_length;
+            uint8_t content_type = 0;
+            uint16_t fragment_length = 0;
             EXPECT_SUCCESS(s2n_record_header_parse(conn, &content_type, &fragment_length));
             EXPECT_SUCCESS(s2n_record_parse(conn));
             EXPECT_EQUAL(content_type, TLS_APPLICATION_DATA);

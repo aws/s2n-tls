@@ -33,17 +33,17 @@
 
 int main(int argc, char **argv)
 {
-    struct s2n_connection *server_conn;
-    struct s2n_connection *client_conn;
-    struct s2n_stuffer *hello_stuffer;
-    struct s2n_config *tls12_config;
-    struct s2n_config *tls13_config;
-    struct s2n_cert_chain_and_key *chain_and_key;
-    struct s2n_cert_chain_and_key *tls13_chain_and_key;
-    char *cert_chain;
-    char *tls13_cert_chain;
-    char *private_key;
-    char *tls13_private_key;
+    struct s2n_connection *server_conn = NULL;
+    struct s2n_connection *client_conn = NULL;
+    struct s2n_stuffer *hello_stuffer = NULL;
+    struct s2n_config *tls12_config = NULL;
+    struct s2n_config *tls13_config = NULL;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
+    struct s2n_cert_chain_and_key *tls13_chain_and_key = NULL;
+    char *cert_chain = NULL;
+    char *tls13_cert_chain = NULL;
+    char *private_key = NULL;
+    char *tls13_private_key = NULL;
 
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
@@ -389,7 +389,7 @@ int main(int argc, char **argv)
 
         const size_t test_session_id_len = 10;
 
-        struct s2n_config *quic_config;
+        struct s2n_config *quic_config = NULL;
         EXPECT_NOT_NULL(quic_config = s2n_config_new());
         EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(quic_config, tls13_chain_and_key));
@@ -507,6 +507,45 @@ int main(int argc, char **argv)
 
         s2n_connection_free(server_conn);
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+    };
+
+    /* Test: Parse fragmented sslv2 client hello.
+     *
+     * Even if the sslv2 client hello is sent in one packet, there is no requirement
+     * that our first call to conn->recv returns the whole message. sslv2 uses separate
+     * record parsing code, so we need to ensure that those paths can handle partial reads.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, tls12_config));
+
+        struct s2n_stuffer server_in = { 0 };
+        uint8_t sslv2_client_hello[] = {
+            SSLv2_CLIENT_HELLO_HEADER,
+            SSLv2_CLIENT_HELLO_PREFIX,
+            SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+            SSLv2_CLIENT_HELLO_CHALLENGE,
+        };
+        EXPECT_SUCCESS(s2n_blob_init(&server_in.blob,
+                sslv2_client_hello, sizeof(sslv2_client_hello)));
+        EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&server_in, server));
+
+        /* Read message one byte at a time */
+        s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+        for (size_t i = 0; i < sizeof(sslv2_client_hello); i++) {
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_negotiate_until_message(server, &blocked, SERVER_HELLO),
+                    S2N_ERR_IO_BLOCKED);
+            EXPECT_EQUAL(blocked, S2N_BLOCKED_ON_READ);
+            EXPECT_SUCCESS(s2n_stuffer_skip_write(&server_in, 1));
+        }
+
+        /* Successfully read the full message */
+        EXPECT_OK(s2n_negotiate_until_message(server, &blocked, SERVER_HELLO));
+        EXPECT_EQUAL(server->client_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server->client_hello_version, S2N_SSLv2);
+        EXPECT_TRUE(server->client_hello.sslv2);
     };
 
     s2n_config_free(tls12_config);

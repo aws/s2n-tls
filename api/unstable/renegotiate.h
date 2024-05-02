@@ -110,6 +110,8 @@ S2N_API int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n
  *
  * @note This method MUST be called before s2n_renegotiate.
  * @note Calling this method on a server connection will fail. s2n-tls servers do not support renegotiation.
+ * @note This method will fail if the connection has indicated that it will be serialized with
+ * `s2n_config_set_serialization_version()`.
  *
  * @param conn A pointer to the connection object.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on error.

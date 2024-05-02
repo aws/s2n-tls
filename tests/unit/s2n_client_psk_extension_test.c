@@ -74,28 +74,6 @@ static int mock_time(void *data, uint64_t *nanoseconds)
     return S2N_SUCCESS;
 }
 
-static int s2n_setup_ticket_key(struct s2n_config *config)
-{
-    /**
-     *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
-     *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
-     *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
-     **/
-    S2N_BLOB_FROM_HEX(ticket_key,
-            "077709362c2e32df0ddc3f0dc47bba63"
-            "90b6c73bb50f9c3122ec844ad7c2b3e5");
-
-    /* Set up encryption key */
-    uint64_t current_time = 0;
-    uint8_t ticket_key_name[16] = "2016.07.26.15\0";
-
-    POSIX_GUARD(s2n_config_set_session_tickets_onoff(config, 1));
-    POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &current_time));
-    POSIX_GUARD(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
-            ticket_key.data, ticket_key.size, current_time / ONE_SEC_IN_NANOS));
-    return S2N_SUCCESS;
-}
-
 static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct s2n_stuffer *output)
 {
     conn->tls13_ticket_fields = (struct s2n_ticket_fields){ 0 };
@@ -151,7 +129,7 @@ int main(int argc, char **argv)
 
     /* Test: s2n_client_psk_is_missing */
     {
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         /* Okay if early data not requested */
@@ -176,7 +154,7 @@ int main(int argc, char **argv)
     {
         struct s2n_psk *psk = NULL;
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
         EXPECT_FALSE(s2n_client_psk_extension.should_send(NULL));
@@ -289,7 +267,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_psk *psk = NULL;
@@ -311,7 +289,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &identity_size));
             EXPECT_EQUAL(identity_size, sizeof(test_identity));
 
-            uint8_t *identity_data;
+            uint8_t *identity_data = NULL;
             EXPECT_NOT_NULL(identity_data = s2n_stuffer_raw_read(&out, identity_size));
             EXPECT_BYTEARRAY_EQUAL(identity_data, test_identity, sizeof(test_identity));
 
@@ -333,7 +311,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_psk_test_case test_cases[] = {
@@ -367,7 +345,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&out, &identity_size));
                 EXPECT_EQUAL(identity_size, test_cases[i].identity_size);
 
-                uint8_t *identity_data;
+                uint8_t *identity_data = NULL;
                 EXPECT_NOT_NULL(identity_data = s2n_stuffer_raw_read(&out, identity_size));
                 EXPECT_BYTEARRAY_EQUAL(identity_data, test_cases[i].identity, test_cases[i].identity_size);
 
@@ -389,7 +367,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer out = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_config *config = s2n_config_new();
@@ -445,7 +423,7 @@ int main(int argc, char **argv)
             };
             struct s2n_psk_test_case test_cases[] = { matching_psk, non_matching_psk };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             conn->handshake.handshake_type = HELLO_RETRY_REQUEST;
             conn->secure->cipher_suite = &s2n_tls13_aes_256_gcm_sha384;
@@ -557,7 +535,7 @@ int main(int argc, char **argv)
     {
         /* Safety checks */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_select_external_psk(conn, NULL), S2N_ERR_NULL);
@@ -643,7 +621,7 @@ int main(int argc, char **argv)
         };
 
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->psk_params.type = S2N_PSK_TYPE_EXTERNAL;
 
@@ -701,7 +679,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -736,7 +714,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -809,7 +787,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->actual_protocol_version = S2N_TLS13;
@@ -848,7 +826,7 @@ int main(int argc, char **argv)
         {
             struct s2n_stuffer wire_identities_in = { 0 };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             EXPECT_ERROR_WITH_ERRNO(s2n_client_psk_recv_identity_list(conn, NULL), S2N_ERR_NULL);
@@ -861,7 +839,7 @@ int main(int argc, char **argv)
         {
             struct s2n_stuffer empty_wire_identities_in = { 0 };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
 
@@ -873,7 +851,7 @@ int main(int argc, char **argv)
 
         /* Default selection logic: receive a list without a match */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
 
@@ -895,7 +873,7 @@ int main(int argc, char **argv)
 
         /* Default selection logic: receive a list with a match */
         {
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
 
@@ -922,7 +900,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_error_select_psk_identity_callback, NULL));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -945,7 +923,7 @@ int main(int argc, char **argv)
             uint16_t expected_wire_choice = 0;
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &expected_wire_choice));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
@@ -976,7 +954,7 @@ int main(int argc, char **argv)
             uint16_t expected_wire_choice = 10;
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &expected_wire_choice));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1006,7 +984,7 @@ int main(int argc, char **argv)
             uint16_t expected_wire_choice = 0;
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_select_psk_identity_callback, &expected_wire_choice));
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1044,11 +1022,11 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config_with_cb);
             uint16_t expected_wire_choice = 0;
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config_with_cb, s2n_test_select_psk_identity_callback, &expected_wire_choice));
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config_with_cb));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config_with_cb));
 
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -1136,7 +1114,7 @@ int main(int argc, char **argv)
         struct s2n_blob valid_binder = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&valid_binder, valid_binder_data, sizeof(valid_binder_data)));
 
-        struct s2n_connection *conn;
+        struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
         DEFER_CLEANUP(struct s2n_psk psk = { 0 }, s2n_psk_wipe);
@@ -1227,8 +1205,8 @@ int main(int argc, char **argv)
     /* Test: s2n_client_psk_recv */
     {
         const uint8_t client_hello_data[] = "ClientHello";
-        s2n_extension_type_id key_share_id;
-        s2n_extension_type_id psk_ke_mode_id;
+        s2n_extension_type_id key_share_id = 0;
+        s2n_extension_type_id psk_ke_mode_id = 0;
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PSK_KEY_EXCHANGE_MODES, &psk_ke_mode_id));
         EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_KEY_SHARE, &key_share_id));
 
@@ -1239,7 +1217,7 @@ int main(int argc, char **argv)
                 0x00, 0x00, /* binder list size */
             };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->client_hello.extensions.count = 1;
 
@@ -1279,7 +1257,7 @@ int main(int argc, char **argv)
                 0x00, 0x00,             /* binder list size */
             };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_EXTERNAL));
             conn->client_hello.extensions.count = 1;
@@ -1321,7 +1299,7 @@ int main(int argc, char **argv)
         {
             const uint8_t extension_data[] = { 0 };
 
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->client_hello.extensions.count = 1;
 
@@ -1343,7 +1321,7 @@ int main(int argc, char **argv)
         /* Receive a psk extension with an unknown psk key exchange mode */
         {
             const uint8_t extension_data[] = { 0 };
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->client_hello.extensions.count = 1;
 
@@ -1367,7 +1345,7 @@ int main(int argc, char **argv)
          * keyshare_extension */
         {
             const uint8_t extension_data[] = { 0 };
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->client_hello.extensions.count = 1;
 
@@ -1389,11 +1367,11 @@ int main(int argc, char **argv)
 
         /* The extension does not appear last in the extension list */
         {
-            s2n_extension_type_id psk_ext_id;
+            s2n_extension_type_id psk_ext_id = 0;
             EXPECT_SUCCESS(s2n_extension_supported_iana_value_to_id(TLS_EXTENSION_PRE_SHARED_KEY, &psk_ext_id));
 
             struct s2n_stuffer extension = { 0 };
-            struct s2n_connection *conn;
+            struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             conn->client_hello.extensions.count = 2;
@@ -1415,11 +1393,11 @@ int main(int argc, char **argv)
                 0x12, 0x34, 0x56, /* Message: random data */
             };
 
-            struct s2n_connection *client_conn;
+            struct s2n_connection *client_conn = NULL;
             EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
             struct s2n_stuffer *client_out = &client_conn->handshake.io;
 
-            struct s2n_connection *server_conn;
+            struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
             EXPECT_OK(s2n_connection_set_psk_type(server_conn, S2N_PSK_TYPE_EXTERNAL));
             struct s2n_stuffer *server_in = &server_conn->handshake.io;
@@ -1469,7 +1447,7 @@ int main(int argc, char **argv)
     /* Functional test */
     if (s2n_is_tls13_fully_supported()) {
         /* Setup connections */
-        struct s2n_connection *client_conn, *server_conn;
+        struct s2n_connection *client_conn = NULL, *server_conn = NULL;
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_OK(s2n_connection_set_psk_type(server_conn, S2N_PSK_TYPE_EXTERNAL));
@@ -1549,7 +1527,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
-        EXPECT_SUCCESS(s2n_setup_ticket_key(config));
+        EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);

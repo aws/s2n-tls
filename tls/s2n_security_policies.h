@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_kem_preferences.h"
@@ -70,6 +71,16 @@ struct s2n_security_policy {
      * https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7
      */
     const struct s2n_ecc_preferences *ecc_preferences;
+    /* This field determines what public keys are allowed for use. It restricts
+     * both the type of the key (Elliptic Curve, RSA w/ Encryption, RSA PSS) and
+     * the size of the key. Note that this field structure is likely to change
+     * until https://github.com/aws/s2n-tls/issues/4435 is closed.
+     */
+    const struct s2n_certificate_key_preferences *certificate_key_preferences;
+    /* This field controls whether the certificate_signature_preferences apply 
+     * to local certs loaded on configs.
+     */
+    bool certificate_preferences_apply_locally;
     bool rules[S2N_SECURITY_RULES_COUNT];
 };
 
@@ -103,8 +114,10 @@ extern const struct s2n_security_policy security_policy_20190214_gcm;
 extern const struct s2n_security_policy security_policy_20190801;
 extern const struct s2n_security_policy security_policy_20190802;
 extern const struct s2n_security_policy security_policy_20230317;
-extern const struct s2n_security_policy security_policy_default_tls13;
-extern const struct s2n_security_policy security_policy_default_fips;
+extern const struct s2n_security_policy security_policy_20240331;
+extern const struct s2n_security_policy security_policy_20240417;
+extern const struct s2n_security_policy security_policy_20240416;
+extern const struct s2n_security_policy security_policy_rfc9151;
 extern const struct s2n_security_policy security_policy_test_all;
 
 extern const struct s2n_security_policy security_policy_test_all_tls12;
@@ -190,4 +203,14 @@ bool s2n_security_policy_supports_tls13(const struct s2n_security_policy *securi
 int s2n_find_security_policy_from_version(const char *version, const struct s2n_security_policy **security_policy);
 int s2n_validate_kem_preferences(const struct s2n_kem_preferences *kem_preferences, bool pq_kem_extension_required);
 S2N_RESULT s2n_validate_certificate_signature_preferences(const struct s2n_signature_preferences *s2n_certificate_signature_preferences);
-S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy, const char **version);
+S2N_RESULT s2n_security_policy_get_version(const struct s2n_security_policy *security_policy,
+        const char **version);
+/* Checks to see if a certificate has a signature algorithm that's in our 
+ * certificate_signature_preferences list 
+ */
+S2N_RESULT s2n_security_policy_validate_certificate_chain(const struct s2n_security_policy *security_policy,
+        const struct s2n_cert_chain_and_key *cert_key_pair);
+S2N_RESULT s2n_security_policy_validate_cert_signature(
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
+S2N_RESULT s2n_security_policy_validate_cert_key(
+        const struct s2n_security_policy *security_policy, const struct s2n_cert_info *info, s2n_error error);
