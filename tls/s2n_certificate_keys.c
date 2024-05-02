@@ -84,9 +84,24 @@ const struct s2n_certificate_key s2n_ec_p521 = {
 };
 
 const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc9151#section-5.1
+     *# CNSA (D)TLS connections MUST use secp384r1
+     **/
     &s2n_ec_p384,
+
+    /**
+     *= https://www.rfc-editor.org/rfc/rfc9151#section-5.2
+     *# CNSA specifies a minimum modulus size of 3072 bits; however, only two
+     *# modulus sizes (3072 bits and 4096 bits) are supported by this profile.
+     **/
     &s2n_rsa_rsae_3072,
     &s2n_rsa_rsae_4096,
+
+    /* OID:rsassa-PSS keys are allowed by rfc9151, but s2n-tls does not currently
+     * support validating the digest size on RSA-PSS signatures, so they are not
+     * allowed in s2n_certificate_signature_preferences_rfc9151. \
+     */
 };
 
 const struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 = {
