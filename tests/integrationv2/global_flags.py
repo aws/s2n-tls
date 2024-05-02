@@ -32,4 +32,7 @@ def get_flag(name, default=None):
 
 def set_flag(name, value):
     """Set the value of a flag"""
-    _flags[name] = value
+    if value is None:
+        raise TypeError(f"Value for {name} can not be None")
+    else:
+        _flags[name] = value

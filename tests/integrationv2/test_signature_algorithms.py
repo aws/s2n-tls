@@ -68,6 +68,7 @@ def skip_ciphers(*args, **kwargs):
     return invalid_test_parameters(*args, **kwargs)
 
 
+@pytest.mark.fix4nix
 @pytest.mark.uncollect_if(func=skip_ciphers)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])
@@ -124,6 +125,7 @@ def test_s2n_server_signature_algorithms(managed_process, cipher, provider, othe
         assert random_bytes in results.stdout
 
 
+@pytest.mark.fix4nix
 @pytest.mark.uncollect_if(func=skip_ciphers)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL, GnuTLS])

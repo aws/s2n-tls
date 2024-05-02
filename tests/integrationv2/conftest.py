@@ -1,5 +1,10 @@
+import pytest
+from os import getenv
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_NO_PQ, S2N_USE_CRITERION
+from platform import machine
 
+ALLPLATFORMS = set(["aarch64", "x86_64"])
+NOTNIXMARKS = set(["fix4nix"])
 
 def pytest_addoption(parser):
     parser.addoption("--provider-version", action="store", dest="provider-version",
@@ -17,10 +22,6 @@ def pytest_configure(config):
     pytest hook that adds the function to deselect tests if the parameters
     don't makes sense.
     """
-    config.addinivalue_line(
-        "markers", "uncollect_if(*, func): function to unselect tests from parametrization"
-    )
-
     no_pq = config.getoption('no-pq', 0)
     fips_mode = config.getoption('fips-mode', 0)
     if no_pq == 1:
@@ -49,3 +50,27 @@ def pytest_collection_modifyitems(config, items):
     if removed:
         config.hook.pytest_deselected(items=removed)
         items[:] = kept
+
+
+def pytest_runtest_setup(item: pytest.Item) -> None:
+    """
+    Automatically skip specific tests, using marks.
+    e.g. at the beginning of a test only to be run on x86:
+    @pytest.mark.x86_64
+
+    or to skip if we're in a Nix environment:
+    @pytest.mark.fix4nix
+    """
+    # Find the intersection of all pytest.marks and ALLPLATFORMS.
+    # By default, with no platform marks, this set will be empty.
+    marked_platform = ALLPLATFORMS.intersection(mark.name for mark in item.iter_markers())
+    #Get the current runtime platform
+    platform = machine()
+    # Skip this test if a platform mark was defined but doesn't match the current platform.
+    if platform is not None and marked_platform and platform not in marked_platform:
+        pytest.skip(f"Platform specific test; not running on {platform}")
+
+    # Look for a not-in-nix mark, and check for a Nix defined env. var to skip the test.
+    not_nix_mark = NOTNIXMARKS.intersection(mark.name for mark in item.iter_markers())
+    if getenv("IN_NIX_SHELL", None) and not_nix_mark:
+        pytest.skip(f"Nix detected; skipping this test")

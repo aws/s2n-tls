@@ -70,6 +70,7 @@ def test_nothing():
     assert True
 
 
+@pytest.mark.fix4nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])
@@ -123,6 +124,7 @@ def test_s2n_server_handles_padded_records(managed_process, cipher, provider, cu
             cipher.name)) in server_results.stdout
 
 
+@pytest.mark.fix4nix
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [OpenSSL])

@@ -66,6 +66,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
                 cipher.name)) in server_results.stdout
 
 
+@pytest.mark.x86_64
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS, SSLv3Provider])
