@@ -449,6 +449,7 @@ int main(int argc, char *const *argv)
                 break;
             case OPT_DESERIALIZE_IN:
                 conn_settings.deserialize_in = optarg;
+                break;
             case 'A':
                 alpn = optarg;
                 break;

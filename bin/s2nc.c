@@ -434,6 +434,7 @@ int main(int argc, char *const *argv)
                 break;
             case OPT_DESERIALIZE_IN:
                 deserialize_in = optarg;
+                break;
             case 'T':
                 session_ticket = 0;
                 break;
