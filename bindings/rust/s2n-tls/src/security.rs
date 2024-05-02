@@ -84,12 +84,30 @@ pub const DEFAULT: Policy = policy!("default");
 /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
 pub const DEFAULT_TLS13: Policy = policy!("default_tls13");
 
+/// Default FIPS compliant policy
+///
+/// # Warning
+///
+/// Cipher suites, curves, signature algorithms, or other security policy options
+/// may be added or removed from "default_fips" in order to keep it up to date with
+/// current security best practices.
+///
+/// That means that updating the library may cause the policy to change. If peers
+/// are expected to be reasonably modern and support standard options, then this
+/// should not be a problem. But if peers rely on a deprecated option that is removed,
+/// they may be unable to connect.
+///
+/// If you instead need a static, versioned policy, choose one according to the s2n-tls usage guide:
+/// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+pub const DEFAULT_FIPS: Policy = policy!("default_fips");
+
 #[cfg(feature = "pq")]
 pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
 
 pub const ALL_POLICIES: &[Policy] = &[
     DEFAULT,
     DEFAULT_TLS13,
+    DEFAULT_FIPS,
     #[cfg(feature = "pq")]
     TESTING_PQ,
 ];
