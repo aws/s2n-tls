@@ -1407,8 +1407,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
 
-        /* Expect a resumption handshake by replacing expired key with a valid key. A full handshake 
-         * will take place instead if session ticket key is not re-assigned after expiring
+        /* Expect a resumption handshake because the session ticket is valid.
+         * If a full handshake is performed instead, then the session ticket is incorrectly
+         * being evaluated as invalid. This was previously known to happen with a decrypt-only
+         * key because we'd incorrectly try to set a TLS1.2-only handshake type flag,
+         * triggering an error while decrypting the session ticket.
          */
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server));
     }
