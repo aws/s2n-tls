@@ -379,9 +379,9 @@ int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_
     if (settings.deserialize_in) {
         size_t deserialize_length = 0;
         GUARD_RETURN(get_file_size(settings.deserialize_in, &deserialize_length), "Failed to read serialize-in file size");
-        ENSURE_EXIT(deserialize_length <= UINT32_MAX, "serialize-in file size is too large");
+        ENSURE_RETURN(deserialize_length <= UINT32_MAX, "serialize-in file size is too large");
         uint8_t *mem = malloc(deserialize_length);
-        GUARD_EXIT_NULL(mem);
+        GUARD_RETURN_NULL(mem);
         GUARD_RETURN(load_file_to_array(settings.deserialize_in, mem, deserialize_length), "Failed to read serialize-in file");
         GUARD_RETURN(s2n_connection_deserialize(conn, mem, (uint32_t) deserialize_length), "Failed to deserialize connection");
         free(mem);

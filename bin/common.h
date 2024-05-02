@@ -43,9 +43,25 @@
         }                         \
     } while (0)
 
+#define GUARD_RETURN_NULL(x)                               \
+    do {                                                   \
+        if (x == NULL) {                                   \
+            fprintf(stderr, "NULL pointer encountered\n"); \
+            return -1;                                     \
+        }                                                  \
+    } while (0)
+
 #define GUARD_RETURN(x, msg)      \
     do {                          \
         if ((x) < 0) {            \
+            print_s2n_error(msg); \
+            return -1;            \
+        }                         \
+    } while (0)
+
+#define ENSURE_RETURN(x, msg)     \
+    do {                          \
+        if (!(x)) {               \
             print_s2n_error(msg); \
             return -1;            \
         }                         \

@@ -240,6 +240,15 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
+    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
+
+    if (settings.https_server) {
+        https(conn, settings.https_bench);
+    } else if (!settings.only_negotiate) {
+        bool stop_echo = false;
+        echo(conn, fd, &stop_echo);
+    }
+
     if (settings.serialize_out) {
         uint32_t serialize_length = 0;
         GUARD_EXIT(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
@@ -248,15 +257,6 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
         GUARD_EXIT(write_array_to_file(settings.serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
         free(mem);
-    }
-
-    GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
-
-    if (settings.https_server) {
-        https(conn, settings.https_bench);
-    } else if (!settings.only_negotiate) {
-        bool stop_echo = false;
-        echo(conn, fd, &stop_echo);
     }
 
     GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");

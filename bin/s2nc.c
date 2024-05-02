@@ -754,16 +754,6 @@ int main(int argc, char *const *argv)
             s2n_connection_set_dynamic_record_threshold(conn, dyn_rec_threshold, dyn_rec_timeout);
         }
 
-        if (serialize_out) {
-            uint32_t serialize_length = 0;
-            GUARD_EXIT(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
-            uint8_t *mem = malloc(serialize_length);
-            GUARD_EXIT_NULL(mem);
-            GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
-            GUARD_EXIT(write_array_to_file(serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
-            free(mem);
-        }
-
         GUARD_EXIT(s2n_connection_free_handshake(conn), "Error freeing handshake memory after negotiation");
 
         if (send_file != NULL) {
@@ -785,6 +775,16 @@ int main(int argc, char *const *argv)
 
             reneg_ctx.do_renegotiate = false;
             GUARD_EXIT(renegotiate(conn, sockfd, reneg_ctx.wait), "Renegotiation failed");
+        }
+
+        if (serialize_out) {
+            uint32_t serialize_length = 0;
+            GUARD_EXIT(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
+            uint8_t *mem = malloc(serialize_length);
+            GUARD_EXIT_NULL(mem);
+            GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
+            GUARD_EXIT(write_array_to_file(serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
+            free(mem);
         }
 
         GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
