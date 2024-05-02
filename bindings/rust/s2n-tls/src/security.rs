@@ -99,6 +99,7 @@ pub const DEFAULT_TLS13: Policy = policy!("default_tls13");
 ///
 /// If you instead need a static, versioned policy, choose one according to the s2n-tls usage guide:
 /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+#[cfg(feature = "fips")]
 pub const DEFAULT_FIPS: Policy = policy!("default_fips");
 
 #[cfg(feature = "pq")]
@@ -107,6 +108,7 @@ pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
 pub const ALL_POLICIES: &[Policy] = &[
     DEFAULT,
     DEFAULT_TLS13,
+    #[cfg(feature = "fips")]
     DEFAULT_FIPS,
     #[cfg(feature = "pq")]
     TESTING_PQ,
