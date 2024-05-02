@@ -633,7 +633,7 @@ S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config)
         }
     }
 
-    return S2N_RESULT_ERROR;
+    RESULT_BAIL(S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 }
 
 /* This function is used in s2n_get_ticket_encrypt_decrypt_key to compute the weight
@@ -686,7 +686,7 @@ int s2n_compute_weight_of_encrypt_decrypt_keys(struct s2n_config *config,
         }
     }
 
-    POSIX_BAIL(S2N_ERR_ENCRYPT_DECRYPT_KEY_SELECTION_FAILED);
+    POSIX_BAIL(S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 }
 
 /* This function is used in s2n_encrypt_session_ticket in order for s2n to
