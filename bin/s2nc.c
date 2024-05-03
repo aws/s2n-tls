@@ -98,7 +98,8 @@ void usage()
     fprintf(stderr, "  --ticket-in [file path]\n");
     fprintf(stderr, "    Path to session ticket file to resume connection.\n");
     fprintf(stderr, "  --serialize-out [file path]\n");
-    fprintf(stderr, "    Path to a file where a serialized connection can be stored.\n");
+    fprintf(stderr, "    Path to a file where a serialized connection can be stored. \n"
+                    "    Note that this feature is intended to be used with our integration test framework and therefore is not expected to work with s2nc alone.\n");
     fprintf(stderr, "  --deserialize-in [file path]\n");
     fprintf(stderr, "    Path to a file where a serialized connection lives. Will be used to skip the handshake and start sending encrypted data.\n");
     fprintf(stderr, "  -D,--dynamic\n");
@@ -785,9 +786,9 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
             GUARD_EXIT(write_array_to_file(serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
             free(mem);
+        } else {
+            GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
         }
-
-        GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
 
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 

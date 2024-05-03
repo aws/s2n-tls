@@ -188,7 +188,8 @@ void usage()
     fprintf(stderr, "  -T,--no-session-ticket\n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
     fprintf(stderr, "  --serialize-out [file path]\n");
-    fprintf(stderr, "    Path to a file where a serialized connection can be stored.\n");
+    fprintf(stderr, "    Path to a file where a serialized connection can be stored.\n"
+                    "    Note that this feature is intended to be used with our integration test framework and therefore is not expected to work with s2nd alone.\n");
     fprintf(stderr, "  --deserialize-in [file path]\n");
     fprintf(stderr, "    Path to a file where a serialized connection lives. Will be used to skip the handshake and start sending encrypted data.\n");
     fprintf(stderr, "  -C,--corked-io\n");
@@ -227,7 +228,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    s2n_setup_server_connection(conn, fd, config, settings);
+    GUARD_EXIT(s2n_setup_server_connection(conn, fd, config, settings), "Error setting up connection");
 
     if (!settings.deserialize_in && negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
@@ -257,9 +258,9 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
         GUARD_EXIT(write_array_to_file(settings.serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
         free(mem);
+    } else {
+        GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
     }
-
-    GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 

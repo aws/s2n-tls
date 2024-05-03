@@ -27,12 +27,12 @@
         }                                                  \
     } while (0)
 
-#define GUARD_EXIT(x, msg)        \
-    do {                          \
-        if ((x) < 0) {            \
-            print_s2n_error(msg); \
-            exit(1);              \
-        }                         \
+#define GUARD_EXIT(x, msg)                \
+    do {                                  \
+        if ((x) < 0) {                    \
+            fprintf(stderr, "%s\n", msg); \
+            exit(1);                      \
+        }                                 \
     } while (0)
 
 #define ENSURE_EXIT(x, msg)       \
@@ -59,12 +59,12 @@
         }                         \
     } while (0)
 
-#define ENSURE_RETURN(x, msg)     \
-    do {                          \
-        if (!(x)) {               \
-            print_s2n_error(msg); \
-            return -1;            \
-        }                         \
+#define ENSURE_RETURN(x, msg)             \
+    do {                                  \
+        if (!(x)) {                       \
+            fprintf(stderr, "%s\n", msg); \
+            return -1;                    \
+        }                                 \
     } while (0)
 
 #define S2N_MAX_PSK_LIST_LENGTH 10
