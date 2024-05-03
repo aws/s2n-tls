@@ -6,6 +6,7 @@ from platform import machine
 ALLPLATFORMS = set(["aarch64", "x86_64"])
 NOTNIXMARKS = set(["fix4nix"])
 
+
 def pytest_addoption(parser):
     parser.addoption("--provider-version", action="store", dest="provider-version",
                      default=None, type=str, help="Set the version of the TLS provider")
@@ -64,7 +65,7 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
     # Find the intersection of all pytest.marks and ALLPLATFORMS.
     # By default, with no platform marks, this set will be empty.
     marked_platform = ALLPLATFORMS.intersection(mark.name for mark in item.iter_markers())
-    #Get the current runtime platform
+    # Get the current runtime platform.
     platform = machine()
     # Skip this test if a platform mark was defined but doesn't match the current platform.
     if platform is not None and marked_platform and platform not in marked_platform:
