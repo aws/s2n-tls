@@ -124,7 +124,7 @@ static S2N_RESULT s2n_async_get_actions(s2n_async_pkey_op_type type, const struc
             /* No default for compiler warnings */
     }
 
-    return S2N_RESULT_ERROR;
+    RESULT_BAIL(S2N_ERR_SAFETY);
 }
 
 static S2N_RESULT s2n_async_pkey_op_allocate(struct s2n_async_pkey_op **op)
@@ -138,10 +138,7 @@ static S2N_RESULT s2n_async_pkey_op_allocate(struct s2n_async_pkey_op **op)
     RESULT_GUARD_POSIX(s2n_blob_zero(&mem));
 
     *op = (void *) mem.data;
-    if (s2n_blob_init(&mem, NULL, 0) != S2N_SUCCESS) {
-        *op = NULL;
-        return S2N_RESULT_ERROR;
-    }
+    ZERO_TO_DISABLE_DEFER_CLEANUP(mem);
     return S2N_RESULT_OK;
 }
 
