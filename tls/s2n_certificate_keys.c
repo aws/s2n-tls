@@ -105,6 +105,6 @@ const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
 };
 
 const struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 = {
-    .count = 3,
+    .count = s2n_array_len(s2n_certificate_keys_rfc9151),
     .certificate_keys = s2n_certificate_keys_rfc9151,
 };
