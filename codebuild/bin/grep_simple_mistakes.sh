@@ -75,6 +75,7 @@ for file in $S2N_FILES_ASSERT_RETURN; do
   RESULT_NEGATIVE_ONE=`grep -rn 'return -1;' $file`
   RESULT_S2N_ERR=`grep -rn 'return S2N_ERR*' $file`
   RESULT_S2N_FAIL=`grep -rn 'return S2N_FAIL*' $file`
+  RESULT_S2N_RESULT_ERR=`grep -rn 'return S2N_RESULT_ERR*' $file`
 
   if [ "${#RESULT_NEGATIVE_ONE}" != "0" ]; then
     FAILED=1
@@ -87,6 +88,10 @@ for file in $S2N_FILES_ASSERT_RETURN; do
   if [ "${#RESULT_S2N_FAIL}" != "0" ]; then
     FAILED=1
     printf "\e[1;34mGrep for 'return S2N_FAIL*' check failed in $file:\e[0m\n$RESULT_S2N_FAIL\n\n"
+  fi
+  if [ "${#RESULT_S2N_RESULT_ERR}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mGrep for 'return S2N_RESULT_ERR*' check failed in $file:\e[0m\n$RESULT_S2N_RESULT_ERR\n\n"
   fi
 done
 
