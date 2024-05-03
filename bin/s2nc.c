@@ -660,11 +660,11 @@ int main(int argc, char *const *argv)
 
         if (deserialize_in) {
             size_t deserialize_length = 0;
-            GUARD_EXIT(get_file_size(deserialize_in, &deserialize_length), "Failed to read serialize-in file size");
-            ENSURE_EXIT(deserialize_length <= UINT32_MAX, "serialize-in file size is too large");
+            GUARD_EXIT(get_file_size(deserialize_in, &deserialize_length), "Failed to read deserialize-in file size");
+            ENSURE_EXIT(deserialize_length <= UINT32_MAX, "deserialize-in file size is too large");
             uint8_t *mem = malloc(deserialize_length);
             GUARD_EXIT_NULL(mem);
-            GUARD_EXIT(load_file_to_array(deserialize_in, mem, deserialize_length), "Failed to read serialize-in file");
+            GUARD_EXIT(load_file_to_array(deserialize_in, mem, deserialize_length), "Failed to read deserialize-in file");
             GUARD_EXIT(s2n_connection_deserialize(conn, mem, (uint32_t) deserialize_length), "Failed to deserialize connection");
             free(mem);
         }
