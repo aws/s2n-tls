@@ -64,7 +64,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(server_conn, &io));
         EXPECT_EQUAL(s2n_stuffer_data_available(&io), 0);
 
-        EXPECT_TRUE(server_conn->handshake_params.client_sig_hash_algs.len > 0);
+        EXPECT_TRUE(server_conn->handshake_params.peer_sig_scheme_list.len > 0);
 
         s2n_stuffer_free(&io);
         s2n_connection_free(client_conn);
@@ -91,7 +91,7 @@ int main(int argc, char **argv)
 
         /* If a valid algorithm is offered among unknown algorithms, the valid one should be chosen */
         EXPECT_SUCCESS(s2n_client_signature_algorithms_extension.recv(conn, &signature_algorithms_extension));
-        EXPECT_EQUAL(conn->handshake_params.client_sig_hash_algs.len, sig_hash_algs.len);
+        EXPECT_EQUAL(conn->handshake_params.peer_sig_scheme_list.len, sig_hash_algs.len);
         EXPECT_OK(s2n_signature_algorithm_select(conn));
         EXPECT_EQUAL(conn->handshake_params.server_cert_sig_scheme->iana_value, TLS_SIGNATURE_SCHEME_RSA_PKCS1_SHA384);
 

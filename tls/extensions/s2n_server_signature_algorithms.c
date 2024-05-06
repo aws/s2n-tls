@@ -44,5 +44,5 @@ static int s2n_signature_algorithms_send(struct s2n_connection *conn, struct s2n
 
 static int s2n_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.server_sig_hash_algs);
+    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.peer_sig_scheme_list);
 }

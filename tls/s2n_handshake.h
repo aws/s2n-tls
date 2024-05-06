@@ -104,13 +104,10 @@ struct s2n_handshake_parameters {
     struct s2n_blob client_cert_chain;
     s2n_pkey_type client_cert_pkey_type;
 
-    /* Signature/hash algorithm pairs offered by the client in the signature_algorithms extension */
-    struct s2n_sig_scheme_list client_sig_hash_algs;
+    /* Signature/hash algorithm pairs offered by the peer. */
+    struct s2n_sig_scheme_list peer_sig_scheme_list;
     /* Signature scheme chosen by the server */
     const struct s2n_signature_scheme *server_cert_sig_scheme;
-
-    /* Signature/hash algorithm pairs offered by the server in the certificate request */
-    struct s2n_sig_scheme_list server_sig_hash_algs;
     /* Signature scheme chosen by the client */
     const struct s2n_signature_scheme *client_cert_sig_scheme;
 
