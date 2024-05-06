@@ -714,7 +714,7 @@ impl Connection {
             if let Some(prev_waker) = ctx.waker.as_mut() {
                 // only replace the Waker if they dont reference the same task
                 if !prev_waker.will_wake(waker) {
-                    *prev_waker = waker.clone();
+                    prev_waker.clone_from(waker);
                 }
             } else {
                 ctx.waker = Some(waker.clone());
