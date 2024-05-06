@@ -89,6 +89,12 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
 
+                uint8_t negotiated_cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
+                EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(server, negotiated_cipher_suite,
+                        negotiated_cipher_suite + 1));
+                EXPECT_BYTEARRAY_EQUAL(negotiated_cipher_suite, test_cipher_suite.iana_value,
+                        S2N_TLS_CIPHER_SUITE_LEN);
+
                 EXPECT_OK(s2n_send_and_recv_test(client, server));
                 EXPECT_OK(s2n_send_and_recv_test(server, client));
 
