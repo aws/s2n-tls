@@ -34,7 +34,7 @@
 #define MAX_TEST_SESSION_SIZE 300
 
 #define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
-#define S2N_CLOCK_SYS CLOCK_REALTIME
+#define S2N_CLOCK_SYS                    CLOCK_REALTIME
 
 static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
 {
@@ -832,11 +832,10 @@ int main(int argc, char **argv)
     {
         /* TLS 1.2 server sends zero ticket lifetime and zero-length ticket if key expires */
         {
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
-                s2n_config_ptr_free);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -846,7 +845,7 @@ int main(int argc, char **argv)
             /* Expire current session ticket key so that server no longer holds a valid key */
             uint64_t mock_delay = config->encrypt_decrypt_key_lifetime_in_nanos;
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_nanoseconds_since_epoch,
-                &mock_delay));
+                    &mock_delay));
 
             /* Send a new session ticket with lifetime hint and session ticket length as zero. 
              * tickets_sent does not get incremented in this codepath and therefore we 
@@ -864,7 +863,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &ticket_len));
             EXPECT_TRUE(ticket_len == 0);
             EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->handshake.io, ticket_len));
-        }
+        };
     }
 
     /* s2n_tls13_server_nst_send */
