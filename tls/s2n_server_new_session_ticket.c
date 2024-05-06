@@ -94,12 +94,18 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      *# ticket after it has included the SessionTicket extension in the
      *# ServerHello, then it sends a zero-length ticket in the
      *# NewSessionTicket handshake message.
+     *  
+     *= https://tools.ietf.org/rfc/rfc5077#section-3.3 
+     *# struct {
+     *#     uint32 ticket_lifetime_hint;
+     *#     opaque ticket<0..2^16-1>;
+     *# } NewSessionTicket;
      **/
     if (!conn->config->use_tickets || s2n_config_is_encrypt_decrypt_key_available(conn->config) == 0) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
-        return 0;
+        return S2N_SUCCESS;
     }
 
     if (!s2n_server_sending_nst(conn)) {

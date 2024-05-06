@@ -1401,9 +1401,6 @@ int main(int argc, char **argv)
 
         /* Verify that the server did issue a new session ticket */
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server));
-
-        /* Verify that the client received a zero-length NewSessionTicket message */
-        EXPECT_EQUAL(client->client_ticket.allocated, 0);
     }
 
     /* Test TLS 1.3 Server does not send a zero-length ticket in the NewSessionTicket handshake
@@ -1457,6 +1454,9 @@ int main(int argc, char **argv)
         /* Verify that TLS1.3 was negotiated */
         EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
+
+        /* Verify that the server did not issue a new session ticket */
+        EXPECT_FALSE(IS_ISSUING_NEW_SESSION_TICKET(server));
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));

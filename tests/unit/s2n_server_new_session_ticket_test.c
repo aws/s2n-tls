@@ -34,6 +34,7 @@
 #define MAX_TEST_SESSION_SIZE 300
 
 #define EXPECT_TICKETS_SENT(conn, count) EXPECT_OK(s2n_assert_tickets_sent(conn, count))
+#define S2N_CLOCK_SYS CLOCK_REALTIME
 
 static S2N_RESULT s2n_assert_tickets_sent(struct s2n_connection *conn, uint16_t expected_tickets_sent)
 {
@@ -78,6 +79,32 @@ static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
     EXPECT_SUCCESS(s2n_stuffer_write_bytes(&secret_stuffer, test_resumption_secret.data, test_resumption_secret.size));
 
     return S2N_SUCCESS;
+}
+
+/**
+ * This function is used to "skip" time in unit tests. It will mock the system
+ * time to be current_time (ns) + data (ns). The "data" parameter is a uint64_t
+ * passed in as a void*.
+ */
+int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
+{
+    struct timespec current_time;
+
+    clock_gettime(S2N_CLOCK_SYS, &current_time);
+
+    /**
+     * current_time fields are represented as time_t, and time_t has a platform
+     * dependent size. On 32 bit platforms, attempting to convert the current
+     * system time to nanoseconds will overflow, causing odd failures in unit
+     * tests. We upcast current_time fields to uint64_t before multiplying to
+     * avoid this.
+     */
+    *nanoseconds = 0;
+    *nanoseconds += (uint64_t) current_time.tv_sec * ONE_SEC_IN_NANOS;
+    *nanoseconds += (uint64_t) current_time.tv_nsec;
+    *nanoseconds += *(uint64_t *) data;
+
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -800,6 +827,45 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         };
     };
+
+    /* s2n_server_nst_send */
+    {
+        /* TLS 1.2 server sends zero ticket lifetime and zero-length ticket if key expires */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
+
+            /* Expire current session ticket key so that server no longer holds a valid key */
+            uint64_t mock_delay = config->encrypt_decrypt_key_lifetime_in_nanos;
+            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_nanoseconds_since_epoch,
+                &mock_delay));
+
+            /* Send a new session ticket with lifetime hint and session ticket length as zero. 
+             * tickets_sent does not get incremented in this codepath and therefore we 
+             * technically expect 0 tickets_sent in connection object.
+             */
+            EXPECT_SUCCESS(s2n_server_nst_send(conn));
+            EXPECT_TICKETS_SENT(conn, 0);
+
+            uint32_t lifetime = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint32(&conn->handshake.io, &lifetime));
+            EXPECT_TRUE(lifetime == 0);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->handshake.io, lifetime));
+
+            uint16_t ticket_len = 0;
+            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &ticket_len));
+            EXPECT_TRUE(ticket_len == 0);
+            EXPECT_SUCCESS(s2n_stuffer_skip_read(&conn->handshake.io, ticket_len));
+        }
+    }
 
     /* s2n_tls13_server_nst_send */
     {
