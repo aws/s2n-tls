@@ -1056,6 +1056,30 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: Ensure that the maximum number of permitted signature schemes can be received. */
+    const uint16_t max_sig_schemes = TLS_SIGNATURE_SCHEME_LIST_MAX_LEN;
+    for (uint16_t count = max_sig_schemes - 1; count <= max_sig_schemes + 1; count++) {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+        uint16_t sig_scheme_list_size = count * TLS_SIGNATURE_SCHEME_LEN;
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, sig_scheme_list_size));
+        for (size_t i = 0; i < count; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha256.iana_value));
+        }
+
+        int ret = s2n_recv_supported_sig_scheme_list(&input, &conn->handshake_params.server_sig_hash_algs);
+        if (count <= max_sig_schemes) {
+            EXPECT_SUCCESS(ret);
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_TOO_MANY_SIGNATURE_SCHEMES);
+        }
+    }
+
     /* Test: send and receive default signature preferences */
     for (size_t i = S2N_TLS10; i < S2N_TLS13; i++) {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
