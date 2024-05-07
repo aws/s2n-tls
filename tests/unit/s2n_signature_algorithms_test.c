@@ -254,7 +254,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         test_schemes, s2n_array_len(test_schemes)));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         test_schemes, s2n_array_len(test_schemes)));
 
                 /* Test: ECDSA */
@@ -301,7 +301,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         test_schemes, s2n_array_len(test_schemes)));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         test_schemes, s2n_array_len(test_schemes)));
 
                 /* Test: ECDSA */
@@ -348,7 +348,7 @@ int main(int argc, char **argv)
 
             struct s2n_local_sig_schemes_context local_context = { 0 };
             EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context, &expected, 1));
-            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                     &expected, 1));
 
             EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -367,7 +367,7 @@ int main(int argc, char **argv)
 
             struct s2n_local_sig_schemes_context local_context = { 0 };
             EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context, &expected, 1));
-            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                     &expected, 1));
 
             EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -398,7 +398,7 @@ int main(int argc, char **argv)
             {
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         order, s2n_array_len(order)));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         reversed_order, s2n_array_len(reversed_order)));
 
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -409,7 +409,7 @@ int main(int argc, char **argv)
             {
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         reversed_order, s2n_array_len(reversed_order)));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         order, s2n_array_len(order)));
 
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -422,7 +422,7 @@ int main(int argc, char **argv)
             {
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         order, s2n_array_len(order)));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         order, s2n_array_len(order)));
 
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -444,7 +444,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &invalid, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &invalid, 1));
 
                 /* Fails for TLS1.3 */
@@ -471,7 +471,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &invalid, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &invalid, 1));
 
                 /* Fails for TLS1.2 */
@@ -505,7 +505,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &invalid, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &invalid, 1));
 
                 /* Fails with SHA1 */
@@ -536,7 +536,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &invalid, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &invalid, 1));
 
                 /* Fails for pkcs1 */
@@ -563,7 +563,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &scheme, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &scheme, 1));
 
                 /* Fails for default config with no certs */
@@ -594,7 +594,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &scheme, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &scheme, 1));
 
                 /* Fails for default config with no certs */
@@ -634,7 +634,7 @@ int main(int argc, char **argv)
                 /* Fails with wrong curve (256) */
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &ecdsa256, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &ecdsa256, 1));
                 EXPECT_ERROR_WITH_ERRNO(
                         s2n_signature_algorithm_select(conn),
@@ -643,7 +643,7 @@ int main(int argc, char **argv)
                 /* Succeeds with right curve (384) */
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         &ecdsa384, 1));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         &ecdsa384, 1));
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
             };
@@ -673,7 +673,7 @@ int main(int argc, char **argv)
             struct s2n_local_sig_schemes_context local_context = { 0 };
             EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                     schemes, s2n_array_len(schemes)));
-            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                     schemes, s2n_array_len(schemes)));
 
             EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -702,7 +702,7 @@ int main(int argc, char **argv)
             struct s2n_local_sig_schemes_context local_context = { 0 };
             EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                     local_schemes, s2n_array_len(local_schemes)));
-            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                     peer_schemes, s2n_array_len(peer_schemes)));
 
             EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -852,7 +852,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         local_schemes, s2n_array_len(local_schemes)));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         peer_schemes, s2n_array_len(peer_schemes)));
 
                 /* ECDSA */
@@ -893,7 +893,7 @@ int main(int argc, char **argv)
                 struct s2n_local_sig_schemes_context local_context = { 0 };
                 EXPECT_OK(s2n_test_set_local_sig_schemes(conn, &local_context,
                         local_schemes, s2n_array_len(local_schemes)));
-                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+                EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                         peer_schemes, s2n_array_len(peer_schemes)));
 
                 EXPECT_OK(s2n_signature_algorithm_select(conn));
@@ -1056,6 +1056,30 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test: Ensure that the maximum number of permitted signature schemes can be received. */
+    const uint16_t max_sig_schemes = TLS_SIGNATURE_SCHEME_LIST_MAX_LEN;
+    for (uint16_t count = max_sig_schemes - 1; count <= max_sig_schemes + 1; count++) {
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&input, 0));
+
+        uint16_t sig_scheme_list_size = count * TLS_SIGNATURE_SCHEME_LEN;
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, sig_scheme_list_size));
+        for (size_t i = 0; i < count; i++) {
+            EXPECT_SUCCESS(s2n_stuffer_write_uint16(&input, s2n_rsa_pkcs1_sha256.iana_value));
+        }
+
+        int ret = s2n_recv_supported_sig_scheme_list(&input, &conn->handshake_params.peer_sig_scheme_list);
+        if (count <= max_sig_schemes) {
+            EXPECT_SUCCESS(ret);
+        } else {
+            EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_TOO_MANY_SIGNATURE_SCHEMES);
+        }
+    }
+
     /* Test: send and receive default signature preferences */
     for (size_t i = S2N_TLS10; i < S2N_TLS13; i++) {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
@@ -1162,7 +1186,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             const struct s2n_signature_scheme *schemes[] = { &s2n_rsa_pss_rsae_sha256 };
-            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.server_sig_hash_algs,
+            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                     schemes, s2n_array_len(schemes)));
 
             if (s2n_is_rsa_pss_signing_supported()) {
@@ -1187,7 +1211,7 @@ int main(int argc, char **argv)
 
             /* Invalid (PKCS1 not allowed by TLS1.3) */
             const struct s2n_signature_scheme *peer_schemes[] = { &s2n_rsa_pkcs1_sha224 };
-            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.client_sig_hash_algs,
+            EXPECT_OK(s2n_test_set_peer_sig_schemes(&conn->handshake_params.peer_sig_scheme_list,
                     peer_schemes, s2n_array_len(peer_schemes)));
 
             /* Both PKCS1 and PSS supported */
