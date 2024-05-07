@@ -77,7 +77,7 @@ static S2N_RESULT s2n_security_rule_all_versions(uint8_t version, bool *valid)
     return S2N_RESULT_OK;
 }
 
-const struct s2n_security_rule security_rule_definitions[] = {
+const struct s2n_security_rule security_rule_definitions[S2N_SECURITY_RULES_COUNT] = {
     [S2N_PERFECT_FORWARD_SECRECY] = {
             .name = "Perfect Forward Secrecy",
             .validate_cipher_suite = s2n_security_rule_validate_forward_secret,
@@ -110,7 +110,6 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
     }
 
     const char *error_msg_format_name = "%s: policy %s: %s: %s (#%i)";
-    const char *error_msg_format_iana = "%s: policy %s: %s: %x (#%i)";
     const char *error_msg_format_basic = "%s: policy %s: %s: %i";
 
     const struct s2n_cipher_preferences *cipher_prefs = policy->cipher_preferences;
@@ -123,7 +122,7 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
         RESULT_GUARD(rule->validate_cipher_suite(cipher_suite, &is_valid));
         RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
                 error_msg_format_name, rule->name, policy_name,
-                "cipher suite", cipher_suite->name, i + 1));
+                "cipher suite", cipher_suite->iana_name, i + 1));
     }
 
     const struct s2n_signature_preferences *sig_prefs = policy->signature_preferences;
@@ -135,8 +134,8 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
         RESULT_ENSURE_REF(rule->validate_sig_scheme);
         RESULT_GUARD(rule->validate_sig_scheme(sig_scheme, &is_valid));
         RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
-                error_msg_format_iana, rule->name, policy_name,
-                "signature scheme", sig_scheme->iana_value, i + 1));
+                error_msg_format_name, rule->name, policy_name,
+                "signature scheme", sig_scheme->iana_name));
     }
 
     const struct s2n_signature_preferences *cert_sig_prefs = policy->certificate_signature_preferences;
@@ -148,8 +147,8 @@ S2N_RESULT s2n_security_rule_validate_policy(const struct s2n_security_rule *rul
             RESULT_ENSURE_REF(rule->validate_cert_sig_scheme);
             RESULT_GUARD(rule->validate_cert_sig_scheme(sig_scheme, &is_valid));
             RESULT_GUARD(s2n_security_rule_result_process(result, is_valid,
-                    error_msg_format_iana, rule->name, policy_name,
-                    "certificate signature scheme", sig_scheme->iana_value, i + 1));
+                    error_msg_format_name, rule->name, policy_name,
+                    "certificate signature scheme", sig_scheme->iana_name));
         }
     }
 

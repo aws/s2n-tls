@@ -610,28 +610,30 @@ int s2n_connection_is_ocsp_stapled(struct s2n_connection *conn)
     }
 }
 
-int s2n_config_is_encrypt_decrypt_key_available(struct s2n_config *config)
+S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config)
 {
+    RESULT_ENSURE_REF(config);
+
     uint64_t now = 0;
     struct s2n_ticket_key *ticket_key = NULL;
-    POSIX_GUARD_RESULT(s2n_config_wall_clock(config, &now));
-    POSIX_ENSURE_REF(config->ticket_keys);
+    RESULT_GUARD(s2n_config_wall_clock(config, &now));
+    RESULT_ENSURE_REF(config->ticket_keys);
 
     uint32_t ticket_keys_len = 0;
-    POSIX_GUARD_RESULT(s2n_set_len(config->ticket_keys, &ticket_keys_len));
+    RESULT_GUARD(s2n_set_len(config->ticket_keys, &ticket_keys_len));
 
     for (uint32_t i = ticket_keys_len; i > 0; i--) {
         uint32_t idx = i - 1;
-        POSIX_GUARD_RESULT(s2n_set_get(config->ticket_keys, idx, (void **) &ticket_key));
+        RESULT_GUARD(s2n_set_get(config->ticket_keys, idx, (void **) &ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
         if (key_intro_time < now
                 && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
-            return 1;
+            return S2N_RESULT_OK;
         }
     }
 
-    return 0;
+    RESULT_BAIL(S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 }
 
 /* This function is used in s2n_get_ticket_encrypt_decrypt_key to compute the weight
@@ -868,18 +870,17 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD(s2n_stuffer_skip_write(&state_stuffer, state_blob_size));
     POSIX_GUARD_RESULT(s2n_deserialize_resumption_state(conn, &from->blob, &state_stuffer));
 
+    if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
+        return S2N_SUCCESS;
+    }
+
+    /* A new key is assigned for the ticket if the key used to encrypt current ticket is expired */
     uint64_t now = 0;
     POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
-
-    /* If the key is in decrypt-only state, then a new key is assigned
-     * for the ticket.
-     */
     if (now >= key->intro_timestamp + conn->config->encrypt_decrypt_key_lifetime_in_nanos) {
-        /* Check if a key in encrypt-decrypt state is available */
-        if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+        if (s2n_result_is_ok(s2n_config_is_encrypt_key_available(conn->config))) {
             conn->session_ticket_status = S2N_NEW_TICKET;
             POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
-            return S2N_SUCCESS;
         }
     }
     return S2N_SUCCESS;

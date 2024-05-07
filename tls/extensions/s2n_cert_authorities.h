@@ -19,6 +19,18 @@
 #include "tls/extensions/s2n_extension_type.h"
 #include "tls/s2n_connection.h"
 
+/* The only defined bound on the size of the certificate_authorities is the maximum
+ * size of an extension, UINT16_MAX. However, the full extensions list is also
+ * limited to UINT16_MAX, so all the extensions on a message combined cannot exceed
+ * UINT16_MAX. Other extensions could therefore limit the maximum size of the
+ * certificate_authorities extension.
+ *
+ * To keep the limit predictable and avoid surprise errors during negotiation,
+ * set a reasonable fixed limit.
+ */
+#define S2N_CERT_AUTHORITIES_MAX_SIZE (10000)
+
 extern const s2n_extension_type s2n_cert_authorities_extension;
 
+bool s2n_cert_authorities_supported_from_trust_store();
 int s2n_cert_authorities_send(struct s2n_connection *conn, struct s2n_stuffer *out);

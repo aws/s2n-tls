@@ -961,4 +961,13 @@ mod tests {
 
         Ok(())
     }
+
+    #[cfg(feature = "fips")]
+    #[test]
+    fn test_fips_mode() {
+        use crate::init;
+
+        init::init();
+        assert!(init::fips_mode().unwrap().is_enabled());
+    }
 }

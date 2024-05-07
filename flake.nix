@@ -31,12 +31,14 @@
           pkgs.apacheHttpd
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
+          pkgs.gdb
 
           # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
           llvmPkgs.llvm
           llvmPkgs.llvm-manpages
           llvmPkgs.libclang
           llvmPkgs.clang-manpages
+          llvmPkgs.lldb
 
           # Linters/Formatters
           pkgs.shellcheck
