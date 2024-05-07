@@ -17,7 +17,7 @@ The following chart maps the security policy version to protocol version and cip
 |---------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|--------|
 |    default    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 | default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
-| default_tls13 |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
+| default_tls13 |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
 |   20240501    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240502    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240503    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
