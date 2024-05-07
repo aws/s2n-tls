@@ -97,11 +97,6 @@ void usage()
     fprintf(stderr, "    Path to a file where the session ticket can be stored.\n");
     fprintf(stderr, "  --ticket-in [file path]\n");
     fprintf(stderr, "    Path to session ticket file to resume connection.\n");
-    fprintf(stderr, "  --serialize-out [file path]\n");
-    fprintf(stderr, "    Path to a file where a serialized connection can be stored. \n"
-                    "    Note that this feature is intended to be used with our integration test framework and therefore is not expected to work with s2nc alone.\n");
-    fprintf(stderr, "  --deserialize-in [file path]\n");
-    fprintf(stderr, "    Path to a file where a serialized connection lives. Will be used to skip the handshake and start sending encrypted data.\n");
     fprintf(stderr, "  -D,--dynamic\n");
     fprintf(stderr, "    Set dynamic record resize threshold\n");
     fprintf(stderr, "  -t,--timeout\n");
@@ -430,6 +425,16 @@ int main(int argc, char *const *argv)
             case OPT_TICKET_IN:
                 ticket_in = optarg;
                 break;
+            /* The serialize_out and deserialize_in options are not documented
+             * in the usage section as they are not intended to work correctly
+             * using s2nc by itself. s2nc and s2nd are processes which close
+             * their TCP connection upon exit. This will cause an error if one
+             * peer serializes and exits and the other doesn't, as serialization
+             * depends on a continuous TCP connection with the peer. Therefore, our
+             * only usage of this feature is in our integ test framework,
+             * which serializes and deserializes both client and server at the
+             * same time. Do not expect these options to work when using s2nc alone.
+             */
             case OPT_SERIALIZE_OUT:
                 serialize_out = optarg;
                 break;
@@ -659,14 +664,7 @@ int main(int argc, char *const *argv)
         }
 
         if (deserialize_in) {
-            size_t deserialize_length = 0;
-            GUARD_EXIT(get_file_size(deserialize_in, &deserialize_length), "Failed to read deserialize-in file size");
-            ENSURE_EXIT(deserialize_length <= UINT32_MAX, "deserialize-in file size is too large");
-            uint8_t *mem = malloc(deserialize_length);
-            GUARD_EXIT_NULL(mem);
-            GUARD_EXIT(load_file_to_array(deserialize_in, mem, deserialize_length), "Failed to read deserialize-in file");
-            GUARD_EXIT(s2n_connection_deserialize(conn, mem, (uint32_t) deserialize_length), "Failed to deserialize connection");
-            free(mem);
+            GUARD_EXIT(s2n_connection_deserialize_in(conn, deserialize_in), "Failed to deserialize file");
         }
 
         GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
@@ -779,13 +777,7 @@ int main(int argc, char *const *argv)
         }
 
         if (serialize_out) {
-            uint32_t serialize_length = 0;
-            GUARD_EXIT(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
-            uint8_t *mem = malloc(serialize_length);
-            GUARD_EXIT_NULL(mem);
-            GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
-            GUARD_EXIT(write_array_to_file(serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
-            free(mem);
+            GUARD_EXIT(s2n_connection_serialize_out(conn, serialize_out), "Error serializing connection");
         } else {
             GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
         }

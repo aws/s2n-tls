@@ -187,11 +187,6 @@ void usage()
     fprintf(stderr, "    Location of key file used for encryption and decryption of session ticket.\n");
     fprintf(stderr, "  -T,--no-session-ticket\n");
     fprintf(stderr, "    Disable session ticket for resumption.\n");
-    fprintf(stderr, "  --serialize-out [file path]\n");
-    fprintf(stderr, "    Path to a file where a serialized connection can be stored.\n"
-                    "    Note that this feature is intended to be used with our integration test framework and therefore is not expected to work with s2nd alone.\n");
-    fprintf(stderr, "  --deserialize-in [file path]\n");
-    fprintf(stderr, "    Path to a file where a serialized connection lives. Will be used to skip the handshake and start sending encrypted data.\n");
     fprintf(stderr, "  -C,--corked-io\n");
     fprintf(stderr, "    Turn on corked io\n");
     fprintf(stderr, "  --non-blocking\n");
@@ -251,13 +246,7 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
     }
 
     if (settings.serialize_out) {
-        uint32_t serialize_length = 0;
-        GUARD_EXIT(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
-        uint8_t *mem = malloc(serialize_length);
-        GUARD_EXIT_NULL(mem);
-        GUARD_EXIT(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
-        GUARD_EXIT(write_array_to_file(settings.serialize_out, mem, serialize_length), "Failed to write serialized connection to file");
-        free(mem);
+        GUARD_RETURN(s2n_connection_serialize_out(conn, settings.serialize_out), "Error serializing connection");
     } else {
         GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
     }
@@ -445,6 +434,16 @@ int main(int argc, char *const *argv)
                 send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
                 break;
             }
+            /* The serialize_out and deserialize_in options are not documented
+             * in the usage section as they are not intended to work correctly
+             * using s2nd by itself. s2nc and s2nd are processes which close
+             * their TCP connection upon exit. This will cause an error if one
+             * peer serializes and exits and the other doesn't, as serialization
+             * depends on a continuous TCP connection with the peer. Therefore, our
+             * only usage of this feature is in our integ test framework,
+             * which serializes and deserializes both client and server at the
+             * same time. Do not expect these options to work when using s2nd alone.
+             */
             case OPT_SERIALIZE_OUT:
                 conn_settings.serialize_out = optarg;
                 break;

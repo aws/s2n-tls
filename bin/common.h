@@ -156,3 +156,5 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
 uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data);
 int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings);
 int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path);
+int s2n_connection_serialize_out(struct s2n_connection *conn, const char *file_path);
+int s2n_connection_deserialize_in(struct s2n_connection *conn, const char *file_path);
