@@ -1452,7 +1452,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
 
-        /* Perform initial part of handshake to verify that a valid key exists */
+        /* Stop the handshake after the peers have established that a ticket will be sent in this handshake. */
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, CLIENT_FINISHED));
 
         /* Expire current session ticket key so that server no longer holds a valid key */
