@@ -830,6 +830,8 @@ int main(int argc, char **argv)
 
     /* s2n_server_nst_send */
     {
+        uint8_t nst_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
+
         /* TLS 1.2 server sends a new session ticket key */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -840,9 +842,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
-
-            conn->config->use_tickets = 1;
             conn->session_ticket_status = S2N_NEW_TICKET;
 
             EXPECT_SUCCESS(s2n_server_nst_send(conn));
@@ -855,6 +854,11 @@ int main(int argc, char **argv)
             uint16_t ticket_len = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &ticket_len));
             EXPECT_TRUE(ticket_len > 0);
+
+            struct s2n_blob nst_message = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
+            EXPECT_SUCCESS(s2n_stuffer_read(&conn->handshake.io, &nst_message));
+            EXPECT_EQUAL(0, s2n_stuffer_data_available(&conn->handshake.io));
         };
 
         /* TLS 1.2 server sends zero ticket lifetime and zero-length ticket if key expires */
