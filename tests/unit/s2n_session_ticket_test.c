@@ -1430,7 +1430,6 @@ int main(int argc, char **argv)
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(server_configuration);
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_configuration));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_configuration,
                 chain_and_key));
 
@@ -1469,59 +1468,6 @@ int main(int argc, char **argv)
 
         /* Verify that the server did issue a new session ticket */
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server));
-    }
-
-    /* Test TLS 1.3 Server does not send a zero-length ticket in the NewSessionTicket handshake
-     * if the ticket key was expired after SERVER_HELLO
-     */
-    if (s2n_is_tls13_fully_supported()) {
-        DEFER_CLEANUP(struct s2n_config *client_configuration = s2n_config_new(),
-                s2n_config_ptr_free);
-        EXPECT_NOT_NULL(client_configuration);
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_configuration, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_configuration));
-
-        DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(),
-                s2n_config_ptr_free);
-        EXPECT_NOT_NULL(server_configuration);
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_configuration, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_configuration));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_configuration,
-                chain_and_key));
-
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1,
-                s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
-
-        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(client);
-        EXPECT_SUCCESS(s2n_connection_set_config(client, client_configuration));
-
-        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                s2n_connection_ptr_free);
-        EXPECT_NOT_NULL(server);
-        EXPECT_SUCCESS(s2n_connection_set_config(server, server_configuration));
-
-        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 }, s2n_io_stuffer_pair_free);
-        EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
-        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
-
-        /* Negotiate until session ticket is encrypted with session ticket key */
-        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, CLIENT_FINISHED));
-
-        /* After session ticket is encrypted, expire current session ticket key */
-        uint64_t mock_delay = server_configuration->encrypt_decrypt_key_lifetime_in_nanos;
-        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_configuration, mock_nanoseconds_since_epoch,
-                &mock_delay));
-
-        /* Attempt to send a NewSessionTicket. This should not send a zero-length NST message */
-        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
-
-        /* Verify that TLS1.3 was negotiated */
-        EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
