@@ -303,7 +303,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         /* send and receive with mismatched signature algs */
         verifying_conn->handshake_params.client_cert_sig_scheme = &test_scheme;
         test_scheme.hash_alg = S2N_HASH_SHA256;
-        test_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
         test_scheme.iana_value = 0xFFFF;
 
         EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
@@ -313,6 +312,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
+
+        test_scheme.sig_alg = S2N_SIGNATURE_ECDSA;
 
         EXPECT_FAILURE(s2n_tls13_cert_verify_recv(verifying_conn));
 
