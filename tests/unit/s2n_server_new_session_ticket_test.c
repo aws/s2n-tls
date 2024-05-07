@@ -832,7 +832,7 @@ int main(int argc, char **argv)
     {
         uint8_t nst_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
 
-        /* TLS 1.2 server sends a new session ticket key */
+        /* s2n_server_nst_send writes a non-zero ticket when a valid encryption key exists */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
@@ -861,7 +861,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(0, s2n_stuffer_data_available(&conn->handshake.io));
         };
 
-        /* TLS 1.2 server sends zero ticket lifetime and zero-length ticket if key expires */
+        /* s2n_server_nst_send writes a zero-length ticket when no valid encryption key exists */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
