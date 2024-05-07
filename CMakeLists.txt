@@ -526,10 +526,13 @@ if (BUILD_TESTING)
     target_link_libraries(s2nc ${PROJECT_NAME})
     target_compile_options(s2nc PRIVATE -std=gnu99)
 
-
     add_executable(s2nd "bin/s2nd.c" "bin/echo.c" "bin/https.c" "bin/common.c")
     target_link_libraries(s2nd ${PROJECT_NAME})
     target_compile_options(s2nd PRIVATE -std=gnu99)
+
+    add_executable(policy "bin/policy.c")
+    target_link_libraries(policy ${PROJECT_NAME})
+    target_compile_options(policy PRIVATE -std=gnu99)
 
     if(S2N_LTO)
         target_compile_options(s2nc PRIVATE -flto)

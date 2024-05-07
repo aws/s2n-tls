@@ -37,10 +37,10 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         conn->actual_protocol_version = S2N_TLS13;
 
-        EXPECT_EQUAL(conn->handshake_params.server_sig_hash_algs.len, 0);
+        EXPECT_EQUAL(conn->handshake_params.peer_sig_scheme_list.len, 0);
         EXPECT_SUCCESS(s2n_tls13_cert_req_send(conn));
         EXPECT_SUCCESS(s2n_tls13_cert_req_recv(conn));
-        EXPECT_NOT_EQUAL(conn->handshake_params.server_sig_hash_algs.len, 0);
+        EXPECT_NOT_EQUAL(conn->handshake_params.peer_sig_scheme_list.len, 0);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
     }

@@ -161,13 +161,7 @@ static S2N_RESULT s2n_signature_algorithms_validate_supported_by_peer(
 {
     RESULT_ENSURE_REF(conn);
 
-    const struct s2n_sig_scheme_list *peer_list = NULL;
-    if (conn->mode == S2N_CLIENT) {
-        peer_list = &conn->handshake_params.server_sig_hash_algs;
-    } else {
-        peer_list = &conn->handshake_params.client_sig_hash_algs;
-    }
-
+    const struct s2n_sig_scheme_list *peer_list = &conn->handshake_params.peer_sig_scheme_list;
     for (size_t i = 0; i < peer_list->len; i++) {
         if (peer_list->iana_list[i] == iana) {
             return S2N_RESULT_OK;

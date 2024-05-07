@@ -17,6 +17,7 @@
 
 #include <stdint.h>
 
+#include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_cipher_preferences.h"
 #include "tls/s2n_ecc_preferences.h"
 #include "tls/s2n_kem_preferences.h"

@@ -1053,7 +1053,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
             POSIX_GUARD_RESULT(s2n_validate_ems_status(conn));
 
             /* Set up the handshake to send a session ticket since a valid ticket was not provided */
-            if (s2n_config_is_encrypt_decrypt_key_available(conn->config) == 1) {
+            if (s2n_result_is_ok(s2n_config_is_encrypt_key_available(conn->config))) {
                 conn->session_ticket_status = S2N_NEW_TICKET;
                 POSIX_GUARD_RESULT(s2n_handshake_type_set_tls12_flag(conn, WITH_SESSION_TICKET));
             }
