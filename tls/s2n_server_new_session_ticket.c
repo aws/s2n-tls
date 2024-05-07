@@ -83,7 +83,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
             (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
 
     /* Send a zero-length ticket in the NewSessionTicket message if the server changes 
-     *its mind mid-handshake or if there are no valid encrypt keys currently available. 
+     * its mind mid-handshake or if there are no valid encrypt keys currently available. 
      *
      *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
      *# This message MUST be sent if the server included

@@ -863,13 +863,14 @@ int main(int argc, char **argv)
 
         /* s2n_server_nst_send writes a zero-length ticket when no valid encryption key exists */
         {
-            /*= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
+            /**
+             *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
              *= type=test
              *# If the server determines that it does not want to include a
              *# ticket after it has included the SessionTicket extension in the
              *# ServerHello, then it sends a zero-length ticket in the
              *# NewSessionTicket handshake message.
-             */
+             **/
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
