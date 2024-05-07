@@ -27,20 +27,20 @@
         }                                                  \
     } while (0)
 
-#define GUARD_EXIT(x, msg)                \
-    do {                                  \
-        if ((x) < 0) {                    \
-            fprintf(stderr, "%s\n", msg); \
-            exit(1);                      \
-        }                                 \
-    } while (0)
-
-#define ENSURE_EXIT(x, msg)       \
+#define GUARD_EXIT(x, msg)        \
     do {                          \
-        if (!(x)) {               \
+        if ((x) < 0) {            \
             print_s2n_error(msg); \
             exit(1);              \
         }                         \
+    } while (0)
+
+#define ENSURE_EXIT(x, msg)               \
+    do {                                  \
+        if (!(x)) {                       \
+            fprintf(stderr, "%s\n", msg); \
+            exit(1);                      \
+        }                                 \
     } while (0)
 
 #define GUARD_RETURN_NULL(x)                               \
