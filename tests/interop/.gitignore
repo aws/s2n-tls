@@ -1,6 +1,6 @@
 # ignore rust compilation artifacts
 common/target
-tls-shim-interop/target
+tls-shim/target
  
 **/Cargo.lock
 # ignore any of the generated logs
