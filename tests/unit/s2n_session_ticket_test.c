@@ -1466,8 +1466,11 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS12);
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS12);
 
-        /* Verify that the server did issue a new session ticket */
+        /* Verify that the server issued zero-length session ticket */
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server));
+
+        EXPECT_EQUAL(client->client_ticket.size, 0);
+        EXPECT_EQUAL(client->ticket_lifetime_hint, 0);
     }
 
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
