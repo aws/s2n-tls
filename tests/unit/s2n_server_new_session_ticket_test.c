@@ -858,7 +858,7 @@ int main(int argc, char **argv)
             struct s2n_blob nst_message = { 0 };
             EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
             EXPECT_SUCCESS(s2n_stuffer_read(&conn->handshake.io, &nst_message));
-            EXPECT_EQUAL(0, s2n_stuffer_data_available(&conn->handshake.io));
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), 0);
         };
 
         /* s2n_server_nst_send writes a zero-length ticket when no valid encryption key exists */
