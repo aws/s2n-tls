@@ -376,6 +376,10 @@ int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, 
 
 int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings)
 {
+    if (settings.deserialize_in) {
+        GUARD_RETURN(s2n_connection_deserialize_in(conn, settings.deserialize_in), "Failed to deserialize file");
+    }
+
     if (settings.self_service_blinding) {
         s2n_connection_set_blinding(conn, S2N_SELF_SERVICE_BLINDING);
     }
@@ -528,4 +532,31 @@ int wait_for_shutdown(struct s2n_connection *conn, int fd)
         }
     }
     return S2N_SUCCESS;
+}
+
+int s2n_connection_serialize_out(struct s2n_connection *conn, const char *file_path)
+{
+    uint32_t serialize_length = 0;
+    GUARD_RETURN(s2n_connection_serialization_length(conn, &serialize_length), "Failed to get serialized connection length");
+    uint8_t *mem = malloc(serialize_length);
+    GUARD_RETURN_NULL(mem);
+    GUARD_RETURN(s2n_connection_serialize(conn, mem, serialize_length), "Failed to get serialized connection");
+    GUARD_RETURN(write_array_to_file(file_path, mem, serialize_length), "Failed to write serialized connection to file");
+    free(mem);
+
+    return 0;
+}
+
+int s2n_connection_deserialize_in(struct s2n_connection *conn, const char *file_path)
+{
+    size_t deserialize_length = 0;
+    GUARD_RETURN(get_file_size(file_path, &deserialize_length), "Failed to read deserialize-in file size");
+    ENSURE_RETURN(deserialize_length <= UINT32_MAX, "deserialize-in file size is too large");
+    uint8_t *mem = malloc(deserialize_length);
+    GUARD_RETURN_NULL(mem);
+    GUARD_RETURN(load_file_to_array(file_path, mem, deserialize_length), "Failed to read deserialize-in file");
+    GUARD_RETURN(s2n_connection_deserialize(conn, mem, (uint32_t) deserialize_length), "Failed to deserialize connection");
+    free(mem);
+
+    return 0;
 }
