@@ -61,7 +61,7 @@ def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol, prov
 
     client_options.extra_flags = ['--deserialize-in', client_state_file]
     server_options.extra_flags = ['--deserialize-in', server_state_file]
-    server_options.use_mainline_version=True
+    server_options.use_mainline_version = True
 
     server = managed_process(S2N, server_options, send_marker="Listening on localhost")
     client = managed_process(S2N, client_options, send_marker="Connected to localhost")
@@ -71,6 +71,7 @@ def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol, prov
 
     for results in client.get_results():
         results.assert_success()
+
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
@@ -94,7 +95,7 @@ def test_serialize_old_deserialize_new(managed_process, tmp_path, protocol, prov
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
     server_options.extra_flags = ['--serialize-out', server_state_file]
-    server_options.use_mainline_version=True
+    server_options.use_mainline_version = True
 
     server = managed_process(
         S2N, server_options, send_marker=S2N.get_send_marker())
@@ -111,7 +112,7 @@ def test_serialize_old_deserialize_new(managed_process, tmp_path, protocol, prov
 
     client_options.extra_flags = ['--deserialize-in', client_state_file]
     server_options.extra_flags = ['--deserialize-in', server_state_file]
-    server_options.use_mainline_version=False
+    server_options.use_mainline_version = False
 
     server = managed_process(S2N, server_options, send_marker="Listening on localhost")
     client = managed_process(S2N, client_options, send_marker="Connected to localhost")
