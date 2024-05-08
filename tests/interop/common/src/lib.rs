@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{env, fmt::Display, str::FromStr};
 
 /// `Common` provides a crate with functionality that other TLS implementors
