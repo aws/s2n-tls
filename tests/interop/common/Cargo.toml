@@ -1,0 +1,10 @@
+[package]
+name = "common"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+tokio = {version = "1", features = ["full"]}
+tracing = "0.1"
+tracing-subscriber = "0.3"
