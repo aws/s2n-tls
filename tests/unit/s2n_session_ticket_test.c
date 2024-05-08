@@ -1451,8 +1451,11 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
 
-        /* Stop the handshake after the peers have established that a ticket will be sent in this handshake. */
-        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, CLIENT_FINISHED));
+        /* Stop the handshake after the peers have established that a ticket 
+         * will be sent in this handshake. 
+         */
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client,
+                CLIENT_FINISHED));
 
         /* Expire current session ticket key so that server no longer holds a valid key */
         uint64_t mock_delay = server_configuration->encrypt_decrypt_key_lifetime_in_nanos;
@@ -1469,6 +1472,7 @@ int main(int argc, char **argv)
         /* Verify that the server issued zero-length session ticket */
         EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server));
 
+        /* Client does not have a session ticket since it received zero-length NST message */
         EXPECT_EQUAL(client->client_ticket.size, 0);
         EXPECT_EQUAL(client->ticket_lifetime_hint, 0);
     }

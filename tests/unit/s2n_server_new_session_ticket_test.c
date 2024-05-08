@@ -830,8 +830,6 @@ int main(int argc, char **argv)
 
     /* s2n_server_nst_send */
     {
-        uint8_t nst_data[S2N_TLS12_TICKET_SIZE_IN_BYTES] = { 0 };
-
         /* s2n_server_nst_send writes a non-zero ticket when a valid encryption key exists */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
@@ -855,22 +853,20 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &ticket_len));
             EXPECT_TRUE(ticket_len > 0);
 
-            struct s2n_blob nst_message = { 0 };
-            EXPECT_SUCCESS(s2n_blob_init(&nst_message, nst_data, sizeof(nst_data)));
-            EXPECT_SUCCESS(s2n_stuffer_read(&conn->handshake.io, &nst_message));
-            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io),
+                    S2N_TLS12_TICKET_SIZE_IN_BYTES);
         };
 
-        /* s2n_server_nst_send writes a zero-length ticket when no valid encryption key exists */
+        /* s2n_server_nst_send writes a zero-length ticket when no valid encryption key exists
+         *
+         *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
+         *= type=test
+         *# If the server determines that it does not want to include a
+         *# ticket after it has included the SessionTicket extension in the
+         *# ServerHello, then it sends a zero-length ticket in the
+         *# NewSessionTicket handshake message.
+         **/
         {
-            /**
-             *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
-             *= type=test
-             *# If the server determines that it does not want to include a
-             *# ticket after it has included the SessionTicket extension in the
-             *# ServerHello, then it sends a zero-length ticket in the
-             *# NewSessionTicket handshake message.
-             **/
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
@@ -879,9 +875,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_NOT_EQUAL(s2n_stuffer_space_remaining(&conn->handshake.io), 0);
-
-            conn->config->use_tickets = 1;
             conn->session_ticket_status = S2N_NEW_TICKET;
 
             /* Expire current session ticket key so that server no longer holds a valid key */
@@ -899,6 +892,7 @@ int main(int argc, char **argv)
             uint16_t ticket_len = 0;
             EXPECT_SUCCESS(s2n_stuffer_read_uint16(&conn->handshake.io, &ticket_len));
             EXPECT_TRUE(ticket_len == 0);
+            EXPECT_EQUAL(s2n_stuffer_data_available(&conn->handshake.io), 0);
         };
     }
 
