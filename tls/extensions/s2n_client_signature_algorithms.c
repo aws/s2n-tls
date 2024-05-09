@@ -49,5 +49,5 @@ static int s2n_client_signature_algorithms_send(struct s2n_connection *conn, str
 
 static int s2n_client_signature_algorithms_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.client_sig_hash_algs);
+    return s2n_recv_supported_sig_scheme_list(extension, &conn->handshake_params.peer_sig_scheme_list);
 }

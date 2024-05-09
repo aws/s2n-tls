@@ -121,7 +121,7 @@ int s2n_cert_req_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_recv_client_cert_preferences(in, &cert_type));
 
     if (conn->actual_protocol_version == S2N_TLS12) {
-        POSIX_GUARD(s2n_recv_supported_sig_scheme_list(in, &conn->handshake_params.server_sig_hash_algs));
+        POSIX_GUARD(s2n_recv_supported_sig_scheme_list(in, &conn->handshake_params.peer_sig_scheme_list));
     }
 
     uint16_t cert_authorities_len = 0;
