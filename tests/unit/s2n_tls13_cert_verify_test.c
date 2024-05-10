@@ -200,7 +200,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_copy(&sending_conn->handshake.io, &verifying_conn->handshake.io, s2n_stuffer_data_available(&sending_conn->handshake.io)));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
-        // EXPECT_SUCCESS(s2n_tls13_cert_verify_recv(verifying_conn));
 
         EXPECT_SUCCESS(s2n_pkey_free(&verifying_conn->handshake_params.client_public_key));
 
