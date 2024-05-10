@@ -224,6 +224,7 @@ class _processCommunicator(object):
                         if self.wait_for_marker:
                             print(f'{self.name}: looking for wait_for_marker {self.wait_for_marker} in {data_debug}')
                         if self.wait_for_marker is not None and self.wait_for_marker in data_str:
+                            self.wait_for_marker = None
                             selector.unregister(self.proc.stdout)
                             selector.unregister(self.proc.stderr)
                             return None, None

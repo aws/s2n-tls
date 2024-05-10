@@ -1,15 +1,24 @@
 import pytest
 import copy
 import os
+import random
+import string
 
 from configuration import available_ports
-from common import ProviderOptions, Protocols
+from common import ProviderOptions, Protocols, data_bytes
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N
-from utils import invalid_test_parameters, get_parameter_name
+from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
 SERVER_STATE_FILE = 'server_state'
 CLIENT_STATE_FILE = 'client_state'
+
+SERVER_DATA = f"Some random data from the server:" + "".join(
+    random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
+)
+CLIENT_DATA = f"Some random data from the client:" + "".join(
+    random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
+)
 
 """
 This test file checks that a serialized connection can be deserialized by an older version of
@@ -24,10 +33,8 @@ This prevents one peer from receiving a TCP FIN message and shutting the connect
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
-@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
-def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol, provider, other_provider):
+def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)
     assert not os.path.exists(server_state_file)
@@ -35,6 +42,7 @@ def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol, prov
 
     options = ProviderOptions(
         port=next(available_ports),
+        protocol=protocol,
         insecure=True,
     )
 
@@ -52,9 +60,11 @@ def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol, prov
 
     for results in client.get_results():
         results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) in results.stdout
 
     for results in server.get_results():
         results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) in results.stdout
 
     assert os.path.exists(server_state_file)
     assert os.path.exists(client_state_file)
@@ -63,21 +73,27 @@ def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol, prov
     server_options.extra_flags = ['--deserialize-in', server_state_file]
     server_options.use_mainline_version = True
 
-    server = managed_process(S2N, server_options, send_marker="Listening on localhost")
-    client = managed_process(S2N, client_options, send_marker="Connected to localhost")
+    server_options.data_to_send = SERVER_DATA.encode()
+    client_options.data_to_send = CLIENT_DATA.encode()
+
+    server = managed_process(S2N, server_options, send_marker=CLIENT_DATA)
+    client = managed_process(S2N, client_options, send_marker="Connected to localhost", close_marker=SERVER_DATA)
 
     for results in server.get_results():
         results.assert_success()
+        # No protocol version printout since deserialization means skipping the handshake
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) not in results.stdout
+        assert CLIENT_DATA.encode() in results.stdout
 
     for results in client.get_results():
         results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) not in results.stdout
+        assert SERVER_DATA.encode() in results.stdout
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
-@pytest.mark.parametrize("provider", [S2N], ids=get_parameter_name)
-@pytest.mark.parametrize("other_provider", [S2N], ids=get_parameter_name)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
-def test_serialize_old_deserialize_new(managed_process, tmp_path, protocol, provider, other_provider):
+def test_serialize_old_deserialize_new(managed_process, tmp_path, protocol):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)
     assert not os.path.exists(server_state_file)
@@ -85,6 +101,7 @@ def test_serialize_old_deserialize_new(managed_process, tmp_path, protocol, prov
 
     options = ProviderOptions(
         port=next(available_ports),
+        protocol=protocol,
         insecure=True,
     )
 
@@ -103,9 +120,11 @@ def test_serialize_old_deserialize_new(managed_process, tmp_path, protocol, prov
 
     for results in client.get_results():
         results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) in results.stdout
 
     for results in server.get_results():
         results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) in results.stdout
 
     assert os.path.exists(server_state_file)
     assert os.path.exists(client_state_file)
@@ -114,11 +133,19 @@ def test_serialize_old_deserialize_new(managed_process, tmp_path, protocol, prov
     server_options.extra_flags = ['--deserialize-in', server_state_file]
     server_options.use_mainline_version = False
 
-    server = managed_process(S2N, server_options, send_marker="Listening on localhost")
-    client = managed_process(S2N, client_options, send_marker="Connected to localhost")
+    server_options.data_to_send = SERVER_DATA.encode()
+    client_options.data_to_send = CLIENT_DATA.encode()
 
-    for results in client.get_results():
-        results.assert_success()
+    server = managed_process(S2N, server_options, send_marker=CLIENT_DATA)
+    client = managed_process(S2N, client_options, send_marker="Connected to localhost", close_marker=SERVER_DATA)
 
     for results in server.get_results():
         results.assert_success()
+        # No protocol version printout since deserialization means skipping the handshake
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) not in results.stdout
+        assert CLIENT_DATA.encode() in results.stdout
+
+    for results in client.get_results():
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) not in results.stdout
+        assert SERVER_DATA.encode() in results.stdout
