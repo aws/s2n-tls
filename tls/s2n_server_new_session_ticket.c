@@ -86,20 +86,10 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      * its mind mid-handshake or if there are no valid encrypt keys currently available. 
      *
      *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
-     *# This message MUST be sent if the server included
-     *# a SessionTicket extension in the ServerHello.
-     *
-     *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
      *# If the server determines that it does not want to include a
      *# ticket after it has included the SessionTicket extension in the
      *# ServerHello, then it sends a zero-length ticket in the
      *# NewSessionTicket handshake message.
-     *  
-     *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
-     *# struct {
-     *#     uint32 ticket_lifetime_hint;
-     *#     opaque ticket<0..2^16-1>;
-     *# } NewSessionTicket;
      **/
     if (!conn->config->use_tickets || s2n_result_is_error(s2n_config_is_encrypt_key_available(conn->config))) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
@@ -112,11 +102,24 @@ int s2n_server_nst_send(struct s2n_connection *conn)
         POSIX_BAIL(S2N_ERR_SENDING_NST);
     }
 
+    /*  Send a zero-length ticket in the NewSessionTicket message if encrypt key expires in between
+     *  the key validation and encryption
+     *
+     *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
+     *# This message MUST be sent if the server included
+     *# a SessionTicket extension in the ServerHello.
+     **/
     POSIX_GUARD(s2n_stuffer_init(&to, &entry));
+    if (s2n_encrypt_session_ticket(conn, &to) != 0) {
+        POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
+        POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
+
+        return S2N_SUCCESS;
+    } 
+
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
 
-    POSIX_GUARD(s2n_encrypt_session_ticket(conn, &to));
     POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &to.blob));
 
     /* For parity with TLS1.3, track the single ticket sent.
