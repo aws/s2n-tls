@@ -4,7 +4,7 @@ from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_NO_P
 from platform import machine
 
 ALLPLATFORMS = set(["aarch64", "x86_64"])
-NOTNIXMARKS = set(["fix4nix"])
+FIXNIXMARK = set(["fix4nix"])
 
 
 def pytest_addoption(parser):
@@ -72,6 +72,6 @@ def pytest_runtest_setup(item: pytest.Item) -> None:
         pytest.skip(f"Platform specific test; not running on {platform}")
 
     # Look for a not-in-nix mark, and check for a Nix defined env. var to skip the test.
-    not_nix_mark = NOTNIXMARKS.intersection(mark.name for mark in item.iter_markers())
+    not_nix_mark = FIXNIXMARK.intersection(mark.name for mark in item.iter_markers())
     if getenv("IN_NIX_SHELL", None) and not_nix_mark:
         pytest.skip(f"Nix detected; skipping this test")
