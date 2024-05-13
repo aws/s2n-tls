@@ -17,6 +17,8 @@
 
 #include <openssl/objects.h>
 
+#include "utils/s2n_safety.h"
+
 const struct s2n_certificate_key s2n_rsa_rsae_1024 = {
     .public_key_libcrypto_nid = NID_rsaEncryption,
     .name = "rsa_1024",
@@ -97,14 +99,11 @@ const struct s2n_certificate_key *s2n_certificate_keys_rfc9151[] = {
      **/
     &s2n_rsa_rsae_3072,
     &s2n_rsa_rsae_4096,
-
-    /* OID:rsassa-PSS keys are allowed by rfc9151, but s2n-tls does not currently
-     * support validating the digest size on RSA-PSS signatures, so they are not
-     * allowed in s2n_certificate_signature_preferences_rfc9151. \
-     */
+    &s2n_rsa_pss_3072,
+    &s2n_rsa_pss_4096,
 };
 
-const struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 = {
+struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 = {
     .count = s2n_array_len(s2n_certificate_keys_rfc9151),
     .certificate_keys = s2n_certificate_keys_rfc9151,
 };
