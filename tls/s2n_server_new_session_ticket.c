@@ -115,7 +115,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
         return S2N_SUCCESS;
-    } 
+    }
 
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
