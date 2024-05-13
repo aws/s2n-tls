@@ -35,12 +35,36 @@
         }                         \
     } while (0)
 
+#define ENSURE_EXIT(x, msg)               \
+    do {                                  \
+        if (!(x)) {                       \
+            fprintf(stderr, "%s\n", msg); \
+            exit(1);                      \
+        }                                 \
+    } while (0)
+
+#define GUARD_RETURN_NULL(x)                               \
+    do {                                                   \
+        if (x == NULL) {                                   \
+            fprintf(stderr, "NULL pointer encountered\n"); \
+            return -1;                                     \
+        }                                                  \
+    } while (0)
+
 #define GUARD_RETURN(x, msg)      \
     do {                          \
         if ((x) < 0) {            \
             print_s2n_error(msg); \
             return -1;            \
         }                         \
+    } while (0)
+
+#define ENSURE_RETURN(x, msg)             \
+    do {                                  \
+        if (!(x)) {                       \
+            fprintf(stderr, "%s\n", msg); \
+            return -1;                    \
+        }                                 \
     } while (0)
 
 #define S2N_MAX_PSK_LIST_LENGTH 10
@@ -74,6 +98,8 @@ struct conn_settings {
     int max_conns;
     const char *ca_dir;
     const char *ca_file;
+    const char *serialize_out;
+    const char *deserialize_in;
     char *psk_optarg_list[S2N_MAX_PSK_LIST_LENGTH];
     size_t psk_list_len;
 };
@@ -130,3 +156,5 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
 uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *data);
 int s2n_setup_server_connection(struct s2n_connection *conn, int fd, struct s2n_config *config, struct conn_settings settings);
 int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path);
+int s2n_connection_serialize_out(struct s2n_connection *conn, const char *file_path);
+int s2n_connection_deserialize_in(struct s2n_connection *conn, const char *file_path);

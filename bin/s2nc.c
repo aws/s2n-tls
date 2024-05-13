@@ -44,6 +44,8 @@
 #define OPT_PREFER_LOW_LATENCY 1005
 #define OPT_PREFER_THROUGHPUT  1006
 #define OPT_BUFFERED_SEND      1007
+#define OPT_SERIALIZE_OUT      1008
+#define OPT_DESERIALIZE_IN     1009
 
 /*
  * s2nc is an example client that uses many s2n-tls APIs.
@@ -292,6 +294,8 @@ int main(int argc, char *const *argv)
     bool client_key_input = false;
     const char *ticket_out = NULL;
     char *ticket_in = NULL;
+    const char *serialize_out = NULL;
+    const char *deserialize_in = NULL;
     uint16_t mfl_value = 0;
     uint8_t insecure = 0;
     int reconnect = 0;
@@ -340,6 +344,8 @@ int main(int argc, char *const *argv)
         { "ticket-out", required_argument, 0, OPT_TICKET_OUT },
         { "ticket-in", required_argument, 0, OPT_TICKET_IN },
         { "no-session-ticket", no_argument, 0, 'T' },
+        { "serialize-out", required_argument, 0, OPT_SERIALIZE_OUT },
+        { "deserialize-in", required_argument, 0, OPT_DESERIALIZE_IN },
         { "dynamic", required_argument, 0, 'D' },
         { "timeout", required_argument, 0, 't' },
         { "corked-io", no_argument, 0, 'C' },
@@ -418,6 +424,22 @@ int main(int argc, char *const *argv)
                 break;
             case OPT_TICKET_IN:
                 ticket_in = optarg;
+                break;
+            /* The serialize_out and deserialize_in options are not documented
+             * in the usage section as they are not intended to work correctly
+             * using s2nc by itself. s2nc and s2nd are processes which close
+             * their TCP connection upon exit. This will cause an error if one
+             * peer serializes and exits and the other doesn't, as serialization
+             * depends on a continuous TCP connection with the peer. Therefore, our
+             * only usage of this feature is in our integ test framework,
+             * which serializes and deserializes both client and server at the
+             * same time. Do not expect these options to work when using s2nc alone.
+             */
+            case OPT_SERIALIZE_OUT:
+                serialize_out = optarg;
+                break;
+            case OPT_DESERIALIZE_IN:
+                deserialize_in = optarg;
                 break;
             case 'T':
                 session_ticket = 0;
@@ -629,11 +651,20 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_config_set_npn(config, 1), "Error setting npn support");
         }
 
+        if (serialize_out) {
+            GUARD_EXIT(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1),
+                    "Error setting serialized version");
+        }
+
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
 
         if (conn == NULL) {
             print_s2n_error("Error getting new connection");
             exit(1);
+        }
+
+        if (deserialize_in) {
+            GUARD_EXIT(s2n_connection_deserialize_in(conn, deserialize_in), "Failed to deserialize file");
         }
 
         GUARD_EXIT(s2n_connection_set_config(conn, config), "Error setting configuration");
@@ -684,8 +715,7 @@ int main(int argc, char *const *argv)
             }
         }
 
-        /* See echo.c */
-        if (negotiate(conn, sockfd) != 0) {
+        if (!deserialize_in && negotiate(conn, sockfd) != 0) {
             /* Error is printed in negotiate */
             S2N_ERROR_PRESERVE_ERRNO();
         }
@@ -746,7 +776,11 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(renegotiate(conn, sockfd, reneg_ctx.wait), "Renegotiation failed");
         }
 
-        GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
+        if (serialize_out) {
+            GUARD_EXIT(s2n_connection_serialize_out(conn, serialize_out), "Error serializing connection");
+        } else {
+            GUARD_EXIT(wait_for_shutdown(conn, sockfd), "Error closing connection");
+        }
 
         GUARD_EXIT(s2n_connection_free(conn), "Error freeing connection");
 

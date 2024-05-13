@@ -131,7 +131,9 @@ static char default_private_key[] =
         "ggF9KQ0xWz7Km3GXv5+bwM5bcgt1A/s6sZCimXuj3Fle3RqOTF0="
         "-----END RSA PRIVATE KEY-----";
 
-#define OPT_BUFFERED_SEND 1000
+#define OPT_BUFFERED_SEND  1000
+#define OPT_SERIALIZE_OUT  1001
+#define OPT_DESERIALIZE_IN 1002
 
 void usage()
 {
@@ -221,9 +223,9 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         S2N_ERROR_PRESERVE_ERRNO();
     }
 
-    s2n_setup_server_connection(conn, fd, config, settings);
+    GUARD_EXIT(s2n_setup_server_connection(conn, fd, config, settings), "Error setting up connection");
 
-    if (negotiate(conn, fd) != S2N_SUCCESS) {
+    if (!settings.deserialize_in && negotiate(conn, fd) != S2N_SUCCESS) {
         if (settings.mutual_auth) {
             if (!s2n_connection_client_cert_used(conn)) {
                 print_s2n_error("Error: Mutual Auth was required, but not negotiated");
@@ -243,7 +245,11 @@ int handle_connection(int fd, struct s2n_config *config, struct conn_settings se
         echo(conn, fd, &stop_echo);
     }
 
-    GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
+    if (settings.serialize_out) {
+        GUARD_RETURN(s2n_connection_serialize_out(conn, settings.serialize_out), "Error serializing connection");
+    } else {
+        GUARD_RETURN(wait_for_shutdown(conn, fd), "Error closing connection");
+    }
 
     GUARD_RETURN(s2n_connection_wipe(conn), "Error wiping connection");
 
@@ -307,6 +313,8 @@ int main(int argc, char *const *argv)
         { "ca-file", required_argument, 0, 't' },
         { "insecure", no_argument, 0, 'i' },
         { "stk-file", required_argument, 0, 'a' },
+        { "serialize-out", required_argument, 0, OPT_SERIALIZE_OUT },
+        { "deserialize-in", required_argument, 0, OPT_DESERIALIZE_IN },
         { "no-session-ticket", no_argument, 0, 'T' },
         { "corked-io", no_argument, 0, 'C' },
         { "max-conns", optional_argument, 0, 'X' },
@@ -426,6 +434,22 @@ int main(int argc, char *const *argv)
                 send_buffer_size = (uint32_t) send_buffer_size_scanned_value;
                 break;
             }
+            /* The serialize_out and deserialize_in options are not documented
+             * in the usage section as they are not intended to work correctly
+             * using s2nd by itself. s2nc and s2nd are processes which close
+             * their TCP connection upon exit. This will cause an error if one
+             * peer serializes and exits and the other doesn't, as serialization
+             * depends on a continuous TCP connection with the peer. Therefore, our
+             * only usage of this feature is in our integ test framework,
+             * which serializes and deserializes both client and server at the
+             * same time. Do not expect these options to work when using s2nd alone.
+             */
+            case OPT_SERIALIZE_OUT:
+                conn_settings.serialize_out = optarg;
+                break;
+            case OPT_DESERIALIZE_IN:
+                conn_settings.deserialize_in = optarg;
+                break;
             case 'A':
                 alpn = optarg;
                 break;
@@ -614,6 +638,11 @@ int main(int argc, char *const *argv)
 
     if (npn) {
         GUARD_EXIT(s2n_config_set_npn(config, 1), "Error setting npn support");
+    }
+
+    if (conn_settings.serialize_out) {
+        GUARD_EXIT(s2n_config_set_serialization_version(config, S2N_SERIALIZED_CONN_V1),
+                "Error setting serialized version");
     }
 
     FILE *key_log_file = NULL;
