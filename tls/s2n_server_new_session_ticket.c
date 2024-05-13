@@ -91,7 +91,8 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      *# ServerHello, then it sends a zero-length ticket in the
      *# NewSessionTicket handshake message.
      **/
-    if (!conn->config->use_tickets || s2n_result_is_error(s2n_config_is_encrypt_key_available(conn->config))) {
+    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
+    if (!conn->config->use_tickets || s2n_encrypt_session_ticket(conn, &to) != 0) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
@@ -100,21 +101,6 @@ int s2n_server_nst_send(struct s2n_connection *conn)
 
     if (!s2n_server_sending_nst(conn)) {
         POSIX_BAIL(S2N_ERR_SENDING_NST);
-    }
-
-    /*  Send a zero-length ticket in the NewSessionTicket message if encrypt key expires in between
-     *  the key validation and encryption
-     *
-     *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
-     *# This message MUST be sent if the server included
-     *# a SessionTicket extension in the ServerHello.
-     **/
-    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
-    if (s2n_encrypt_session_ticket(conn, &to) != 0) {
-        POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
-        POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
-
-        return S2N_SUCCESS;
     }
 
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
