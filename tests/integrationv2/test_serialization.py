@@ -5,7 +5,7 @@ import random
 import string
 
 from configuration import available_ports
-from common import ProviderOptions, Protocols, data_bytes
+from common import ProviderOptions, Protocols
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
