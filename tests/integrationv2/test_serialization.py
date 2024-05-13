@@ -35,7 +35,7 @@ This prevents one peer from receiving a TCP FIN message and shutting the connect
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
 @pytest.mark.parametrize("use_mainline_version", [True, False], ids=get_parameter_name)
-def test_serialize_new_deserialize_old(managed_process, tmp_path, protocol, use_mainline_version):
+def test_serialization_backwards_compat(managed_process, tmp_path, protocol, use_mainline_version):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)
     assert not os.path.exists(server_state_file)
