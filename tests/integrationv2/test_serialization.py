@@ -1,4 +1,3 @@
-from enum import Enum, auto
 import pytest
 import copy
 import os
