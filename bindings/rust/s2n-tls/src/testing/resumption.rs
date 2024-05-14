@@ -109,7 +109,7 @@ mod tests {
         let client = pair.client.0.connection();
 
         // Check connection was full handshake and a session ticket was included
-        assert!(!client.was_resumed());
+        assert!(!client.resumed());
         validate_session_ticket(client)?;
 
         // create and configure a client/server connection again
@@ -135,7 +135,7 @@ mod tests {
         let server = pair.server.0.connection();
 
         // Check new connection was resumed
-        assert!(client.was_resumed());
+        assert!(client.resumed());
         // validate that a ticket is available
         validate_session_ticket(client)?;
         validate_session_ticket(server)?;
@@ -192,7 +192,7 @@ mod tests {
 
         let client = pair.client.0.connection();
         // Check connection was full handshake
-        assert!(!client.was_resumed());
+        assert!(!client.resumed());
         // validate that a ticket is available
         validate_session_ticket(client)?;
 
@@ -221,7 +221,7 @@ mod tests {
 
         let client = pair.client.0.connection();
         // Check new connection was resumed
-        assert!(client.was_resumed());
+        assert!(client.resumed());
         // validate that a ticket is available
         validate_session_ticket(client)?;
         Ok(())
