@@ -1,11 +1,9 @@
 import pytest
 import copy
 import os
-import random
-import string
 
 from configuration import available_ports
-from common import ProviderOptions, Protocols
+from common import ProviderOptions, Protocols, random_str
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
@@ -13,12 +11,9 @@ from utils import invalid_test_parameters, get_parameter_name, to_bytes
 SERVER_STATE_FILE = 'server_state'
 CLIENT_STATE_FILE = 'client_state'
 
-SERVER_DATA = f"Some random data from the server:" + "".join(
-    random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
-)
-CLIENT_DATA = f"Some random data from the client:" + "".join(
-    random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
-)
+SERVER_DATA = f"Some random data from the server:" + random_str(10)
+CLIENT_DATA = f"Some random data from the client:" + random_str(10)
+
 
 """
 This test file checks that a serialized connection can be deserialized by an older version of
