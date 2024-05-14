@@ -29,8 +29,10 @@ def data_bytes(n_bytes):
 
     return bytes(byte_array)
 
+
 def random_str(n):
     return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(n))
+
 
 def pq_enabled():
     """
