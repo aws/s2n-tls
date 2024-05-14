@@ -250,26 +250,6 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert, "rsae", "pss", "4096", "sha384"));
 
-        struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
-        rfc9151_applied_locally.certificate_preferences_apply_locally = true;
-
-        /* s2n_connection_set_cipher_preferences looks up the security policy from the security_policy_selection table
-         * but none of our current security policies apply certificate preferences locally. So instead we rewrite the
-         * rfc9151 policy from the table to apply cert preference locally. */
-        struct s2n_security_policy_selection *rfc9151_selection = NULL;
-        const struct s2n_security_policy *original_rfc9151 = NULL;
-        for (int i = 0; security_policy_selection[i].version != NULL; i++) {
-            if (strcasecmp("rfc9151", security_policy_selection[i].version) == 0) {
-                rfc9151_selection = &security_policy_selection[i];
-                break;
-            }
-        }
-        if (rfc9151_selection == NULL) {
-            FAIL_MSG("unable to find expected security policy");
-        }
-        original_rfc9151 = rfc9151_selection->security_policy;
-        rfc9151_selection->security_policy = &rfc9151_applied_locally;
-
         /* when certificate preferences apply locally and the connection contains
          * an invalid config then s2n_connection_set_cipher_preferences fails
          */
@@ -283,9 +263,6 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
-
-        /* restore security_policy_selection */
-        rfc9151_selection->security_policy = original_rfc9151;
     };
 
     END_TEST();
