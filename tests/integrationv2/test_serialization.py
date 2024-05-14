@@ -1,3 +1,4 @@
+from enum import Enum, auto
 import pytest
 import copy
 import os
@@ -21,16 +22,16 @@ s2n-tls and vice versa. This ensures that any future changes we make to the hand
 with an older version of s2n-tls.
 
 This feature requires an uninterrupted TCP connection with the peer in-between serialization and
-deserialization. Our integration test setup can't provide that while also using two different s2n-tls
-versions. To get around that we do a hack and serialize/deserialize both peers in the TLS connection.
+deserialization. Our integration test setup can't easily provide that while also using two different
+s2n-tls versions. To get around that we do a hack and serialize/deserialize both peers in the TLS connection.
 This prevents one peer from receiving a TCP FIN message and shutting the connection down early.
 """
 
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
-@pytest.mark.parametrize("use_mainline_version", [True, False], ids=get_parameter_name)
-def test_serialization_backwards_compat(managed_process, tmp_path, protocol, use_mainline_version):
+@pytest.mark.parametrize("serialize_older_version", [True, False], ids=get_parameter_name)
+def test_server_serialization_backwards_compat(managed_process, tmp_path, protocol, serialize_older_version):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)
     assert not os.path.exists(server_state_file)
@@ -49,7 +50,7 @@ def test_serialization_backwards_compat(managed_process, tmp_path, protocol, use
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
     server_options.extra_flags = ['--serialize-out', server_state_file]
-    server_options.use_mainline_version = use_mainline_version
+    server_options.use_mainline_version = serialize_older_version
 
     server = managed_process(
         S2N, server_options, send_marker=S2N.get_send_marker())
@@ -68,7 +69,69 @@ def test_serialization_backwards_compat(managed_process, tmp_path, protocol, use
 
     client_options.extra_flags = ['--deserialize-in', client_state_file]
     server_options.extra_flags = ['--deserialize-in', server_state_file]
-    server_options.use_mainline_version = not use_mainline_version
+    server_options.use_mainline_version = not serialize_older_version
+
+    server_options.data_to_send = SERVER_DATA.encode()
+    client_options.data_to_send = CLIENT_DATA.encode()
+
+    server = managed_process(S2N, server_options, send_marker=CLIENT_DATA)
+    client = managed_process(S2N, client_options, send_marker="Connected to localhost", close_marker=SERVER_DATA)
+
+    for results in server.get_results():
+        results.assert_success()
+        # No protocol version printout since deserialization means skipping the handshake
+        assert to_bytes("Actual protocol version:") not in results.stdout
+        assert CLIENT_DATA.encode() in results.stdout
+
+    for results in client.get_results():
+        results.assert_success()
+        assert to_bytes("Actual protocol version:") not in results.stdout
+        assert SERVER_DATA.encode() in results.stdout
+
+
+@pytest.mark.uncollect_if(func=invalid_test_parameters)
+@pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
+@pytest.mark.parametrize("serialize_older_version", [True, False], ids=get_parameter_name)
+def test_client_serialization_backwards_compat(managed_process, tmp_path, protocol, serialize_older_version):
+    server_state_file = str(tmp_path / SERVER_STATE_FILE)
+    client_state_file = str(tmp_path / CLIENT_STATE_FILE)
+    assert not os.path.exists(server_state_file)
+    assert not os.path.exists(client_state_file)
+
+    options = ProviderOptions(
+        port=next(available_ports),
+        protocol=protocol,
+        insecure=True,
+    )
+
+    client_options = copy.copy(options)
+    client_options.mode = Provider.ClientMode
+    client_options.extra_flags = ['--serialize-out', client_state_file]
+    client_options.use_mainline_version = serialize_older_version
+
+    server_options = copy.copy(options)
+    server_options.mode = Provider.ServerMode
+    server_options.extra_flags = ['--serialize-out', server_state_file]
+
+    server = managed_process(
+        S2N, server_options, send_marker=S2N.get_send_marker())
+    client = managed_process(S2N, client_options, send_marker=S2N.get_send_marker())
+
+    for results in client.get_results():
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) in results.stdout
+
+    for results in server.get_results():
+        results.assert_success()
+        assert to_bytes("Actual protocol version: {}".format(protocol.value)) in results.stdout
+
+    assert os.path.exists(server_state_file)
+    assert os.path.exists(client_state_file)
+
+    client_options.extra_flags = ['--deserialize-in', client_state_file]
+    client_options.use_mainline_version = not serialize_older_version
+
+    server_options.extra_flags = ['--deserialize-in', server_state_file]
 
     server_options.data_to_send = SERVER_DATA.encode()
     client_options.data_to_send = CLIENT_DATA.encode()
