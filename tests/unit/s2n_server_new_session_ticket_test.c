@@ -81,32 +81,6 @@ static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
     return S2N_SUCCESS;
 }
 
-/**
- * This function is used to "skip" time in unit tests. It will mock the system
- * time to be current_time (ns) + data (ns). The "data" parameter is a uint64_t
- * passed in as a void*.
- */
-int mock_nanoseconds_since_epoch(void *data, uint64_t *nanoseconds)
-{
-    struct timespec current_time;
-
-    clock_gettime(S2N_CLOCK_SYS, &current_time);
-
-    /**
-     * current_time fields are represented as time_t, and time_t has a platform
-     * dependent size. On 32 bit platforms, attempting to convert the current
-     * system time to nanoseconds will overflow, causing odd failures in unit
-     * tests. We upcast current_time fields to uint64_t before multiplying to
-     * avoid this.
-     */
-    *nanoseconds = 0;
-    *nanoseconds += (uint64_t) current_time.tv_sec * ONE_SEC_IN_NANOS;
-    *nanoseconds += (uint64_t) current_time.tv_nsec;
-    *nanoseconds += *(uint64_t *) data;
-
-    return 0;
-}
-
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
@@ -872,15 +846,9 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
-            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
             conn->session_ticket_status = S2N_NEW_TICKET;
-
-            /* Expire current session ticket key so that server no longer holds a valid key */
-            uint64_t mock_delay = config->encrypt_decrypt_key_lifetime_in_nanos;
-            EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_nanoseconds_since_epoch,
-                    &mock_delay));
 
             EXPECT_SUCCESS(s2n_server_nst_send(conn));
             EXPECT_TICKETS_SENT(conn, 0);
