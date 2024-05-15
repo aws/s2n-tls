@@ -15,9 +15,11 @@ CLIENT_STATE_FILE = 'client_state'
 SERVER_DATA = f"Some random data from the server:" + random_str(10)
 CLIENT_DATA = f"Some random data from the client:" + random_str(10)
 
+
 class MainlineRole(Enum):
     Serialize = auto()
     Deserialize = auto()
+
 
 """
 This test file checks that a serialized connection can be deserialized by an older version of
