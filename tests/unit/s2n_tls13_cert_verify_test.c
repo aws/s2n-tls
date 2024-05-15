@@ -14,6 +14,7 @@
  */
 
 #include "crypto/s2n_ecdsa.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
@@ -364,7 +365,11 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
                 S2N_ERR_VERIFY_SIGNATURE);
     };
 
-    /* Verifying connection errors with wrong signature algorithms */
+    /* Verifying connection errors with wrong signature algorithms 
+     * Skip this test when FIPS mode is enabled, since it uses EVP signing method which ignores
+     * signature algorithm mismatch
+     */
+    if (!s2n_is_in_fips_mode())
     {
         /* Derive private/public keys and set connection variables */
         DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
