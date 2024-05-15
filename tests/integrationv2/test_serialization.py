@@ -1,6 +1,7 @@
 import pytest
 import copy
 import os
+from enum import Enum, auto
 
 from configuration import available_ports
 from common import ProviderOptions, Protocols, random_str
@@ -14,6 +15,9 @@ CLIENT_STATE_FILE = 'client_state'
 SERVER_DATA = f"Some random data from the server:" + random_str(10)
 CLIENT_DATA = f"Some random data from the client:" + random_str(10)
 
+class MainlineRole(Enum):
+    Serialize = auto()
+    Deserialize = auto()
 
 """
 This test file checks that a serialized connection can be deserialized by an older version of
@@ -29,8 +33,8 @@ This prevents one peer from receiving a TCP FIN message and shutting the connect
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
-@pytest.mark.parametrize("serialize_older_version", [True, False], ids=get_parameter_name)
-def test_server_serialization_backwards_compat(managed_process, tmp_path, protocol, serialize_older_version):
+@pytest.mark.parametrize("mainline_role", [MainlineRole.Serialize, MainlineRole.Deserialize], ids=get_parameter_name)
+def test_server_serialization_backwards_compat(managed_process, tmp_path, protocol, mainline_role):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)
     assert not os.path.exists(server_state_file)
@@ -49,7 +53,8 @@ def test_server_serialization_backwards_compat(managed_process, tmp_path, protoc
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
     server_options.extra_flags = ['--serialize-out', server_state_file]
-    server_options.use_mainline_version = serialize_older_version
+    if mainline_role is MainlineRole.Serialize:
+        server_options.use_mainline_version = True
 
     server = managed_process(
         S2N, server_options, send_marker=S2N.get_send_marker())
@@ -68,7 +73,8 @@ def test_server_serialization_backwards_compat(managed_process, tmp_path, protoc
 
     client_options.extra_flags = ['--deserialize-in', client_state_file]
     server_options.extra_flags = ['--deserialize-in', server_state_file]
-    server_options.use_mainline_version = not serialize_older_version
+    if mainline_role is MainlineRole.Deserialize:
+        server_options.use_mainline_version = True
 
     server_options.data_to_send = SERVER_DATA.encode()
     client_options.data_to_send = CLIENT_DATA.encode()
@@ -90,8 +96,8 @@ def test_server_serialization_backwards_compat(managed_process, tmp_path, protoc
 
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("protocol", [Protocols.TLS13, Protocols.TLS12], ids=get_parameter_name)
-@pytest.mark.parametrize("serialize_older_version", [True, False], ids=get_parameter_name)
-def test_client_serialization_backwards_compat(managed_process, tmp_path, protocol, serialize_older_version):
+@pytest.mark.parametrize("mainline_role", [MainlineRole.Serialize, MainlineRole.Deserialize], ids=get_parameter_name)
+def test_client_serialization_backwards_compat(managed_process, tmp_path, protocol, mainline_role):
     server_state_file = str(tmp_path / SERVER_STATE_FILE)
     client_state_file = str(tmp_path / CLIENT_STATE_FILE)
     assert not os.path.exists(server_state_file)
@@ -106,7 +112,8 @@ def test_client_serialization_backwards_compat(managed_process, tmp_path, protoc
     client_options = copy.copy(options)
     client_options.mode = Provider.ClientMode
     client_options.extra_flags = ['--serialize-out', client_state_file]
-    client_options.use_mainline_version = serialize_older_version
+    if mainline_role is MainlineRole.Serialize:
+        client_options.use_mainline_version = True
 
     server_options = copy.copy(options)
     server_options.mode = Provider.ServerMode
@@ -128,7 +135,8 @@ def test_client_serialization_backwards_compat(managed_process, tmp_path, protoc
     assert os.path.exists(client_state_file)
 
     client_options.extra_flags = ['--deserialize-in', client_state_file]
-    client_options.use_mainline_version = not serialize_older_version
+    if mainline_role is MainlineRole.Deserialize:
+        client_options.use_mainline_version = True
 
     server_options.extra_flags = ['--deserialize-in', server_state_file]
 
