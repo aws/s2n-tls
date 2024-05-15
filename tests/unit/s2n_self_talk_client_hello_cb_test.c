@@ -470,12 +470,12 @@ int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode, struct cli
 
 int run_test_set_cipher_preferences_ch_cb(s2n_client_hello_cb_mode cb_mode, struct client_hello_context *ch_ctx)
 {
-    struct s2n_test_io_pair io_pair;
+    struct s2n_test_io_pair io_pair = { 0 };
     struct s2n_config *config = NULL;
     struct s2n_connection *conn = NULL;
     pid_t pid = 0;
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
-    uint8_t negotiated_cipher_actual_iana[S2N_TLS_CIPHER_SUITE_LEN];
+    uint8_t negotiated_cipher_actual_iana[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
 
     EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 0));
 
