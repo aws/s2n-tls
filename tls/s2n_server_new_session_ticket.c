@@ -92,7 +92,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      *# NewSessionTicket handshake message.
      **/
     POSIX_GUARD(s2n_stuffer_init(&to, &entry));
-    if (!conn->config->use_tickets || s2n_encrypt_session_ticket(conn, &to) != 0) {
+    if (!conn->config->use_tickets || s2n_encrypt_session_ticket(conn, &to) != S2N_SUCCESS) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
