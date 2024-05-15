@@ -16,7 +16,7 @@ errno = "0.3"
 libc = "0.2"
 strum = { version = "0.25", features = ["derive"] }
 rustls = { version = "0.23", optional = true }
-rustls-pemfile = { version = "2.0", optional = true }
+rustls-pemfile = { version = "2", optional = true }
 openssl = { version = "0.10", features = ["vendored"], optional = true }
 crabgrind = { version = "0.1", optional = true }
 structopt = { version = "0.3", optional = true }

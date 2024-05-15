@@ -70,13 +70,14 @@ impl RustlsConfig {
     }
 
     fn get_key(pem_type: PemType, sig_type: SigType) -> PrivateKeyDer<'static> {
-        if let Some(rustls_pemfile::Item::Pkcs8Key(key)) =
+        let key =
             rustls_pemfile::read_one(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
-                .unwrap()
-        {
-            return key.into();
+                .unwrap();
+        if let Some(rustls_pemfile::Item::Pkcs8Key(pkcs_8_key)) = key {
+            return pkcs_8_key.into();
         } else {
-            panic!("unsupported key type");
+            // https://docs.rs/rustls-pemfile/latest/rustls_pemfile/enum.Item.html
+            panic!("unexpected key type: {:?}", key);
         }
     }
 }
@@ -103,18 +104,17 @@ impl TlsBenchConfig for RustlsConfig {
             KXGroup::X25519 => &X25519,
         };
 
+        let crypto_provider = Arc::new(CryptoProvider {
+            cipher_suites: vec![cipher_suite],
+            kx_groups: vec![*kx_group],
+            ..aws_lc_rs::default_provider()
+        });
+
         match mode {
             Mode::Client => {
-                let builder = ClientConfig::builder_with_provider(
-                    CryptoProvider {
-                        cipher_suites: vec![cipher_suite],
-                        kx_groups: vec![*kx_group],
-                        ..aws_lc_rs::default_provider()
-                    }
-                    .into(),
-                )
-                .with_protocol_versions(&[&TLS13])?
-                .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type));
+                let builder = ClientConfig::builder_with_provider(crypto_provider)
+                    .with_protocol_versions(&[&TLS13])?
+                    .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type));
 
                 let config = match handshake_type {
                     HandshakeType::ServerAuth | HandshakeType::Resumption => {
@@ -133,15 +133,8 @@ impl TlsBenchConfig for RustlsConfig {
                 Ok(RustlsConfig::Client(Arc::new(config)))
             }
             Mode::Server => {
-                let builder = ServerConfig::builder_with_provider(
-                    CryptoProvider {
-                        cipher_suites: vec![cipher_suite],
-                        kx_groups: vec![*kx_group],
-                        ..aws_lc_rs::default_provider()
-                    }
-                    .into(),
-                )
-                .with_protocol_versions(&[&TLS13])?;
+                let builder = ServerConfig::builder_with_provider(crypto_provider)
+                    .with_protocol_versions(&[&TLS13])?;
 
                 let builder = match handshake_type {
                     HandshakeType::ServerAuth | HandshakeType::Resumption => {
