@@ -338,8 +338,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
                 s2n_stuffer_data_available(&sending_conn->handshake.io)));
 
         struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
-        verifying_conn->handshake_params.server_cert_sig_scheme = &test_scheme;
-        verifying_conn->handshake_params.client_cert_sig_scheme = &test_scheme;
 
         /* Use a hash algorithm different from sender */
         test_scheme.hash_alg = S2N_HASH_SHA1;
@@ -421,8 +419,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
                 s2n_stuffer_data_available(&sending_conn->handshake.io)));
 
         struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
-        verifying_conn->handshake_params.server_cert_sig_scheme = &test_scheme;
-        verifying_conn->handshake_params.client_cert_sig_scheme = &test_scheme;
 
         /* Use a signature algorithm different from sender */
         test_scheme.sig_alg = S2N_SIGNATURE_RSA;
