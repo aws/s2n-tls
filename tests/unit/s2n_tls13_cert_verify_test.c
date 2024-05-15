@@ -369,7 +369,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
      * Skip this test when FIPS mode is enabled, since it uses EVP signing method which ignores
      * signature algorithm mismatch
      */
-    if (s2n_is_in_fips_mode() == 0) {
+    if (!(s2n_is_in_fips_mode() && s2n_libcrypto_is_awslc())) {
         /* Derive private/public keys and set connection variables */
         DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
         DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
