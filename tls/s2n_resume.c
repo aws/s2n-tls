@@ -817,7 +817,7 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
     POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from)
