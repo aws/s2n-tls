@@ -64,3 +64,9 @@ The "Large Data Download" cases are motivated by JDK behavior: https://bugs.open
 ## Certificates
 
 Test certificates are available in [interop/certificates](certificates). Clients should trust `ca-certificate.pem`, and servers should send the full `server-chain.pem`.
+
+The certificates link to the test certificates in `s2n-tls/tests/pems/permutations`.
+```
+# run from `interop/`
+ln -s ../pems/permutations/rsae_pkcs_2048_sha256/ certificates
+```
