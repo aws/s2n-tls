@@ -82,23 +82,30 @@ int s2n_server_nst_send(struct s2n_connection *conn)
     uint32_t lifetime_hint_in_secs =
             (conn->config->encrypt_decrypt_key_lifetime_in_nanos + conn->config->decrypt_key_lifetime_in_nanos) / ONE_SEC_IN_NANOS;
 
-    /* When server changes it's mind mid handshake send lifetime hint and session ticket length as zero */
-    if (!conn->config->use_tickets) {
+    /* Send a zero-length ticket in the NewSessionTicket message if the server changes 
+     * its mind mid-handshake or if there are no valid encrypt keys currently available. 
+     *
+     *= https://www.rfc-editor.org/rfc/rfc5077#section-3.3
+     *# If the server determines that it does not want to include a
+     *# ticket after it has included the SessionTicket extension in the
+     *# ServerHello, then it sends a zero-length ticket in the
+     *# NewSessionTicket handshake message.
+     **/
+    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
+    if (!conn->config->use_tickets || s2n_encrypt_session_ticket(conn, &to) != S2N_SUCCESS) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
-        return 0;
+        return S2N_SUCCESS;
     }
 
     if (!s2n_server_sending_nst(conn)) {
         POSIX_BAIL(S2N_ERR_SENDING_NST);
     }
 
-    POSIX_GUARD(s2n_stuffer_init(&to, &entry));
     POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, lifetime_hint_in_secs));
     POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, session_ticket_len));
 
-    POSIX_GUARD(s2n_encrypt_session_ticket(conn, &to));
     POSIX_GUARD(s2n_stuffer_write(&conn->handshake.io, &to.blob));
 
     /* For parity with TLS1.3, track the single ticket sent.
