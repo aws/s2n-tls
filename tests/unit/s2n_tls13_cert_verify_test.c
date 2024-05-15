@@ -337,9 +337,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_copy(&sending_conn->handshake.io, &verifying_conn->handshake.io,
                 s2n_stuffer_data_available(&sending_conn->handshake.io)));
 
-        struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
-
         /* Use a hash algorithm different from sender */
+        struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
         test_scheme.hash_alg = S2N_HASH_SHA1;
 
         /* Skip the first two bytes (signature scheme) because s2n_tls13_cert_read_and_verify_signature 
@@ -418,9 +417,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_stuffer_copy(&sending_conn->handshake.io, &verifying_conn->handshake.io,
                 s2n_stuffer_data_available(&sending_conn->handshake.io)));
 
-        struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
-
         /* Use a signature algorithm different from sender */
+        struct s2n_signature_scheme test_scheme = *verifying_conn->handshake_params.server_cert_sig_scheme;
         test_scheme.sig_alg = S2N_SIGNATURE_RSA;
 
         /* Skip the first two bytes (signature scheme) because s2n_tls13_cert_read_and_verify_signature 
