@@ -304,7 +304,6 @@ int main(int argc, char **argv)
     EXPECT_TRUE(s2n_constant_time_equals(a, f, 3));
     EXPECT_FALSE(s2n_constant_time_equals(a, f, 4));
 
-
     EXPECT_SUCCESS(s2n_constant_time_copy_or_dont(a, c, sizeof(a), 0));
     EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 1);
 
