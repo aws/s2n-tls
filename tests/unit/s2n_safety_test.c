@@ -286,6 +286,8 @@ int main(int argc, char **argv)
     uint8_t e[4] = { 1, 2, 3, 4 };
     uint8_t f[4] = { 1, 2, 3, 5 };
 
+    uint8_t all_zero[4] = { 0, 0, 0, 0 };
+
     EXPECT_TRUE(s2n_constant_time_equals(a, b, sizeof(a)));
     EXPECT_FALSE(s2n_constant_time_equals(a, c, sizeof(a)));
     EXPECT_FALSE(s2n_constant_time_equals(a, NULL, sizeof(a)));
@@ -296,6 +298,11 @@ int main(int argc, char **argv)
     /* ensure the function checks all of the bytes */
     EXPECT_TRUE(s2n_constant_time_equals(a, f, 3));
     EXPECT_FALSE(s2n_constant_time_equals(a, f, 4));
+
+    /* Check the special case where one parameter refers to an array of N bytes */
+    /* where all elements are 0x00, and the other parameter is NULL             */
+    EXPECT_FALSE(s2n_constant_time_equals(all_zero, NULL, sizeof(all_zero)));
+    EXPECT_FALSE(s2n_constant_time_equals(NULL, all_zero, sizeof(all_zero)));
 
     EXPECT_SUCCESS(s2n_constant_time_copy_or_dont(a, c, sizeof(a), 0));
     EXPECT_EQUAL(s2n_constant_time_equals(a, c, sizeof(a)), 1);
