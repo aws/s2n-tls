@@ -49,6 +49,10 @@
 
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
+#define DEFAULT_BLINDING_CEILING 30
+#define DEFAULT_BLINDING_FLOOR   10
+#define ONE_S                    INT64_C(1000000000)
+
 typedef enum {
     S2N_NO_TICKET = 0,
     S2N_DECRYPT_TICKET,
@@ -181,6 +185,8 @@ struct s2n_connection {
 
     /* Does s2n handle the blinding, or does the application */
     s2n_blinding blinding;
+
+    uint32_t max_blinding;
 
     /* A timer to measure the time between record writes */
     struct s2n_timer write_timer;

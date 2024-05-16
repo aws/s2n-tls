@@ -165,6 +165,13 @@ impl Connection {
         Ok(self)
     }
 
+    pub fn set_max_blinding(&mut self, seconds: u32) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_max_blinding(self.connection.as_ptr(), seconds).into_result()
+        }?;
+        Ok(self)
+    }
+
     /// Reports the remaining nanoseconds before the connection may be gracefully shutdown.
     ///
     /// This method is expected to succeed, but could fail if the

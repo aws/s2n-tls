@@ -1974,6 +1974,24 @@ S2N_API extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_
 S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
 /**
+ * Used to configure a maximum blinding delay.
+ *
+ * s2n-tls has a default blinding delay of 10-30 seconds. Some applications may not
+ * be able to sleep for that long. This API allows a user to specify a maximum delay which
+ * s2n-tls uses to calculate a custom blinding range.
+ *
+ * @warning DO NOT use this API unless the only other option is turning off blinding completely.
+ * This API lowers the effectiveness of the default blinding delay and may expose your application
+ * to sidechannel attacks.
+ *
+ * @param conn The connection object being updated.
+ * @param seconds The maximum number of seconds that s2n-tls will delay for in the event of a
+ * decryption error.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_connection_set_max_blinding(struct s2n_connection *conn, uint32_t seconds);
+
+/**
  * Sets the cipher preference override for the s2n_connection. Calling this function is not necessary
  * unless you want to set the cipher preferences on the connection to something different than what is in the s2n_config.
  *
