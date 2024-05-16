@@ -63,14 +63,24 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
 
+    /* Initialize a certificate */
+    DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
+    DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
+    struct s2n_blob b = { 0 };
+    s2n_pkey_type pkey_type = { 0 };
+
+    EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
+    EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
+    EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
+
+    uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
+    EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size),
+                available_size));
+
     /* Successfully send and receive certificate verify */
     {
-        /* Derive private/public keys and set connection variables */
-        DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
-        struct s2n_blob b = { 0 };
-        s2n_pkey_type pkey_type = { 0 };
-
         DEFER_CLEANUP(struct s2n_connection *sending_conn =
                               s2n_connection_new(verifier_mode == S2N_CLIENT ? S2N_SERVER : S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -89,16 +99,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
-        EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-
         /* Extract public key from certificate and set it for verifying connection */
-        uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size),
-                available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key,
                     &pkey_type, &b));
@@ -141,12 +142,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     /* Verifying connection errors with incorrect signed content */
     {
-        /* Derive private/public keys and set connection variables */
-        DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
-        struct s2n_blob b = { 0 };
         uint64_t bytes_in_hash = 0;
-        s2n_pkey_type pkey_type = { 0 };
 
         DEFER_CLEANUP(struct s2n_connection *sending_conn =
                               s2n_connection_new(verifier_mode == S2N_CLIENT ? S2N_SERVER : S2N_CLIENT),
@@ -166,16 +162,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
-        EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-
         /* Extract public key from certificate and set it for verifying connection */
-        uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size),
-                available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key,
                     &pkey_type, &b));
@@ -213,11 +200,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     /* Verifying connection errors with even 1 bit incorrect */
     {
-        DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
-        struct s2n_blob b = { 0 };
-        s2n_pkey_type pkey_type = { 0 };
-
         DEFER_CLEANUP(struct s2n_connection *sending_conn =
                               s2n_connection_new(verifier_mode == S2N_CLIENT ? S2N_SERVER : S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -236,15 +218,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
-        EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-
         /* Extract public key from certificate and set it for verifying connection */
-        uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size), available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key,
                     &pkey_type, &b));
@@ -277,12 +251,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
     /* Verifying connection errors with wrong hash algorithms */
     {
-        /* Derive private/public keys and set connection variables */
-        DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
-        struct s2n_blob b = { 0 };
-        s2n_pkey_type pkey_type = { 0 };
-
         DEFER_CLEANUP(struct s2n_connection *sending_conn =
                               s2n_connection_new(verifier_mode == S2N_CLIENT ? S2N_SERVER : S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -304,16 +272,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
-        EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-
         /* Extract public key from certificate and set it for verifying connection */
-        uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size),
-                available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key,
                     &pkey_type, &b));
@@ -357,12 +316,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
      * modify the signature algorithm when built with AWS-LC-fips
      */
     if (!(s2n_is_in_fips_mode() && s2n_libcrypto_is_awslc())) {
-        /* Derive private/public keys and set connection variables */
-        DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
-        DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
-        struct s2n_blob b = { 0 };
-        s2n_pkey_type pkey_type = { 0 };
-
         DEFER_CLEANUP(struct s2n_connection *sending_conn =
                               s2n_connection_new(verifier_mode == S2N_CLIENT ? S2N_SERVER : S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -384,16 +337,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         verifying_conn->actual_protocol_version = S2N_TLS13;
         EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
 
-        EXPECT_SUCCESS(s2n_blob_init(&b, (uint8_t *) cert_chain_pem, strlen(cert_chain_pem) + 1));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
-        EXPECT_SUCCESS(s2n_stuffer_write(&certificate_in, &b));
-        EXPECT_SUCCESS(s2n_stuffer_certificate_from_pem(&certificate_in, &certificate_out));
-
         /* Extract public key from certificate and set it for verifying connection */
-        uint32_t available_size = s2n_stuffer_data_available(&certificate_out);
-        EXPECT_SUCCESS(s2n_blob_init(&b, s2n_stuffer_raw_read(&certificate_out, available_size),
-                available_size));
         if (verifying_conn->mode == S2N_CLIENT) {
             EXPECT_OK(s2n_asn1der_to_public_key_and_type(&verifying_conn->handshake_params.server_public_key,
                     &pkey_type, &b));
