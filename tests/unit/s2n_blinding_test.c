@@ -48,12 +48,12 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
 
-        for (size_t i = 0; i <= 30; i++) {
-            if (i == 0 || i == 30) {
+        for (size_t i = 0; i <= DEFAULT_BLINDING_CEILING + 1; i++) {
+            if (i == 0 || i > DEFAULT_BLINDING_CEILING) {
                 EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_max_blinding(conn, i), S2N_ERR_INVALID_ARGUMENT);
             } else {
                 EXPECT_SUCCESS(s2n_connection_set_max_blinding(conn, i));
-                EXPECT_EQUAL(conn->blinding, i);
+                EXPECT_EQUAL(conn->max_blinding, i);
             }
         }
     }
