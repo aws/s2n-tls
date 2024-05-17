@@ -22,6 +22,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_internal.h"
 
 struct client_hello_context {
@@ -198,7 +199,7 @@ int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
     return -1;
 }
 
-int client_hello_switch_cipher_preferences_to_rsa(struct s2n_connection *conn, void *ctx)
+int client_hello_set_default_cipher_preferences(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx = ctx;
     if (client_hello_ctx == NULL) {
@@ -208,8 +209,8 @@ int client_hello_switch_cipher_preferences_to_rsa(struct s2n_connection *conn, v
     /* Increment counter to indicate that the callback was invoked */
     client_hello_ctx->invoked++;
 
-    /* Switch the cipher preferences for this conn */
-    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_rsa_kex"));
+    /* Set the cipher preferences for this conn */
+    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
 
     if (client_hello_ctx->mark_done_during_callback) {
         EXPECT_SUCCESS(s2n_client_hello_cb_done(conn));
@@ -483,10 +484,17 @@ int run_test_set_cipher_preferences_ch_cb(s2n_client_hello_cb_mode cb_mode, stru
     EXPECT_NOT_NULL(config = s2n_config_new());
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    /* Set no RSA ciphers, so that negotiation of RSA confirms a mid-callback cipher preference switch */
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_ecdsa"));
+    /* Set a security policy with no cipher suites, so that successful negotiation confirms a mid-callback cipher preference switch */
+    struct s2n_cipher_preferences test_cipher_preferences = {
+        .suites = NULL,
+        .count = 0,
+    };
+    struct s2n_security_policy test_security_policy = security_policy_test_all;
+    test_security_policy.cipher_preferences = &test_cipher_preferences;
+    config->security_policy = &test_security_policy;
+
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, cb_mode));
-    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_switch_cipher_preferences_to_rsa, ch_ctx));
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_set_default_cipher_preferences, ch_ctx));
 
     EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
 
@@ -497,9 +505,9 @@ int run_test_set_cipher_preferences_ch_cb(s2n_client_hello_cb_mode cb_mode, stru
         EXPECT_SUCCESS(s2n_negotiate_blocking_ch_cb(conn, ch_ctx));
     }
 
-    /* Test that an RSA cipher was negotiated, to confirm a successful server switch from ECDSA to RSA ciphers */
+    /* Test that a cipher was negotiated, to confirm that a cipher preference was successfully applied by the callback */
     EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(conn, &negotiated_cipher_actual_iana[0], &negotiated_cipher_actual_iana[1]));
-    EXPECT_TRUE(security_policy_contains_cipher("test_all_rsa_kex", negotiated_cipher_actual_iana));
+    EXPECT_TRUE(security_policy_contains_cipher("default", negotiated_cipher_actual_iana));
 
     /* Drain remaining connection */
     EXPECT_SUCCESS(server_recv(conn));
