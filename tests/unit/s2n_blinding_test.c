@@ -39,6 +39,10 @@ int main(int argc, char **argv)
             } else {
                 EXPECT_EQUAL(max, i * ONE_S);
                 EXPECT_EQUAL(min, i * ONE_S / 3);
+
+                /* We _never_ want zero blinding */
+                EXPECT_NOT_EQUAL(max, 0);
+                EXPECT_NOT_EQUAL(min, 0);
             }
         }
     }
