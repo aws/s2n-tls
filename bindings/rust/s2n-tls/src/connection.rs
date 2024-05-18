@@ -23,7 +23,7 @@ use core::{
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::ffi::CStr;
+use std::{any::Any, ffi::CStr};
 
 mod builder;
 pub use builder::*;
@@ -1049,6 +1049,42 @@ impl Connection {
     pub fn resumed(&self) -> bool {
         unsafe { s2n_connection_is_session_resumed(self.connection.as_ptr()) == 1 }
     }
+
+    /// Associates an arbitrary application context with the Connection to be later retrieved via
+    /// the [`Self::application_context()`] and [`Self::application_context_mut()`] APIs.
+    ///
+    /// This API will override an existing application context set on the Connection.
+    pub fn set_application_context<T: Send + Sync + 'static>(&mut self, app_context: T) {
+        self.context_mut().app_context = Some(Box::new(app_context));
+    }
+
+    /// Retrieves a reference to the application context associated with the Connection.
+    ///
+    /// To set a context on the connection, use the [`Self::set_application_context()`] API. If an
+    /// application context of the specified type hasn't already been set on the Connection, None
+    /// will be returned.
+    ///
+    /// To retrieve a mutable reference to the context, use [`Self::application_context_mut()`].
+    pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        match self.context().app_context.as_ref() {
+            None => None,
+            Some(app_context) => app_context.downcast_ref::<T>(),
+        }
+    }
+
+    /// Retrieves a mutable reference to the application context associated with the Connection.
+    ///
+    /// To set a context on the connection, use the [`Self::set_application_context()`] API. If an
+    /// application context of the specified type hasn't already been set on the Connection, None
+    /// will be returned.
+    ///
+    /// To retrieve an immutable reference to the context, use [`Self::application_context()`].
+    pub fn application_context_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        match self.context_mut().app_context.as_mut() {
+            None => None,
+            Some(app_context) => app_context.downcast_mut::<T>(),
+        }
+    }
 }
 
 struct Context {
@@ -1057,6 +1093,7 @@ struct Context {
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     connection_initialized: bool,
+    app_context: Option<Box<dyn Any + Send + Sync>>,
 }
 
 impl Context {
@@ -1067,6 +1104,7 @@ impl Context {
             async_callback: None,
             verify_host_callback: None,
             connection_initialized: false,
+            app_context: None,
         }
     }
 }
