@@ -1008,7 +1008,7 @@ mod tests {
         assert_eq!(context.test_value, 1);
     }
 
-    /// Test that an application context and be overridden.
+    /// Test that an application context can be overridden.
     #[test]
     fn test_app_context_override() {
         struct TestApplicationContext {
