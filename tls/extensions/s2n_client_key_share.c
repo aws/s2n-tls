@@ -438,10 +438,6 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
     /* During a retry, the client should only have sent one keyshare */
     POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn) || keyshare_count == 1, S2N_ERR_BAD_MESSAGE);
 
-    /* Get the client's preferred params for the KeyShares that were actually sent */
-    struct s2n_ecc_evp_params *client_ecc_params = &conn->kex_params.client_ecc_evp_params;
-    struct s2n_kem_group_params *client_pq_params = &conn->kex_params.client_kem_group_params;
-
     /**
      * If there were no matching key shares, then we received an empty key share extension
      * or we didn't match a key share with a supported group. We should send a retry.
@@ -451,6 +447,8 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
      *# compatible "key_share" extension in the initial ClientHello, the
      *# server MUST respond with a HelloRetryRequest (Section 4.1.4) message.
      **/
+    struct s2n_ecc_evp_params *client_ecc_params = &conn->kex_params.client_ecc_evp_params;
+    struct s2n_kem_group_params *client_pq_params = &conn->kex_params.client_kem_group_params;
     if (!client_pq_params->kem_group && !client_ecc_params->negotiated_curve) {
         POSIX_GUARD(s2n_set_hello_retry_required(conn));
     }

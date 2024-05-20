@@ -110,12 +110,6 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
     /* XOR check: can expect to negotiate either a KEM group, or a classic EC curve, but not both/neither */
     POSIX_ENSURE((expected_kem_group == NULL) != (expected_curve == NULL), S2N_ERR_SAFETY);
 
-    if (expected_kem_group != NULL) {
-        const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_sec_policy->kem_preferences, server_sec_policy->kem_preferences);
-        POSIX_ENSURE_REF(predicted_kem_group);
-        POSIX_ENSURE_EQ(expected_kem_group->iana_id, predicted_kem_group->iana_id);
-    }
-
     /* Set up connections */
     struct s2n_connection *client_conn = NULL, *server_conn = NULL;
     POSIX_ENSURE_REF(client_conn = s2n_connection_new(S2N_CLIENT));
@@ -642,12 +636,7 @@ int main()
         bool len_prefix_expected = vector->len_prefix_expected;
 
         if (!s2n_pq_is_enabled()) {
-            /* If PQ is disabled, for older policies we expect to negotiate
-             * x25519 ECDH if available.  Newer policies only include NIST
-             * curves, so if the server policy doesn't contain x25519, modify
-             * that expectation to a NIST curve.
-             */
-
+            EXPECT_TRUE(client_policy->ecc_preferences->count > 0);
             const struct s2n_ecc_named_curve *client_default = client_policy->ecc_preferences->ecc_curves[0];
             const struct s2n_ecc_named_curve *predicted_curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
 
@@ -659,17 +648,27 @@ int main()
                 curve = &s2n_ecc_curve_secp256r1;
             }
 
-            /* The client's preferred curve will be a higher priority than the default if both sides support TLS 1.3 since it can be chosen in 1-RTT. */
+            /* The client's preferred curve will be a higher priority than the default if both sides support TLS 1.3,
+             * and if the client's default can be chosen by the server in 1-RTT. */
             if (s2n_security_policy_supports_tls13(client_policy) && s2n_security_policy_supports_tls13(server_policy)
                     && s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, client_default->iana_id)) {
                 curve = client_default;
             }
 
+            /* Finally, confirm that the expected curve listed in the test vector matches the output of s2n_get_predicted_negotiated_ecdhe_curve() */
             EXPECT_EQUAL(curve->iana_id, predicted_curve->iana_id);
         }
 
         if (!s2n_kem_group_is_available(kem_group)) {
             kem_group = NULL;
+        }
+
+        if (kem_group != NULL) {
+            const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_policy->kem_preferences, server_policy->kem_preferences);
+            POSIX_ENSURE_REF(predicted_kem_group);
+
+            /* Confirm that the expected KEM Group listed in the test vector matches the output of s2n_get_predicted_negotiated_kem_group() */
+            POSIX_ENSURE_EQ(kem_group->iana_id, predicted_kem_group->iana_id);
         }
 
         EXPECT_SUCCESS(s2n_test_tls13_pq_handshake(client_policy, server_policy, kem_group, curve, hrr_expected, len_prefix_expected));

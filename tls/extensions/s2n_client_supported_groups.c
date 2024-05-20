@@ -106,6 +106,7 @@ S2N_RESULT s2n_supported_groups_parse_count(struct s2n_stuffer *extension, uint1
 static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn, uint16_t iana_id)
 {
     POSIX_ENSURE_REF(conn);
+
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);
@@ -141,6 +142,7 @@ static int s2n_client_supported_groups_recv_iana_id(struct s2n_connection *conn,
 static int s2n_choose_supported_group(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
+
     const struct s2n_ecc_preferences *ecc_pref = NULL;
     POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
     POSIX_ENSURE_REF(ecc_pref);

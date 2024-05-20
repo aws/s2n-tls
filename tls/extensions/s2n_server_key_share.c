@@ -388,7 +388,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 2: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select it.*/
+    /* Option 2: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select that one. */
     if (server_kem_group != NULL) {
         /* Null out any available ECC curves so that they won't be sent in the ClientHelloRetry */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
@@ -396,7 +396,7 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 3: Otherwise, select a mutually supported classical ECC curve that can be negotiated in 1-RTT */
+    /* Option 3: Otherwise, if there is a mutually supported classical ECDHE-only group can be negotiated in 1-RTT, select that one */
     if (client_curve) {
         conn->kex_params.server_ecc_evp_params.negotiated_curve = conn->kex_params.client_ecc_evp_params.negotiated_curve;
         conn->kex_params.server_kem_group_params.kem_group = NULL;
@@ -405,8 +405,8 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 4: Server and client have mutually supported groups, but the client did not send key shares for any of
-     * them. Send a HelloRetryRequest indicating the server's preference. */
+    /* Option 4: Server and client have at least 1 mutually supported group, but the client did not send key shares for
+     * any of them. Send a HelloRetryRequest indicating the server's preference. */
     POSIX_GUARD(s2n_set_hello_retry_required(conn));
     return S2N_SUCCESS;
 }
