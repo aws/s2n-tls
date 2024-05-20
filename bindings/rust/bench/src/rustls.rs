@@ -4,21 +4,27 @@
 use crate::{
     harness::{
         read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsConnection, TlsBenchConfig,
+        TlsBenchConfig, TlsConnection,
     },
     PemType::{self, *},
     SigType,
 };
 use rustls::{
-    cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
-    kx_group::{SECP256R1, X25519},
-    server::AllowAnyAuthenticatedClient,
+    crypto::{
+        aws_lc_rs::{
+            self,
+            cipher_suite::{TLS13_AES_128_GCM_SHA256, TLS13_AES_256_GCM_SHA384},
+            kx_group::{SECP256R1, X25519},
+        },
+        CryptoProvider,
+    },
+    pki_types::{CertificateDer, PrivateKeyDer, ServerName},
+    server::WebPkiClientVerifier,
     version::TLS13,
-    Certificate, ClientConfig, ClientConnection, Connection, PrivateKey,
+    ClientConfig, ClientConnection, Connection,
     ProtocolVersion::TLSv1_3,
-    RootCertStore, ServerConfig, ServerConnection, ServerName,
+    RootCertStore, ServerConfig, ServerConnection,
 };
-use rustls_pemfile::{certs, pkcs8_private_keys};
 use std::{
     error::Error,
     io::{BufReader, Read, Write},
@@ -35,42 +41,44 @@ impl RustlsConnection {
         &self.connection
     }
 
-        /// Treat `WouldBlock` as an `Ok` value for when blocking is expected
-        fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
-            match res {
-                Ok(t) => Ok(t),
-                Err(err) => match err.kind() {
-                    std::io::ErrorKind::WouldBlock => Ok(T::default()),
-                    _ => Err(err),
-                },
-            }
+    /// Treat `WouldBlock` as an `Ok` value for when blocking is expected
+    fn ignore_block<T: Default>(res: Result<T, std::io::Error>) -> Result<T, std::io::Error> {
+        match res {
+            Ok(t) => Ok(t),
+            Err(err) => match err.kind() {
+                std::io::ErrorKind::WouldBlock => Ok(T::default()),
+                _ => Err(err),
+            },
         }
+    }
 }
 
 impl RustlsConfig {
-    fn get_root_cert_store(sig_type: SigType) -> Result<RootCertStore, Box<dyn Error>> {
-        let root_cert =
-            Certificate(certs(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))?.remove(0));
-        let mut root_certs = RootCertStore::empty();
-        root_certs.add(&root_cert)?;
-        Ok(root_certs)
+    fn get_root_cert_store(sig_type: SigType) -> RootCertStore {
+        let mut root_store = RootCertStore::empty();
+        root_store.add_parsable_certificates(
+            rustls_pemfile::certs(&mut BufReader::new(&*read_to_bytes(CACert, sig_type)))
+                .map(|r| r.unwrap()),
+        );
+        root_store
     }
 
-    fn get_cert_chain(
-        pem_type: PemType,
-        sig_type: SigType,
-    ) -> Result<Vec<Certificate>, Box<dyn Error>> {
-        let chain = certs(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?;
-        Ok(chain
-            .iter()
-            .map(|bytes| Certificate(bytes.to_vec()))
-            .collect())
+    fn get_cert_chain(pem_type: PemType, sig_type: SigType) -> Vec<CertificateDer<'static>> {
+        rustls_pemfile::certs(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
+            .map(|result| result.unwrap())
+            .collect()
     }
 
-    fn get_key(pem_type: PemType, sig_type: SigType) -> Result<PrivateKey, Box<dyn Error>> {
-        Ok(PrivateKey(
-            pkcs8_private_keys(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))?.remove(0),
-        ))
+    fn get_key(pem_type: PemType, sig_type: SigType) -> PrivateKeyDer<'static> {
+        let key =
+            rustls_pemfile::read_one(&mut BufReader::new(&*read_to_bytes(pem_type, sig_type)))
+                .unwrap();
+        if let Some(rustls_pemfile::Item::Pkcs8Key(pkcs_8_key)) = key {
+            return pkcs_8_key.into();
+        } else {
+            // https://docs.rs/rustls-pemfile/latest/rustls_pemfile/enum.Item.html
+            panic!("unexpected key type: {:?}", key);
+        }
     }
 }
 
@@ -96,21 +104,25 @@ impl TlsBenchConfig for RustlsConfig {
             KXGroup::X25519 => &X25519,
         };
 
+        let crypto_provider = Arc::new(CryptoProvider {
+            cipher_suites: vec![cipher_suite],
+            kx_groups: vec![*kx_group],
+            ..aws_lc_rs::default_provider()
+        });
+
         match mode {
             Mode::Client => {
-                let builder = ClientConfig::builder()
-                    .with_cipher_suites(&[cipher_suite])
-                    .with_kx_groups(&[kx_group])
+                let builder = ClientConfig::builder_with_provider(crypto_provider)
                     .with_protocol_versions(&[&TLS13])?
-                    .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type)?);
+                    .with_root_certificates(Self::get_root_cert_store(crypto_config.sig_type));
 
                 let config = match handshake_type {
                     HandshakeType::ServerAuth | HandshakeType::Resumption => {
                         builder.with_no_client_auth()
                     }
                     HandshakeType::MutualAuth => builder.with_client_auth_cert(
-                        Self::get_cert_chain(ClientCertChain, crypto_config.sig_type)?,
-                        Self::get_key(ClientKey, crypto_config.sig_type)?,
+                        Self::get_cert_chain(ClientCertChain, crypto_config.sig_type),
+                        Self::get_key(ClientKey, crypto_config.sig_type),
                     )?,
                 };
 
@@ -121,25 +133,26 @@ impl TlsBenchConfig for RustlsConfig {
                 Ok(RustlsConfig::Client(Arc::new(config)))
             }
             Mode::Server => {
-                let builder = ServerConfig::builder()
-                    .with_cipher_suites(&[cipher_suite])
-                    .with_kx_groups(&[kx_group])
+                let builder = ServerConfig::builder_with_provider(crypto_provider)
                     .with_protocol_versions(&[&TLS13])?;
 
                 let builder = match handshake_type {
                     HandshakeType::ServerAuth | HandshakeType::Resumption => {
                         builder.with_no_client_auth()
                     }
-                    HandshakeType::MutualAuth => builder.with_client_cert_verifier(Arc::new(
-                        AllowAnyAuthenticatedClient::new(Self::get_root_cert_store(
-                            crypto_config.sig_type,
-                        )?),
-                    )),
+                    HandshakeType::MutualAuth => {
+                        let client_cert_verifier = WebPkiClientVerifier::builder(
+                            Self::get_root_cert_store(crypto_config.sig_type).into(),
+                        )
+                        .build()
+                        .unwrap();
+                        builder.with_client_cert_verifier(client_cert_verifier)
+                    }
                 };
 
                 let config = builder.with_single_cert(
-                    Self::get_cert_chain(ServerCertChain, crypto_config.sig_type)?,
-                    Self::get_key(ServerKey, crypto_config.sig_type)?,
+                    Self::get_cert_chain(ServerCertChain, crypto_config.sig_type),
+                    Self::get_key(ServerKey, crypto_config.sig_type),
                 )?;
 
                 Ok(RustlsConfig::Server(Arc::new(config)))
