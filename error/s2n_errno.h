@@ -340,6 +340,7 @@ struct s2n_debug_info {
 };
 
 extern __thread struct s2n_debug_info _s2n_debug_info;
+void _s2n_debug_info_set(struct s2n_debug_info debug_info);
 
 #define TO_STRING(s)   #s
 #define STRING_(s)     TO_STRING(s)
