@@ -3,7 +3,8 @@ import re
 import subprocess
 import threading
 import itertools
-
+import random
+import string
 
 from constants import TEST_CERT_DIRECTORY
 from global_flags import get_flag, S2N_PROVIDER_VERSION
@@ -27,6 +28,10 @@ def data_bytes(n_bytes):
             j = 0
 
     return bytes(byte_array)
+
+
+def random_str(n):
+    return "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(n))
 
 
 def pq_enabled():
