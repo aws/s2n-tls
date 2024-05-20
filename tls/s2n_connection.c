@@ -363,7 +363,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      * However, the s2n_config_set_verification_ca_location behavior predates client authentication
      * support for OCSP stapling, so could only affect whether clients requested OCSP stapling. We
      * therefore only have to maintain the legacy behavior for clients, not servers.
-     * 
+     *
      * Note: The Rust bindings do not maintain the legacy behavior.
      */
     conn->request_ocsp_status = config->ocsp_status_requested_by_user;
@@ -1281,25 +1281,26 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
             break;
     }
 
-    switch (error_code) {
-        /* Don't invoke blinding on some of the common errors.
-         *
-         * Be careful adding new errors here. Disabling blinding for an
-         * error that can be triggered by secret / encrypted values can
-         * potentially lead to a side channel attack.
-         *
-         * We may want to someday add an explicit error type for these errors.
-         */
-        case S2N_ERR_CLOSED:
-        case S2N_ERR_CANCELLED:
-        case S2N_ERR_CIPHER_NOT_SUPPORTED:
-        case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
-            RESULT_GUARD(s2n_connection_set_closed(*conn));
-            break;
-        default:
-            /* Apply blinding to all other errors */
-            RESULT_GUARD(s2n_connection_kill(*conn));
-            break;
+    /* Don't invoke blinding on some of the common errors.
+     *
+     * Be careful adding new errors here. Disabling blinding for an
+     * error that can be triggered by secret / encrypted values can
+     * potentially lead to a side channel attack.
+     *
+     * We may want to someday add an explicit error type for these errors.
+     */
+    bool requires_blinding = true;
+    requires_blinding &= error_code != S2N_ERR_CLOSED;
+    requires_blinding &= error_code != S2N_ERR_CANCELLED;
+    requires_blinding &= error_code != S2N_ERR_CIPHER_NOT_SUPPORTED;
+    requires_blinding &= error_code != S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED;
+
+    if (requires_blinding) {
+        /* Apply blinding to all other errors */
+        RESULT_GUARD(s2n_connection_kill(*conn));
+    } else {
+        /* skip blinding */
+        RESULT_GUARD(s2n_connection_set_closed(*conn));
     }
 
     return S2N_RESULT_OK;

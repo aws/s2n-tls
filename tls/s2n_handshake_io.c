@@ -1641,7 +1641,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
                         /* Let the write error take precedence if we didn't read an alert. */
                         errno = write_errno;
                         s2n_errno = write_s2n_errno;
-                        _s2n_debug_info = write_s2n_debug_info;
+                        _s2n_debug_info_set(write_s2n_debug_info);
                         S2N_ERROR_PRESERVE_ERRNO();
                     }
                 }

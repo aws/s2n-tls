@@ -1,4 +1,5 @@
 import textwrap
+import os
 
 copyright = """
 /*
@@ -110,6 +111,7 @@ MACROS = {
     'BAIL(error)': dict(
         doc='Sets the global `s2n_errno` to `error` and returns with an `{error}`',
         impl='do {{ _S2N_ERROR((error)); __S2N_ENSURE_CHECKED_RETURN({error}); }} while (0)',
+        stub='do {{ return __STUB_{prefix}BAIL((error)); }} while (0)',
         harness='''
         static {ret} {bail}_harness()
         {{
@@ -124,6 +126,7 @@ MACROS = {
     'ENSURE(condition, error)': dict(
         doc='Ensures the `condition` is `true`, otherwise the function will `{bail}` with `error`',
         impl='__S2N_ENSURE((condition), {bail}(error))',
+        stub='__STUB_{prefix}ENSURE(!!(condition), (error))',
         harness='''
         static {ret} {prefix}ENSURE_harness(bool is_ok)
         {{
@@ -144,6 +147,7 @@ MACROS = {
               In release mode, the check is removed.
         ''',
         impl='__S2N_ENSURE_DEBUG((condition), {bail}(error))',
+        stub='__STUB_{prefix}ENSURE_DEBUG(!!(condition), (error))',
         harness='''
         static {ret} {prefix}DEBUG_ENSURE_harness(bool is_ok)
         {{
@@ -163,10 +167,11 @@ MACROS = {
     'ENSURE_OK(result, error)': dict(
         doc='''
         Ensures `{is_ok}`, otherwise the function will `{bail}` with `error`
-        
+
         This can be useful for overriding the global `s2n_errno`
         ''',
         impl='__S2N_ENSURE({is_ok}, {bail}(error))',
+        stub='{prefix}ENSURE({is_ok}, error)',
         harness='''
         static {ret} {prefix}ENSURE_OK_harness(bool is_ok)
         {{
@@ -184,6 +189,7 @@ MACROS = {
         Ensures `a` is greater than or equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
         impl=cmp_check('>='),
+        stub='{prefix}ENSURE((a) >= (b), S2N_ERR_SAFETY)',
         harness='''
         static {ret} {prefix}ENSURE_GTE_harness_uint32(uint32_t a, uint32_t b)
         {{
@@ -215,6 +221,7 @@ MACROS = {
         Ensures `a` is less than or equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
         impl=cmp_check('<='),
+        stub='{prefix}ENSURE((a) <= (b), S2N_ERR_SAFETY)',
         harness='''
         static {ret} {prefix}ENSURE_LTE_harness_uint32(uint32_t a, uint32_t b)
         {{
@@ -246,6 +253,7 @@ MACROS = {
         Ensures `a` is greater than `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
         impl=cmp_check('>'),
+        stub='{prefix}ENSURE((a) > (b), S2N_ERR_SAFETY)',
         harness='''
         static {ret} {prefix}ENSURE_GT_harness_uint32(uint32_t a, uint32_t b)
         {{
@@ -277,6 +285,7 @@ MACROS = {
         Ensures `a` is less than `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
         impl=cmp_check('<'),
+        stub='{prefix}ENSURE((a) < (b), S2N_ERR_SAFETY)',
         harness='''
         static {ret} {prefix}ENSURE_LT_harness_uint32(uint32_t a, uint32_t b)
         {{
@@ -308,6 +317,7 @@ MACROS = {
         Ensures `a` is equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
         impl=cmp_check('=='),
+        stub='{prefix}ENSURE((a) == (b), S2N_ERR_SAFETY)',
         harness='''
         static {ret} {prefix}ENSURE_EQ_harness_uint32(uint32_t a, uint32_t b)
         {{
@@ -335,6 +345,7 @@ MACROS = {
         Ensures `a` is not equal to `b`, otherwise the function will `{bail}` with a `S2N_ERR_SAFETY` error
         ''',
         impl=cmp_check('!='),
+        stub='{prefix}ENSURE((a) != (b), S2N_ERR_SAFETY)',
         harness='''
         static {ret} {prefix}ENSURE_NE_harness_uint32(uint32_t a, uint32_t b)
         {{
@@ -432,6 +443,7 @@ MACROS = {
     'ENSURE_REF(x)': dict(
         doc='Ensures `x` is a readable reference, otherwise the function will `{bail}` with `S2N_ERR_NULL`',
         impl='__S2N_ENSURE(S2N_OBJECT_PTR_IS_READABLE(x), {bail}(S2N_ERR_NULL))',
+        stub='__STUB_{prefix}ENSURE_REF((x))',
         harness='''
         static {ret} {prefix}ENSURE_REF_harness(const char* str)
         {{
@@ -448,6 +460,7 @@ MACROS = {
     'ENSURE_MUT(x)': dict(
         doc='Ensures `x` is a mutable reference, otherwise the function will `{bail}` with `S2N_ERR_NULL`',
         impl='__S2N_ENSURE(S2N_OBJECT_PTR_IS_WRITABLE(x), {bail}(S2N_ERR_NULL))',
+        stub='__STUB_{prefix}ENSURE_MUT((x))',
         harness='''
         static {ret} {prefix}ENSURE_MUT_harness(uint32_t* v)
         {{
@@ -472,6 +485,7 @@ MACROS = {
         but can be altered by a testing environment to provide additional guarantees.
         ''',
         impl='{prefix}GUARD_RESULT(__S2N_ENSURE_PRECONDITION((result)))',
+        stub='__STUB_{prefix}PRECONDITION((result))',
         harness='''
         static S2N_RESULT {prefix}PRECONDITION_harness_check(bool is_ok)
         {{
@@ -503,6 +517,7 @@ MACROS = {
         to provide additional guarantees.
         ''',
         impl='{prefix}GUARD_RESULT(__S2N_ENSURE_POSTCONDITION((result)))',
+        stub='__STUB_{prefix}POSTCONDITION((result))',
         harness='''
         static S2N_RESULT {prefix}POSTCONDITION_harness_check(bool is_ok)
         {{
@@ -540,6 +555,7 @@ MACROS = {
           shall be at least `len` bytes.
         ''',
         impl='__S2N_ENSURE_SAFE_MEMMOVE((destination), (source), (len), {prefix}ENSURE_REF)',
+        stub='__STUB_{prefix}MEMMOVE((destination), (source), (len))',
         harness='''
         static {ret} {prefix}CHECKED_MEMCPY_harness(uint32_t* dest, uint32_t* source, size_t len)
         {{
@@ -591,6 +607,7 @@ MACROS = {
     'GUARD(result)': dict(
         doc='Ensures `{is_ok}`, otherwise the function will return `{error}`',
         impl='__S2N_ENSURE({is_ok}, __S2N_ENSURE_CHECKED_RETURN({error}))',
+        stub='__STUB_{prefix}GUARD({is_ok})',
         harness='''
         static {ret} {prefix}GUARD_harness({ret} result)
         {{
@@ -606,6 +623,7 @@ MACROS = {
     'GUARD_OSSL(result, error)': dict(
         doc='Ensures `result == _OSSL_SUCCESS`, otherwise the function will `{bail}` with `error`',
         impl='__S2N_ENSURE((result) == _OSSL_SUCCESS, {bail}(error))',
+        stub='__STUB_{prefix}GUARD_OSSL((result), (error))',
         harness='''
         static {ret} {prefix}GUARD_OSSL_harness(int result, int error)
         {{
@@ -621,7 +639,7 @@ MACROS = {
 }
 
 max_macro_len = max(map(len, MACROS.keys())) + 8
-
+is_stub = "S2N_SAFETY_STUB" in os.environ
 
 def push_macro(args):
     macro_indent = ' ' * (max_macro_len - len(args['macro']))
@@ -641,11 +659,14 @@ def push_macro(args):
     h += args['macro']
     h += args['indent']
     h += macro_indent
-    h += args['impl'].format_map(args)
+    if is_stub and 'stub' in args:
+        h += args['stub'].format_map(args)
+    else:
+        h += args['impl'].format_map(args)
+
     h += '\n\n'
 
     return h
-
 
 for context in CONTEXTS:
     # initialize contexts
@@ -730,6 +751,7 @@ for context in CONTEXTS:
                 'indent': context['indent'],
                 'doc': doc,
                 'impl': impl,
+                'stub': '__STUB_{prefix}GUARD{suffix}({is_ok})',
             }
             args['macro'] = 'GUARD{suffix}(result)'.format_map(args)
             docs += push_doc(args)
@@ -787,6 +809,7 @@ test += '''
 }
 '''
 
-write("tests/unit/s2n_safety_macros_test.c", test)
+if not is_stub:
+    write("tests/unit/s2n_safety_macros_test.c", test)
 
-write("docs/SAFETY-MACROS.md", docs)
+    write("docs/SAFETY-MACROS.md", docs)

@@ -428,6 +428,11 @@ void s2n_debug_info_reset(void)
     _s2n_debug_info.source = "";
 }
 
+void _s2n_debug_info_set(struct s2n_debug_info debug_info)
+{
+    _s2n_debug_info = debug_info;
+}
+
 #ifdef S2N_STACKTRACE
 
     #define MAX_BACKTRACE_DEPTH 20

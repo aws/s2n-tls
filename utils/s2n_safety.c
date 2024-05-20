@@ -50,7 +50,7 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t
     uint8_t b_inc = S2N_MEM_IS_READABLE(b, len) ? 1 : 0;
 
     /* reserve a stand-in pointer to replace NULL pointers */
-    static uint8_t standin = 0;
+    uint8_t standin = 0;
 
     /* if the pointers can increment their values, then use the
      * original value; otherwise use the stand-in */
