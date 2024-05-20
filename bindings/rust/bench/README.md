@@ -17,7 +17,7 @@ cargo bench
 ## Setup
 The benchmarked TLS implementations will be
 - s2n-tls using AWS-LC for a cryptographic backend.
-- rustls using Ring for a cryptographic backend
+- rustls using AWS-LC for a cryptographic backend
 - OpenSSL - libssl & libcrypto
 
 All of the cryptographic backends, including AWS-LC and OpenSSL libcrypto are consumed as vendored builds from crates.io, and do not need to be installed on the benchmarking host. Note that the `aws-lc-sys` crate depends on CMake in its buildscript, so CMake must be installed on the benchmarking host.
