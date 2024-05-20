@@ -34,13 +34,8 @@ pkgs.stdenv.mkDerivation rec {
   # See: https://github.com/NixOS/patchelf/issues/10
   dontStrip = 1;
 
-  nativeBuildInputs = if (pkgs.stdenv.system == "x86_64-linux") then [
-    pkgs.autoPatchelfHook
-    pkgs.alsa-lib
-  ] else
-    [ ];
-
   buildInputs = with pkgs; [
+    autoPatchelfHook
     cpio
     cups
     file
@@ -69,6 +64,10 @@ pkgs.stdenv.mkDerivation rec {
     zip
     zlib
   ];
+
+  # Arm doesn't have this, and because Corretto was built elsewhere, we need
+  # to change the interpreter: https://github.com/NixOS/patchelf
+  autoPatchelfIgnoreMissingDeps = [ "libasound.so.2" ];
 
   buildPhase = ''
     echo "Corretto is already built"
