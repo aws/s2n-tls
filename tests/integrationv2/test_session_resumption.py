@@ -243,7 +243,7 @@ def test_tls13_session_resumption_s2n_client(managed_process, cipher, curve, cer
             assert results.stderr.count(
                 b'SSL_accept:SSLv3/TLS write certificate') == num_full_connections
 
-@pytest.mark.flaky(reruns=7, reruns_delay=2, conditions=platform.machine().startswith("aarch"))
+@pytest.mark.flaky(reruns=7, reruns_delay=2, condition=platform.machine().startswith("aarch"))
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", TLS13_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
