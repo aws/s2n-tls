@@ -169,12 +169,12 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
 
         EXPECT_OK(s2n_cert_verify_connection_setup_and_send(sending_conn, verifying_conn, config, cert_chain, &sig_scheme, &cert));
 
-        /* Initialize receive hash with goodbye */
+        /* Update receive hash with goodbye */
         uint64_t bytes_in_hash = 0;
-        EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
+
         EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, goodbye, strlen((char *) goodbye)));
         EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&verifying_conn->handshake.hashes->sha256, &bytes_in_hash));
-        EXPECT_EQUAL(bytes_in_hash, 16);
+        EXPECT_EQUAL(bytes_in_hash, 30);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
     };
