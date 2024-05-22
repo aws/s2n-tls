@@ -1060,29 +1060,44 @@ impl Connection {
 
     /// Retrieves a reference to the application context associated with the Connection.
     ///
-    /// To set a context on the connection, use the [`Self::set_application_context()`] API. If an
-    /// application context of the specified type hasn't already been set on the Connection, None
-    /// will be returned.
+    /// If an application context hasn't already been set on the Connection, None will be returned.
+    /// An error will be returned if the set application context isn't of the specified type.
     ///
-    /// To retrieve a mutable reference to the context, use [`Self::application_context_mut()`].
-    pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
+    /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve a
+    /// mutable reference to the context, use [`Self::application_context_mut()`].
+    pub fn application_context<T>(&self) -> Result<Option<&T>, Error>
+    where
+        T: Send + Sync + 'static,
+    {
         match self.context().app_context.as_ref() {
-            None => None,
-            Some(app_context) => app_context.downcast_ref::<T>(),
+            None => Ok(None),
+            // The Any trait keeps track of the application context's type. downcast_ref() returns
+            // Some only if the correct type is provided:
+            // https://doc.rust-lang.org/std/any/trait.Any.html#method.downcast_ref
+            Some(app_context) => match app_context.downcast_ref::<T>() {
+                None => Err(Error::INVALID_INPUT),
+                Some(app_context) => Ok(Some(app_context)),
+            },
         }
     }
 
     /// Retrieves a mutable reference to the application context associated with the Connection.
     ///
-    /// To set a context on the connection, use the [`Self::set_application_context()`] API. If an
-    /// application context of the specified type hasn't already been set on the Connection, None
-    /// will be returned.
+    /// If an application context hasn't already been set on the Connection, None will be returned.
+    /// An error will be returned if the set application context isn't of the specified type.
     ///
-    /// To retrieve an immutable reference to the context, use [`Self::application_context()`].
-    pub fn application_context_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+    /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve an
+    /// immutable reference to the context, use [`Self::application_context()`].
+    pub fn application_context_mut<T>(&mut self) -> Result<Option<&mut T>, Error>
+    where
+        T: Send + Sync + 'static,
+    {
         match self.context_mut().app_context.as_mut() {
-            None => None,
-            Some(app_context) => app_context.downcast_mut::<T>(),
+            None => Ok(None),
+            Some(app_context) => match app_context.downcast_mut::<T>() {
+                None => Err(Error::INVALID_INPUT),
+                Some(app_context) => Ok(Some(app_context)),
+            },
         }
     }
 }
@@ -1218,5 +1233,90 @@ mod tests {
     fn context_sync_test() {
         fn assert_sync<T: 'static + Sync>() {}
         assert_sync::<Context>();
+    }
+
+    /// Test that an application context can be set and retrieved.
+    #[test]
+    fn test_app_context_set_and_retrieve() {
+        let mut connection = Connection::new_server();
+
+        // Before a context is set, None is returned.
+        assert!(connection.application_context::<u32>().unwrap().is_none());
+
+        let test_value: u32 = 1142;
+        connection.set_application_context(test_value);
+
+        // After a context is set, the application data is returned.
+        assert_eq!(
+            *connection.application_context::<u32>().unwrap().unwrap(),
+            1142
+        );
+    }
+
+    /// Test that an application context can be modified.
+    #[test]
+    fn test_app_context_modify() {
+        let test_value: u64 = 0;
+
+        let mut connection = Connection::new_server();
+        connection.set_application_context(test_value);
+
+        let context_value = connection
+            .application_context_mut::<u64>()
+            .unwrap()
+            .unwrap();
+        *context_value += 1;
+
+        assert_eq!(
+            *connection.application_context::<u64>().unwrap().unwrap(),
+            1
+        );
+    }
+
+    /// Test that an application context can be overridden.
+    #[test]
+    fn test_app_context_override() {
+        let mut connection = Connection::new_server();
+
+        let test_value: u16 = 1142;
+        connection.set_application_context(test_value);
+
+        assert_eq!(
+            *connection.application_context::<u16>().unwrap().unwrap(),
+            1142
+        );
+
+        // Override the context with a new value.
+        let test_value: u16 = 10;
+        connection.set_application_context(test_value);
+
+        assert_eq!(
+            *connection.application_context::<u16>().unwrap().unwrap(),
+            10
+        );
+
+        // Override the context with a new type.
+        let test_value: i16 = -20;
+        connection.set_application_context(test_value);
+
+        assert_eq!(
+            *connection.application_context::<i16>().unwrap().unwrap(),
+            -20
+        );
+    }
+
+    /// Test that a context of another type can't be retrieved.
+    #[test]
+    fn test_app_context_invalid_type() {
+        let mut connection = Connection::new_server();
+
+        let test_value: u32 = 0;
+        connection.set_application_context(test_value);
+
+        // A context type that wasn't set shouldn't be returned.
+        assert!(connection.application_context::<i16>().is_err());
+
+        // Retrieving the correct type succeeds.
+        assert!(connection.application_context::<u32>().unwrap().is_some());
     }
 }

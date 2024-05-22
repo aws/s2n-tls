@@ -971,104 +971,6 @@ mod tests {
         assert!(init::fips_mode().unwrap().is_enabled());
     }
 
-    /// Test that an application context can be set and retrieved.
-    #[test]
-    fn test_app_context_set_and_retrieve() {
-        struct TestApplicationContext {
-            test_value: u32,
-        }
-
-        let mut connection = connection::Connection::new_server();
-        connection.set_application_context(TestApplicationContext { test_value: 1142 });
-
-        let context = connection
-            .application_context::<TestApplicationContext>()
-            .unwrap();
-        assert_eq!(context.test_value, 1142);
-    }
-
-    /// Test that an application context can be modified.
-    #[test]
-    fn test_app_context_modify() {
-        struct TestApplicationContext {
-            test_value: u32,
-        }
-
-        let mut connection = connection::Connection::new_server();
-        connection.set_application_context(TestApplicationContext { test_value: 0 });
-
-        let context = connection
-            .application_context_mut::<TestApplicationContext>()
-            .unwrap();
-        context.test_value += 1;
-
-        let context = connection
-            .application_context::<TestApplicationContext>()
-            .unwrap();
-        assert_eq!(context.test_value, 1);
-    }
-
-    /// Test that an application context can be overridden.
-    #[test]
-    fn test_app_context_override() {
-        struct TestApplicationContext {
-            test_value: u32,
-        }
-
-        let mut connection = connection::Connection::new_server();
-        connection.set_application_context(TestApplicationContext { test_value: 1142 });
-
-        {
-            let context = connection
-                .application_context::<TestApplicationContext>()
-                .unwrap();
-            assert_eq!(context.test_value, 1142);
-        }
-
-        // Override the context with a new value.
-        connection.set_application_context(TestApplicationContext { test_value: 10 });
-
-        {
-            let context = connection
-                .application_context::<TestApplicationContext>()
-                .unwrap();
-            assert_eq!(context.test_value, 10);
-        }
-
-        // Test overriding to a different context type.
-        struct AnotherApplicationContext {
-            another_test_value: i16,
-        }
-        connection.set_application_context(AnotherApplicationContext {
-            another_test_value: -20,
-        });
-
-        let context = connection
-            .application_context::<AnotherApplicationContext>()
-            .unwrap();
-        assert_eq!(context.another_test_value, -20);
-    }
-
-    /// Test that a context of another type can't be retrieved.
-    #[test]
-    fn test_app_context_invalid_type() {
-        struct TestApplicationContext {}
-        struct AnotherApplicationContext {}
-
-        let mut connection = connection::Connection::new_server();
-        connection.set_application_context(TestApplicationContext {});
-
-        // A context type that wasn't set shouldn't be returned.
-        assert!(connection
-            .application_context::<AnotherApplicationContext>()
-            .is_none());
-
-        // Retrieving the correct type succeeds.
-        assert!(connection
-            .application_context::<TestApplicationContext>()
-            .is_some());
-    }
-
     /// Test that a context can be used from within a callback.
     #[test]
     fn test_app_context_callback() {
@@ -1085,6 +987,7 @@ mod tests {
             ) -> ConnectionFutureResult {
                 let app_context = connection
                     .application_context_mut::<TestApplicationContext>()
+                    .unwrap()
                     .unwrap();
                 app_context.invoked_count += 1;
                 Ok(None)
@@ -1125,6 +1028,7 @@ mod tests {
             .0
             .connection()
             .application_context::<TestApplicationContext>()
+            .unwrap()
             .unwrap();
         assert_eq!(context.invoked_count, 1);
     }
