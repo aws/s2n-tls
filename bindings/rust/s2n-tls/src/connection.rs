@@ -1044,6 +1044,11 @@ impl Connection {
             Ok(())
         }
     }
+
+    /// Determines whether the connection was resumed from an earlier handshake.
+    pub fn resumed(&self) -> bool {
+        unsafe { s2n_connection_is_session_resumed(self.connection.as_ptr()) == 1 }
+    }
 }
 
 struct Context {
