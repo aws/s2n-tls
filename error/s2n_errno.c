@@ -201,7 +201,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_CLIENT_MODE, "Operation not allowed in client mode") \
     ERR_ENTRY(S2N_ERR_CLIENT_MODE_DISABLED, "client connections not allowed") \
     ERR_ENTRY(S2N_ERR_TOO_MANY_CERTIFICATES, "only 1 certificate is supported in client mode") \
-    ERR_ENTRY(S2N_ERR_TOO_MANY_SIGNATURE_SCHEMES, "Max supported length of SignatureAlgorithms/SignatureSchemes list is 32") \
+    ERR_ENTRY(S2N_ERR_TOO_MANY_SIGNATURE_SCHEMES, "Max supported length of SignatureAlgorithms/SignatureSchemes list is 128") \
     ERR_ENTRY(S2N_ERR_CLIENT_AUTH_NOT_SUPPORTED_IN_FIPS_MODE, "Client Auth is not supported when in FIPS mode") \
     ERR_ENTRY(S2N_ERR_INVALID_BASE64, "invalid base64 encountered") \
     ERR_ENTRY(S2N_ERR_INVALID_HEX, "invalid HEX encountered") \
@@ -307,7 +307,11 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
     ERR_ENTRY(S2N_ERR_KTLS_KEYUPDATE, "Received KeyUpdate from peer, but kernel does not support updating tls keys") \
     ERR_ENTRY(S2N_ERR_KTLS_KEY_LIMIT, "Reached key encryption limit, but kernel does not support updating tls keys") \
-    ERR_ENTRY(S2N_ERR_UNEXPECTED_CERT_REQUEST, "Client does not support mutual authentication") \
+    ERR_ENTRY(S2N_ERR_UNEXPECTED_CERT_REQUEST, "Client forbids mutual authentication, but server requested a cert") \
+    ERR_ENTRY(S2N_ERR_MISSING_CERT_REQUEST, "Client requires mutual authentication, but server did not request a cert") \
+    ERR_ENTRY(S2N_ERR_MISSING_CLIENT_CERT, "Server requires client certificate") \
+    ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_CONNECTION, "Serialized connection is invalid"); \
+    ERR_ENTRY(S2N_ERR_TOO_MANY_CAS, "Too many certificate authorities in trust store"); \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

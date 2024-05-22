@@ -117,8 +117,8 @@ static int s2n_certs_exist_for_sig_scheme(struct s2n_connection *conn, const str
     struct s2n_cert_chain_and_key *cert = s2n_get_compatible_cert_chain_and_key(conn, cert_type);
     POSIX_ENSURE_REF(cert);
 
-    /* For sig_algs that include a curve, the group must also match. */
-    if (sig_scheme->signature_curve != NULL) {
+    /* For TLS1.3 sig_algs that include a curve, the group must also match. */
+    if (sig_scheme->signature_curve && conn->actual_protocol_version >= S2N_TLS13) {
         POSIX_ENSURE_REF(cert->private_key);
         POSIX_ENSURE_REF(cert->cert_chain);
         POSIX_ENSURE_REF(cert->cert_chain->head);

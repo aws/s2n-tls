@@ -25,11 +25,18 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
+      # go required to build aws-lc-rs in FIPS mode
+      - name: Install go
+        uses: actions/setup-go@v4
         with:
-          toolchain: stable
-          override: true
+          go-version: '>=1.18'
 
       - uses: camshaft/rust-cache@v1
 
@@ -39,6 +46,11 @@ jobs:
       - name: Tests
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --all-features
+
+      # Ensure that all tests pass with the default feature set
+      - name: Default Tests
+        working-directory: ${{env.ROOT_PATH}}
+        run: cargo test
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
@@ -67,11 +79,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          override: true
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
 
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
@@ -79,18 +91,18 @@ jobs:
       - name: bench tests
         working-directory: ${{env.ROOT_PATH}}/bench
         run: cargo test
-  
+
   s2n-tls-binding-examples:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          override: true
-      
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
       - name: generate bindings
         run: ${{env.ROOT_PATH}}/generate.sh --skip-tests
 
@@ -103,11 +115,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - uses: actions-rs/toolchain@v1
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          override: true
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
 
       - uses: camshaft/rust-cache@v1
 
@@ -145,6 +157,36 @@ jobs:
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test --all-features
 
+  fips:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
+      # go required to build aws-lc-rs in FIPS mode
+      - name: Install go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '>=1.18'
+
+      - uses: camshaft/rust-cache@v1
+
+      - name: Generate
+        run: ./${{env.ROOT_PATH}}/generate.sh
+
+      - name: Test fips
+        working-directory: ${{env.ROOT_PATH}}
+        run: |
+          cargo test --features fips
+
   rustfmt:
     runs-on: ubuntu-latest
     steps:
@@ -152,26 +194,22 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions-rs/toolchain@v1.0.7
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
-          profile: minimal
-          override: true
-          components: rustfmt
+        run: |
+          rustup toolchain install ${{ env.RUST_NIGHTLY_TOOLCHAIN }} --profile minimal --component rustfmt
+          rustup override set ${{ env.RUST_NIGHTLY_TOOLCHAIN }}
 
       - uses: camshaft/rust-cache@v1
 
       # We don't need to format the generated files,
       # but if they don't exist other code breaks.
       - name: Generate
-        run: ./${{env.ROOT_PATH}}/generate.sh
+        run: ./${{env.ROOT_PATH}}/generate.sh --skip-tests
 
       - name: Run cargo fmt
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: fmt
-          args: --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
+        run: |
+          cargo fmt --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all -- --check
 
   clippy:
     runs-on: ubuntu-latest
@@ -180,13 +218,11 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions-rs/toolchain@v1.0.7
+      - name: Install Rust toolchain
         id: toolchain
-        with:
-          toolchain: stable
-          profile: minimal
-          override: true
-          components: clippy
+        run: |
+          rustup toolchain install stable --profile minimal --component clippy
+          rustup override set stable
 
       - uses: camshaft/rust-cache@v1
 
@@ -201,10 +237,9 @@ jobs:
 
       # TODO translate json reports to in-action warnings
       - name: Run cargo clippy
-        uses: actions-rs/cargo@v1.0.3
-        with:
-          command: clippy
-          args: --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
+        run: |
+          cargo clippy --manifest-path ${{env.ROOT_PATH}}/Cargo.toml --all-targets -- -D warnings
+
   msrv:
     runs-on: ubuntu-latest
     steps:

@@ -18,6 +18,7 @@
 #include <stdint.h>
 
 struct s2n_certificate_key {
+    const char *name;
     uint16_t public_key_libcrypto_nid;
 
     /* modulus for RSA key, size for EC key */
@@ -42,3 +43,5 @@ extern const struct s2n_certificate_key s2n_rsa_pss_4096;
 extern const struct s2n_certificate_key s2n_ec_p256;
 extern const struct s2n_certificate_key s2n_ec_p384;
 extern const struct s2n_certificate_key s2n_ec_p521;
+
+extern struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151;

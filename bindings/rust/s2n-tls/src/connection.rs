@@ -36,6 +36,15 @@ macro_rules! static_const_str {
     };
 }
 
+#[non_exhaustive]
+#[derive(Debug, PartialEq)]
+/// s2n-tls only tracks up to u8::MAX (255) key updates. If any of the fields show
+/// 255 updates, then more than 255 updates may have occurred.
+pub struct KeyUpdateCount {
+    pub send_key_updates: u8,
+    pub recv_key_updates: u8,
+}
+
 pub struct Connection {
     connection: NonNull<s2n_connection>,
 }
@@ -80,6 +89,15 @@ unsafe impl Send for Connection {}
 unsafe impl Sync for Connection {}
 
 impl Connection {
+    /// # Warning
+    ///
+    /// The newly created connection uses the default security policy.
+    /// Consider changing this depending on your security and compatibility requirements
+    /// by calling [`Connection::set_security_policy`].
+    /// Alternatively, you can use [`crate::config::Builder`], [`crate::config::Builder::set_security_policy`],
+    /// and [`Connection::set_config`] to set the policy on the Config instead of on the Connection.
+    /// See the s2n-tls usage guide:
+    /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
     pub fn new(mode: Mode) -> Self {
         crate::init::init();
 
@@ -265,6 +283,46 @@ impl Connection {
             .into_result()
         }?;
         Ok(self)
+    }
+
+    /// Signals the connection to do a key_update at the next possible opportunity.
+    /// Note that the resulting key update message will not be sent until `send` is
+    /// called on the connection.
+    ///
+    /// `peer_request` indicates if a key update should also be requested
+    /// of the peer. When set to `KeyUpdateNotRequested`, then only the sending
+    /// key of the connection will be updated. If set to `KeyUpdateRequested`, then
+    /// the sending key of conn will be updated AND the peer will be requested to
+    /// update their sending key. Note that s2n-tls currently only supports
+    /// `peer_request` being set to `KeyUpdateNotRequested` and will return an error
+    /// if any other value is used.
+    pub fn request_key_update(&mut self, peer_request: PeerKeyUpdate) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_request_key_update(self.connection.as_ptr(), peer_request.into())
+                .into_result()
+        }?;
+        Ok(self)
+    }
+
+    /// Reports the number of times sending and receiving keys have been updated.
+    ///
+    /// This only applies to TLS1.3. Earlier versions do not support key updates.
+    #[cfg(feature = "unstable-ktls")]
+    pub fn key_update_counts(&self) -> Result<KeyUpdateCount, Error> {
+        let mut send_key_updates = 0;
+        let mut recv_key_updates = 0;
+        unsafe {
+            s2n_connection_get_key_update_counts(
+                self.connection.as_ptr(),
+                &mut send_key_updates,
+                &mut recv_key_updates,
+            )
+            .into_result()?;
+        }
+        Ok(KeyUpdateCount {
+            send_key_updates,
+            recv_key_updates,
+        })
     }
 
     /// sets the application protocol preferences on an s2n_connection object.
@@ -621,6 +679,33 @@ impl Connection {
         Ok(self)
     }
 
+    /// Retrieves the size of the session ticket.
+    pub fn session_ticket_length(&self) -> Result<usize, Error> {
+        let len =
+            unsafe { s2n_connection_get_session_length(self.connection.as_ptr()).into_result()? };
+        Ok(len.try_into().unwrap())
+    }
+
+    /// Serializes the session state from the connection into `output` and returns
+    /// the length of the session ticket.
+    ///
+    /// If the buffer does not have the size for the session_ticket,
+    /// `Error::INVALID_INPUT` is returned.
+    ///
+    /// Note: This function is not recommended for > TLS1.2 because in TLS1.3
+    /// servers can send multiple session tickets and this will return only
+    /// the most recently received ticket.
+    pub fn session_ticket(&self, output: &mut [u8]) -> Result<usize, Error> {
+        if output.len() < self.session_ticket_length()? {
+            return Err(Error::INVALID_INPUT);
+        }
+        let written = unsafe {
+            s2n_connection_get_session(self.connection.as_ptr(), output.as_mut_ptr(), output.len())
+                .into_result()?
+        };
+        Ok(written.try_into().unwrap())
+    }
+
     /// Sets a Waker on the connection context or clears it if `None` is passed.
     pub fn set_waker(&mut self, waker: Option<&Waker>) -> Result<&mut Self, Error> {
         let ctx = self.context_mut();
@@ -629,7 +714,7 @@ impl Connection {
             if let Some(prev_waker) = ctx.waker.as_mut() {
                 // only replace the Waker if they dont reference the same task
                 if !prev_waker.will_wake(waker) {
-                    *prev_waker = waker.clone();
+                    prev_waker.clone_from(waker);
                 }
             } else {
                 ctx.waker = Some(waker.clone());
@@ -728,31 +813,28 @@ impl Connection {
     //
     /// Returns a reference to the ClientHello associated with the connection.
     /// ```compile_fail
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::ClientHello;
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-    /// let mut hash = Vec::new();
     /// drop(conn);
-    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// client_hello.raw_message();
     /// ```
     ///
     /// The compilation could be failing for a variety of reasons, so make sure
     /// that the test case is actually good.
     /// ```no_run
-    /// use s2n_tls::client_hello::{ClientHello, FingerprintType};
+    /// use s2n_tls::client_hello::ClientHello;
     /// use s2n_tls::connection::Connection;
     /// use s2n_tls::enums::Mode;
     ///
     /// let mut conn = Connection::new(Mode::Server);
     /// let mut client_hello: &ClientHello = conn.client_hello().unwrap();
-    /// let mut hash = Vec::new();
-    /// client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash);
+    /// client_hello.raw_message();
     /// drop(conn);
     /// ```
-    #[cfg(feature = "unstable-fingerprint")]
     pub fn client_hello(&self) -> Result<&crate::client_hello::ClientHello, Error> {
         let mut handle =
             unsafe { s2n_connection_get_client_hello(self.connection.as_ptr()).into_result()? };
@@ -920,6 +1002,52 @@ impl Connection {
             .into_result()?;
         }
         Ok(secret)
+    }
+
+    /// Retrieves the size of the serialized connection
+    pub fn serialization_length(&self) -> Result<usize, Error> {
+        unsafe {
+            let mut length = 0;
+            s2n_connection_serialization_length(self.connection.as_ptr(), &mut length)
+                .into_result()?;
+            Ok(length.try_into().unwrap())
+        }
+    }
+
+    /// Serializes the TLS connection into the provided buffer
+    pub fn serialize(&self, output: &mut [u8]) -> Result<(), Error> {
+        unsafe {
+            s2n_connection_serialize(
+                self.connection.as_ptr(),
+                output.as_mut_ptr(),
+                output.len().try_into().map_err(|_| Error::INVALID_INPUT)?,
+            )
+            .into_result()?;
+            Ok(())
+        }
+    }
+
+    /// Deserializes the input buffer into a new TLS connection that can send/recv
+    /// data from the original peer.
+    pub fn deserialize(&mut self, input: &[u8]) -> Result<(), Error> {
+        let size = input.len();
+        /* This is not ideal, we know that s2n_connection_deserialize will not mutate the
+         * input value, however, the mut is needed to use the stuffer functions. */
+        let input = input.as_ptr() as *mut u8;
+        unsafe {
+            s2n_connection_deserialize(
+                self.as_ptr(),
+                input,
+                size.try_into().map_err(|_| Error::INVALID_INPUT)?,
+            )
+            .into_result()?;
+            Ok(())
+        }
+    }
+
+    /// Determines whether the connection was resumed from an earlier handshake.
+    pub fn resumed(&self) -> bool {
+        unsafe { s2n_connection_is_session_resumed(self.connection.as_ptr()) == 1 }
     }
 }
 

@@ -24,6 +24,7 @@ tests/fuzz/fuzz-*.log
 tests/benchmark/*_benchmark
 bin/s2nc
 bin/s2nd
+bin/policy
 util-linux-*
 Python-*
 clang-*
