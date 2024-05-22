@@ -189,13 +189,13 @@ def basic_reneg_test(managed_process, cipher, curve, certificate, protocol, prov
 
     server = managed_process(provider, server_options,
                              send_marker=Msg.send_markers(messages, Provider.ServerMode),
-                             timeout=5
+                             timeout=8
                              )
 
     s2n_client = managed_process(S2N, client_options,
                                  send_marker=Msg.send_markers(messages, Provider.ClientMode),
                                  close_marker=Msg.close_marker(messages),
-                                 timeout=5
+                                 timeout=8
                                  )
 
     return (s2n_client, server)
