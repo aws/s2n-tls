@@ -14,7 +14,8 @@
  */
 
 #include <openssl/rsa.h>
-int main() {
+int main()
+{
     RSA_get0_pss_params(NULL);
     return 0;
 }

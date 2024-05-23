@@ -181,11 +181,11 @@ int main(int argc, char **argv)
         hash_state_new(sign_hash, random_msg);
         hash_state_new(verify_hash, random_msg);
 
-        #if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING)
-            EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), true);
-        #else
-            EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), false);
-        #endif
+#if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING)
+        EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), true);
+#else
+        EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), false);
+#endif
 
         if (!s2n_is_rsa_pss_signing_supported()) {
             EXPECT_FAILURE_WITH_ERRNO(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result),
