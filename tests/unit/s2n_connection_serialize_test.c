@@ -465,8 +465,10 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(new_client_conn, server_conn, &io_pair));
 
         /* Client can send and recv as usual */
-        EXPECT_OK(s2n_send_and_recv_test(server_conn, new_client_conn));
-        EXPECT_OK(s2n_send_and_recv_test(new_client_conn, server_conn));
+        for (size_t idx = 0; idx < 1000; idx++) {
+            EXPECT_OK(s2n_send_and_recv_test(server_conn, new_client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(new_client_conn, server_conn));
+        }
     };
 
     /* Self-talk: Server can be serialized and deserialized and continue sending and receiving data
@@ -507,8 +509,10 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server_conn, &io_pair));
 
         /* Server can send and recv as usual */
-        EXPECT_OK(s2n_send_and_recv_test(new_server_conn, client_conn));
-        EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server_conn));
+        for (size_t idx = 0; idx < 1000; idx++) {
+            EXPECT_OK(s2n_send_and_recv_test(new_server_conn, client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server_conn));
+        }
     };
 
     /* Self-talk: Test interaction between TLS1.2 session resumption and serialization */
