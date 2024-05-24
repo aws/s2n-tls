@@ -2836,7 +2836,7 @@ S2N_API int s2n_psk_set_hmac(struct s2n_psk *psk, s2n_psk_hmac hmac);
  * @param conn A pointer to the s2n_connection object that contains the list of PSKs supported.
  * @param psk A pointer to the `s2n_psk` object to be appended to the list of PSKs on the s2n connection.
  */
-S2N_API int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *psk);
+S2N_API int s2n_connection_append_psk(struct s2n_connection *conn, const struct s2n_psk *psk);
 
 /**
  * The list of PSK modes supported by s2n-tls for TLS versions >= TLS1.3.
@@ -2879,7 +2879,7 @@ S2N_API int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mod
  * @param conn A pointer to the s2n_connection object that successfully negotiated a PSK connection.
  * @param identity_length The length of the negotiated PSK identity. 
  */
-S2N_API int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length);
+S2N_API int s2n_connection_get_negotiated_psk_identity_length(const struct s2n_connection *conn, uint16_t *identity_length);
 
 /**
  * Gets the negotiated PSK identity from the s2n connection object. 
@@ -2897,7 +2897,7 @@ S2N_API int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connect
  * @param max_identity_length The maximum length for the PSK identity. If the negotiated psk_identity length is 
  * greater than this `max_identity_length` value an error will be returned.
  */
-S2N_API int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
+S2N_API int s2n_connection_get_negotiated_psk_identity(const struct s2n_connection *conn, uint8_t *identity, uint16_t max_identity_length);
 
 struct s2n_offered_psk;
 
@@ -2927,7 +2927,7 @@ S2N_API int s2n_offered_psk_free(struct s2n_offered_psk **psk);
  * @param identity The PSK identity being obtained.
  * @param size The length of the PSK identity being obtained.
  */
-S2N_API int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t **identity, uint16_t *size);
+S2N_API int s2n_offered_psk_get_identity(const struct s2n_offered_psk *psk, uint8_t **identity, uint16_t *size);
 
 struct s2n_offered_psk_list;
 
@@ -2943,7 +2943,7 @@ struct s2n_offered_psk_list;
  * @param psk_list A pointer to the offered PSK list being read.
  * @returns bool A boolean value representing whether an offered psk object is present next in line in the offered PSK list.
  */
-S2N_API bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list);
+S2N_API bool s2n_offered_psk_list_has_next(const struct s2n_offered_psk_list *psk_list);
 
 /**
  * Obtains the next offered PSK object from the list of offered PSKs. Use `s2n_offered_psk_list_has_next` 
