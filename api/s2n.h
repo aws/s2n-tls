@@ -1992,12 +1992,12 @@ S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
  * @warning Do NOT set a lower blinding delay unless you understand the risks and have other
  * mitigations for timing side channels in place.
  *
- * @param conn The connection object being updated.
+ * @param config The config object being updated.
  * @param seconds The maximum number of seconds that s2n-tls will delay for in the event of a
  * decryption error.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_connection_set_max_blinding(struct s2n_connection *conn, uint32_t seconds);
+S2N_API extern int s2n_config_set_max_blinding(struct s2n_config *config, uint32_t seconds);
 
 /**
  * Sets the cipher preference override for the s2n_connection. Calling this function is not necessary
