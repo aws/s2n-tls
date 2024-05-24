@@ -15,9 +15,9 @@
 
 #include "tls/s2n_connection_serialize.h"
 
+#include "crypto/s2n_sequence.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13_key_schedule.h"
-#include "crypto/s2n_sequence.h"
 
 int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *length)
 {
