@@ -22,7 +22,7 @@ impl AsyncAnimalConfigResolver {
         AsyncAnimalConfigResolver { cert_directory }
     }
 
-    // This method will lookup the appropriate certificates and read them from disc
+    // This method will lookup the appropriate certificates and read them from disk
     // in an async manner which won't block the tokio task.
     async fn server_config(
         &self,
