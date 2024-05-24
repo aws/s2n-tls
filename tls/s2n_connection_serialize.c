@@ -228,10 +228,14 @@ static S2N_RESULT s2n_connection_deserialize_parse(uint8_t *buffer, uint32_t buf
  * To resolve this we preform one throwaway encryption call with a zero sequence number after
  * deserialization. This allows the libcrypto to recover the implicit IV correctly.
  */
-static S2N_RESULT s2n_throwaway_encrypt(struct s2n_connection *conn, struct s2n_connection_deserialize *parsed_values)
+static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct s2n_connection_deserialize *parsed_values)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(parsed_values);
+
+#if !(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
+    return S2N_RESULT_OK;
+#endif
 
     uint8_t *seq_num = parsed_values->server_sequence_number;
     uint8_t *implicit_iv = conn->server->server_implicit_iv;
@@ -242,24 +246,29 @@ static S2N_RESULT s2n_throwaway_encrypt(struct s2n_connection *conn, struct s2n_
         key = conn->client->client_key;
     }
 
-    uint64_t output = 0;
+    uint64_t parsed_sequence_num = 0;
     struct s2n_blob seq_num_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&seq_num_blob, seq_num, S2N_TLS_SEQUENCE_NUM_LEN));
-    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num_blob, &output));
-    if (output > 0) {
-        uint8_t in_data[S2N_TLS_GCM_TAG_LEN] = { 0 };
-        struct s2n_blob in_blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&in_blob, in_data, sizeof(in_data)));
+    RESULT_GUARD_POSIX(s2n_sequence_number_to_uint64(&seq_num_blob, &parsed_sequence_num));
 
-        struct s2n_blob iv_blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&iv_blob, implicit_iv, S2N_TLS13_FIXED_IV_LEN));
-
-        struct s2n_blob aad_blob = { 0 };
-        RESULT_GUARD_POSIX(s2n_blob_init(&aad_blob, NULL, 0));
-
-        RESULT_GUARD_POSIX(conn->secure->cipher_suite->record_alg->cipher->io.aead.encrypt(&key,
-                &iv_blob, &aad_blob, &in_blob, &in_blob));
+    /* we don't need to initialize the context when the sequence number is 0 */
+    if (parsed_sequence_num == 0) {
+        return S2N_RESULT_OK;
     }
+
+    uint8_t in_data[S2N_TLS_GCM_TAG_LEN] = { 0 };
+    struct s2n_blob in_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&in_blob, in_data, sizeof(in_data)));
+
+    struct s2n_blob iv_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&iv_blob, implicit_iv, S2N_TLS13_FIXED_IV_LEN));
+
+    struct s2n_blob aad_blob = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&aad_blob, NULL, 0));
+
+    RESULT_GUARD_POSIX(conn->secure->cipher_suite->record_alg->cipher->io.aead.encrypt(&key,
+            &iv_blob, &aad_blob, &in_blob, &in_blob));
+
     return S2N_RESULT_OK;
 }
 
@@ -278,9 +287,7 @@ static S2N_RESULT s2n_restore_tls13_secrets(struct s2n_connection *conn, struct 
     RESULT_GUARD(s2n_tls13_key_schedule_set_key(conn, S2N_MASTER_SECRET, S2N_SERVER));
     RESULT_GUARD(s2n_tls13_key_schedule_set_key(conn, S2N_MASTER_SECRET, S2N_CLIENT));
 
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-    RESULT_GUARD(s2n_throwaway_encrypt(conn, parsed_values));
-#endif
+    RESULT_GUARD(s2n_initialize_implicit_iv(conn, parsed_values));
 
     return S2N_RESULT_OK;
 }
