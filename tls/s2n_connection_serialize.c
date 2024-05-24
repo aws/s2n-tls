@@ -233,7 +233,7 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(parsed_values);
 
-#if !(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
+#ifndef S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS
     return S2N_RESULT_OK;
 #endif
 
