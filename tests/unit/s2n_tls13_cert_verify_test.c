@@ -31,22 +31,22 @@ struct s2n_tls13_cert_verify_test {
     const char *const cert_file;
     const char *const key_file;
     const struct s2n_signature_scheme *sig_scheme;
-    const short wrong_hash_iana;
+    const struct s2n_signature_scheme *with_wrong_hash;
 };
 
 const struct s2n_tls13_cert_verify_test test_cases[] = {
     {
-            .cert_file = S2N_ECDSA_P384_PKCS1_CERT_CHAIN,
-            .key_file = S2N_ECDSA_P384_PKCS1_KEY,
+            .cert_file = S2N_ECDSA_P256_PKCS1_CERT_CHAIN,
+            .key_file = S2N_ECDSA_P256_PKCS1_KEY,
             .sig_scheme = &s2n_ecdsa_sha256,
-            .wrong_hash_iana = TLS_SIGNATURE_SCHEME_ECDSA_SHA384,
+            .with_wrong_hash = &s2n_ecdsa_sha384,
     },
 #if RSA_PSS_CERTS_SUPPORTED
     {
             .cert_file = S2N_RSA_PSS_2048_SHA256_LEAF_CERT,
             .key_file = S2N_RSA_PSS_2048_SHA256_LEAF_KEY,
             .sig_scheme = &s2n_rsa_pss_pss_sha256,
-            .wrong_hash_iana = TLS_SIGNATURE_SCHEME_RSA_PSS_PSS_SHA384,
+            .with_wrong_hash = &s2n_rsa_pss_pss_sha384,
     },
 #endif
 };
@@ -63,9 +63,6 @@ S2N_RESULT s2n_cert_verify_connection_setup_and_send(
     sending_conn->actual_protocol_version = S2N_TLS13;
     EXPECT_SUCCESS(s2n_connection_set_config(sending_conn, config));
 
-    verifying_conn->handshake_params.our_chain_and_key = cert_chain;
-    verifying_conn->handshake_params.server_cert_sig_scheme = sig_scheme;
-    verifying_conn->handshake_params.client_cert_sig_scheme = sig_scheme;
     verifying_conn->secure->cipher_suite = &s2n_tls13_aes_128_gcm_sha256;
     verifying_conn->actual_protocol_version = S2N_TLS13;
     EXPECT_SUCCESS(s2n_connection_set_config(verifying_conn, config));
@@ -82,9 +79,9 @@ S2N_RESULT s2n_cert_verify_connection_setup_and_send(
 
     /* Hash initialization */
     EXPECT_SUCCESS(s2n_hash_init(&sending_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
-    EXPECT_SUCCESS(s2n_hash_update(&sending_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
+    EXPECT_SUCCESS(s2n_hash_update(&sending_conn->handshake.hashes->sha256, hello, sizeof(hello)));
     EXPECT_SUCCESS(s2n_hash_init(&verifying_conn->handshake.hashes->sha256, S2N_HASH_SHA256));
-    EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
+    EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, sizeof(hello)));
 
     /* Send cert verify */
     EXPECT_SUCCESS(s2n_tls13_cert_verify_send(sending_conn));
@@ -118,7 +115,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
     /* Initialize a certificate */
     DEFER_CLEANUP(struct s2n_stuffer certificate_in = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer certificate_out = { 0 }, s2n_stuffer_free);
-
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_in, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&certificate_out, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_stuffer_write_bytes(&certificate_in, (uint8_t *) cert_chain_pem, sizeof(cert_chain_pem)));
@@ -154,7 +150,8 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_SUCCESS(s2n_tls13_cert_verify_send(sending_conn));
         EXPECT_SUCCESS(s2n_stuffer_copy(&sending_conn->handshake.io, &verifying_conn->handshake.io,
                 s2n_stuffer_data_available(&sending_conn->handshake.io)));
-        EXPECT_FAILURE(s2n_tls13_cert_verify_recv(verifying_conn));
+
+        EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
     };
 
     /* Verifying connection errors with incorrect signed content */
@@ -170,11 +167,13 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_OK(s2n_cert_verify_connection_setup_and_send(sending_conn, verifying_conn, config, cert_chain, &sig_scheme, &cert));
 
         /* Update receive hash with goodbye */
-        uint64_t bytes_in_hash = 0;
+        EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, goodbye, sizeof(goodbye)));
 
-        EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, goodbye, strlen((char *) goodbye)));
-        EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&verifying_conn->handshake.hashes->sha256, &bytes_in_hash));
-        EXPECT_EQUAL(bytes_in_hash, 30);
+        uint64_t verifying_bytes = 0;
+        uint64_t sending_bytes = 0;
+        EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&verifying_conn->handshake.hashes->sha256, &verifying_bytes));
+        EXPECT_SUCCESS(s2n_hash_get_currently_in_hash_total(&sending_conn->handshake.hashes->sha256, &sending_bytes));
+        EXPECT_NOT_EQUAL(sending_bytes, verifying_bytes);
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
     };
@@ -192,7 +191,6 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_OK(s2n_cert_verify_connection_setup_and_send(sending_conn, verifying_conn, config, cert_chain, &sig_scheme, &cert));
 
         /* Update receive hash with hello and flip one bit in verifying_conn io buffer */
-        EXPECT_SUCCESS(s2n_hash_update(&verifying_conn->handshake.hashes->sha256, hello, strlen((char *) hello)));
         EXPECT_TRUE(10 < s2n_stuffer_data_available(&verifying_conn->handshake.io));
         verifying_conn->handshake.io.blob.data[10] ^= 1;
 
@@ -212,13 +210,13 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
         EXPECT_OK(s2n_cert_verify_connection_setup_and_send(sending_conn, verifying_conn, config, cert_chain, &sig_scheme, &cert));
 
         /* Use a hash algorithm different from sender by prepending corresponding iana value */
-        uint32_t write_cursor_position = s2n_stuffer_data_available(&verifying_conn->handshake.io);
-        EXPECT_SUCCESS(s2n_stuffer_rewrite(&verifying_conn->handshake.io));
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&verifying_conn->handshake.io, test_case->wrong_hash_iana));
-        EXPECT_SUCCESS(s2n_stuffer_skip_write(&verifying_conn->handshake.io, write_cursor_position));
+        struct s2n_stuffer rereader = verifying_conn->handshake.io;
+        EXPECT_SUCCESS(s2n_stuffer_rewrite(&rereader));
+        EXPECT_SUCCESS(s2n_stuffer_write_uint16(&rereader, test_case->with_wrong_hash->iana_value));
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_tls13_cert_verify_recv(verifying_conn), S2N_ERR_VERIFY_SIGNATURE);
     };
+
     return 0;
 }
 
