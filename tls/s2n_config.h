@@ -123,6 +123,8 @@ struct s2n_config {
     s2n_client_hello_fn *client_hello_cb;
     s2n_client_hello_cb_mode client_hello_cb_mode;
 
+    uint32_t max_blinding;
+
     void *client_hello_cb_ctx;
 
     uint64_t session_state_lifetime_in_nanos;

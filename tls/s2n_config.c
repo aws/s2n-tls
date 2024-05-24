@@ -1238,3 +1238,14 @@ int s2n_config_set_serialization_version(struct s2n_config *config, s2n_serializ
 
     return S2N_SUCCESS;
 }
+
+int s2n_config_set_max_blinding(struct s2n_config *config, uint32_t seconds)
+{
+    POSIX_ENSURE_REF(config);
+
+    POSIX_ENSURE(seconds > 0, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(seconds <= 30, S2N_ERR_INVALID_ARGUMENT);
+    config->max_blinding = seconds;
+
+    return S2N_SUCCESS;
+}

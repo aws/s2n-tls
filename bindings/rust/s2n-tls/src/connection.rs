@@ -165,7 +165,7 @@ impl Connection {
         Ok(self)
     }
 
-    pub fn set_max_blinding(&mut self, seconds: u32) -> Result<&mut Self, Error> {
+    pub fn set_max_blinding_delay(&mut self, seconds: u32) -> Result<&mut Self, Error> {
         unsafe {
             s2n_connection_set_max_blinding(self.connection.as_ptr(), seconds).into_result()
         }?;

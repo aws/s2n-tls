@@ -1152,16 +1152,7 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
     return 0;
 }
 
-int s2n_connection_set_max_blinding(struct s2n_connection *conn, uint32_t seconds)
-{
-    POSIX_ENSURE_REF(conn);
-
-    POSIX_ENSURE(seconds > 0, S2N_ERR_INVALID_ARGUMENT);
-    POSIX_ENSURE(seconds <= 30, S2N_ERR_INVALID_ARGUMENT);
-    conn->max_blinding = seconds;
-
-    return S2N_SUCCESS;
-}
+#define ONE_S INT64_C(1000000000)
 
 static S2N_RESULT s2n_connection_get_delay_impl(struct s2n_connection *conn, uint64_t *delay)
 {
@@ -1197,10 +1188,13 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 }
 
 /* s2n-tls has a random delay that will trigger if a record fails to decrypt. This is a mitigation
- * for possible timing sidechannels. The historical sidechannel that inspired s2n-tls blinding
- * was the Lucky Thirteen attack, which takes advantage of potential timing differences when removing padding
+ * for possible timing sidechannels.
+ * 
+ * The historical sidechannel that inspired s2n-tls blinding
+ * was the Lucky 13 attack, which takes advantage of potential timing differences when removing padding
  * from a record encrypted in CBC mode. The attack is only theoretical in TLS; the attack criteria is
- * unlikely to ever occur (see the Lucky Thirteen paper for an explanation of this.) However, we still
+ * unlikely to ever occur (see the Lucky 13 paper for an explanation of this: 
+ * https://www.ieee-security.org/TC/SP2013/papers/4977a526.pdf.) However, we still
  * include blinding to provide a defense in depth mitigation.
  */
 S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_t *min, int64_t *max)
@@ -1208,6 +1202,7 @@ S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(min);
     RESULT_ENSURE_REF(max);
+    RESULT_ENSURE_REF(conn->config);
 
     /*
      * The default delay is a random value between 10-30s. The rational behind the range is that the
@@ -1220,15 +1215,15 @@ S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_
      * (((30 - 10) * 10 ^6)^2)/12 ~= 3.3 trillion (note that we first have to convert from seconds to
      * microseconds to match the unit of the timing difference.)
      */
-    *min = DEFAULT_BLINDING_FLOOR * ONE_S;
-    *max = DEFAULT_BLINDING_CEILING * ONE_S;
+    *min = S2N_DEFAULT_BLINDING_FLOOR * ONE_S;
+    *max = S2N_DEFAULT_BLINDING_CEILING * ONE_S;
 
     /* Some users may not be able to sleep for our default duration. We offer a custom delay in this case.
-     * The floor of the delay range is a third of the upper bound. This smaller delay is strictly
-     * better than turning off the blinding mitigation entirely.
+     * The floor of the delay range is a third of the upper bound. This custom range isn't based in any math
+     * but it is strictly better than turning off the blinding mitigation entirely.
      */
-    if (conn->max_blinding) {
-        *max = conn->max_blinding * ONE_S;
+    if (conn->config->max_blinding) {
+        *max = conn->config->max_blinding * ONE_S;
         *min = *max / 3;
     }
 
