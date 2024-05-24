@@ -3,10 +3,11 @@
 
 use s2n_tls::{
     callbacks::{ClientHelloCallback, ConfigResolver, ConnectionFuture},
+    config::Config,
     security::{Policy, DEFAULT_TLS13},
 };
 use s2n_tls_tokio::TlsAcceptor;
-use std::{error::Error, pin::Pin};
+use std::{error::Error, future::Future, pin::Pin};
 use tokio::{io::AsyncWriteExt, net::*, try_join};
 
 const PORT: u16 = 1738;
@@ -17,6 +18,11 @@ pub struct AsyncAnimalConfigResolver {
     cert_directory: String,
 }
 
+struct SpecificAnimalResolver {
+    cert_directory: String,
+    animal: String,
+}
+
 impl AsyncAnimalConfigResolver {
     fn new(cert_directory: String) -> Self {
         AsyncAnimalConfigResolver { cert_directory }
@@ -24,8 +30,20 @@ impl AsyncAnimalConfigResolver {
 
     // This method will lookup the appropriate certificates and read them from disk
     // in an async manner which won't block the tokio task.
+    //
+    // Note that this method consumes `self`. A ConfigResolver can be constructed
+    // from a future that returns `Result<Config, s2n_tls::error::Error>`, with
+    // the main additional requirements that the future is `'static`. This generally
+    // means that it can't have any  interior references.
+    //
+    // If this method took in `&self`, then
+    // ```
+    // let config_resolver = ConfigResolver::new(self.server_config(animal));
+    // ```
+    // wouldn't compile because the compiler would complain that `&self` doesn't
+    // live long enough.
     async fn server_config(
-        &self,
+        self,
         animal: String,
     ) -> Result<s2n_tls::config::Config, s2n_tls::error::Error> {
         let cert_path = format!("{}/{}-chain.pem", self.cert_directory, animal);
@@ -75,23 +93,8 @@ impl ClientHelloCallback for AsyncAnimalConfigResolver {
             }
         };
 
-        // A ConfigResolver can be constructed from a future that returns
-        // `Result<Config, s2n_tls::error::Error>`, with the main additional
-        // requirements that the future is `'static`, which generally means that
-        // it can't have any  interior references. This will prevent you from
-        // doing something like
-        // ```
-        // let config_resolver = ConfigResolver::new(self.server_config(animal));
-        // ```
-        // because the compiler will complain that `&self` doesn't live long enough.
-        //
-        // One easy way to get around this is to create a new async block that
-        // owns all of the necessary data. Here we do this by first cloning the
-        // async resolver and then passing it into a closure which owns all of
-        // it's data (using the `move` keyword).
         let async_resolver_clone = self.clone();
-        let config_resolver =
-            ConfigResolver::new(async move { async_resolver_clone.server_config(animal).await });
+        let config_resolver = ConfigResolver::new(async_resolver_clone.server_config(animal));
         Ok(Some(Box::pin(config_resolver)))
     }
 }
