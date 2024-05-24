@@ -31,16 +31,20 @@ static S2N_RESULT s2n_test_key_update(struct s2n_connection *client_conn, struct
     /* One side initiates key update */
     RESULT_GUARD_POSIX(s2n_connection_request_key_update(client_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
 
-    /* Sending and receiving is successful after key update */
-    EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+    /* Sending and receiving multiple times is successful after key update */
+    for (size_t i = 0; i < 10; i++) {
+        EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+    }
     EXPECT_EQUAL(client_conn->send_key_updated, 1);
     EXPECT_EQUAL(server_conn->recv_key_updated, 1);
 
     /* Other side initiates key update */
     EXPECT_SUCCESS(s2n_connection_request_key_update(server_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
 
-    /* Sending and receiving is successful after key update */
-    EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+    /* Sending and receiving multiple times is successful after key update */
+    for (size_t i = 0; i < 10; i++) {
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+    }
     EXPECT_EQUAL(client_conn->recv_key_updated, 1);
     EXPECT_EQUAL(server_conn->send_key_updated, 1);
 
@@ -366,6 +370,35 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_recv(server_conn, &recv_buf, sizeof(recv_buf), &blocked));
             EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
         };
+
+        /* Cannot send or recv after serialization */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            const uint8_t send_data[] = "hello world";
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send(server_conn, send_data, sizeof(send_data), &blocked), S2N_ERR_CLOSED);
+
+            uint8_t recv_data = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, &recv_data, sizeof(recv_data), &blocked), S2N_ERR_CLOSED);
+        }
     };
 
     /* s2n_connection_deserialize */

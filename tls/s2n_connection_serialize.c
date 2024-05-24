@@ -120,6 +120,10 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
         POSIX_GUARD_RESULT(s2n_connection_serialize_secrets(conn, &output));
     }
 
+    /* Users should not be able to use the connection after serialization as that
+     * could lead to nonce reuse. */
+    POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+
     return S2N_SUCCESS;
 }
 
