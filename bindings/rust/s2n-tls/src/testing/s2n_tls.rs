@@ -987,7 +987,6 @@ mod tests {
             ) -> ConnectionFutureResult {
                 let app_context = connection
                     .application_context_mut::<TestApplicationContext>()
-                    .unwrap()
                     .unwrap();
                 app_context.invoked_count += 1;
                 Ok(None)
@@ -1028,7 +1027,6 @@ mod tests {
             .0
             .connection()
             .application_context::<TestApplicationContext>()
-            .unwrap()
             .unwrap();
         assert_eq!(context.invoked_count, 1);
     }
