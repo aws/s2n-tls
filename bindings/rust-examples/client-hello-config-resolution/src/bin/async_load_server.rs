@@ -95,6 +95,7 @@ impl ClientHelloCallback for AsyncAnimalConfigResolver {
 
         let async_resolver_clone = self.clone();
         let config_resolver = ConfigResolver::new(async_resolver_clone.server_config(animal));
+        connection.server_name_extension_used();
         Ok(Some(Box::pin(config_resolver)))
     }
 }
