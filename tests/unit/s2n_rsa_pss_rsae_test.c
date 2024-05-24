@@ -182,9 +182,9 @@ int main(int argc, char **argv)
         hash_state_new(verify_hash, random_msg);
 
 #if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING)
-        EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), true);
+        EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), 1);
 #else
-        EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), false);
+        EXPECT_EQUAL(s2n_is_rsa_pss_signing_supported(), 0);
 #endif
 
         if (!s2n_is_rsa_pss_signing_supported()) {
