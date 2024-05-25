@@ -279,6 +279,13 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(success_ct_pkcs1());
     EXPECT_SUCCESS(success_ct_pkcs1_negative());
 
+    /* Check the special case where one parameter refers to an array of N bytes */
+    /* where all elements are 0x00, and the other parameter is NULL             */
+    uint8_t all_zero[4] = { 0, 0, 0, 0 };
+
+    EXPECT_FALSE(s2n_constant_time_equals(all_zero, NULL, sizeof(all_zero)));
+    EXPECT_FALSE(s2n_constant_time_equals(NULL, all_zero, sizeof(all_zero)));
+
     uint8_t a[4] = { 1, 2, 3, 4 };
     uint8_t b[4] = { 1, 2, 3, 4 };
     uint8_t c[4] = { 5, 6, 7, 8 };

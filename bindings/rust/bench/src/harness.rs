@@ -35,10 +35,10 @@ impl PemType {
 
 #[derive(Clone, Copy, Default, EnumIter)]
 pub enum SigType {
+    #[default]
     Rsa2048,
     Rsa3072,
     Rsa4096,
-    #[default]
     Ecdsa384,
     Ecdsa256,
 }
