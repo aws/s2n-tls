@@ -292,6 +292,7 @@ where
             self.client.handshake()?;
             self.server.handshake()?;
         }
+        assert!(self.handshake_completed());
         Ok(())
     }
 
