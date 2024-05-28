@@ -1243,7 +1243,7 @@ int s2n_config_set_max_blinding_delay(struct s2n_config *config, uint32_t second
 {
     POSIX_ENSURE_REF(config);
 
-    config->blinding_set = 1;
+    config->custom_blinding_set = 1;
     config->max_blinding = seconds;
 
     return S2N_SUCCESS;
