@@ -136,5 +136,5 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 ### Default Policy History
 |  Version   | "default" | "default_fips" | "default_tls13" |
 |------------|-----------|----------------|-----------------|
-|   v1.x.x   | 20240501  |   20240502     |    20240503     |
+|  v1.4.16   | 20240501  |   20240502     |    20240503     |
 |   Older    | 20170210  |   20240416     |    20240417     |
