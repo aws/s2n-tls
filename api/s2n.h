@@ -2296,27 +2296,18 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
  * **default** behavior is used if the application hasn't set an override via
  * `s2n_config_set_client_auth_type()` or `s2n_connection_set_client_auth_type()`.
  *
- * Client authentication involves the following TLS messages:
- * - 'CLIENT_CERT_REQ': represents the CertificateRequest message sent by the server to request
- *   client certificate authentication.
- * - 'CLIENT_CERT': upon receiving a CLIENT_CERT_REQ, the client should respond with its certificate
- *   in a CLIENT_CERT message.
+ * **Server behavior:**
+ * - None(**default**): don't request client authentication.
+ * - Optional: request the client's certificate and validate if it's non-empty.
+ * - Required: request the client's certificate and validate it.
  *
- * **Server connection behavior:**
- * - None(**default**): don't send CLIENT_CERT_REQ and therefore don't perform client authentication.
- * - Optional: send CLIENT_CERT_REQ and expect a CLIENT_CERT message. Validate the client
- *   certificate or simply continue with the handshake if CLIENT_CERT is empty.
- * - Required: send CLIENT_CERT_REQ and expect a CLIENT_CERT message. Validate the client
- *   certificate or abort the handshake if CLIENT_CERT is empty.
- *
- * **Client connection behavior:**
- * - None: if a CLIENT_CERT_REQ is received abort the handshake.
- * - Optional(**default**): if a CLIENT_CERT_REQ is received, send a CLIENT_CERT with the client's
- *   certificate. The CLIENT_CERT will be empty if no client certificate have been set.
- * - Required: expect to receive a CLIENT_CERT_REQ, aborting the handshake if it is not received.
- *   Send a CLIENT_CERT with the client's certificate, aborting the handshake if no client
- *   certificate have been set.
- */
+ * **Client behavior:**
+ * - None: abort the handshake if the server requests client authentication.
+ * - Optional(**default**): send the client's certificate (can be empty if not set) if the
+ *      server requested client authentication.
+ * - Required: send the client's certificate. Terminate the handshake if the server doesn't request
+ *      client authentication or if the application hasn't specified a client certificate.
+ 
 typedef enum {
     S2N_CERT_AUTH_NONE,
     S2N_CERT_AUTH_REQUIRED,
