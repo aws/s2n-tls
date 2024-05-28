@@ -97,6 +97,24 @@ static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg)
+{
+    RESULT_ENSURE_REF(key);
+
+    /* Ensure that the signature algorithm type matches the key type. */
+    int pkey_type = EVP_PKEY_base_id(key->pkey);
+    if (pkey_type == EVP_PKEY_EC) {
+        RESULT_ENSURE(sig_alg == S2N_SIGNATURE_ECDSA, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    } else {
+        /* Any RSA signature algorithm can be used with any RSA key, so just ensure that the
+         * signature algorithm is any RSA signature algorithm.
+         */
+        RESULT_ENSURE(sig_alg != S2N_SIGNATURE_ECDSA, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
@@ -136,6 +154,7 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
     POSIX_ENSURE_REF(signature);
     POSIX_ENSURE(s2n_evp_signing_supported(), S2N_ERR_HASH_NOT_READY);
     POSIX_GUARD_RESULT(s2n_evp_signing_validate_hash_alg(sig_alg, hash_state->alg));
+    POSIX_GUARD_RESULT(s2n_evp_signing_validate_sig_alg(pub, sig_alg));
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(pub->pkey, NULL), EVP_PKEY_CTX_free_pointer);
     POSIX_ENSURE_REF(pctx);
