@@ -105,6 +105,8 @@ struct s2n_config {
     /* TLS1.3 can be dangerous with kTLS. Require it to be explicitly enabled. */
     unsigned ktls_tls13_enabled : 1;
 
+    unsigned blinding_set : 1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 

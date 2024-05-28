@@ -24,29 +24,43 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
+    struct {
+        uint32_t custom_blinding;
+        uint64_t expected_min;
+        uint64_t expected_max;
+    } test_cases[] = {
+        { .custom_blinding = 0, .expected_min = 0, .expected_max = 0 },
+        { .custom_blinding = 1, .expected_min = ONE_S / 3, .expected_max = ONE_S },
+        { .custom_blinding = 3, .expected_min = (3 * ONE_S) / 3, .expected_max = 3 * ONE_S },
+        { .custom_blinding = 5, .expected_min = (5 * ONE_S) / 3, .expected_max = 5 * ONE_S },
+        { .custom_blinding = 10, .expected_min = (10 * ONE_S) / 3, .expected_max = 10 * ONE_S },
+        { .custom_blinding = 15, .expected_min = (15 * ONE_S) / 3, .expected_max = 15 * ONE_S },
+        { .custom_blinding = 100, .expected_min = (100 * ONE_S) / 3, .expected_max = 100 * ONE_S },
+    };
+
     /* s2n_connection_calculate_blinding */
     {
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         EXPECT_NOT_NULL(conn->config);
 
-        for (size_t i = 0; i <= 30; i++) {
-            conn->config->max_blinding = i;
-            int64_t min = 0;
-            int64_t max = 0;
+        int64_t min = 0;
+        int64_t max = 0;
+        
+        /* The default max blinding delay is 10-30 seconds */
+        EXPECT_OK(s2n_connection_calculate_blinding(conn, &min, &max));
+        EXPECT_EQUAL(min, S2N_DEFAULT_BLINDING_FLOOR * ONE_S);
+        EXPECT_EQUAL(max, S2N_DEFAULT_BLINDING_CEILING * ONE_S);
 
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            EXPECT_SUCCESS(s2n_config_set_max_blinding_delay(conn->config, test_cases[i].custom_blinding));
+
+            min = 0;
+            max = 0;
             EXPECT_OK(s2n_connection_calculate_blinding(conn, &min, &max));
-            if (i == 0) {
-                EXPECT_EQUAL(max, S2N_DEFAULT_BLINDING_CEILING * ONE_S);
-                EXPECT_EQUAL(min, S2N_DEFAULT_BLINDING_FLOOR * ONE_S);
-            } else {
-                EXPECT_EQUAL(max, i * ONE_S);
-                EXPECT_EQUAL(min, i * ONE_S / 3);
 
-                /* We _never_ want zero blinding */
-                EXPECT_NOT_EQUAL(max, 0);
-                EXPECT_NOT_EQUAL(min, 0);
-            }
+            EXPECT_EQUAL(min, test_cases[i].expected_min);
+            EXPECT_EQUAL(max, test_cases[i].expected_max);
         }
     }
 

@@ -1221,7 +1221,7 @@ S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_
      * The floor of the delay range is a third of the upper bound. This custom range isn't based in any math
      * but it is strictly better than turning off the blinding mitigation entirely.
      */
-    if (conn->config->max_blinding) {
+    if (conn->config->blinding_set) {
         *max = conn->config->max_blinding * ONE_S;
         *min = *max / 3;
     }
