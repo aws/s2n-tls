@@ -54,3 +54,4 @@ struct s2n_evp_hmac_state {
 
 int s2n_digest_allow_md5_for_fips(struct s2n_evp_digest *evp_digest);
 S2N_RESULT s2n_digest_is_md5_allowed_for_fips(struct s2n_evp_digest *evp_digest, bool *out);
+bool s2n_crypto_evp_requires_iv_init(void);

@@ -44,6 +44,15 @@ static uint8_t s2n_aead_cipher_aes256_gcm_available()
 #endif
 }
 
+bool s2n_crypto_evp_requires_iv_init(void)
+{
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS
+    return true;
+#else
+    return false;
+#endif
+}
+
 #if defined(S2N_AEAD_AES_GCM_AVAILABLE) /* BoringSSL and AWS-LC AEAD API implementation */
 
 static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)

@@ -18,5 +18,6 @@
 int main()
 {
     const EVP_AEAD *evp = EVP_aead_aes_256_gcm_tls13();
+    evp = EVP_aead_aes_128_gcm_tls13();
     return 0;
 }

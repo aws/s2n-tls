@@ -123,6 +123,8 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
     /* Users should not be able to use the connection after serialization as that
      * could lead to nonce reuse. */
     POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+    conn->server = conn->initial;
+    conn->client = conn->initial;
 
     return S2N_SUCCESS;
 }
@@ -233,9 +235,9 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(parsed_values);
 
-#ifndef S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS
-    return S2N_RESULT_OK;
-#endif
+    if (!s2n_crypto_evp_requires_iv_init()) {
+        return S2N_RESULT_OK;
+    }
 
     uint8_t *seq_num = parsed_values->server_sequence_number;
     uint8_t *implicit_iv = conn->server->server_implicit_iv;
