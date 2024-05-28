@@ -13,6 +13,14 @@
  * permissions and limitations under the License.
  */
 
+/* OpenSSL 1.1.1d 10 Sep 2019 is broken, so disable on that version. For further info see: crypto/evp/p_lib.c:469
+ *
+ * This feature requires this Openssl commit for Openssl 1.1.x versions: openssl/openssl@4088b92
+ */
+#if OPENSSL_VERSION_NUMBER <= 0x1010104fL
+#error "Version of OpenSSL does not support RSA-PSS"
+#endif
+
 #include <openssl/rsa.h>
 int main()
 {
