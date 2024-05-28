@@ -371,7 +371,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
 
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
