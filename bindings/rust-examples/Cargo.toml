@@ -1,6 +1,7 @@
 [workspace]
 members = [
     "client-hello-config-resolution",
+    "session-resumption",
 ]
 resolver = "2"
 
