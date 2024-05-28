@@ -182,11 +182,14 @@
 <h3 id="chart-security-policy-version-to-protocol-version-and-ciphersuites"><a class="header" href="#chart-security-policy-version-to-protocol-version-and-ciphersuites">Chart: Security Policy Version To Protocol Version And Ciphersuites</a></h3>
 <p>The following chart maps the security policy version to protocol version and ciphersuites supported.</p>
 <div class="table-wrapper"><table><thead><tr><th>version</th><th>TLS1.0</th><th>TLS1.1</th><th>TLS1.2</th><th>TLS1.3</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th><th>RC4</th><th>DHE</th><th>ECDHE</th><th>RSA kx</th></tr></thead><tbody>
+<tr><td>default</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
+<tr><td>default_fips</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
+<tr><td>default_tls13</td><td></td><td></td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td></td><td>X</td><td></td></tr>
+<tr><td>20240501</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
+<tr><td>20240502</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
+<tr><td>20240503</td><td></td><td></td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
 <tr><td>20230317</td><td></td><td></td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
 <tr><td>20240331</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td></td></tr>
-<tr><td>default</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td><td></td><td></td><td>X</td><td>X</td></tr>
-<tr><td>default_tls13</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td></td><td>X</td><td>X</td></tr>
-<tr><td>default_fips</td><td></td><td></td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20190214</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td>X</td><td></td><td>X</td><td></td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>20170718</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td><td></td><td></td><td>X</td><td>X</td></tr>
 <tr><td>20170405</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td>X</td><td></td><td>X</td><td></td><td></td><td>X</td><td>X</td></tr>
@@ -211,12 +214,11 @@
 <p>The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. <strong>Warning</strong>: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.</p>
 <p>In contrast, numbered or dated versions are fixed and will never change. The numbered equivalents of the default policies are currently:</p>
 <ul>
-<li>"default": "20170210"</li>
-<li>"default_tls13": "20240417"</li>
-<li>"default_fips": "20240416"</li>
+<li>"default": "20240501"</li>
+<li>"default_fips": "20240502"</li>
+<li>"default_tls13": "20240503"
+For previous defaults, see the "Default Policy History" section below.</li>
 </ul>
-<p>"20230317" offers more limited but more secure options than the default policies. Consider it if you don't need or want to support less secure legacy options like TLS1.1 or SHA1. It is also FIPS compliant and supports TLS1.3. If you need a version of this policy that doesn't support TLS1.3, choose "20240331" instead.</p>
-<p>"20160411" follows the same general preference order as "default". The main difference is it has a CBC cipher suite at the top. This is to accommodate certain Java clients that have poor GCM implementations. Users of s2n-tls who have found GCM to be hurting performance for their clients should consider this version.</p>
 <p>"rfc9151" is derived from <a href="https://datatracker.ietf.org/doc/html/rfc9151">Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3</a>. This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
 Like the default policies, this policy may also change if the source RFC definition changes.</p>
 <p>s2n-tls does not expose an API to control the order of preference for each ciphersuite or protocol version. s2n-tls follows the following order:</p>
@@ -231,10 +233,13 @@ Like the default policies, this policy may also change if the source RFC definit
 <p>s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly mobile or IOT devices-- do not support AES hardware acceleration, making AES less efficient and performant than ChaCha20. In this case, clients will indicate their preference for ChaCha20 by listing it first during cipher suite negotiation. Usually s2n-tls servers ignore client preferences, but s2n-tls offers "ChaCha20 boosted" security policies that will choose ChaCha20 over AES if the client indicates a preference for ChaCha20. This is available in the "CloudFront-TLS-1-2-2021-ChaCha20-Boosted" policy, which is identical to the "CloudFront-TLS-1-2-2021" policy listed above but with ChaCha20 Boosting enabled.</p>
 <h3 id="chart-security-policy-version-to-supported-signature-schemes"><a class="header" href="#chart-security-policy-version-to-supported-signature-schemes">Chart: Security Policy Version To Supported Signature Schemes</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>version</th><th>RSA PKCS1</th><th>ECDSA</th><th>SHA-1 Legacy</th><th>RSA PSS</th></tr></thead><tbody>
+<tr><td>default</td><td>X</td><td>X</td><td></td><td>X</td></tr>
+<tr><td>default_fips</td><td>X</td><td>X</td><td></td><td>X</td></tr>
+<tr><td>default_tls13</td><td>X</td><td>X</td><td></td><td>X</td></tr>
+<tr><td>20240501</td><td>X</td><td>X</td><td></td><td>X</td></tr>
+<tr><td>20240502</td><td>X</td><td>X</td><td></td><td>X</td></tr>
+<tr><td>20240503</td><td>X</td><td>X</td><td></td><td>X</td></tr>
 <tr><td>20230317</td><td>X</td><td>X</td><td></td><td>X</td></tr>
-<tr><td>default</td><td>X</td><td></td><td>X</td><td></td></tr>
-<tr><td>default_tls13</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
-<tr><td>default_fips</td><td>X</td><td>X</td><td></td><td></td></tr>
 <tr><td>20190214</td><td>X</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20170718</td><td>X</td><td></td><td>X</td><td></td></tr>
 <tr><td>20170405</td><td>X</td><td></td><td>X</td><td></td></tr>
@@ -260,10 +265,13 @@ Like the default policies, this policy may also change if the source RFC definit
 <p><em>NOTE</em>: RSA-PSS certificates will not be available if s2n-tls is built with an older libcrypto like openssl-1.0.2. RSA certificate signatures with PSS padding (RSA-PSS-RSAE) will still be available, but RSA-PSS certificate signatures with PSS padding (RSA-PSS-PSS) will not be available.</p>
 <h3 id="chart-security-policy-version-to-supported-curvesgroups"><a class="header" href="#chart-security-policy-version-to-supported-curvesgroups">Chart: Security policy version to supported curves/groups</a></h3>
 <div class="table-wrapper"><table><thead><tr><th>version</th><th>secp256r1</th><th>secp384r1</th><th>x25519</th></tr></thead><tbody>
-<tr><td>20230317</td><td>X</td><td>X</td><td></td></tr>
-<tr><td>default</td><td>X</td><td>X</td><td></td></tr>
-<tr><td>default_tls13</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>default</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>default_fips</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>default_tls13</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>20240501</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>20240502</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>20240503</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>20230317</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20190214</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20170718</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20170405</td><td>X</td><td>X</td><td></td></tr>
@@ -283,6 +291,12 @@ Like the default policies, this policy may also change if the source RFC definit
 <tr><td>20190802</td><td>X</td><td>X</td><td></td></tr>
 <tr><td>20200207</td><td>X</td><td>X</td><td>X</td></tr>
 <tr><td>rfc9151</td><td></td><td>X</td><td></td></tr>
+</tbody></table>
+</div>
+<h3 id="default-policy-history"><a class="header" href="#default-policy-history">Default Policy History</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default"</th><th>"default_fips"</th><th>"default_tls13"</th></tr></thead><tbody>
+<tr><td>v1.4.16</td><td>20240501</td><td>20240502</td><td>20240503</td></tr>
+<tr><td>Older</td><td>20170210</td><td>20240416</td><td>20240417</td></tr>
 </tbody></table>
 </div>
                     </main>
