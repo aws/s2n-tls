@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 
         int64_t min = 0;
         int64_t max = 0;
-        
+
         /* The default max blinding delay is 10-30 seconds */
         EXPECT_OK(s2n_connection_calculate_blinding(conn, &min, &max));
         EXPECT_EQUAL(min, S2N_DEFAULT_BLINDING_FLOOR * ONE_S);
