@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         { .custom_blinding = 1, .expected_min = 333333333, .expected_max = 1000000000 },
         { .custom_blinding = 3, .expected_min = 1000000000, .expected_max = 3000000000 },
         { .custom_blinding = 30, .expected_min = S2N_DEFAULT_BLINDING_MIN * ONE_S, .expected_max = S2N_DEFAULT_BLINDING_MAX * ONE_S },
-        { .custom_blinding = UINT32_MAX, .expected_min = (UINT32_MAX * ONE_S) / 3, .expected_max = UINT32_MAX * ONE_S },
+        { .custom_blinding = UINT32_MAX, .expected_min = 1431655765000000000, .expected_max = 4294967295000000000 },
     };
 
     /* s2n_connection_calculate_blinding */
