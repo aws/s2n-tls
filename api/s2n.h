@@ -2297,7 +2297,7 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
  * `s2n_config_set_client_auth_type()` or `s2n_connection_set_client_auth_type()`.
  *
  * **Server behavior:**
- * - None(**default**): don't request client authentication. Abort the handshake if the client
+ * - None(default): don't request client authentication. Abort the handshake if the client
  *      sends its certificate.
  * - Optional: request the client's certificate and validate if it's non-empty. Abort the
  *      handshake if the client doesn't send its certificate (can be empty).
@@ -2306,7 +2306,7 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
  *
  * **Client behavior:**
  * - None: abort the handshake if the server requests client authentication.
- * - Optional(**default**): send the client's certificate if the server requested client
+ * - Optional(default): send the client's certificate if the server requested client
  *      authentication. An empty certificate will be sent if the application hasn't provided a
  *      client certificate.
  * - Required: send the client's certificate. Abort the handshake if the server doesn't request
