@@ -19,6 +19,15 @@
 #include "tls/s2n_connection.h"
 #include "tls/s2n_tls13_key_schedule.h"
 
+static bool s2n_libcrypto_supports_evp_aead_tls(void)
+{
+#ifdef S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS
+    return true;
+#else
+    return false;
+#endif
+}
+
 int s2n_connection_serialization_length(struct s2n_connection *conn, uint32_t *length)
 {
     POSIX_ENSURE_REF(conn);
@@ -86,6 +95,11 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
     /* This method must be called after negotiation */
     POSIX_ENSURE(s2n_handshake_is_complete(conn), S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
+    /* The connection must not be closed already. Otherwise, we might have an alert
+     * queued up that would be sent in cleartext after we disable encryption. */
+    s2n_io_status status = S2N_IO_FULL_DUPLEX;
+    POSIX_ENSURE(s2n_connection_check_io_status(conn, status), S2N_ERR_CLOSED);
+
     /* Best effort check for pending input or output data.
      * This method should not be called until the application has stopped sending and receiving.
      * Saving partial read or partial write state would complicate this problem.
@@ -120,9 +134,16 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
         POSIX_GUARD_RESULT(s2n_connection_serialize_secrets(conn, &output));
     }
 
-    /* Users should not be able to use the connection after serialization as that
-     * could lead to nonce reuse. */
+    /* Users should not be able to send/recv on the connection after serialization as that
+     * could lead to nonce reuse. We close the connection to prevent the application from sending
+     * more application data. However, the application could still send a close_notify alert record
+     * to shutdown the connection, so we also intentionally wipe keys and disable encryption.
+     *
+     * A plaintext close_notify alert is not a security concern, although the peer will likely consider
+     * it an error.
+     */
     POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
+    POSIX_GUARD_RESULT(s2n_crypto_parameters_wipe(conn->secure));
     conn->server = conn->initial;
     conn->client = conn->initial;
 
@@ -235,7 +256,7 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(parsed_values);
 
-    if (!s2n_crypto_evp_requires_iv_init()) {
+    if (!s2n_libcrypto_supports_evp_aead_tls()) {
         return S2N_RESULT_OK;
     }
 
