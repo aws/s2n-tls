@@ -1995,7 +1995,7 @@ S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
  * @param config The config object being updated.
  * @param seconds The maximum number of seconds that s2n-tls will delay for in the event of a
  * sensitive error.
- * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
 S2N_API extern int s2n_config_set_max_blinding_delay(struct s2n_config *config, uint32_t seconds);
 

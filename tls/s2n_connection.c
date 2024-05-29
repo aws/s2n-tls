@@ -1190,11 +1190,11 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 /* s2n-tls has a random delay that will trigger for sensitive errors. This is a mitigation
  * for possible timing sidechannels.
  * 
- * The historical sidechannel that inspired s2n-tls blinding
- * was the Lucky 13 attack, which takes advantage of potential timing differences when removing padding
- * from a record encrypted in CBC mode. The attack is only theoretical in TLS; the attack criteria is
- * unlikely to ever occur (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking
- * the TLS and DTLS Record Protocols.) However, we still include blinding to provide a defense in depth mitigation.
+ * The historical sidechannel that inspired s2n-tls blinding was the Lucky 13 attack, which takes
+ * advantage of potential timing differences when removing padding from a record encrypted in CBC mode.
+ * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur 
+ * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and 
+ * DTLS Record Protocols.) However, we still include blinding to provide a defense in depth mitigation.
  */
 S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_t *min, int64_t *max)
 {
@@ -1214,12 +1214,11 @@ S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_
      * (((30 - 10) * 10 ^6)^2)/12 ~= 3.3 trillion (note that we first have to convert from seconds to
      * microseconds to match the unit of the timing difference.)
      */
-    *min = S2N_DEFAULT_BLINDING_FLOOR * ONE_S;
-    *max = S2N_DEFAULT_BLINDING_CEILING * ONE_S;
+    *min = S2N_DEFAULT_BLINDING_MIN * ONE_S;
+    *max = S2N_DEFAULT_BLINDING_MAX * ONE_S;
 
-    /* Some users may not be able to sleep for our default duration. We offer a custom delay in this case.
-     * The floor of the delay range is a third of the upper bound. This custom range isn't based in any math
-     * but it is strictly better than turning off the blinding mitigation entirely.
+    /* Setting the min to 1/3 of the max is an arbitrary ratio of fixed to variable delay.
+     * It is based on the ratio of our original default values.
      */
     if (conn->config->custom_blinding_set) {
         *max = conn->config->max_blinding * ONE_S;

@@ -30,12 +30,10 @@ int main(int argc, char **argv)
         uint64_t expected_max;
     } test_cases[] = {
         { .custom_blinding = 0, .expected_min = 0, .expected_max = 0 },
-        { .custom_blinding = 1, .expected_min = ONE_S / 3, .expected_max = ONE_S },
-        { .custom_blinding = 3, .expected_min = (3 * ONE_S) / 3, .expected_max = 3 * ONE_S },
-        { .custom_blinding = 5, .expected_min = (5 * ONE_S) / 3, .expected_max = 5 * ONE_S },
-        { .custom_blinding = 10, .expected_min = (10 * ONE_S) / 3, .expected_max = 10 * ONE_S },
-        { .custom_blinding = 15, .expected_min = (15 * ONE_S) / 3, .expected_max = 15 * ONE_S },
-        { .custom_blinding = 100, .expected_min = (100 * ONE_S) / 3, .expected_max = 100 * ONE_S },
+        { .custom_blinding = 1, .expected_min = 333333333, .expected_max = 1000000000 },
+        { .custom_blinding = 3, .expected_min = 1000000000, .expected_max = 3000000000 },
+        { .custom_blinding = 30, .expected_min = S2N_DEFAULT_BLINDING_MIN * ONE_S, .expected_max = S2N_DEFAULT_BLINDING_MAX * ONE_S },
+        { .custom_blinding = UINT32_MAX, .expected_min = (UINT32_MAX * ONE_S) / 3, .expected_max = UINT32_MAX * ONE_S },
     };
 
     /* s2n_connection_calculate_blinding */
@@ -49,8 +47,8 @@ int main(int argc, char **argv)
 
         /* The default max blinding delay is 10-30 seconds */
         EXPECT_OK(s2n_connection_calculate_blinding(conn, &min, &max));
-        EXPECT_EQUAL(min, S2N_DEFAULT_BLINDING_FLOOR * ONE_S);
-        EXPECT_EQUAL(max, S2N_DEFAULT_BLINDING_CEILING * ONE_S);
+        EXPECT_EQUAL(min, S2N_DEFAULT_BLINDING_MIN * ONE_S);
+        EXPECT_EQUAL(max, S2N_DEFAULT_BLINDING_MAX * ONE_S);
 
         for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
             EXPECT_SUCCESS(s2n_config_set_max_blinding_delay(conn->config, test_cases[i].custom_blinding));
