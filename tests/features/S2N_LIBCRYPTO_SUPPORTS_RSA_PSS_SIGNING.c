@@ -19,12 +19,14 @@
  *
  * This feature requires this Openssl commit for Openssl 1.1.x versions: openssl/openssl@4088b92
  */
+#if defined(OPENSSL_VERSION_NUMBER)
 #if OPENSSL_VERSION_NUMBER <= 0x1010104fL
 #error "Version of OpenSSL does not support RSA-PSS"
+#endif
 #endif
 
 int main()
 {
-    EVP_PKEY_CTX_set_rsa_pss_saltlen(NULL, NULL);
+    RSA_get0_pss_params(NULL);
     return 0;
 }
