@@ -446,7 +446,7 @@ int main(int argc, char **argv)
 
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
             EXPECT_SUCCESS(s2n_shutdown_send(server_conn, &blocked));
-            
+
             /* Serializing after the connection closes will cause an error */
             uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)), S2N_ERR_CLOSED);
