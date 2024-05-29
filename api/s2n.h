@@ -2293,21 +2293,25 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
  *
  * A s2n_connection will enforce client certificate authentication (mTLS) differently based on
  * the s2n_cert_auth_type and s2n_mode(client/server) of the connection, as described below. The
- * **default** behavior is used if the application hasn't set an override via
+ * default behavior is used if the application hasn't set an override via
  * `s2n_config_set_client_auth_type()` or `s2n_connection_set_client_auth_type()`.
  *
  * **Server behavior:**
- * - None(**default**): don't request client authentication.
- * - Optional: request the client's certificate and validate if it's non-empty.
- * - Required: request the client's certificate and validate it.
+ * - None(**default**): don't request client authentication. Abort the handshake if the client
+ *      sends its certificate.
+ * - Optional: request the client's certificate and validate if it's non-empty. Abort the
+ *      handshake if the client doesn't send its certificate (can be empty).
+ * - Required: request the client's certificate and validate it. Abort the handshake if the
+ *   client doesn't send its certificate or sends an empty certificate.
  *
  * **Client behavior:**
  * - None: abort the handshake if the server requests client authentication.
- * - Optional(**default**): send the client's certificate (can be empty if not set) if the
- *      server requested client authentication.
- * - Required: send the client's certificate. Terminate the handshake if the server doesn't request
- *      client authentication or if the application hasn't specified a client certificate.
- 
+ * - Optional(**default**): send the client's certificate if the server requested client
+ *      authentication. An empty certificate will be sent if the application hasn't provided a
+ *      client certificate.
+ * - Required: send the client's certificate. Abort the handshake if the server doesn't request
+ *      client authentication or if the application hasn't provided a client certificate.
+ */
 typedef enum {
     S2N_CERT_AUTH_NONE,
     S2N_CERT_AUTH_REQUIRED,
