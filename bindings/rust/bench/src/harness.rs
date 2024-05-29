@@ -35,10 +35,10 @@ impl PemType {
 
 #[derive(Clone, Copy, Default, EnumIter)]
 pub enum SigType {
+    #[default]
     Rsa2048,
     Rsa3072,
     Rsa4096,
-    #[default]
     Ecdsa384,
     Ecdsa256,
 }
@@ -292,6 +292,7 @@ where
             self.client.handshake()?;
             self.server.handshake()?;
         }
+        assert!(self.handshake_completed());
         Ok(())
     }
 

@@ -314,6 +314,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             struct s2n_stuffer *hello_stuffer = &conn->handshake.io;
+            conn->actual_protocol_version = i;
 
             conn->session_id_len = S2N_TLS_SESSION_ID_MAX_LEN;
             EXPECT_MEMCPY_SUCCESS(conn->session_id, test_session_id, S2N_TLS_SESSION_ID_MAX_LEN);
@@ -831,8 +832,9 @@ int main(int argc, char **argv)
          *
          * Our test SSLv2 ClientHello advertises TLS1.2.
          * So the security policy only needs to support TLS1.2.
+         * (and at least one of the ciphers in the hard coded sslv2 client hello)
          */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
 
         /* Send the client hello message */
         EXPECT_EQUAL(write(io_pair.client, sslv2_client_hello_header, sslv2_client_hello_header_len), sslv2_client_hello_header_len);

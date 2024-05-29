@@ -233,7 +233,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        callbacks::{ClientHelloCallback, ConnectionFuture},
+        callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
         enums::ClientAuthType,
         error::ErrorType,
         testing::{client_hello::*, s2n_tls::*, *},
@@ -969,5 +969,65 @@ mod tests {
 
         init::init();
         assert!(init::fips_mode().unwrap().is_enabled());
+    }
+
+    /// Test that a context can be used from within a callback.
+    #[test]
+    fn test_app_context_callback() {
+        struct TestApplicationContext {
+            invoked_count: u32,
+        }
+
+        struct TestClientHelloHandler {}
+
+        impl ClientHelloCallback for TestClientHelloHandler {
+            fn on_client_hello(
+                &self,
+                connection: &mut connection::Connection,
+            ) -> ConnectionFutureResult {
+                let app_context = connection
+                    .application_context_mut::<TestApplicationContext>()
+                    .unwrap();
+                app_context.invoked_count += 1;
+                Ok(None)
+            }
+        }
+
+        let config = {
+            let keypair = CertKeyPair::default();
+            let mut builder = Builder::new();
+            builder
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                .unwrap();
+            builder
+                .set_client_hello_callback(TestClientHelloHandler {})
+                .unwrap();
+            builder.load_pem(keypair.cert, keypair.key).unwrap();
+            builder.trust_pem(keypair.cert).unwrap();
+            builder.build().unwrap()
+        };
+
+        let mut pair = tls_pair(config);
+        pair.server
+            .0
+            .connection_mut()
+            .set_waker(Some(&noop_waker()))
+            .unwrap();
+
+        let context = TestApplicationContext { invoked_count: 0 };
+        pair.server
+            .0
+            .connection_mut()
+            .set_application_context(context);
+
+        assert!(poll_tls_pair_result(&mut pair).is_ok());
+
+        let context = pair
+            .server
+            .0
+            .connection()
+            .application_context::<TestApplicationContext>()
+            .unwrap();
+        assert_eq!(context.invoked_count, 1);
     }
 }
