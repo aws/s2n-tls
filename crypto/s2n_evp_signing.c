@@ -103,13 +103,19 @@ static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s
 
     /* Ensure that the signature algorithm type matches the key type. */
     int pkey_type = EVP_PKEY_base_id(key->pkey);
-    if (pkey_type == EVP_PKEY_EC) {
-        RESULT_ENSURE(sig_alg == S2N_SIGNATURE_ECDSA, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
-    } else {
-        /* Any RSA signature algorithm can be used with any RSA key, so just ensure that the
-         * signature algorithm is any RSA signature algorithm.
-         */
-        RESULT_ENSURE(sig_alg != S2N_SIGNATURE_ECDSA, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    switch (pkey_type) {
+        case EVP_PKEY_RSA:
+            RESULT_ENSURE(sig_alg == S2N_SIGNATURE_RSA || sig_alg == S2N_SIGNATURE_RSA_PSS_RSAE,
+                    S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+            break;
+        case EVP_PKEY_RSA_PSS:
+            RESULT_ENSURE(sig_alg == S2N_SIGNATURE_RSA_PSS_PSS, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+            break;
+        case EVP_PKEY_EC:
+            RESULT_ENSURE(sig_alg == S2N_SIGNATURE_ECDSA, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
     }
 
     return S2N_RESULT_OK;

@@ -241,14 +241,26 @@ int main(int argc, char **argv)
         /* Test: If they share the same RSA key,
          * an RSA cert and an RSA_PSS cert are equivalent for PSS signatures. */
         {
-            struct s2n_pkey rsa_pss_public_key;
-            s2n_pkey_type rsa_pss_pkey_type;
-            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&rsa_pss_public_key, &rsa_pss_pkey_type, &rsa_pss_cert_chain->cert_chain->head->raw));
-            EXPECT_EQUAL(rsa_pss_pkey_type, S2N_PKEY_TYPE_RSA_PSS);
+            DEFER_CLEANUP(struct s2n_pkey rsa_public_key_shared = { 0 }, s2n_pkey_free);
+            s2n_pkey_type rsa_public_key_shared_type = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&rsa_public_key_shared, &rsa_public_key_shared_type,
+                    &rsa_cert_chain->cert_chain->head->raw));
+            EXPECT_EQUAL(rsa_public_key_shared_type, S2N_PKEY_TYPE_RSA);
 
-            /* Set the keys equal. */
-            RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_public_key.pkey);
-            POSIX_GUARD_OSSL(EVP_PKEY_set1_RSA(rsa_pss_public_key.pkey, rsa_key_copy), S2N_ERR_KEY_INIT);
+            DEFER_CLEANUP(struct s2n_pkey rsa_pss_public_key_shared = { 0 }, s2n_pkey_free);
+            s2n_pkey_type rsa_pss_pkey_type_shared = S2N_PKEY_TYPE_UNKNOWN;
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&rsa_pss_public_key_shared, &rsa_pss_pkey_type_shared,
+                    &rsa_pss_cert_chain->cert_chain->head->raw));
+            EXPECT_EQUAL(rsa_pss_pkey_type_shared, S2N_PKEY_TYPE_RSA_PSS);
+
+            /* Set the keys equal.
+             *
+             * EVP_PKEY_set1_RSA sets the EVP key type to RSA, even if the set key is RSA_PSS. To
+             * ensure that the RSA_PSS EVP key type remains set to RSA_PSS, the RSA key is
+             * overridden instead of the RSA_PSS key, since its key type is RSA anyway.
+             */
+            RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_pss_public_key_shared.pkey);
+            POSIX_GUARD_OSSL(EVP_PKEY_set1_RSA(rsa_public_key_shared.pkey, rsa_key_copy), S2N_ERR_KEY_INIT);
             RSA_free(rsa_key_copy);
 
             /* RSA signed with PSS, RSA_PSS verified with PSS */
@@ -256,8 +268,10 @@ int main(int argc, char **argv)
                 hash_state_new(sign_hash, random_msg);
                 hash_state_new(verify_hash, random_msg);
 
-                EXPECT_SUCCESS(rsa_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE, &sign_hash, &result));
-                EXPECT_SUCCESS(rsa_pss_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_PSS, &verify_hash, &result));
+                EXPECT_SUCCESS(rsa_public_key_shared.sign(rsa_pss_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE,
+                        &sign_hash, &result));
+                EXPECT_SUCCESS(rsa_pss_public_key_shared.verify(&rsa_pss_public_key_shared, S2N_SIGNATURE_RSA_PSS_PSS,
+                        &verify_hash, &result));
             };
 
             /* RSA_PSS signed with PSS, RSA verified with PSS */
@@ -265,11 +279,11 @@ int main(int argc, char **argv)
                 hash_state_new(sign_hash, random_msg);
                 hash_state_new(verify_hash, random_msg);
 
-                EXPECT_SUCCESS(rsa_pss_public_key.sign(rsa_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_PSS, &sign_hash, &result));
-                EXPECT_SUCCESS(rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE, &verify_hash, &result));
+                EXPECT_SUCCESS(rsa_pss_public_key_shared.sign(rsa_pss_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_PSS,
+                        &sign_hash, &result));
+                EXPECT_SUCCESS(rsa_public_key_shared.verify(&rsa_public_key_shared, S2N_SIGNATURE_RSA_PSS_RSAE,
+                        &verify_hash, &result));
             };
-
-            EXPECT_SUCCESS(s2n_pkey_free(&rsa_pss_public_key));
         };
 
         EXPECT_SUCCESS(s2n_pkey_free(&rsa_public_key));
