@@ -144,8 +144,6 @@ int s2n_connection_serialize(struct s2n_connection *conn, uint8_t *buffer, uint3
      */
     POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
     POSIX_GUARD_RESULT(s2n_crypto_parameters_wipe(conn->secure));
-    conn->server = conn->initial;
-    conn->client = conn->initial;
 
     return S2N_SUCCESS;
 }
@@ -255,6 +253,9 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(parsed_values);
+    RESULT_ENSURE_REF(conn->secure);
+    RESULT_ENSURE_REF(conn->server);
+    RESULT_ENSURE_REF(conn->client);
 
     if (!s2n_libcrypto_supports_evp_aead_tls()) {
         return S2N_RESULT_OK;
@@ -289,6 +290,9 @@ static S2N_RESULT s2n_initialize_implicit_iv(struct s2n_connection *conn, struct
     struct s2n_blob aad_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&aad_blob, NULL, 0));
 
+    RESULT_ENSURE_REF(conn->secure->cipher_suite);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg);
+    RESULT_ENSURE_REF(conn->secure->cipher_suite->record_alg->cipher);
     RESULT_GUARD_POSIX(conn->secure->cipher_suite->record_alg->cipher->io.aead.encrypt(&key,
             &iv_blob, &aad_blob, &in_blob, &in_blob));
 

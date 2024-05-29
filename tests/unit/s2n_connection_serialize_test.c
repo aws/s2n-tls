@@ -405,25 +405,16 @@ int main(int argc, char **argv)
              * since serialization wipes the encryption context. */
             EXPECT_SUCCESS(s2n_shutdown_send(server_conn, &blocked));
 
-            uint8_t content_type = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&io_pair.client_in, &content_type));
-            EXPECT_EQUAL(content_type, TLS_ALERT);
-
-            uint8_t legacy_record_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
-            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&io_pair.client_in, legacy_record_version, S2N_TLS_PROTOCOL_VERSION_LEN));
-            EXPECT_EQUAL((legacy_record_version[0] * 10) + legacy_record_version[1], S2N_TLS12);
-
-            uint16_t length = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint16(&io_pair.client_in, &length));
-            EXPECT_EQUAL(length, 2);
-
-            uint8_t alert_level = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&io_pair.client_in, &alert_level));
-            EXPECT_EQUAL(alert_level, S2N_TLS_ALERT_LEVEL_WARNING);
-
-            uint8_t alert_description = 0;
-            EXPECT_SUCCESS(s2n_stuffer_read_uint8(&io_pair.client_in, &alert_description));
-            EXPECT_EQUAL(alert_description, S2N_TLS_ALERT_CLOSE_NOTIFY);
+            const uint8_t expected_alert[] = {
+                TLS_ALERT,
+                S2N_TLS12 / 10,
+                S2N_TLS12 % 10,
+                0, 2,
+                S2N_TLS_ALERT_LEVEL_WARNING, S2N_TLS_ALERT_CLOSE_NOTIFY
+            };
+            uint8_t actual_alert[sizeof(expected_alert)] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&io_pair.client_in, actual_alert, sizeof(actual_alert)));
+            EXPECT_BYTEARRAY_EQUAL(actual_alert, expected_alert, sizeof(expected_alert));
         }
 
         /* Cannot serialize after connection has closed */
