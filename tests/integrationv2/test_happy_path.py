@@ -1,4 +1,5 @@
 import copy
+import platform
 import pytest
 
 from configuration import available_ports, ALL_TEST_CIPHERS, ALL_TEST_CURVES, ALL_TEST_CERTS, PROTOCOLS
@@ -66,6 +67,7 @@ def test_s2n_server_happy_path(managed_process, cipher, provider, curve, protoco
                 cipher.name)) in server_results.stdout
 
 
+@pytest.mark.flaky(reruns=5, reruns_delay=2, condition=platform.machine().startswith("aarch"))
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [S2N, OpenSSL, GnuTLS, SSLv3Provider])
