@@ -14,6 +14,11 @@
  */
 
 #include <openssl/rsa.h>
+#include "../../crypto/s2n_openssl.h"
+
+#if !(S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1) || defined(OPENSSL_IS_AWSLC))
+    #error "RSA_PSS signing not supported"
+#endif
 
 #if defined(LIBRESSL_VERSION_NUMBER)
     #error "LibSSL does not support RSA-PSS"
