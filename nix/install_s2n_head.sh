@@ -29,7 +29,7 @@ cd "$SRC_ROOT"
 if [[ ! -x "$SRC_ROOT/build/bin/s2nc_head" ]]; then
     if [[ ! -d "s2n_head" ]]; then
         # Clone the most recent s2n commit
-        git clone -v --depth=1 https://github.com/aws/s2n-tls s2n_head
+        git clone --branch main --single-branch . s2n_head
     fi
     cmake ./s2n_head -B$BUILD_DIR -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
     cmake --build $BUILD_DIR -- -j $(nproc)
