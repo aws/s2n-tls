@@ -24,11 +24,11 @@
 #endif
 
 #if defined(LIBRESSL_VERSION_NUMBER)
-#error "LibSSL does not support RSA-PSS"
+    #error "LibSSL does not support RSA-PSS"
 #endif
 
 #if defined(OPENSSL_IS_BORINGSSL)
-#error "BoringSSL does not support RSA-PSS"
+    #error "BoringSSL does not support RSA-PSS"
 #endif
 
 int main()
