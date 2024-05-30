@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -eux
+set -eu
 
 usage() {
     echo "install_s2n_head.sh build_dir"
