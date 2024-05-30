@@ -134,6 +134,14 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
+# Static analyzer support for GCC was added in the 10.0 release
+if(CMAKE_C_COMPILER_ID STREQUAL "GNU")
+    if (CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 10)
+        message(STATUS "Turning on static analyer")
+        target_compile_options(${PROJECT_NAME} PRIVATE -fanalyzer)
+    endif()
+endif()
+
 target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
         -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
         -Wno-missing-braces -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
