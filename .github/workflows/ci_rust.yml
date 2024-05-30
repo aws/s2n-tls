@@ -25,6 +25,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Fix xcode on macos
+        if: ${{ matrix.os == 'macOS-latest' }}
+        run: |
+          sudo xcode-select --switch /Library/Developer/CommandLineTools
+          xcrun --show-sdk-path
+
       - name: Install Rust toolchain
         id: toolchain
         run: |
