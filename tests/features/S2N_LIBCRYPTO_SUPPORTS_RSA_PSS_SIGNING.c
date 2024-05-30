@@ -13,10 +13,10 @@
  * permissions and limitations under the License.
  */
 
-#include <openssl/rsa.h>
+#include <openssl/evp.h>
 
 int main()
 {
-    RSA_get0_pss_params(NULL);
+    EVP_PKEY_CTX_set_rsa_pss_saltlen(NULL, NULL);
     return 0;
 }
