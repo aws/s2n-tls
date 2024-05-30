@@ -238,7 +238,7 @@ int main(int argc, char **argv)
      * is validated against the certificate type
      */
     if (s2n_is_tls13_fully_supported()) {
-        struct s2n_tls13_cert_verify_test sha256_test_cases[] = {
+        struct s2n_tls13_cert_verify_test test_server_parameters[] = {
             {
                     .cert_file = S2N_RSA_2048_PKCS1_CERT_CHAIN,
                     .key_file = S2N_RSA_2048_PKCS1_KEY,
@@ -256,17 +256,18 @@ int main(int argc, char **argv)
             }
         };
 
-        const struct s2n_signature_scheme *test_sha256_sig_algs[] = {
+        const struct s2n_signature_scheme *test_client_sig_schemes[] = {
             &s2n_rsa_pss_rsae_sha256,
             &s2n_rsa_pss_pss_sha256,
             &s2n_ecdsa_sha256,
         };
 
-        for (size_t test_idx = 0; test_idx < s2n_array_len(sha256_test_cases); test_idx++) {
-            struct s2n_tls13_cert_verify_test test_case = sha256_test_cases[test_idx];
+        for (size_t param_idx = 0; param_idx < s2n_array_len(test_server_parameters); param_idx++) {
+            struct s2n_tls13_cert_verify_test server_parameters = test_server_parameters[param_idx];
 
             DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = NULL, s2n_cert_chain_and_key_ptr_free);
-            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain, test_case.cert_file, test_case.key_file));
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain, server_parameters.cert_file,
+                    server_parameters.key_file));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
@@ -279,7 +280,7 @@ int main(int argc, char **argv)
              */
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
 
-            for (size_t sig_alg_idx = 0; sig_alg_idx < s2n_array_len(test_sha256_sig_algs); sig_alg_idx++) {
+            for (size_t sig_idx = 0; sig_idx < s2n_array_len(test_client_sig_schemes); sig_idx++) {
                 DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                         s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(server_conn);
@@ -296,7 +297,7 @@ int main(int argc, char **argv)
                  * server to sign the CertificateVerify message with a signature algorithm that
                  * isn't supported by the client.
                  */
-                const struct s2n_signature_scheme *client_advertised_sig_scheme = test_sha256_sig_algs[sig_alg_idx];
+                const struct s2n_signature_scheme *client_advertised_sig_scheme = test_client_sig_schemes[sig_idx];
                 struct s2n_signature_preferences test_sig_preferences = {
                     .count = 1,
                     .signature_schemes = &client_advertised_sig_scheme,
@@ -316,7 +317,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_tls13_cert_verify_send(server_conn));
 
                 /* Check that the expected signature algorithm was used by the server. */
-                EXPECT_EQUAL(server_conn->handshake_params.server_cert_sig_scheme, test_case.sig_scheme);
+                EXPECT_EQUAL(server_conn->handshake_params.server_cert_sig_scheme, server_parameters.sig_scheme);
 
                 /* Overwrite the SignatureScheme field of the CertificateVerify message to lie to the
                  * client about which signature algorithm was used to sign the signature content. This
@@ -334,7 +335,7 @@ int main(int argc, char **argv)
 
                 int ret = s2n_tls13_cert_verify_recv(client_conn);
 
-                if (client_advertised_sig_scheme == test_case.sig_scheme) {
+                if (client_advertised_sig_scheme == server_parameters.sig_scheme) {
                     /* If the client's advertised signature scheme matches what the server actually
                      * used to sign the CertificateVerify message, validation should succeed.
                      */
