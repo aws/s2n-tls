@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,31 +12,42 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -ex
-pushd "$(pwd)"
+set -eu
 
 usage() {
     echo "install_s2n_head.sh build_dir"
     exit 1
 }
 
+BUILD_DIR=$1
+SRC_ROOT=${SRC_ROOT:-$(pwd)}
+
 if [ "$#" -ne "1" ]; then
     usage
 fi
 
-BUILD_DIR=$1
-source codebuild/bin/jobs.sh
-cd "$BUILD_DIR"
+if [[ "$(git rev-parse --show-toplevel)" != "$SRC_ROOT" ]]; then
+    echo "Run $0 from the root of the s2n-tls repo"
+    exit 1
+fi
 
-# Clone the most recent s2n commit
-git clone --depth=1 https://github.com/aws/s2n-tls s2n_head
-cmake ./s2n_head -Bbuild -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-cmake --build ./build -- -j $JOBS
+if [[ ! -x "$SRC_ROOT/build/bin/s2nc_head" ]]; then
+    if [[ ! -d "s2n_head" ]]; then
+        # Clone the most recent s2n commit
+        git clone --branch main --single-branch . s2n_head
+    fi
+    if [[ "$IN_NIX_SHELL" ]]; then
+        cmake ./s2n_head -B"$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
+    else
+        cmake ./s2n_head -B"$BUILD_DIR" -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
+    fi
+    cmake --build "$BUILD_DIR" -- -j "$(nproc)"
 
-# Copy new executables to bin directory
-cp -f "$BUILD_DIR"/build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc_head
-cp -f "$BUILD_DIR"/build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd_head
-
-popd
+    # Copy new executables to bin directory
+    cp -f "$BUILD_DIR"/bin/s2nc "$SRC_ROOT"/build/bin/s2nc_head
+    cp -f "$BUILD_DIR"/bin/s2nd "$SRC_ROOT"/build/bin/s2nd_head
+else
+    echo "s2nc_head already exists; not rebuilding s2n_head"
+fi
 
 exit 0

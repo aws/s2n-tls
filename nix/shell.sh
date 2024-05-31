@@ -48,7 +48,7 @@ function build {
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
     #Build s2n from HEAD
-    $SRC_ROOT/nix/install_s2n_head.sh $(mktemp -d)
+    $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
 }
 
 function unit {
