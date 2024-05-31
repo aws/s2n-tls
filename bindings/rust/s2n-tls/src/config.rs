@@ -746,7 +746,7 @@ impl Builder {
         Ok(self)
     }
 
-    // Sets a configurable blinding delay instead of the default
+    /// Sets a configurable blinding delay instead of the default
     pub fn set_max_blinding_delay(&mut self, seconds: u32) -> Result<&mut Self, Error> {
         unsafe { s2n_config_set_max_blinding_delay(self.as_mut_ptr(), seconds).into_result() }?;
         Ok(self)

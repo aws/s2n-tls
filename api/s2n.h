@@ -1986,7 +1986,7 @@ S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
  * timeouts, then you should choose the highest value practically possible to limit your risk.
  *
  * If you lower the blinding delay, you should also consider implementing monitoring and filtering
- * to detect and reject suspicious traffic that could be gathering timing information for a potential
+ * to detect and reject suspicious traffic that could be gathering timing information from a potential
  * side channel. Timing attacks usually involve repeatedly triggering TLS errors.
  *
  * @warning Do NOT set a lower blinding delay unless you understand the risks and have other

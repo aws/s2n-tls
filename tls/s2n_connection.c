@@ -1210,9 +1210,9 @@ S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_
      * byte of plaintext with a certain degree of confidence.
      *
      * A uniform distribution of the range [a, b] has a variance of ((b - a)^2)/12. Therefore, given a
-     * hypothetical timing difference of 1us, the number of attempts necessary to recover a byte is
-     * (((30 - 10) * 10 ^6)^2)/12 ~= 3.3 trillion (note that we first have to convert from seconds to
-     * microseconds to match the unit of the timing difference.)
+     * hypothetical timing difference of 1us, the number of attempts necessary to distinguish the correct
+     * byte from an incorrect byte is (((30 - 10) * 10 ^6)^2)/12 ~= 3.3 trillion (note that we
+     * first have to convert from seconds to microseconds to match the unit of the timing difference.)
      */
     *min = S2N_DEFAULT_BLINDING_MIN * ONE_S;
     *max = S2N_DEFAULT_BLINDING_MAX * ONE_S;
