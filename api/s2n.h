@@ -2306,7 +2306,7 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
  * - Optional (default): Sends the client certificate if the server requests client
  *     authentication. No certificate is sent if the application hasn't provided a certificate.
  * - Required: Send the client certificate. Abort the handshake if the server doesn't request
- *     client authentication or if the application hasn't provided a client certificate.
+ *     client authentication or if the application hasn't provided a certificate.
  */
 typedef enum {
     S2N_CERT_AUTH_NONE,
