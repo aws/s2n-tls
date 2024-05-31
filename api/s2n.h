@@ -2295,18 +2295,18 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
  * the `s2n_cert_auth_type` and `s2n_mode` (client/server) of the connection, as described below.
  *
  * Server behavior:
- * - None(default): Will not request client authentication.
+ * - None (default): Will not request client authentication.
  * - Optional: Request the client's certificate and validate it. If no certificate is received then
- *      no validation is performed.
+ *     no validation is performed.
  * - Required: Request the client's certificate and validate it. Abort the handshake if a client
- *   certificate not recieved.
+ *   certificate is not received.
  *
  * Client behavior:
  * - None: Abort the handshake if the server requests client authentication.
- * - Optional(default): Sends the application provided client certificate if the server
- *      requests client authentication.
+ * - Optional (default): Sends the application provided client certificate if the server
+ *     requests client authentication.
  * - Required: Send the client certificate. Abort the handshake if the server doesn't request
- *      client authentication or if the application hasn't provided a client certificate.
+ *     client authentication or if the application hasn't provided a client certificate.
  */
 typedef enum {
     S2N_CERT_AUTH_NONE,
