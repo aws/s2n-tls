@@ -2291,7 +2291,22 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
 /**
  * Used to declare what type of client certificate authentication to use.
  *
- * Currently the default for s2n-tls is for neither the server side or the client side to use Client (aka Mutual) authentication.
+ * A s2n_connection will enforce client certificate authentication (mTLS) differently based on
+ * the `s2n_cert_auth_type` and `s2n_mode` (client/server) of the connection, as described below.
+ *
+ * Server behavior:
+ * - None (default): Will not request client authentication.
+ * - Optional: Request the client's certificate and validate it. If no certificate is received then
+ *     no validation is performed.
+ * - Required: Request the client's certificate and validate it. Abort the handshake if a client
+ *     certificate is not received.
+ *
+ * Client behavior:
+ * - None: Abort the handshake if the server requests client authentication.
+ * - Optional (default): Sends the client certificate if the server requests client
+ *     authentication. No certificate is sent if the application hasn't provided a certificate.
+ * - Required: Send the client certificate. Abort the handshake if the server doesn't request
+ *     client authentication or if the application hasn't provided a certificate.
  */
 typedef enum {
     S2N_CERT_AUTH_NONE,
