@@ -2299,7 +2299,7 @@ S2N_API extern int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_st
  * - Optional: Request the client's certificate and validate it. If no certificate is received then
  *     no validation is performed.
  * - Required: Request the client's certificate and validate it. Abort the handshake if a client
- *   certificate is not received.
+ *     certificate is not received.
  *
  * Client behavior:
  * - None: Abort the handshake if the server requests client authentication.
