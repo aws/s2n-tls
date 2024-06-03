@@ -1974,6 +1974,32 @@ S2N_API extern int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_
 S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
 
 /**
+ * Configures the maximum blinding delay enforced after errors.
+ *
+ * Blinding protects your application from timing side channel attacks like Lucky13. While s2n-tls
+ * implements other, more specific mitigations for known timing side channels, blinding is important
+ * as a defense against currently unknown or unreported timing attacks.
+ * 
+ * Setting a maximum delay lower than the recommended default (30s) will make timing attacks against
+ * your application easier. The lower you set the delay, the fewer requests and less total time an
+ * attacker will require to execute an attack. If you must lower the delay for reasons such as client
+ * timeouts, then you should choose the highest value practically possible to limit your risk.
+ *
+ * If you lower the blinding delay, you should also consider implementing monitoring and filtering
+ * to detect and reject suspicious traffic that could be gathering timing information from a potential
+ * side channel. Timing attacks usually involve repeatedly triggering TLS errors.
+ *
+ * @warning Do NOT set a lower blinding delay unless you understand the risks and have other
+ * mitigations for timing side channels in place.
+ *
+ * @param config The config object being updated.
+ * @param seconds The maximum number of seconds that s2n-tls will delay for in the event of a
+ * sensitive error.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_config_set_max_blinding_delay(struct s2n_config *config, uint32_t seconds);
+
+/**
  * Sets the cipher preference override for the s2n_connection. Calling this function is not necessary
  * unless you want to set the cipher preferences on the connection to something different than what is in the s2n_config.
  *
