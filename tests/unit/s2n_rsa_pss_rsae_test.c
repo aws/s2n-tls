@@ -247,9 +247,9 @@ int main(int argc, char **argv)
                     &rsa_cert_chain->cert_chain->head->raw));
             EXPECT_EQUAL(rsa_public_key_as_pss_type, S2N_PKEY_TYPE_RSA);
 
-            DEFER_CLEANUP(struct s2n_pkey rsa_pss_public_key_shared = { 0 }, s2n_pkey_free);
+            DEFER_CLEANUP(struct s2n_pkey rsa_pss_public_key = { 0 }, s2n_pkey_free);
             s2n_pkey_type rsa_pss_pkey_type_shared = S2N_PKEY_TYPE_UNKNOWN;
-            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&rsa_pss_public_key_shared, &rsa_pss_pkey_type_shared,
+            EXPECT_OK(s2n_asn1der_to_public_key_and_type(&rsa_pss_public_key, &rsa_pss_pkey_type_shared,
                     &rsa_pss_cert_chain->cert_chain->head->raw));
             EXPECT_EQUAL(rsa_pss_pkey_type_shared, S2N_PKEY_TYPE_RSA_PSS);
 
@@ -263,7 +263,7 @@ int main(int argc, char **argv)
              * To ensure that the RSA_PSS EVP pkey type remains set to RSA_PSS, the RSA key is
              * overridden instead of the RSA_PSS key, since its pkey type is RSA anyway.
              */
-            RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_pss_public_key_shared.pkey);
+            RSA *rsa_key_copy = EVP_PKEY_get1_RSA(rsa_pss_public_key.pkey);
             POSIX_GUARD_OSSL(EVP_PKEY_set1_RSA(rsa_public_key_as_pss.pkey, rsa_key_copy), S2N_ERR_KEY_INIT);
             RSA_free(rsa_key_copy);
 
@@ -274,7 +274,7 @@ int main(int argc, char **argv)
 
                 EXPECT_SUCCESS(rsa_public_key_as_pss.sign(rsa_pss_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_RSAE,
                         &sign_hash, &result));
-                EXPECT_SUCCESS(rsa_pss_public_key_shared.verify(&rsa_pss_public_key_shared, S2N_SIGNATURE_RSA_PSS_PSS,
+                EXPECT_SUCCESS(rsa_pss_public_key.verify(&rsa_pss_public_key, S2N_SIGNATURE_RSA_PSS_PSS,
                         &verify_hash, &result));
             };
 
@@ -283,7 +283,7 @@ int main(int argc, char **argv)
                 hash_state_new(sign_hash, random_msg);
                 hash_state_new(verify_hash, random_msg);
 
-                EXPECT_SUCCESS(rsa_pss_public_key_shared.sign(rsa_pss_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_PSS,
+                EXPECT_SUCCESS(rsa_pss_public_key.sign(rsa_pss_cert_chain->private_key, S2N_SIGNATURE_RSA_PSS_PSS,
                         &sign_hash, &result));
                 EXPECT_SUCCESS(rsa_public_key_as_pss.verify(&rsa_public_key_as_pss, S2N_SIGNATURE_RSA_PSS_RSAE,
                         &verify_hash, &result));

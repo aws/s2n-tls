@@ -194,7 +194,7 @@ S2N_RESULT s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_pkey_get_pkey_type(EVP_PKEY *evp_pkey, s2n_pkey_type *pkey_type)
+S2N_RESULT s2n_pkey_get_type(EVP_PKEY *evp_pkey, s2n_pkey_type *pkey_type)
 {
     RESULT_ENSURE_REF(evp_pkey);
     RESULT_ENSURE_REF(pkey_type);
@@ -228,7 +228,7 @@ S2N_RESULT s2n_pkey_from_x509(X509 *cert, struct s2n_pkey *pub_key_out,
     DEFER_CLEANUP(EVP_PKEY *evp_public_key = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE(evp_public_key != NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-    RESULT_GUARD(s2n_pkey_get_pkey_type(evp_public_key, pkey_type_out));
+    RESULT_GUARD(s2n_pkey_get_type(evp_public_key, pkey_type_out));
     switch (*pkey_type_out) {
         case S2N_PKEY_TYPE_RSA:
             RESULT_GUARD(s2n_rsa_pkey_init(pub_key_out));

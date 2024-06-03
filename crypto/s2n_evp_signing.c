@@ -104,7 +104,7 @@ static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s
 
     /* Ensure that the signature algorithm type matches the key type. */
     s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
-    RESULT_GUARD(s2n_pkey_get_pkey_type(key->pkey, &pkey_type));
+    RESULT_GUARD(s2n_pkey_get_type(key->pkey, &pkey_type));
     s2n_pkey_type sig_alg_type = S2N_PKEY_TYPE_UNKNOWN;
     RESULT_GUARD(s2n_signature_algorithm_get_pkey_type(sig_alg, &sig_alg_type));
     RESULT_ENSURE(pkey_type == sig_alg_type, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
