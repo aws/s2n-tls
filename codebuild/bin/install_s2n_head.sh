@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -eu
+set -e
 
 usage() {
     echo "install_s2n_head.sh build_dir"
@@ -26,10 +26,6 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 
-if [[ "$(git rev-parse --show-toplevel)" != "$SRC_ROOT" ]]; then
-    echo "Run $0 from the root of the s2n-tls repo"
-    exit 1
-fi
 
 if [[ ! -x "$SRC_ROOT/build/bin/s2nc_head" ]]; then
     if [[ ! -d "s2n_head" ]]; then
