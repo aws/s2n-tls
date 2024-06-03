@@ -1153,7 +1153,6 @@ int s2n_connection_set_blinding(struct s2n_connection *conn, s2n_blinding blindi
 }
 
 #define ONE_S INT64_C(1000000000)
-#define TEN_S INT64_C(10000000000)
 
 static S2N_RESULT s2n_connection_get_delay_impl(struct s2n_connection *conn, uint64_t *delay)
 {
@@ -1188,13 +1187,54 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
     }
 }
 
+/* s2n-tls has a random delay that will trigger for sensitive errors. This is a mitigation
+ * for possible timing sidechannels.
+ * 
+ * The historical sidechannel that inspired s2n-tls blinding was the Lucky 13 attack, which takes
+ * advantage of potential timing differences when removing padding from a record encrypted in CBC mode.
+ * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur 
+ * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and 
+ * DTLS Record Protocols.) However, we still include blinding to provide a defense in depth mitigation.
+ */
+S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_t *min, int64_t *max)
+{
+    RESULT_ENSURE_REF(conn);
+    RESULT_ENSURE_REF(min);
+    RESULT_ENSURE_REF(max);
+    RESULT_ENSURE_REF(conn->config);
+
+    /*
+     * The default delay is a random value between 10-30s. The rational behind the range is that the
+     * floor is the fixed cost that an attacker must pay per attempt, in this case, 10s. The length of
+     * the range then affects the number of attempts that an attacker must perform in order to recover a
+     * byte of plaintext with a certain degree of confidence.
+     *
+     * A uniform distribution of the range [a, b] has a variance of ((b - a)^2)/12. Therefore, given a
+     * hypothetical timing difference of 1us, the number of attempts necessary to distinguish the correct
+     * byte from an incorrect byte in a Lucky13-style attack is (((30 - 10) * 10 ^6)^2)/12 ~= 3.3 trillion
+     * (note that we first have to convert from seconds to microseconds to match the unit of the timing difference.)
+     */
+    *min = S2N_DEFAULT_BLINDING_MIN * ONE_S;
+    *max = S2N_DEFAULT_BLINDING_MAX * ONE_S;
+
+    /* Setting the min to 1/3 of the max is an arbitrary ratio of fixed to variable delay.
+     * It is based on the ratio of our original default values.
+     */
+    if (conn->config->custom_blinding_set) {
+        *max = conn->config->max_blinding * ONE_S;
+        *min = *max / 3;
+    }
+
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_connection_kill(struct s2n_connection *conn)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_GUARD(s2n_connection_set_closed(conn));
 
-    /* Delay between 10 and 30 seconds in nanoseconds */
-    int64_t min = TEN_S, max = 3 * TEN_S;
+    int64_t min = 0, max = 0;
+    RESULT_GUARD(s2n_connection_calculate_blinding(conn, &min, &max));
 
     /* Keep track of the delay so that it can be enforced */
     uint64_t rand_delay = 0;
