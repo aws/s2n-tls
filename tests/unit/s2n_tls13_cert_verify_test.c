@@ -274,9 +274,10 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls13"));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
 
-            /* The server only supports the single test certificate, and will only use the
-             * corresponding signature algorithm to sign the CertificateVerify message, regardless
-             * of the client's advertised signature schemes.
+            /* The server only supports the single test certificate. Due to the fallback logic in
+             * the s2n-tls server, the signature algorithm corresponding with the test certificate
+             * will always be used to sign the CertificateVerify message, regardless of the
+             * client's advertised signature schemes.
              */
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
 
