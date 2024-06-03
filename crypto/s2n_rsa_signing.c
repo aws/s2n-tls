@@ -118,10 +118,14 @@ int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *d
 /* this function returns whether RSA PSS signing is supported */
 int s2n_is_rsa_pss_signing_supported()
 {
-    return RSA_PSS_SIGNING_SUPPORTED;
+#if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING)
+    return 1;
+#else
+    return 0;
+#endif
 }
 
-#if RSA_PSS_SIGNING_SUPPORTED
+#if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING)
 
 static int s2n_evp_pkey_ctx_set_rsa_signature_digest(EVP_PKEY_CTX *ctx, const EVP_MD *digest_alg)
 {

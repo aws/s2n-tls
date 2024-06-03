@@ -41,11 +41,11 @@ static S2N_RESULT s2n_evp_md_ctx_set_pkey_ctx(EVP_MD_CTX *ctx, EVP_PKEY_CTX *pct
 
 static S2N_RESULT s2n_evp_pkey_set_rsa_pss_saltlen(EVP_PKEY_CTX *pctx)
 {
-#if RSA_PSS_SIGNING_SUPPORTED
+#if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING)
     RESULT_GUARD_OSSL(EVP_PKEY_CTX_set_rsa_pss_saltlen(pctx, RSA_PSS_SALTLEN_DIGEST), S2N_ERR_PKEY_CTX_INIT);
     return S2N_RESULT_OK;
 #else
-    RESULT_BAIL(S2N_ERR_UNIMPLEMENTED);
+    RESULT_BAIL(S2N_ERR_RSA_PSS_NOT_SUPPORTED);
 #endif
 }
 
