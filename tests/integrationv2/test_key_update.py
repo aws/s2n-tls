@@ -1,20 +1,14 @@
 import copy
-import random
-import string
 import pytest
 
 from configuration import available_ports, TLS13_CIPHERS
-from common import ProviderOptions, Protocols
+from common import ProviderOptions, Protocols, random_str
 from fixtures import managed_process  # lgtm [py/unused-import]
 from providers import Provider, S2N, OpenSSL
 from utils import invalid_test_parameters, get_parameter_name
 
-SERVER_DATA = f"Some random data from the server:" + "".join(
-    random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
-)
-CLIENT_DATA = f"Some random data from the client:" + "".join(
-    random.choice(string.ascii_uppercase + string.digits) for _ in range(10)
-)
+SERVER_DATA = f"Some random data from the server:" + random_str(10)
+CLIENT_DATA = f"Some random data from the client:" + random_str(10)
 
 
 def test_nothing():

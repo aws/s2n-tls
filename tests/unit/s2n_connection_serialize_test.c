@@ -31,16 +31,20 @@ static S2N_RESULT s2n_test_key_update(struct s2n_connection *client_conn, struct
     /* One side initiates key update */
     RESULT_GUARD_POSIX(s2n_connection_request_key_update(client_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
 
-    /* Sending and receiving is successful after key update */
-    EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+    /* Sending and receiving multiple times is successful after key update */
+    for (size_t i = 0; i < 10; i++) {
+        EXPECT_OK(s2n_send_and_recv_test(client_conn, server_conn));
+    }
     EXPECT_EQUAL(client_conn->send_key_updated, 1);
     EXPECT_EQUAL(server_conn->recv_key_updated, 1);
 
     /* Other side initiates key update */
     EXPECT_SUCCESS(s2n_connection_request_key_update(server_conn, S2N_KEY_UPDATE_NOT_REQUESTED));
 
-    /* Sending and receiving is successful after key update */
-    EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+    /* Sending and receiving multiple times is successful after key update */
+    for (size_t i = 0; i < 10; i++) {
+        EXPECT_OK(s2n_send_and_recv_test(server_conn, client_conn));
+    }
     EXPECT_EQUAL(client_conn->recv_key_updated, 1);
     EXPECT_EQUAL(server_conn->send_key_updated, 1);
 
@@ -189,6 +193,11 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS12);
+            uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(server_conn, &iana_value[0], &iana_value[1]));
+
+            uint32_t length = 0;
+            EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
 
             uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
             EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
@@ -197,9 +206,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&blob, buffer, sizeof(buffer)));
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init_written(&stuffer, &blob));
-
-            uint32_t length = 0;
-            EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
 
             uint64_t serialized_version = 0;
@@ -213,8 +219,7 @@ int main(int argc, char **argv)
 
             uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
-            EXPECT_BYTEARRAY_EQUAL(cipher_suite, server_conn->secure->cipher_suite->iana_value,
-                    S2N_TLS_CIPHER_SUITE_LEN);
+            EXPECT_BYTEARRAY_EQUAL(cipher_suite, iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
             uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, client_sequence_number,
@@ -269,6 +274,11 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
             EXPECT_EQUAL(s2n_connection_get_actual_protocol_version(server_conn), S2N_TLS13);
+            uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(server_conn, &iana_value[0], &iana_value[1]));
+
+            uint32_t length = 0;
+            EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
 
             uint8_t buffer[S2N_SERIALIZED_CONN_TLS13_SHA256_SIZE] = { 0 };
             EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
@@ -277,9 +287,6 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_blob_init(&blob, buffer, sizeof(buffer)));
             struct s2n_stuffer stuffer = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_init_written(&stuffer, &blob));
-
-            uint32_t length = 0;
-            EXPECT_SUCCESS(s2n_connection_serialization_length(server_conn, &length));
             EXPECT_EQUAL(length, s2n_stuffer_data_available(&stuffer));
 
             uint64_t serialized_version = 0;
@@ -293,8 +300,7 @@ int main(int argc, char **argv)
 
             uint8_t cipher_suite[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
-            EXPECT_BYTEARRAY_EQUAL(cipher_suite, server_conn->secure->cipher_suite->iana_value,
-                    S2N_TLS_CIPHER_SUITE_LEN);
+            EXPECT_BYTEARRAY_EQUAL(cipher_suite, iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
             uint8_t client_sequence_number[S2N_TLS_SEQUENCE_NUM_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&stuffer, client_sequence_number,
@@ -366,6 +372,76 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_recv(server_conn, &recv_buf, sizeof(recv_buf), &blocked));
             EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
         };
+
+        /* Cannot send or recv after serialization */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            const uint8_t send_data[] = "hello world";
+            EXPECT_FAILURE_WITH_ERRNO(s2n_send(server_conn, send_data, sizeof(send_data), &blocked), S2N_ERR_CLOSED);
+
+            uint8_t recv_data = 0;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_recv(server_conn, &recv_data, sizeof(recv_data), &blocked), S2N_ERR_CLOSED);
+
+            /* Calling shutdown after serialization will cause a plaintext alert to be sent
+             * since serialization wipes the encryption context. */
+            EXPECT_SUCCESS(s2n_shutdown_send(server_conn, &blocked));
+
+            const uint8_t expected_alert[] = {
+                TLS_ALERT,
+                S2N_TLS12 / 10,
+                S2N_TLS12 % 10,
+                0, 2,
+                S2N_TLS_ALERT_LEVEL_WARNING, S2N_TLS_ALERT_CLOSE_NOTIFY
+            };
+            uint8_t actual_alert[sizeof(expected_alert)] = { 0 };
+            EXPECT_SUCCESS(s2n_stuffer_read_bytes(&io_pair.client_in, actual_alert, sizeof(actual_alert)));
+            EXPECT_BYTEARRAY_EQUAL(actual_alert, expected_alert, sizeof(expected_alert));
+        }
+
+        /* Cannot serialize after connection has closed */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, tls13_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls13_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+
+            s2n_blocked_status blocked = S2N_NOT_BLOCKED;
+            EXPECT_SUCCESS(s2n_shutdown_send(server_conn, &blocked));
+
+            /* Serializing after the connection closes will cause an error */
+            uint8_t buffer[S2N_SERIALIZED_CONN_TLS12_SIZE] = { 0 };
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_serialize(server_conn, buffer, sizeof(buffer)), S2N_ERR_CLOSED);
+        }
     };
 
     /* s2n_connection_deserialize */
@@ -465,8 +541,10 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(new_client_conn, server_conn, &io_pair));
 
         /* Client can send and recv as usual */
-        EXPECT_OK(s2n_send_and_recv_test(server_conn, new_client_conn));
-        EXPECT_OK(s2n_send_and_recv_test(new_client_conn, server_conn));
+        for (size_t idx = 0; idx < 1000; idx++) {
+            EXPECT_OK(s2n_send_and_recv_test(server_conn, new_client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(new_client_conn, server_conn));
+        }
     };
 
     /* Self-talk: Server can be serialized and deserialized and continue sending and receiving data
@@ -507,8 +585,10 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, new_server_conn, &io_pair));
 
         /* Server can send and recv as usual */
-        EXPECT_OK(s2n_send_and_recv_test(new_server_conn, client_conn));
-        EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server_conn));
+        for (size_t idx = 0; idx < 1000; idx++) {
+            EXPECT_OK(s2n_send_and_recv_test(new_server_conn, client_conn));
+            EXPECT_OK(s2n_send_and_recv_test(client_conn, new_server_conn));
+        }
     };
 
     /* Self-talk: Test interaction between TLS1.2 session resumption and serialization */

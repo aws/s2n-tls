@@ -1416,6 +1416,67 @@ int main(int argc, char **argv)
         EXPECT_TRUE(IS_RESUMPTION_HANDSHAKE(server));
     }
 
+    /* Test TLS 1.2 Server sends a zero-length ticket in the NewSessionTicket handshake
+     * if the ticket key was expired after SERVER_HELLO
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *client_configuration = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_NOT_NULL(client_configuration);
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(client_configuration, 1));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_configuration));
+
+        DEFER_CLEANUP(struct s2n_config *server_configuration = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_NOT_NULL(server_configuration);
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(server_configuration, 1));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_configuration,
+                chain_and_key));
+
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_configuration, ticket_key_name1,
+                s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_SUCCESS(s2n_connection_set_config(client, client_configuration));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        EXPECT_SUCCESS(s2n_connection_set_config(server, server_configuration));
+
+        DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
+                s2n_io_stuffer_pair_free);
+        EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
+        EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
+
+        /* Stop the handshake after the peers have established that a ticket 
+         * will be sent in this handshake. 
+         */
+        EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client,
+                CLIENT_FINISHED));
+
+        /* Expire current session ticket key so that server no longer holds a valid key */
+        uint64_t mock_delay = server_configuration->encrypt_decrypt_key_lifetime_in_nanos;
+        EXPECT_SUCCESS(s2n_config_set_wall_clock(server_configuration, mock_nanoseconds_since_epoch,
+                &mock_delay));
+
+        /* Attempt to send a NewSessionTicket. This should send a zero-length NST message */
+        EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+
+        /* Verify that TLS1.2 was negotiated */
+        EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS12);
+        EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS12);
+
+        /* Verify that the server issued zero-length session ticket */
+        EXPECT_TRUE(IS_ISSUING_NEW_SESSION_TICKET(server));
+
+        /* Client does not have a session ticket since it received zero-length NST message */
+        EXPECT_EQUAL(client->client_ticket.size, 0);
+        EXPECT_EQUAL(client->ticket_lifetime_hint, 0);
+    }
+
     EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(ecdsa_chain_and_key));

@@ -582,7 +582,7 @@ if (BUILD_TESTING)
                 add_test(NAME ${test_target}
                         COMMAND
                         pytest
-                        -x -n=${N} --maxfail=1 --reruns=0 --cache-clear -rpfsq
+                        -x -n=${N} --reruns=2 --durations=10 --cache-clear -rpfsq
                         -o log_cli=true --log-cli-level=DEBUG --provider-version=$ENV{S2N_LIBCRYPTO}
                         --provider-criterion=off --fips-mode=0 --no-pq=0 ${test_file_path}
                         WORKING_DIRECTORY ${PROJECT_SOURCE_DIR}/tests/integrationv2

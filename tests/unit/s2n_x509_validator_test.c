@@ -2201,20 +2201,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_read_test_pem_and_len(S2N_MIXED_CHAIN_CERTS, &chain_pem[0], &chain_pem_len,
                 S2N_MAX_TEST_PEM_SIZE));
 
-        const struct s2n_certificate_key *const s2n_certificate_key_preferences_list_rfc9151[] = {
-            &s2n_ec_p384,
-            &s2n_rsa_rsae_3072,
-            &s2n_rsa_rsae_4096,
-        };
-
-        const struct s2n_certificate_key_preferences s2n_certificate_key_preferences_rfc9151 = {
-            .count = s2n_array_len(s2n_certificate_key_preferences_list_rfc9151),
-            .certificate_keys = s2n_certificate_key_preferences_list_rfc9151,
-        };
-
         struct s2n_security_policy security_policy_not_local = security_policy_rfc9151;
         security_policy_not_local.certificate_preferences_apply_locally = false;
-        security_policy_not_local.certificate_key_preferences = &s2n_certificate_key_preferences_rfc9151;
 
         /* when the peer sends the full chain with a non-compliant CA, verification fails when reading in the certs */
         {
