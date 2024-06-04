@@ -71,7 +71,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN,
+                    (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
             certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
@@ -96,7 +97,8 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
-            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN, (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
+            EXPECT_SUCCESS(s2n_read_test_pem(S2N_RSA_2048_PKCS1_CERT_CHAIN,
+                    (char *) cert_file, S2N_MAX_TEST_PEM_SIZE));
             certLen = strlen((const char *) cert_file);
 
             /* Read the test certificates into an Openssl X509 struct */
