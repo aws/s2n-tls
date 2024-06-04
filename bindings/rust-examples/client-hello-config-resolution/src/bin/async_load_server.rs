@@ -3,11 +3,10 @@
 
 use s2n_tls::{
     callbacks::{ClientHelloCallback, ConfigResolver, ConnectionFuture},
-    config::Config,
     security::{Policy, DEFAULT_TLS13},
 };
 use s2n_tls_tokio::TlsAcceptor;
-use std::{error::Error, future::Future, pin::Pin};
+use std::{error::Error, pin::Pin};
 use tokio::{io::AsyncWriteExt, net::*, try_join};
 
 const PORT: u16 = 1738;
