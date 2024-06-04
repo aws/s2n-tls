@@ -18,11 +18,6 @@ pub struct AsyncAnimalConfigResolver {
     cert_directory: String,
 }
 
-struct SpecificAnimalResolver {
-    cert_directory: String,
-    animal: String,
-}
-
 impl AsyncAnimalConfigResolver {
     fn new(cert_directory: String) -> Self {
         AsyncAnimalConfigResolver { cert_directory }
