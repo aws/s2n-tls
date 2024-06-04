@@ -49,6 +49,9 @@
 
 #define is_handshake_complete(conn) (APPLICATION_DATA == s2n_conn_get_current_message_type(conn))
 
+#define S2N_DEFAULT_BLINDING_MAX 30
+#define S2N_DEFAULT_BLINDING_MIN 10
+
 typedef enum {
     S2N_NO_TICKET = 0,
     S2N_DECRYPT_TICKET,
