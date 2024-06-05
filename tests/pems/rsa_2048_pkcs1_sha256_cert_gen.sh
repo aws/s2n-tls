@@ -14,15 +14,6 @@ cert-gen () {
     mkdir -p rsae_pkcs_2048_sha256
     cd rsae_pkcs_2048_sha256
 
-    # The "basicConstraints" and "keyUsage" extensions are necessary for CA
-    # certificates that sign other certificates. Normally the openssl x509 tool
-    # will ignore the extensions requests in the .csr, but by using the
-    # copy_extensions=copyall flag we can pass the extensions from the .csr on
-    # to the final public certificate.
-
-    # The advantage of manually specifying the extensions is that there is no
-    # dependency on any openssl config files
-
     # we pass in the digest here because it is self signed
     echo "generating CA private key and certificate"
     openssl req -new -noenc -x509 \
