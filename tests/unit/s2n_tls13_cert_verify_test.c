@@ -234,5 +234,123 @@ int main(int argc, char **argv)
         run_tests(&test_cases[i], S2N_SERVER);
     }
 
+    /* Self-talk: Ensure that the signature algorithm used to sign the CertificateVerify message
+     * is validated against the certificate type
+     */
+    if (s2n_is_tls13_fully_supported()) {
+        struct s2n_tls13_cert_verify_test test_server_parameters[] = {
+            {
+                    .cert_file = S2N_RSA_2048_PKCS1_CERT_CHAIN,
+                    .key_file = S2N_RSA_2048_PKCS1_KEY,
+                    .sig_scheme = &s2n_rsa_pss_rsae_sha256,
+            },
+            {
+                    .cert_file = S2N_RSA_PSS_2048_SHA256_LEAF_CERT,
+                    .key_file = S2N_RSA_PSS_2048_SHA256_LEAF_KEY,
+                    .sig_scheme = &s2n_rsa_pss_pss_sha256,
+            },
+            {
+                    .cert_file = S2N_ECDSA_P256_PKCS1_CERT_CHAIN,
+                    .key_file = S2N_ECDSA_P256_PKCS1_KEY,
+                    .sig_scheme = &s2n_ecdsa_sha256,
+            }
+        };
+
+        const struct s2n_signature_scheme *test_client_sig_schemes[] = {
+            &s2n_rsa_pss_rsae_sha256,
+            &s2n_rsa_pss_pss_sha256,
+            &s2n_ecdsa_sha256,
+        };
+
+        for (size_t param_idx = 0; param_idx < s2n_array_len(test_server_parameters); param_idx++) {
+            struct s2n_tls13_cert_verify_test server_parameters = test_server_parameters[param_idx];
+
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain, server_parameters.cert_file,
+                    server_parameters.key_file));
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls13"));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+
+            /* The server only supports the single test certificate. Due to the fallback logic in
+             * the s2n-tls server, the signature algorithm corresponding with the test certificate
+             * will always be used to sign the CertificateVerify message, regardless of the
+             * client's advertised signature schemes.
+             */
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
+
+            for (size_t sig_idx = 0; sig_idx < s2n_array_len(test_client_sig_schemes); sig_idx++) {
+                DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(server_conn);
+                EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+                EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
+                EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+                EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+                /* The client only supports the single test signature scheme, which allows for the
+                 * server to sign the CertificateVerify message with a signature algorithm that
+                 * isn't supported by the client.
+                 */
+                const struct s2n_signature_scheme *client_advertised_sig_scheme = test_client_sig_schemes[sig_idx];
+                struct s2n_signature_preferences test_sig_preferences = {
+                    .count = 1,
+                    .signature_schemes = &client_advertised_sig_scheme,
+                };
+                struct s2n_security_policy client_policy = security_policy_test_all_tls13;
+                client_policy.signature_preferences = &test_sig_preferences;
+                client_conn->security_policy_override = &client_policy;
+
+                struct s2n_test_io_pair io_pair = { 0 };
+                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+                EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+                /* Send the CertificateVerify message. */
+                EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
+                        SERVER_CERT_VERIFY));
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&server_conn->handshake.io));
+                EXPECT_SUCCESS(s2n_tls13_cert_verify_send(server_conn));
+
+                /* Check that the expected signature algorithm was used by the server. */
+                EXPECT_EQUAL(server_conn->handshake_params.server_cert_sig_scheme, server_parameters.sig_scheme);
+
+                /* Overwrite the SignatureScheme field of the CertificateVerify message to lie to the
+                 * client about which signature algorithm was used to sign the signature content. This
+                 * will trick the client into always thinking its advertised signature algorithm was
+                 * used.
+                 */
+                struct s2n_stuffer cert_verify_stuffer = server_conn->handshake.io;
+                EXPECT_SUCCESS(s2n_stuffer_rewrite(&cert_verify_stuffer));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&cert_verify_stuffer,
+                        client_advertised_sig_scheme->iana_value));
+
+                EXPECT_SUCCESS(s2n_stuffer_wipe(&client_conn->handshake.io));
+                EXPECT_SUCCESS(s2n_stuffer_copy(&server_conn->handshake.io, &client_conn->handshake.io,
+                        s2n_stuffer_data_available(&server_conn->handshake.io)));
+
+                int ret = s2n_tls13_cert_verify_recv(client_conn);
+
+                if (client_advertised_sig_scheme == server_parameters.sig_scheme) {
+                    /* If the client's advertised signature scheme matches what the server actually
+                     * used to sign the CertificateVerify message, validation should succeed.
+                     */
+                    EXPECT_SUCCESS(ret);
+                } else {
+                    /* Otherwise, the client should observe that the indicated signature algorithm
+                     * from the server doesn't match the certificate type, and the connection
+                     * should fail.
+                     */
+                    EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+                }
+            }
+        }
+    }
+
     END_TEST();
 }

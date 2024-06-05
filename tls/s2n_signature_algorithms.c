@@ -373,3 +373,26 @@ int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_sc
 
     return 0;
 }
+
+S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg, s2n_pkey_type *pkey_type)
+{
+    RESULT_ENSURE_REF(pkey_type);
+    *pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+    switch (sig_alg) {
+        case S2N_SIGNATURE_RSA:
+        case S2N_SIGNATURE_RSA_PSS_RSAE:
+            *pkey_type = S2N_PKEY_TYPE_RSA;
+            break;
+        case S2N_SIGNATURE_RSA_PSS_PSS:
+            *pkey_type = S2N_PKEY_TYPE_RSA_PSS;
+            break;
+        case S2N_SIGNATURE_ECDSA:
+            *pkey_type = S2N_PKEY_TYPE_ECDSA;
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+    }
+
+    return S2N_RESULT_OK;
+}
