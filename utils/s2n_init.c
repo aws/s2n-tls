@@ -12,6 +12,8 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+#include "utils/s2n_init.h"
+
 #include <pthread.h>
 
 #include "crypto/s2n_fips.h"
@@ -24,7 +26,6 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13_secrets.h"
-#include "utils/s2n_init.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -119,8 +120,6 @@ int s2n_cleanup(void)
      * perform final cleanup now */
     if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
         POSIX_GUARD(s2n_cleanup_final());
-        /* clear main_thread in case the main thread's ID is reused */
-        main_thread = 0;
     }
 
     return 0;
@@ -139,7 +138,7 @@ int s2n_cleanup_final(void)
     /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
     POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
     POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
-    
+
     return 0;
 }
 
