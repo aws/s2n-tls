@@ -24,6 +24,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13_secrets.h"
+#include "utils/s2n_init.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
@@ -112,18 +113,33 @@ static bool s2n_cleanup_atexit_impl(void)
 
 int s2n_cleanup(void)
 {
-    /* s2n_cleanup is supposed to be called from each thread before exiting,
-     * so ensure that whatever clean ups we have here are thread safe */
-    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
+    POSIX_GUARD(s2n_cleanup_thread());
 
     /* If this is the main thread and atexit cleanup is disabled,
      * perform final cleanup now */
     if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
-        /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
-        POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-        POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
+        POSIX_GUARD(s2n_cleanup_final());
+        /* clear main_thread in case the main thread's ID is reused */
+        main_thread = 0;
     }
 
+    return 0;
+}
+
+int s2n_cleanup_thread(void)
+{
+    /* s2n_cleanup_thread is supposed to be called from each thread before exiting,
+     * so ensure that whatever clean ups we have here are thread safe */
+    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
+    return 0;
+}
+
+int s2n_cleanup_final(void)
+{
+    /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
+    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
+    
     return 0;
 }
 
