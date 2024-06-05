@@ -1,3 +1,5 @@
+#!/usr/bin/env bash
+
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
 
@@ -8,21 +10,54 @@
 set -e
 
 cert-gen () {
-    echo -e "\n----- generating certs for rsa 2048 with SHA256 pkcsv1.5 -----\n"
+
+    key_family=rsa
+    signature=pkcsv1.5
+    key_size=2048
+    digest=SHA256
+    dir_name=rsae_pkcs_2048_sha256
+
+    echo -e "\n----- generating certs for $key_family $key_size with $digest $signature -----\n"
+
+    # set openssl argument name
+    if [[ $key_family == rsa || $key_family == rsa-pss ]]; then
+        local argname=rsa_keygen_bits:
+    elif [[ $key_family == ec ]]; then
+        local argname=ec_paramgen_curve:P-
+    fi
+
+    # All signature algorithims are the default except for rsa-pss signatures
+    # with rsae keys. For this case we must manually specify things
+    if [[ $key_family == rsa && $signature == pss ]]
+    then
+        local signature_options="-sigopt rsa_padding_mode:pss"
+    else
+        local signature_options=""
+    fi
 
     # make directory for certs
-    mkdir -p rsae_pkcs_2048_sha256
-    cd rsae_pkcs_2048_sha256
+    mkdir -p $dir_name
+    cd $dir_name
+
+    # The "basicConstraints" and "keyUsage" extensions are necessary for CA
+    # certificates that sign other certificates. Normally the openssl x509 tool
+    # will ignore the extensions requests in the .csr, but by using the
+    # copy_extensions=copyall flag we can pass the extensions from the .csr on
+    # to the final public certificate.
+
+    # The advantage of manually specifying the extensions is that there is no
+    # dependency on any openssl config files
 
     # we pass in the digest here because it is self signed
     echo "generating CA private key and certificate"
     openssl req -new -noenc -x509 \
-            -newkey rsa \
-            -pkeyopt rsa_keygen_bits2048 \
+            -newkey $key_family \
+            -pkeyopt $argname$key_size \
             -keyout  ca-key.pem \
             -out ca-cert.pem \
             -days 60000 \
-            -SHA256 \
+            $signature_options \
+            -$digest \
             -subj "/CN=s2nTestRoot" \
             -addext "basicConstraints = critical,CA:true" \
             -addext "keyUsage = critical,keyCertSign" \
@@ -31,8 +66,8 @@ cert-gen () {
 
     echo "generating intermediate private key and CSR"
     openssl req  -new -noenc \
-            -newkey rsa \
-            -pkeyopt rsa_keygen_bits2048 \
+            -newkey $key_family \
+            -pkeyopt $argname$key_size \
             -keyout intermediate-key.pem \
             -out intermediate.csr \
             -subj "/CN=s2nTestIntermediate" \
@@ -41,8 +76,8 @@ cert-gen () {
 
     echo "generating server private key and CSR"
     openssl req  -new -noenc \
-            -newkey rsa \
-            -pkeyopt rsa_keygen_bits2048 \
+            -newkey $key_family \
+            -pkeyopt $argname$key_size \
             -keyout server-key.pem \
             -out server.csr \
             -subj "/CN=s2nTestServer" \
@@ -50,7 +85,8 @@ cert-gen () {
     echo "generating intermediate certificate and signing it"
     openssl x509 -days 60000 \
             -req -in intermediate.csr \
-            -SHA256 \
+            $signature_options \
+            -$digest \
             -CA ca-cert.pem \
             -CAkey ca-key.pem \
             -CAcreateserial \
@@ -60,7 +96,8 @@ cert-gen () {
     echo "generating server certificate and signing it"
     openssl x509 -days 60000 \
             -req -in server.csr \
-            -SHA256 \
+            $signature_options \
+            -$digest \
             -CA intermediate-cert.pem \
             -CAkey intermediate-key.pem \
             -CAcreateserial -out server-cert.pem \
@@ -95,7 +132,6 @@ cert-gen () {
 if [[ $1 != "clean" ]]
 then
     cert-gen   rsa        pkcsv1.5     2048       SHA256      rsae_pkcs_2048_sha256
-
 else
     echo "cleaning certs"
     rm -rf ecdsa* rsa*
