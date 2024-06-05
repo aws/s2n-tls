@@ -15,6 +15,8 @@
 
 #pragma once
 
+#include <stdbool.h>
+
 int s2n_init(void);
 int s2n_cleanup(void);
 int s2n_cleanup_thread(void);
