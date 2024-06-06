@@ -57,6 +57,7 @@ RUN \
 RUN \
   set -ex; \
   . "$HOME/.cargo/env"; \
+  rustup component add rust-analyzer; \
   cargo install bindgen-cli; \
   echo done
 
