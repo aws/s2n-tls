@@ -18,22 +18,18 @@ BUILD_ARGS=(
 
 sudo DOCKER_BUILDKIT=1 docker build $SCRIPT_DIR ${BUILD_ARGS[@]}
 
-sudo docker run \
+docker_run() {
+  sudo docker run \
     -i \
     --rm \
     --tty \
     --volume $S2N_TLS:/home/$USER/s2n-tls \
     --user $USER \
     $IMAGE \
-    /home/$USER/s2n-tls
+    $@
+}
 
-#sudo docker run \
-#    -i \
-#    --rm \
-#    --tty \
-#    --entrypoint "/bin/bash" \
-#    --volume $S2N_TLS:/home/$USER/s2n-tls \
-#    --user $USER \
-#    $IMAGE
+docker_run transpile /home/$USER/s2n-tls
+docker_run refactor /home/$USER/s2n-tls
 
 echo "build available in $SCRIPT_DIR/target/s2n-tls"

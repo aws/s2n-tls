@@ -7,20 +7,42 @@ use xshell::{cmd, Shell};
 
 type Result<T = (), E = Error> = core::result::Result<T, E>;
 
+mod line_filter;
+
+// this is copied into the project
+#[allow(dead_code)]
+mod errno;
+
 fn main() -> Result {
     let args: Vec<_> = std::env::args().collect();
-    let dir = args.get(1).expect("missing s2n-tls dir");
+    let dir = args.get(2).expect("missing s2n-tls dir");
     let dir = PathBuf::from(dir);
     let sh = xshell::Shell::new()?;
 
     sh.change_dir(dir);
 
-    let include = setup_include(&sh)?;
-    let commands = collect_commands(&sh)?;
-    let commands = process_commands(&sh, commands, &include)?;
+    match args.get(1).map(|v| v.as_str()) {
+        Some("transpile") => {
+            let include = setup_include(&sh)?;
+            let commands = collect_commands(&sh)?;
+            let commands = process_commands(&sh, commands, &include)?;
 
-    let out = transpile(&sh, &commands)?;
-    clean_up_entrypoints(&sh, &out)?;
+            let out = transpile(&sh, &commands)?;
+            clean_up_entrypoints(&sh, &out)?;
+        }
+        Some("refactor") => {
+            sh.change_dir("scripts/s2n2rust/target/s2n-tls");
+            sh.write_file("src/errno.rs", include_bytes!("./errno.rs"))?;
+            line_filter::run(&sh)?;
+            cmd!(sh, "cargo fmt").run()?;
+        }
+        Some(command) => {
+            panic!("invalid command: {command:?}");
+        }
+        None => {
+            panic!("missing command");
+        }
+    }
 
     Ok(())
 }
@@ -33,6 +55,17 @@ fn collect_commands(sh: &Shell) -> Result<PathBuf> {
 
     // TODO get this working
     let build_testing = "off";
+
+    let _ = sh.create_dir("lib");
+    sh.copy_file(
+        concat!(env!("LIBCRYPTO_ROOT"), "/lib", env!("LIBCRYPTO_LINK"), ".a"),
+        "lib/libcrypto.a",
+    )?;
+
+    let _env = sh.push_env(
+        "CMAKE_PREFIX_PATH",
+        format!("{}:{}/lib", env!("LIBCRYPTO_INCLUDE"), out_dir.display()),
+    );
 
     cmd!(
         sh,

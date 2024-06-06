@@ -607,7 +607,7 @@ MACROS = {
     'GUARD(result)': dict(
         doc='Ensures `{is_ok}`, otherwise the function will return `{error}`',
         impl='__S2N_ENSURE({is_ok}, __S2N_ENSURE_CHECKED_RETURN({error}))',
-        stub='__STUB_{prefix}GUARD({is_ok})',
+        stub='__STUB_{prefix}GUARD(result)',
         harness='''
         static {ret} {prefix}GUARD_harness({ret} result)
         {{
@@ -751,7 +751,7 @@ for context in CONTEXTS:
                 'indent': context['indent'],
                 'doc': doc,
                 'impl': impl,
-                'stub': '__STUB_{prefix}GUARD{suffix}({is_ok})',
+                'stub': '__STUB_{prefix}GUARD{suffix}(result)',
             }
             args['macro'] = 'GUARD{suffix}(result)'.format_map(args)
             docs += push_doc(args)
