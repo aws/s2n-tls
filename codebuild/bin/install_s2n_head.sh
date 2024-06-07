@@ -26,6 +26,9 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 
+# In the case where this script runs before the regular build,
+# we need a place to land the alternative test binary.
+mkdir -p "$SRC_ROOT/build/bin"
 
 if [[ ! -x "$SRC_ROOT/build/bin/s2nc_head" ]]; then
     if [[ ! -d "s2n_head" ]]; then
