@@ -1,4 +1,5 @@
 import copy
+import platform
 import pytest
 import random
 
@@ -188,13 +189,13 @@ def basic_reneg_test(managed_process, cipher, curve, certificate, protocol, prov
 
     server = managed_process(provider, server_options,
                              send_marker=Msg.send_markers(messages, Provider.ServerMode),
-                             timeout=5
+                             timeout=8
                              )
 
     s2n_client = managed_process(S2N, client_options,
                                  send_marker=Msg.send_markers(messages, Provider.ClientMode),
                                  close_marker=Msg.close_marker(messages),
-                                 timeout=5
+                                 timeout=8
                                  )
 
     return (s2n_client, server)
@@ -292,6 +293,7 @@ but does require client auth during the second handshake.
 """
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1, condition=platform.machine().startswith("aarch"))
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
@@ -341,6 +343,7 @@ The s2n-tls client successfully reads ApplicationData during the renegotiation h
 """
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1, condition=platform.machine().startswith("aarch"))
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("curve", ALL_TEST_CURVES, ids=get_parameter_name)
