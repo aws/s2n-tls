@@ -49,4 +49,6 @@ else
     echo "s2nc_head already exists; not rebuilding s2n_head"
 fi
 
+echo "\nChecking build for s2nc/d...\n$(ls -al $SRC_ROOT/build/bin/s2n[cd]*)" 
+
 exit 0
