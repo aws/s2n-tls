@@ -165,6 +165,14 @@ int s2n_rsa_client_key_recv_complete(struct s2n_connection *conn, bool rsa_faile
     conn->handshake.rsa_failed |= !s2n_constant_time_equals(client_hello_protocol_version,
             conn->secrets.version.tls12.rsa_premaster_secret, S2N_TLS_PROTOCOL_VERSION_LEN);
 
+    /* Required to protect against Bleichenbacher attack.
+     * See https://www.rfc-editor.org/rfc/rfc5246#section-7.4.7.1
+     * We choose the first option: always setting the version in the rsa_premaster_secret
+     * from our local view of the client_hello value.
+     */
+    conn->secrets.version.tls12.rsa_premaster_secret[0] = client_hello_protocol_version[0];
+    conn->secrets.version.tls12.rsa_premaster_secret[1] = client_hello_protocol_version[1];
+
     return 0;
 }
 

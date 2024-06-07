@@ -19,6 +19,7 @@
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_pss.h"
 #include "error/s2n_errno.h"
+#include "tls/s2n_signature_algorithms.h"
 #include "utils/s2n_safety.h"
 
 DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
@@ -97,6 +98,20 @@ static S2N_RESULT s2n_evp_signing_validate_hash_alg(s2n_signature_algorithm sig_
     return S2N_RESULT_OK;
 }
 
+static S2N_RESULT s2n_evp_signing_validate_sig_alg(const struct s2n_pkey *key, s2n_signature_algorithm sig_alg)
+{
+    RESULT_ENSURE_REF(key);
+
+    /* Ensure that the signature algorithm type matches the key type. */
+    s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+    RESULT_GUARD(s2n_pkey_get_type(key->pkey, &pkey_type));
+    s2n_pkey_type sig_alg_type = S2N_PKEY_TYPE_UNKNOWN;
+    RESULT_GUARD(s2n_signature_algorithm_get_pkey_type(sig_alg, &sig_alg_type));
+    RESULT_ENSURE(pkey_type == sig_alg_type, S2N_ERR_INVALID_SIGNATURE_ALGORITHM);
+
+    return S2N_RESULT_OK;
+}
+
 int s2n_evp_sign(const struct s2n_pkey *priv, s2n_signature_algorithm sig_alg,
         struct s2n_hash_state *hash_state, struct s2n_blob *signature)
 {
@@ -136,6 +151,7 @@ int s2n_evp_verify(const struct s2n_pkey *pub, s2n_signature_algorithm sig_alg,
     POSIX_ENSURE_REF(signature);
     POSIX_ENSURE(s2n_evp_signing_supported(), S2N_ERR_HASH_NOT_READY);
     POSIX_GUARD_RESULT(s2n_evp_signing_validate_hash_alg(sig_alg, hash_state->alg));
+    POSIX_GUARD_RESULT(s2n_evp_signing_validate_sig_alg(pub, sig_alg));
 
     DEFER_CLEANUP(EVP_PKEY_CTX *pctx = EVP_PKEY_CTX_new(pub->pkey, NULL), EVP_PKEY_CTX_free_pointer);
     POSIX_ENSURE_REF(pctx);
