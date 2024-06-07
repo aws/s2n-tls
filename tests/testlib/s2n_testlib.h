@@ -102,8 +102,8 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
  */
 #define S2N_RSA_2048_PKCS8_CERT_CHAIN        "../pems/rsa_2048_pkcs8_cert.pem"
 #define S2N_RSA_2048_PKCS1_CERT_CHAIN        "../pems/rsa_2048_pkcs1_cert.pem"
-#define S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN "../pems/rsa_2048_pkcs1_sha256_cert.pem"
-#define S2N_RSA_2048_PKCS1_SHA256_CERT_KEY   "../pems/rsa_2048_pkcs1_sha256_key.pem"
+#define S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN "../pems/permutations/rsae_pkcs_2048_sha256/server-chain.pem"
+#define S2N_RSA_2048_PKCS1_SHA256_CERT_KEY   "../pems/permutations/rsae_pkcs_2048_sha256/server-key.pem"
 
 #define S2N_RSA_2048_PKCS1_LEAF_CERT    "../pems/rsa_2048_pkcs1_leaf.pem"
 #define S2N_ECDSA_P256_PKCS1_CERT_CHAIN "../pems/ecdsa_p256_pkcs1_cert.pem"
