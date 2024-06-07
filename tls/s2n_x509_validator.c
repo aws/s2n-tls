@@ -422,14 +422,14 @@ S2N_RESULT s2n_x509_validator_check_cert_preferences(struct s2n_connection *conn
      * algorithm matches one of the algorithms specified in the
      * "signature_algorithms" extension.
      *
-     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.2
+     *= https://tools.ietf.org/rfc/rfc5246#section-7.4.2
      *= type=exception
      *= reason=not implemented due to lack of utility
      *# If the client provided a "signature_algorithms" extension, then all
      *# certificates provided by the server MUST be signed by a
      *# hash/signature algorithm pair that appears in that extension.
      *
-     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.3
      *= type=exception
      *= reason=not implemented due to lack of utility
      *# If no "signature_algorithms_cert" extension is present, then the

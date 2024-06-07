@@ -144,7 +144,7 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
      * experience no behavior change due to processing the TLS 1.3 extension. See
      * https://github.com/aws/s2n-tls/issues/4240.
      *
-     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.1
+     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.1
      *= type=exception
      *= reason=The client hello legacy version is used for version selection on TLS 1.2 servers for backwards compatibility
      *# If this extension is present in the ClientHello, servers MUST NOT use

@@ -179,7 +179,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         POSIX_ENSURE(!conn->handshake.renegotiation, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
         /**
-         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.3
+         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.3
          *# A client which
          *# receives a legacy_session_id_echo field that does not match what
          *# it sent in the ClientHello MUST abort the handshake with an

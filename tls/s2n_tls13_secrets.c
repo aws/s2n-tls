@@ -714,7 +714,7 @@ S2N_RESULT s2n_tls13_secrets_get(struct s2n_connection *conn, s2n_extract_secret
 }
 
 /*
- *= https://www.rfc-editor.org/rfc/rfc8446#section-7.5
+ *= https://tools.ietf.org/rfc/rfc8446#section-7.5
  *# The exporter value is computed as:
  *#
  *# TLS-Exporter(label, context_value, key_length) =
