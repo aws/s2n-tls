@@ -1,4 +1,4 @@
-target = "https://tools.ietf.org/rfc/rfc5746#5"
+target = "https://www.rfc-editor.org/rfc/rfc5746#5"
 
 [[exception]]
 quote = '''
