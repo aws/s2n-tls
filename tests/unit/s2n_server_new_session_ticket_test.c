@@ -61,7 +61,7 @@ static int s2n_setup_test_resumption_secret(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
     /**
-     *= https://tools.ietf.org/rfc/rfc8448#section-3
+     *= https://www.rfc-editor.org/rfc/rfc8448#section-3
      *# PRK (32 octets):  7d f2 35 f2 03 1d 2a 05 12 87 d0 2b 02 41 b0 bf
      *# da f8 6c c8 56 23 1f 2d 5a ba 46 c4 34 ec 19 6c
      **/
@@ -183,7 +183,7 @@ int main(int argc, char **argv)
         };
 
         /** ticket_age_add values do not repeat after sending multiple new session tickets
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
          *= type=test
          *#  The server MUST generate a fresh value
          *#  for each ticket it sends.
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(min_lifetime, ONE_HOUR_IN_NANOS / ONE_SEC_IN_NANOS);
 
         /** Test: Both session state and decrypt key have longer lifetimes than a week
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
          *= type=test
          *# Servers MUST NOT use any value greater than
          *# 604800 seconds (7 days).
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
     /* s2n_generate_session_secret */
     {
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-3
          *# expanded (32 octets):  4e cd 0e b6 ec 3b 4d 87 f5 d6 02 8f 92 2c
          *# a4 c5 85 1a 27 7f d4 13 11 c9 e6 2d 2c 94 92 e1 c4 f3
          **/
@@ -566,7 +566,7 @@ int main(int argc, char **argv)
             /**
              * NewSessionTicket handshake message
              * 
-             *= https://tools.ietf.org/rfc/rfc8448#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *# NewSessionTicket (205 octets):  04 00 00 c9 00 00 00 1e fa d6 aa
              *#    c5 02 00 00 00 b2 2c 03 5d 82 93 59 ee 5f f7 af 4e c9 00 00 00
              *#    00 26 2a 64 94 dc 48 6d 2c 8a 34 cb 33 fa 90 bf 1b 00 70 ad 3c
@@ -745,7 +745,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
 
             /**
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
              *= type=test
              *# The value of zero indicates that the
              *# ticket should be discarded immediately.
@@ -771,7 +771,7 @@ int main(int argc, char **argv)
             };
 
             /**
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
              *= type=test
              *# Servers MUST NOT use any value greater than
              *# 604800 seconds (7 days).
@@ -1018,7 +1018,7 @@ int main(int argc, char **argv)
 
         /* Send no more tickets if keying material is expired
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
          *= type=test
          *# Note that in principle it is possible to continue issuing new tickets
          *# which indefinitely extend the lifetime of the keying material

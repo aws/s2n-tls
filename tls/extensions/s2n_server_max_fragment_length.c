@@ -58,7 +58,7 @@ static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_
     POSIX_GUARD(s2n_stuffer_read_uint8(extension, &mfl_code));
 
     /*
-     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-4
      *# Similarly, if a client
      *# receives a maximum fragment length negotiation response that differs
      *# from the length it requested, it MUST also abort the handshake with
@@ -67,7 +67,7 @@ static int s2n_max_fragment_length_recv(struct s2n_connection *conn, struct s2n_
     S2N_ERROR_IF(mfl_code != conn->config->mfl_code, S2N_ERR_MAX_FRAG_LEN_MISMATCH);
 
     /*
-     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-4
      *# Once a maximum fragment length other than 2^14 has been successfully
      *# negotiated, the client and server MUST immediately begin fragmenting
      *# messages (including handshake messages) to ensure that no fragment

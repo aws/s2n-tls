@@ -830,7 +830,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(conn->ems_negotiated);
 
             /**
-             *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+             *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
              *= type=test
              *# If the original session used the "extended_master_secret"
              *# extension but the new ClientHello does not contain it, the server
@@ -843,7 +843,7 @@ int main(int argc, char **argv)
             EXPECT_TRUE(conn->ems_negotiated);
 
             /**
-             *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+             *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
              *= type=test
              *# If the original session did not use the "extended_master_secret"
              *# extension but the new ClientHello contains the extension, then the
@@ -1261,7 +1261,7 @@ int main(int argc, char **argv)
         };
 
         /** Ticket age is longer than a week
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
          *= type=test
          *# Clients MUST NOT cache
          *# tickets for longer than 7 days, regardless of the ticket_lifetime,

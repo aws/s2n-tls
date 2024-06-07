@@ -228,14 +228,14 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
          * otherwise an intentional deviation from the RFC.
          *
          * TLS1.3 servers:
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.4.3
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.3
          *# If the CertificateVerify message is sent by a server, the signature
          *# algorithm MUST be one offered in the client's "signature_algorithms"
          *# extension unless no valid certificate chain can be produced without
          *# unsupported algorithms
          *
          * TLS1.3 clients:
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.4.3
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.3
          *= type=exception
          *= reason=Compatibility with hypothetical faulty peers
          *# If sent by a client, the signature algorithm used in the signature
@@ -244,7 +244,7 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
          *# CertificateRequest message.
          *
          * TLS1.2 servers:
-         *= https://tools.ietf.org/rfc/rfc5246#section-7.4.3
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.3
          *= type=exception
          *= reason=Compatibility with known faulty peers
          *# If the client has offered the "signature_algorithms" extension, the
@@ -252,7 +252,7 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
          *# extension.
          *
          * TLS1.2 clients:
-         *= https://tools.ietf.org/rfc/rfc5246#section-7.4.8
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.8
          *= type=exception
          *= reason=Compatibility with hypothetical faulty peers
          *# The hash and signature algorithms used in the signature MUST be
@@ -267,7 +267,7 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
         }
 
         /**
-         *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.4.1
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.4.1
          *# If the client does not send the signature_algorithms extension, the
          *# server MUST do the following:
          *#

@@ -101,7 +101,7 @@ int main(int argc, char **argv)
         };
 
         /** Clients MUST verify
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *= type=test
          *# that the server selected a cipher suite
          *# indicating a Hash associated with the PSK
@@ -297,7 +297,7 @@ int main(int argc, char **argv)
 
         /* TEST RENEGOTIATION
          *
-         *= https://tools.ietf.org/rfc/rfc5746#3.6
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.6
          *= type=test
          *# o  When a ClientHello is received, the server MUST check if it
          *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
@@ -789,7 +789,7 @@ int main(int argc, char **argv)
 
         /* If a PSK is being used, then the cipher suite must match the PSK's HMAC algorithm.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *= type=test
          *# The server MUST ensure that it selects a compatible PSK
          *# (if any) and cipher suite.

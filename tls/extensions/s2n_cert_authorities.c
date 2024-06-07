@@ -109,7 +109,7 @@ const s2n_extension_type s2n_cert_authorities_extension = {
     /* s2n-tls supports sending the extension, but does not support parsing it.
      * If received, the extension is ignored.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
      *= type=exception
      *= reason=Extension ignored when received - No customer use case
      *# The "certificate_authorities" extension is used to indicate the

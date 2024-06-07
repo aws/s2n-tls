@@ -91,7 +91,7 @@ int main(int argc, char **argv)
         conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384;
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7627#section-4
+         *= https://www.rfc-editor.org/rfc/rfc7627#section-4
          *= type=test
          *# When the extended master secret extension is negotiated in a full
          *# handshake, the "master_secret" is computed as
@@ -149,7 +149,7 @@ int main(int argc, char **argv)
      * Here we test that the retrieved digest is the same as the digest after the Client Key Exchange
      * message is added to the transcript hash.
      *
-     *= https://tools.ietf.org/rfc/rfc7627#section-3
+     *= https://www.rfc-editor.org/rfc/rfc7627#section-3
      *= type=test
      *# When a full TLS handshake takes place, we define
      *#
