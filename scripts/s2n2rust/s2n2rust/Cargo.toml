@@ -6,7 +6,17 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 aws-lc-sys = "0.17"
+libc = "0.2"
 glob = "0.3"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 xshell = "0.2"
+
+[dev-dependencies]
+bolero = "0.10"
+
+[profile.fuzz]
+inherits = "dev"
+opt-level = 3
+incremental = false
+codegen-units = 1

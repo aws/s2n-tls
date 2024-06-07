@@ -1071,7 +1071,7 @@ int s2n_conn_set_handshake_type(struct s2n_connection *conn)
      * Client sent in the ClientHello. */
     if (conn->actual_protocol_version <= S2N_TLS12 && conn->mode == S2N_SERVER && s2n_allowed_to_cache_connection(conn)) {
         int r = s2n_resume_from_cache(conn);
-        if (r == S2N_SUCCESS || (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(s2n_errno))) {
+        if (r == S2N_SUCCESS || (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(S2N_ERRNO_GET()))) {
             return r;
         }
         POSIX_GUARD_RESULT(s2n_validate_ems_status(conn));
@@ -1421,7 +1421,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
          *# "early_data" extension, it MUST terminate the connection with a
          *# "bad_record_mac" alert as per Section 5.2.
          */
-        if ((r < S2N_SUCCESS) && (s2n_errno == S2N_ERR_EARLY_DATA_TRIAL_DECRYPT)) {
+        if ((r < S2N_SUCCESS) && (S2N_ERRNO_GET() == S2N_ERR_EARLY_DATA_TRIAL_DECRYPT)) {
             POSIX_GUARD(s2n_stuffer_reread(&conn->in));
             POSIX_GUARD_RESULT(s2n_early_data_record_bytes(conn, s2n_stuffer_data_available(&conn->in)));
             POSIX_GUARD_RESULT(s2n_record_wipe(conn));
@@ -1558,10 +1558,10 @@ static int s2n_handle_retry_state(struct s2n_connection *conn)
      * external data. The handler will know how to continue, so we should call the
      * handler right away. We aren't going to read more handshake data yet or proceed
      * to the next handler because the current message has not finished processing. */
-    s2n_errno = S2N_ERR_OK;
+    S2N_ERRNO_SET(S2N_ERR_OK);
     const int r = ACTIVE_STATE(conn).handler[conn->mode](conn);
 
-    if (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(s2n_errno)) {
+    if (r < S2N_SUCCESS && S2N_ERROR_IS_BLOCKING(S2N_ERRNO_GET())) {
         /* If the handler is still waiting for data, return control to the caller. */
         S2N_ERROR_PRESERVE_ERRNO();
     }
@@ -1610,7 +1610,7 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
 
     while (!s2n_handshake_is_complete(conn) && ACTIVE_MESSAGE(conn) != conn->handshake.end_of_messages) {
         errno = 0;
-        s2n_errno = S2N_ERR_OK;
+        S2N_ERRNO_SET(S2N_ERR_OK);
 
         /* Flush any pending I/O or alert messages */
         POSIX_GUARD(s2n_flush(conn, blocked));
@@ -1628,28 +1628,28 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
             const int write_result = s2n_handshake_write_io(conn);
 
             if (write_result < S2N_SUCCESS) {
-                if (!S2N_ERROR_IS_BLOCKING(s2n_errno)) {
+                if (!S2N_ERROR_IS_BLOCKING(S2N_ERRNO_GET())) {
                     /* Non-retryable write error. The peer might have sent an alert. Try and read it. */
                     const int write_errno = errno;
-                    const int write_s2n_errno = s2n_errno;
+                    const int write_s2n_errno = S2N_ERRNO_GET();
                     struct s2n_debug_info write_s2n_debug_info = _s2n_debug_info;
 
-                    if (s2n_handshake_read_io(conn) < 0 && s2n_errno == S2N_ERR_ALERT) {
+                    if (s2n_handshake_read_io(conn) < 0 && write_s2n_errno == S2N_ERR_ALERT) {
                         /* s2n_handshake_read_io has set s2n_errno */
                         S2N_ERROR_PRESERVE_ERRNO();
                     } else {
                         /* Let the write error take precedence if we didn't read an alert. */
                         errno = write_errno;
-                        s2n_errno = write_s2n_errno;
+                        S2N_ERRNO_SET(write_s2n_errno);
                         _s2n_debug_info_set(write_s2n_debug_info);
                         S2N_ERROR_PRESERVE_ERRNO();
                     }
                 }
 
-                if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+                if (S2N_ERRNO_GET() == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
                     conn->handshake.paused = true;
-                } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
+                } else if (S2N_ERRNO_GET() == S2N_ERR_EARLY_DATA_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_EARLY_DATA;
                 }
 
@@ -1662,14 +1662,14 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
             if (read_result < S2N_SUCCESS) {
                 /* One blocking condition is waiting on the session resumption cache. */
                 /* So we don't want to delete anything if we are blocked. */
-                if (!S2N_ERROR_IS_BLOCKING(s2n_errno) && conn->session_id_len) {
+                if (!S2N_ERROR_IS_BLOCKING(S2N_ERRNO_GET()) && conn->session_id_len) {
                     s2n_try_delete_session_cache(conn);
                 }
 
-                if (s2n_errno == S2N_ERR_ASYNC_BLOCKED) {
+                if (S2N_ERRNO_GET() == S2N_ERR_ASYNC_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_APPLICATION_INPUT;
                     conn->handshake.paused = true;
-                } else if (s2n_errno == S2N_ERR_EARLY_DATA_BLOCKED) {
+                } else if (S2N_ERRNO_GET() == S2N_ERR_EARLY_DATA_BLOCKED) {
                     *blocked = S2N_BLOCKED_ON_EARLY_DATA;
                 }
 

@@ -1189,11 +1189,11 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 
 /* s2n-tls has a random delay that will trigger for sensitive errors. This is a mitigation
  * for possible timing sidechannels.
- * 
+ *
  * The historical sidechannel that inspired s2n-tls blinding was the Lucky 13 attack, which takes
  * advantage of potential timing differences when removing padding from a record encrypted in CBC mode.
- * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur 
- * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and 
+ * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur
+ * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and
  * DTLS Record Protocols.) However, we still include blinding to provide a defense in depth mitigation.
  */
 S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_t *min, int64_t *max)
@@ -1267,7 +1267,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
     /* Ensure that conn->in doesn't contain any leftover invalid or unauthenticated data. */
     RESULT_GUARD_POSIX(s2n_stuffer_wipe(&(*conn)->in));
 
-    int error_code = s2n_errno;
+    int error_code = S2N_ERRNO_GET();
     int error_type = s2n_error_get_type(error_code);
 
     switch (error_type) {

@@ -149,16 +149,16 @@ static int s2n_config_update_domain_name_to_cert_map(struct s2n_config *config,
     bool key_found = false;
     POSIX_GUARD_RESULT(s2n_map_lookup(domain_name_to_cert_map, name, &s2n_map_value, &key_found));
     if (!key_found) {
-        struct certs_by_type value = { { 0 } };
+        struct s2n_certs_by_type value = { { 0 } };
         value.certs[cert_type] = cert_key_pair;
         s2n_map_value.data = (uint8_t *) &value;
-        s2n_map_value.size = sizeof(struct certs_by_type);
+        s2n_map_value.size = sizeof(struct s2n_certs_by_type);
 
         POSIX_GUARD_RESULT(s2n_map_unlock(domain_name_to_cert_map));
         POSIX_GUARD_RESULT(s2n_map_add(domain_name_to_cert_map, name, &s2n_map_value));
         POSIX_GUARD_RESULT(s2n_map_complete(domain_name_to_cert_map));
     } else {
-        struct certs_by_type *value = (void *) s2n_map_value.data;
+        struct s2n_certs_by_type *value = (void *) s2n_map_value.data;
         if (value->certs[cert_type] == NULL) {
             value->certs[cert_type] = cert_key_pair;
         } else if (config->cert_tiebreak_cb) {
@@ -584,7 +584,7 @@ S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *conf
         struct s2n_blob value = { 0 };
         RESULT_GUARD(s2n_map_iterator_next(&iter, &value));
 
-        struct certs_by_type *domain_certs = (void *) value.data;
+        struct s2n_certs_by_type *domain_certs = (void *) value.data;
         for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
             struct s2n_cert_chain_and_key *cert = domain_certs->certs[i];
             if (cert == NULL) {
@@ -684,7 +684,7 @@ int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config *config,
     POSIX_ENSURE(config->cert_ownership != S2N_LIB_OWNED, S2N_ERR_CERT_OWNERSHIP);
 
     /* Validate certs being set before clearing auto-chosen defaults or previously set defaults */
-    struct certs_by_type new_defaults = { { 0 } };
+    struct s2n_certs_by_type new_defaults = { { 0 } };
     for (size_t i = 0; i < num_cert_key_pairs; i++) {
         POSIX_ENSURE_REF(cert_key_pairs[i]);
         s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pairs[i]);
