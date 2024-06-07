@@ -169,7 +169,7 @@ static int s2n_client_supported_versions_recv(struct s2n_connection *conn, struc
         conn->actual_protocol_version = s2n_unknown_protocol_version;
 
         s2n_queue_reader_unsupported_protocol_version_alert(conn);
-        POSIX_ENSURE(s2n_errno != S2N_ERR_SAFETY, S2N_ERR_BAD_MESSAGE);
+        POSIX_ENSURE(S2N_ERRNO_GET() != S2N_ERR_SAFETY, S2N_ERR_BAD_MESSAGE);
     }
     POSIX_GUARD_RESULT(result);
 

@@ -25,3 +25,6 @@ aws-lc-sys = { version = "*" }
 c2rust-bitfields = "0.3"
 c2rust-asm-casts = "0.2"
 libc = "0.2"
+
+[dev-dependencies]
+bolero = "0.10"

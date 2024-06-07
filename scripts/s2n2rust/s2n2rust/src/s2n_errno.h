@@ -10,8 +10,14 @@ struct s2n_debug_info {
     const char *debug_str;
 };
 
-struct s2n_debug_info* __STUB_DEBUG_INFO_GET(void);
-#define _s2n_debug_info *__STUB_DEBUG_INFO_GET()
+int __STUB_ERRNO_GET(void);
+#define S2N_ERRNO_GET() __STUB_ERRNO_GET()
+
+void __STUB_ERRNO_SET(int);
+#define S2N_ERRNO_SET(v) __STUB_ERRNO_SET(v)
+
+struct s2n_debug_info __STUB_DEBUG_INFO_GET(void);
+#define _s2n_debug_info __STUB_DEBUG_INFO_GET()
 
 void __STUB_DEBUG_INFO_SET(struct s2n_debug_info debug_info);
 #define _s2n_debug_info_set __STUB_DEBUG_INFO_SET

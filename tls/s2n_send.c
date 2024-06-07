@@ -220,7 +220,7 @@ ssize_t s2n_sendv_with_offset_impl(struct s2n_connection *conn, const struct iov
         /* Send it, unless we're waiting for more records */
         if (s2n_should_flush(conn, total_size)) {
             if (s2n_flush(conn, blocked) < 0) {
-                if (s2n_errno == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
+                if (S2N_ERRNO_GET() == S2N_ERR_IO_BLOCKED && user_data_sent > 0) {
                     /* We successfully sent >0 user bytes on the wire, but not the full requested payload
                      * because we became blocked on I/O. Acknowledge the data sent. */
 

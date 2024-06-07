@@ -342,6 +342,9 @@ struct s2n_debug_info {
 extern __thread struct s2n_debug_info _s2n_debug_info;
 void _s2n_debug_info_set(struct s2n_debug_info debug_info);
 
+#define S2N_ERRNO_GET() s2n_errno
+#define S2N_ERRNO_SET(v) do { s2n_errno = v; } while (0)
+
 #define TO_STRING(s)   #s
 #define STRING_(s)     TO_STRING(s)
 #define STRING__LINE__ STRING_(__LINE__)
