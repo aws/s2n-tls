@@ -20,13 +20,6 @@
 #include "crypto/s2n_rsa.h"
 #include "utils/s2n_blob.h"
 
-/* Check for libcrypto 1.1 for RSA PSS Signing and EV_Key usage */
-#if (S2N_OPENSSL_VERSION_AT_LEAST(1, 1, 1) || defined(OPENSSL_IS_AWSLC)) && !defined(LIBRESSL_VERSION_NUMBER) && !defined(OPENSSL_IS_BORINGSSL)
-    #define RSA_PSS_SIGNING_SUPPORTED 1
-#else
-    #define RSA_PSS_SIGNING_SUPPORTED 0
-#endif
-
 int s2n_rsa_pkcs1v15_sign(const struct s2n_pkey *priv, struct s2n_hash_state *digest, struct s2n_blob *signature);
 int s2n_rsa_pkcs1v15_verify(const struct s2n_pkey *pub, struct s2n_hash_state *digest, struct s2n_blob *signature);
 
