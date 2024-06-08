@@ -53,7 +53,7 @@ int s2n_sslv2_record_header_parse(
      * Since the first bit is not actually used to indicate length, we need to
      * remove it from the length.
      *
-     *= https://tools.ietf.org/rfc/rfc5246#appendix-E.2
+     *= https://www.rfc-editor.org/rfc/rfc5246#appendix-E.2
      *# msg_length
      *#    The highest bit MUST be 1; the remaining bits contain the length
      *#    of the following data in bytes.
@@ -132,7 +132,7 @@ int s2n_record_header_parse(
      * Openssl 1.0.1), so we don't check if the fragment length is >
      * S2N_TLS_MAXIMUM_FRAGMENT_LENGTH. We allow up to 2^16.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.1
      *= type=exception
      *= reason=Incorrect implementations exist in the wild. Ignoring instead.
      *# The length MUST NOT exceed 2^14 bytes.  An

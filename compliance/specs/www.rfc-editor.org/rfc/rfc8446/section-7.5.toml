@@ -1,0 +1,71 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-7.5"
+
+# 7.5.  Exporters
+#
+# [RFC5705] defines keying material exporters for TLS in terms of the
+# TLS pseudorandom function (PRF).  This document replaces the PRF with
+# HKDF, thus requiring a new construction.  The exporter interface
+# remains the same.
+# 
+# The exporter value is computed as:
+# 
+# TLS-Exporter(label, context_value, key_length) =
+#     HKDF-Expand-Label(Derive-Secret(Secret, label, ""),
+#                       "exporter", Hash(context_value), key_length)
+# 
+# Where Secret is either the early_exporter_master_secret or the
+# exporter_master_secret.  Implementations MUST use the
+# exporter_master_secret unless explicitly specified by the
+# application.  The early_exporter_master_secret is defined for use in
+# settings where an exporter is needed for 0-RTT data.  A separate
+# interface for the early exporter is RECOMMENDED; this avoids the
+# exporter user accidentally using an early exporter when a regular one
+# is desired or vice versa.
+# 
+# If no context is provided, the context_value is zero length.
+# Consequently, providing no context computes the same value as
+# providing an empty context.  This is a change from previous versions
+# of TLS where an empty context produced a different output than an
+# absent context.  As of this document's publication, no allocated
+# exporter label is used both with and without a context.  Future
+# specifications MUST NOT define a use of exporters that permit both an
+# empty context and no context with the same label.  New uses of
+# exporters SHOULD provide a context in all exporter computations,
+# though the value could be empty.
+# 
+# Requirements for the format of exporter labels are defined in
+# Section 4 of [RFC5705].
+
+[[spec]]
+level = "MUST"
+quote = '''
+Implementations MUST use the
+exporter_master_secret unless explicitly specified by the
+application.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+A separate
+interface for the early exporter is RECOMMENDED; this avoids the
+exporter user accidentally using an early exporter when a regular one
+is desired or vice versa.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Future
+specifications MUST NOT define a use of exporters that permit both an
+empty context and no context with the same label.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+New uses of
+exporters SHOULD provide a context in all exporter computations,
+though the value could be empty.
+'''
+

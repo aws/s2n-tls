@@ -110,14 +110,14 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     uint8_t legacy_version = (uint8_t) (protocol_version[0] * 10) + protocol_version[1];
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.3
      *# Upon receiving a message with type server_hello, implementations MUST
      *# first examine the Random value and, if it matches this value, process
      *# it as described in Section 4.1.4).
      **/
     if (s2n_random_value_is_hello_retry(conn) == S2N_SUCCESS) {
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *# If a client receives a second
          *# HelloRetryRequest in the same connection (i.e., where the ClientHello
          *# was itself in response to a HelloRetryRequest), it MUST abort the
@@ -126,7 +126,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *# Upon receipt of a HelloRetryRequest, the client MUST check the
          *# legacy_version
          **/
@@ -145,11 +145,11 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_read_uint8(in, &compression_method));
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.3
      *# legacy_compression_method:  A single byte which MUST have the
      *# value 0.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *# Upon receipt of a HelloRetryRequest, the client MUST check the
      *# legacy_version, legacy_session_id_echo, cipher_suite, and
      *# legacy_compression_method
@@ -165,7 +165,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     POSIX_GUARD(s2n_server_extensions_recv(conn, in));
 
     /**
-    *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+    *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
     *# The server's extensions MUST contain "supported_versions".
     **/
     if (s2n_is_hello_retry_message(conn)) {
@@ -185,7 +185,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
          *# it sent in the ClientHello MUST abort the handshake with an
          *# "illegal_parameter" alert.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *# Upon receipt of a HelloRetryRequest, the client MUST check the
          *# legacy_version, legacy_session_id_echo
          **/
@@ -206,7 +206,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         POSIX_ENSURE(!s2n_is_hello_retry_handshake(conn), S2N_ERR_BAD_MESSAGE);
 
         /*
-         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
+         *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.3
          *# A client that attempts to send 0-RTT data MUST fail a connection if
          *# it receives a ServerHello with TLS 1.2 or older.
          */
@@ -224,7 +224,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->server_protocol_version, conn->client_protocol_version);
 
         /*
-         *= https://tools.ietf.org/rfc/rfc5077#section-3.4
+         *= https://www.rfc-editor.org/rfc/rfc5077#section-3.4
          *# If the server accepts the ticket
          *# and the Session ID is not empty, then it MUST respond with the same
          *# Session ID present in the ClientHello.  This allows the client to

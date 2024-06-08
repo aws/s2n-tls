@@ -67,7 +67,7 @@ static int s2n_ec_point_format_recv(struct s2n_connection *conn, struct s2n_stuf
     /* Only uncompressed points are supported by the server and the client must include it in
      * the extension. Just skip the extension.
      *
-     *= https://tools.ietf.org/rfc/rfc8422#section-5.1.2
+     *= https://www.rfc-editor.org/rfc/rfc8422#section-5.1.2
      *= type=exception
      *= reason=Incorrect implementations exist in the wild. Skipping validation.
      *# If the client sends the extension and the extension does not contain

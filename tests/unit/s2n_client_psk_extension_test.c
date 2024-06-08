@@ -137,7 +137,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_client_psk_extension.if_missing(conn));
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *= type=test
          *# When a PSK is used and early data is allowed for that PSK, the client
          *# can send Application Data in its first flight of messages.  If the
@@ -399,7 +399,7 @@ int main(int argc, char **argv)
         /* On the second ClientHello after a retry request,
          * do not send any PSKs that do not match the cipher suite.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
          *= type=test
          *# In addition, in its updated ClientHello, the client SHOULD NOT offer
          *# any pre-shared keys associated with a hash other than that of the
@@ -472,7 +472,7 @@ int main(int argc, char **argv)
         /* On the second ClientHello after a retry request,
          * do not send the PSK extension if no valid PSKs.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
          *= type=test
          *# In addition, in its updated ClientHello, the client SHOULD NOT offer
          *# any pre-shared keys associated with a hash other than that of the
@@ -1508,7 +1508,7 @@ int main(int argc, char **argv)
     /**
      * Ensure obfuscated_ticket_age and binder values are updated on a client hello after a HRR
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
      *= type=test
      *# -   Updating the "pre_shared_key" extension if present by recomputing
      *#     the "obfuscated_ticket_age" and binder values and (optionally)

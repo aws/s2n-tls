@@ -39,7 +39,7 @@ int s2n_end_of_early_data_recv(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
  *# If the client attempts a 0-RTT handshake but the server
  *# rejects it, the server will generally not have the 0-RTT record
  *# protection keys and must instead use trial decryption (either with

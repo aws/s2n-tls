@@ -95,7 +95,7 @@ int main(int argc, char **argv)
 
     /* Test receive - invalid mfl code
      *
-     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-4
      *= type=test
      *# If a server receives a maximum fragment length negotiation request
      *# for a value other than the allowed values, it MUST abort the

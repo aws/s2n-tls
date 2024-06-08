@@ -25,7 +25,7 @@ static bool s2n_server_ems_should_send(struct s2n_connection *conn);
 static int s2n_server_ems_if_missing(struct s2n_connection *conn);
 
 /**
- *= https://tools.ietf.org/rfc/rfc7627#section-5.1
+ *= https://www.rfc-editor.org/rfc/rfc7627#section-5.1
  *#
  *#   This document defines a new TLS extension, "extended_master_secret"
  *#   (with extension type 0x0017), which is used to signal both client and
@@ -63,7 +63,7 @@ static int s2n_server_ems_if_missing(struct s2n_connection *conn)
     POSIX_ENSURE_REF(conn);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
      *#    If the original session used the extension but the new ServerHello
      *#    does not contain the extension, the client MUST abort the
      *#    handshake.
