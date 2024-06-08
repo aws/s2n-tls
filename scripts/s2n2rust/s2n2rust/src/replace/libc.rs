@@ -1,6 +1,9 @@
 use crate::ensure_ref;
 pub use ::libc::*;
 
+// alias this for now to reduce compilation errors
+pub type c_ulong = usize;
+
 #[inline(always)]
 pub unsafe fn memset<L>(ptr: *mut c_void, value: c_int, len: L)
 where
