@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
     /* Test should_send
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.6
      *= type=test
      *# o  If the secure_renegotiation flag is set to TRUE, the server MUST
      *#    include an empty "renegotiation_info" extension in the ServerHello
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 
     /* Test server_renegotiation_info send and recv during initial handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#4.3
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.3
      *= type=test
      *# In order to enable clients to probe, even servers that do not support
      *# renegotiation MUST implement the minimal version of the extension
@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
     /* Test server_renegotiation_info recv when using SSLv3
      *
-     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.5
      *= type=test
      *# Clients that support SSLv3 and offer secure renegotiation (either via SCSV or
      *# "renegotiation_info") MUST accept the "renegotiation_info" extension
@@ -184,7 +184,7 @@ int main(int argc, char **argv)
 
     /* Test server_renegotiation_info recv during initial handshake - extension length wrong
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *= type=test
      *# *  The client MUST then verify that the length of the
      *#    "renegotiated_connection" field is zero, and if it is not, MUST
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 
     /* Test: if_missing during initial handshake is a no-op
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *= type=test
      *# *  If the extension is not present, the server does not support
      *#    secure renegotiation; set secure_renegotiation flag to FALSE.
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
 
     /* Test: if_missing during renegotiation handshake is an error
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *= type=test
      *# o  When a ServerHello is received, the client MUST verify that the
      *#    "renegotiation_info" extension is present; if it is not, the
@@ -241,7 +241,7 @@ int main(int argc, char **argv)
 
     /* Test: recv during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *= type=test
      *# o  The client MUST then verify that the first half of the
      *#    "renegotiated_connection" field is equal to the saved
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
 
     /* Test send during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *= type=test
      *# o  The server MUST include a "renegotiation_info" extension
      *#    containing the saved client_verify_data and server_verify_data in
@@ -404,7 +404,7 @@ int main(int argc, char **argv)
 
     /* Functional Test
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *= type=test
      *# o  When a ServerHello is received, the client MUST check if it
      *#    includes the "renegotiation_info" extension:
@@ -455,7 +455,7 @@ int main(int argc, char **argv)
 
     /* Functional Test: SSLv3
      *
-     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.5
      *= type=test
      *# Clients that support SSLv3 and offer secure renegotiation (either via SCSV or
      *# "renegotiation_info") MUST accept the "renegotiation_info" extension

@@ -193,7 +193,7 @@ int main(int argc, char **argv)
         };
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *= type=test
          *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
          *# used, and servers MUST ignore the value.

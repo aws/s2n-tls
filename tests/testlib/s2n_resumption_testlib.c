@@ -17,7 +17,7 @@
 S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config)
 {
     /**
-     *= https://tools.ietf.org/rfc/rfc5869#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc5869#appendix-A.1
      *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
      *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
      **/

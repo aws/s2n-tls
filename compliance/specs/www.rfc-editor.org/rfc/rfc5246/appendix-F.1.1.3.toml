@@ -1,0 +1,81 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#appendix-F.1.1.3"
+
+# F.1.1.3.  Diffie-Hellman Key Exchange with Authentication
+#
+# When Diffie-Hellman key exchange is used, the server can either
+# supply a certificate containing fixed Diffie-Hellman parameters or
+# use the server key exchange message to send a set of temporary
+# Diffie-Hellman parameters signed with a DSA or RSA certificate.
+# Temporary parameters are hashed with the hello.random values before
+# signing to ensure that attackers do not replay old parameters.  In
+# either case, the client can verify the certificate or signature to
+# ensure that the parameters belong to the server.
+# 
+# If the client has a certificate containing fixed Diffie-Hellman
+# parameters, its certificate contains the information required to
+# complete the key exchange.  Note that in this case the client and
+# server will generate the same Diffie-Hellman result (i.e.,
+# 
+# pre_master_secret) every time they communicate.  To prevent the
+# pre_master_secret from staying in memory any longer than necessary,
+# it should be converted into the master_secret as soon as possible.
+# Client Diffie-Hellman parameters must be compatible with those
+# supplied by the server for the key exchange to work.
+# 
+# If the client has a standard DSA or RSA certificate or is
+# unauthenticated, it sends a set of temporary parameters to the server
+# in the client key exchange message, then optionally uses a
+# certificate verify message to authenticate itself.
+# 
+# If the same DH keypair is to be used for multiple handshakes, either
+# because the client or server has a certificate containing a fixed DH
+# keypair or because the server is reusing DH keys, care must be taken
+# to prevent small subgroup attacks.  Implementations SHOULD follow the
+# guidelines found in [SUBGROUP].
+# 
+# Small subgroup attacks are most easily avoided by using one of the
+# DHE cipher suites and generating a fresh DH private key (X) for each
+# handshake.  If a suitable base (such as 2) is chosen, g^X mod p can
+# be computed very quickly; therefore, the performance cost is
+# minimized.  Additionally, using a fresh key for each handshake
+# provides Perfect Forward Secrecy.  Implementations SHOULD generate a
+# new X for each handshake when using DHE cipher suites.
+# 
+# Because TLS allows the server to provide arbitrary DH groups, the
+# client should verify that the DH group is of suitable size as defined
+# by local policy.  The client SHOULD also verify that the DH public
+# exponent appears to be of adequate size.  [KEYSIZ] provides a useful
+# guide to the strength of various group sizes.  The server MAY choose
+# to assist the client by providing a known group, such as those
+# defined in [IKEALG] or [MODP].  These can be verified by simple
+# comparison.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Implementations SHOULD follow the
+guidelines found in [SUBGROUP].
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Implementations SHOULD generate a
+new X for each handshake when using DHE cipher suites.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+The client SHOULD also verify that the DH public
+exponent appears to be of adequate size.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+The server MAY choose
+to assist the client by providing a known group, such as those
+defined in [IKEALG] or [MODP].
+'''
+

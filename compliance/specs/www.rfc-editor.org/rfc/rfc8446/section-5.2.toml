@@ -1,0 +1,153 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-5.2"
+
+# 5.2.  Record Payload Protection
+#
+# The record protection functions translate a TLSPlaintext structure
+# into a TLSCiphertext structure.  The deprotection functions reverse
+# the process.  In TLS 1.3, as opposed to previous versions of TLS, all
+# ciphers are modeled as "Authenticated Encryption with Associated
+# Data" (AEAD) [RFC5116].  AEAD functions provide a unified encryption
+# and authentication operation which turns plaintext into authenticated
+# ciphertext and back again.  Each encrypted record consists of a
+# plaintext header followed by an encrypted body, which itself contains
+# a type and optional padding.
+# 
+#    struct {
+#        opaque content[TLSPlaintext.length];
+#        ContentType type;
+#        uint8 zeros[length_of_padding];
+#    } TLSInnerPlaintext;
+# 
+#    struct {
+#        ContentType opaque_type = application_data; /* 23 */
+#        ProtocolVersion legacy_record_version = 0x0303; /* TLS v1.2 */
+#        uint16 length;
+#        opaque encrypted_record[TLSCiphertext.length];
+#    } TLSCiphertext;
+# 
+# content:  The TLSPlaintext.fragment value, containing the byte
+#    encoding of a handshake or an alert message, or the raw bytes of
+#    the application's data to send.
+# 
+# type:  The TLSPlaintext.type value containing the content type of the
+#    record.
+# 
+# zeros:  An arbitrary-length run of zero-valued bytes may appear in
+#    the cleartext after the type field.  This provides an opportunity
+#    for senders to pad any TLS record by a chosen amount as long as
+#    the total stays within record size limits.  See Section 5.4 for
+#    more details.
+# 
+# opaque_type:  The outer opaque_type field of a TLSCiphertext record
+#    is always set to the value 23 (application_data) for outward
+#    compatibility with middleboxes accustomed to parsing previous
+#    versions of TLS.  The actual content type of the record is found
+#    in TLSInnerPlaintext.type after decryption.
+# 
+# legacy_record_version:  The legacy_record_version field is always
+#    0x0303.  TLS 1.3 TLSCiphertexts are not generated until after
+#    TLS 1.3 has been negotiated, so there are no historical
+#    compatibility concerns where other values might be received.  Note
+#    that the handshake protocol, including the ClientHello and
+#    ServerHello messages, authenticates the protocol version, so this
+#    value is redundant.
+# 
+# length:  The length (in bytes) of the following
+#    TLSCiphertext.encrypted_record, which is the sum of the lengths of
+#    the content and the padding, plus one for the inner content type,
+#    plus any expansion added by the AEAD algorithm.  The length
+#    MUST NOT exceed 2^14 + 256 bytes.  An endpoint that receives a
+#    record that exceeds this length MUST terminate the connection with
+#    a "record_overflow" alert.
+# 
+# encrypted_record:  The AEAD-encrypted form of the serialized
+#    TLSInnerPlaintext structure.
+# 
+# AEAD algorithms take as input a single key, a nonce, a plaintext, and
+# "additional data" to be included in the authentication check, as
+# described in Section 2.1 of [RFC5116].  The key is either the
+# client_write_key or the server_write_key, the nonce is derived from
+# the sequence number and the client_write_iv or server_write_iv (see
+# Section 5.3), and the additional data input is the record header.
+# 
+# I.e.,
+# 
+#    additional_data = TLSCiphertext.opaque_type ||
+#                      TLSCiphertext.legacy_record_version ||
+#                      TLSCiphertext.length
+# 
+# The plaintext input to the AEAD algorithm is the encoded
+# TLSInnerPlaintext structure.  Derivation of traffic keys is defined
+# in Section 7.3.
+# 
+# The AEAD output consists of the ciphertext output from the AEAD
+# encryption operation.  The length of the plaintext is greater than
+# the corresponding TLSPlaintext.length due to the inclusion of
+# TLSInnerPlaintext.type and any padding supplied by the sender.  The
+# length of the AEAD output will generally be larger than the
+# plaintext, but by an amount that varies with the AEAD algorithm.
+# 
+# Since the ciphers might incorporate padding, the amount of overhead
+# could vary with different lengths of plaintext.  Symbolically,
+# 
+#    AEADEncrypted =
+#        AEAD-Encrypt(write_key, nonce, additional_data, plaintext)
+# 
+# The encrypted_record field of TLSCiphertext is set to AEADEncrypted.
+# 
+# In order to decrypt and verify, the cipher takes as input the key,
+# nonce, additional data, and the AEADEncrypted value.  The output is
+# either the plaintext or an error indicating that the decryption
+# failed.  There is no separate integrity check.  Symbolically,
+# 
+#    plaintext of encrypted_record =
+#        AEAD-Decrypt(peer_write_key, nonce,
+#                     additional_data, AEADEncrypted)
+# 
+# If the decryption fails, the receiver MUST terminate the connection
+# with a "bad_record_mac" alert.
+# 
+# An AEAD algorithm used in TLS 1.3 MUST NOT produce an expansion
+# greater than 255 octets.  An endpoint that receives a record from its
+# peer with TLSCiphertext.length larger than 2^14 + 256 octets MUST
+# terminate the connection with a "record_overflow" alert.  This limit
+# is derived from the maximum TLSInnerPlaintext length of 2^14 octets +
+# 1 octet for ContentType + the maximum AEAD expansion of 255 octets.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The length
+MUST NOT exceed 2^14 + 256 bytes.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+An endpoint that receives a
+record that exceeds this length MUST terminate the connection with
+a "record_overflow" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the decryption fails, the receiver MUST terminate the connection
+with a "bad_record_mac" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+An AEAD algorithm used in TLS 1.3 MUST NOT produce an expansion
+greater than 255 octets.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+An endpoint that receives a record from its
+peer with TLSCiphertext.length larger than 2^14 + 256 octets MUST
+terminate the connection with a "record_overflow" alert.
+'''
+

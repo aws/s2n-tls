@@ -1,0 +1,82 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-5.7"
+
+# 5.7.  Client Key Exchange
+#
+# When this message is sent:
+# 
+# This message is sent in all key exchange algorithms.  If client
+# authentication with ECDSA_fixed_ECDH or RSA_fixed_ECDH is used, this
+# message is empty.  Otherwise, it contains the client's ephemeral ECDH
+# public key.
+# 
+# Meaning of the message:
+# 
+# This message is used to convey ephemeral data relating to the key
+# exchange belonging to the client (such as its ephemeral ECDH public
+# key).
+# 
+# Structure of this message:
+# 
+# The TLS ClientKeyExchange message is extended as follows.
+# 
+#      enum { implicit, explicit } PublicValueEncoding;
+# 
+# implicit, explicit:   For ECC cipher suites, this indicates whether
+#    the client's ECDH public key is in the client's certificate
+#    ("implicit") or is provided, as an ephemeral ECDH public key, in
+#    the ClientKeyExchange message ("explicit").  (This is "explicit"
+#    in ECC cipher suites except when the client uses the
+#    ECDSA_fixed_ECDH or RSA_fixed_ECDH client authentication
+#    mechanism.)
+# 
+#      struct {
+#          select (PublicValueEncoding) {
+#              case implicit: struct { };
+#              case explicit: ECPoint ecdh_Yc;
+#          } ecdh_public;
+#      } ClientECDiffieHellmanPublic;
+# 
+# ecdh_Yc:   Contains the client's ephemeral ECDH public key as a byte
+#    string ECPoint.point, which may represent an elliptic curve point
+#    in uncompressed or compressed format.  Here, the format MUST
+#    conform to what the server has requested through a Supported Point
+#    Formats Extension if this extension was used, and MUST be
+#    uncompressed if this extension was not used.
+# 
+#      struct {
+#          select (KeyExchangeAlgorithm) {
+#              case ec_diffie_hellman: ClientECDiffieHellmanPublic;
+#          } exchange_keys;
+#      } ClientKeyExchange;
+# 
+# Actions of the sender:
+# 
+# The client selects an ephemeral ECDH public key corresponding to the
+# parameters it received from the server according to the ECKAS-DH1
+# scheme from IEEE 1363 [6].  It conveys this information to the client
+# in the ClientKeyExchange message using the format defined above.
+# 
+# Actions of the receiver:
+# 
+# The server retrieves the client's ephemeral ECDH public key from the
+# ClientKeyExchange message and checks that it is on the same elliptic
+# curve as the server's ECDH key.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Here, the format MUST
+conform to what the server has requested through a Supported Point
+Formats Extension if this extension was used, and MUST be
+uncompressed if this extension was not used.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Here, the format MUST
+conform to what the server has requested through a Supported Point
+Formats Extension if this extension was used, and MUST be
+uncompressed if this extension was not used.
+'''
+

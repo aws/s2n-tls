@@ -209,7 +209,7 @@ int main(int argc, char **argv)
     /* Test: Hello requests received after the handshake do NOT trigger a no_renegotiation alert
      * if renegotiation callbacks not set.
      *
-     *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.1
      *= type=test
      *# This message MAY be ignored by
      *# the client if it does not wish to renegotiate a session, or the
@@ -250,12 +250,12 @@ int main(int argc, char **argv)
     /* Test: Hello requests received after the handshake trigger a no_renegotiation alert
      * if the application rejects the renegotiation request
      *
-     *= https://tools.ietf.org/rfc/rfc5746#5
+     *= https://www.rfc-editor.org/rfc/rfc5746#5
      *= type=test
      *# TLS implementations SHOULD provide a mechanism to disable and enable
      *# renegotiation.
      *
-     *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.1
      *= type=test
      *# This message MAY be ignored by
      *# the client if it does not wish to renegotiate a session, or the
@@ -300,7 +300,7 @@ int main(int argc, char **argv)
     /* Test: Hello requests received after the handshake do not trigger a no_renegotiation alert
      * if the application accepts the renegotiation request
      *
-     *= https://tools.ietf.org/rfc/rfc5746#5
+     *= https://www.rfc-editor.org/rfc/rfc5746#5
      *= type=test
      *# TLS implementations SHOULD provide a mechanism to disable and enable
      *# renegotiation.
@@ -381,7 +381,7 @@ int main(int argc, char **argv)
     /* Test: Hello requests received after the handshake trigger a no_renegotiation alert
      * if secure renegotiation is not supported, even if the application would have accepted the request.
      *
-     *= https://tools.ietf.org/rfc/rfc5746#section-4.2
+     *= https://www.rfc-editor.org/rfc/rfc5746#section-4.2
      *= type=test
      *# This text applies if the connection's "secure_renegotiation" flag is
      *# set to FALSE.
@@ -475,7 +475,7 @@ int main(int argc, char **argv)
 
     /* Test: SSLv3 sends a fatal handshake_failure alert instead of no_renegotiate
      *
-     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.5
      *= type=test
      *# SSLv3 does not define the "no_renegotiation" alert (and does
      *# not offer a way to indicate a refusal to renegotiate at a "warning"

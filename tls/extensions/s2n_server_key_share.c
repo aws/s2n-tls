@@ -258,7 +258,7 @@ static int s2n_server_key_share_recv_ecc(struct s2n_connection *conn, uint16_t n
     const struct s2n_ecc_named_curve *negotiated_curve = ecc_pref->ecc_curves[supported_curve_index];
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
      *# If using (EC)DHE key establishment and a HelloRetryRequest containing a
      *# "key_share" extension was received by the client, the client MUST
      *# verify that the selected NamedGroup in the ServerHello is the same as

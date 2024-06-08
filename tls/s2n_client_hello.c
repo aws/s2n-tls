@@ -85,7 +85,7 @@ static S2N_RESULT s2n_generate_client_session_id(struct s2n_connection *conn)
 
     /* QUIC should not allow session ids for any reason.
      *
-     *= https://tools.ietf.org/rfc/rfc9001#section-8.4
+     *= https://www.rfc-editor.org/rfc/rfc9001#section-8.4
      *# A server SHOULD treat the receipt of a TLS ClientHello with a non-empty
      *# legacy_session_id field as a connection error of type PROTOCOL_VIOLATION.
      */
@@ -225,7 +225,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
     }
 
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
      *# The client will also send a
      *# ClientHello when the server has responded to its ClientHello with a
      *# HelloRetryRequest.  In that case, the client MUST send the same
@@ -292,7 +292,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
 
         switch (extension_type) {
             /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
              *#    -  If a "key_share" extension was supplied in the HelloRetryRequest,
              *#       replacing the list of shares with a list containing a single
              *#       KeyShareEntry from the indicated group.
@@ -301,7 +301,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
                 /* Handled when parsing the key share extension */
                 break;
             /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
              *#    -  Removing the "early_data" extension (Section 4.2.10) if one was
              *#       present.  Early data is not permitted after a HelloRetryRequest.
              */
@@ -309,7 +309,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
                 RESULT_ENSURE(new_size == 0, S2N_ERR_BAD_MESSAGE);
                 break;
             /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
              *#    -  Including a "cookie" extension if one was provided in the
              *#       HelloRetryRequest.
              */
@@ -317,7 +317,7 @@ static S2N_RESULT s2n_client_hello_verify_for_retry(struct s2n_connection *conn,
                 /* Handled when parsing the cookie extension */
                 break;
             /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
              *#    -  Updating the "pre_shared_key" extension if present by recomputing
              *#       the "obfuscated_ticket_age" and binder values and (optionally)
              *#       removing any PSKs which are incompatible with the server's
@@ -481,7 +481,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
      *     A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256)
      *     and SHOULD support key exchange with X25519 [RFC7748]
      *
-     *= https://tools.ietf.org/rfc/rfc4492#section-4
+     *= https://www.rfc-editor.org/rfc/rfc4492#section-4
      *# A client that proposes ECC cipher suites may choose not to include these extensions.
      *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.
      *
@@ -599,7 +599,7 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     /* Check if this is the second client hello in a hello retry handshake */
     if (s2n_is_hello_retry_handshake(conn) && conn->handshake.message_number > 0) {
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *# Servers MUST ensure that they negotiate the
          *# same cipher suite when receiving a conformant updated ClientHello (if
          *# the server selects the cipher suite as the first step in the
@@ -756,7 +756,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
 
     /**
      * For initial handshakes:
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *# o  The client MUST include either an empty "renegotiation_info"
      *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
      *#    cipher suite value in the ClientHello.  Including both is NOT
@@ -765,7 +765,7 @@ int s2n_client_hello_send(struct s2n_connection *conn)
      * rather than the "renegotiation_info" extension.
      *
      * For renegotiation handshakes:
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *# The SCSV MUST NOT be included.
      */
     if (tls12_is_possible && !s2n_handshake_is_renegotiation(conn)) {

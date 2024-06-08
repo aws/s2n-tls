@@ -45,7 +45,7 @@ int main(int argc, char **argv)
 
     /** Test 0 length application data record handled gracefully in client and server mode
      * 
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Application Data records may contain a zero-length 
      *# TLSInnerPlaintext.content if the sender desires.
@@ -96,7 +96,7 @@ int main(int argc, char **argv)
 
     /** Test 0 length payload in handshake record terminates connection in client and server mode
      * 
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
      *# TLSInnerPlaintext.content; if such a message is received, the receiving 
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
 
     /** Test 0 length payload in alert record terminates connection in client and server modes
      * 
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.4
      *= type=test
      *# Implementations MUST NOT send Handshake and Alert records that have a zero-length
      *# TLSInnerPlaintext.content; if such a message is received, the receiving 

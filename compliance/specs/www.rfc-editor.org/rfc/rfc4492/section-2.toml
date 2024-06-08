@@ -1,0 +1,106 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-2"
+
+# 2.  Key Exchange Algorithms
+#
+# This document introduces five new ECC-based key exchange algorithms
+# for TLS.  All of them use ECDH to compute the TLS premaster secret,
+# and they differ only in the lifetime of ECDH keys (long-term or
+# ephemeral) and the mechanism (if any) used to authenticate them.  The
+# derivation of the TLS master secret from the premaster secret and the
+# subsequent generation of bulk encryption/MAC keys and initialization
+# vectors is independent of the key exchange algorithm and not impacted
+# by the introduction of ECC.
+# 
+# The table below summarizes the new key exchange algorithms, which
+# mimic DH_DSS, DHE_DSS, DH_RSA, DHE_RSA, and DH_anon (see [2] and
+# [3]), respectively.
+# 
+#        Key
+#        Exchange
+#        Algorithm           Description
+#        ---------           -----------
+# 
+#        ECDH_ECDSA          Fixed ECDH with ECDSA-signed certificates.
+# 
+#        ECDHE_ECDSA         Ephemeral ECDH with ECDSA signatures.
+# 
+#        ECDH_RSA            Fixed ECDH with RSA-signed certificates.
+# 
+#        ECDHE_RSA           Ephemeral ECDH with RSA signatures.
+# 
+#        ECDH_anon           Anonymous ECDH, no signatures.
+# 
+#                   Table 2: ECC Key Exchange Algorithms
+# 
+# The ECDHE_ECDSA and ECDHE_RSA key exchange mechanisms provide forward
+# secrecy.  With ECDHE_RSA, a server can reuse its existing RSA
+# certificate and easily comply with a constrained client's elliptic
+# curve preferences (see Section 4).  However, the computational cost
+# 
+# incurred by a server is higher for ECDHE_RSA than for the traditional
+# RSA key exchange, which does not provide forward secrecy.
+# 
+# The ECDH_RSA mechanism requires a server to acquire an ECC
+# certificate, but the certificate issuer can still use an existing RSA
+# key for signing.  This eliminates the need to update the keys of
+# trusted certification authorities accepted by TLS clients.  The
+# ECDH_ECDSA mechanism requires ECC keys for the server as well as the
+# certification authority and is best suited for constrained devices
+# unable to support RSA.
+# 
+# The anonymous key exchange algorithm does not provide authentication
+# of the server or the client.  Like other anonymous TLS key exchanges,
+# it is subject to man-in-the-middle attacks.  Implementations of this
+# algorithm SHOULD provide authentication by other means.
+# 
+# Note that there is no structural difference between ECDH and ECDSA
+# keys.  A certificate issuer may use X.509 v3 keyUsage and
+# extendedKeyUsage extensions to restrict the use of an ECC public key
+# to certain computations [15].  This document refers to an ECC key as
+# ECDH-capable if its use in ECDH is permitted.  ECDSA-capable is
+# defined similarly.
+# 
+#            Client                                        Server
+#            ------                                        ------
+# 
+#            ClientHello          -------->
+#                                                     ServerHello
+#                                                    Certificate*
+#                                              ServerKeyExchange*
+#                                            CertificateRequest*+
+#                                 <--------       ServerHelloDone
+#            Certificate*+
+#            ClientKeyExchange
+#            CertificateVerify*+
+#            [ChangeCipherSpec]
+#            Finished             -------->
+#                                              [ChangeCipherSpec]
+#                                 <--------              Finished
+# 
+#            Application Data     <------->      Application Data
+# 
+#                 * message is not sent under some conditions
+#                 + message is not sent unless client authentication
+#                   is desired
+# 
+#               Figure 1: Message flow in a full TLS handshake
+# 
+# Figure 1 shows all messages involved in the TLS key establishment
+# protocol (aka full handshake).  The addition of ECC has direct impact
+# only on the ClientHello, the ServerHello, the server's Certificate
+# message, the ServerKeyExchange, the ClientKeyExchange, the
+# CertificateRequest, the client's Certificate message, and the
+# CertificateVerify.  Next, we describe each ECC key exchange algorithm
+# in greater detail in terms of the content and processing of these
+# messages.  For ease of exposition, we defer discussion of client
+# authentication and associated messages (identified with a + in
+# Figure 1) until Section 3 and of the optional ECC-specific extensions
+# (which impact the Hello messages) until Section 4.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Implementations of this
+algorithm SHOULD provide authentication by other means.
+'''
+

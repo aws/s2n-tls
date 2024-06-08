@@ -40,7 +40,7 @@ int main(int argc, char **argv)
             test_cipher_suite->record_alg->cipher->key_material_size));
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *= type=test
      *# If the client attempts a 0-RTT handshake but the server
      *# rejects it, the server will generally not have the 0-RTT record

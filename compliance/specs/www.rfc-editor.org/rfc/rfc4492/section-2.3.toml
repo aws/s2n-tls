@@ -1,0 +1,14 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-2.3"
+
+# 2.3.  ECDH_RSA
+#
+# This key exchange algorithm is the same as ECDH_ECDSA except that the
+# server's certificate MUST be signed with RSA rather than ECDSA.
+
+[[spec]]
+level = "MUST"
+quote = '''
+This key exchange algorithm is the same as ECDH_ECDSA except that the
+server's certificate MUST be signed with RSA rather than ECDSA.
+'''
+

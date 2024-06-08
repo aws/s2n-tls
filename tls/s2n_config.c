@@ -1121,7 +1121,7 @@ int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after
 }
 
 /*
- *= https://tools.ietf.org/rfc/rfc5746#5
+ *= https://www.rfc-editor.org/rfc/rfc5746#5
  *# TLS implementations SHOULD provide a mechanism to disable and enable
  *# renegotiation.
  */
