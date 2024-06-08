@@ -148,6 +148,11 @@ pub fn setup_include(sh: &Shell) -> Result<PathBuf> {
         )?;
 
         write(
+            utils.join("s2n_safety.h"),
+            include_str!("./s2n_safety.h").trim_start(),
+        )?;
+
+        write(
             utils.join("s2n_result.h"),
             include_str!("./s2n_result.h").trim_start(),
         )?;

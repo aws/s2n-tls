@@ -42,6 +42,14 @@ fn index_structs(_sh: &Shell, c_src: &Path, overrides: &Overrides) -> Result<Str
     );
 
     modules.insert(
+        "s2n_blinding_guard".to_string(),
+        Owner {
+            path: "utils/s2n_safety".into(),
+            module: "utils::s2n_safety".into(),
+        },
+    );
+
+    modules.insert(
         "s2n_debug_info".to_string(),
         Owner {
             path: "error/s2n_errno".into(),
@@ -147,7 +155,10 @@ fn index_structs(_sh: &Shell, c_src: &Path, overrides: &Overrides) -> Result<Str
                 for line in file.lines() {
                     let line = line?;
 
-                    let Some(name) = line.strip_prefix("struct ") else {
+                    let Some(name) = line
+                        .strip_prefix("struct ")
+                        .or_else(|| line.strip_prefix("union "))
+                    else {
                         continue;
                     };
 
@@ -280,6 +291,8 @@ processors!(
         owning_struct: OwningStruct,
         preserve_err: PreserveErrMacro,
         errno_api: ErrnoApi,
+        safety_api: SafetyApi,
+        unnamed_digest: UnnamedDigest,
         libc: LibcOverride,
         librs: LibRs,
         prelude: Prelude,
@@ -453,11 +466,18 @@ impl OwningStruct {
             return ControlFlow::Continue(());
         }
 
-        let Some(name) = line.strip_prefix("pub struct ") else {
+        let Some(name) = line
+            .strip_prefix("pub struct ")
+            .or_else(|| line.strip_prefix("pub union "))
+        else {
             return ControlFlow::Continue(());
         };
 
         let name = name.trim_end_matches(" {").trim_end_matches("<'a>");
+
+        if name.starts_with("C2RustUnnamed") {
+            return ControlFlow::Continue(());
+        }
 
         let owner = self.config.structs.get(name);
 
@@ -465,28 +485,26 @@ impl OwningStruct {
 
         // if the file doesn't "own" the struct then remove it
         if name == "s2n_result" || !owns_struct {
-            if !name.starts_with("C2RustUnnamed") {
-                self.pending_use = Some(match (name, owner) {
-                    (name, Some(owner)) => format!("\nuse crate::{}::{name};\n", owner.module),
-                    (
-                        "iovec" | "msghdr" | "cmsghdr" | "timespec" | "stat" | "sockaddr"
-                        | "sockaddr_storage",
-                        None,
-                    ) => {
-                        format!("\nuse libc::{name};\n")
-                    }
-                    // TODO figure out where to pull these from
-                    (name @ ("__pthread_rwlock_arch_t" | "FGN_STATE"), None) => {
-                        println!("UNKNOWN IMPORT {name:?}");
-                        "".to_string()
-                    }
-                    (name, None) if name.starts_with("s2n_") => {
-                        println!("NO OWNER {name:?}");
-                        "".to_string()
-                    }
-                    _ => format!("\nuse crate::libcrypto::{name};\n"),
-                });
-            }
+            self.pending_use = Some(match (name, owner) {
+                (name, Some(owner)) => format!("\nuse crate::{}::{name};\n", owner.module),
+                (
+                    "iovec" | "msghdr" | "cmsghdr" | "timespec" | "stat" | "sockaddr"
+                    | "sockaddr_storage",
+                    None,
+                ) => {
+                    format!("\nuse libc::{name};\n")
+                }
+                // TODO figure out where to pull these from
+                (name @ ("__pthread_rwlock_arch_t" | "FGN_STATE"), None) => {
+                    println!("UNKNOWN IMPORT {name:?}");
+                    "".to_string()
+                }
+                (name, None) if name.starts_with("s2n_") => {
+                    println!("NO OWNER {name:?}");
+                    "".to_string()
+                }
+                _ => format!("\nuse crate::libcrypto::{name};\n"),
+            });
             *line = format!("struct __CLEANUP__{name} {{");
         }
 
@@ -629,7 +647,6 @@ replace!(
     ]
 );
 
-// TODO get the correct version instead
 replace!(
     ErrnoApi,
     [
@@ -647,6 +664,28 @@ replace!(
         ),
         ("__STUB_ERRNO_GET(", "crate::error::s2n_errno::get("),
         ("__STUB_ERRNO_SET(", "crate::error::s2n_errno::set(")
+    ]
+);
+
+replace!(
+    SafetyApi,
+    [
+        (
+            "__STUB_ZERO_TO_DISABLE_DEFER_CLEANUP(",
+            "crate::utils::s2n_safety::disable_defer_cleanup("
+        ),
+        (
+            "__STUB_ADD_IS_OVERFLOW_SAFE(",
+            "crate::utils::s2n_safety::is_overflow_safe(",
+        ),
+        (
+            "__STUB_WITH_ERROR_BLINDING(",
+            "crate::utils::s2n_safety::with_error_blinding(",
+        ),
+        (
+            "__STUB_BLINDING_CANCEL(",
+            "crate::utils::s2n_safety::blinding_cancel(",
+        ),
     ]
 );
 
@@ -756,6 +795,32 @@ rewrite!(
         "__STUB_PTR_MEMMOVE(",
     ],
     "crate::utils::s2n_safety::memmove("
+);
+
+replace!(
+    UnnamedDigest,
+    [
+        (
+            "digest: C2RustUnnamed_0 {",
+            "digest: crate::crypto::s2n_hash::C2RustUnnamed_1 {"
+        ),
+        (
+            "digest: C2RustUnnamed_1 {",
+            "digest: crate::crypto::s2n_hash::C2RustUnnamed_1 {"
+        ),
+        (
+            "digest: C2RustUnnamed_2 {",
+            "digest: crate::crypto::s2n_hash::C2RustUnnamed_1 {"
+        ),
+        (
+            "digest: C2RustUnnamed_8 {",
+            "digest: crate::crypto::s2n_hash::C2RustUnnamed_1 {"
+        ),
+        (
+            "low_level: s2n_hash_low_level_digest {",
+            "low_level: crate::crypto::s2n_hash::s2n_hash_low_level_digest {"
+        )
+    ]
 );
 
 rewrite!(IgnoreResult, ["__STUB_RESULT_IGNORE(",], "let _ = (");

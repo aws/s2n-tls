@@ -215,8 +215,38 @@ pub unsafe fn s2n_sub_overflow(a: u32, b: u32, out: *mut u32) -> s2n_result {
     ok!()
 }
 
+pub unsafe fn s2n_constant_time_pkcs1_unpad_or_dont(
+    dst: *mut u8,
+    src: *const u8,
+    srclen: u32,
+    expectlen: u32,
+) -> bool {
+    todo!()
+}
+
+pub unsafe fn disable_defer_cleanup<T>(v: *mut T) {
+    todo!()
+}
+
+pub fn is_overflow_safe<T>(a: T, b: T, max: T) -> bool {
+    todo!()
+}
+
+// TODO add drop
+pub struct s2n_blinding_guard<T> {
+    conn: *mut T,
+}
+
+pub fn with_error_blinding<T>(conn: *mut T) -> s2n_blinding_guard<T> {
+    todo!("return a guard and apply blinding")
+}
+
+pub fn blinding_cancel<T>(guard: s2n_blinding_guard<T>) {
+    todo!()
+}
+
 #[inline(never)]
-pub unsafe extern "C" fn s2n_constant_time_equals(a: *const u8, b: *const u8, len: u32) -> bool {
+pub unsafe fn s2n_constant_time_equals(a: *const u8, b: *const u8, len: u32) -> bool {
     if len == 0 {
         return true;
     }
