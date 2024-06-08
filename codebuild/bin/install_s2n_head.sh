@@ -26,11 +26,16 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 
-# In the case where this script runs before the regular build,
-# we need a place to land the alternative test binary.
-mkdir -p "$SRC_ROOT/build/bin"
+# CMake(nix) and Make are using different directory structures.
+if [[ "$IN_NIX_SHELL" ]]; then
+    export DEST_DIR="$SRC_ROOT"/build/bin
+    # Safety measure
+    mkdir -p "$DEST_DIR"
+else
+    export DEST_DIR="$SRC_ROOT"/bin
+fi
 
-if [[ ! -x "$SRC_ROOT/build/bin/s2nc_head" ]]; then
+if [[ ! -x "$DEST_DIR/s2nc_head" ]]; then
     if [[ ! -d "s2n_head" ]]; then
         # Clone the most recent s2n commit
         git clone --branch main --single-branch . s2n_head
@@ -41,14 +46,13 @@ if [[ ! -x "$SRC_ROOT/build/bin/s2nc_head" ]]; then
         cmake ./s2n_head -B"$BUILD_DIR" -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
     fi
     cmake --build "$BUILD_DIR" -- -j "$(nproc)"
-
-    # Copy new executables to bin directory
-    cp -f "$BUILD_DIR"/bin/s2nc "$SRC_ROOT"/build/bin/s2nc_head
-    cp -f "$BUILD_DIR"/bin/s2nd "$SRC_ROOT"/build/bin/s2nd_head
+    # Copy head executables for make build
+    cp -f "$BUILD_DIR"/bin/s2nc "$DEST_DIR"/s2nc_head
+    cp -f "$BUILD_DIR"/bin/s2nd "$DEST_DIR"/s2nd_head
 else
     echo "s2nc_head already exists; not rebuilding s2n_head"
 fi
 
-echo "\nChecking build for s2nc/d...\n$(ls -al $SRC_ROOT/build/bin/s2n[cd]*)" 
+echo "\nChecking build for s2nc/d...\n$(ls -al $DEST_DIR/s2n[cd]*)" 
 
 exit 0
