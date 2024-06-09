@@ -29,7 +29,7 @@ static S2N_RESULT s2n_test_fingerprint_hash(struct s2n_fingerprint_hash *hash,
     hash->hash = hash_state;
     hash->do_digest = true;
     EXPECT_SUCCESS(s2n_hash_new(hash_state));
-    EXPECT_OK(s2n_fingerprint_hash_init(hash, S2N_TEST_HASH));
+    EXPECT_SUCCESS(s2n_hash_init(hash_state, S2N_TEST_HASH));
     EXPECT_SUCCESS(s2n_stuffer_alloc(hash_output, hash_buffer_size));
     return S2N_RESULT_OK;
 }
@@ -42,34 +42,6 @@ int main(int argc, char **argv)
     const char test_str[] = "hello";
     const size_t test_str_len = strlen(test_str);
     EXPECT_NOT_EQUAL(test_char, test_str[0]);
-
-    /* Test s2n_fingerprint_hash_init */
-    {
-        /* Safety */
-        EXPECT_ERROR_WITH_ERRNO(s2n_fingerprint_hash_init(NULL, S2N_TEST_HASH),
-                S2N_ERR_NULL);
-
-        /* With hash */
-        {
-            DEFER_CLEANUP(struct s2n_hash_state hash_state = { 0 }, s2n_hash_free);
-            EXPECT_SUCCESS(s2n_hash_new(&hash_state));
-            struct s2n_fingerprint_hash hash = { .hash = &hash_state };
-            EXPECT_OK(s2n_fingerprint_hash_init(&hash, S2N_TEST_HASH));
-        }
-
-        /* Without hash */
-        {
-            struct s2n_fingerprint_hash hash = { 0 };
-            EXPECT_OK(s2n_fingerprint_hash_init(&hash, S2N_TEST_HASH));
-        }
-
-        /* Without hash, but needs hash */
-        {
-            struct s2n_fingerprint_hash hash = { .do_digest = true };
-            EXPECT_ERROR_WITH_ERRNO(s2n_fingerprint_hash_init(&hash, S2N_TEST_HASH),
-                    S2N_ERR_INVALID_STATE);
-        }
-    }
 
     /* Test s2n_fingerprint_hash_add_char */
     {

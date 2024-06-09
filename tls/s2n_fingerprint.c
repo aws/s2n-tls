@@ -39,17 +39,6 @@ bool s2n_is_grease_value(uint16_t val)
     return s2n_result_is_ok(s2n_assert_grease_value(val));
 }
 
-S2N_RESULT s2n_fingerprint_hash_init(struct s2n_fingerprint_hash *hash, s2n_hash_algorithm hash_alg)
-{
-    RESULT_ENSURE_REF(hash);
-    if (hash->hash) {
-        RESULT_GUARD_POSIX(s2n_hash_init(hash->hash, hash_alg));
-    } else {
-        RESULT_ENSURE(!hash->do_digest, S2N_ERR_INVALID_STATE);
-    }
-    return S2N_RESULT_OK;
-}
-
 static S2N_RESULT s2n_fingerprint_hash_flush(struct s2n_fingerprint_hash *hash)
 {
     RESULT_ENSURE_REF(hash);
@@ -105,7 +94,10 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
 {
     POSIX_ENSURE(type == S2N_FINGERPRINT_JA3, S2N_ERR_INVALID_ARGUMENT);
     const struct s2n_fingerprint_method *method = &ja3_fingerprint;
-    POSIX_ENSURE(max_output_size >= method->hash_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+
+    uint8_t hash_size = 0;
+    POSIX_GUARD(s2n_hash_digest_size(method->hash, &hash_size));
+    POSIX_ENSURE(max_output_size >= hash_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
 
     POSIX_ENSURE_REF(ch);
     POSIX_ENSURE(!ch->sslv2, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
@@ -136,6 +128,7 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
     DEFER_CLEANUP(struct s2n_hash_state hash_state = { 0 }, s2n_hash_free);
     POSIX_GUARD(s2n_hash_new(&hash_state));
     s2n_hash_allow_md5_for_fips(&hash_state);
+    POSIX_GUARD(s2n_hash_init(&hash_state, method->hash));
 
     struct s2n_fingerprint_hash hash = {
         .buffer = &hash_stuffer,

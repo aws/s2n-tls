@@ -189,13 +189,12 @@ static S2N_RESULT s2n_fingerprint_ja3_write(struct s2n_fingerprint_hash *hash,
 S2N_RESULT s2n_fingerprint_ja3(struct s2n_client_hello *client_hello,
         struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output)
 {
-    RESULT_GUARD(s2n_fingerprint_hash_init(hash, S2N_HASH_MD5));
     RESULT_GUARD(s2n_fingerprint_ja3_write(hash, client_hello));
     RESULT_GUARD(s2n_fingerprint_ja3_digest(hash, output));
     return S2N_RESULT_OK;
 }
 
 struct s2n_fingerprint_method ja3_fingerprint = {
-    .hash_size = MD5_DIGEST_LENGTH,
+    .hash = S2N_HASH_MD5,
     .fingerprint = s2n_fingerprint_ja3,
 };
