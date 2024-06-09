@@ -39,47 +39,34 @@ bool s2n_is_grease_value(uint16_t val)
     return s2n_result_is_ok(s2n_assert_grease_value(val));
 }
 
-static S2N_RESULT s2n_fingerprint_hash_flush(struct s2n_fingerprint_hash *hash)
-{
-    RESULT_ENSURE_REF(hash);
-
-    uint32_t hash_data_len = s2n_stuffer_data_available(hash->buffer);
-    uint8_t *hash_data = s2n_stuffer_raw_read(hash->buffer, hash_data_len);
-    RESULT_ENSURE_REF(hash_data);
-
-    RESULT_GUARD_POSIX(s2n_hash_update(hash->hash, hash_data, hash_data_len));
-    RESULT_GUARD_POSIX(s2n_stuffer_wipe(hash->buffer));
-    return S2N_RESULT_OK;
-}
-
-static S2N_RESULT s2n_fingerprint_hash_reserve_space(struct s2n_fingerprint_hash *hash, size_t size)
-{
-    RESULT_ENSURE_REF(hash);
-    if (s2n_stuffer_space_remaining(hash->buffer) < size) {
-        RESULT_ENSURE(hash->hash, S2N_ERR_INSUFFICIENT_MEM_SIZE);
-        RESULT_GUARD(s2n_fingerprint_hash_flush(hash));
-    }
-    return S2N_RESULT_OK;
-}
-
 S2N_RESULT s2n_fingerprint_hash_add_char(struct s2n_fingerprint_hash *hash, char c)
 {
-    RESULT_GUARD(s2n_fingerprint_hash_reserve_space(hash, 1));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_char(hash->buffer, c));
+    RESULT_ENSURE_REF(hash);
+    if (hash->hash) {
+        RESULT_GUARD_POSIX(s2n_hash_update(hash->hash, &c, 1));
+    } else {
+        RESULT_ENSURE(s2n_stuffer_space_remaining(hash->buffer) >= 1,
+                S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        RESULT_GUARD_POSIX(s2n_stuffer_write_char(hash->buffer, c));
+    }
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_fingerprint_hash_add_str(struct s2n_fingerprint_hash *hash, const char *str)
 {
-    RESULT_GUARD(s2n_fingerprint_hash_reserve_space(hash, strlen(str)));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_str(hash->buffer, str));
+    RESULT_ENSURE_REF(hash);
+    if (hash->hash) {
+        RESULT_GUARD_POSIX(s2n_hash_update(hash->hash, str, strlen(str)));
+    } else {
+        RESULT_ENSURE(s2n_stuffer_space_remaining(hash->buffer) >= strlen(str),
+                S2N_ERR_INSUFFICIENT_MEM_SIZE);
+        RESULT_GUARD_POSIX(s2n_stuffer_write_str(hash->buffer, str));
+    }
     return S2N_RESULT_OK;
 }
 
 S2N_RESULT s2n_fingerprint_hash_digest(struct s2n_fingerprint_hash *hash, uint8_t *out, size_t out_size)
 {
-    RESULT_GUARD(s2n_fingerprint_hash_flush(hash));
-
     RESULT_ENSURE_REF(hash);
     RESULT_ENSURE_REF(hash->hash);
     hash->bytes_digested += hash->hash->currently_in_hash;
@@ -110,28 +97,12 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
     struct s2n_stuffer output_stuffer = { 0 };
     POSIX_GUARD(s2n_blob_init(&output_stuffer.blob, output, max_output_size));
 
-    /* The maximum size of the hash input string is variable and could theoretically
-     * be extremely large. However, we don't need enough memory to hold the full string
-     * when calculating a hash. We can calculate and add the string to the hash in chunks,
-     * similarly to how the TLS transcript hash is calculated by adding handshake
-     * messages to the hash as they become available. After a chunk is added to the hash,
-     * the buffer can be wiped and reused for the next chunk.
-     *
-     * This ensures that our calculation requires a constant amount of memory.
-     *
-     * The size of the buffer is chosen to be the block size of most hashes.
-     */
-    uint8_t hash_mem[64] = { 0 };
-    struct s2n_stuffer hash_stuffer = { 0 };
-    POSIX_GUARD(s2n_blob_init(&hash_stuffer.blob, hash_mem, sizeof(hash_mem)));
-
     DEFER_CLEANUP(struct s2n_hash_state hash_state = { 0 }, s2n_hash_free);
     POSIX_GUARD(s2n_hash_new(&hash_state));
     s2n_hash_allow_md5_for_fips(&hash_state);
     POSIX_GUARD(s2n_hash_init(&hash_state, method->hash));
 
     struct s2n_fingerprint_hash hash = {
-        .buffer = &hash_stuffer,
         .hash = &hash_state,
         .do_digest = true,
     };
