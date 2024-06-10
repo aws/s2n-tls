@@ -46,6 +46,9 @@ apache_enable() {
         return
     fi
 
+    # Note: the renegotiate_apache integ test only works on Ubuntu.
+    # We're borrowing the Ubuntu apache module config files from the system,
+    # even when running under nix.
     cp "$source_path" "$dest_path"
 }
 
