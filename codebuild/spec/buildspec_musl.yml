@@ -23,7 +23,8 @@ phases:
     on-failure: ABORT
     commands:
       # Install musl libc
-      - git clone https://git.musl-libc.org/git/musl $MUSL_DIR
+      - aws s3 cp s3://s2n-public-test-dependencies/musl_repo_20240610.tgz .
+      - mkdir -p $MUSL_DIR; tar -zxf musl_repo_20240610.tgz  -C $MUSL_DIR
       - echo "Installing musl to $CODEBUILD_SRC_DIR/$MUSL_DIR"
       - cd $MUSL_DIR
       - ./configure --prefix=$CODEBUILD_SRC_DIR/$MUSL_DIR
