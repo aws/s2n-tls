@@ -65,16 +65,14 @@ function integ {
         echo "    the test build s2n-tls from the main branch on github."
         echo "    Change the names of s2n[cd] to s2n[cd]_head and add those"
         echo "    binaries to \$PATH."
-        echo "- renegotiate_apache"
-        echo "   This test requires apache to be running. See codebuild/bin/s2n_apache.sh"
-        echo "    for more info."
         return
     fi
+    apache2_start
     if [[ -z "$1" ]]; then
         banner "Running all integ tests except cross_compatibility, renegotiate_apache."
         (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
     else
-        banner "Warning: cross_compatibility & renegotiate_apache are not supported in nix for various reasons integ help for more info."
+        banner "Warning: cross_compatibility is not supported in nix for various reasons integ help for more info."
         for test in $@; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
@@ -161,8 +159,7 @@ function test_nonstandard_compilation {
 }
 
 function apache2_config(){
-    alias apache2=$(which httpd)
-    export APACHE_NIX_STORE=$(dirname $(dirname $(which httpd))
+    export APACHE_NIX_STORE=$(dirname $(dirname $(which httpd)))
     export APACHE2_INSTALL_DIR=/usr/local/apache2
     export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
     export APACHE_RUN_USER=www-data 
@@ -174,21 +171,21 @@ function apache2_config(){
     export APACHE_CERT_DIR="$SRC_ROOT/tests/pems"
 }
 
-function apache2_stop(){
-    pkill httpd
-}
-
 function apache2_start(){
-    apache2_config
-    if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
-      ./codebuild/bin/install_apache2.sh ./codebuild/bin/apache2 $APACHE2_INSTALL_DIR
-      # We need to be using the nixpkgs modules, not the Ubuntu packaged ones.
-      sed -i 's|/usr/lib/apache2/modules|${APACHE_NIX_STORE}/modules|' $APACHE2_INSTALL_DIR/mods-enabled/*.load
-      # Nixpkgs has more modules than the Debian packaged apache; create 2 new module load files.
-      echo "LoadModule log_config_module ${APACHE_NIX_STORE}/modules/mod_log_config.so" >  $APACHE2_INSTALL_DIR/mods-enabled/logconfig.load
-      echo "LoadModule unixd_module ${APACHE_NIX_STORE}/modules/mod_unixd.so" >  $APACHE2_INSTALL_DIR/mods-enabled/unixd.load
+    if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
+        apache2_config
+        if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+            ./codebuild/bin/install_apache2.sh ./codebuild/bin/apache2 $APACHE2_INSTALL_DIR
+            # We need to be using the nixpkgs modules, not the Ubuntu packaged ones.
+            sed -i 's|/usr/lib/apache2/modules|${APACHE_NIX_STORE}/modules|' $APACHE2_INSTALL_DIR/mods-enabled/*.load
+            # Nixpkgs apache was compiled differently than the Debian packaged apache; create 2 new module load files.
+            echo "LoadModule log_config_module ${APACHE_NIX_STORE}/modules/mod_log_config.so" >  $APACHE2_INSTALL_DIR/mods-enabled/logconfig.load
+            echo "LoadModule unixd_module ${APACHE_NIX_STORE}/modules/mod_unixd.so" >  $APACHE2_INSTALL_DIR/mods-enabled/unixd.load
+        fi
+        httpd -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
+        trap 'pkill httpd' ERR EXIT
+    else
+      echo "Apache is already running...and if the APACHE2_INSTALL_DIR is stale, it might be in an unknown state."
     fi
-    apache2 -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
-    # TODO: Create a trap or "on-exit" function to pkill apache.
 
 }
