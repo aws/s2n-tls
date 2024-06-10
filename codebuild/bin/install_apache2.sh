@@ -46,7 +46,7 @@ apache_enable() {
         return
     fi
 
-    ln -s "$source_path" "$dest_path"
+    cp "$source_path" "$dest_path"
 }
 
 mod_enable() {

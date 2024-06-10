@@ -160,3 +160,27 @@ function test_nonstandard_compilation {
     ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
 }
 
+function apache2_config(){
+    alias apache2=$(which httpd)
+    export APACHE2_INSTALL_DIR=/usr/local/apache2
+    export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
+    export APACHE_RUN_USER=www-data 
+    export APACHE_RUN_GROUP=www-data
+    export APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid"
+    export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" 
+    export APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock"
+    export APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log" 
+    export APACHE_CERT_DIR="$SRC_ROOT/tests/pems"
+}
+
+function apache2_start(){
+    apache2_config
+    if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+      ./codebuild/bin/install_apache2.sh ./codebuild/bin/apache2 $APACHE2_INSTALL_DIR
+      sed -i 's|/usr/lib/apache2/modules|/nix/store/v6bpg8lpkmlnhz8fldksj7kj0qhc0jiz-apache-httpd-2.4.55/modules|' $APACHE2_INSTALL_DIR/mods-enabled/*.load
+      echo "LoadModule log_config_module /nix/store/v6bpg8lpkmlnhz8fldksj7kj0qhc0jiz-apache-httpd-2.4.55/modules/mod_log_config.so" >  $APACHE2_INSTALL_DIR/mods-enabled/logconfig.load
+      echo "LoadModule unixd_module /nix/store/v6bpg8lpkmlnhz8fldksj7kj0qhc0jiz-apache-httpd-2.4.55/modules/mod_unixd.so" >  $APACHE2_INSTALL_DIR/mods-enabled/unixd.load
+    fi
+    apache2 -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
+
+}
