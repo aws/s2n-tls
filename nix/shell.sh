@@ -175,6 +175,7 @@ function apache2_start(){
     if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
         apache2_config
         if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+            mkdir -p "$APACHE2_INSTALL_DIR"
             ./codebuild/bin/install_apache2.sh ./codebuild/bin/apache2 $APACHE2_INSTALL_DIR
             # We need to be using the nixpkgs modules, not the Ubuntu packaged ones.
             sed -i 's|/usr/lib/apache2/modules|${APACHE_NIX_STORE}/modules|' $APACHE2_INSTALL_DIR/mods-enabled/*.load
