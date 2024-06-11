@@ -47,7 +47,7 @@ function build {
     banner "Running Build"
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
-    #Build s2n from HEAD
+    # Build s2n from HEAD
     $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
 }
 
