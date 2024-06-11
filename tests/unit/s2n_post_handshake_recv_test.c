@@ -480,7 +480,7 @@ int main(int argc, char **argv)
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.1
      *= type=test
      *#    -  Handshake messages MUST NOT be interleaved with other record
      *#       types.  That is, if a handshake message is split over two or more

@@ -107,12 +107,12 @@ int main(int argc, char **argv)
         /* Derive server handshake traffic keys */
         {
             /**
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {client}  derive read traffic keys for handshake data (same as server
              *#        handshake data write traffic keys)
              *
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {server}  derive write traffic keys for handshake data:
              *#
@@ -153,12 +153,12 @@ int main(int argc, char **argv)
         /* Derive client handshake traffic keys */
         {
             /**
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {client}  derive write traffic keys for handshake data (same as
              *#       server handshake data read traffic keys)
              *
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {server}  derive read traffic keys for handshake data:
              *#
@@ -200,12 +200,12 @@ int main(int argc, char **argv)
         /* Derive server application traffic keys */
         {
             /**
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {client}  derive read traffic keys for application data (same as
              *#       server application data write traffic keys)
              *
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {server}  derive write traffic keys for application data:
              *#
@@ -253,12 +253,12 @@ int main(int argc, char **argv)
         /* Derive client application traffic keys */
         {
             /**
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {server}  derive read traffic keys for application data (same as
              *#       client application data write traffic keys)
              *
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-3
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-3
              *= type=test
              *#    {client}  derive write traffic keys for application data:
              *#
@@ -309,12 +309,12 @@ int main(int argc, char **argv)
         /* Derive early application traffic keys */
         {
             /**
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-4
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-4
              *= type=test
              *#    {server}  derive read traffic keys for early application data (same
              *#       as client early application data write traffic keys)
              *
-             *= https://www.rfc-editor.org/rfc/rfc8448.html#section-4
+             *= https://www.rfc-editor.org/rfc/rfc8448#section-4
              *= type=test
              *#    {client}  derive write traffic keys for early application data:
              *#

@@ -1703,7 +1703,7 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
     bool full_duplex = !read_closed && !write_closed;
 
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6.1
      *# Note that this is a change from versions of TLS prior to TLS 1.3 in
      *# which implementations were required to react to a "close_notify" by
      *# discarding pending writes and sending an immediate "close_notify"

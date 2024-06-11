@@ -1,0 +1,44 @@
+target = "https://www.rfc-editor.org/rfc/rfc8422#section-5.11"
+
+# 5.11.  Public Key Validation
+#
+# With the NIST curves, each party MUST validate the public key sent by
+# its peer in the ClientKeyExchange and ServerKeyExchange messages.  A
+# receiving party MUST check that the x and y parameters from the
+# peer's public value satisfy the curve equation, y^2 = x^3 + ax + b
+# mod p.  See Section 2.3 of [Menezes] for details.  Failing to do so
+# allows attackers to gain information about the private key to the
+# point that they may recover the entire private key in a few requests
+# if that key is not really ephemeral.
+# 
+# With X25519 and X448, a receiving party MUST check whether the
+# computed premaster secret is the all-zero value and abort the
+# handshake if so, as described in Section 6 of [RFC7748].
+# 
+# Ed25519 and Ed448 internally do public key validation as part of
+# signature verification.
+
+[[spec]]
+level = "MUST"
+quote = '''
+With the NIST curves, each party MUST validate the public key sent by
+its peer in the ClientKeyExchange and ServerKeyExchange messages.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A
+receiving party MUST check that the x and y parameters from the
+peer's public value satisfy the curve equation, y^2 = x^3 + ax + b
+mod p.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+With X25519 and X448, a receiving party MUST check whether the
+computed premaster secret is the all-zero value and abort the
+handshake if so, as described in Section 6 of [RFC7748].
+'''
+

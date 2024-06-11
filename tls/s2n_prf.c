@@ -731,7 +731,7 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc7627#section-4
+ *= https://www.rfc-editor.org/rfc/rfc7627#section-4
  *# When the extended master secret extension is negotiated in a full
  *# handshake, the "master_secret" is computed as
  *#

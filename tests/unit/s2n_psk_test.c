@@ -376,7 +376,7 @@ int main(int argc, char **argv)
 
         /* On a retry, do not write binders for PSKs that do not match the cipher suite.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
          *= type=test
          *# In addition, in its updated ClientHello, the client SHOULD NOT offer
          *# any pre-shared keys associated with a hash other than that of the

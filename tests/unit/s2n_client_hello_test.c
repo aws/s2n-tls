@@ -561,7 +561,7 @@ int main(int argc, char **argv)
 
         /* TLS_EMPTY_RENEGOTIATION_INFO_SCSV included if TLS1.2 ciphers included
          *
-         *= https://tools.ietf.org/rfc/rfc5746#3.4
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.4
          *= type=test
          *# o  The client MUST include either an empty "renegotiation_info"
          *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling

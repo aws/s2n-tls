@@ -738,7 +738,7 @@ int main(int argc, char **argv)
         struct s2n_psk *known_psk = &resumption_psk;
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-3
          *= type=test
          *# {server}  generate resumption secret "tls13 resumption":
          *#
@@ -759,7 +759,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_psk_set_secret(known_psk, psk_secret.data, psk_secret.size));
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8448#section-3
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-3
          *= type=test
          *# {server}  construct a NewSessionTicket handshake message:
          *#
@@ -799,7 +799,7 @@ int main(int argc, char **argv)
 
         /** ClientHello record
          *
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *#
          *#    complete record (517 octets):  16 03 01 02 00 01 00 01 fc 03 03 1b
@@ -858,7 +858,7 @@ int main(int argc, char **argv)
 
         /* ApplicationData record containing early data
          *
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *# {client}  send application_data record:
          *#
@@ -873,7 +873,7 @@ int main(int argc, char **argv)
 
         /* EndOfEarlyData record
          *
-         *= https://tools.ietf.org/rfc/rfc8448#section-4
+         *= https://www.rfc-editor.org/rfc/rfc8448#section-4
          *= type=test
          *#
          *#    complete record (26 octets):  17 03 03 00 15 ac a6 fc 94 48 41 29

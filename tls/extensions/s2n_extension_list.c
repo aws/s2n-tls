@@ -103,7 +103,7 @@ int s2n_extension_list_process(s2n_extension_list_id list_type, struct s2n_conne
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2
      *= type=exception
      *= reason=Incorrect implementations exist in the wild. Ignoring instead.
      *# If an implementation receives an extension

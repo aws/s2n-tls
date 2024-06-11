@@ -177,12 +177,12 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
     if (!s2n_connection_check_io_status(conn, S2N_IO_READABLE)) {
         /*
-         *= https://tools.ietf.org/rfc/rfc8446#6.1
+         *= https://www.rfc-editor.org/rfc/rfc8446#6.1
          *# If a transport-level close
          *# is received prior to a "close_notify", the receiver cannot know that
          *# all the data that was sent has been received.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#6.1
+         *= https://www.rfc-editor.org/rfc/rfc8446#6.1
          *# If the application protocol using TLS provides that any data may be
          *# carried over the underlying transport after the TLS connection is
          *# closed, the TLS implementation MUST receive a "close_notify" alert
@@ -218,7 +218,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
 
         if (record_type != TLS_HANDSHAKE) {
             /*
-             *= https://tools.ietf.org/rfc/rfc8446#section-5.1
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-5.1
              *#    -  Handshake messages MUST NOT be interleaved with other record
              *#       types.  That is, if a handshake message is split over two or more
              *#       records, there MUST NOT be any other records between them.
