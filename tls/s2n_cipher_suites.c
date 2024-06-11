@@ -1135,16 +1135,16 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
      * Ensure that the wire cipher suite is contained in the security
      * policy, and thus was offered by the client.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.3
      *# A client which receives a
      *# cipher suite that was not offered MUST abort the handshake with an
      *# "illegal_parameter" alert.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *# A client which receives a cipher suite that was not offered MUST
      *# abort the handshake.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *# Upon receipt of a HelloRetryRequest, the client MUST check the
      *# legacy_version, legacy_session_id_echo, cipher_suite
      **/
@@ -1161,7 +1161,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_CIPHER_NOT_SUPPORTED);
 
     /** Clients MUST verify
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
      *# that the server selected a cipher suite
      *# indicating a Hash associated with the PSK
      **/
@@ -1171,7 +1171,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *# Upon receiving
      *# the ServerHello, clients MUST check that the cipher suite supplied in
      *# the ServerHello is the same as that in the HelloRetryRequest and
@@ -1254,7 +1254,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
 
     if (s2n_wire_ciphers_contain(renegotiation_info_scsv, wire, count, cipher_suite_len)) {
         /** For renegotiation handshakes:
-         *= https://tools.ietf.org/rfc/rfc5746#3.7
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.7
          *# o  When a ClientHello is received, the server MUST verify that it
          *#    does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If
          *#    the SCSV is present, the server MUST abort the handshake.
@@ -1262,7 +1262,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
         POSIX_ENSURE(!s2n_handshake_is_renegotiation(conn), S2N_ERR_BAD_MESSAGE);
 
         /** For initial handshakes:
-         *= https://tools.ietf.org/rfc/rfc5746#3.6
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.6
          *# o  When a ClientHello is received, the server MUST check if it
          *#    includes the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If it does,
          *#    set the secure_renegotiation flag to TRUE.
@@ -1327,7 +1327,7 @@ static int s2n_set_cipher_as_server(struct s2n_connection *conn, uint8_t *wire, 
             }
 
             /**
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
              *# The server MUST ensure that it selects a compatible PSK
              *# (if any) and cipher suite.
              **/

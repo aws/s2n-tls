@@ -67,7 +67,7 @@ int s2n_server_extensions_recv(struct s2n_connection *conn, struct s2n_stuffer *
 
     if (s2n_is_hello_retry_message(conn)) {
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *# Otherwise, the client MUST process all extensions in the
          *# HelloRetryRequest
          */

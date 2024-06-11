@@ -918,11 +918,11 @@ int s2n_set_hello_retry_required(struct s2n_connection *conn)
 
     /* HelloRetryRequests also indicate rejection of early data.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# A server which receives an "early_data" extension MUST behave in one
      *# of three ways:
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# -  Request that the client send another ClientHello by responding
      *#    with a HelloRetryRequest.
      **/
@@ -994,7 +994,7 @@ static S2N_RESULT s2n_validate_ems_status(struct s2n_connection *conn)
     bool ems_extension_recv = S2N_CBIT_TEST(conn->extension_requests_received, ems_ext_id);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+     *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
      *# If the original session used the "extended_master_secret"
      *# extension but the new ClientHello does not contain it, the server
      *# MUST abort the abbreviated handshake.
@@ -1407,7 +1407,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *# If the client attempts a 0-RTT handshake but the server
          *# rejects it, the server will generally not have the 0-RTT record
          *# protection keys and must instead use trial decryption (either with
@@ -1519,7 +1519,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         }
 
         /*
-         *= https://tools.ietf.org/rfc/rfc5246#section-7.4
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4
          *# The one message that is not bound by these ordering rules
          *# is the HelloRequest message, which can be sent at any time, but which
          *# SHOULD be ignored by the client if it arrives in the middle of a handshake.

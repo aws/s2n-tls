@@ -32,7 +32,7 @@ const s2n_extension_type s2n_server_cert_status_request_extension = {
 static int s2n_server_cert_status_request_send(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.4.2.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.4.2.1
      *# A server MAY request that a client present an OCSP response with its
      *# certificate by sending an empty "status_request" extension in its
      *# CertificateRequest message.
