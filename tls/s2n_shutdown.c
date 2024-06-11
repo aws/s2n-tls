@@ -96,7 +96,7 @@ int s2n_shutdown_send(struct s2n_connection *conn, s2n_blocked_status *blocked)
     S2N_ERROR_IF(elapsed < conn->delay, S2N_ERR_SHUTDOWN_PAUSED);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6.1
      *# Each party MUST send a "close_notify" alert before closing its write
      *# side of the connection, unless it has already sent some error alert.
      */

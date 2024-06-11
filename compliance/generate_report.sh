@@ -10,6 +10,7 @@ pushd $TOPLEVEL > /dev/null
 
 duvet \
   report \
+  --spec-path 'compliance' \
   --spec-pattern 'compliance/specs/**/*.toml' \
   --source-pattern '(*=,*#)api/**/*.[ch]' \
   --source-pattern '(*=,*#)bin/**/*.[ch]' \

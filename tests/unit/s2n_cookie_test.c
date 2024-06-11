@@ -43,7 +43,7 @@ int main()
     /**
      * Test: client only sends extension if cookie present
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.2
      *= type=test
      *# -   Including a "cookie" extension if one was provided in the
      *#     HelloRetryRequest.
@@ -252,7 +252,7 @@ int main()
 
     /* Self-Talk: Server does use cookies
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.2
      *= type=test
      *# When sending a HelloRetryRequest, the server MAY provide a "cookie"
      *# extension to the client (this is an exception to the usual rule that

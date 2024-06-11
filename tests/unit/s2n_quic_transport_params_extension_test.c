@@ -70,7 +70,7 @@ int main(int argc, char **argv)
 
         /* Fails if quic enabled
          *
-         *= https://tools.ietf.org/rfc/rfc9001.txt#8.2
+         *= https://www.rfc-editor.org/rfc/rfc9001#8.2
          *= type=test
          *# Endpoints MUST send the quic_transport_parameters extension; endpoints that receive
          *# ClientHello or EncryptedExtensions messages without the quic_transport_parameters
