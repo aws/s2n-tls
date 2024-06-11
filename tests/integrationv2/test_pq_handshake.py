@@ -283,9 +283,6 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_client_policy, awslc_se
 
     port = next(available_ports)
 
-    awslc_env_vars = dict()
-    awslc_env_vars["PATH"] = os.path.abspath("../../test-deps/awslc/bin")
-
     s2nc_client_options = ProviderOptions(
         mode=Provider.ClientMode,
         port=port,
@@ -297,7 +294,6 @@ def test_s2nc_to_awslc_pq_handshake(managed_process, s2n_client_policy, awslc_se
         mode=Provider.ServerMode,
         port=port,
         protocol=Protocols.TLS13,
-        env_overrides=awslc_env_vars,
         curve=Curves.from_name(awslc_server_group.oqs_name))
 
     awslc_server = managed_process(BoringSSL, awslc_server_options, timeout=5)
@@ -326,9 +322,6 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
 
     port = next(available_ports)
 
-    awslc_env_vars = dict()
-    awslc_env_vars["PATH"] = os.path.abspath("../../test-deps/awslc/bin")
-
     s2nd_server_options = ProviderOptions(
         mode=Provider.ServerMode,
         port=port,
@@ -340,7 +333,6 @@ def test_s2nd_to_awslc_pq_handshake(managed_process, s2n_server_policy, awslc_cl
         mode=Provider.ClientMode,
         port=port,
         protocol=Protocols.TLS13,
-        env_overrides=awslc_env_vars,
         curve=Curves.from_name(awslc_client_group.oqs_name))
 
     s2nd_server = managed_process(S2N, s2nd_server_options, timeout=5)
