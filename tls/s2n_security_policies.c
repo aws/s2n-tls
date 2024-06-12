@@ -1268,6 +1268,11 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+    /* If the security policy isn't compatible with quic settings, return an error */
+    if (config->quic_enabled) {
+        POSIX_ENSURE(s2n_security_policy_supports_tls13(security_policy), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    }
+
     config->security_policy = security_policy;
     return 0;
 }
@@ -1289,6 +1294,11 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     /* If the certificates loaded in the config are incompatible with the security 
      * policy's certificate preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
+
+    /* If the security policy isn't compatible with quic settings, return an error */
+    if (s2n_connection_is_quic_enabled(conn)) {
+        POSIX_ENSURE(s2n_security_policy_supports_tls13(security_policy), S2N_ERR_UNSUPPORTED_WITH_QUIC);
+    }
 
     conn->security_policy_override = security_policy;
     return 0;
