@@ -35,13 +35,14 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
      * since it can be negotiated in 1-RTT (even if there are other mutually supported PQ KeyShares that the server would
      * prefer over this one but would require 2-RTT's). */
     const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
+    PTR_ENSURE_REF(client_default);
+
     for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
-        PTR_ENSURE_REF(client_default);
         PTR_ENSURE_REF(server_group);
         if (s2n_kem_group_is_available(client_default) && s2n_kem_group_is_available(server_group)
                 && client_default->iana_id == server_group->iana_id
-                && s2n_kem_group_is_available(client_default) == s2n_kem_group_is_available(server_group)) {
+                && s2n_kem_group_is_available(client_default)) {
             return client_default;
         }
     }
@@ -51,17 +52,19 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
     for (int i = 0; i < server_prefs->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *server_group = server_prefs->tls13_kem_groups[i];
 
-        for (int j = 0; j < client_prefs->tls13_kem_group_count; j++) {
+        /* j starts at 1 since we already checked client_prefs->tls13_kem_groups[0] above */
+        for (int j = 1; j < client_prefs->tls13_kem_group_count; j++) {
             const struct s2n_kem_group *client_group = client_prefs->tls13_kem_groups[j];
             PTR_ENSURE_REF(client_group);
             PTR_ENSURE_REF(server_group);
             if (s2n_kem_group_is_available(client_group) && s2n_kem_group_is_available(server_group)
                     && client_group->iana_id == server_group->iana_id
-                    && s2n_kem_group_is_available(client_group) == s2n_kem_group_is_available(server_group)) {
+                    && s2n_kem_group_is_available(client_group)) {
                 return client_group;
             }
         }
     }
+
     return NULL;
 }
 
@@ -75,12 +78,11 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
      * since it can be negotiated in 1-RTT (even if there are other mutually supported ECDHE KeyShares that the server would
      * prefer over this one but would require 2-RTT's). */
     const struct s2n_ecc_named_curve *client_default = client_sec_policy->ecc_preferences->ecc_curves[0];
+    PTR_ENSURE_REF(client_default);
+
     for (int i = 0; i < server_sec_policy->ecc_preferences->count; i++) {
         const struct s2n_ecc_named_curve *server_curve = server_sec_policy->ecc_preferences->ecc_curves[i];
-
-        PTR_ENSURE_REF(client_default);
         PTR_ENSURE_REF(server_curve);
-
         if (server_curve->iana_id == client_default->iana_id) {
             return client_default;
         }
@@ -91,7 +93,8 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
     for (int i = 0; i < server_sec_policy->ecc_preferences->count; i++) {
         const struct s2n_ecc_named_curve *server_curve = server_sec_policy->ecc_preferences->ecc_curves[i];
 
-        for (int j = 0; j < client_sec_policy->ecc_preferences->count; j++) {
+        /* j starts at 1 since we already checked client_sec_policy->ecc_preferences->ecc_curves[0] above */
+        for (int j = 1; j < client_sec_policy->ecc_preferences->count; j++) {
             const struct s2n_ecc_named_curve *client_curve = client_sec_policy->ecc_preferences->ecc_curves[j];
             PTR_ENSURE_REF(client_curve);
             PTR_ENSURE_REF(server_curve);
@@ -100,6 +103,7 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
             }
         }
     }
+
     return NULL;
 }
 

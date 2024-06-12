@@ -346,14 +346,6 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-
-    const struct s2n_kem_preferences *kem_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));
-    POSIX_ENSURE_REF(kem_pref);
-
     /* Get the client's preferred groups for the KeyShares that were actually sent by the client */
     const struct s2n_ecc_named_curve *client_curve = conn->kex_params.client_ecc_evp_params.negotiated_curve;
     const struct s2n_kem_group *client_kem_group = conn->kex_params.client_kem_group_params.kem_group;
@@ -388,7 +380,11 @@ int s2n_extensions_server_key_share_select(struct s2n_connection *conn)
         return S2N_SUCCESS;
     }
 
-    /* Option 2: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select that one. */
+    /* Option 2: Otherwise, if any PQ Hybrid Groups can be negotiated in 2-RTT's select that one. This ensures that
+     * clients who offer PQ (and presumably therefore have concerns about quantum computing impacting the long term
+     * confidentiality of their data), have their choice to offer PQ respected, even if they predict the server-side
+     * supports a different PQ KeyShare algorithms. This ensures clients with PQ support are never downgraded to non-PQ
+     * algorithms. */
     if (server_kem_group != NULL) {
         /* Null out any available ECC curves so that they won't be sent in the ClientHelloRetry */
         conn->kex_params.server_ecc_evp_params.negotiated_curve = NULL;
