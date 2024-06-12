@@ -669,6 +669,7 @@ int main(int argc, char **argv)
                     S2N_ERR_INVALID_CIPHER_PREFERENCES);
 
             /* Succeeds with one cipher suite available / written */
+            /* cppcheck-suppress redundantAssignment */
             cipher_suite.available = true;
             EXPECT_SUCCESS(s2n_client_hello_send(conn));
         };
