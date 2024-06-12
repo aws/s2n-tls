@@ -51,8 +51,9 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
     RESULT_GUARD(s2n_stuffer_validate(reserve_obj.stuffer));
     const struct s2n_stuffer stuffer_obj = *(reserve_obj.stuffer);
 
-    /* The entire reservation must fit between the read and write cursors */
+    /* Verify that write_cursor + length can be represented as a uint32_t without overflow */
     RESULT_ENSURE_LTE(reserve_obj.write_cursor, UINT32_MAX - reserve_obj.length);
+    /* The entire reservation must fit between the stuffer read and write cursors */
     RESULT_ENSURE_LTE(reserve_obj.write_cursor + reserve_obj.length, stuffer_obj.write_cursor);
     RESULT_ENSURE_GTE(reserve_obj.write_cursor, stuffer_obj.read_cursor);
 
