@@ -439,9 +439,8 @@ impl TestPair {
         send_ctx: &Pin<Box<LocalDataBuffer>>,
         recv_ctx: &Pin<Box<LocalDataBuffer>>,
     ) -> Result<connection::Connection, error::Error> {
-        let mut client = connection::Connection::new(mode);
-        client
-            .set_config(config.clone())?
+        let mut conn = connection::Connection::new(mode);
+        conn.set_config(config.clone())?
             .set_blinding(Blinding::SelfService)?
             .set_send_callback(Some(Self::send_cb))?
             .set_receive_callback(Some(Self::recv_cb))?;
@@ -456,15 +455,14 @@ impl TestPair {
             //     SAFETY: serialized access is enforced by the interior RefCell, so it is safe to vend out
             //             multiple mutable pointers to this item. We ensure this by casting back to an immutable
             //             reference in the send and recv callbacks
-            client
-                .set_send_context(
-                    send_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
-                )?
-                .set_receive_context(
-                    recv_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
-                )?;
+            conn.set_send_context(
+                send_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
+            )?
+            .set_receive_context(
+                recv_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
+            )?;
         }
-        Ok(client)
+        Ok(conn)
     }
 
     /// perform a TLS handshake between the connections
