@@ -50,13 +50,11 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
     const struct s2n_stuffer_reservation reserve_obj = *reservation;
     RESULT_GUARD(s2n_stuffer_validate(reserve_obj.stuffer));
     const struct s2n_stuffer stuffer_obj = *(reserve_obj.stuffer);
-    RESULT_ENSURE(stuffer_obj.blob.size >= reserve_obj.length, S2N_ERR_SAFETY);
 
-    if (reserve_obj.length > 0) {
-        RESULT_ENSURE(reserve_obj.write_cursor < stuffer_obj.write_cursor, S2N_ERR_SAFETY);
-        RESULT_ENSURE(S2N_MEM_IS_WRITABLE(stuffer_obj.blob.data + reserve_obj.write_cursor, reserve_obj.length),
-                S2N_ERR_SAFETY);
-    }
+    /* The entire reservation must fit between the read and write cursors */
+    RESULT_ENSURE_LTE(reserve_obj.write_cursor, UINT32_MAX - reserve_obj.length);
+    RESULT_ENSURE_LTE(reserve_obj.write_cursor + reserve_obj.length, stuffer_obj.write_cursor);
+    RESULT_ENSURE_GTE(reserve_obj.write_cursor, stuffer_obj.read_cursor);
 
     return S2N_RESULT_OK;
 }
