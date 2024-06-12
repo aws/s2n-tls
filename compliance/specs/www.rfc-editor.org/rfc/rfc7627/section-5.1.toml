@@ -1,0 +1,26 @@
+target = "https://www.rfc-editor.org/rfc/rfc7627#section-5.1"
+
+# 5.1.  Extension Definition
+#
+# This document defines a new TLS extension, "extended_master_secret"
+# (with extension type 0x0017), which is used to signal both client and
+# server to use the extended master secret computation.  The
+# "extension_data" field of this extension is empty.  Thus, the entire
+# encoding of the extension is 00 17 00 00 (in hexadecimal.)
+# 
+# Although this document refers only to TLS, the extension proposed
+# here can also be used with Datagram TLS (DTLS) [RFC6347].
+# 
+# If the client and server agree on this extension and a full handshake
+# takes place, both client and server MUST use the extended master
+# secret derivation algorithm, as defined in Section 4.  All other
+# cryptographic computations remain unchanged.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client and server agree on this extension and a full handshake
+takes place, both client and server MUST use the extended master
+secret derivation algorithm, as defined in Section 4.
+'''
+

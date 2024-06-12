@@ -1,0 +1,65 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-3.2"
+
+# 3.2.  ECDSA_fixed_ECDH
+#
+# To use this authentication mechanism, the client MUST possess a
+# certificate containing an ECDH-capable public key, and that
+# certificate MUST be signed with ECDSA.  Furthermore, the client's
+# ECDH key MUST be on the same elliptic curve as the server's long-term
+# (certified) ECDH key.  This might limit use of this mechanism to
+# closed environments.  In situations where the client has an ECC key
+# on a different curve, it would have to authenticate using either
+# ECDSA_sign or a non-ECC mechanism (e.g., RSA).  Using fixed ECDH for
+# both servers and clients is computationally more efficient than
+# mechanisms providing forward secrecy.
+# 
+# When using this authentication mechanism, the client MUST send an
+# empty ClientKeyExchange as described in Section 5.7 and MUST NOT send
+# the CertificateVerify message.  The ClientKeyExchange is empty since
+# the client's ECDH public key required by the server to compute the
+# premaster secret is available inside the client's certificate.  The
+# client's ability to arrive at the same premaster secret as the server
+# (demonstrated by a successful exchange of Finished messages) proves
+# possession of the private key corresponding to the certified public
+# key, and the CertificateVerify message is unnecessary.
+
+[[spec]]
+level = "MUST"
+quote = '''
+To use this authentication mechanism, the client MUST possess a
+certificate containing an ECDH-capable public key, and that
+certificate MUST be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+To use this authentication mechanism, the client MUST possess a
+certificate containing an ECDH-capable public key, and that
+certificate MUST be signed with ECDSA.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Furthermore, the client's
+ECDH key MUST be on the same elliptic curve as the server's long-term
+(certified) ECDH key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When using this authentication mechanism, the client MUST send an
+empty ClientKeyExchange as described in Section 5.7 and MUST NOT send
+the CertificateVerify message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When using this authentication mechanism, the client MUST send an
+empty ClientKeyExchange as described in Section 5.7 and MUST NOT send
+the CertificateVerify message.
+'''
+

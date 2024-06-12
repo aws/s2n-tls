@@ -1,0 +1,158 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-7.4.3"
+
+# 7.4.3.  Server Key Exchange Message
+#
+# When this message will be sent:
+# 
+#    This message will be sent immediately after the server Certificate
+#    message (or the ServerHello message, if this is an anonymous
+#    negotiation).
+# 
+#    The ServerKeyExchange message is sent by the server only when the
+#    server Certificate message (if sent) does not contain enough data
+#    to allow the client to exchange a premaster secret.  This is true
+#    for the following key exchange methods:
+# 
+#       DHE_DSS
+#       DHE_RSA
+#       DH_anon
+# 
+#    It is not legal to send the ServerKeyExchange message for the
+#    following key exchange methods:
+# 
+#       RSA
+#       DH_DSS
+#       DH_RSA
+# 
+#    Other key exchange algorithms, such as those defined in [TLSECC],
+#    MUST specify whether the ServerKeyExchange message is sent or not;
+#    and if the message is sent, its contents.
+# 
+# Meaning of this message:
+# 
+#    This message conveys cryptographic information to allow the client
+#    to communicate the premaster secret: a Diffie-Hellman public key
+#    with which the client can complete a key exchange (with the result
+#    being the premaster secret) or a public key for some other
+#    algorithm.
+# 
+# Structure of this message:
+# 
+#    enum { dhe_dss, dhe_rsa, dh_anon, rsa, dh_dss, dh_rsa
+#          /* may be extended, e.g., for ECDH -- see [TLSECC] */
+#         } KeyExchangeAlgorithm;
+# 
+#    struct {
+#        opaque dh_p<1..2^16-1>;
+#        opaque dh_g<1..2^16-1>;
+#        opaque dh_Ys<1..2^16-1>;
+#    } ServerDHParams;     /* Ephemeral DH parameters */
+# 
+#    dh_p
+#       The prime modulus used for the Diffie-Hellman operation.
+# 
+#    dh_g
+#       The generator used for the Diffie-Hellman operation.
+# 
+#    dh_Ys
+#       The server's Diffie-Hellman public value (g^X mod p).
+# 
+#    struct {
+#        select (KeyExchangeAlgorithm) {
+#            case dh_anon:
+#                ServerDHParams params;
+#            case dhe_dss:
+#            case dhe_rsa:
+#                ServerDHParams params;
+#                digitally-signed struct {
+#                    opaque client_random[32];
+#                    opaque server_random[32];
+#                    ServerDHParams params;
+#                } signed_params;
+#            case rsa:
+#            case dh_dss:
+#            case dh_rsa:
+#                struct {} ;
+#               /* message is omitted for rsa, dh_dss, and dh_rsa */
+#            /* may be extended, e.g., for ECDH -- see [TLSECC] */
+#        };
+#    } ServerKeyExchange;
+# 
+#    params
+#       The server's key exchange parameters.
+# 
+#    signed_params
+#       For non-anonymous key exchanges, a signature over the server's
+#       key exchange parameters.
+# 
+# If the client has offered the "signature_algorithms" extension, the
+# signature algorithm and hash algorithm MUST be a pair listed in that
+# extension.  Note that there is a possibility for inconsistencies
+# here.  For instance, the client might offer DHE_DSS key exchange but
+# omit any DSA pairs from its "signature_algorithms" extension.  In
+# order to negotiate correctly, the server MUST check any candidate
+# cipher suites against the "signature_algorithms" extension before
+# selecting them.  This is somewhat inelegant but is a compromise
+# designed to minimize changes to the original cipher suite design.
+# 
+# In addition, the hash and signature algorithms MUST be compatible
+# with the key in the server's end-entity certificate.  RSA keys MAY be
+# used with any permitted hash algorithm, subject to restrictions in
+# the certificate, if any.
+# 
+# Because DSA signatures do not contain any secure indication of hash
+# algorithm, there is a risk of hash substitution if multiple hashes
+# may be used with any key.  Currently, DSA [DSS] may only be used with
+# SHA-1.  Future revisions of DSS [DSS-3] are expected to allow the use
+# of other digest algorithms with DSA, as well as guidance as to which
+# 
+# digest algorithms should be used with each key size.  In addition,
+# future revisions of [PKIX] may specify mechanisms for certificates to
+# indicate which digest algorithms are to be used with DSA.
+# 
+# As additional cipher suites are defined for TLS that include new key
+# exchange algorithms, the server key exchange message will be sent if
+# and only if the certificate type associated with the key exchange
+# algorithm does not provide enough information for the client to
+# exchange a premaster secret.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Other key exchange algorithms, such as those defined in [TLSECC],
+MUST specify whether the ServerKeyExchange message is sent or not;
+and if the message is sent, its contents.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client has offered the "signature_algorithms" extension, the
+signature algorithm and hash algorithm MUST be a pair listed in that
+extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In
+order to negotiate correctly, the server MUST check any candidate
+cipher suites against the "signature_algorithms" extension before
+selecting them.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In addition, the hash and signature algorithms MUST be compatible
+with the key in the server's end-entity certificate.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+RSA keys MAY be
+used with any permitted hash algorithm, subject to restrictions in
+the certificate, if any.
+'''
+

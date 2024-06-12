@@ -1,0 +1,199 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-7.4.6"
+
+# 7.4.6.  Client Certificate
+#
+# When this message will be sent:
+# 
+#    This is the first message the client can send after receiving a
+#    ServerHelloDone message.  This message is only sent if the server
+#    requests a certificate.  If no suitable certificate is available,
+#    the client MUST send a certificate message containing no
+#    certificates.  That is, the certificate_list structure has a
+#    length of zero.  If the client does not send any certificates, the
+#    server MAY at its discretion either continue the handshake without
+#    client authentication, or respond with a fatal handshake_failure
+#    alert.  Also, if some aspect of the certificate chain was
+#    unacceptable (e.g., it was not signed by a known, trusted CA), the
+#    server MAY at its discretion either continue the handshake
+#    (considering the client unauthenticated) or send a fatal alert.
+# 
+#    Client certificates are sent using the Certificate structure
+#    defined in Section 7.4.2.
+# 
+# Meaning of this message:
+# 
+#    This message conveys the client's certificate chain to the server;
+#    the server will use it when verifying the CertificateVerify
+#    message (when the client authentication is based on signing) or
+#    calculating the premaster secret (for non-ephemeral Diffie-
+#    Hellman).  The certificate MUST be appropriate for the negotiated
+#    cipher suite's key exchange algorithm, and any negotiated
+#    extensions.
+# 
+# In particular:
+# 
+# -  The certificate type MUST be X.509v3, unless explicitly negotiated
+#    otherwise (e.g., [TLSPGP]).
+# 
+# -  The end-entity certificate's public key (and associated
+#    restrictions) has to be compatible with the certificate types
+#    listed in CertificateRequest:
+# 
+#    Client Cert. Type   Certificate Key Type
+# 
+#    rsa_sign            RSA public key; the certificate MUST allow the
+#                        key to be used for signing with the signature
+#                        scheme and hash algorithm that will be
+#                        employed in the certificate verify message.
+# 
+#    dss_sign            DSA public key; the certificate MUST allow the
+#                        key to be used for signing with the hash
+#                        algorithm that will be employed in the
+#                        certificate verify message.
+# 
+#    ecdsa_sign          ECDSA-capable public key; the certificate MUST
+#                        allow the key to be used for signing with the
+#                        hash algorithm that will be employed in the
+#                        certificate verify message; the public key
+#                        MUST use a curve and point format supported by
+#                        the server.
+# 
+#    rsa_fixed_dh        Diffie-Hellman public key; MUST use the same
+#    dss_fixed_dh        parameters as server's key.
+# 
+#    rsa_fixed_ecdh      ECDH-capable public key; MUST use the
+#    ecdsa_fixed_ecdh    same curve as the server's key, and MUST use a
+#                        point format supported by the server.
+# 
+# -  If the certificate_authorities list in the certificate request
+#    message was non-empty, one of the certificates in the certificate
+#    chain SHOULD be issued by one of the listed CAs.
+# 
+# -  The certificates MUST be signed using an acceptable hash/
+#    signature algorithm pair, as described in Section 7.4.4.  Note
+#    that this relaxes the constraints on certificate-signing
+#    algorithms found in prior versions of TLS.
+# 
+# Note that, as with the server certificate, there are certificates
+# that use algorithms/algorithm combinations that cannot be currently
+# used with TLS.
+
+[[spec]]
+level = "MUST"
+quote = '''
+If no suitable certificate is available,
+the client MUST send a certificate message containing no
+certificates.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+If the client does not send any certificates, the
+server MAY at its discretion either continue the handshake without
+client authentication, or respond with a fatal handshake_failure
+alert.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Also, if some aspect of the certificate chain was
+unacceptable (e.g., it was not signed by a known, trusted CA), the
+server MAY at its discretion either continue the handshake
+(considering the client unauthenticated) or send a fatal alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The certificate MUST be appropriate for the negotiated
+cipher suite's key exchange algorithm, and any negotiated
+extensions.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  The certificate type MUST be X.509v3, unless explicitly negotiated
+otherwise (e.g., [TLSPGP]).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+rsa_sign            RSA public key; the certificate MUST allow the
+key to be used for signing with the signature
+scheme and hash algorithm that will be
+employed in the certificate verify message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+dss_sign            DSA public key; the certificate MUST allow the
+key to be used for signing with the hash
+algorithm that will be employed in the
+certificate verify message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+ecdsa_sign          ECDSA-capable public key; the certificate MUST
+allow the key to be used for signing with the
+hash algorithm that will be employed in the
+certificate verify message; the public key
+MUST use a curve and point format supported by
+the server.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+ecdsa_sign          ECDSA-capable public key; the certificate MUST
+allow the key to be used for signing with the
+hash algorithm that will be employed in the
+certificate verify message; the public key
+MUST use a curve and point format supported by
+the server.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+rsa_fixed_dh        Diffie-Hellman public key; MUST use the same
+dss_fixed_dh        parameters as server's key.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+rsa_fixed_ecdh      ECDH-capable public key; MUST use the
+ecdsa_fixed_ecdh    same curve as the server's key, and MUST use a
+point format supported by the server.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+rsa_fixed_ecdh      ECDH-capable public key; MUST use the
+ecdsa_fixed_ecdh    same curve as the server's key, and MUST use a
+point format supported by the server.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+-  If the certificate_authorities list in the certificate request
+message was non-empty, one of the certificates in the certificate
+chain SHOULD be issued by one of the listed CAs.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  The certificates MUST be signed using an acceptable hash/
+signature algorithm pair, as described in Section 7.4.4.
+'''
+

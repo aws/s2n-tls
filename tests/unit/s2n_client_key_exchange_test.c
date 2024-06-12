@@ -189,12 +189,12 @@ struct s2n_test_async_pkey_cb_ctx {
     uint32_t offload_invoked_count;
 };
 
-static int s2n_test_async_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
+static int s2n_test_async_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pkey_op *op_in)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(op);
+    POSIX_ENSURE_REF(op_in);
 
-    DEFER_CLEANUP(struct s2n_async_pkey_op *op_defer_cleanup = op, s2n_async_pkey_op_free_pointer);
+    DEFER_CLEANUP(struct s2n_async_pkey_op *op = op_in, s2n_async_pkey_op_free_pointer);
 
     struct s2n_test_async_pkey_cb_ctx *ctx = s2n_connection_get_ctx(conn);
     POSIX_ENSURE_REF(ctx);
@@ -215,12 +215,12 @@ static int s2n_test_async_pkey_decrypt_callback(struct s2n_connection *conn, str
     return S2N_SUCCESS;
 }
 
-static int s2n_test_offload_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
+static int s2n_test_offload_pkey_decrypt_callback(struct s2n_connection *conn, struct s2n_async_pkey_op *op_in)
 {
     POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(op);
+    POSIX_ENSURE_REF(op_in);
 
-    DEFER_CLEANUP(struct s2n_async_pkey_op *op_defer_cleanup = op, s2n_async_pkey_op_free_pointer);
+    DEFER_CLEANUP(struct s2n_async_pkey_op *op = op_in, s2n_async_pkey_op_free_pointer);
 
     struct s2n_test_async_pkey_cb_ctx *ctx = s2n_connection_get_ctx(conn);
     POSIX_ENSURE_REF(ctx);

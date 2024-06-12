@@ -72,7 +72,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
          *= type=test
          *#    If the original session used the extension but the new ServerHello
          *#    does not contain the extension, the client MUST abort the

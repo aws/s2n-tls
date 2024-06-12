@@ -1,0 +1,352 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.3"
+
+# 4.2.3.  Signature Algorithms
+#
+# TLS 1.3 provides two extensions for indicating which signature
+# algorithms may be used in digital signatures.  The
+# "signature_algorithms_cert" extension applies to signatures in
+# certificates, and the "signature_algorithms" extension, which
+# originally appeared in TLS 1.2, applies to signatures in
+# CertificateVerify messages.  The keys found in certificates MUST also
+# be of appropriate type for the signature algorithms they are used
+# with.  This is a particular issue for RSA keys and PSS signatures, as
+# described below.  If no "signature_algorithms_cert" extension is
+# present, then the "signature_algorithms" extension also applies to
+# signatures appearing in certificates.  Clients which desire the
+# server to authenticate itself via a certificate MUST send the
+# "signature_algorithms" extension.  If a server is authenticating via
+# a certificate and the client has not sent a "signature_algorithms"
+# extension, then the server MUST abort the handshake with a
+# "missing_extension" alert (see Section 9.2).
+# 
+# The "signature_algorithms_cert" extension was added to allow
+# implementations which supported different sets of algorithms for
+# certificates and in TLS itself to clearly signal their capabilities.
+# TLS 1.2 implementations SHOULD also process this extension.
+# Implementations which have the same policy in both cases MAY omit the
+# "signature_algorithms_cert" extension.
+# 
+# The "extension_data" field of these extensions contains a
+# SignatureSchemeList value:
+# 
+#    enum {
+#        /* RSASSA-PKCS1-v1_5 algorithms */
+#        rsa_pkcs1_sha256(0x0401),
+#        rsa_pkcs1_sha384(0x0501),
+#        rsa_pkcs1_sha512(0x0601),
+# 
+#        /* ECDSA algorithms */
+#        ecdsa_secp256r1_sha256(0x0403),
+#        ecdsa_secp384r1_sha384(0x0503),
+#        ecdsa_secp521r1_sha512(0x0603),
+# 
+#        /* RSASSA-PSS algorithms with public key OID rsaEncryption */
+#        rsa_pss_rsae_sha256(0x0804),
+#        rsa_pss_rsae_sha384(0x0805),
+#        rsa_pss_rsae_sha512(0x0806),
+# 
+#        /* EdDSA algorithms */
+#        ed25519(0x0807),
+#        ed448(0x0808),
+# 
+#        /* RSASSA-PSS algorithms with public key OID RSASSA-PSS */
+#        rsa_pss_pss_sha256(0x0809),
+#        rsa_pss_pss_sha384(0x080a),
+#        rsa_pss_pss_sha512(0x080b),
+# 
+#        /* Legacy algorithms */
+#        rsa_pkcs1_sha1(0x0201),
+#        ecdsa_sha1(0x0203),
+# 
+#        /* Reserved Code Points */
+#        private_use(0xFE00..0xFFFF),
+#        (0xFFFF)
+#    } SignatureScheme;
+# 
+#    struct {
+#        SignatureScheme supported_signature_algorithms<2..2^16-2>;
+#    } SignatureSchemeList;
+# 
+# Note: This enum is named "SignatureScheme" because there is already a
+# "SignatureAlgorithm" type in TLS 1.2, which this replaces.  We use
+# the term "signature algorithm" throughout the text.
+# 
+# Each SignatureScheme value lists a single signature algorithm that
+# the client is willing to verify.  The values are indicated in
+# descending order of preference.  Note that a signature algorithm
+# takes as input an arbitrary-length message, rather than a digest.
+# Algorithms which traditionally act on a digest should be defined in
+# TLS to first hash the input with a specified hash algorithm and then
+# proceed as usual.  The code point groups listed above have the
+# following meanings:
+# 
+# RSASSA-PKCS1-v1_5 algorithms:  Indicates a signature algorithm using
+#    RSASSA-PKCS1-v1_5 [RFC8017] with the corresponding hash algorithm
+#    as defined in [SHS].  These values refer solely to signatures
+#    which appear in certificates (see Section 4.4.2.2) and are not
+#    defined for use in signed TLS handshake messages, although they
+#    MAY appear in "signature_algorithms" and
+#    "signature_algorithms_cert" for backward compatibility with
+#    TLS 1.2.
+# 
+# ECDSA algorithms:  Indicates a signature algorithm using ECDSA
+#    [ECDSA], the corresponding curve as defined in ANSI X9.62 [ECDSA]
+#    and FIPS 186-4 [DSS], and the corresponding hash algorithm as
+#    defined in [SHS].  The signature is represented as a DER-encoded
+#    [X690] ECDSA-Sig-Value structure.
+# 
+# RSASSA-PSS RSAE algorithms:  Indicates a signature algorithm using
+#    RSASSA-PSS [RFC8017] with mask generation function 1.  The digest
+#    used in the mask generation function and the digest being signed
+#    are both the corresponding hash algorithm as defined in [SHS].
+#    The length of the Salt MUST be equal to the length of the output
+#    of the digest algorithm.  If the public key is carried in an X.509
+#    certificate, it MUST use the rsaEncryption OID [RFC5280].
+# 
+# EdDSA algorithms:  Indicates a signature algorithm using EdDSA as
+#    defined in [RFC8032] or its successors.  Note that these
+#    correspond to the "PureEdDSA" algorithms and not the "prehash"
+#    variants.
+# 
+# RSASSA-PSS PSS algorithms:  Indicates a signature algorithm using
+#    RSASSA-PSS [RFC8017] with mask generation function 1.  The digest
+#    used in the mask generation function and the digest being signed
+#    are both the corresponding hash algorithm as defined in [SHS].
+#    The length of the Salt MUST be equal to the length of the digest
+#    algorithm.  If the public key is carried in an X.509 certificate,
+#    it MUST use the RSASSA-PSS OID [RFC5756].  When used in
+#    certificate signatures, the algorithm parameters MUST be DER
+#    encoded.  If the corresponding public key's parameters are
+#    present, then the parameters in the signature MUST be identical to
+#    those in the public key.
+# 
+# Legacy algorithms:  Indicates algorithms which are being deprecated
+#    because they use algorithms with known weaknesses, specifically
+#    SHA-1 which is used in this context with either (1) RSA using
+#    RSASSA-PKCS1-v1_5 or (2) ECDSA.  These values refer solely to
+#    signatures which appear in certificates (see Section 4.4.2.2) and
+#    are not defined for use in signed TLS handshake messages, although
+#    they MAY appear in "signature_algorithms" and
+#    "signature_algorithms_cert" for backward compatibility with
+#    TLS 1.2.  Endpoints SHOULD NOT negotiate these algorithms but are
+#    permitted to do so solely for backward compatibility.  Clients
+#    offering these values MUST list them as the lowest priority
+#    (listed after all other algorithms in SignatureSchemeList).
+#    TLS 1.3 servers MUST NOT offer a SHA-1 signed certificate unless
+#    no valid certificate chain can be produced without it (see
+#    Section 4.4.2.2).
+# 
+# The signatures on certificates that are self-signed or certificates
+# that are trust anchors are not validated, since they begin a
+# certification path (see [RFC5280], Section 3.2).  A certificate that
+# begins a certification path MAY use a signature algorithm that is not
+# advertised as being supported in the "signature_algorithms"
+# extension.
+# 
+# Note that TLS 1.2 defines this extension differently.  TLS 1.3
+# implementations willing to negotiate TLS 1.2 MUST behave in
+# accordance with the requirements of [RFC5246] when negotiating that
+# version.  In particular:
+# 
+# -  TLS 1.2 ClientHellos MAY omit this extension.
+# 
+# -  In TLS 1.2, the extension contained hash/signature pairs.  The
+#    pairs are encoded in two octets, so SignatureScheme values have
+#    been allocated to align with TLS 1.2's encoding.  Some legacy
+#    pairs are left unallocated.  These algorithms are deprecated as of
+#    TLS 1.3.  They MUST NOT be offered or negotiated by any
+#    implementation.  In particular, MD5 [SLOTH], SHA-224, and DSA
+#    MUST NOT be used.
+# 
+# -  ECDSA signature schemes align with TLS 1.2's ECDSA hash/signature
+#    pairs.  However, the old semantics did not constrain the signing
+#    curve.  If TLS 1.2 is negotiated, implementations MUST be prepared
+#    to accept a signature that uses any curve that they advertised in
+#    the "supported_groups" extension.
+# 
+# -  Implementations that advertise support for RSASSA-PSS (which is
+#    mandatory in TLS 1.3) MUST be prepared to accept a signature using
+#    that scheme even when TLS 1.2 is negotiated.  In TLS 1.2,
+#    RSASSA-PSS is used with RSA cipher suites.
+
+[[spec]]
+level = "MUST"
+quote = '''
+The keys found in certificates MUST also
+be of appropriate type for the signature algorithms they are used
+with.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients which desire the
+server to authenticate itself via a certificate MUST send the
+"signature_algorithms" extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a server is authenticating via
+a certificate and the client has not sent a "signature_algorithms"
+extension, then the server MUST abort the handshake with a
+"missing_extension" alert (see Section 9.2).
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+TLS 1.2 implementations SHOULD also process this extension.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Implementations which have the same policy in both cases MAY omit the
+"signature_algorithms_cert" extension.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+These values refer solely to signatures
+which appear in certificates (see Section 4.4.2.2) and are not
+defined for use in signed TLS handshake messages, although they
+MAY appear in "signature_algorithms" and
+"signature_algorithms_cert" for backward compatibility with
+TLS 1.2.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The length of the Salt MUST be equal to the length of the output
+of the digest algorithm.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the public key is carried in an X.509
+certificate, it MUST use the rsaEncryption OID [RFC5280].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The length of the Salt MUST be equal to the length of the digest
+algorithm.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the public key is carried in an X.509 certificate,
+it MUST use the RSASSA-PSS OID [RFC5756].
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+When used in
+certificate signatures, the algorithm parameters MUST be DER
+encoded.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the corresponding public key's parameters are
+present, then the parameters in the signature MUST be identical to
+those in the public key.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+These values refer solely to
+signatures which appear in certificates (see Section 4.4.2.2) and
+are not defined for use in signed TLS handshake messages, although
+they MAY appear in "signature_algorithms" and
+"signature_algorithms_cert" for backward compatibility with
+TLS 1.2.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Endpoints SHOULD NOT negotiate these algorithms but are
+permitted to do so solely for backward compatibility.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients
+offering these values MUST list them as the lowest priority
+(listed after all other algorithms in SignatureSchemeList).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+TLS 1.3 servers MUST NOT offer a SHA-1 signed certificate unless
+no valid certificate chain can be produced without it (see
+Section 4.4.2.2).
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+A certificate that
+begins a certification path MAY use a signature algorithm that is not
+advertised as being supported in the "signature_algorithms"
+extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+TLS 1.3
+implementations willing to negotiate TLS 1.2 MUST behave in
+accordance with the requirements of [RFC5246] when negotiating that
+version.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+-  TLS 1.2 ClientHellos MAY omit this extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+They MUST NOT be offered or negotiated by any
+implementation.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In particular, MD5 [SLOTH], SHA-224, and DSA
+MUST NOT be used.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If TLS 1.2 is negotiated, implementations MUST be prepared
+to accept a signature that uses any curve that they advertised in
+the "supported_groups" extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  Implementations that advertise support for RSASSA-PSS (which is
+mandatory in TLS 1.3) MUST be prepared to accept a signature using
+that scheme even when TLS 1.2 is negotiated.
+'''
+

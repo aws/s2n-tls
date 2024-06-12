@@ -26,7 +26,7 @@ S2N_RESULT s2n_client_hello_request_validate(struct s2n_connection *conn)
     }
 
     /*
-     *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.1
      *# The HelloRequest message MAY be sent by the server at any time.
      */
     RESULT_ENSURE(conn->mode == S2N_CLIENT, S2N_ERR_BAD_MESSAGE);
@@ -48,7 +48,7 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
     }
 
     /*
-     *= https://tools.ietf.org/rfc/rfc5746#section-4.2
+     *= https://www.rfc-editor.org/rfc/rfc5746#section-4.2
      *# This text applies if the connection's "secure_renegotiation" flag is
      *# set to FALSE.
      *#
@@ -71,7 +71,7 @@ S2N_RESULT s2n_client_hello_request_recv(struct s2n_connection *conn)
     RESULT_ENSURE(result == S2N_SUCCESS, S2N_ERR_CANCELLED);
 
     /*
-     *= https://tools.ietf.org/rfc/rfc5246#section-7.4.1.1
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.4.1.1
      *# This message MAY be ignored by
      *# the client if it does not wish to renegotiate a session, or the
      *# client may, if it wishes, respond with a no_renegotiation alert.

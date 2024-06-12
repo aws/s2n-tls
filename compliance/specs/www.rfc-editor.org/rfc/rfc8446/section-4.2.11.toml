@@ -1,0 +1,242 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11"
+
+# 4.2.11.  Pre-Shared Key Extension
+#
+# The "pre_shared_key" extension is used to negotiate the identity of
+# the pre-shared key to be used with a given handshake in association
+# with PSK key establishment.
+# 
+# The "extension_data" field of this extension contains a
+# "PreSharedKeyExtension" value:
+# 
+#    struct {
+#        opaque identity<1..2^16-1>;
+#        uint32 obfuscated_ticket_age;
+#    } PskIdentity;
+# 
+#    opaque PskBinderEntry<32..255>;
+# 
+#    struct {
+#        PskIdentity identities<7..2^16-1>;
+#        PskBinderEntry binders<33..2^16-1>;
+#    } OfferedPsks;
+# 
+#    struct {
+#        select (Handshake.msg_type) {
+#            case client_hello: OfferedPsks;
+#            case server_hello: uint16 selected_identity;
+#        };
+#    } PreSharedKeyExtension;
+# 
+# identity:  A label for a key.  For instance, a ticket (as defined in
+#    Appendix B.3.4) or a label for a pre-shared key established
+#    externally.
+# 
+# obfuscated_ticket_age:  An obfuscated version of the age of the key.
+#    Section 4.2.11.1 describes how to form this value for identities
+#    established via the NewSessionTicket message.  For identities
+#    established externally, an obfuscated_ticket_age of 0 SHOULD be
+#    used, and servers MUST ignore the value.
+# 
+# identities:  A list of the identities that the client is willing to
+#    negotiate with the server.  If sent alongside the "early_data"
+#    extension (see Section 4.2.10), the first identity is the one used
+#    for 0-RTT data.
+# 
+# binders:  A series of HMAC values, one for each value in the
+#    identities list and in the same order, computed as described
+#    below.
+# 
+# selected_identity:  The server's chosen identity expressed as a
+#    (0-based) index into the identities in the client's list.
+# 
+# Each PSK is associated with a single Hash algorithm.  For PSKs
+# established via the ticket mechanism (Section 4.6.1), this is the KDF
+# Hash algorithm on the connection where the ticket was established.
+# For externally established PSKs, the Hash algorithm MUST be set when
+# 
+# the PSK is established or default to SHA-256 if no such algorithm is
+# defined.  The server MUST ensure that it selects a compatible PSK
+# (if any) and cipher suite.
+# 
+# In TLS versions prior to TLS 1.3, the Server Name Identification
+# (SNI) value was intended to be associated with the session (Section 3
+# of [RFC6066]), with the server being required to enforce that the SNI
+# value associated with the session matches the one specified in the
+# resumption handshake.  However, in reality the implementations were
+# not consistent on which of two supplied SNI values they would use,
+# leading to the consistency requirement being de facto enforced by the
+# clients.  In TLS 1.3, the SNI value is always explicitly specified in
+# the resumption handshake, and there is no need for the server to
+# associate an SNI value with the ticket.  Clients, however, SHOULD
+# store the SNI with the PSK to fulfill the requirements of
+# Section 4.6.1.
+# 
+# Implementor's note: When session resumption is the primary use case
+# of PSKs, the most straightforward way to implement the PSK/cipher
+# suite matching requirements is to negotiate the cipher suite first
+# and then exclude any incompatible PSKs.  Any unknown PSKs (e.g., ones
+# not in the PSK database or encrypted with an unknown key) SHOULD
+# simply be ignored.  If no acceptable PSKs are found, the server
+# SHOULD perform a non-PSK handshake if possible.  If backward
+# compatibility is important, client-provided, externally established
+# PSKs SHOULD influence cipher suite selection.
+# 
+# Prior to accepting PSK key establishment, the server MUST validate
+# the corresponding binder value (see Section 4.2.11.2 below).  If this
+# value is not present or does not validate, the server MUST abort the
+# handshake.  Servers SHOULD NOT attempt to validate multiple binders;
+# rather, they SHOULD select a single PSK and validate solely the
+# binder that corresponds to that PSK.  See Section 8.2 and
+# Appendix E.6 for the security rationale for this requirement.  In
+# order to accept PSK key establishment, the server sends a
+# "pre_shared_key" extension indicating the selected identity.
+# 
+# Clients MUST verify that the server's selected_identity is within the
+# range supplied by the client, that the server selected a cipher suite
+# indicating a Hash associated with the PSK, and that a server
+# "key_share" extension is present if required by the ClientHello
+# "psk_key_exchange_modes" extension.  If these values are not
+# consistent, the client MUST abort the handshake with an
+# "illegal_parameter" alert.
+# 
+# If the server supplies an "early_data" extension, the client MUST
+# verify that the server's selected_identity is 0.  If any other value
+# is returned, the client MUST abort the handshake with an
+# "illegal_parameter" alert.
+# 
+# The "pre_shared_key" extension MUST be the last extension in the
+# ClientHello (this facilitates implementation as described below).
+# Servers MUST check that it is the last extension and otherwise fail
+# the handshake with an "illegal_parameter" alert.
+
+[[spec]]
+level = "MUST"
+quote = '''
+For identities
+established externally, an obfuscated_ticket_age of 0 SHOULD be
+used, and servers MUST ignore the value.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+For externally established PSKs, the Hash algorithm MUST be set when
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST ensure that it selects a compatible PSK
+(if any) and cipher suite.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients, however, SHOULD
+store the SNI with the PSK to fulfill the requirements of
+Section 4.6.1.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Any unknown PSKs (e.g., ones
+not in the PSK database or encrypted with an unknown key) SHOULD
+simply be ignored.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If no acceptable PSKs are found, the server
+SHOULD perform a non-PSK handshake if possible.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If backward
+compatibility is important, client-provided, externally established
+PSKs SHOULD influence cipher suite selection.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Prior to accepting PSK key establishment, the server MUST validate
+the corresponding binder value (see Section 4.2.11.2 below).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If this
+value is not present or does not validate, the server MUST abort the
+handshake.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers SHOULD NOT attempt to validate multiple binders;
+rather, they SHOULD select a single PSK and validate solely the
+binder that corresponds to that PSK.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers SHOULD NOT attempt to validate multiple binders;
+rather, they SHOULD select a single PSK and validate solely the
+binder that corresponds to that PSK.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients MUST verify that the server's selected_identity is within the
+range supplied by the client, that the server selected a cipher suite
+indicating a Hash associated with the PSK, and that a server
+"key_share" extension is present if required by the ClientHello
+"psk_key_exchange_modes" extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If these values are not
+consistent, the client MUST abort the handshake with an
+"illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server supplies an "early_data" extension, the client MUST
+verify that the server's selected_identity is 0.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If any other value
+is returned, the client MUST abort the handshake with an
+"illegal_parameter" alert.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The "pre_shared_key" extension MUST be the last extension in the
+ClientHello (this facilitates implementation as described below).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MUST check that it is the last extension and otherwise fail
+the handshake with an "illegal_parameter" alert.
+'''
+
