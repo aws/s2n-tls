@@ -39,6 +39,11 @@ if [[ ! -x "$DEST_DIR/s2nc_head" ]]; then
     if [[ ! -d "s2n_head" ]]; then
         # Clone the most recent s2n commit
         git clone --branch main --single-branch . s2n_head
+    else
+        cd s2n_head
+        echo "Checking the age of s2n_head..."
+        test $(date -d '-3 days' +%s) -lt $(git log -1 --format="%at") || echo "s2n_head is too old, refusing to use it";exit 1
+        cd ..
     fi
     if [[ "$IN_NIX_SHELL" ]]; then
         cmake ./s2n_head -B"$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
@@ -52,7 +57,5 @@ if [[ ! -x "$DEST_DIR/s2nc_head" ]]; then
 else
     echo "s2nc_head already exists; not rebuilding s2n_head"
 fi
-
-echo "\nChecking build for s2nc/d...\n$(ls -al $DEST_DIR/s2n[cd]*)" 
 
 exit 0
