@@ -446,7 +446,7 @@ impl TestPair {
             .set_send_callback(Some(Self::send_cb))?
             .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
-            // cast 1 : &*send_ctx as &LocalDataBuffer -> get a plain reference to underlying LocalDataBuffer
+            // cast 1 : send_ctx as &LocalDataBuffer -> get a plain reference to underlying LocalDataBuffer
             //
             // cast 2: &LocalDataBuffer as *const LocalDataBuffer -> cast the reference to a pointer
             //     SAFETY: the LocalDataBuffer must live as long as the connection does. This can be violated if the
@@ -458,10 +458,10 @@ impl TestPair {
             //             reference in the send and recv callbacks
             client
                 .set_send_context(
-                    &*send_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
+                    send_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
                 )?
                 .set_receive_context(
-                    &*recv_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
+                    recv_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
                 )?;
         }
         Ok(client)
