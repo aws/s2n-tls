@@ -345,7 +345,7 @@ type LocalDataBuffer = RefCell<VecDeque<u8>>;
 /// the Harness. If the Harness goes out of scope, the data buffers will be dropped
 /// and the pointers will be invalid.
 ///
-/// The most common usecase is to handshaking a simple config.
+/// The most common usecase is handshaking a simple config.
 /// ```ignore
 /// // given some config
 /// let config = build_config(&crate::security::DEFAULT_TLS13).unwrap();
