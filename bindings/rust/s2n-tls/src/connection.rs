@@ -869,9 +869,10 @@ impl Connection {
             s2n_connection_get_handshake_type_name(self.connection.as_ptr()).into_result()?
         };
         unsafe {
-            // SAFETY: constructed strings have a null byte appended to them
-            // SAFETY: the data has a 'static lifetime, because it resides in a static
-            // char array, and is never modified after its initial creation
+            // SAFETY: Constructed strings have a null byte appended to them.
+            // SAFETY: The data has a 'static lifetime, because it resides in a 
+            //         static char array, and is never modified after its initial
+            //         creation.
             const_str!(handshake)
         }
     }
@@ -879,10 +880,10 @@ impl Connection {
     pub fn cipher_suite(&self) -> Result<&str, Error> {
         let cipher = unsafe { s2n_connection_get_cipher(self.connection.as_ptr()).into_result()? };
         unsafe {
-            // SAFETY: The data is null terminated because it is declared as a C string literal.
-            // SAFETY: cipher has a static lifetime because it lives on s2n_cipher_suite, a static struct.
-            // a static const struct, and therefore outlives the surrounding scope
-            // (which is the lifetime of the connection)
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: cipher has a static lifetime because it lives on s2n_cipher_suite,
+            //         a static struct.
             const_str!(cipher)
         }
     }
@@ -890,10 +891,10 @@ impl Connection {
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
         unsafe {
-            // SAFETY: The data is null terminated because it is declared as a C string literal.
-            // SAFETY: curve has a static lifetime because it lives on s2n_ecc_named_curve, which is a static const struct.
-            // a static const struct, and therefore outlives the surrounding scope
-            // (which is the lifetime of the connection)
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: curve has a static lifetime because it lives on s2n_ecc_named_curve,
+            //         which is a static const struct.
             const_str!(curve)
         }
     }
