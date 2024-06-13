@@ -338,7 +338,7 @@ pub fn poll_tls_pair_result(pair: &mut Pair<Harness, Harness>) -> Result<()> {
 
 type LocalDataBuffer = RefCell<VecDeque<u8>>;
 
-/// CleanHarness is a testing utility used to easily test handshakes and send data.
+/// TestPair is a testing utility used to easily test handshakes and send data.
 ///
 /// SAFETY: if the server or client connection is moved outside of the struct, IO
 /// is not safe to perform. The connections use pointers to data buffers owned by
@@ -487,12 +487,8 @@ impl TestPair {
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
         let context = &*(context as *const LocalDataBuffer);
         let data = core::slice::from_raw_parts(data, len as _);
-        context
-            .borrow_mut()
-            .write(data)
-            .unwrap()
-            .try_into()
-            .unwrap()
+        let bytes_written = context.borrow_mut().write(data).unwrap();
+        bytes_written as c_int
     }
 
     // Note: this callback will be invoked multiple times in the event that
@@ -510,7 +506,7 @@ impl TestPair {
                     errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
                     -1
                 } else {
-                    len.try_into().unwrap()
+                    len as c_int
                 }
             }
             Err(err) => {
