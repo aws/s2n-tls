@@ -163,7 +163,8 @@ function apache2_config(){
     export APACHE2_INSTALL_DIR=/usr/local/apache2
     export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
     export APACHE_RUN_USER=nobody
-    export APACHE_RUN_GROUP=nogroup
+    # Unprilidged groupname differs
+    export APACHE_RUN_GROUP=$(awk 'BEGIN{FS=":"} /65534/{print $1}' /etc/group)
     export APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid"
     export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" 
     export APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock"
@@ -178,6 +179,7 @@ function apache2_start(){
             mkdir -p $APACHE2_INSTALL_DIR
             # NixOs specific base apache config
             cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
+            # Integrationv2::cross_compatibility site
             cp -R ./codebuild/bin/apache2/{www,sites-enabled} $APACHE2_INSTALL_DIR
         fi
         httpd -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
