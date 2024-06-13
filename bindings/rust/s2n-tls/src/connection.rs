@@ -29,9 +29,9 @@ mod builder;
 pub use builder::*;
 
 /// return a &str scoped to the lifetime of the surrounding function
-/// 
+///
 /// SAFETY: must be called on a null terminated string
-/// 
+///
 /// SAFETY: the underlying data must live at least as long as the surrounding scope
 // We use a macro instead of a function so that the lifetime of the output is
 // automatically inferred to match the surrounding scope.
@@ -878,7 +878,7 @@ impl Connection {
         let cipher = unsafe { s2n_connection_get_cipher(self.connection.as_ptr()).into_result()? };
         // SAFETY: The data is null terminated because it is declared as a C string literal.
         // SAFETY: cipher has a static lifetime because it lives on s2n_cipher_suite, a static struct.
-        // a static const struct, and therefore outlives the surrounding scope 
+        // a static const struct, and therefore outlives the surrounding scope
         // (which is the lifetime of the connection)
         unsafe { const_str!(cipher) }
     }
@@ -887,7 +887,7 @@ impl Connection {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
         // SAFETY: The data is null terminated because it is declared as a C string literal.
         // SAFETY: curve has a static lifetime because it lives on s2n_ecc_named_curve, which is a static const struct.
-        // a static const struct, and therefore outlives the surrounding scope 
+        // a static const struct, and therefore outlives the surrounding scope
         // (which is the lifetime of the connection)
         unsafe { const_str!(curve) }
     }
