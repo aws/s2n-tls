@@ -1,1 +1,1 @@
-LoadModule unixd_module ${APACHE_NIX_STORE}/mods-enabled/mod_unixd.so
+LoadModule unixd_module ${APACHE_NIX_STORE}/modules/mod_unixd.so
