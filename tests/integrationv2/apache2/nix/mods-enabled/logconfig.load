@@ -1,1 +1,1 @@
-LoadModule log_config_module /nix/store/v6bpg8lpkmlnhz8fldksj7kj0qhc0jiz-apache-httpd-2.4.55/modules/mod_log_config.so
+LoadModule log_config_module ${APACHE_NIX_STORE}/mod-enabled/mod_log_config.so
