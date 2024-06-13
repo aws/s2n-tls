@@ -162,8 +162,8 @@ function apache2_config(){
     export APACHE_NIX_STORE=$(dirname $(dirname $(which httpd)))
     export APACHE2_INSTALL_DIR=/usr/local/apache2
     export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
-    export APACHE_RUN_USER=www-data 
-    export APACHE_RUN_GROUP=www-data
+    export APACHE_RUN_USER=nobody
+    export APACHE_RUN_GROUP=nogroup
     export APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid"
     export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" 
     export APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock"
@@ -175,13 +175,10 @@ function apache2_start(){
     if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
         apache2_config
         if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
-            mkdir -p "$APACHE2_INSTALL_DIR"
-            ./codebuild/bin/install_apache2.sh ./codebuild/bin/apache2 $APACHE2_INSTALL_DIR
-            # We need to be using the nixpkgs modules, not the Ubuntu packaged ones.
-            sed -i 's|/usr/lib/apache2/modules|${APACHE_NIX_STORE}/modules|' $APACHE2_INSTALL_DIR/mods-enabled/*.load
-            # Nixpkgs apache was compiled differently than the Debian packaged apache; create 2 new module load files.
-            echo "LoadModule log_config_module ${APACHE_NIX_STORE}/modules/mod_log_config.so" >  $APACHE2_INSTALL_DIR/mods-enabled/logconfig.load
-            echo "LoadModule unixd_module ${APACHE_NIX_STORE}/modules/mod_unixd.so" >  $APACHE2_INSTALL_DIR/mods-enabled/unixd.load
+            mkdir -p $APACHE2_INSTALL_DIR
+            # NixOs specific base apache config
+            cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
+            cp -R ./codebuild/bin/apache2/{www,sites-enabled} $APACHE2_INSTALL_DIR
         fi
         httpd -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
         trap 'pkill httpd' ERR EXIT
