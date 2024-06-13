@@ -1,0 +1,1 @@
+LoadModule unixd_module /nix/store/v6bpg8lpkmlnhz8fldksj7kj0qhc0jiz-apache-httpd-2.4.55/modules/mod_unixd.so

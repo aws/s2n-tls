@@ -1,0 +1,1 @@
+LoadModule mime_module ${APACHE_NIX_STORE}/modules/mod_mime.so

@@ -1,0 +1,2 @@
+# Conflicts: mpm_worker mpm_prefork
+LoadModule mpm_event_module ${APACHE_NIX_STORE}/modules/mod_mpm_event.so

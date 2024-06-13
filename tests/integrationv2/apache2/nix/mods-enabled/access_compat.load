@@ -1,0 +1,2 @@
+# Depends: authn_core
+LoadModule access_compat_module ${APACHE_NIX_STORE}/modules/mod_access_compat.so
