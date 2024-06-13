@@ -870,7 +870,7 @@ impl Connection {
         };
         unsafe {
             // SAFETY: Constructed strings have a null byte appended to them.
-            // SAFETY: The data has a 'static lifetime, because it resides in a 
+            // SAFETY: The data has a 'static lifetime, because it resides in a
             //         static char array, and is never modified after its initial
             //         creation.
             const_str!(handshake)
