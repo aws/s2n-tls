@@ -197,11 +197,18 @@ int s2n_stuffer_write_reservation(struct s2n_stuffer_reservation *reservation, c
     return result;
 }
 
-int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation)
+int s2n_stuffer_get_vector_size(const struct s2n_stuffer_reservation *reservation, uint32_t *size)
 {
     POSIX_PRECONDITION(s2n_stuffer_reservation_validate(reservation));
+    POSIX_ENSURE_REF(size);
+    *size = reservation->stuffer->write_cursor - (reservation->write_cursor + reservation->length);
+    return S2N_SUCCESS;
+}
+
+int s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation)
+{
     uint32_t size = 0;
-    POSIX_GUARD(s2n_sub_overflow(reservation->stuffer->write_cursor, reservation->write_cursor, &size));
-    POSIX_GUARD(s2n_sub_overflow(size, reservation->length, &size));
-    return s2n_stuffer_write_reservation(reservation, size);
+    POSIX_GUARD(s2n_stuffer_get_vector_size(reservation, &size));
+    POSIX_GUARD(s2n_stuffer_write_reservation(reservation, size));
+    return S2N_SUCCESS;
 }
