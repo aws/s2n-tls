@@ -388,7 +388,7 @@ impl TestPair {
     ///
     /// Create a client and server from the associated `config`, and try to complete
     /// a TLS handshake. The result of the handshake is returned.
-    pub fn oneshot_handshake(config: &config::Config) -> Result<(), error::Error> {
+    pub fn handshake_with_config(config: &config::Config) -> Result<(), error::Error> {
         Self::from_configs(config, config).handshake()
     }
 
