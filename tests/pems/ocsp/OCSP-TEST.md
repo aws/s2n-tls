@@ -81,14 +81,14 @@ openssl ocsp -CAfile ca_cert.pem \
 
 ### Generating ocsp_response_revoked.der
 ```
-# Responder
+# Run responder
 openssl ocsp -port 8889 -text -CA ca_cert.pem \
       -index certs_revoked.txt \
       -rkey ocsp_key.pem \
       -rsigner ocsp_cert.pem \
       -nrequest 1 -ndays $(( 365 * 100 ))
 
-# Requester
+# Run requester
 openssl ocsp -CAfile ca_cert.pem \
       -url http://127.0.0.1:8889 \
       -issuer ca_cert.pem \
