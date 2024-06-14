@@ -24,10 +24,12 @@ impl Message {
     const FRAGMENT: &'static str = "tls.handshake.fragment";
     const FRAGMENTS_COUNT: &'static str = "tls.handshake.fragment.count";
 
+    /// Returns the complete handshake message in bytes.
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
         let mut bytes = Vec::new();
         for payload in &self.payloads {
-            bytes.extend(&hex::decode(&payload)?[5..]);
+            // Trim off the 5-byte record headers.
+            bytes.extend(&hex::decode(payload)?[5..]);
         }
         Ok(bytes)
     }

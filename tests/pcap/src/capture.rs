@@ -34,6 +34,7 @@ pub(crate) fn get_all_metadata<'a>(packet: &'a Packet, key: &'a str) -> Vec<&'a 
     }
 }
 
+/// Creates an iterator over all test pcap file paths
 pub fn all_pcaps() -> impl Iterator<Item = String> {
     std::fs::read_dir("data")
         .expect("Missing test pcap file")
