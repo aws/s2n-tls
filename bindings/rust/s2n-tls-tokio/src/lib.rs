@@ -56,6 +56,20 @@ where
         let conn = self.builder.build_connection(Mode::Server)?;
         TlsStream::open(conn, stream).await
     }
+
+    pub async fn accept_with_application_context<S, T>(
+        &self,
+        stream: S,
+        app_context: T,
+    ) -> Result<TlsStream<S, B::Output>, Error>
+    where
+        S: AsyncRead + AsyncWrite + Unpin,
+        T: Send + Sync + 'static,
+    {
+        let mut conn = self.builder.build_connection(Mode::Server)?;
+        conn.as_mut().set_application_context(app_context);
+        TlsStream::open(conn, stream).await
+    }
 }
 
 #[derive(Clone)]
