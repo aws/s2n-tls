@@ -45,6 +45,7 @@ S2N_RESULT s2n_fingerprint_hash_add_char(struct s2n_fingerprint_hash *hash, char
     if (hash->hash) {
         RESULT_GUARD_POSIX(s2n_hash_update(hash->hash, &c, 1));
     } else {
+        RESULT_ENSURE_REF(hash->buffer);
         RESULT_ENSURE(s2n_stuffer_space_remaining(hash->buffer) >= 1,
                 S2N_ERR_INSUFFICIENT_MEM_SIZE);
         RESULT_GUARD_POSIX(s2n_stuffer_write_char(hash->buffer, c));
@@ -52,15 +53,18 @@ S2N_RESULT s2n_fingerprint_hash_add_char(struct s2n_fingerprint_hash *hash, char
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_fingerprint_hash_add_str(struct s2n_fingerprint_hash *hash, const char *str)
+S2N_RESULT s2n_fingerprint_hash_add_str(struct s2n_fingerprint_hash *hash,
+        const char *str, size_t str_size)
 {
     RESULT_ENSURE_REF(hash);
+    RESULT_ENSURE(S2N_MEM_IS_READABLE(str, str_size), S2N_ERR_NULL);
     if (hash->hash) {
-        RESULT_GUARD_POSIX(s2n_hash_update(hash->hash, str, strlen(str)));
+        RESULT_GUARD_POSIX(s2n_hash_update(hash->hash, str, str_size));
     } else {
-        RESULT_ENSURE(s2n_stuffer_space_remaining(hash->buffer) >= strlen(str),
+        RESULT_ENSURE_REF(hash->buffer);
+        RESULT_ENSURE(s2n_stuffer_space_remaining(hash->buffer) >= str_size,
                 S2N_ERR_INSUFFICIENT_MEM_SIZE);
-        RESULT_GUARD_POSIX(s2n_stuffer_write_str(hash->buffer, str));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_text(hash->buffer, str, str_size));
     }
     return S2N_RESULT_OK;
 }
@@ -69,11 +73,19 @@ S2N_RESULT s2n_fingerprint_hash_digest(struct s2n_fingerprint_hash *hash, uint8_
 {
     RESULT_ENSURE_REF(hash);
     RESULT_ENSURE_REF(hash->hash);
-    hash->bytes_digested += hash->hash->currently_in_hash;
+
+    uint64_t bytes = 0;
+    RESULT_GUARD_POSIX(s2n_hash_get_currently_in_hash_total(hash->hash, &bytes));
+    hash->bytes_digested += bytes;
 
     RESULT_GUARD_POSIX(s2n_hash_digest(hash->hash, out, out_size));
     RESULT_GUARD_POSIX(s2n_hash_reset(hash->hash));
     return S2N_RESULT_OK;
+}
+
+bool s2n_fingerprint_hash_supports_digest(struct s2n_fingerprint_hash *hash)
+{
+    return hash && hash->hash;
 }
 
 int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_fingerprint_type type,
@@ -104,7 +116,6 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
 
     struct s2n_fingerprint_hash hash = {
         .hash = &hash_state,
-        .do_digest = true,
     };
 
     POSIX_GUARD_RESULT(method->fingerprint(ch, &hash, &output_stuffer));

@@ -27,7 +27,7 @@
 static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
         struct s2n_stuffer *out)
 {
-    if (!hash->do_digest) {
+    if (!s2n_fingerprint_hash_supports_digest(hash)) {
         return S2N_RESULT_OK;
     }
 
@@ -56,7 +56,7 @@ static S2N_RESULT s2n_fingerprint_ja3_iana(struct s2n_fingerprint_hash *hash,
     RESULT_ENSURE_GT(written, 0);
     RESULT_ENSURE_LTE(written, S2N_UINT16_STR_MAX_SIZE);
 
-    RESULT_GUARD(s2n_fingerprint_hash_add_str(hash, str));
+    RESULT_GUARD(s2n_fingerprint_hash_add_str(hash, str, written));
     return S2N_RESULT_OK;
 }
 
