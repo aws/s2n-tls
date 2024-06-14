@@ -25,23 +25,16 @@ impl AsyncAnimalConfigResolver {
     // This method will lookup the appropriate certificates and read them from disk
     // in an async manner which won't block the tokio task.
     //
-    // Note that this method consumes `self`. A ConfigResolver can be constructed
-    // from a future that returns `Result<Config, s2n_tls::error::Error>`, with
-    // the main additional requirements that the future is `'static`. This generally
-    // means that it can't have any  interior references.
-    //
-    // If this method took in `&self`, then
-    // ```
-    // let config_resolver = ConfigResolver::new(self.server_config(animal));
-    // ```
-    // wouldn't compile because the compiler would complain that `&self` doesn't
-    // live long enough.
+    // Note that this method takes `String` instead of `&str` like the synchronous
+    // version in server.rs. ConfigResolver requires a future that is `'static`.
     async fn server_config(
-        self,
         animal: String,
+        cert_directory: String,
     ) -> Result<s2n_tls::config::Config, s2n_tls::error::Error> {
-        let cert_path = format!("{}/{}-chain.pem", self.cert_directory, animal);
-        let key_path = format!("{}/{}-key.pem", self.cert_directory, animal);
+        println!("asynchronously setting connection config associated with {animal}");
+
+        let cert_path = format!("{}/{}-chain.pem", cert_directory, animal);
+        let key_path = format!("{}/{}-key.pem", cert_directory, animal);
         // we asynchronously read the cert chain and key from disk
         let (cert, key) = try_join!(tokio::fs::read(cert_path), tokio::fs::read(key_path))
             // we map any IO errors to the s2n-tls Error type, as required by the ConfigResolver bounds.
@@ -87,8 +80,8 @@ impl ClientHelloCallback for AsyncAnimalConfigResolver {
             }
         };
 
-        let async_resolver_clone = self.clone();
-        let config_resolver = ConfigResolver::new(async_resolver_clone.server_config(animal));
+        let config_future = AsyncAnimalConfigResolver::server_config(animal, self.cert_directory.clone());
+        let config_resolver = ConfigResolver::new(config_future);
         connection.server_name_extension_used();
         Ok(Some(Box::pin(config_resolver)))
     }
