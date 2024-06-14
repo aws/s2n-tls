@@ -27,8 +27,7 @@ impl Message {
     pub fn to_bytes(&self) -> Result<Vec<u8>> {
         let mut bytes = Vec::new();
         for payload in &self.payloads {
-            let hex = payload.replace(':', "");
-            bytes.extend(&hex::decode(&hex)?[5..]);
+            bytes.extend(&hex::decode(&payload)?[5..]);
         }
         Ok(bytes)
     }
@@ -50,7 +49,7 @@ impl Message {
                 if payload_frames.contains(frame) {
                     let payload = get_metadata(packet, Builder::TCP_PAYLOAD)
                         .context("Missing tcp payload")?;
-                    payloads.push(payload.to_string());
+                    payloads.push(payload.replace(':', ""));
                 }
             }
         }
