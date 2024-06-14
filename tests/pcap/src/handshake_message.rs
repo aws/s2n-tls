@@ -10,9 +10,13 @@ use crate::capture::*;
 
 #[derive(Debug, Clone, Default)]
 pub struct Message {
-    pub message_type: String,
+    /// TLS handshake message type
+    pub message_type: u8,
+    /// Packet containing handshake message metadata
     pub packet: Packet,
+    /// Ordered TCP payloads as hex encoded strings
     pub payloads: Vec<String>,
+    /// Id / number of the TCP frame containing handshake message metadata
     pub frame_num: String,
 }
 
@@ -32,7 +36,7 @@ impl Message {
     fn from_packet(packet: Packet, frame_num: String, tcp_payloads: &Vec<Packet>) -> Result<Self> {
         let message_type = get_metadata(&packet, Builder::MESSAGE_TYPE)
             .context("Missing handshake message type")?
-            .to_string();
+            .parse::<u8>()?;
 
         let mut payload_frames = get_all_metadata(&packet, Self::FRAGMENT);
         if payload_frames.is_empty() {
@@ -67,7 +71,7 @@ impl Message {
 
 #[derive(Debug, Clone, Default)]
 pub struct Builder {
-    message_type: Option<u16>,
+    message_type: Option<u8>,
     capture_file: Option<String>,
 }
 
@@ -76,7 +80,7 @@ impl Builder {
     const FRAME_NUM: &'static str = "frame.number";
     const MESSAGE_TYPE: &'static str = "tls.handshake.type";
 
-    pub(crate) fn set_type(&mut self, message_type: u16) -> &mut Self {
+    pub(crate) fn set_type(&mut self, message_type: u8) -> &mut Self {
         self.message_type = Some(message_type);
         self
     }
@@ -151,7 +155,7 @@ mod tests {
         let mut builder = Builder::default();
         builder.set_capture_file("data/multiple_hellos.pcap");
         let messages = builder.build()?;
-        let count = messages.iter().filter(|m| m.message_type == "1").count();
+        let count = messages.iter().filter(|m| m.message_type == 1).count();
         assert_eq!(count, 5);
         Ok(())
     }
