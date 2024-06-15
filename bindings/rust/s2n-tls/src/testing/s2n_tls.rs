@@ -234,9 +234,9 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
-        enums::ClientAuthType,
+        enums::{self, ClientAuthType},
         error::ErrorType,
-        testing::{client_hello::*, s2n_tls::*, *},
+        testing::{self, client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
@@ -1029,5 +1029,15 @@ mod tests {
             .application_context::<TestApplicationContext>()
             .unwrap();
         assert_eq!(context.invoked_count, 1);
+    }
+
+    #[test]
+    fn client_hello_version() -> Result<(), testing::Error> {
+        let config = testing::build_config(&security::DEFAULT_TLS13)?;
+        let pair = tls_pair(config);
+        let pair = poll_tls_pair(pair);
+        let server = pair.server.0.connection;
+        assert_eq!(server.client_hello_version()?, enums::Version::TLS12);
+        Ok(())
     }
 }

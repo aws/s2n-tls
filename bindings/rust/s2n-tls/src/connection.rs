@@ -857,6 +857,13 @@ impl Connection {
         version.try_into()
     }
 
+    pub fn client_hello_version(&self) -> Result<Version, Error> {
+        let version = unsafe {
+            s2n_connection_get_client_hello_version(self.connection.as_ptr()).into_result()?
+        };
+        version.try_into()
+    }
+
     pub fn handshake_type(&self) -> Result<&str, Error> {
         let handshake = unsafe {
             s2n_connection_get_handshake_type_name(self.connection.as_ptr()).into_result()?
@@ -1087,13 +1094,6 @@ impl Connection {
             None => None,
             Some(app_context) => app_context.downcast_mut::<T>(),
         }
-    }
-
-    pub fn client_hello_version(&self) -> Result<Version, Error> {
-        let version = unsafe {
-            s2n_connection_get_client_hello_version(self.connection.as_ptr()).into_result()?
-        };
-        version.try_into()
     }
 }
 
