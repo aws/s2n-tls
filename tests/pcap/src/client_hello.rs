@@ -1,51 +1,37 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::handshake_message::Builder as MessageBuilder;
-use crate::handshake_message::Message;
+use crate::handshake_message::HandshakeMessage;
 use anyhow::*;
 use std::option::Option;
 
-use crate::capture::*;
-
 #[derive(Debug, Clone, Default)]
-pub struct ClientHello {
-    pub message: Message,
-    pub ja3_hash: Option<String>,
-    pub ja3_str: Option<String>,
-}
+pub struct ClientHello(HandshakeMessage);
 
 impl ClientHello {
-    const JA3_HASH: &'static str = "tls.handshake.ja3";
-    const JA3_STR: &'static str = "tls.handshake.ja3_full";
+    /// ClientHello message type, as defined in the TLS RFC.
+    /// See https://datatracker.ietf.org/doc/html/rfc8446#section-4
+    const MESSAGE_TYPE: u8 = 1;
 
-    fn from_message(message: Message) -> Self {
-        let packet = &message.packet;
-        let ja3_hash = get_metadata(packet, Self::JA3_HASH).map(str::to_string);
-        let ja3_str = get_metadata(packet, Self::JA3_STR).map(str::to_string);
-        Self {
-            message,
-            ja3_hash,
-            ja3_str,
-        }
+    const JA3_HASH: &'static str = "tls.handshake.ja3";
+    pub fn ja3_hash(&self) -> Option<String> {
+        self.0.packet.metadata(Self::JA3_HASH).map(str::to_owned)
+    }
+
+    const JA3_STR: &'static str = "tls.handshake.ja3_full";
+    pub fn ja3_string(&self) -> Option<String> {
+        self.0.packet.metadata(Self::JA3_STR).map(str::to_owned)
+    }
+
+    pub fn message(&self) -> &HandshakeMessage {
+        &self.0
     }
 }
 
-#[derive(Debug, Clone, Default)]
-pub struct Builder(MessageBuilder);
-
-impl Builder {
-    pub fn inner(&mut self) -> &mut MessageBuilder {
-        &mut self.0
-    }
-
-    pub fn build(mut self) -> Result<Vec<ClientHello>> {
-        self.0.set_type(1);
-
-        let mut client_hellos = Vec::new();
-        for message in self.0.build()? {
-            client_hellos.push(ClientHello::from_message(message));
-        }
+impl crate::handshake_message::Builder {
+    pub fn build_client_hellos(mut self) -> Result<Vec<ClientHello>> {
+        self.set_type(ClientHello::MESSAGE_TYPE);
+        let client_hellos = self.build()?.into_iter().map(ClientHello).collect();
         Ok(client_hellos)
     }
 }
@@ -53,34 +39,26 @@ impl Builder {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::handshake_message::Builder;
 
     #[test]
     fn multiple_hellos() -> Result<()> {
         let mut builder = Builder::default();
-        builder
-            .inner()
-            .set_capture_file("data/multiple_hellos.pcap");
-        let hellos = builder.build()?;
+        builder.set_capture_file("data/multiple_hellos.pcap");
+        let hellos = builder.build_client_hellos().unwrap();
         assert_eq!(hellos.len(), 5);
         Ok(())
     }
 
     #[test]
     fn from_pcaps() -> Result<()> {
-        let pcaps = all_pcaps();
-
+        let pcaps = crate::all_pcaps();
         for pcap in pcaps {
             let mut builder = Builder::default();
-            builder.inner().set_capture_file(&pcap);
-            let hellos = builder.build().unwrap();
-
+            builder.set_capture_file(&pcap);
+            let hellos = builder.build_client_hellos().unwrap();
             assert!(!hellos.is_empty());
-            for hello in hellos {
-                assert!(hello.ja3_hash.is_some());
-                assert!(hello.ja3_str.is_some());
-            }
         }
-
         Ok(())
     }
 }
