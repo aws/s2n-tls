@@ -163,7 +163,7 @@ function apache2_config(){
     export APACHE2_INSTALL_DIR=/usr/local/apache2
     export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
     export APACHE_RUN_USER=nobody
-    # Unprilidged groupname differs
+    # Unprivileged groupname differs
     export APACHE_RUN_GROUP=$(awk 'BEGIN{FS=":"} /65534/{print $1}' /etc/group)
     export APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid"
     export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" 
