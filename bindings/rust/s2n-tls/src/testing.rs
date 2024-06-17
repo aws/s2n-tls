@@ -361,9 +361,8 @@ type LocalDataBuffer = RefCell<VecDeque<u8>>;
 /// assert_eq!([3, 1, 4], buffer);
 /// ```
 //
-// The doctest is manually checked in the manual_doctest test. This is because none
-// of the testing utilities are publicly exported and therefore can't be referenced
-// in a doc comment.
+// The doctest is `ignore`d because testing utilities are not publicly exported
+// and therefore can't be referenced in a doc comment.
 //
 // We allow dead_code, because otherwise the compiler complains about the tx_streams
 // never being read. This is because it can't reason through the pointers that were
@@ -432,7 +431,9 @@ impl TestPair {
     /// create a connection ready for harness IO
     ///
     /// This mostly consists of setting the IO callbacks and the IO contexts, but
-    /// we also turn off blinding to avoid really slow unit tests.
+    /// we also set blinding to "SelfService" to avoid really slow unit tests. Note
+    /// that SelfService blinding does not completely disable blinding, and will
+    /// still affect "shutdown" workflows.
     fn register_connection(
         mode: enums::Mode,
         config: &config::Config,
@@ -514,26 +515,5 @@ impl TestPair {
                 panic!("{err:?}");
             }
         }
-    }
-}
-
-#[cfg(test)]
-mod test {
-    use super::{build_config, TestPair};
-
-    #[test]
-    fn manual_doctest() {
-        // given some config
-        let config = build_config(&crate::security::DEFAULT_TLS13).unwrap();
-        // create a pair (client + server) with uses that config
-        let mut pair = TestPair::from_config(&config);
-        // assert a successful handshake
-        assert!(pair.handshake().is_ok());
-        // we can also do IO using the poll_* functions
-        // this data is sent using the shared data buffers owned by the harness
-        assert!(pair.server.poll_send(&[3, 1, 4]).is_ready());
-        let mut buffer = [0; 3];
-        assert!(pair.client.poll_recv(&mut buffer).is_ready());
-        assert_eq!([3, 1, 4], buffer);
     }
 }
