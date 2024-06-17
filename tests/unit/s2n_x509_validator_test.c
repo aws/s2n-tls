@@ -580,7 +580,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         /* alter a random byte in the certificate to make it invalid */
-        chain_data[200] = (uint8_t) (chain_data[200] << 2);
+        size_t corrupt_index = 200;
+        EXPECT_TRUE(chain_len > corrupt_index);
+        chain_data[corrupt_index] = (uint8_t) (chain_data[corrupt_index] << 2);
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
