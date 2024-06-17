@@ -23,7 +23,7 @@ phases:
     on-failure: ABORT
     commands:
       # Install musl libc
-      - git clone https://git.musl-libc.org/git/musl $MUSL_DIR
+      - git clone --depth=1 https://git.musl-libc.org/git/musl $MUSL_DIR
       - echo "Installing musl to $CODEBUILD_SRC_DIR/$MUSL_DIR"
       - cd $MUSL_DIR
       - ./configure --prefix=$CODEBUILD_SRC_DIR/$MUSL_DIR
