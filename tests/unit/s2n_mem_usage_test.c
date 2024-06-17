@@ -56,7 +56,7 @@
 #elif defined(__OpenBSD__)
     #define MEM_PER_CONNECTION 61
 #else
-    #define MEM_PER_CONNECTION 49
+    #define MEM_PER_CONNECTION 50
 #endif
 
 /* This is the maximum memory per connection including 4KB of slack */
