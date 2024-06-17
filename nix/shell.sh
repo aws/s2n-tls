@@ -72,7 +72,7 @@ function integ {
         banner "Running all integ tests except cross_compatibility, renegotiate_apache."
         (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
     else
-        banner "Warning: cross_compatibility is not supported in nix for various reasons integ help for more info."
+        banner "Warning: cross_compatibility is not supported in nix for various reasons. See `integ help` for more info."
         for test in $@; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
