@@ -774,7 +774,10 @@ int s2n_client_hello_send(struct s2n_connection *conn)
     }
 
     /* Write size of the list of available ciphers */
-    POSIX_GUARD(s2n_stuffer_write_vector_size(&available_cipher_suites_size));
+    uint32_t ciphers_size = 0;
+    POSIX_GUARD(s2n_stuffer_get_vector_size(&available_cipher_suites_size, &ciphers_size));
+    POSIX_ENSURE(ciphers_size > 0, S2N_ERR_INVALID_CIPHER_PREFERENCES);
+    POSIX_GUARD(s2n_stuffer_write_reservation(&available_cipher_suites_size, ciphers_size));
 
     /* Zero compression methods */
     POSIX_GUARD(s2n_stuffer_write_uint8(out, 1));
