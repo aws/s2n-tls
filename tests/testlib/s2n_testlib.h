@@ -100,8 +100,10 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 /* These paths assume that the unit tests are run from inside the unit/ directory.
  * Absolute paths will be needed if test directories go to deeper levels.
  */
-#define S2N_RSA_2048_PKCS8_CERT_CHAIN "../pems/rsa_2048_pkcs8_cert.pem"
-#define S2N_RSA_2048_PKCS1_CERT_CHAIN "../pems/rsa_2048_pkcs1_cert.pem"
+#define S2N_RSA_2048_PKCS8_CERT_CHAIN        "../pems/rsa_2048_pkcs8_cert.pem"
+#define S2N_RSA_2048_PKCS1_CERT_CHAIN        "../pems/rsa_2048_pkcs1_cert.pem"
+#define S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN "../pems/permutations/rsae_pkcs_2048_sha256/server-chain.pem"
+#define S2N_RSA_2048_PKCS1_SHA256_CERT_KEY   "../pems/permutations/rsae_pkcs_2048_sha256/server-key.pem"
 
 #define S2N_RSA_2048_PKCS1_LEAF_CERT    "../pems/rsa_2048_pkcs1_leaf.pem"
 #define S2N_ECDSA_P256_PKCS1_CERT_CHAIN "../pems/ecdsa_p256_pkcs1_cert.pem"
@@ -194,8 +196,8 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 
 #define S2N_TEST_TRUST_STORE "../pems/trust-store/ca-bundle.crt"
 
-#define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_CERT_CHAIN
-#define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_KEY
+#define S2N_DEFAULT_TEST_CERT_CHAIN  S2N_RSA_2048_PKCS1_SHA256_CERT_CHAIN
+#define S2N_DEFAULT_TEST_PRIVATE_KEY S2N_RSA_2048_PKCS1_SHA256_CERT_KEY
 
 #define S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN  S2N_ECDSA_P384_PKCS1_CERT_CHAIN
 #define S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY S2N_ECDSA_P384_PKCS1_KEY

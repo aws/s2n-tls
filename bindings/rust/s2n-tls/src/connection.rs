@@ -28,9 +28,16 @@ use std::{any::Any, ffi::CStr};
 mod builder;
 pub use builder::*;
 
-macro_rules! static_const_str {
+/// return a &str scoped to the lifetime of the surrounding function
+///
+/// SAFETY: must be called on a null terminated string
+///
+/// SAFETY: the underlying data must live at least as long as the surrounding scope
+// We use a macro instead of a function so that the lifetime of the output is
+// automatically inferred to match the surrounding scope.
+macro_rules! const_str {
     ($c_chars:expr) => {
-        unsafe { CStr::from_ptr($c_chars) }
+        CStr::from_ptr($c_chars)
             .to_str()
             .map_err(|_| Error::INVALID_INPUT)
     };
@@ -861,21 +868,35 @@ impl Connection {
         let handshake = unsafe {
             s2n_connection_get_handshake_type_name(self.connection.as_ptr()).into_result()?
         };
-        // The strings returned by s2n_connection_get_handshake_type_name
-        // are static and immutable after they are first calculated
-        static_const_str!(handshake)
+        unsafe {
+            // SAFETY: Constructed strings have a null byte appended to them.
+            // SAFETY: The data has a 'static lifetime, because it resides in a
+            //         static char array, and is never modified after its initial
+            //         creation.
+            const_str!(handshake)
+        }
     }
 
     pub fn cipher_suite(&self) -> Result<&str, Error> {
         let cipher = unsafe { s2n_connection_get_cipher(self.connection.as_ptr()).into_result()? };
-        // The strings returned by s2n_connection_get_cipher
-        // are static and immutable since they are const fields on static const structs
-        static_const_str!(cipher)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: cipher has a static lifetime because it lives on s2n_cipher_suite,
+            //         a static struct.
+            const_str!(cipher)
+        }
     }
 
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
-        static_const_str!(curve)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: curve has a static lifetime because it lives on s2n_ecc_named_curve,
+            //         which is a static const struct.
+            const_str!(curve)
+        }
     }
 
     pub fn selected_signature_algorithm(&self) -> Result<SignatureAlgorithm, Error> {
