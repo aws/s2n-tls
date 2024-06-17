@@ -925,7 +925,7 @@ int main(int argc, char **argv)
                         s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(client_conn);
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-                EXPECT_SUCCESS(s2n_set_server_name(client_conn, "s2nTestServer"));
+                EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
                 struct s2n_test_io_pair io_pair = { 0 };
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
