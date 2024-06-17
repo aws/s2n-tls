@@ -432,8 +432,9 @@ impl TestPair {
     ///
     /// This mostly consists of setting the IO callbacks and the IO contexts.
     ///
-    /// We also set blinding to "SelfService" to avoid long delays after failures in unit tests.
-    /// However, this will cause calls to `poll_shutdown` to return Poll::Pending until the blinding delay elapses.
+    /// We also set blinding to "SelfService" to avoid long delays after failures
+    /// in unit tests. However, this will cause calls to `poll_shutdown` to return
+    /// Poll::Pending until the blinding delay elapses.
     fn register_connection(
         mode: enums::Mode,
         config: &config::Config,
