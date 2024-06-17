@@ -430,10 +430,10 @@ impl TestPair {
 
     /// create a connection ready for harness IO
     ///
-    /// This mostly consists of setting the IO callbacks and the IO contexts, but
-    /// we also set blinding to "SelfService" to avoid really slow unit tests. Note
-    /// that SelfService blinding does not completely disable blinding, and will
-    /// still affect "shutdown" workflows.
+    /// This mostly consists of setting the IO callbacks and the IO contexts.
+    ///
+    /// We also set blinding to "SelfService" to avoid long delays after failures in unit tests.
+    /// However, this will cause calls to `poll_shutdown` to return Poll::Pending until the blinding delay elapses.
     fn register_connection(
         mode: enums::Mode,
         config: &config::Config,
