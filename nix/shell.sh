@@ -69,8 +69,8 @@ function integ {
     fi
     apache2_start
     if [[ -z "$1" ]]; then
-        banner "Running all integ tests except cross_compatibility, renegotiate_apache."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
+        banner "Running all integ tests except cross_compatibility."
+        (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility)" --verbose)
     else
         banner "Warning: cross_compatibility is not supported in nix for various reasons. See `integ help` for more info."
         for test in $@; do
@@ -176,7 +176,7 @@ function apache2_start(){
     if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
         apache2_config
         if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
-            mkdir -p $APACHE2_INSTALL_DIR
+            mkdir -p $APACHE2_INSTALL_DIR/{run,log,lock}
             # NixOs specific base apache config
             cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
             # Integrationv2::cross_compatibility site
