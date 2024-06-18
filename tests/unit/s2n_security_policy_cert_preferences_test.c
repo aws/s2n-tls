@@ -18,6 +18,7 @@
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
+#include "utils/s2n_map.h"
 
 #define CHAIN_LENGTH 3
 
@@ -280,7 +281,7 @@ int main(int argc, char **argv)
             /* assert that no certs were loaded */
             uint32_t domain_certs = 0;
             EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
-            EXPECT_SUCCESS(s2n_map_size(config->domain_name_to_cert_map, &domain_certs));
+            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &domain_certs));
             EXPECT_EQUAL(domain_certs, 0);
             EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
         };
