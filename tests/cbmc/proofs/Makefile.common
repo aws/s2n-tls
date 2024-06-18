@@ -491,6 +491,9 @@ COMMA :=,
 ################################################################
 # Set C compiler defines
 
+CBMCFLAGS += --object-bits $(CBMC_OBJECT_BITS)
+COMPILE_FLAGS += --object-bits $(CBMC_OBJECT_BITS)
+
 DEFINES += -DCBMC=1
 DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
 DEFINES += -DCBMC_MAX_OBJECT_SIZE="(SIZE_MAX>>(CBMC_OBJECT_BITS+1))"
