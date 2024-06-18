@@ -265,6 +265,38 @@ int main(int argc, char **argv)
         }
     };
 
+    /* s2n_config invariant: always respects config->security_policy cert preferences */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(
+                s2n_test_cert_permutation_load_server_chain(&cert, "ec", "ecdsa", "p384", "sha256"));
+        /* configure security policy then load an invalid cert */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "rfc9151"));
+
+            EXPECT_FAILURE(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+
+            /* assert that no certs were loaded */
+            uint32_t domain_certs = 0;
+            EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
+            EXPECT_SUCCESS(s2n_map_size(config->domain_name_to_cert_map, &domain_certs));
+            EXPECT_EQUAL(domain_certs, 0);
+            EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
+        };
+
+        /* load a cert then configure an invalid security policy */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+            const struct s2n_security_policy *default_sp = config->security_policy;
+            EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, "rfc9151"));
+
+            /* assert that the security policy was not changed */
+            EXPECT_EQUAL(config->security_policy, default_sp);
+        };
+    };
+
     END_TEST();
     return S2N_SUCCESS;
 }
