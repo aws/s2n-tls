@@ -947,6 +947,14 @@ impl Connection {
         })
     }
 
+    pub fn application_protocol(&self) -> Option<&[u8]> {
+        let protocol = unsafe { s2n_get_application_protocol(self.connection.as_ptr()) };
+        if protocol.is_null() {
+            return None;
+        }
+        Some(unsafe { CStr::from_ptr(protocol).to_bytes() })
+    }
+
     /// Provides access to the TLS-Exporter functionality.
     ///
     /// See https://datatracker.ietf.org/doc/html/rfc5705 and https://www.rfc-editor.org/rfc/rfc8446.
