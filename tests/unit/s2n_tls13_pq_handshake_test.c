@@ -31,9 +31,10 @@ const struct s2n_kem_group *s2n_get_predicted_negotiated_kem_group(const struct 
     PTR_ENSURE_REF(client_prefs);
     PTR_ENSURE_REF(server_prefs);
 
-    /* Client will offer their highest priority PQ KeyShare in their ClientHello. This PQ KeyShare will be most preferred
-     * since it can be negotiated in 1-RTT (even if there are other mutually supported PQ KeyShares that the server would
-     * prefer over this one but would require 2-RTT's). */
+    /* Client will offer their highest priority PQ KeyShare in their ClientHello. This PQ KeyShare
+     * will be most preferred since it can be negotiated in 1-RTT (even if there are other mutually
+     * supported PQ KeyShares that the server would prefer over this one but would require 2-RTT's).
+     */
     const struct s2n_kem_group *client_default = client_prefs->tls13_kem_groups[0];
     PTR_ENSURE_REF(client_default);
 
@@ -74,9 +75,10 @@ const struct s2n_ecc_named_curve *s2n_get_predicted_negotiated_ecdhe_curve(const
     PTR_ENSURE_REF(client_sec_policy);
     PTR_ENSURE_REF(server_sec_policy);
 
-    /* Client will offer their highest priority ECDHE KeyShare in their ClientHello. This KeyShare will be most preferred
-     * since it can be negotiated in 1-RTT (even if there are other mutually supported ECDHE KeyShares that the server would
-     * prefer over this one but would require 2-RTT's). */
+    /* Client will offer their highest priority ECDHE KeyShare in their ClientHello. This KeyShare
+     * will be most preferred since it can be negotiated in 1-RTT (even if there are other mutually
+     * supported ECDHE KeyShares that the server would prefer over this one but would require 2-RTT's).
+     */
     const struct s2n_ecc_named_curve *client_default = client_sec_policy->ecc_preferences->ecc_curves[0];
     PTR_ENSURE_REF(client_default);
 
@@ -644,7 +646,8 @@ int main()
             const struct s2n_ecc_named_curve *client_default = client_policy->ecc_preferences->ecc_curves[0];
             const struct s2n_ecc_named_curve *predicted_curve = s2n_get_predicted_negotiated_ecdhe_curve(client_policy, server_policy);
 
-            /* If either policy doesn't support the default curve, fall back to p256 as it should be in common with every ECC preference list. */
+            /* If either policy doesn't support the default curve, fall back to p256 as it should
+             * be in common with every ECC preference list. */
             if (!s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, default_curve->iana_id)
                     || !s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, default_curve->iana_id)) {
                 EXPECT_TRUE(s2n_ecc_preferences_includes_curve(client_policy->ecc_preferences, s2n_ecc_curve_secp256r1.iana_id));
@@ -652,8 +655,8 @@ int main()
                 curve = &s2n_ecc_curve_secp256r1;
             }
 
-            /* The client's preferred curve will be a higher priority than the default if both sides support TLS 1.3,
-             * and if the client's default can be chosen by the server in 1-RTT. */
+            /* The client's preferred curve will be a higher priority than the default if both sides
+             * support TLS 1.3, and if the client's default can be chosen by the server in 1-RTT. */
             if (s2n_security_policy_supports_tls13(client_policy) && s2n_security_policy_supports_tls13(server_policy)
                     && s2n_ecc_preferences_includes_curve(server_policy->ecc_preferences, client_default->iana_id)) {
                 curve = client_default;
@@ -671,7 +674,8 @@ int main()
             const struct s2n_kem_group *predicted_kem_group = s2n_get_predicted_negotiated_kem_group(client_policy->kem_preferences, server_policy->kem_preferences);
             POSIX_ENSURE_REF(predicted_kem_group);
 
-            /* Confirm that the expected KEM Group listed in the test vector matches the output of s2n_get_predicted_negotiated_kem_group() */
+            /* Confirm that the expected KEM Group listed in the test vector matches the output of
+             * s2n_get_predicted_negotiated_kem_group() */
             POSIX_ENSURE_EQ(kem_group->iana_id, predicted_kem_group->iana_id);
         }
 

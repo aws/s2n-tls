@@ -308,9 +308,9 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         return S2N_SUCCESS;
     }
 
-    struct s2n_kem_group_params *current_best_client_params = &conn->kex_params.client_kem_group_params;
+    struct s2n_kem_group_params *client_params = &conn->kex_params.client_kem_group_params;
 
-    const struct s2n_kem_group *new_best_match = NULL;
+    const struct s2n_kem_group *kem_group = NULL;
     for (size_t i = 0; i < kem_pref->tls13_kem_group_count; i++) {
         const struct s2n_kem_group *supported_group = kem_pref->tls13_kem_groups[i];
         POSIX_ENSURE_REF(supported_group);
@@ -323,7 +323,7 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         /* Stop if we reach the current highest priority share.
          * Any share of lower priority is discarded.
          */
-        if (current_best_client_params->kem_group == supported_group) {
+        if (client_params->kem_group == supported_group) {
             break;
         }
 
@@ -337,20 +337,20 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
 
         /* Stop if we find a match */
         if (kem_group_iana_id == supported_group->iana_id) {
-            new_best_match = supported_group;
+            kem_group = supported_group;
             break;
         }
     }
 
     /* Ignore unsupported KEM groups */
-    if (!new_best_match) {
+    if (!kem_group) {
         return S2N_SUCCESS;
     }
 
     /* The length of the hybrid key share must be one of two possible lengths. Its internal values are either length
      * prefixed, or they are not. */
     uint16_t actual_hybrid_share_size = key_share->blob.size;
-    uint16_t unprefixed_hybrid_share_size = new_best_match->curve->share_size + new_best_match->kem->public_key_length;
+    uint16_t unprefixed_hybrid_share_size = kem_group->curve->share_size + kem_group->kem->public_key_length;
     uint16_t prefixed_hybrid_share_size = (2 * S2N_SIZE_OF_KEY_SHARE_SIZE) + unprefixed_hybrid_share_size;
 
     /* Ignore KEM groups with unexpected overall total share sizes */
@@ -364,35 +364,35 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
         /* Ignore KEM groups with unexpected ECC share sizes */
         uint16_t ec_share_size = 0;
         POSIX_GUARD(s2n_stuffer_read_uint16(key_share, &ec_share_size));
-        if (ec_share_size != new_best_match->curve->share_size) {
+        if (ec_share_size != kem_group->curve->share_size) {
             return S2N_SUCCESS;
         }
     }
 
-    DEFER_CLEANUP(struct s2n_kem_group_params new_best_client_params = { 0 }, s2n_kem_group_free);
-    new_best_client_params.kem_group = new_best_match;
+    DEFER_CLEANUP(struct s2n_kem_group_params new_client_params = { 0 }, s2n_kem_group_free);
+    new_client_params.kem_group = kem_group;
 
     /* Need to save whether the client included the length prefix so that we can match their behavior in our response. */
-    new_best_client_params.kem_params.len_prefixed = is_hybrid_share_length_prefixed;
+    new_client_params.kem_params.len_prefixed = is_hybrid_share_length_prefixed;
 
-    POSIX_GUARD(s2n_client_key_share_parse_ecc(key_share, new_best_match->curve, &new_best_client_params.ecc_params));
+    POSIX_GUARD(s2n_client_key_share_parse_ecc(key_share, kem_group->curve, &new_client_params.ecc_params));
     /* If we were unable to parse the EC portion of the share, negotiated_curve
      * will be NULL, and we should ignore the entire key share. */
-    if (!new_best_client_params.ecc_params.negotiated_curve) {
+    if (!new_client_params.ecc_params.negotiated_curve) {
         return S2N_SUCCESS;
     }
 
     /* Note: the PQ share size is validated in s2n_kem_recv_public_key() */
     /* Ignore groups with PQ public keys we can't parse */
-    new_best_client_params.kem_params.kem = new_best_match->kem;
-    if (s2n_kem_recv_public_key(key_share, &new_best_client_params.kem_params) != S2N_SUCCESS) {
+    new_client_params.kem_params.kem = kem_group->kem;
+    if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
         return S2N_SUCCESS;
     }
 
-    POSIX_GUARD(s2n_kem_group_free(current_best_client_params));
-    *current_best_client_params = new_best_client_params;
+    POSIX_GUARD(s2n_kem_group_free(client_params));
+    *client_params = new_client_params;
 
-    ZERO_TO_DISABLE_DEFER_CLEANUP(new_best_client_params);
+    ZERO_TO_DISABLE_DEFER_CLEANUP(new_client_params);
     return S2N_SUCCESS;
 }
 
@@ -424,7 +424,8 @@ static int s2n_client_key_share_recv(struct s2n_connection *conn, struct s2n_stu
         POSIX_GUARD(s2n_stuffer_read_uint16(extension, &share_size));
         POSIX_ENSURE(s2n_stuffer_data_available(extension) >= share_size, S2N_ERR_BAD_MESSAGE);
 
-        POSIX_GUARD(s2n_blob_init(&key_share_blob, s2n_stuffer_raw_read(extension, share_size), share_size));
+        POSIX_GUARD(s2n_blob_init(&key_share_blob,
+                s2n_stuffer_raw_read(extension, share_size), share_size));
         POSIX_GUARD(s2n_stuffer_init(&key_share, &key_share_blob));
         POSIX_GUARD(s2n_stuffer_skip_write(&key_share, share_size));
         keyshare_count++;

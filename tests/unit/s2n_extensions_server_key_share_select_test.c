@@ -421,7 +421,6 @@ int main()
 
             EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
-            /* Server should update its choice to curve[0], no HRR */
             EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
             EXPECT_EQUAL(server_params->kem_group, kem_group0);
             EXPECT_EQUAL(server_params->kem_params.kem, kem_group0->kem);
