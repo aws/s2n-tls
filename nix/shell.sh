@@ -179,7 +179,7 @@ function apache2_start(){
             mkdir -p $APACHE2_INSTALL_DIR/{run,log,lock}
             # NixOs specific base apache config
             cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
-            # Integrationv2::cross_compatibility site
+            # Integrationv2::renegotiate site
             cp -R ./codebuild/bin/apache2/{www,sites-enabled} $APACHE2_INSTALL_DIR
         fi
         httpd -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
