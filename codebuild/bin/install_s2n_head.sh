@@ -29,33 +29,32 @@ fi
 # CMake(nix) and Make are using different directory structures.
 if [[ "$IN_NIX_SHELL" ]]; then
     export DEST_DIR="$SRC_ROOT"/build/bin
+    export EXTRA_BUILD_FLAGS=""
     # Safety measure
     mkdir -p "$DEST_DIR"
 else
     export DEST_DIR="$SRC_ROOT"/bin
+    export EXTRA_BUILD_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT"
 fi
 
-if [[ ! -x "$DEST_DIR/s2nc_head" ]]; then
-    if [[ ! -d "s2n_head" ]]; then
-        # Clone the most recent s2n commit
-        git clone --branch main --single-branch . s2n_head
-    else
-        cd s2n_head
-        echo "Checking the age of s2n_head..."
-        test $(date -d '-3 days' +%s) -lt $(git log -1 --format="%at") || echo "s2n_head is too old, refusing to use it";exit 1
-        cd ..
+# Cleanup any stale s2n_head clones.
+if [[ -d "$DEST_DIR/s2nc_head" ]]; then
+    now=$(date +%s)
+    last_modified=$(stat -c %Y s2n_head)
+    days_old=$(( (now - last_modified) / 86400))
+    if ((days_old > 1 )); then
+        rm -rf s2n_head
     fi
-    if [[ "$IN_NIX_SHELL" ]]; then
-        cmake ./s2n_head -B"$BUILD_DIR" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-    else
-        cmake ./s2n_head -B"$BUILD_DIR" -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-    fi
+fi
+
+if [[ -d "$DEST_DIR/s2n_head" ]]; then
+    echo "s2n_head already exists and is $days_old days old."
+else
+    git clone --branch main --single-branch . s2n_head
+    cmake ./s2n_head -B"$BUILD_DIR" $EXTRA_BUILD_FLAGS -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
     cmake --build "$BUILD_DIR" -- -j "$(nproc)"
-    # Copy head executables for make build
     cp -f "$BUILD_DIR"/bin/s2nc "$DEST_DIR"/s2nc_head
     cp -f "$BUILD_DIR"/bin/s2nd "$DEST_DIR"/s2nd_head
-else
-    echo "s2nc_head already exists; not rebuilding s2n_head"
 fi
 
 exit 0
