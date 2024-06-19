@@ -605,7 +605,7 @@ int main(int argc, char **argv)
 
     /* Test that negotiating TLS1.2 with an early data enabled client fails.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-D.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.3
      *= type=test
      *# A client that attempts to send 0-RTT data MUST fail a connection if
      *# it receives a ServerHello with TLS 1.2 or older.

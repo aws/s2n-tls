@@ -1,0 +1,23 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-5.9"
+
+# 5.9.  Elliptic Curve Certificates
+#
+# X.509 certificates containing ECC public keys or signed using ECDSA
+# MUST comply with [14] or another RFC that replaces or extends it.
+# Clients SHOULD use the elliptic curve domain parameters recommended
+# in ANSI X9.62 [7], FIPS 186-2 [11], and SEC 2 [13].
+
+[[spec]]
+level = "MUST"
+quote = '''
+X.509 certificates containing ECC public keys or signed using ECDSA
+MUST comply with [14] or another RFC that replaces or extends it.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Clients SHOULD use the elliptic curve domain parameters recommended
+in ANSI X9.62 [7], FIPS 186-2 [11], and SEC 2 [13].
+'''
+

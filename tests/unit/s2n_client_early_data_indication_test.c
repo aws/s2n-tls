@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
         /** Don't send if no PSK extension is sent.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *= type=test
          *# When a PSK is used and early data is allowed for that PSK, the client
          *# can send Application Data in its first flight of messages.  If the
@@ -98,12 +98,12 @@ int main(int argc, char **argv)
         /**
          * Don't send when performing a retry.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *= type=test
          *# A client MUST NOT include the
          *# "early_data" extension in its followup ClientHello.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.2
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.2
          *= type=test
          *# -  Removing the "early_data" extension (Section 4.2.10) if one was
          *#    present.  Early data is not permitted after a HelloRetryRequest.
@@ -273,7 +273,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(conn->early_data_state, S2N_EARLY_DATA_REQUESTED);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *= type=test
          *# A client MUST NOT include the
          *# "early_data" extension in its followup ClientHello.
@@ -401,12 +401,12 @@ int main(int argc, char **argv)
 
     /* Test state transitions with a HelloRetryRequest.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *= type=test
      *# A server which receives an "early_data" extension MUST behave in one
      *# of three ways:
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *= type=test
      *# -  Request that the client send another ClientHello by responding
      *#    with a HelloRetryRequest.

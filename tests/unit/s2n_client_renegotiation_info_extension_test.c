@@ -56,7 +56,7 @@ int main(int argc, char **argv)
 
     /* Test receive - value not 0
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.6
      *= type=test
      *# The server MUST then verify
      *# that the length of the "renegotiated_connection" field is zero,
@@ -98,7 +98,7 @@ int main(int argc, char **argv)
 
     /* Test receive when using SSLv3
      *
-     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.5
      *= type=test
      *# TLS servers that support secure renegotiation and support SSLv3 MUST accept SCSV or the
      *# "renegotiation_info" extension and respond as described in this
@@ -120,7 +120,7 @@ int main(int argc, char **argv)
     };
 
     /*
-     *= https://tools.ietf.org/rfc/rfc5746#3.4
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.4
      *= type=test
      *# o  The client MUST include either an empty "renegotiation_info"
      *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
@@ -162,7 +162,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#3.6
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.6
      *= type=test
      *# o  The server MUST check if the "renegotiation_info" extension is
      *# included in the ClientHello.
@@ -222,7 +222,7 @@ int main(int argc, char **argv)
 
     /* Test: should_send during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *= type=test
      *# o  The client MUST include the "renegotiation_info" extension in the
      *#    ClientHello
@@ -242,7 +242,7 @@ int main(int argc, char **argv)
 
     /* Test: send during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.5
      *= type=test
      *# o  The client MUST include the "renegotiation_info" extension in the
      *#    ClientHello, containing the saved client_verify_data.
@@ -288,7 +288,7 @@ int main(int argc, char **argv)
         };
 
         /*
-         *= https://tools.ietf.org/rfc/rfc5746#3.5
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.5
          *= type=test
          *# The SCSV MUST NOT be included.
          */
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
 
     /* Test: recv during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *= type=test
      *# o  The server MUST verify that the value of the
      *#    "renegotiated_connection" field is equal to the saved
@@ -387,7 +387,7 @@ int main(int argc, char **argv)
 
     /* Test: if_missing during renegotiation handshake
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *= type=test
      *# o  The server MUST verify that the "renegotiation_info" extension is
      *#    present; if it is not, the server MUST abort the handshake.
@@ -418,7 +418,7 @@ int main(int argc, char **argv)
 
     /* Test: receiving SCSV during renegotiation is an error
      *
-     *= https://tools.ietf.org/rfc/rfc5746#3.7
+     *= https://www.rfc-editor.org/rfc/rfc5746#3.7
      *= type=test
      *# o  When a ClientHello is received, the server MUST verify that it
      *#    does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If

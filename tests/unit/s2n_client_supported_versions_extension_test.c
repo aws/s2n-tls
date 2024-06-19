@@ -391,7 +391,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-D.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.2
      *= type=test
      *# A TLS server can also receive a ClientHello indicating a version number smaller than its highest supported
      *# version. If the "supported_versions" extension is present, the server MUST negotiate using that extension as

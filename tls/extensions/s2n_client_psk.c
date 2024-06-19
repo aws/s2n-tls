@@ -54,7 +54,7 @@ int s2n_client_psk_is_missing(struct s2n_connection *conn)
     /* If the PSK extension is missing, we must not have received
      * a request for early data.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# When a PSK is used and early data is allowed for that PSK, the client
      *# can send Application Data in its first flight of messages.  If the
      *# client opts to do so, it MUST supply both the "pre_shared_key" and
@@ -92,7 +92,7 @@ bool s2n_client_psk_should_send(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11.1
  *# The "obfuscated_ticket_age"
  *# field of each PskIdentity contains an obfuscated version of the
  *# ticket age formed by taking the age in milliseconds and adding the
@@ -105,7 +105,7 @@ static S2N_RESULT s2n_generate_obfuscated_ticket_age(struct s2n_psk *psk, uint64
     RESULT_ENSURE_MUT(output);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
      *# For identities
      *# established externally, an obfuscated_ticket_age of 0 SHOULD be
      *# used,
@@ -150,7 +150,7 @@ static int s2n_client_psk_send(struct s2n_connection *conn, struct s2n_stuffer *
         POSIX_ENSURE_REF(psk);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
          *# In addition, in its updated ClientHello, the client SHOULD NOT offer
          *# any pre-shared keys associated with a hash other than that of the
          *# selected cipher suite.
@@ -358,7 +358,7 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     POSIX_ENSURE_REF(conn);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
      *# The "pre_shared_key" extension MUST be the last extension in the
      *# ClientHello (this facilitates implementation as described below).
      *# Servers MUST check that it is the last extension and otherwise fail
@@ -372,7 +372,7 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
     POSIX_ENSURE(extension_wire_index == last_wire_index, S2N_ERR_UNSUPPORTED_EXTENSION);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.9
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.9
      *# If clients offer "pre_shared_key" without a "psk_key_exchange_modes" extension,
      *# servers MUST abort the handshake.
      *
@@ -399,7 +399,7 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
 
     if (s2n_result_is_error(s2n_client_psk_recv_identities(conn, extension))) {
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *# If no acceptable PSKs are found, the server SHOULD perform a non-PSK
          *# handshake if possible.
          */
@@ -408,7 +408,7 @@ int s2n_client_psk_recv(struct s2n_connection *conn, struct s2n_stuffer *extensi
 
     if (conn->psk_params.chosen_psk) {
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *# Prior to accepting PSK key establishment, the server MUST validate
          *# the corresponding binder value (see Section 4.2.11.2 below).  If this
          *# value is not present or does not validate, the server MUST abort the

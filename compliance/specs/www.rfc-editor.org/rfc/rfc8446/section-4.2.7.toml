@@ -1,0 +1,93 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.7"
+
+# 4.2.7.  Supported Groups
+#
+# When sent by the client, the "supported_groups" extension indicates
+# the named groups which the client supports for key exchange, ordered
+# from most preferred to least preferred.
+# 
+# Note: In versions of TLS prior to TLS 1.3, this extension was named
+# "elliptic_curves" and only contained elliptic curve groups.  See
+# [RFC8422] and [RFC7919].  This extension was also used to negotiate
+# ECDSA curves.  Signature algorithms are now negotiated independently
+# (see Section 4.2.3).
+# 
+# The "extension_data" field of this extension contains a
+# "NamedGroupList" value:
+# 
+#    enum {
+# 
+#        /* Elliptic Curve Groups (ECDHE) */
+#        secp256r1(0x0017), secp384r1(0x0018), secp521r1(0x0019),
+#        x25519(0x001D), x448(0x001E),
+# 
+#        /* Finite Field Groups (DHE) */
+#        ffdhe2048(0x0100), ffdhe3072(0x0101), ffdhe4096(0x0102),
+#        ffdhe6144(0x0103), ffdhe8192(0x0104),
+# 
+#        /* Reserved Code Points */
+#        ffdhe_private_use(0x01FC..0x01FF),
+#        ecdhe_private_use(0xFE00..0xFEFF),
+#        (0xFFFF)
+#    } NamedGroup;
+# 
+#    struct {
+#        NamedGroup named_group_list<2..2^16-1>;
+#    } NamedGroupList;
+# 
+# Elliptic Curve Groups (ECDHE):  Indicates support for the
+#    corresponding named curve, defined in either FIPS 186-4 [DSS] or
+#    [RFC7748].  Values 0xFE00 through 0xFEFF are reserved for
+#    Private Use [RFC8126].
+# 
+# Finite Field Groups (DHE):  Indicates support for the corresponding
+#    finite field group, defined in [RFC7919].  Values 0x01FC through
+#    0x01FF are reserved for Private Use.
+# 
+# Items in named_group_list are ordered according to the sender's
+# preferences (most preferred choice first).
+# 
+# As of TLS 1.3, servers are permitted to send the "supported_groups"
+# extension to the client.  Clients MUST NOT act upon any information
+# found in "supported_groups" prior to successful completion of the
+# handshake but MAY use the information learned from a successfully
+# completed handshake to change what groups they use in their
+# "key_share" extension in subsequent connections.  If the server has a
+# group it prefers to the ones in the "key_share" extension but is
+# still willing to accept the ClientHello, it SHOULD send
+# "supported_groups" to update the client's view of its preferences;
+# this extension SHOULD contain all groups the server supports,
+# regardless of whether they are currently supported by the client.
+
+[[spec]]
+level = "MUST"
+quote = '''
+Clients MUST NOT act upon any information
+found in "supported_groups" prior to successful completion of the
+handshake but MAY use the information learned from a successfully
+completed handshake to change what groups they use in their
+"key_share" extension in subsequent connections.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If the server has a
+group it prefers to the ones in the "key_share" extension but is
+still willing to accept the ClientHello, it SHOULD send
+"supported_groups" to update the client's view of its preferences;
+this extension SHOULD contain all groups the server supports,
+regardless of whether they are currently supported by the client.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If the server has a
+group it prefers to the ones in the "key_share" extension but is
+still willing to accept the ClientHello, it SHOULD send
+"supported_groups" to update the client's view of its preferences;
+this extension SHOULD contain all groups the server supports,
+regardless of whether they are currently supported by the client.
+'''
+

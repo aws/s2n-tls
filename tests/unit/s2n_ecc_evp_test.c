@@ -418,7 +418,7 @@ int main(int argc, char** argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.8.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.8.2
      *= type=test
      *# For the curves secp256r1, secp384r1, and secp521r1, peers MUST
      *# validate each other's public value Q by ensuring that the point is a
