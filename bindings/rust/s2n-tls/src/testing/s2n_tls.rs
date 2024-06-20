@@ -1037,7 +1037,7 @@ mod tests {
         let pair = tls_pair(config);
         let pair = poll_tls_pair(pair);
         let server = pair.server.0.connection;
-        assert_eq!(server.client_hello_version()?, enums::Version::TLS12);
+        assert_eq!(server.client_hello_is_sslv2()?, false);
         Ok(())
     }
 }
