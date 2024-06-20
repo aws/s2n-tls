@@ -314,7 +314,6 @@ mod tests {
         Ok(())
     }
 
-
     #[test]
     fn connnection_waker() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
