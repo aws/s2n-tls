@@ -1,0 +1,15 @@
+[package]
+name = "pcap"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+anyhow = "1.0.86"
+hex = "0.4.3"
+rtshark = "2.7.1"
+
+[dev-dependencies]
+# We want to test against the latest, local version of s2n
+s2n-tls-sys = { path = "../../bindings/rust/s2n-tls-sys" }
+s2n-tls = { path = "../../bindings/rust/s2n-tls", features = ["unstable-fingerprint"] }

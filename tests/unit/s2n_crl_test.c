@@ -771,7 +771,7 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "S2nTestServer"));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
@@ -822,7 +822,7 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "S2nTestServer"));
+        EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
         EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);

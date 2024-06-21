@@ -41,3 +41,6 @@ TlsStream {
 The server said Hello, you are speaking to www.wombat.com
 ```
 Once again there is a successful handshake showing that the server responded with the proper certificate. In this case, the config that the server configured for `www.wombat.com` did not support TLS 1.3, so the TLS 1.2 was negotiated instead.
+
+## Async Config Resolution
+The [async load server](src/bin/async_load_server.rs) has the same functionality as the default [server](src/bin/server.rs), but implements the config resolution in an asynchronous manner. This allows the certificates to be loaded from disk without blocking the tokio runtime. A similar technique could be used to retrieve certificates over the network without blocking the runtime.
