@@ -377,9 +377,9 @@ pub struct TestPair {
     // Box: A Vec (or VecDeque) may be moved or reallocated, so we need another layer of
     // indirection to have a stable (pinned) reference
     /// a data buffer that the server writes to and the client reads from
-    server_tx_stream: Pin<Box<LocalDataBuffer>>,
+    pub server_tx_stream: Pin<Box<LocalDataBuffer>>,
     /// a data buffer that the client writes to and the server reads from
-    client_tx_stream: Pin<Box<LocalDataBuffer>>,
+    pub client_tx_stream: Pin<Box<LocalDataBuffer>>,
 }
 
 impl TestPair {

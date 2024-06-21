@@ -343,19 +343,43 @@ mod tests {
             config.build()?
         };
 
-        let mut pair = TestPair::from_config(&config);
-        pair.server.set_waker(Some(&waker))?;
-        let s2n_err = pair.handshake().unwrap_err();
-        // the underlying error should be the custom error the application provided
-        let app_err = s2n_err.application_error().unwrap();
-        let io_err = app_err.downcast_ref::<std::io::Error>().unwrap();
-        let _custom_err = io_err
-            .get_ref()
-            .unwrap()
-            .downcast_ref::<CustomError>()
-            .unwrap();
+        let server = {
+            // create and configure a server connection
+            let mut server = crate::connection::Connection::new_server();
+            server.set_config(config.clone())?;
+            server.set_waker(Some(&waker))?;
+            Harness::new(server)
+        };
 
+        let client = {
+            // create a client connection
+            let mut client = crate::connection::Connection::new_client();
+            client.set_config(config)?;
+            Harness::new(client)
+        };
+
+        let mut pair = Pair::new(server, client);
+        loop {
+            match pair.poll() {
+                Poll::Ready(result) => {
+                    let err = result.expect_err("handshake should fail");
+
+                    // the underlying error should be the custom error the application provided
+                    let s2n_err = err.downcast_ref::<crate::error::Error>().unwrap();
+                    let app_err = s2n_err.application_error().unwrap();
+                    let io_err = app_err.downcast_ref::<std::io::Error>().unwrap();
+                    let _custom_err = io_err
+                        .get_ref()
+                        .unwrap()
+                        .downcast_ref::<CustomError>()
+                        .unwrap();
+                    break;
+                }
+                Poll::Pending => continue,
+            }
+        }
         assert_eq!(wake_count, 0);
+
         Ok(())
     }
 
@@ -949,7 +973,7 @@ mod tests {
 
     /// Test that a context can be used from within a callback.
     #[test]
-    fn test_app_context_callback() -> Result<(), crate::error::Error> {
+    fn test_app_context_callback() {
         struct TestApplicationContext {
             invoked_count: u32,
         }
@@ -982,91 +1006,83 @@ mod tests {
             builder.trust_pem(keypair.cert).unwrap();
             builder.build().unwrap()
         };
-        let mut pair = TestPair::from_config(&config);
-        pair.server.set_waker(Some(&noop_waker()))?;
 
-        let context = TestApplicationContext { invoked_count: 0 };
-        pair.server.set_application_context(context);
-
-        pair.handshake()?;
-
-        let context = pair
-            .server
-            .application_context::<TestApplicationContext>()
-            .unwrap();
-        assert_eq!(context.invoked_count, 1);
-
-        Ok(())
-    }
-
-    #[test]
-    fn no_application_protocol() -> Result<(), Error> {
-        let config = config_builder(&security::DEFAULT)?.build()?;
-        let mut pair = tls_pair(config);
-        assert!(poll_tls_pair_result(&mut pair).is_ok());
-        assert!(pair.server.0.connection.application_protocol().is_none());
-        Ok(())
-    }
-
-    #[test]
-    fn application_protocol() -> Result<(), Error> {
-        let config = config_builder(&security::DEFAULT)?.build()?;
         let mut pair = tls_pair(config);
         pair.server
             .0
-            .connection
-            .set_application_protocol_preference(["http/1.1", "h2"])?;
-        pair.client
+            .connection_mut()
+            .set_waker(Some(&noop_waker()))
+            .unwrap();
+
+        let context = TestApplicationContext { invoked_count: 0 };
+        pair.server
             .0
-            .connection
-            .append_application_protocol_preference(b"h2")?;
+            .connection_mut()
+            .set_application_context(context);
+
         assert!(poll_tls_pair_result(&mut pair).is_ok());
-        let protocol = pair.server.0.connection.application_protocol().unwrap();
-        assert_eq!(protocol, b"h2");
-        Ok(())
+
+        let context = pair
+            .server
+            .0
+            .connection()
+            .application_context::<TestApplicationContext>()
+            .unwrap();
+        assert_eq!(context.invoked_count, 1);
     }
 
     #[test]
     fn client_hello_sslv2_negative() -> Result<(), testing::Error> {
         let config = testing::build_config(&security::DEFAULT_TLS13)?;
-        let pair = tls_pair(config);
-        let pair = poll_tls_pair(pair);
-        let server = pair.server.0.connection;
-        assert_eq!(server.client_hello_is_sslv2()?, false);
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+        assert_eq!(pair.server.client_hello_is_sslv2()?, false);
         Ok(())
     }
 
     #[test]
     fn client_hello_sslv2_positive() -> Result<(), testing::Error> {
-        
-        let config = testing::build_config(&security::DEFAULT_TLS13)?;
-        let pair = tls_pair(config);
-        let pair = poll_tls_pair(pair);
-        let server = pair.server.0.connection;
-        assert_eq!(server.client_hello_is_sslv2()?, false);
+        // copy-pasted from s2n-tls/tests/testlib/s2n_sslv2_client_hello.h
+        // by concatenating these fields together, a valid SSLv2 formatted client hello
+        // can be assembled
+        const SSLV2_CLIENT_HELLO_HEADER: &[u8] = &[0x80, 0xb3, 0x01, 0x03, 0x03];
+        const SSLV2_CLIENT_HELLO_PREFIX: &[u8] = &[0x00, 0x8a, 0x00, 0x00, 0x00, 0x20];
+        const SSLV2_CLIENT_HELLO_CIPHER_SUITES: &[u8] = &[
+            0x00, 0xc0, 0x24, 0x00, 0xc0, 0x28, 0x00, 0x00, 0x3d, 0x00, 0xc0, 0x26, 0x00, 0xc0,
+            0x2a, 0x00, 0x00, 0x6b, 0x00, 0x00, 0x6a, 0x00, 0xc0, 0x0a, 0x07, 0x00, 0xc0, 0x00,
+            0xc0, 0x14, 0x00, 0x00, 0x35, 0x00, 0xc0, 0x05, 0x00, 0xc0, 0x0f, 0x00, 0x00, 0x39,
+            0x00, 0x00, 0x38, 0x00, 0xc0, 0x23, 0x00, 0xc0, 0x27, 0x00, 0x00, 0x3c, 0x00, 0xc0,
+            0x25, 0x00, 0xc0, 0x29, 0x00, 0x00, 0x67, 0x00, 0x00, 0x40, 0x00, 0xc0, 0x09, 0x06,
+            0x00, 0x40, 0x00, 0xc0, 0x13, 0x00, 0x00, 0x2f, 0x00, 0xc0, 0x04, 0x01, 0x00, 0x80,
+            0x00, 0xc0, 0x0e, 0x00, 0x00, 0x33, 0x00, 0x00, 0x32, 0x00, 0xc0, 0x2c, 0x00, 0xc0,
+            0x2b, 0x00, 0xc0, 0x30, 0x00, 0x00, 0x9d, 0x00, 0xc0, 0x2e, 0x00, 0xc0, 0x32, 0x00,
+            0x00, 0x9f, 0x00, 0x00, 0xa3, 0x00, 0xc0, 0x2f, 0x00, 0x00, 0x9c, 0x00, 0xc0, 0x2d,
+            0x00, 0xc0, 0x31, 0x00, 0x00, 0x9e, 0x00, 0x00, 0xa2, 0x00, 0x00, 0xff,
+        ];
+        const SSLV2_CLIENT_HELLO_CHALLENGE: &[u8] = &[
+            0x5b, 0xe9, 0xcc, 0xad, 0xd6, 0xa5, 0x20, 0xac, 0xa3, 0xf4, 0x8e, 0x88, 0x06, 0xb5,
+            0x95, 0x53, 0x2d, 0x53, 0xfe, 0xd7, 0xa1, 0x00, 0x57, 0xc0, 0x53, 0x9d, 0x84, 0x71,
+            0x80, 0x7f, 0x30, 0x7e,
+        ];
+
+        let config = testing::build_config(&security::Policy::from_version("test_all")?)?;
+        // we use the pair to setup IO, but we don't want the client to write anything.
+        // So we drop the client and just directly write the SSLv2 header to the
+        // client_tx_stream
+        let mut pair = TestPair::from_config(&config);
+        drop(pair.client);
+
+        let mut client_tx_stream = pair.client_tx_stream.borrow_mut();
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_HEADER)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_PREFIX)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CIPHER_SUITES)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CHALLENGE)?;
+        // end the exclusive borrow
+        drop(client_tx_stream);
+
+        // the first server.poll_negotiate causes the server to read in the client hello
+        assert!(pair.server.poll_negotiate()?.is_pending());
+        assert_eq!(pair.server.client_hello_is_sslv2()?, true);
         Ok(())
     }
-
-    // copy-pasted from s2n-tls/tests/testlib/s2n_sslv2_client_hello.h
-    // by concatenating these fields together, a valid SSLv2 formatted client hello
-    // can be assembled
-    const SSLV2_CLIENT_HELLO_HEADER: &[u8] = &[0x80, 0xb3, 0x01, 0x03, 0x03];
-    const SSLV2_CLIENT_HELLO_PREFIX: &[u8] = &[0x00, 0x8a, 0x00, 0x00, 0x00, 0x20];
-    const SSLV2_CLIENT_HELLO_CIPHER_SUITES: &[u8] = &[
-        0x00, 0xc0, 0x24, 0x00, 0xc0, 0x28, 0x00, 0x00, 0x3d, 0x00, 0xc0, 0x26, 0x00, 0xc0, 0x2a,
-        0x00, 0x00, 0x6b, 0x00, 0x00, 0x6a, 0x00, 0xc0, 0x0a, 0x07, 0x00, 0xc0, 0x00, 0xc0, 0x14,
-        0x00, 0x00, 0x35, 0x00, 0xc0, 0x05, 0x00, 0xc0, 0x0f, 0x00, 0x00, 0x39, 0x00, 0x00, 0x38,
-        0x00, 0xc0, 0x23, 0x00, 0xc0, 0x27, 0x00, 0x00, 0x3c, 0x00, 0xc0, 0x25, 0x00, 0xc0, 0x29,
-        0x00, 0x00, 0x67, 0x00, 0x00, 0x40, 0x00, 0xc0, 0x09, 0x06, 0x00, 0x40, 0x00, 0xc0, 0x13,
-        0x00, 0x00, 0x2f, 0x00, 0xc0, 0x04, 0x01, 0x00, 0x80, 0x00, 0xc0, 0x0e, 0x00, 0x00, 0x33,
-        0x00, 0x00, 0x32, 0x00, 0xc0, 0x2c, 0x00, 0xc0, 0x2b, 0x00, 0xc0, 0x30, 0x00, 0x00, 0x9d,
-        0x00, 0xc0, 0x2e, 0x00, 0xc0, 0x32, 0x00, 0x00, 0x9f, 0x00, 0x00, 0xa3, 0x00, 0xc0, 0x2f,
-        0x00, 0x00, 0x9c, 0x00, 0xc0, 0x2d, 0x00, 0xc0, 0x31, 0x00, 0x00, 0x9e, 0x00, 0x00, 0xa2,
-        0x00, 0x00, 0xff,
-    ];
-    const SSLV2_CLIENT_HELLO_CHALLENGE: &[u8] = &[
-        0x5b, 0xe9, 0xcc, 0xad, 0xd6, 0xa5, 0x20, 0xac, 0xa3, 0xf4, 0x8e, 0x88, 0x06, 0xb5, 0x95,
-        0x53, 0x2d, 0x53, 0xfe, 0xd7, 0xa1, 0x00, 0x57, 0xc0, 0x53, 0x9d, 0x84, 0x71, 0x80, 0x7f,
-        0x30, 0x7e,
-    ];
 }
