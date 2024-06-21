@@ -21,6 +21,27 @@ use tower_service::Service;
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
+/// hyper clients use a connector to send and receive HTTP requests over an underlying IO stream. By
+/// default, hyper provides `hyper_util::client::legacy::connect::HttpConnector` for this purpose,
+/// which sends and receives requests over TCP.
+///
+/// The `HttpsConnector` struct wraps an HTTP connector, and uses it to negotiate TLS when the HTTPS
+/// scheme is in use. The `HttpsConnector` can be provided to the
+/// `hyper_util::client::legacy::Client` builder as follows:
+/// ```
+/// use hyper_util::{
+///     client::legacy::Client,
+///     rt::TokioExecutor,
+/// };
+/// use s2n_tls_hyper::connector::HttpsConnector;
+/// use s2n_tls::config::Config;
+/// use bytes::Bytes;
+/// use http_body_util::Empty;
+///
+/// let connector = HttpsConnector::builder(Config::default()).build();
+/// let client: Client<_, Empty<Bytes>> =
+///     Client::builder(TokioExecutor::new()).build(connector);
+/// ```
 #[derive(Clone)]
 pub struct HttpsConnector<T, B = Config>
 where
@@ -38,13 +59,19 @@ where
 {
     /// Creates a new `Builder` used to create an `HttpsConnector`.
     ///
-    /// This builder is created using the default hyper `HttpConnector`. To use a custom HTTP
+    /// `conn_builder` will be used to produce the s2n-tls Connections used for negotiating HTTPS,
+    /// which can be an `s2n_tls::config::Config` or other `s2n_tls::connection::Builder`.
+    ///
+    /// This builder is created using the default hyper `HttpConnector`. To use an existing HTTP
     /// connector, use `HttpsConnector::builder_with_http()`.
     pub fn builder(conn_builder: B) -> Builder<HttpConnector, B> {
         let mut http = HttpConnector::new();
+
+        // By default, the `HttpConnector` only allows the HTTP URI scheme to be used. To negotiate
+        // HTTP over TLS via the HTTPS scheme, `enforce_http` must be disabled.
         http.enforce_http(false);
 
-        Builder::new(Self { http, conn_builder })
+        Builder::new(http, conn_builder)
     }
 }
 
@@ -54,11 +81,36 @@ where
     <B as connection::Builder>::Output: Unpin,
 {
     /// Creates a new `Builder` used to create an `HttpsConnector`.
+    ///
+    /// `conn_builder` will be used to produce the s2n-tls Connections used for negotiating HTTPS,
+    /// which can be an `s2n_tls::config::Config` or other `s2n_tls::connection::Builder`.
+    ///
+    /// This API allows a `Builder` to be constructed with an existing HTTP connector, as follows:
+    /// ```
+    /// use s2n_tls_hyper::connector::HttpsConnector;
+    /// use s2n_tls::config::Config;
+    /// use hyper_util::client::legacy::connect::HttpConnector;
+    ///
+    /// let mut http = HttpConnector::new();
+    ///
+    /// // Ensure that the HTTP connector permits the HTTPS scheme.
+    /// http.enforce_http(false);
+    ///
+    /// let builder = HttpsConnector::builder_with_http(http, Config::default());
+    /// ```
+    ///
+    /// `HttpsConnector::builder()` can be used to create a new HTTP connector automatically.
     pub fn builder_with_http(http: T, conn_builder: B) -> Builder<T, B> {
-        Builder::new(Self { http, conn_builder })
+        Builder::new(http, conn_builder)
     }
 }
 
+// hyper connectors MUST implement `hyper_util::client::legacy::connect::Connect`, which is an alias
+// for the `tower_service::Service` trait where `Service` is implemented for `http::uri::Uri`, and
+// `Service::Response` implements traits for compatibility with hyper:
+// https://docs.rs/hyper-util/latest/hyper_util/client/legacy/connect/trait.Connect.html
+//
+// The hyper compatibility traits for `Service::Response` are implemented in `MaybeHttpsStream`.
 impl<T, B> Service<Uri> for HttpsConnector<T, B>
 where
     T: Service<Uri>,
@@ -82,6 +134,8 @@ where
     }
 
     fn call(&mut self, req: Uri) -> Self::Future {
+        // Currently, the only supported stream type is TLS. If the application attempts to
+        // negotiate HTTP over plain TCP, return an error.
         if req.scheme() == Some(&http::uri::Scheme::HTTP) {
             return Box::pin(async move { Err(UnsupportedScheme.into()) });
         }
@@ -90,6 +144,9 @@ where
         let host = req.host().unwrap_or("").to_owned();
         let call = self.http.call(req);
         Box::pin(async move {
+            // `HttpsConnector` wraps an HTTP connector that also implements `Service<Uri>`.
+            // `call()` is invoked on the wrapped connector to get the underlying hyper TCP stream,
+            // which is converted into a tokio-compatible stream with `hyper_util::rt::TokioIo`.
             let tcp = call.await.map_err(Into::into)?;
             let tcp = TokioIo::new(tcp);
 
@@ -101,12 +158,21 @@ where
     }
 }
 
+/// The `Builder` struct configures and produces a new `HttpsConnector`. A Builder can be retrieved
+/// with `HttpsConnector::builder()`, as follows:
+/// ```
+/// use s2n_tls_hyper::connector::HttpsConnector;
+/// use s2n_tls::config::Config;
+///
+/// let builder = HttpsConnector::builder(Config::default());
+/// ```
 pub struct Builder<T, B>
 where
     B: connection::Builder,
     <B as connection::Builder>::Output: Unpin,
 {
-    connector: HttpsConnector<T, B>,
+    http: T,
+    conn_builder: B,
 }
 
 impl<T, B> Builder<T, B>
@@ -114,12 +180,17 @@ where
     B: connection::Builder,
     <B as connection::Builder>::Output: Unpin,
 {
-    pub fn new(connector: HttpsConnector<T, B>) -> Self {
-        Self { connector }
+    /// Creates a new `Builder` used to create an `HttpsConnector`.
+    pub fn new(http: T, conn_builder: B) -> Self {
+        Self { http, conn_builder }
     }
 
+    /// Creates a new `HttpsConnector` from the specified builder configuration.
     pub fn build(self) -> HttpsConnector<T, B> {
-        self.connector
+        HttpsConnector {
+            http: self.http,
+            conn_builder: self.conn_builder,
+        }
     }
 }
 

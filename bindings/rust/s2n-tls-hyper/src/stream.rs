@@ -14,12 +14,29 @@ use std::{
     task::{Context, Poll},
 };
 
+/// `MaybeHttpsStream` is a wrapper over a hyper TCP stream, T, allowing for TLS to be negotiated
+/// over the TCP stream.
+///
+/// While not currently implemented, the `MaybeHttpsStream` enum will provide an `Http` type
+/// corresponding to the plain TCP stream, allowing for HTTP to be negotiated in addition to HTTPS
+/// when the HTTP scheme is used.
+///
+/// This struct is used to implement `tower_service::Service` for `HttpsConnector`, and shouldn't
+/// need to be used directly.
 pub enum MaybeHttpsStream<T, B>
 where
     T: Read + Write + Connection + Unpin,
     B: Builder,
     <B as Builder>::Output: Unpin,
 {
+    // T is the underlying hyper TCP stream, which is wrapped in a `TokioIo` type in order to make
+    // it compatible with tokio (implementing AsyncRead and AsyncWrite). This allows the TCP stream
+    // to be provided to the `s2n_tls_tokio::TlsStream`.
+    //
+    // `MaybeHttpsStream` MUST implement hyper's `Read` and `Write` traits. So, the `TlsStream` is
+    // wrapped in an additional `TokioIo` type, which already implements the conversion from hyper's
+    // traits to tokio's. This allows the `Read` and `Write` implementations for `MaybeHttpsStream`
+    // to simply call the `TokioIo` `poll` functions.
     Https(TokioIo<TlsStream<TokioIo<T>, B::Output>>),
 }
 
