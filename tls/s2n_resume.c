@@ -710,7 +710,10 @@ struct s2n_ticket_key *s2n_get_ticket_encrypt_decrypt_key(struct s2n_config *con
         PTR_GUARD_RESULT(s2n_set_get(config->ticket_keys, idx, (void **) &ticket_key));
         uint64_t key_intro_time = ticket_key->intro_timestamp;
 
-        if (key_intro_time < now
+        /* A key can be used at its intro time (<=) and it can be used up to (<) 
+         * its expiration time.
+         */
+        if (key_intro_time <= now
                 && now < key_intro_time + config->encrypt_decrypt_key_lifetime_in_nanos) {
             encrypt_decrypt_keys_index[num_encrypt_decrypt_keys] = idx;
             num_encrypt_decrypt_keys++;
