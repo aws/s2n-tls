@@ -83,7 +83,7 @@ S2N_RESULT s2n_fingerprint_hash_digest(struct s2n_fingerprint_hash *hash, uint8_
     return S2N_RESULT_OK;
 }
 
-bool s2n_fingerprint_hash_supports_digest(struct s2n_fingerprint_hash *hash)
+bool s2n_fingerprint_hash_do_digest(struct s2n_fingerprint_hash *hash)
 {
     return hash && hash->hash;
 }

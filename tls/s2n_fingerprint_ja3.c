@@ -27,7 +27,7 @@
 static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
         struct s2n_stuffer *out)
 {
-    if (!s2n_fingerprint_hash_supports_digest(hash)) {
+    if (!s2n_fingerprint_hash_do_digest(hash)) {
         return S2N_RESULT_OK;
     }
 
@@ -45,12 +45,18 @@ static S2N_RESULT s2n_fingerprint_ja3_iana(struct s2n_fingerprint_hash *hash,
         return S2N_RESULT_OK;
     }
 
+    /* If we have already written at least one value for this field,
+     * then we are writing a list and need to prepend a list divider before
+     * writing the next value.
+     */
     if (*is_list) {
         RESULT_GUARD(s2n_fingerprint_hash_add_char(hash, S2N_JA3_LIST_DIV));
     } else {
         *is_list = true;
     }
 
+    /* snprintf always appends a '\0' to the output,
+     * but that extra '\0' is not included in the return value */
     char str[S2N_UINT16_STR_MAX_SIZE + 1] = { 0 };
     int written = snprintf(str, sizeof(str), "%u", iana);
     RESULT_ENSURE_GT(written, 0);
@@ -195,6 +201,8 @@ S2N_RESULT s2n_fingerprint_ja3(struct s2n_client_hello *client_hello,
 }
 
 struct s2n_fingerprint_method ja3_fingerprint = {
+    /* The hash doesn't have to be cryptographically secure,
+     * so the weakness of MD5 shouldn't be a problem. */
     .hash = S2N_HASH_MD5,
     .fingerprint = s2n_fingerprint_ja3,
 };

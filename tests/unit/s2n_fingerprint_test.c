@@ -220,21 +220,21 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test s2n_fingerprint_hash_supports_digest */
+    /* Test s2n_fingerprint_hash_do_digest */
     {
         /* Safety */
-        EXPECT_FALSE(s2n_fingerprint_hash_supports_digest(NULL));
+        EXPECT_FALSE(s2n_fingerprint_hash_do_digest(NULL));
 
         struct s2n_fingerprint_hash hash = { 0 };
-        EXPECT_FALSE(s2n_fingerprint_hash_supports_digest(&hash));
+        EXPECT_FALSE(s2n_fingerprint_hash_do_digest(&hash));
 
         struct s2n_stuffer output = { 0 };
         hash.buffer = &output;
-        EXPECT_FALSE(s2n_fingerprint_hash_supports_digest(&hash));
+        EXPECT_FALSE(s2n_fingerprint_hash_do_digest(&hash));
 
         struct s2n_hash_state hash_state = { 0 };
         hash.hash = &hash_state;
-        EXPECT_TRUE(s2n_fingerprint_hash_supports_digest(&hash));
+        EXPECT_TRUE(s2n_fingerprint_hash_do_digest(&hash));
     }
 
     /* Test s2n_assert_grease_value */

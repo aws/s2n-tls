@@ -30,7 +30,7 @@ struct s2n_fingerprint_hash {
 S2N_RESULT s2n_fingerprint_hash_add_char(struct s2n_fingerprint_hash *hash, char c);
 S2N_RESULT s2n_fingerprint_hash_add_str(struct s2n_fingerprint_hash *hash, const char *str, size_t str_size);
 S2N_RESULT s2n_fingerprint_hash_digest(struct s2n_fingerprint_hash *hash, uint8_t *out, size_t out_size);
-bool s2n_fingerprint_hash_supports_digest(struct s2n_fingerprint_hash *hash);
+bool s2n_fingerprint_hash_do_digest(struct s2n_fingerprint_hash *hash);
 
 struct s2n_fingerprint_method {
     s2n_hash_algorithm hash;
