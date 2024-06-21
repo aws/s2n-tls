@@ -1,0 +1,99 @@
+target = "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.9"
+
+# 4.2.9.  Pre-Shared Key Exchange Modes
+#
+# In order to use PSKs, clients MUST also send a
+# "psk_key_exchange_modes" extension.  The semantics of this extension
+# are that the client only supports the use of PSKs with these modes,
+# which restricts both the use of PSKs offered in this ClientHello and
+# those which the server might supply via NewSessionTicket.
+# 
+# A client MUST provide a "psk_key_exchange_modes" extension if it
+# offers a "pre_shared_key" extension.  If clients offer
+# "pre_shared_key" without a "psk_key_exchange_modes" extension,
+# servers MUST abort the handshake.  Servers MUST NOT select a key
+# exchange mode that is not listed by the client.  This extension also
+# restricts the modes for use with PSK resumption.  Servers SHOULD NOT
+# send NewSessionTicket with tickets that are not compatible with the
+# advertised modes; however, if a server does so, the impact will just
+# be that the client's attempts at resumption fail.
+# 
+# The server MUST NOT send a "psk_key_exchange_modes" extension.
+# 
+#    enum { psk_ke(0), psk_dhe_ke(1), (255) } PskKeyExchangeMode;
+# 
+#    struct {
+#        PskKeyExchangeMode ke_modes<1..255>;
+#    } PskKeyExchangeModes;
+# 
+# psk_ke:  PSK-only key establishment.  In this mode, the server
+#    MUST NOT supply a "key_share" value.
+# 
+# psk_dhe_ke:  PSK with (EC)DHE key establishment.  In this mode, the
+#    client and server MUST supply "key_share" values as described in
+#    Section 4.2.8.
+# 
+# Any future values that are allocated must ensure that the transmitted
+# protocol messages unambiguously identify which mode was selected by
+# the server; at present, this is indicated by the presence of the
+# "key_share" in the ServerHello.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In order to use PSKs, clients MUST also send a
+"psk_key_exchange_modes" extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+A client MUST provide a "psk_key_exchange_modes" extension if it
+offers a "pre_shared_key" extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If clients offer
+"pre_shared_key" without a "psk_key_exchange_modes" extension,
+servers MUST abort the handshake.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Servers MUST NOT select a key
+exchange mode that is not listed by the client.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers SHOULD NOT
+send NewSessionTicket with tickets that are not compatible with the
+advertised modes; however, if a server does so, the impact will just
+be that the client's attempts at resumption fail.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The server MUST NOT send a "psk_key_exchange_modes" extension.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In this mode, the server
+MUST NOT supply a "key_share" value.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+In this mode, the
+client and server MUST supply "key_share" values as described in
+Section 4.2.8.
+'''
+

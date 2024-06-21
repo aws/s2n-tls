@@ -233,7 +233,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 #[cfg(test)]
 mod tests {
     use crate::{
-        callbacks::{ClientHelloCallback, ConnectionFuture},
+        callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
         enums::ClientAuthType,
         error::ErrorType,
         testing::{client_hello::*, s2n_tls::*, *},
@@ -343,43 +343,19 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            // create and configure a server connection
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
-            Harness::new(server)
-        };
+        let mut pair = TestPair::from_config(&config);
+        pair.server.set_waker(Some(&waker))?;
+        let s2n_err = pair.handshake().unwrap_err();
+        // the underlying error should be the custom error the application provided
+        let app_err = s2n_err.application_error().unwrap();
+        let io_err = app_err.downcast_ref::<std::io::Error>().unwrap();
+        let _custom_err = io_err
+            .get_ref()
+            .unwrap()
+            .downcast_ref::<CustomError>()
+            .unwrap();
 
-        let client = {
-            // create a client connection
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let mut pair = Pair::new(server, client);
-        loop {
-            match pair.poll() {
-                Poll::Ready(result) => {
-                    let err = result.expect_err("handshake should fail");
-
-                    // the underlying error should be the custom error the application provided
-                    let s2n_err = err.downcast_ref::<crate::error::Error>().unwrap();
-                    let app_err = s2n_err.application_error().unwrap();
-                    let io_err = app_err.downcast_ref::<std::io::Error>().unwrap();
-                    let _custom_err = io_err
-                        .get_ref()
-                        .unwrap()
-                        .downcast_ref::<CustomError>()
-                        .unwrap();
-                    break;
-                }
-                Poll::Pending => continue,
-            }
-        }
         assert_eq!(wake_count, 0);
-
         Ok(())
     }
 
@@ -969,5 +945,84 @@ mod tests {
 
         init::init();
         assert!(init::fips_mode().unwrap().is_enabled());
+    }
+
+    /// Test that a context can be used from within a callback.
+    #[test]
+    fn test_app_context_callback() -> Result<(), crate::error::Error> {
+        struct TestApplicationContext {
+            invoked_count: u32,
+        }
+
+        struct TestClientHelloHandler {}
+
+        impl ClientHelloCallback for TestClientHelloHandler {
+            fn on_client_hello(
+                &self,
+                connection: &mut connection::Connection,
+            ) -> ConnectionFutureResult {
+                let app_context = connection
+                    .application_context_mut::<TestApplicationContext>()
+                    .unwrap();
+                app_context.invoked_count += 1;
+                Ok(None)
+            }
+        }
+
+        let config = {
+            let keypair = CertKeyPair::default();
+            let mut builder = Builder::new();
+            builder
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+                .unwrap();
+            builder
+                .set_client_hello_callback(TestClientHelloHandler {})
+                .unwrap();
+            builder.load_pem(keypair.cert, keypair.key).unwrap();
+            builder.trust_pem(keypair.cert).unwrap();
+            builder.build().unwrap()
+        };
+        let mut pair = TestPair::from_config(&config);
+        pair.server.set_waker(Some(&noop_waker()))?;
+
+        let context = TestApplicationContext { invoked_count: 0 };
+        pair.server.set_application_context(context);
+
+        pair.handshake()?;
+
+        let context = pair
+            .server
+            .application_context::<TestApplicationContext>()
+            .unwrap();
+        assert_eq!(context.invoked_count, 1);
+
+        Ok(())
+    }
+
+    #[test]
+    fn no_application_protocol() -> Result<(), Error> {
+        let config = config_builder(&security::DEFAULT)?.build()?;
+        let mut pair = tls_pair(config);
+        assert!(poll_tls_pair_result(&mut pair).is_ok());
+        assert!(pair.server.0.connection.application_protocol().is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn application_protocol() -> Result<(), Error> {
+        let config = config_builder(&security::DEFAULT)?.build()?;
+        let mut pair = tls_pair(config);
+        pair.server
+            .0
+            .connection
+            .set_application_protocol_preference(["http/1.1", "h2"])?;
+        pair.client
+            .0
+            .connection
+            .append_application_protocol_preference(b"h2")?;
+        assert!(poll_tls_pair_result(&mut pair).is_ok());
+        let protocol = pair.server.0.connection.application_protocol().unwrap();
+        assert_eq!(protocol, b"h2");
+        Ok(())
     }
 }

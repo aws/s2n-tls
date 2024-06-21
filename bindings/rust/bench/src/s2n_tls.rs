@@ -74,7 +74,7 @@ impl crate::harness::TlsBenchConfig for S2NConfig {
         let security_policy = match (crypto_config.cipher_suite, crypto_config.kx_group) {
             (CipherSuite::AES_128_GCM_SHA256, KXGroup::Secp256R1) => "20230317",
             (CipherSuite::AES_256_GCM_SHA384, KXGroup::Secp256R1) => "20190802",
-            (CipherSuite::AES_128_GCM_SHA256, KXGroup::X25519) => "default_tls13",
+            (CipherSuite::AES_128_GCM_SHA256, KXGroup::X25519) => "20240417",
             (CipherSuite::AES_256_GCM_SHA384, KXGroup::X25519) => "20190801",
         };
 

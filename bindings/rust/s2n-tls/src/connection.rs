@@ -23,14 +23,21 @@ use core::{
 };
 use libc::c_void;
 use s2n_tls_sys::*;
-use std::ffi::CStr;
+use std::{any::Any, ffi::CStr};
 
 mod builder;
 pub use builder::*;
 
-macro_rules! static_const_str {
+/// return a &str scoped to the lifetime of the surrounding function
+///
+/// SAFETY: must be called on a null terminated string
+///
+/// SAFETY: the underlying data must live at least as long as the surrounding scope
+// We use a macro instead of a function so that the lifetime of the output is
+// automatically inferred to match the surrounding scope.
+macro_rules! const_str {
     ($c_chars:expr) => {
-        unsafe { CStr::from_ptr($c_chars) }
+        CStr::from_ptr($c_chars)
             .to_str()
             .map_err(|_| Error::INVALID_INPUT)
     };
@@ -861,21 +868,35 @@ impl Connection {
         let handshake = unsafe {
             s2n_connection_get_handshake_type_name(self.connection.as_ptr()).into_result()?
         };
-        // The strings returned by s2n_connection_get_handshake_type_name
-        // are static and immutable after they are first calculated
-        static_const_str!(handshake)
+        unsafe {
+            // SAFETY: Constructed strings have a null byte appended to them.
+            // SAFETY: The data has a 'static lifetime, because it resides in a
+            //         static char array, and is never modified after its initial
+            //         creation.
+            const_str!(handshake)
+        }
     }
 
     pub fn cipher_suite(&self) -> Result<&str, Error> {
         let cipher = unsafe { s2n_connection_get_cipher(self.connection.as_ptr()).into_result()? };
-        // The strings returned by s2n_connection_get_cipher
-        // are static and immutable since they are const fields on static const structs
-        static_const_str!(cipher)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: cipher has a static lifetime because it lives on s2n_cipher_suite,
+            //         a static struct.
+            const_str!(cipher)
+        }
     }
 
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
-        static_const_str!(curve)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: curve has a static lifetime because it lives on s2n_ecc_named_curve,
+            //         which is a static const struct.
+            const_str!(curve)
+        }
     }
 
     pub fn selected_signature_algorithm(&self) -> Result<SignatureAlgorithm, Error> {
@@ -924,6 +945,14 @@ impl Connection {
             s2n_tls_hash_algorithm::NONE => None,
             hash_alg => Some(hash_alg.try_into()?),
         })
+    }
+
+    pub fn application_protocol(&self) -> Option<&[u8]> {
+        let protocol = unsafe { s2n_get_application_protocol(self.connection.as_ptr()) };
+        if protocol.is_null() {
+            return None;
+        }
+        Some(unsafe { CStr::from_ptr(protocol).to_bytes() })
     }
 
     /// Provides access to the TLS-Exporter functionality.
@@ -1049,6 +1078,45 @@ impl Connection {
     pub fn resumed(&self) -> bool {
         unsafe { s2n_connection_is_session_resumed(self.connection.as_ptr()) == 1 }
     }
+
+    /// Associates an arbitrary application context with the Connection to be later retrieved via
+    /// the [`Self::application_context()`] and [`Self::application_context_mut()`] APIs.
+    ///
+    /// This API will override an existing application context set on the Connection.
+    pub fn set_application_context<T: Send + Sync + 'static>(&mut self, app_context: T) {
+        self.context_mut().app_context = Some(Box::new(app_context));
+    }
+
+    /// Retrieves a reference to the application context associated with the Connection.
+    ///
+    /// If an application context hasn't already been set on the Connection, or if the set
+    /// application context isn't of type T, None will be returned.
+    ///
+    /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve a
+    /// mutable reference to the context, use [`Self::application_context_mut()`].
+    pub fn application_context<T: Send + Sync + 'static>(&self) -> Option<&T> {
+        match self.context().app_context.as_ref() {
+            None => None,
+            // The Any trait keeps track of the application context's type. downcast_ref() returns
+            // Some only if the correct type is provided:
+            // https://doc.rust-lang.org/std/any/trait.Any.html#method.downcast_ref
+            Some(app_context) => app_context.downcast_ref::<T>(),
+        }
+    }
+
+    /// Retrieves a mutable reference to the application context associated with the Connection.
+    ///
+    /// If an application context hasn't already been set on the Connection, or if the set
+    /// application context isn't of type T, None will be returned.
+    ///
+    /// To set a context on the connection, use [`Self::set_application_context()`]. To retrieve an
+    /// immutable reference to the context, use [`Self::application_context()`].
+    pub fn application_context_mut<T: Send + Sync + 'static>(&mut self) -> Option<&mut T> {
+        match self.context_mut().app_context.as_mut() {
+            None => None,
+            Some(app_context) => app_context.downcast_mut::<T>(),
+        }
+    }
 }
 
 struct Context {
@@ -1057,6 +1125,7 @@ struct Context {
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     connection_initialized: bool,
+    app_context: Option<Box<dyn Any + Send + Sync>>,
 }
 
 impl Context {
@@ -1067,6 +1136,7 @@ impl Context {
             async_callback: None,
             verify_host_callback: None,
             connection_initialized: false,
+            app_context: None,
         }
     }
 }
@@ -1180,5 +1250,72 @@ mod tests {
     fn context_sync_test() {
         fn assert_sync<T: 'static + Sync>() {}
         assert_sync::<Context>();
+    }
+
+    /// Test that an application context can be set and retrieved.
+    #[test]
+    fn test_app_context_set_and_retrieve() {
+        let mut connection = Connection::new_server();
+
+        // Before a context is set, None is returned.
+        assert!(connection.application_context::<u32>().is_none());
+
+        let test_value: u32 = 1142;
+        connection.set_application_context(test_value);
+
+        // After a context is set, the application data is returned.
+        assert_eq!(*connection.application_context::<u32>().unwrap(), 1142);
+    }
+
+    /// Test that an application context can be modified.
+    #[test]
+    fn test_app_context_modify() {
+        let test_value: u64 = 0;
+
+        let mut connection = Connection::new_server();
+        connection.set_application_context(test_value);
+
+        let context_value = connection.application_context_mut::<u64>().unwrap();
+        *context_value += 1;
+
+        assert_eq!(*connection.application_context::<u64>().unwrap(), 1);
+    }
+
+    /// Test that an application context can be overridden.
+    #[test]
+    fn test_app_context_override() {
+        let mut connection = Connection::new_server();
+
+        let test_value: u16 = 1142;
+        connection.set_application_context(test_value);
+
+        assert_eq!(*connection.application_context::<u16>().unwrap(), 1142);
+
+        // Override the context with a new value.
+        let test_value: u16 = 10;
+        connection.set_application_context(test_value);
+
+        assert_eq!(*connection.application_context::<u16>().unwrap(), 10);
+
+        // Override the context with a new type.
+        let test_value: i16 = -20;
+        connection.set_application_context(test_value);
+
+        assert_eq!(*connection.application_context::<i16>().unwrap(), -20);
+    }
+
+    /// Test that a context of another type can't be retrieved.
+    #[test]
+    fn test_app_context_invalid_type() {
+        let mut connection = Connection::new_server();
+
+        let test_value: u32 = 0;
+        connection.set_application_context(test_value);
+
+        // A context type that wasn't set shouldn't be returned.
+        assert!(connection.application_context::<i16>().is_none());
+
+        // Retrieving the correct type succeeds.
+        assert!(connection.application_context::<u32>().is_some());
     }
 }

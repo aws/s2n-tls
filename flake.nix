@@ -3,7 +3,7 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
   # TODO: https://github.com/aws/aws-lc/pull/830
-  inputs.awslc.url = "github:dougch/aws-lc?ref=nix";
+  inputs.awslc.url = "github:dougch/aws-lc?ref=nixv1.17.4";
 
   outputs = { self, nix, nixpkgs, awslc, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:
@@ -69,7 +69,7 @@
             cmake -S . -B./build \
                   -DBUILD_SHARED_LIBS=ON \
                   -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                  -DS2N_NO_PQ=1
+                  -DS2N_NO_PQ=0
           ''; # TODO: set when system like aarch64/mips,etc
 
           buildPhase = ''

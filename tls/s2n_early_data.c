@@ -64,7 +64,7 @@ static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
     RESULT_ENSURE_REF(conn->secure);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# In order to accept early data, the server MUST have accepted a PSK
      *# cipher suite and selected the first key offered in the client's
      *# "pre_shared_key" extension.
@@ -76,7 +76,7 @@ static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
     RESULT_ENSURE_GT(config->max_early_data_size, 0);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# In addition, it MUST verify that the
      *# following values are the same as those associated with the
      *# selected PSK:
@@ -85,12 +85,12 @@ static S2N_RESULT s2n_early_data_validate(struct s2n_connection *conn)
      **/
     RESULT_ENSURE_EQ(config->protocol_version, s2n_connection_get_protocol_version(conn));
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# -  The selected cipher suite
      **/
     RESULT_ENSURE_EQ(config->cipher_suite, conn->secure->cipher_suite);
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# -  The selected ALPN [RFC7301] protocol, if any
      **/
     const size_t app_protocol_size = strlen(conn->application_protocol);
@@ -119,7 +119,7 @@ S2N_RESULT s2n_early_data_accept_or_reject(struct s2n_connection *conn)
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
      *# If any of these checks fail, the server MUST NOT respond with the
      *# extension
      **/

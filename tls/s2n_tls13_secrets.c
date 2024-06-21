@@ -34,7 +34,7 @@
         (struct s2n_blob){ .data = (conn)->handshake.mode##_finished, .size = s2n_get_hash_len(CONN_HMAC_ALG(conn)) })
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# If a given secret is not available, then the 0-value consisting of a
  *# string of Hash.length bytes set to zeros is used.
  */
@@ -46,7 +46,7 @@ static uint8_t zero_value_bytes[S2N_MAX_HASHLEN] = { 0 };
  * When an operation doesn't need an actual transcript hash,
  * it uses an empty transcript hash as an input instead.
  *
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# Note that in some cases a zero-
  *# length Context (indicated by "") is passed to HKDF-Expand-Label
  */
@@ -139,7 +139,7 @@ static S2N_RESULT s2n_extract_secret(s2n_hmac_algorithm hmac_alg,
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# Derive-Secret(Secret, Label, Messages) =
  *#      HKDF-Expand-Label(Secret, Label,
  *#                        Transcript-Hash(Messages), Hash.length)
@@ -190,7 +190,7 @@ static S2N_RESULT s2n_derive_secret_without_context(struct s2n_connection *conn,
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4
  *# The key used to compute the Finished message is computed from the
  *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
  *# Specifically:
@@ -251,13 +251,13 @@ static S2N_RESULT s2n_trigger_secret_callbacks(struct s2n_connection *conn,
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           0
  *#           |
  *#           v
  *# PSK ->  HKDF-Extract = Early Secret
  *
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *# There are multiple potential Early Secret values, depending on which
  *# PSK the server ultimately selects.  The client will need to compute
  *# one for each potential PSK
@@ -295,7 +295,7 @@ static S2N_RESULT s2n_extract_early_secret_for_schedule(struct s2n_connection *c
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
      *# if no PSK is selected, it will then need
      *# to compute the Early Secret corresponding to the zero PSK.
      */
@@ -318,7 +318,7 @@ static S2N_RESULT s2n_extract_early_secret_for_schedule(struct s2n_connection *c
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "ext binder" | "res binder", "")
  *#           |                     = binder_key
@@ -342,7 +342,7 @@ S2N_RESULT s2n_derive_binder_key(struct s2n_psk *psk, struct s2n_blob *output)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "c e traffic", ClientHello)
  *#           |                     = client_early_traffic_secret
@@ -358,7 +358,7 @@ static S2N_RESULT s2n_derive_client_early_traffic_secret(struct s2n_connection *
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           v
  *#     Derive-Secret(., "derived", "")
@@ -387,7 +387,7 @@ static S2N_RESULT s2n_extract_handshake_secret(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "c hs traffic",
  *#           |                     ClientHello...ServerHello)
@@ -408,7 +408,7 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
      * The client finished key needs to be calculated using the
      * same connection state as the client handshake secret.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
@@ -419,7 +419,7 @@ static S2N_RESULT s2n_derive_client_handshake_traffic_secret(struct s2n_connecti
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "s hs traffic",
  *#           |                     ClientHello...ServerHello)
@@ -440,7 +440,7 @@ static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connecti
      * The server finished key needs to be calculated using the
      * same connection state as the server handshake secret.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.4.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4
      *# The key used to compute the Finished message is computed from the
      *# Base Key defined in Section 4.4 using HKDF (see Section 7.1).
      */
@@ -451,7 +451,7 @@ static S2N_RESULT s2n_derive_server_handshake_traffic_secret(struct s2n_connecti
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           v
  *#     Derive-Secret(., "derived", "")
  *#           |
@@ -475,7 +475,7 @@ static S2N_RESULT s2n_extract_master_secret(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "c ap traffic",
  *#           |                     ClientHello...server Finished)
@@ -492,7 +492,7 @@ static S2N_RESULT s2n_derive_client_application_traffic_secret(struct s2n_connec
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "s ap traffic",
  *#           |                     ClientHello...server Finished)
@@ -509,7 +509,7 @@ static S2N_RESULT s2n_derive_server_application_traffic_secret(struct s2n_connec
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "res master",
  *#                                 ClientHello...client Finished)
@@ -531,7 +531,7 @@ S2N_RESULT s2n_derive_resumption_master_secret(struct s2n_connection *conn)
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-7.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-7.1
  *#           |
  *#           +-----> Derive-Secret(., "exp master",
  *#           |                     ClientHello...server Finished)

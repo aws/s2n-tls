@@ -24,7 +24,7 @@
 
 typedef enum {
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *# enum {
      *#     close_notify(0),
      *#     unexpected_message(10),
@@ -38,7 +38,7 @@ typedef enum {
     S2N_TLS_ALERT_RECORD_OVERFLOW = 22,
     S2N_TLS_ALERT_HANDSHAKE_FAILURE = 40,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     bad_certificate(42),
      *#     unsupported_certificate(43),
      *#     certificate_revoked(44),
@@ -51,7 +51,7 @@ typedef enum {
     S2N_TLS_ALERT_CERTIFICATE_EXPIRED = 45,
     S2N_TLS_ALERT_CERTIFICATE_UNKNOWN = 46,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     illegal_parameter(47),
      *#     unknown_ca(48),
      *#     access_denied(49),
@@ -64,7 +64,7 @@ typedef enum {
     S2N_TLS_ALERT_DECODE_ERROR = 50,
     S2N_TLS_ALERT_DECRYPT_ERROR = 51,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     protocol_version(70),
      *#     insufficient_security(71),
      *#     internal_error(80),
@@ -77,12 +77,12 @@ typedef enum {
     S2N_TLS_ALERT_INAPPROPRIATE_FALLBACK = 86,
     S2N_TLS_ALERT_USER_CANCELED = 90,
     /*
-     *= https://tools.ietf.org/rfc/rfc5246#section-7.2
+     *= https://www.rfc-editor.org/rfc/rfc5246#section-7.2
      *#     no_renegotiation(100),
      */
     S2N_TLS_ALERT_NO_RENEGOTIATION = 100,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     missing_extension(109),
      *#     unsupported_extension(110),
      *#     unrecognized_name(112),
@@ -95,7 +95,7 @@ typedef enum {
     S2N_TLS_ALERT_BAD_CERTIFICATE_STATUS_RESPONSE = 113,
     S2N_TLS_ALERT_UNKNOWN_PSK_IDENTITY = 115,
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6
      *#     certificate_required(116),
      *#     no_application_protocol(120),
      *#     (255)

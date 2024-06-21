@@ -1,0 +1,62 @@
+target = "https://www.rfc-editor.org/rfc/rfc4492#section-5.1.2"
+
+# 5.1.2.  Supported Point Formats Extension
+#
+#      enum { uncompressed (0), ansiX962_compressed_prime (1),
+#             ansiX962_compressed_char2 (2), reserved (248..255)
+#      } ECPointFormat;
+# 
+#      struct {
+#          ECPointFormat ec_point_format_list<1..2^8-1>
+#      } ECPointFormatList;
+# 
+# Three point formats are included in the definition of ECPointFormat
+# above.  The uncompressed point format is the default format in that
+# implementations of this document MUST support it for all of their
+# supported curves.  Compressed point formats reduce bandwidth by
+# including only the x-coordinate and a single bit of the y-coordinate
+# of the point.  Implementations of this document MAY support the
+# ansiX962_compressed_prime and ansiX962_compressed_char2 formats,
+# where the former applies only to prime curves and the latter applies
+# only to characteristic-2 curves.  (These formats are specified in
+# [7].)  Values 248 through 255 are reserved for private use.
+# 
+# The ECPointFormat name space is maintained by IANA.  See Section 8
+# for information on how new value assignments are added.
+# 
+# Items in ec_point_format_list are ordered according to the client's
+# preferences (favorite choice first).
+# 
+# A client that can parse only the uncompressed point format (value 0)
+# includes an extension consisting of the following octets; note that
+# the first two octets indicate the extension type (Supported Point
+# Formats Extension):
+# 
+#      00 0B 00 02 01 00
+# 
+# A client that in the case of prime fields prefers the compressed
+# format (ansiX962_compressed_prime, value 1) over the uncompressed
+# format (value 0), but in the case of characteristic-2 fields prefers
+# the uncompressed format (value 0) over the compressed format
+# (ansiX962_compressed_char2, value 2), may indicate these preferences
+# by including an extension consisting of the following octets:
+# 
+#      00 0B 00 04 03 01 00 02
+
+[[spec]]
+level = "MUST"
+quote = '''
+The uncompressed point format is the default format in that
+implementations of this document MUST support it for all of their
+supported curves.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Implementations of this document MAY support the
+ansiX962_compressed_prime and ansiX962_compressed_char2 formats,
+where the former applies only to prime curves and the latter applies
+only to characteristic-2 curves.
+'''
+

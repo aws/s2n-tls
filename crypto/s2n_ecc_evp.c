@@ -196,12 +196,12 @@ static int s2n_ecc_evp_compute_shared_secret(EVP_PKEY *own_key, EVP_PKEY *peer_p
     POSIX_ENSURE_REF(own_key);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.8.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.8.2
      *# For the curves secp256r1, secp384r1, and secp521r1, peers MUST
      *# validate each other's public value Q by ensuring that the point is a
      *# valid point on the elliptic curve.
      *
-     *= https://tools.ietf.org/rfc/rfc8422#section-5.11
+     *= https://www.rfc-editor.org/rfc/rfc8422#section-5.11
      *# With the NIST curves, each party MUST validate the public key sent by
      *# its peer in the ClientKeyExchange and ServerKeyExchange messages.  A
      *# receiving party MUST check that the x and y parameters from the

@@ -75,7 +75,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     POSIX_ENSURE((named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
      *# Upon receipt of this extension in a HelloRetryRequest, the client
      *# MUST verify that (1) the selected_group field corresponds to a group
      *# which was provided in the "supported_groups" extension in the
@@ -90,7 +90,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
      *# and (2) the selected_group field does not
      *# correspond to a group which was provided in the "key_share" extension
      *# in the original ClientHello.
@@ -107,12 +107,12 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
      *# If either of these checks fails, then
      *# the client MUST abort the handshake with an "illegal_parameter"
      *# alert.
      * 
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
      *# Clients MUST abort the handshake with an
      *# "illegal_parameter" alert if the HelloRetryRequest would not result
      *# in any change in the ClientHello.

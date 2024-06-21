@@ -34,14 +34,6 @@ jobs:
           aws-s3-region: us-west-2
           cdn: https://d3fqnyekunr9xg.cloudfront.net
 
-      # The `duvet report` command generates some artifacts (specs folder) that
-      # interfere with detecting uncommitted files. This step cleans up those
-      # artifacts. Since the cleanup runs prior to the “Extract RFC spec data”
-      # phase, this is a safe operation.
-      - name: Cleanup intermediate artifacts
-        run: rm -r specs
-        shell: bash
-
       - name: Extract RFC spec data
         working-directory: ./compliance
         run: ./initialize_duvet.sh
@@ -50,12 +42,6 @@ jobs:
       - name: Check if there are uncommitted changes
         run: |
           # If this fails you need to run `cd compliance && ./compliance/initialize_duvet.sh`
-          #
-          # FIXME: https://github.com/aws/s2n-tls/issues/4219
-          # We generate and commit the spec files to avoid re-downloading them each time in
-          # the CI (avoid flaky network calls). However, this currently doesn't work in
-          # s2n-tls since duvet assumes that the specs folder live in the project's base
-          # folder.
           #
           # Use 'git status --porcelain' instead of 'git diff --exit-code' since git diff
           # only detects diffs but fails to detect new files. Ignore the s2n-quic dir
