@@ -25,7 +25,7 @@ use std::{
 /// need to be used directly.
 pub enum MaybeHttpsStream<T, B>
 where
-    T: Read + Write + Connection + Unpin,
+    T: Read + Write + Unpin,
     B: Builder,
     <B as Builder>::Output: Unpin,
 {
@@ -55,7 +55,7 @@ where
 
 impl<T, B> Read for MaybeHttpsStream<T, B>
 where
-    T: Read + Write + Connection + Unpin,
+    T: Read + Write + Unpin,
     B: Builder,
     <B as Builder>::Output: Unpin,
 {
@@ -72,7 +72,7 @@ where
 
 impl<T, B> Write for MaybeHttpsStream<T, B>
 where
-    T: Read + Write + Connection + Unpin,
+    T: Read + Write + Unpin,
     B: Builder,
     <B as Builder>::Output: Unpin,
 {

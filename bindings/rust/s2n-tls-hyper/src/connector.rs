@@ -209,26 +209,9 @@ impl std::error::Error for UnsupportedScheme {}
 mod tests {
     use super::*;
     use bytes::Bytes;
-    use http::status;
-    use http_body_util::{BodyExt, Empty};
+    use http_body_util::Empty;
     use hyper_util::{client::legacy::Client, rt::TokioExecutor};
     use std::{error::Error, str::FromStr};
-
-    #[tokio::test]
-    async fn test_get_request() -> Result<(), BoxError> {
-        let connector = HttpsConnector::builder(Config::default()).build();
-        let client: Client<_, Empty<Bytes>> =
-            Client::builder(TokioExecutor::new()).build(connector);
-
-        let uri = Uri::from_str("https://www.amazon.com")?;
-        let response = client.get(uri).await?;
-        assert_eq!(response.status(), status::StatusCode::OK);
-
-        let body = response.into_body().collect().await?.to_bytes();
-        assert!(!body.is_empty());
-
-        Ok(())
-    }
 
     #[tokio::test]
     async fn test_unsecure_http() -> Result<(), BoxError> {

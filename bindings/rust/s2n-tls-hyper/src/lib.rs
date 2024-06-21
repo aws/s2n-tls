@@ -25,7 +25,7 @@
 //! use http::uri::Uri;
 //!
 //! async fn get_request() {
-//!     // An `HttpsConnector` is built with a `s2n_tls::connection::Builder`, such as an
+//!     // An `HttpsConnector` is built with an `s2n_tls::connection::Builder`, such as an
 //!     // `s2n_tls::config::Config`, which allows for the underlying TLS connection to be configured.
 //!     let config = Config::default();
 //!
