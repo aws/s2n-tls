@@ -251,7 +251,7 @@ int s2n_psk_set_early_data_context(struct s2n_psk *psk, const uint8_t *context, 
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config)
+S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, const struct s2n_early_data_config *old_config)
 {
     RESULT_ENSURE_REF(old_config);
     RESULT_ENSURE_REF(new_psk);
