@@ -173,9 +173,8 @@ batch:
           BUILD_S2N: 'true'
           GCC_VERSION: '9'
           S2N_LIBCRYPTO: 'openssl-1.1.1'
-          S2N_NO_PQ: 1
           TESTS: unit
-      identifier: s2nUnitNoPQ
+      identifier: s2nUnitOpenssl111Gcc9
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
@@ -195,7 +194,6 @@ batch:
         privileged-mode: true
         type: ARM_CONTAINER
         variables:
-          S2N_NO_PQ: 1
           TESTS: unit
       identifier: s2nUnitAl2Arm
     - buildspec: codebuild/spec/buildspec_amazonlinux2.yml
@@ -204,7 +202,6 @@ batch:
         image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
         privileged-mode: true
         variables:
-          S2N_NO_PQ: 1
           TESTS: unit
           S2N_LIBCRYPTO: default
       identifier: s2nUnitAL2
@@ -214,7 +211,6 @@ batch:
         image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
         privileged-mode: true
         variables:
-          S2N_NO_PQ: 1
           TESTS: unit
           S2N_LIBCRYPTO: openssl-1.1.1
       identifier: s2nUnitAl2Openssl111
@@ -296,7 +292,6 @@ batch:
           BUILD_S2N: 'true'
           GCC_VERSION: '6'
           S2N_LIBCRYPTO: 'libressl'
-          S2N_NO_PQ: 1
           TESTS: unit
       identifier: s2nUnitLibressl
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
@@ -308,7 +303,6 @@ batch:
           BUILD_S2N: 'true'
           GCC_VERSION: '9'
           S2N_LIBCRYPTO: 'boringssl'
-          S2N_NO_PQ: 1
           TESTS: unit
       identifier: s2nUnitBoringssl
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
@@ -332,7 +326,6 @@ batch:
           CC: '/usr/bin/clang'
           CXX: '/usr/bin/clang++'
           S2N_LIBCRYPTO: 'awslc'
-          S2N_NO_PQ: 1
           TESTS: unit
       identifier: s2nUnitClang15
     - identifier: 32BitBuildAndUnit
