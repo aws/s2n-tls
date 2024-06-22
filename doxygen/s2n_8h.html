@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.16-49052ca7</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.16-917b7c6d</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -5145,6 +5145,7 @@ Safety</h1>
 <p >Setting a maximum delay lower than the recommended default (30s) will make timing attacks against your application easier. The lower you set the delay, the fewer requests and less total time an attacker will require to execute an attack. If you must lower the delay for reasons such as client timeouts, then you should choose the highest value practically possible to limit your risk.</p>
 <p >If you lower the blinding delay, you should also consider implementing monitoring and filtering to detect and reject suspicious traffic that could be gathering timing information from a potential side channel. Timing attacks usually involve repeatedly triggering TLS errors.</p>
 <dl class="section warning"><dt>Warning</dt><dd>Do NOT set a lower blinding delay unless you understand the risks and have other mitigations for timing side channels in place.</dd></dl>
+<dl class="section note"><dt>Note</dt><dd>This delay needs to be set lower than any timeouts, such as your TCP socket timeout.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The config object being updated. </td></tr>
