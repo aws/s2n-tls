@@ -1992,6 +1992,8 @@ S2N_API extern uint64_t s2n_connection_get_delay(struct s2n_connection *conn);
  * @warning Do NOT set a lower blinding delay unless you understand the risks and have other
  * mitigations for timing side channels in place.
  *
+ * @note This delay needs to be set lower than any timeouts, such as your TCP socket timeout.
+ *
  * @param config The config object being updated.
  * @param seconds The maximum number of seconds that s2n-tls will delay for in the event of a
  * sensitive error.
