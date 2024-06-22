@@ -874,6 +874,22 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     int status = 0;
     int reason = 0;
 
+    /* extract hash algorithm used to hash values in cert_id struct */
+    const OCSP_SINGLERESP *single;
+    single = OCSP_resp_get0(basic_response, 0);
+    RESULT_ENSURE(single != NULL, S2N_ERR_CERT_UNTRUSTED);
+
+    OCSP_CERTID *cid;
+    cid = (OCSP_CERTID *) OCSP_SINGLERESP_get0_id(single);
+    RESULT_ENSURE(cid != NULL, S2N_ERR_CERT_UNTRUSTED);
+
+    const EVP_MD *dgst = NULL;
+    ASN1_OBJECT *pmd = NULL;
+    RESULT_GUARD_OSSL(OCSP_id_get0_info(NULL, &pmd, NULL, NULL, cid), S2N_ERR_CERT_UNTRUSTED);
+    dgst = EVP_get_digestbyobj(pmd);
+    const char *dgst_str = EVP_MD_get0_name(dgst);
+    RESULT_ENSURE(strcmp(dgst_str, "SHA1") == 0, S2N_ERR_CERT_UNSUPPORTED_HASH);
+
     /* sha1 is the only supported OCSP digest */
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
