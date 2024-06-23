@@ -1,7 +1,7 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::stream::MaybeHttpsStream;
+use crate::{error::Error, stream::MaybeHttpsStream};
 use http::uri::Uri;
 use hyper::rt::{Read, Write};
 use hyper_util::{
@@ -18,8 +18,6 @@ use std::{
     task::{Context, Poll},
 };
 use tower_service::Service;
-
-type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 /// hyper clients use a connector to send and receive HTTP requests over an underlying IO stream. By
 /// default, hyper provides `hyper_util::client::legacy::connect::HttpConnector` for this purpose,
@@ -116,19 +114,19 @@ where
     T: Service<Uri>,
     T::Response: Read + Write + Connection + Unpin + Send + 'static,
     T::Future: Send + 'static,
-    T::Error: Into<BoxError>,
+    T::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
     B: connection::Builder + Send + Sync + 'static,
     <B as connection::Builder>::Output: Unpin + Send,
 {
     type Response = MaybeHttpsStream<T::Response, B>;
-    type Error = BoxError;
+    type Error = Error;
     type Future =
-        Pin<Box<dyn Future<Output = Result<MaybeHttpsStream<T::Response, B>, BoxError>> + Send>>;
+        Pin<Box<dyn Future<Output = Result<MaybeHttpsStream<T::Response, B>, Error>> + Send>>;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         match self.http.poll_ready(cx) {
             Poll::Ready(Ok(())) => Poll::Ready(Ok(())),
-            Poll::Ready(Err(e)) => Poll::Ready(Err(e.into())),
+            Poll::Ready(Err(e)) => Poll::Ready(Err(Error::HttpError(e.into()))),
             Poll::Pending => Poll::Pending,
         }
     }
@@ -137,7 +135,7 @@ where
         // Currently, the only supported stream type is TLS. If the application attempts to
         // negotiate HTTP over plain TCP, return an error.
         if req.scheme() == Some(&http::uri::Scheme::HTTP) {
-            return Box::pin(async move { Err(UnsupportedScheme.into()) });
+            return Box::pin(async move { Err(Error::InvalidScheme) });
         }
 
         let builder = self.conn_builder.clone();
@@ -147,11 +145,14 @@ where
             // `HttpsConnector` wraps an HTTP connector that also implements `Service<Uri>`.
             // `call()` is invoked on the wrapped connector to get the underlying hyper TCP stream,
             // which is converted into a tokio-compatible stream with `hyper_util::rt::TokioIo`.
-            let tcp = call.await.map_err(Into::into)?;
+            let tcp = call.await.map_err(|e| Error::HttpError(e.into()))?;
             let tcp = TokioIo::new(tcp);
 
             let connector = TlsConnector::new(builder);
-            let tls = connector.connect(&host, tcp).await?;
+            let tls = connector
+                .connect(&host, tcp)
+                .await
+                .map_err(|e| Error::TlsError(e.into()))?;
 
             Ok(MaybeHttpsStream::Https(TokioIo::new(tls)))
         })
@@ -211,10 +212,10 @@ mod tests {
     use bytes::Bytes;
     use http_body_util::Empty;
     use hyper_util::{client::legacy::Client, rt::TokioExecutor};
-    use std::{error::Error, str::FromStr};
+    use std::{error::Error as StdError, str::FromStr};
 
     #[tokio::test]
-    async fn test_unsecure_http() -> Result<(), BoxError> {
+    async fn test_unsecure_http() -> Result<(), Box<dyn StdError>> {
         let connector = HttpsConnector::builder(Config::default()).build();
         let client: Client<_, Empty<Bytes>> =
             Client::builder(TokioExecutor::new()).build(connector);
@@ -222,12 +223,12 @@ mod tests {
         let uri = Uri::from_str("http://www.amazon.com")?;
         let error = client.get(uri).await.unwrap_err();
 
-        // Ensure that an UnsupportedScheme error is returned when HTTP over TCP is attempted.
-        let _ = error
-            .source()
-            .unwrap()
-            .downcast_ref::<UnsupportedScheme>()
-            .unwrap();
+        // Ensure that an InvalidScheme error is returned when HTTP over TCP is attempted.
+        let error = error.source().unwrap().downcast_ref::<Error>().unwrap();
+        assert!(matches!(error, Error::InvalidScheme));
+
+        // Ensure that the error can produce a valid message
+        assert!(!error.to_string().is_empty());
 
         Ok(())
     }

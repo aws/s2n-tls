@@ -44,4 +44,8 @@
 
 /// Provides the `HttpsConnector` struct.
 pub mod connector;
+
+///
+pub mod error;
+
 mod stream;
