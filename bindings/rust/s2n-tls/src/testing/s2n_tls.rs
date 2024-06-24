@@ -867,4 +867,31 @@ mod tests {
 
         Ok(())
     }
+
+    #[test]
+    fn no_application_protocol() -> Result<(), Error> {
+        let config = config_builder(&security::DEFAULT)?.build()?;
+        let mut pair = tls_pair(config);
+        assert!(poll_tls_pair_result(&mut pair).is_ok());
+        assert!(pair.server.0.connection.application_protocol().is_none());
+        Ok(())
+    }
+
+    #[test]
+    fn application_protocol() -> Result<(), Error> {
+        let config = config_builder(&security::DEFAULT)?.build()?;
+        let mut pair = tls_pair(config);
+        pair.server
+            .0
+            .connection
+            .set_application_protocol_preference(["http/1.1", "h2"])?;
+        pair.client
+            .0
+            .connection
+            .append_application_protocol_preference(b"h2")?;
+        assert!(poll_tls_pair_result(&mut pair).is_ok());
+        let protocol = pair.server.0.connection.application_protocol().unwrap();
+        assert_eq!(protocol, b"h2");
+        Ok(())
+    }
 }
