@@ -875,7 +875,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     int reason = 0;
 
     /* extract hash algorithm used to hash values in cert_id struct and ensure it's sha1 */
-    const OCSP_SINGLERESP *single = OCSP_resp_get0(basic_response, 0);
+    OCSP_SINGLERESP *single = OCSP_resp_get0(basic_response, 0);
     RESULT_ENSURE(single != NULL, S2N_ERR_CERT_UNTRUSTED);
 
     OCSP_CERTID *cid = (OCSP_CERTID *) OCSP_SINGLERESP_get0_id(single);
