@@ -23,15 +23,16 @@
 
 int nondet_int(void);
 
-int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
-{
-    if (size > 0)
-        __CPROVER_havoc_slice(str, size);
-    (void) *fmt;
-    if (__CPROVER_OBJECT_SIZE(ap) > 0)
-        (void) *(char **) ap;
-    return nondet_int();
-}
+// REMOVED this function body here, since its presence casuses CBMC 6.0.0 to fail
+//int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
+//{
+//    if (size > 0)
+//        __CPROVER_havoc_slice(str, size);
+//    (void) *fmt;
+//    if (__CPROVER_OBJECT_SIZE(ap) > 0)
+//        (void) *(char **) ap;
+//    return nondet_int();
+//}
 
 void s2n_stuffer_printf_harness()
 {
