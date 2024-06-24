@@ -64,7 +64,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_char(&output, &actual_value));
                 EXPECT_EQUAL(actual_value, test_char);
             }
-        }
+        };
 
         /* Add to hash */
         {
@@ -76,7 +76,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_fingerprint_hash_add_char(&hash, test_char));
                 EXPECT_EQUAL(hash.hash->currently_in_hash, i);
             }
-        }
+        };
 
         /* Error due to insufficient space */
         {
@@ -89,8 +89,8 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_fingerprint_hash_add_char(&hash, test_char));
             EXPECT_ERROR_WITH_ERRNO(s2n_fingerprint_hash_add_char(&hash, test_char),
                     S2N_ERR_INSUFFICIENT_MEM_SIZE);
-        }
-    }
+        };
+    };
 
     /* Test s2n_fingerprint_hash_add_str */
     {
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
                 EXPECT_ERROR_WITH_ERRNO(s2n_fingerprint_hash_add_str(&hash, NULL, 10),
                         S2N_ERR_NULL);
                 EXPECT_OK(s2n_fingerprint_hash_add_str(&hash, NULL, 0));
-            }
+            };
 
             /* Null str with hash */
             {
@@ -118,8 +118,8 @@ int main(int argc, char **argv)
                 EXPECT_ERROR_WITH_ERRNO(s2n_fingerprint_hash_add_str(&hash, NULL, 10),
                         S2N_ERR_NULL);
                 EXPECT_OK(s2n_fingerprint_hash_add_str(&hash, NULL, 0));
-            }
-        }
+            };
+        };
 
         /* Add to stuffer */
         {
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_read_bytes(&output, actual_value, test_str_len));
                 EXPECT_BYTEARRAY_EQUAL(actual_value, test_str, test_str_len);
             }
-        }
+        };
 
         /* Add to hash */
         {
@@ -147,7 +147,7 @@ int main(int argc, char **argv)
                 EXPECT_OK(s2n_fingerprint_hash_add_str(&hash, test_str, test_str_len));
                 EXPECT_EQUAL(hash.hash->currently_in_hash, test_str_len * i);
             }
-        }
+        };
 
         /* Error due to insufficient space */
         {
@@ -175,8 +175,8 @@ int main(int argc, char **argv)
                     s2n_fingerprint_hash_add_str(&hash, test_str, test_str_len),
                     S2N_ERR_INSUFFICIENT_MEM_SIZE);
             EXPECT_SUCCESS(s2n_stuffer_free(&output));
-        }
-    }
+        };
+    };
 
     /* Test s2n_fingerprint_hash_digest */
     {
@@ -186,7 +186,7 @@ int main(int argc, char **argv)
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_fingerprint_hash_digest(NULL, output_value, sizeof(output_value)),
                     S2N_ERR_NULL);
-        }
+        };
 
         /* Digest successfully calculated */
         {
@@ -201,7 +201,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_fingerprint_hash_digest(&hash, actual_digest, sizeof(actual_digest)));
             EXPECT_BYTEARRAY_EQUAL(actual_digest, test_str_digest, sizeof(test_str_digest));
             EXPECT_EQUAL(hash.bytes_digested, test_str_len);
-        }
+        };
 
         /* Hash can be reused after digest */
         {
@@ -217,8 +217,8 @@ int main(int argc, char **argv)
                 EXPECT_BYTEARRAY_EQUAL(actual_digest, test_str_digest, sizeof(test_str_digest));
             }
             EXPECT_EQUAL(hash.bytes_digested, test_str_len * count);
-        }
-    }
+        };
+    };
 
     /* Test s2n_fingerprint_hash_do_digest */
     {
@@ -235,7 +235,7 @@ int main(int argc, char **argv)
         struct s2n_hash_state hash_state = { 0 };
         hash.hash = &hash_state;
         EXPECT_TRUE(s2n_fingerprint_hash_do_digest(&hash));
-    }
+    };
 
     /* Test s2n_assert_grease_value */
     {
@@ -243,7 +243,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_is_grease_value(0xFAFA));
         EXPECT_FALSE(s2n_is_grease_value(0x0000));
         EXPECT_FALSE(s2n_is_grease_value(0x0001));
-    }
+    };
 
     END_TEST();
 }
