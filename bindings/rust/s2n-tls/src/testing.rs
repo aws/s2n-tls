@@ -133,7 +133,7 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
             Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
                 connection::Connection::poll_send(conn, buf)
             }),
-            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
+            Mode::_Server => self.server.0.poll_action(&mut self.server.1, |conn| {
                 connection::Connection::poll_send(conn, buf)
             }),
         };
@@ -152,7 +152,7 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
             Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
                 connection::Connection::poll_recv(conn, buf)
             }),
-            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
+            Mode::_Server => self.server.0.poll_action(&mut self.server.1, |conn| {
                 connection::Connection::poll_recv(conn, buf)
             }),
         };
