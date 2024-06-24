@@ -135,7 +135,7 @@ where
             let tls = connector
                 .connect(&host, tcp)
                 .await
-                .map_err(|e| Error::TlsError(e))?;
+                .map_err(Error::TlsError)?;
 
             Ok(MaybeHttpsStream::Https(TokioIo::new(tls)))
         })
