@@ -214,7 +214,7 @@ int main(int argc, char *argv[])
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
-            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "s2nTestServer"));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
@@ -256,7 +256,7 @@ int main(int argc, char *argv[])
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(conn);
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-        EXPECT_SUCCESS(s2n_set_server_name(conn, "s2nTestServer"));
+        EXPECT_SUCCESS(s2n_set_server_name(conn, "localhost"));
 
         DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
         EXPECT_OK(s2n_test_cert_chain_data_from_pem(conn, S2N_DEFAULT_TEST_CERT_CHAIN, &cert_chain_stuffer));

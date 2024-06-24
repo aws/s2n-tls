@@ -79,6 +79,23 @@ openssl ocsp -CAfile ca_cert.pem \
       -cert server_cert.pem -respout ocsp_response_no_next_update.der
 ```
 
+### Generating ocsp_response_revoked.der
+```
+# Run responder
+openssl ocsp -port 8889 -text -CA ca_cert.pem \
+      -index certs_revoked.txt \
+      -rkey ocsp_key.pem \
+      -rsigner ocsp_cert.pem \
+      -nrequest 1 -ndays $(( 365 * 100 ))
+
+# Run requester
+openssl ocsp -CAfile ca_cert.pem \
+      -url http://127.0.0.1:8889 \
+      -issuer ca_cert.pem \
+      -cert server_cert.pem \
+      -respout ocsp_response_revoked.der
+```
+
 ### Index Files
 The index files in the previous commands are in the CA Database format, and are the source of truth for certificates being verified or rejected.
 
