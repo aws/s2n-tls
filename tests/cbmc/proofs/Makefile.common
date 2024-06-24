@@ -382,6 +382,7 @@ PROJECT_SOURCES ?=
 # PROOF_SOURCES is the list of proof source files to compile, including
 # the proof harness, and including any function stubs being used.
 PROOF_SOURCES ?=
+PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 
 # The number of seconds that CBMC should be allowed to run for before
 # being forcefully terminated. Currently, this is set to be less than
@@ -492,7 +493,7 @@ COMMA :=,
 # Set C compiler defines
 
 CBMCFLAGS += --object-bits $(CBMC_OBJECT_BITS)
-COMPILE_FLAGS += --object-bits $(CBMC_OBJECT_BITS)
+#COMPILE_FLAGS += --object-bits $(CBMC_OBJECT_BITS)
 
 DEFINES += -DCBMC=1
 DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)
