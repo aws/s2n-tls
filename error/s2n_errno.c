@@ -98,7 +98,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_NON_EMPTY_RENEGOTIATION_INFO, "renegotiation_info should be empty") \
     ERR_ENTRY(S2N_ERR_RECORD_LIMIT, "TLS record limit reached") \
     ERR_ENTRY(S2N_ERR_CERT_UNTRUSTED, "Certificate is untrusted") \
-    ERR_ENTRY(S2N_ERR_CERT_UNSUPPORTED_HASH, "OCSP response hash used in not supported") \
     ERR_ENTRY(S2N_ERR_CERT_REVOKED, "Certificate has been revoked by the CA") \
     ERR_ENTRY(S2N_ERR_CERT_NOT_YET_VALID, "Certificate is not yet valid") \
     ERR_ENTRY(S2N_ERR_CERT_EXPIRED, "Certificate has expired") \
@@ -224,6 +223,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_EXTENSION_NOT_RECEIVED, "The TLS extension was not received") \
     ERR_ENTRY(S2N_ERR_INVALID_SCT_LIST, "SCT list is invalid") \
     ERR_ENTRY(S2N_ERR_INVALID_OCSP_RESPONSE, "OCSP response is invalid") \
+    ERR_ENTRY(S2N_ERR_UNSUPPORTED_OCSP_HASH, "Hash algorithm used to generate certificate id in OCSP response is not supported") \
     ERR_ENTRY(S2N_ERR_UPDATING_EXTENSION, "Updating extension data failed") \
     ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_SESSION_STATE, "Serialized session state is not in valid format") \
     ERR_ENTRY(S2N_ERR_SERIALIZED_SESSION_STATE_TOO_LONG, "Serialized session state is too long") \

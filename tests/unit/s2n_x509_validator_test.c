@@ -1411,7 +1411,7 @@ int main(int argc, char **argv)
         EXPECT_TRUE(ocsp_data_len > 0);
         EXPECT_ERROR_WITH_ERRNO(s2n_x509_validator_validate_cert_stapled_ocsp_response(&validator, connection,
                                         s2n_stuffer_raw_read(&ocsp_data_stuffer, ocsp_data_len), ocsp_data_len),
-                S2N_ERR_CERT_UNSUPPORTED_HASH);
+                S2N_ERR_UNSUPPORTED_OCSP_HASH);
 
         s2n_stuffer_free(&ocsp_data_stuffer);
         s2n_connection_free(connection);
