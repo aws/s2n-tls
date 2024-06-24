@@ -24,28 +24,24 @@
 //! use http_body_util::Empty;
 //! use http::uri::Uri;
 //!
-//! async fn get_request() {
-//!     // An `HttpsConnector` is built with an `s2n_tls::connection::Builder`, such as an
-//!     // `s2n_tls::config::Config`, which allows for the underlying TLS connection to be configured.
-//!     let config = Config::default();
+//! // An `HttpsConnector` is built with an `s2n_tls::connection::Builder`, such as an
+//! // `s2n_tls::config::Config`, which allows for the underlying TLS connection to be configured.
+//! let config = Config::default();
 //!
-//!     // The `HttpsConnector` wraps hyper's `HttpConnector`. `HttpsConnector::builder()` will create
-//!     // a new `HttpConnector` to wrap.
-//!     let connector = HttpsConnector::builder(Config::default()).build();
+//! // The `HttpsConnector` wraps hyper's `HttpConnector`. `HttpsConnector::new()` will create
+//! // a new `HttpConnector` to wrap.
+//! let connector = HttpsConnector::new(Config::default());
 //!
-//!     // The `HttpsConnector` can then be provided to the hyper Client builder, which can be used to
-//!     // send HTTP requests over HTTPS by specifying the HTTPS scheme in the URL.
-//!     let client: Client<_, Empty<Bytes>> =
-//!         Client::builder(TokioExecutor::new()).build(connector);
-//!     let uri = Uri::from_str("https://www.amazon.com").unwrap();
-//!     let response = client.get(uri).await.unwrap();
-//! }
+//! // The `HttpsConnector` can then be provided to the hyper Client builder, which can be used to
+//! // send HTTP requests over HTTPS by specifying the HTTPS scheme in the URL.
+//! let client: Client<_, Empty<Bytes>> =
+//!     Client::builder(TokioExecutor::new()).build(connector);
 //! ```
 
 /// Provides the `HttpsConnector` struct.
 pub mod connector;
 
-///
+/// Provides errors returned by s2n-tls-hyper.
 pub mod error;
 
 mod stream;

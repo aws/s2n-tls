@@ -11,7 +11,7 @@ use std::{error::Error, str::FromStr};
 
 #[tokio::test]
 async fn test_get_request() -> Result<(), Box<dyn Error>> {
-    let connector = HttpsConnector::builder(Config::default()).build();
+    let connector = HttpsConnector::new(Config::default());
     let client: Client<_, Empty<Bytes>> = Client::builder(TokioExecutor::new()).build(connector);
 
     let uri = Uri::from_str("https://www.amazon.com")?;

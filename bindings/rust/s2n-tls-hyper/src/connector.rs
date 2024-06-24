@@ -11,35 +11,18 @@ use hyper_util::{
 use s2n_tls::{config::Config, connection};
 use s2n_tls_tokio::TlsConnector;
 use std::{
-    fmt,
-    fmt::{Debug, Formatter},
     future::Future,
     pin::Pin,
     task::{Context, Poll},
 };
 use tower_service::Service;
 
+/// hyper-compatible connector used to negotiate HTTPS.
+///
 /// hyper clients use a connector to send and receive HTTP requests over an underlying IO stream. By
 /// default, hyper provides `hyper_util::client::legacy::connect::HttpConnector` for this purpose,
-/// which sends and receives requests over TCP.
-///
-/// The `HttpsConnector` struct wraps an HTTP connector, and uses it to negotiate TLS when the HTTPS
-/// scheme is in use. The `HttpsConnector` can be provided to the
-/// `hyper_util::client::legacy::Client` builder as follows:
-/// ```
-/// use hyper_util::{
-///     client::legacy::Client,
-///     rt::TokioExecutor,
-/// };
-/// use s2n_tls_hyper::connector::HttpsConnector;
-/// use s2n_tls::config::Config;
-/// use bytes::Bytes;
-/// use http_body_util::Empty;
-///
-/// let connector = HttpsConnector::builder(Config::default()).build();
-/// let client: Client<_, Empty<Bytes>> =
-///     Client::builder(TokioExecutor::new()).build(connector);
-/// ```
+/// which sends and receives requests over TCP. The `HttpsConnector` struct wraps an HTTP connector,
+/// and uses it to negotiate TLS when the HTTPS scheme is in use.
 #[derive(Clone)]
 pub struct HttpsConnector<T, B = Config>
 where
@@ -55,21 +38,21 @@ where
     B: connection::Builder,
     <B as connection::Builder>::Output: Unpin,
 {
-    /// Creates a new `Builder` used to create an `HttpsConnector`.
+    /// Creates a new `HttpsConnector`.
     ///
     /// `conn_builder` will be used to produce the s2n-tls Connections used for negotiating HTTPS,
     /// which can be an `s2n_tls::config::Config` or other `s2n_tls::connection::Builder`.
     ///
-    /// This builder is created using the default hyper `HttpConnector`. To use an existing HTTP
-    /// connector, use `HttpsConnector::builder_with_http()`.
-    pub fn builder(conn_builder: B) -> Builder<HttpConnector, B> {
+    /// This API creates an `HttpsConnector` using the default hyper `HttpConnector`. To use an
+    /// existing HTTP connector, use `HttpsConnector::new_with_http()`.
+    pub fn new(conn_builder: B) -> HttpsConnector<HttpConnector, B> {
         let mut http = HttpConnector::new();
 
         // By default, the `HttpConnector` only allows the HTTP URI scheme to be used. To negotiate
         // HTTP over TLS via the HTTPS scheme, `enforce_http` must be disabled.
         http.enforce_http(false);
 
-        Builder::new(http, conn_builder)
+        Self { http, conn_builder }
     }
 }
 
@@ -78,12 +61,12 @@ where
     B: connection::Builder,
     <B as connection::Builder>::Output: Unpin,
 {
-    /// Creates a new `Builder` used to create an `HttpsConnector`.
+    /// Creates a new `HttpsConnector`.
     ///
     /// `conn_builder` will be used to produce the s2n-tls Connections used for negotiating HTTPS,
     /// which can be an `s2n_tls::config::Config` or other `s2n_tls::connection::Builder`.
     ///
-    /// This API allows a `Builder` to be constructed with an existing HTTP connector, as follows:
+    /// This API allows an `HttpsConnector` to be constructed with an existing HTTP connector, as follows:
     /// ```
     /// use s2n_tls_hyper::connector::HttpsConnector;
     /// use s2n_tls::config::Config;
@@ -94,12 +77,12 @@ where
     /// // Ensure that the HTTP connector permits the HTTPS scheme.
     /// http.enforce_http(false);
     ///
-    /// let builder = HttpsConnector::builder_with_http(http, Config::default());
+    /// let connector = HttpsConnector::new_with_http(http, Config::default());
     /// ```
     ///
-    /// `HttpsConnector::builder()` can be used to create a new HTTP connector automatically.
-    pub fn builder_with_http(http: T, conn_builder: B) -> Builder<T, B> {
-        Builder::new(http, conn_builder)
+    /// `HttpsConnector::new()` can be used to create the HTTP connector automatically.
+    pub fn new_with_http(http: T, conn_builder: B) -> HttpsConnector<T, B> {
+        Self { http, conn_builder }
     }
 }
 
@@ -152,59 +135,12 @@ where
             let tls = connector
                 .connect(&host, tcp)
                 .await
-                .map_err(|e| Error::TlsError(e.into()))?;
+                .map_err(|e| Error::TlsError(e))?;
 
             Ok(MaybeHttpsStream::Https(TokioIo::new(tls)))
         })
     }
 }
-
-/// The `Builder` struct configures and produces a new `HttpsConnector`. A Builder can be retrieved
-/// with `HttpsConnector::builder()`, as follows:
-/// ```
-/// use s2n_tls_hyper::connector::HttpsConnector;
-/// use s2n_tls::config::Config;
-///
-/// let builder = HttpsConnector::builder(Config::default());
-/// ```
-pub struct Builder<T, B>
-where
-    B: connection::Builder,
-    <B as connection::Builder>::Output: Unpin,
-{
-    http: T,
-    conn_builder: B,
-}
-
-impl<T, B> Builder<T, B>
-where
-    B: connection::Builder,
-    <B as connection::Builder>::Output: Unpin,
-{
-    /// Creates a new `Builder` used to create an `HttpsConnector`.
-    pub fn new(http: T, conn_builder: B) -> Self {
-        Self { http, conn_builder }
-    }
-
-    /// Creates a new `HttpsConnector` from the specified builder configuration.
-    pub fn build(self) -> HttpsConnector<T, B> {
-        HttpsConnector {
-            http: self.http,
-            conn_builder: self.conn_builder,
-        }
-    }
-}
-
-#[derive(Debug)]
-struct UnsupportedScheme;
-
-impl fmt::Display for UnsupportedScheme {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        f.write_str("The provided URI scheme is not supported")
-    }
-}
-
-impl std::error::Error for UnsupportedScheme {}
 
 #[cfg(test)]
 mod tests {
@@ -216,7 +152,7 @@ mod tests {
 
     #[tokio::test]
     async fn test_unsecure_http() -> Result<(), Box<dyn StdError>> {
-        let connector = HttpsConnector::builder(Config::default()).build();
+        let connector = HttpsConnector::new(Config::default());
         let client: Client<_, Empty<Bytes>> =
             Client::builder(TokioExecutor::new()).build(connector);
 
