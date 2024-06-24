@@ -77,7 +77,7 @@ pub trait Context {
 
 pub enum Mode {
     Client,
-    Server,
+    _Server,
 }
 
 #[derive(Debug)]
@@ -128,7 +128,7 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
         }
     }
 
-    pub fn poll_send(&mut self, sender: Mode, buf: &[u8]) -> Poll<Result<()>> {
+    pub fn _poll_send(&mut self, sender: Mode, buf: &[u8]) -> Poll<Result<()>> {
         let result = match sender {
             Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
                 connection::Connection::poll_send(conn, buf)
@@ -294,7 +294,7 @@ pub fn tls_pair(config: crate::config::Config) -> Pair<Harness, Harness> {
     Pair::new(server, client)
 }
 
-pub fn establish_connection(config: crate::config::Config) {
+pub fn _establish_connection(config: crate::config::Config) {
     // create and configure a server connection
     let mut server = crate::connection::Connection::new_server();
     server

@@ -33,7 +33,7 @@ impl Harness {
         &self.connection
     }
 
-    pub fn connection_mut(&mut self) -> &mut Connection {
+    pub fn _connection_mut(&mut self) -> &mut Connection {
         &mut self.connection
     }
 }
