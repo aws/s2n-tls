@@ -49,7 +49,6 @@ static S2N_RESULT s2n_stream_cipher_rc4_available(bool *available)
     }
 
     *available = (s2n_evp_rc4() ? 1 : 0);
-    ;
 
     return S2N_RESULT_OK;
 }
