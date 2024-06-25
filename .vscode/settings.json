@@ -1,0 +1,16 @@
+{
+    "terminal.integrated.profiles.linux": {
+        "nix": {
+            "path": "${workspaceRoot}/.vscode/nix-devshell.sh",
+            "icon": "terminal-bash"
+        }
+    },
+    "terminal.integrated.automationProfile.linux": {
+        "icon": "terminal-bash",
+        "path": "${workspaceRoot}/.vscode/nix-devshell.sh",
+        "env": {
+            "PROJ_DIR": "${workspaceRoot}"
+        }
+    },
+    "terminal.integrated.defaultProfile.linux": "nix",
+}
