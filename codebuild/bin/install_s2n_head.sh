@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -e
+set -eu
 
 usage() {
     echo "install_s2n_head.sh build_dir"
@@ -26,35 +26,39 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 
+clone(){
+    git clone --branch main --single-branch . "$SRC_ROOT"/s2n_head
+}
+
 # CMake(nix) and Make are using different directory structures.
+set +u
 if [[ "$IN_NIX_SHELL" ]]; then
     export DEST_DIR="$SRC_ROOT"/build/bin
     export EXTRA_BUILD_FLAGS=""
-    # Safety measure
-    mkdir -p "$DEST_DIR"
 else
     export DEST_DIR="$SRC_ROOT"/bin
     export EXTRA_BUILD_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT"
 fi
+set -u
 
 # Cleanup any stale s2n_head clones.
-if [[ -d "$DEST_DIR/s2nc_head" ]]; then
+if [[ -d "$SRC_ROOT/s2n_head" ]]; then
     now=$(date +%s)
     last_modified=$(stat -c %Y s2n_head)
     days_old=$(( (now - last_modified) / 86400))
     if ((days_old > 1 )); then
+        echo "s2n_head is $days_old days old, removing and cloning again."
         rm -rf s2n_head
+        clone
+    else
+        echo "s2n_head already exists and is $days_old days old."
     fi
-fi
-
-if [[ -d "$DEST_DIR/s2n_head" ]]; then
-    echo "s2n_head already exists and is $days_old days old."
 else
-    git clone --branch main --single-branch . s2n_head
-    cmake ./s2n_head -B"$BUILD_DIR" $EXTRA_BUILD_FLAGS -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-    cmake --build "$BUILD_DIR" -- -j "$(nproc)"
-    cp -f "$BUILD_DIR"/bin/s2nc "$DEST_DIR"/s2nc_head
-    cp -f "$BUILD_DIR"/bin/s2nd "$DEST_DIR"/s2nd_head
+    clone
 fi
+cmake "$SRC_ROOT"/s2n_head -B"$BUILD_DIR" "$EXTRA_BUILD_FLAGS" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
+cmake --build "$BUILD_DIR" -- -j "$(nproc)"
+cp -f "$BUILD_DIR"/bin/s2nc "$DEST_DIR"/s2nc_head
+cp -f "$BUILD_DIR"/bin/s2nd "$DEST_DIR"/s2nd_head
 
 exit 0
