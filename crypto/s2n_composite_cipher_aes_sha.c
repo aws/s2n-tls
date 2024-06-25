@@ -86,7 +86,7 @@ static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha256(void)
 #endif
 }
 
-static uint8_t s2n_composite_cipher_aes128_sha_available(void)
+static S2N_RESULT s2n_composite_cipher_aes128_sha_available(bool *available)
 {
     /* EVP_aes_128_cbc_hmac_sha1() returns NULL if the implementations aren't available.
      * See https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L952
@@ -95,34 +95,50 @@ static uint8_t s2n_composite_cipher_aes128_sha_available(void)
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha1() ? 1 : 0);
+    RESULT_ENSURE_REF(available);
+
+    *available = (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha1() ? 1 : 0);
+
+    return S2N_RESULT_OK;
 }
 
-static uint8_t s2n_composite_cipher_aes256_sha_available(void)
+static S2N_RESULT s2n_composite_cipher_aes256_sha_available(bool *available)
 {
     /* Composite ciphers cannot be used when FIPS mode is set. Ciphers require the
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha1() ? 1 : 0);
+    RESULT_ENSURE_REF(available);
+
+    *available = (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha1() ? 1 : 0);
+
+    return S2N_RESULT_OK;
 }
 
-static uint8_t s2n_composite_cipher_aes128_sha256_available(void)
+static S2N_RESULT s2n_composite_cipher_aes128_sha256_available(bool *available)
 {
     /* Composite ciphers cannot be used when FIPS mode is set. Ciphers require the
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha256() ? 1 : 0);
+    RESULT_ENSURE_REF(available);
+
+    *available = (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha256() ? 1 : 0);
+
+    return S2N_RESULT_OK;
 }
 
-static uint8_t s2n_composite_cipher_aes256_sha256_available(void)
+static S2N_RESULT s2n_composite_cipher_aes256_sha256_available(bool *available)
 {
     /* Composite ciphers cannot be used when FIPS mode is set. Ciphers require the
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha256() ? 1 : 0);
+    RESULT_ENSURE_REF(available);
+
+    *available = (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha256() ? 1 : 0);
+
+    return S2N_RESULT_OK;
 }
 
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,

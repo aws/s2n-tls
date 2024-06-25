@@ -26,22 +26,30 @@
     #define S2N_AEAD_AES_GCM_AVAILABLE
 #endif
 
-static uint8_t s2n_aead_cipher_aes128_gcm_available()
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_available(bool *available)
 {
+    RESULT_ENSURE_REF(available);
+
 #if defined(S2N_AEAD_AES_GCM_AVAILABLE)
-    return (EVP_aead_aes_128_gcm() ? 1 : 0);
+    *available = (EVP_aead_aes_128_gcm() ? 1 : 0);
 #else
-    return (EVP_aes_128_gcm() ? 1 : 0);
+    *available =(EVP_aes_128_gcm() ? 1 : 0);
 #endif
+
+    return S2N_RESULT_OK;
 }
 
-static uint8_t s2n_aead_cipher_aes256_gcm_available()
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_available(bool *available)
 {
+    RESULT_ENSURE_REF(available);
+
 #if defined(S2N_AEAD_AES_GCM_AVAILABLE)
-    return (EVP_aead_aes_256_gcm() ? 1 : 0);
+    *available = (EVP_aead_aes_256_gcm() ? 1 : 0);
 #else
-    return (EVP_aes_256_gcm() ? 1 : 0);
+    *available = (EVP_aes_256_gcm() ? 1 : 0);
 #endif
+
+    return S2N_RESULT_OK;
 }
 
 #if defined(S2N_AEAD_AES_GCM_AVAILABLE) /* BoringSSL and AWS-LC AEAD API implementation */

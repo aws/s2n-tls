@@ -18,9 +18,13 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static uint8_t s2n_stream_cipher_null_available()
+static S2N_RESULT s2n_stream_cipher_null_available(bool *available)
 {
-    return 1;
+    RESULT_ENSURE_REF(available);
+
+    *available = 1;
+
+    return S2N_RESULT_OK;
 }
 
 static int s2n_stream_cipher_null_endecrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
