@@ -69,10 +69,11 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     POSIX_ENSURE_REF(kem_pref);
 
     const struct s2n_ecc_named_curve *named_curve = conn->kex_params.server_ecc_evp_params.negotiated_curve;
-    const struct s2n_kem_group *kem_group = conn->kex_params.server_kem_group_params.kem_group;
+    const struct s2n_kem_group *server_preferred_kem_group = conn->kex_params.server_kem_group_params.kem_group;
+    const struct s2n_kem_group *client_preferred_kem_group = conn->kex_params.client_kem_group_params.kem_group;
 
     /* Boolean XOR check: exactly one of {named_curve, kem_group} should be non-null. */
-    POSIX_ENSURE((named_curve != NULL) != (kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
+    POSIX_ENSURE((named_curve != NULL) != (server_preferred_kem_group != NULL), S2N_ERR_INVALID_HELLO_RETRY);
 
     /**
      *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
@@ -85,7 +86,9 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     if (named_curve != NULL && s2n_ecc_preferences_includes_curve(ecc_pref, named_curve->iana_id)) {
         selected_group_in_supported_groups = true;
     }
-    if (kem_group != NULL && s2n_kem_group_is_available(kem_group) && s2n_kem_preferences_includes_tls13_kem_group(kem_pref, kem_group->iana_id)) {
+    if (server_preferred_kem_group != NULL
+            && s2n_kem_group_is_available(server_preferred_kem_group)
+            && s2n_kem_preferences_includes_tls13_kem_group(kem_pref, server_preferred_kem_group->iana_id)) {
         selected_group_in_supported_groups = true;
     }
 
@@ -96,14 +99,16 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
      *# in the original ClientHello.
      **/
     bool new_key_share_requested = false;
+
     if (named_curve != NULL) {
         new_key_share_requested = (named_curve != conn->kex_params.client_ecc_evp_params.negotiated_curve);
     }
-    if (kem_group != NULL) {
+
+    if (server_preferred_kem_group != NULL) {
         /* If PQ is disabled, the client should not have sent any PQ IDs
          * in the supported_groups list of the initial ClientHello */
         POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
-        new_key_share_requested = (kem_group != conn->kex_params.client_kem_group_params.kem_group);
+        new_key_share_requested = (server_preferred_kem_group != client_preferred_kem_group);
     }
 
     /**
