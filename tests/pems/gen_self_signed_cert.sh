@@ -120,7 +120,7 @@ config+="""
 
 [v3_req]
 keyUsage = keyEncipherment, dataEncipherment, digitalSignature
-extendedKeyUsage = $KEY_USAGE
+extendedKeyUsage = "codeSigning"
 """
 
 if [[ ! -z "$SANS" ]]; then
