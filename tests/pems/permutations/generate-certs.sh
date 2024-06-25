@@ -78,24 +78,6 @@ cert-gen () {
             -addext "basicConstraints = critical,CA:true" \
             -addext "keyUsage = critical,keyCertSign"
 
-    echo "generating server private key and CSR"
-    openssl req  -new -noenc \
-            -newkey $key_family \
-            -pkeyopt $argname$key_size \
-            -keyout server-key.pem \
-            -out server.csr \
-            -subj "/C=US/CN=leaf" \
-            -addext "subjectAltName = DNS:localhost"
-
-    echo "generating client private key and CSR"
-    openssl req  -new -noenc \
-            -newkey $key_family \
-            -pkeyopt $argname$key_size \
-            -keyout client-key.pem \
-            -out client.csr \
-            -subj "/C=US/CN=client" \
-            -addext "subjectAltName = DNS:localhost"
-
     echo "generating intermediate certificate and signing it"
     openssl x509 -days 65536 \
             -req -in intermediate.csr \
@@ -107,18 +89,33 @@ cert-gen () {
             -out intermediate-cert.pem \
             -copy_extensions=copyall
 
-    echo "generating server certificate and signing it"
-    openssl x509 -days 65536 \
-            -req -in server.csr \
-            $signature_options \
-            -$digest \
+    # SERVER
+    echo "generating server certificate and key"
+    openssl req -config "../eku.cfg" \
+            -newkey $key_family \
+            -key server-key.pem \
+            -new -$digest \
             -CA intermediate-cert.pem \
             -CAkey intermediate-key.pem \
-            -CAcreateserial -out server-cert.pem \
-            -copy_extensions=copyall
+            -out server-cert.pem \
+            $signature_options \
+            -addext "subjectAltName = DNS:localhost" \
+            -copy_extensions=copyall \
+            -days 65536
+
+    # CLIENT
+    echo "generating client private key and CSR"
+    openssl req  -new -noenc \
+            -newkey $key_family \
+            -pkeyopt $argname$key_size \
+            -keyout client-key.pem \
+            -out client.csr \
+            -subj "/C=US/CN=client" \
+            -addext "subjectAltName = DNS:localhost"
 
     echo "generating client certificate and signing it"
-    openssl x509 -days 65536 \
+    openssl x509 \
+            -days 65536 \
             -req -in client.csr \
             $signature_options \
             -$digest \
@@ -127,6 +124,8 @@ cert-gen () {
             -CAcreateserial -out client-cert.pem \
             -copy_extensions=copyall
 
+
+    rm server-chain.pem
     touch server-chain.pem
     cat server-cert.pem >> server-chain.pem
     cat intermediate-cert.pem >> server-chain.pem
@@ -140,13 +139,13 @@ cert-gen () {
     openssl verify -CAfile ca-cert.pem client-cert.pem
 
     # certificate signing requests are never used after the certs are generated
-    rm server.csr
+    # rm server.csr
     rm intermediate.csr
     rm client.csr
 
     # serial files are generated during the signing process, but are not used
     rm ca-cert.srl
-    rm intermediate-cert.srl
+    # rm intermediate-cert.srl
 
     # the private keys of the CA and the intermediat CA are never needed after 
     # signing
@@ -164,21 +163,21 @@ cert-gen () {
 if [[ $1 != "clean" ]]
 then
     #         key        signature   key_size     digest         directory
-    cert-gen   ec          ecdsa       256        SHA256      ec_ecdsa_p256_sha256
-    cert-gen   ec          ecdsa       256        SHA384      ec_ecdsa_p256_sha384
-    cert-gen   ec          ecdsa       384        SHA256      ec_ecdsa_p384_sha256
-    cert-gen   ec          ecdsa       384        SHA384      ec_ecdsa_p384_sha384
-    cert-gen   ec          ecdsa       521        SHA384      ec_ecdsa_p521_sha384
-    cert-gen   ec          ecdsa       521        SHA512      ec_ecdsa_p521_sha512
-    cert-gen   rsa        pkcsv1.5     2048       SHA1        rsae_pkcs_2048_sha1
-    cert-gen   rsa        pkcsv1.5     2048       SHA224      rsae_pkcs_2048_sha224
+    # cert-gen   ec          ecdsa       256        SHA256      ec_ecdsa_p256_sha256
+    # cert-gen   ec          ecdsa       256        SHA384      ec_ecdsa_p256_sha384
+    # cert-gen   ec          ecdsa       384        SHA256      ec_ecdsa_p384_sha256
+    # cert-gen   ec          ecdsa       384        SHA384      ec_ecdsa_p384_sha384
+    # cert-gen   ec          ecdsa       521        SHA384      ec_ecdsa_p521_sha384
+    # cert-gen   ec          ecdsa       521        SHA512      ec_ecdsa_p521_sha512
+    # cert-gen   rsa        pkcsv1.5     2048       SHA1        rsae_pkcs_2048_sha1
+    # cert-gen   rsa        pkcsv1.5     2048       SHA224      rsae_pkcs_2048_sha224
     cert-gen   rsa        pkcsv1.5     2048       SHA256      rsae_pkcs_2048_sha256
-    cert-gen   rsa        pkcsv1.5     2048       SHA384      rsae_pkcs_2048_sha384
-    cert-gen   rsa        pkcsv1.5     3072       SHA256      rsae_pkcs_3072_sha256
-    cert-gen   rsa        pkcsv1.5     3072       SHA384      rsae_pkcs_3072_sha384
-    cert-gen   rsa        pkcsv1.5     4096       SHA384      rsae_pkcs_4096_sha384
-    cert-gen   rsa          pss        4096       SHA384      rsae_pss_4096_sha384
-    cert-gen   rsa-pss      pss        2048       SHA256      rsapss_pss_2048_sha256
+    # cert-gen   rsa        pkcsv1.5     2048       SHA384      rsae_pkcs_2048_sha384
+    # cert-gen   rsa        pkcsv1.5     3072       SHA256      rsae_pkcs_3072_sha256
+    # cert-gen   rsa        pkcsv1.5     3072       SHA384      rsae_pkcs_3072_sha384
+    # cert-gen   rsa        pkcsv1.5     4096       SHA384      rsae_pkcs_4096_sha384
+    # cert-gen   rsa          pss        4096       SHA384      rsae_pss_4096_sha384
+    # cert-gen   rsa-pss      pss        2048       SHA256      rsapss_pss_2048_sha256
 
 else
     echo "cleaning certs"
