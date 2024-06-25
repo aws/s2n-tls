@@ -17,7 +17,6 @@ batch:
         variables:
           INTEGV2_TEST: test_well_known_endpoints
           S2N_USE_CRITERION: 2
-          S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
           RUST_BACKTRACE: 1
@@ -29,7 +28,6 @@ batch:
         variables:
           INTEGV2_TEST: test_well_known_endpoints
           S2N_USE_CRITERION: 1
-          S2N_NO_PQ: 1
           TESTS: integrationv2crit
           GCC_VERSION: 6
           ARTIFACT_BUCKET: s3://s2n-tls-logs/release

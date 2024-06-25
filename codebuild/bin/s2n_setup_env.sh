@@ -114,7 +114,6 @@ export FUZZ_TIMEOUT_SEC
 export GB_INSTALL_DIR
 export OS_NAME
 export S2N_CORKED_IO
-export S2N_NO_PQ
 # For use by criterion/ci run reports
 export AWS_S3_URL="s3://s2n-tls-logs/release/"
 
