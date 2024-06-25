@@ -85,7 +85,9 @@ int main(int argc, char **argv)
             }
 
             /* Skip unsupported record algorithms. */
-            if (!cipher_suite->sslv3_record_alg->cipher->is_available()) {
+            bool cipher_available = false;
+            EXPECT_OK(cipher_suite->sslv3_record_alg->cipher->is_available(&cipher_available));
+            if (!cipher_available) {
                 continue;
             }
             supported_record_alg_count += 1;

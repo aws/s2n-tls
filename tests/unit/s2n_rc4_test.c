@@ -35,12 +35,16 @@ int main(int argc, char **argv)
 
     /* Test Openssl-3.0 does not support RC4 */
     if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
-        EXPECT_FALSE(s2n_rc4.is_available());
+        bool is_rc4_available = false;
+        EXPECT_OK(s2n_rc4.is_available(&is_rc4_available));
+        EXPECT_FALSE(is_rc4_available);
     }
 
     /* Test FIPS does not support RC4 */
     if (s2n_is_in_fips_mode()) {
-        EXPECT_FALSE(s2n_rc4.is_available());
+        bool is_rc4_available = false;
+        EXPECT_OK(s2n_rc4.is_available(&is_rc4_available));
+        EXPECT_FALSE(is_rc4_available);
     }
 
     struct s2n_connection *conn = NULL;
@@ -70,7 +74,9 @@ int main(int argc, char **argv)
     conn->secure->cipher_suite->record_alg = &s2n_record_alg_rc4_sha;
     EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
     EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
-    if (conn->secure->cipher_suite->record_alg->cipher->is_available()) {
+    bool cipher_available = false;
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->is_available(&cipher_available));
+    if (cipher_available) {
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv));
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv));
         EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));

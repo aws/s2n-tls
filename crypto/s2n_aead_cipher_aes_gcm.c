@@ -33,7 +33,7 @@ static S2N_RESULT s2n_aead_cipher_aes128_gcm_available(bool *available)
 #if defined(S2N_AEAD_AES_GCM_AVAILABLE)
     *available = (EVP_aead_aes_128_gcm() ? 1 : 0);
 #else
-    *available =(EVP_aes_128_gcm() ? 1 : 0);
+    *available = (EVP_aes_128_gcm() ? 1 : 0);
 #endif
 
     return S2N_RESULT_OK;

@@ -315,7 +315,9 @@ int main(int argc, char **argv)
         };
 
         /* chacha20 */
-        if (s2n_chacha20_poly1305.is_available()) {
+        bool cipher_available = false;
+        EXPECT_OK(s2n_chacha20_poly1305.is_available(&cipher_available));
+        if (cipher_available) {
             EXPECT_SUCCESS(destroy_server_keys(server_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
@@ -338,7 +340,9 @@ int main(int argc, char **argv)
         }
 
         /* TLS1.3 chacha20 */
-        if (s2n_chacha20_poly1305.is_available()) {
+        cipher_available = false;
+        EXPECT_OK(s2n_chacha20_poly1305.is_available(&cipher_available));
+        if (cipher_available) {
             EXPECT_SUCCESS(destroy_server_keys(server_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
 
@@ -362,7 +366,11 @@ int main(int argc, char **argv)
         }
 
         /* composite */
-        if (s2n_aes128_sha.is_available() && s2n_aes128_sha256.is_available()) {
+        bool aes128_sha_available = false;
+        bool aes128_sha256_available = false;
+        EXPECT_OK(s2n_aes128_sha.is_available(&aes128_sha_available));
+        EXPECT_OK(s2n_aes128_sha256.is_available(&aes128_sha256_available));
+        if (aes128_sha_available && aes128_sha256_available) {
             EXPECT_SUCCESS(destroy_server_keys(server_conn));
             EXPECT_SUCCESS(s2n_connection_wipe(server_conn));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&server_conn->out));

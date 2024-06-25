@@ -35,16 +35,21 @@ static S2N_RESULT s2n_stream_cipher_rc4_available(bool *available)
     RESULT_ENSURE_REF(available);
 
     if (s2n_is_in_fips_mode()) {
-        *available = false;
+        *available = 0;
         return S2N_RESULT_OK;
     }
 
+    /* RC4 MIGHT be available in Openssl-3.0, depending on whether or not the
+     * "legacy" provider is loaded. However, for simplicity, assume that RC4
+     * is unavailable.
+     */
     if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
-        *available = false;
+        *available = 0;
         return S2N_RESULT_OK;
     }
 
-    *available = (s2n_evp_rc4() != NULL);
+    *available = (s2n_evp_rc4() ? 1 : 0);
+    ;
 
     return S2N_RESULT_OK;
 }
