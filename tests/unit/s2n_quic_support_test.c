@@ -300,5 +300,30 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(config));
     };
 
+    /* Test: setting policies without TLS1.3 is not allowed when quic is enabled */
+    {
+        /* On config */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                    s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_enable_quic(config));
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_config_set_cipher_preferences(config, "test_all_tls12"),
+                    S2N_ERR_UNSUPPORTED_WITH_QUIC);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls13"));
+        };
+
+        /* On connection */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_SUCCESS(s2n_connection_enable_quic(conn));
+            EXPECT_FAILURE_WITH_ERRNO(
+                    s2n_connection_set_cipher_preferences(conn, "test_all_tls12"),
+                    S2N_ERR_UNSUPPORTED_WITH_QUIC);
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "test_all_tls13"));
+        };
+    };
+
     END_TEST();
 }
