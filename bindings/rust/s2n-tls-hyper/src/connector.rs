@@ -24,19 +24,15 @@ use tower_service::Service;
 /// which sends and receives requests over TCP. The `HttpsConnector` struct wraps an HTTP connector,
 /// and uses it to negotiate TLS when the HTTPS scheme is in use.
 #[derive(Clone)]
-pub struct HttpsConnector<T, B = Config>
-where
-    B: connection::Builder,
-    <B as connection::Builder>::Output: Unpin,
-{
-    http: T,
-    conn_builder: B,
+pub struct HttpsConnector<Http, Builder = Config> {
+    http: Http,
+    conn_builder: Builder,
 }
 
-impl<B> HttpsConnector<HttpConnector, B>
+impl<Builder> HttpsConnector<HttpConnector, Builder>
 where
-    B: connection::Builder,
-    <B as connection::Builder>::Output: Unpin,
+    Builder: connection::Builder,
+    <Builder as connection::Builder>::Output: Unpin,
 {
     /// Creates a new `HttpsConnector`.
     ///
@@ -45,7 +41,7 @@ where
     ///
     /// This API creates an `HttpsConnector` using the default hyper `HttpConnector`. To use an
     /// existing HTTP connector, use `HttpsConnector::new_with_http()`.
-    pub fn new(conn_builder: B) -> HttpsConnector<HttpConnector, B> {
+    pub fn new(conn_builder: Builder) -> HttpsConnector<HttpConnector, Builder> {
         let mut http = HttpConnector::new();
 
         // By default, the `HttpConnector` only allows the HTTP URI scheme to be used. To negotiate
@@ -56,10 +52,10 @@ where
     }
 }
 
-impl<T, B> HttpsConnector<T, B>
+impl<Http, Builder> HttpsConnector<Http, Builder>
 where
-    B: connection::Builder,
-    <B as connection::Builder>::Output: Unpin,
+    Builder: connection::Builder,
+    <Builder as connection::Builder>::Output: Unpin,
 {
     /// Creates a new `HttpsConnector`.
     ///
@@ -81,7 +77,7 @@ where
     /// ```
     ///
     /// `HttpsConnector::new()` can be used to create the HTTP connector automatically.
-    pub fn new_with_http(http: T, conn_builder: B) -> HttpsConnector<T, B> {
+    pub fn new_with_http(http: Http, conn_builder: Builder) -> HttpsConnector<Http, Builder> {
         Self { http, conn_builder }
     }
 }
@@ -92,19 +88,20 @@ where
 // https://docs.rs/hyper-util/latest/hyper_util/client/legacy/connect/trait.Connect.html
 //
 // The hyper compatibility traits for `Service::Response` are implemented in `MaybeHttpsStream`.
-impl<T, B> Service<Uri> for HttpsConnector<T, B>
+impl<Http, Builder> Service<Uri> for HttpsConnector<Http, Builder>
 where
-    T: Service<Uri>,
-    T::Response: Read + Write + Connection + Unpin + Send + 'static,
-    T::Future: Send + 'static,
-    T::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
-    B: connection::Builder + Send + Sync + 'static,
-    <B as connection::Builder>::Output: Unpin + Send,
+    Http: Service<Uri>,
+    Http::Response: Read + Write + Connection + Unpin + Send + 'static,
+    Http::Future: Send + 'static,
+    Http::Error: Into<Box<dyn std::error::Error + Send + Sync>>,
+    Builder: connection::Builder + Send + Sync + 'static,
+    <Builder as connection::Builder>::Output: Unpin + Send,
 {
-    type Response = MaybeHttpsStream<T::Response, B>;
+    type Response = MaybeHttpsStream<Http::Response, Builder>;
     type Error = Error;
-    type Future =
-        Pin<Box<dyn Future<Output = Result<MaybeHttpsStream<T::Response, B>, Error>> + Send>>;
+    type Future = Pin<
+        Box<dyn Future<Output = Result<MaybeHttpsStream<Http::Response, Builder>, Error>> + Send>,
+    >;
 
     fn poll_ready(&mut self, cx: &mut Context<'_>) -> Poll<Result<(), Self::Error>> {
         match self.http.poll_ready(cx) {

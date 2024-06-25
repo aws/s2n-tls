@@ -3,10 +3,10 @@
 
 use hyper::rt::{Read, ReadBufCursor, Write};
 use hyper_util::{
-    client::legacy::connect::{Connected, Connection},
+    client::legacy::connect::{Connected, Connection as HyperConnection},
     rt::TokioIo,
 };
-use s2n_tls::connection::Builder;
+use s2n_tls::connection;
 use s2n_tls_tokio::TlsStream;
 use std::{
     io::Error,
@@ -14,8 +14,8 @@ use std::{
     task::{Context, Poll},
 };
 
-/// `MaybeHttpsStream` is a wrapper over a hyper TCP stream, T, allowing for TLS to be negotiated
-/// over the TCP stream.
+/// `MaybeHttpsStream` is a wrapper over a hyper TCP stream, `Transport`, allowing for TLS to be
+/// negotiated over the TCP stream.
 ///
 /// While not currently implemented, the `MaybeHttpsStream` enum will provide an `Http` type
 /// corresponding to the plain TCP stream, allowing for HTTP to be negotiated in addition to HTTPS
@@ -23,28 +23,28 @@ use std::{
 ///
 /// This struct is used to implement `tower_service::Service` for `HttpsConnector`, and shouldn't
 /// need to be used directly.
-pub enum MaybeHttpsStream<T, B>
+pub enum MaybeHttpsStream<Transport, Builder>
 where
-    T: Read + Write + Unpin,
-    B: Builder,
-    <B as Builder>::Output: Unpin,
+    Transport: Read + Write + Unpin,
+    Builder: connection::Builder,
+    <Builder as connection::Builder>::Output: Unpin,
 {
-    // T is the underlying hyper TCP stream, which is wrapped in a `TokioIo` type in order to make
-    // it compatible with tokio (implementing AsyncRead and AsyncWrite). This allows the TCP stream
-    // to be provided to the `s2n_tls_tokio::TlsStream`.
+    // `Transport` is the underlying hyper TCP stream, which is wrapped in a `TokioIo` type in order
+    // to make it compatible with tokio (implementing AsyncRead and AsyncWrite). This allows the TCP
+    // stream to be provided to the `s2n_tls_tokio::TlsStream`.
     //
     // `MaybeHttpsStream` MUST implement hyper's `Read` and `Write` traits. So, the `TlsStream` is
     // wrapped in an additional `TokioIo` type, which already implements the conversion from hyper's
     // traits to tokio's. This allows the `Read` and `Write` implementations for `MaybeHttpsStream`
     // to simply call the `TokioIo` `poll` functions.
-    Https(TokioIo<TlsStream<TokioIo<T>, B::Output>>),
+    Https(TokioIo<TlsStream<TokioIo<Transport>, Builder::Output>>),
 }
 
-impl<T, B> Connection for MaybeHttpsStream<T, B>
+impl<Transport, Builder> HyperConnection for MaybeHttpsStream<Transport, Builder>
 where
-    T: Read + Write + Connection + Unpin,
-    B: Builder,
-    <B as Builder>::Output: Unpin,
+    Transport: Read + Write + HyperConnection + Unpin,
+    Builder: connection::Builder,
+    <Builder as connection::Builder>::Output: Unpin,
 {
     fn connected(&self) -> Connected {
         match self {
@@ -53,11 +53,11 @@ where
     }
 }
 
-impl<T, B> Read for MaybeHttpsStream<T, B>
+impl<Transport, Builder> Read for MaybeHttpsStream<Transport, Builder>
 where
-    T: Read + Write + Unpin,
-    B: Builder,
-    <B as Builder>::Output: Unpin,
+    Transport: Read + Write + Unpin,
+    Builder: connection::Builder,
+    <Builder as connection::Builder>::Output: Unpin,
 {
     fn poll_read(
         self: Pin<&mut Self>,
@@ -70,11 +70,11 @@ where
     }
 }
 
-impl<T, B> Write for MaybeHttpsStream<T, B>
+impl<Transport, Builder> Write for MaybeHttpsStream<Transport, Builder>
 where
-    T: Read + Write + Unpin,
-    B: Builder,
-    <B as Builder>::Output: Unpin,
+    Transport: Read + Write + Unpin,
+    Builder: connection::Builder,
+    <Builder as connection::Builder>::Output: Unpin,
 {
     fn poll_write(
         self: Pin<&mut Self>,
