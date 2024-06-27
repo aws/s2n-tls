@@ -234,7 +234,7 @@ impl<'a, T: 'a + Context> Callback<'a, T> {
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
-        enums::{self, ClientAuthType},
+        enums::ClientAuthType,
         error::ErrorType,
         testing::{self, client_hello::*, s2n_tls::*, *},
     };
@@ -900,7 +900,7 @@ mod tests {
         let config = testing::build_config(&security::DEFAULT_TLS13)?;
         let mut pair = TestPair::from_config(&config);
         pair.handshake()?;
-        assert_eq!(pair.server.client_hello_is_sslv2()?, false);
+        assert!(!pair.server.client_hello_is_sslv2()?);
         Ok(())
     }
 
@@ -946,7 +946,7 @@ mod tests {
 
         // the first server.poll_negotiate causes the server to read in the client hello
         assert!(pair.server.poll_negotiate()?.is_pending());
-        assert_eq!(pair.server.client_hello_is_sslv2()?, true);
+        assert!(pair.server.client_hello_is_sslv2()?);
         Ok(())
     }
 }
