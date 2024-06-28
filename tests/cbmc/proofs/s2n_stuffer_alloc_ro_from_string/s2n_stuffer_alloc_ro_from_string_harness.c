@@ -42,7 +42,7 @@ void s2n_stuffer_alloc_ro_from_string_harness()
         uint32_t length = strlen(str);
         assert_bytes_match(stuffer->blob.data, ( const uint8_t * )str, length);
         assert(stuffer->alloced);
-        assert(stuffer->blob.size == length + 1);
+        assert(stuffer->blob.size == length);
         assert(stuffer->write_cursor == length);
         assert(stuffer->high_water_mark == length);
     }
