@@ -40,3 +40,4 @@ build/
 result
 result-*
 *.class
+Session.vim
