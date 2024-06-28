@@ -190,7 +190,7 @@ int s2n_stuffer_alloc_ro_from_string(struct s2n_stuffer *stuffer, const char *st
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(str);
     uint32_t length = strlen(str);
-    POSIX_GUARD(s2n_stuffer_alloc(stuffer, length + 1));
+    POSIX_GUARD(s2n_stuffer_alloc(stuffer, length));
     return s2n_stuffer_write_bytes(stuffer, (const uint8_t *) str, length);
 }
 
