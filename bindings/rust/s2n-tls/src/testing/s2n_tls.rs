@@ -236,7 +236,7 @@ mod tests {
         callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
         enums::ClientAuthType,
         error::ErrorType,
-        testing::{client_hello::*, *},
+        testing::{self, client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
@@ -892,6 +892,61 @@ mod tests {
         assert!(poll_tls_pair_result(&mut pair).is_ok());
         let protocol = pair.server.0.connection.application_protocol().unwrap();
         assert_eq!(protocol, b"h2");
+        Ok(())
+    }
+
+    #[test]
+    fn client_hello_sslv2_negative() -> Result<(), testing::Error> {
+        let config = testing::build_config(&security::DEFAULT_TLS13)?;
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+        assert!(!pair.server.client_hello_is_sslv2()?);
+        Ok(())
+    }
+
+    #[test]
+    fn client_hello_sslv2_positive() -> Result<(), testing::Error> {
+        // copy-pasted from s2n-tls/tests/testlib/s2n_sslv2_client_hello.h
+        // by concatenating these fields together, a valid SSLv2 formatted client hello
+        // can be assembled
+        const SSLV2_CLIENT_HELLO_HEADER: &[u8] = &[0x80, 0xb3, 0x01, 0x03, 0x03];
+        const SSLV2_CLIENT_HELLO_PREFIX: &[u8] = &[0x00, 0x8a, 0x00, 0x00, 0x00, 0x20];
+        const SSLV2_CLIENT_HELLO_CIPHER_SUITES: &[u8] = &[
+            0x00, 0xc0, 0x24, 0x00, 0xc0, 0x28, 0x00, 0x00, 0x3d, 0x00, 0xc0, 0x26, 0x00, 0xc0,
+            0x2a, 0x00, 0x00, 0x6b, 0x00, 0x00, 0x6a, 0x00, 0xc0, 0x0a, 0x07, 0x00, 0xc0, 0x00,
+            0xc0, 0x14, 0x00, 0x00, 0x35, 0x00, 0xc0, 0x05, 0x00, 0xc0, 0x0f, 0x00, 0x00, 0x39,
+            0x00, 0x00, 0x38, 0x00, 0xc0, 0x23, 0x00, 0xc0, 0x27, 0x00, 0x00, 0x3c, 0x00, 0xc0,
+            0x25, 0x00, 0xc0, 0x29, 0x00, 0x00, 0x67, 0x00, 0x00, 0x40, 0x00, 0xc0, 0x09, 0x06,
+            0x00, 0x40, 0x00, 0xc0, 0x13, 0x00, 0x00, 0x2f, 0x00, 0xc0, 0x04, 0x01, 0x00, 0x80,
+            0x00, 0xc0, 0x0e, 0x00, 0x00, 0x33, 0x00, 0x00, 0x32, 0x00, 0xc0, 0x2c, 0x00, 0xc0,
+            0x2b, 0x00, 0xc0, 0x30, 0x00, 0x00, 0x9d, 0x00, 0xc0, 0x2e, 0x00, 0xc0, 0x32, 0x00,
+            0x00, 0x9f, 0x00, 0x00, 0xa3, 0x00, 0xc0, 0x2f, 0x00, 0x00, 0x9c, 0x00, 0xc0, 0x2d,
+            0x00, 0xc0, 0x31, 0x00, 0x00, 0x9e, 0x00, 0x00, 0xa2, 0x00, 0x00, 0xff,
+        ];
+        const SSLV2_CLIENT_HELLO_CHALLENGE: &[u8] = &[
+            0x5b, 0xe9, 0xcc, 0xad, 0xd6, 0xa5, 0x20, 0xac, 0xa3, 0xf4, 0x8e, 0x88, 0x06, 0xb5,
+            0x95, 0x53, 0x2d, 0x53, 0xfe, 0xd7, 0xa1, 0x00, 0x57, 0xc0, 0x53, 0x9d, 0x84, 0x71,
+            0x80, 0x7f, 0x30, 0x7e,
+        ];
+
+        let config = testing::build_config(&security::Policy::from_version("test_all")?)?;
+        // we use the pair to setup IO, but we don't want the client to write anything.
+        // So we drop the client and just directly write the SSLv2 header to the
+        // client_tx_stream
+        let mut pair = TestPair::from_config(&config);
+        drop(pair.client);
+
+        let mut client_tx_stream = pair.client_tx_stream.borrow_mut();
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_HEADER)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_PREFIX)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CIPHER_SUITES)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CHALLENGE)?;
+        // end the exclusive borrow
+        drop(client_tx_stream);
+
+        // the first server.poll_negotiate causes the server to read in the client hello
+        assert!(pair.server.poll_negotiate()?.is_pending());
+        assert!(pair.server.client_hello_is_sslv2()?);
         Ok(())
     }
 }
