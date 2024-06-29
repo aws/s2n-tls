@@ -43,6 +43,7 @@ fn parsing() -> Result<()> {
 }
 
 #[test]
+#[allow(deprecated)]
 fn ja3_fingerprints() -> Result<()> {
     test_all_client_hellos(|pcap_hello, s2n_hello| {
         let mut s2n_ja3_hash = Vec::new();
