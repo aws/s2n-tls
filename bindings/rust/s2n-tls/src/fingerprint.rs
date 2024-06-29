@@ -19,8 +19,6 @@ pub enum FingerprintType {
     JA3,
 }
 
-const MD5_HASH_SIZE: u32 = 16;
-
 impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
     fn from(value: FingerprintType) -> Self {
         match value {
@@ -30,75 +28,112 @@ impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
 }
 
 /// A fingerprint operation.
-pub struct Fingerprint<'a>(&'a mut NonNull<s2n_fingerprint>);
+pub struct Fingerprint<'a>(&'a mut Builder);
 
 impl Fingerprint<'_> {
     /// Size of the fingerprint hash.
     /// See s2n_fingerprint_get_hash_size in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
-    pub fn hash_size(&self) -> Result<u32, Error> {
-        let mut hash_size = 0;
-        unsafe { s2n_fingerprint_get_hash_size(self.0.as_ptr(), &mut hash_size).into_result() }?;
-        Ok(hash_size)
+    pub fn hash_size(&self) -> Result<usize, Error> {
+        self.0.hash_size()
     }
 
-    /// Calculate the fingerprint hash as a hex string.
+    /// Calculate the fingerprint hash string.
     /// See s2n_fingerprint_get_hash in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
-    pub fn hash(&mut self, hash_hex: &mut String) -> Result<u32, Error> {
-        let max_size: u32 = hash_hex
-            .capacity()
-            .try_into()
-            .map_err(|_| Error::INVALID_INPUT)?;
-        let mut output_size = 0;
-        unsafe {
-            s2n_fingerprint_get_hash(
-                self.0.as_ptr(),
-                max_size,
-                hash_hex.as_mut_ptr(),
-                &mut output_size,
-            )
-            .into_result()?;
+    pub fn hash(&mut self) -> Result<&str, Error> {
+        if self.0.hash.is_empty() {
+            let mut output_size = 0;
+            unsafe {
+                s2n_fingerprint_get_hash(
+                    self.0.ptr.as_ptr(),
+                    self.0.hash.capacity() as u32,
+                    self.0.hash.as_mut_ptr(),
+                    &mut output_size,
+                )
+                .into_result()?;
 
-            // SAFETY: update internal state of string to match the data written
-            // into it.
-            hash_hex.as_mut_vec().set_len(output_size as usize);
-        };
-        Ok(output_size)
+                self.0.hash.as_mut_vec().set_len(output_size as usize);
+            }
+        }
+        Ok(&self.0.hash)
     }
 
     /// Size of the raw fingerprint string.
-    /// The size of the raw fingerprint string can't be known without calculating
-    /// the fingerprint, so either [Fingerprint::hash()] or [Fingerprint::raw()]
-    /// must be called before this method.
     ///
     /// See s2n_fingerprint_get_raw_size in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
-    pub fn raw_size(&self) -> Result<u32, Error> {
+    ///
+    /// The size of the raw fingerprint string can't be known without calculating
+    /// the fingerprint for a given ClientHello, so either [Fingerprint::hash()]
+    /// or [Fingerprint::raw()] must be called before this method.
+    pub fn raw_size(&self) -> Result<usize, Error> {
         let mut raw_size = 0;
-        unsafe { s2n_fingerprint_get_raw_size(self.0.as_ptr(), &mut raw_size).into_result() }?;
-        Ok(raw_size)
+        unsafe { s2n_fingerprint_get_raw_size(self.0.ptr.as_ptr(), &mut raw_size).into_result() }?;
+        Ok(raw_size as usize)
     }
 
     /// Calculate the raw fingerprint string.
+    ///
     /// See s2n_fingerprint_get_raw in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
-    pub fn raw(&mut self, raw: &mut String) -> Result<u32, Error> {
-        let max_size: u32 = raw
-            .capacity()
-            .try_into()
-            .map_err(|_| Error::INVALID_INPUT)?;
-        let mut output_size = 0;
-        unsafe {
-            s2n_fingerprint_get_raw(
-                self.0.as_ptr(),
-                max_size,
-                raw.as_mut_ptr(),
-                &mut output_size,
-            )
-            .into_result()?;
+    ///
+    /// The size of the raw fingerprint string can't be known without calculating
+    /// the fingerprint for a given ClientHello. Before calling this method, you
+    /// must either:
+    ///
+    /// 1. Call [`Builder::set_raw_size()`] to set a fixed maximum size.
+    ///    If that maximum is insufficient, then this method will fail.
+    ///
+    /// ```no_run
+    /// use s2n_tls::client_hello::ClientHello;
+    /// use s2n_tls::fingerprint::{Fingerprint, FingerprintType};
+    ///
+    /// let client_hello_bytes = [ 0, 1, 2, 3, 4, 5 ];
+    /// let client_hello = ClientHello::parse_client_hello(&client_hello_bytes)?;
+    ///
+    /// let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+    /// builder.set_raw_size(1000)?;
+    /// let mut fingerprint = builder.build(&client_hello)?;
+    /// let raw = fingerprint.raw()?;
+    ///
+    /// # Ok::<(), std::io::Error>(())
+    /// ```
+    ///
+    /// 2. Call [`Fingerprint::hash()`] to calculate the exact fingerprint size.
+    ///    This method will then ensure sufficient space is available to calculate
+    ///    the raw string.
+    ///
+    /// ```no_run
+    /// use s2n_tls::client_hello::ClientHello;
+    /// use s2n_tls::fingerprint::{Fingerprint, FingerprintType};
+    ///
+    /// let client_hello_bytes = [ 0, 1, 2, 3, 4, 5 ];
+    /// let client_hello = ClientHello::parse_client_hello(&client_hello_bytes)?;
+    ///
+    /// let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+    /// let mut fingerprint = builder.build(&client_hello)?;
+    /// let hash = fingerprint.hash()?;
+    /// let raw = fingerprint.raw()?;
+    ///
+    /// # Ok::<(), std::io::Error>(())
+    /// ```
+    pub fn raw(&mut self) -> Result<&str, Error> {
+        if self.0.raw.is_empty() {
+            if self.0.raw_size.is_none() {
+                self.0.raw.reserve_exact(self.raw_size()?);
+            };
 
-            // SAFETY: update internal state of string to match the data written
-            // into it.
-            raw.as_mut_vec().set_len(output_size as usize);
-        };
-        Ok(output_size)
+            let mut output_size = 0;
+            unsafe {
+                s2n_fingerprint_get_raw(
+                    self.0.ptr.as_ptr(),
+                    self.0.raw.capacity() as u32,
+                    self.0.raw.as_mut_ptr(),
+                    &mut output_size,
+                )
+                .into_result()?;
+
+                self.0.raw.as_mut_vec().set_len(output_size as usize);
+            };
+        }
+        Ok(&self.0.raw)
     }
 
     pub fn builder(method: FingerprintType) -> Result<Builder, Error> {
@@ -110,10 +145,12 @@ impl Drop for Fingerprint<'_> {
     /// Resets the underlying [Builder] for the next fingerprint.
     fn drop(&mut self) {
         unsafe {
-            s2n_fingerprint_reset(self.0.as_ptr())
+            s2n_fingerprint_wipe(self.0.ptr.as_ptr())
                 .into_result()
                 .unwrap()
         };
+        self.0.hash.clear();
+        self.0.raw.clear();
     }
 }
 
@@ -134,10 +171,7 @@ impl Drop for Fingerprint<'_> {
 /// for _ in 1..10 {
 ///     let client_hello = ClientHello::parse_client_hello(&client_hello_bytes)?;
 ///     let mut fingerprint = builder.build(&client_hello)?;
-///
-///     let hash_size = fingerprint.hash_size()?;
-///     let mut hash = String::with_capacity(hash_size as usize);
-///     fingerprint.hash(&mut hash)?;
+///     let hash = fingerprint.hash()?;
 /// }
 /// # Ok::<(), std::io::Error>(())
 /// ```
@@ -159,39 +193,80 @@ impl Drop for Fingerprint<'_> {
 ///
 /// # Ok::<(), std::io::Error>(())
 /// ```
-pub struct Builder(NonNull<s2n_fingerprint>);
+pub struct Builder {
+    ptr: NonNull<s2n_fingerprint>,
+    hash: String,
+    raw: String,
+    raw_size: Option<usize>,
+}
 
 impl Builder {
     /// Creates a reusable [Builder].
     pub fn new(method: FingerprintType) -> Result<Self, Error> {
         crate::init::init();
         let ptr = unsafe { s2n_fingerprint_new(method.into()).into_result() }?;
-        Ok(Builder(ptr))
+        println!("ptr = {:?}", ptr);
+        let hash = String::with_capacity(Self::ptr_hash_size(&ptr)?);
+        let raw = String::new();
+        Ok(Builder {
+            ptr,
+            hash,
+            raw,
+            raw_size: None,
+        })
+    }
+
+    // Static version of hash_size, required to allocate enough memory in Builder::new()
+    fn ptr_hash_size(ptr: &NonNull<s2n_fingerprint>) -> Result<usize, Error> {
+        let mut hash_size = 0;
+        unsafe { s2n_fingerprint_get_hash_size(ptr.as_ptr(), &mut hash_size).into_result() }?;
+        Ok(hash_size as usize)
+    }
+
+    /// Size of the fingerprint hash.
+    /// See s2n_fingerprint_get_hash_size in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/fingerprint.h).
+    pub fn hash_size(&self) -> Result<usize, Error> {
+        Self::ptr_hash_size(&self.ptr)
+    }
+
+    /// Set the maximum size of the raw fingerprint string.
+    ///
+    /// If the size is not set via this method, then [`Fingerprint::hash()`]
+    /// must be called to calculate the size before [`Fingerprint::raw_size()`]
+    /// or [`Fingerprint::raw()`] can be called.
+    ///
+    /// While the size of the fingerprint hash is fixed, the size of the raw string
+    /// varies based on the size and contents of the ClientHello. Setting a fixed
+    /// size prevents allocating an excessive amount of memory, but can lead to
+    /// failures when calculating unexpectedly large fingerprints.
+    pub fn set_raw_size(&mut self, size: usize) -> Result<&mut Self, Error> {
+        self.raw_size = Some(size);
+        self.raw.reserve_exact(size);
+        Ok(self)
     }
 
     /// Creates a fingerprint operation for a given [ClientHello].
-    pub fn build(&mut self, client_hello: &ClientHello) -> Result<Fingerprint, Error> {
+    pub fn build<'a>(&'a mut self, client_hello: &ClientHello) -> Result<Fingerprint<'a>, Error> {
         unsafe {
-            s2n_fingerprint_set_client_hello(self.0.as_ptr(), client_hello.deref_mut_ptr())
+            s2n_fingerprint_set_client_hello(self.ptr.as_ptr(), client_hello.deref_mut_ptr())
                 .into_result()
         }?;
-        Ok(Fingerprint(&mut self.0))
+        Ok(Fingerprint(self))
     }
 }
 
 impl Drop for Builder {
     /// Frees the memory associated with this [Builder].
     fn drop(&mut self) {
-        let mut ptr: *mut s2n_fingerprint = unsafe { self.0.as_mut() };
+        let mut ptr: *mut s2n_fingerprint = unsafe { self.ptr.as_mut() };
         unsafe {
-            s2n_fingerprint_free(std::ptr::addr_of_mut!(ptr))
-                .into_result()
-                .unwrap()
-        };
+            let _ = s2n_fingerprint_free(std::ptr::addr_of_mut!(ptr));
+        }
     }
 }
 
 // Legacy versions of the fingerprinting methods
+const MD5_HASH_SIZE: u32 = 16;
 impl ClientHello {
     /// `fingerprint_hash` calculates the hash, and also returns the size
     /// required for the full fingerprint string. The return value can be used
@@ -216,6 +291,7 @@ impl ClientHello {
     /// // ErrorType::UsageError if the string doesn't have enough capacity
     /// client_hello.fingerprint_string(FingerprintType::JA3, &mut string).unwrap();
     /// ```
+    #[deprecated = "Users should prefer the Fingerprint::hash() method"]
     pub fn fingerprint_hash(
         &self,
         hash: FingerprintType,
@@ -247,6 +323,7 @@ impl ClientHello {
     /// `fingerprint_string` will try to calculate the fingerprint and store the
     /// resulting string in `output`. If `output` does not have sufficient
     /// capacity an Error of `ErrorType::UsageError` will be returned.
+    #[deprecated = "Users should prefer Fingerprint::raw() method"]
     pub fn fingerprint_string(
         &self,
         hash: FingerprintType,
@@ -274,9 +351,9 @@ impl ClientHello {
 mod tests {
     use super::*;
     use crate::{
-        config,
         error::ErrorType,
-        testing::{CertKeyPair, TestPair},
+        security,
+        testing::{build_config, TestPair},
     };
     use std::error::Error;
 
@@ -304,11 +381,7 @@ mod tests {
     const JA3_HASH: &str = "839bbe3ed07fed922ded5aaf714d6842";
 
     fn simple_handshake() -> Result<TestPair, Box<dyn Error>> {
-        let keypair = CertKeyPair::default();
-        let mut config_builder = config::Builder::new();
-        unsafe { config_builder.disable_x509_verification()? };
-        config_builder.load_pem(keypair.cert(), keypair.key())?;
-        let config = config_builder.build()?;
+        let config = build_config(&security::DEFAULT).unwrap();
         let mut pair = TestPair::from_config(&config);
         pair.handshake()?;
         Ok(pair)
@@ -323,22 +396,224 @@ mod tests {
         let mut fingerprint = builder.build(&client_hello)?;
 
         let hash_size = fingerprint.hash_size()?;
-        let mut hash = String::with_capacity(hash_size.try_into()?);
-        let actual_hash_size = fingerprint.hash(&mut hash)?;
-        assert_eq!(hash.len(), hash_size.try_into()?);
-        assert_eq!(hash.len(), actual_hash_size.try_into()?);
+        let hash = fingerprint.hash()?;
+        assert_eq!(hash.len(), hash_size);
         hex::decode(hash)?;
 
         let raw_size = fingerprint.raw_size()?;
-        let mut raw = String::with_capacity(raw_size.try_into()?);
-        let actual_raw_size = fingerprint.raw(&mut raw)?;
-        assert_eq!(raw.len(), raw_size.try_into()?);
-        assert_eq!(raw.len(), actual_raw_size.try_into()?);
+        let raw = fingerprint.raw()?;
+        assert_eq!(raw.len(), raw_size);
 
         Ok(())
     }
 
     #[test]
+    fn known_value() -> Result<(), Box<dyn Error>> {
+        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+        let mut fingerprint = builder.build(&client_hello)?;
+
+        let hash_size = fingerprint.hash_size()?;
+        let hash = fingerprint.hash()?;
+        assert_eq!(hash.len(), hash_size);
+        assert_eq!(hash, JA3_HASH);
+
+        let raw_size = fingerprint.raw_size()?;
+        let raw = fingerprint.raw()?;
+        assert_eq!(raw.len(), raw_size);
+        assert_eq!(raw, JA3_FULL_STRING);
+
+        Ok(())
+    }
+
+    #[test]
+    fn multiple_fingerprints() -> Result<(), Box<dyn Error>> {
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+
+        for _ in 1..10 {
+            let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+            let mut fingerprint = builder.build(&client_hello)?;
+
+            let hash = fingerprint.hash()?;
+            assert_eq!(hash, JA3_HASH);
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn multiple_fingerprints_reset() -> Result<(), Box<dyn Error>> {
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+
+        {
+            let mut fingerprint = builder.build(&client_hello)?;
+
+            // Before hash is called, there is no raw size
+            fingerprint
+                .raw_size()
+                .expect_err("Raw size unexpectedly set");
+
+            // After hash is called, there is a raw size
+            fingerprint.hash()?;
+            fingerprint.raw_size()?;
+        }
+
+        // Build another fingerprint with the same builder
+        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+        let fingerprint = builder.build(&client_hello)?;
+
+        // If the fingerprint state was properly reset, there is no raw size again
+        fingerprint
+            .raw_size()
+            .expect_err("Fingerprint state not reset");
+
+        Ok(())
+    }
+
+    #[test]
+    fn raw_sufficient_memory() -> Result<(), Box<dyn Error>> {
+        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+        builder.set_raw_size(JA3_FULL_STRING.len())?;
+
+        let mut fingerprint = builder.build(&client_hello)?;
+        let raw = fingerprint.raw()?;
+        assert_eq!(raw, JA3_FULL_STRING);
+
+        Ok(())
+    }
+
+    #[test]
+    fn raw_insufficient_memory() -> Result<(), Box<dyn Error>> {
+        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+        builder.set_raw_size(JA3_FULL_STRING.len() - 1)?;
+
+        let mut fingerprint = builder.build(&client_hello)?;
+        let error = fingerprint
+            .raw()
+            .expect_err("Calculated raw string despite insufficient memory");
+        assert_eq!(error.kind(), ErrorType::UsageError);
+        assert_eq!(error.name(), "S2N_ERR_INSUFFICIENT_MEM_SIZE");
+
+        Ok(())
+    }
+
+    #[test]
+    fn hash_does_not_allocate_memory() -> Result<(), Box<dyn Error>> {
+        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+
+        for _ in 0..10 {
+            let snapshot = checkers::with(|| {
+                let mut fingerprint = builder.build(&client_hello).unwrap();
+                fingerprint.hash().unwrap();
+            });
+            assert!(snapshot.events.is_empty());
+        }
+
+        Ok(())
+    }
+
+    #[test]
+    fn raw_may_allocate_memory() -> Result<(), Box<dyn Error>> {
+        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
+
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+
+        let minimum_size = JA3_FULL_STRING.len();
+        let large_size = minimum_size + 100;
+
+        // If we want to allocate the known value of the raw string,
+        // then that allocation must happen when raw() is called rather than
+        // when the fingerprint is built.
+        let snapshot = checkers::with(|| {
+            let mut fingerprint = builder.build(&client_hello).unwrap();
+            // Calculating the hash is necessary to calculate the raw_size,
+            // But the hash_does_not_allocate_memory test proves this does not
+            // allocate any memory.
+            fingerprint.hash().unwrap();
+
+            fingerprint.raw().unwrap();
+        });
+        // Expect a single allocation to allocate the raw string
+        assert_eq!(snapshot.events.allocs(), 1);
+        assert_eq!(snapshot.events.reallocs(), 0);
+        assert_eq!(snapshot.events.frees(), 0);
+        assert_eq!(snapshot.events.max_memory_used().unwrap(), minimum_size);
+
+        // Snapshots must be cumulative to accurately track total allocations,
+        // so keep track of the current snapshot.
+        let mut full_snapshot = snapshot;
+
+        // Expect that repeating either the build or the calculation does not
+        // lead to any new allocations.
+        let snapshot = checkers::with(|| {
+            for _ in 0..10 {
+                let mut fingerprint = builder.build(&client_hello).unwrap();
+                // Calculating the hash is necessary to calculate the raw_size,
+                // But the hash_does_not_allocate_memory test proves this does not
+                // allocate any memory.
+                fingerprint.hash().unwrap();
+
+                for _ in 0..10 {
+                    fingerprint.raw().unwrap();
+                }
+            }
+        });
+        assert!(snapshot.events.is_empty());
+
+        // If we set a larger raw size on the builder,
+        // then the raw string is reallocated.
+        let snapshot = checkers::with(|| {
+            builder.set_raw_size(large_size).unwrap();
+        });
+        assert_eq!(snapshot.events.allocs(), 0);
+        assert_eq!(snapshot.events.reallocs(), 1);
+        assert_eq!(snapshot.events.frees(), 0);
+
+        // Snapshots must be cumulative to accurately track total allocations,
+        // so add the new snapshot events.
+        for event in snapshot.events.as_slice() {
+            full_snapshot.events.push(event.clone());
+        }
+        // The new total memory should be the larger size we set on the builder.
+        assert_eq!(full_snapshot.events.max_memory_used().unwrap(), large_size);
+
+        // If the raw size was set on the builder, then the raw string is not
+        // allocated when raw() is called.
+        let snapshot = checkers::with(|| {
+            let mut fingerprint = builder.build(&client_hello).unwrap();
+            fingerprint.raw().unwrap();
+        });
+        assert!(snapshot.events.is_empty());
+
+        // If we set a smaller raw size on the builder,
+        // then the raw string is not reallocated.
+        let snapshot = checkers::with(|| {
+            builder.set_raw_size(minimum_size).unwrap();
+        });
+        assert!(snapshot.events.is_empty());
+
+        // Recalculating the raw string does not reallocate the raw string
+        let snapshot = checkers::with(|| {
+            for _ in 0..10 {
+                let mut fingerprint = builder.build(&client_hello).unwrap();
+                fingerprint.raw().unwrap();
+            }
+        });
+        assert!(snapshot.events.is_empty());
+
+        Ok(())
+    }
+
+    #[test]
+    #[allow(deprecated)]
     fn legacy_connection_fingerprint() -> Result<(), Box<dyn Error>> {
         let pair = simple_handshake()?;
         let client_hello = pair.server.client_hello()?;
@@ -355,30 +630,7 @@ mod tests {
     }
 
     #[test]
-    fn known_value() -> Result<(), Box<dyn Error>> {
-        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
-
-        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
-        let mut fingerprint = builder.build(&client_hello)?;
-
-        let hash_size = fingerprint.hash_size()?;
-        let mut hash = String::with_capacity(hash_size.try_into()?);
-        let actual_hash_size = fingerprint.hash(&mut hash)?;
-        assert_eq!(hash.len(), hash_size.try_into()?);
-        assert_eq!(hash.len(), actual_hash_size.try_into()?);
-        assert_eq!(hash, JA3_HASH);
-
-        let raw_size = fingerprint.raw_size()?;
-        let mut raw = String::with_capacity(raw_size.try_into()?);
-        let actual_raw_size = fingerprint.raw(&mut raw)?;
-        assert_eq!(raw.len(), raw_size.try_into()?);
-        assert_eq!(raw.len(), actual_raw_size.try_into()?);
-        assert_eq!(raw, JA3_FULL_STRING);
-
-        Ok(())
-    }
-
-    #[test]
+    #[allow(deprecated)]
     fn legacy_known_value() -> Result<(), Box<dyn Error>> {
         let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
 
@@ -396,83 +648,7 @@ mod tests {
     }
 
     #[test]
-    fn multiple_fingerprints() -> Result<(), Box<dyn Error>> {
-        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
-
-        for _ in 1..10 {
-            let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
-            let mut fingerprint = builder.build(&client_hello)?;
-
-            let hash_size = fingerprint.hash_size()?;
-            let mut hash = String::with_capacity(hash_size.try_into()?);
-            fingerprint.hash(&mut hash)?;
-            assert_eq!(hash, JA3_HASH);
-        }
-
-        Ok(())
-    }
-
-    #[test]
-    fn multiple_fingerprints_reset() -> Result<(), Box<dyn Error>> {
-        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
-        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
-
-        {
-            let mut fingerprint = builder.build(&client_hello)?;
-            let hash_size = fingerprint.hash_size()?;
-            let mut hash = String::with_capacity(hash_size.try_into()?);
-
-            // Before hash is called, there is no raw size
-            fingerprint
-                .raw_size()
-                .expect_err("Raw size unexpectedly set");
-
-            // After hash is called, there is a raw size
-            fingerprint.hash(&mut hash)?;
-            fingerprint.raw_size()?;
-        }
-
-        // Build another fingerprint with the same builder
-        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
-        let fingerprint = builder.build(&client_hello)?;
-
-        // If the fingerprint state was properly reset, there is no raw size again
-        fingerprint
-            .raw_size()
-            .expect_err("Fingerprint state not reset");
-
-        Ok(())
-    }
-
-    #[test]
-    fn output_resizing() -> Result<(), Box<dyn Error>> {
-        let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
-
-        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
-        let mut fingerprint = builder.build(&client_hello)?;
-
-        // hash resizes output string
-        let hash_size = fingerprint.hash_size()?;
-        let hash_capacities = vec![hash_size, hash_size + 1, hash_size * 10];
-        for initial_size in hash_capacities {
-            let mut hash = String::with_capacity(initial_size.try_into()?);
-            fingerprint.hash(&mut hash)?;
-            assert_eq!(hash.len(), hash_size.try_into()?);
-        }
-
-        // raw resizes output string
-        let raw_size = fingerprint.raw_size()?;
-        let raw_capacities = vec![raw_size, raw_size + 1, raw_size * 10];
-        for initial_size in raw_capacities {
-            let mut raw = String::with_capacity(initial_size.try_into()?);
-            fingerprint.raw(&mut raw)?;
-            assert_eq!(raw.len(), raw_size.try_into()?);
-        }
-
-        Ok(())
-    }
-
-    #[test]
+    #[allow(deprecated)]
     fn legacy_hash_output_resizing() -> Result<(), Box<dyn Error>> {
         let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
         let hash_capacities = vec![0, MD5_HASH_SIZE, 1_000];
@@ -485,13 +661,15 @@ mod tests {
     }
 
     #[test]
+    #[allow(deprecated)]
     fn legacy_string_output_too_small() -> Result<(), Box<dyn Error>> {
         let client_hello = ClientHello::parse_client_hello(CLIENT_HELLO_BYTES)?;
-        let mut fingerprint_string = String::with_capacity(0);
+        let mut fingerprint_string = String::with_capacity(JA3_FULL_STRING.len() - 1);
         let fingerprint_err = client_hello
             .fingerprint_string(FingerprintType::JA3, &mut fingerprint_string)
             .unwrap_err();
         assert_eq!(fingerprint_err.kind(), ErrorType::UsageError);
+        assert_eq!(fingerprint_err.name(), "S2N_ERR_INSUFFICIENT_MEM_SIZE");
         Ok(())
     }
 }
