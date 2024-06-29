@@ -52,7 +52,7 @@ struct s2n_fingerprint *s2n_fingerprint_new(s2n_fingerprint_type type)
     return fingerprint;
 }
 
-static S2N_CLEANUP_RESULT s2n_fingerprint_wipe(struct s2n_fingerprint *fingerprint)
+static S2N_CLEANUP_RESULT s2n_fingerprint_free_fields(struct s2n_fingerprint *fingerprint)
 {
     if (!fingerprint) {
         return S2N_RESULT_OK;
@@ -66,13 +66,13 @@ int s2n_fingerprint_free(struct s2n_fingerprint **fingerprint_ptr)
     if (!fingerprint_ptr) {
         return S2N_SUCCESS;
     }
-    POSIX_GUARD_RESULT(s2n_fingerprint_wipe(*fingerprint_ptr));
+    POSIX_GUARD_RESULT(s2n_fingerprint_free_fields(*fingerprint_ptr));
     POSIX_GUARD(s2n_free_object((uint8_t **) (void **) fingerprint_ptr,
             sizeof(struct s2n_fingerprint)));
     return S2N_SUCCESS;
 }
 
-int s2n_fingerprint_reset(struct s2n_fingerprint *fingerprint)
+int s2n_fingerprint_wipe(struct s2n_fingerprint *fingerprint)
 {
     POSIX_ENSURE(fingerprint, S2N_ERR_INVALID_ARGUMENT);
     fingerprint->client_hello = NULL;
@@ -85,7 +85,7 @@ int s2n_fingerprint_set_client_hello(struct s2n_fingerprint *fingerprint, struct
     POSIX_ENSURE(fingerprint, S2N_ERR_INVALID_ARGUMENT);
     POSIX_ENSURE(ch, S2N_ERR_INVALID_ARGUMENT);
     POSIX_ENSURE(!ch->sslv2, S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
-    POSIX_GUARD(s2n_fingerprint_reset(fingerprint));
+    POSIX_GUARD(s2n_fingerprint_wipe(fingerprint));
     fingerprint->client_hello = ch;
     return S2N_SUCCESS;
 }
@@ -252,7 +252,7 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
     POSIX_ENSURE(type == S2N_FINGERPRINT_JA3, S2N_ERR_INVALID_ARGUMENT);
     POSIX_ENSURE(str_size, S2N_ERR_INVALID_ARGUMENT);
     DEFER_CLEANUP(struct s2n_fingerprint fingerprint = { .legacy_hash_format = true },
-            s2n_fingerprint_wipe);
+            s2n_fingerprint_free_fields);
     POSIX_GUARD_RESULT(s2n_fingerprint_init(&fingerprint, type));
     POSIX_GUARD(s2n_fingerprint_set_client_hello(&fingerprint, ch));
     POSIX_GUARD(s2n_fingerprint_get_hash(&fingerprint, max_output_size, output, output_size));
@@ -265,7 +265,7 @@ int s2n_client_hello_get_fingerprint_string(struct s2n_client_hello *ch, s2n_fin
 {
     POSIX_ENSURE(type == S2N_FINGERPRINT_JA3, S2N_ERR_INVALID_ARGUMENT);
     DEFER_CLEANUP(struct s2n_fingerprint fingerprint = { 0 },
-            s2n_fingerprint_wipe);
+            s2n_fingerprint_free_fields);
     POSIX_GUARD_RESULT(s2n_fingerprint_init(&fingerprint, type));
     POSIX_GUARD(s2n_fingerprint_set_client_hello(&fingerprint, ch));
     POSIX_GUARD(s2n_fingerprint_get_raw(&fingerprint, max_output_size, output, output_size));

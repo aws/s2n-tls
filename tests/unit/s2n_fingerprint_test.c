@@ -302,10 +302,10 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_fingerprint_free(&fingerprint));
     };
 
-    /* Test s2n_fingerprint_reset */
+    /* Test s2n_fingerprint_wipe */
     {
         /* Safety */
-        EXPECT_FAILURE_WITH_ERRNO(s2n_fingerprint_reset(NULL), S2N_ERR_INVALID_ARGUMENT);
+        EXPECT_FAILURE_WITH_ERRNO(s2n_fingerprint_wipe(NULL), S2N_ERR_INVALID_ARGUMENT);
 
         /* Initialize an invalid fingerprint with every field set to all 1s */
         struct s2n_fingerprint fingerprint = { 0 };
@@ -317,7 +317,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_EQUAL(fingerprint.raw_size, 0);
 
         /* Verify that wipe only clears the expected fields */
-        EXPECT_SUCCESS(s2n_fingerprint_reset(&fingerprint));
+        EXPECT_SUCCESS(s2n_fingerprint_wipe(&fingerprint));
         EXPECT_NOT_NULL(fingerprint.method);
         EXPECT_TRUE(s2n_hash_is_ready_for_input(&fingerprint.hash));
         EXPECT_NULL(fingerprint.client_hello);
@@ -704,7 +704,7 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(raw_output, test_case->raw, S2N_TEST_OUTPUT_SIZE);
 
             /* Reset for the next iteration */
-            EXPECT_SUCCESS(s2n_fingerprint_reset(fingerprint));
+            EXPECT_SUCCESS(s2n_fingerprint_wipe(fingerprint));
         }
 
         /* Verify that we actually tested with different hellos */
