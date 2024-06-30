@@ -857,11 +857,26 @@ impl Connection {
         Ok(())
     }
 
+    /// Access the protocol version selected for the connection.
     pub fn actual_protocol_version(&self) -> Result<Version, Error> {
         let version = unsafe {
             s2n_connection_get_actual_protocol_version(self.connection.as_ptr()).into_result()?
         };
         version.try_into()
+    }
+
+    /// Detects if the client hello is using the SSLv2 format.
+    ///
+    /// s2n-tls will not negotiate SSLv2, but will accept SSLv2 ClientHellos
+    /// advertising a higher protocol version like SSLv3 or TLS1.0.
+    /// [Connection::actual_protocol_version()] can be used to retrieve the
+    /// protocol version that is actually used on the connection.
+    pub fn client_hello_is_sslv2(&self) -> Result<bool, Error> {
+        let version = unsafe {
+            s2n_connection_get_client_hello_version(self.connection.as_ptr()).into_result()?
+        };
+        let version: Version = version.try_into()?;
+        Ok(version == Version::SSLV2)
     }
 
     pub fn handshake_type(&self) -> Result<&str, Error> {
