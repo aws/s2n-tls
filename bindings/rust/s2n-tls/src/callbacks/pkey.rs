@@ -121,8 +121,8 @@ pub trait PrivateKeyCallback: 'static + Send + Sync {
 mod tests {
     use super::*;
     use crate::{
-        config, connection, error, security, testing,
-        testing::{s2n_tls::*, *},
+        config, connection, error, security,
+        testing::{self, *},
     };
     use core::task::{Poll, Waker};
     use futures_test::task::new_count_waker;
@@ -139,10 +139,7 @@ mod tests {
         "/../../../tests/pems/ecdsa_p384_pkcs1_cert.pem"
     ));
 
-    fn new_pair<T>(
-        callback: T,
-        waker: Waker,
-    ) -> Result<Pair<s2n_tls::Harness, s2n_tls::Harness>, Error>
+    fn new_pair<T>(callback: T, waker: Waker) -> Result<TestPair, Error>
     where
         T: 'static + PrivateKeyCallback,
     {
@@ -157,20 +154,10 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            let mut server = connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
-            Harness::new(server)
-        };
+        let mut pair = TestPair::from_config(&config);
+        pair.server.set_waker(Some(&waker))?;
 
-        let client = {
-            let mut client = connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        Ok(Pair::new(server, client))
+        Ok(pair)
     }
 
     fn ecdsa_sign(
@@ -214,11 +201,11 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let mut pair = new_pair(callback, waker)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        poll_tls_pair(pair);
+        pair.handshake()?;
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, 0);
 
@@ -272,11 +259,11 @@ mod tests {
         let (waker, wake_count) = new_count_waker();
         let counter = testing::Counter::default();
         let callback = TestPkeyCallback(counter.clone());
-        let pair = new_pair(callback, waker)?;
+        let mut pair = new_pair(callback, waker)?;
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        poll_tls_pair(pair);
+        pair.handshake()?;
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, POLL_COUNT);
 
@@ -306,14 +293,11 @@ mod tests {
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        let result = poll_tls_pair_result(&mut pair);
+        let err = pair.handshake().unwrap_err();
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, 0);
 
-        match result {
-            Ok(_) => panic!("Handshake unexpectedly succeeded"),
-            Err(e) => testing::assert_test_error(e, ERROR),
-        };
+        assert_test_error(err, ERROR);
         Ok(())
     }
 
@@ -362,14 +346,11 @@ mod tests {
 
         assert_eq!(counter.count(), 0);
         assert_eq!(wake_count, 0);
-        let result = poll_tls_pair_result(&mut pair);
+        let err = pair.handshake().unwrap_err();
         assert_eq!(counter.count(), 1);
         assert_eq!(wake_count, POLL_COUNT);
 
-        match result {
-            Ok(_) => panic!("Handshake unexpectedly succeeded"),
-            Err(e) => testing::assert_test_error(e, ERROR),
-        };
+        assert_test_error(err, ERROR);
         Ok(())
     }
 }
