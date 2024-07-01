@@ -1,0 +1,1 @@
+LoadModule log_config_module ${APACHE_NIX_STORE}/modules/mod_log_config.so

@@ -65,16 +65,14 @@ function integ {
         echo "    the test build s2n-tls from the main branch on github."
         echo "    Change the names of s2n[cd] to s2n[cd]_head and add those"
         echo "    binaries to \$PATH."
-        echo "- renegotiate_apache"
-        echo "   This test requires apache to be running. See codebuild/bin/s2n_apache.sh"
-        echo "    for more info."
         return
     fi
+    apache2_start
     if [[ -z "$1" ]]; then
-        banner "Running all integ tests except cross_compatibility, renegotiate_apache."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
+        banner "Running all integ tests except cross_compatibility."
+        (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility)" --verbose)
     else
-        banner "Warning: cross_compatibility & renegotiate_apache are not supported in nix for various reasons integ help for more info."
+        banner "Warning: cross_compatibility is not supported in nix for various reasons. See `integ help` for more info."
         for test in $@; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
@@ -160,3 +158,34 @@ function test_nonstandard_compilation {
     ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
 }
 
+function apache2_config(){
+    export APACHE_NIX_STORE=$(dirname $(dirname $(which httpd)))
+    export APACHE2_INSTALL_DIR=/usr/local/apache2
+    export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
+    export APACHE_RUN_USER=nobody
+    # Unprivileged groupname differs
+    export APACHE_RUN_GROUP=$(awk 'BEGIN{FS=":"} /65534/{print $1}' /etc/group)
+    export APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid"
+    export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" 
+    export APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock"
+    export APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log" 
+    export APACHE_CERT_DIR="$SRC_ROOT/tests/pems"
+}
+
+function apache2_start(){
+    if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
+        apache2_config
+        if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+            mkdir -p $APACHE2_INSTALL_DIR/{run,log,lock}
+            # NixOs specific base apache config
+            cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
+            # Integrationv2::renegotiate site
+            cp -R ./codebuild/bin/apache2/{www,sites-enabled} $APACHE2_INSTALL_DIR
+        fi
+        httpd -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
+        trap 'pkill httpd' ERR EXIT
+    else
+      echo "Apache is already running...and if the APACHE2_INSTALL_DIR is stale, it might be in an unknown state."
+    fi
+
+}

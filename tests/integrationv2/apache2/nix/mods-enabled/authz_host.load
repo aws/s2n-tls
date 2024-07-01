@@ -1,0 +1,2 @@
+# Depends: authz_core
+LoadModule authz_host_module ${APACHE_NIX_STORE}/modules/mod_authz_host.so
