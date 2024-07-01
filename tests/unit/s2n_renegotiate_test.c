@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
     uint8_t app_data[] = "smaller hello world";
     uint8_t large_app_data[S2N_TLS_MAXIMUM_FRAGMENT_LENGTH] = "hello world and a lot of zeroes";
@@ -275,7 +275,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(small_frag_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(small_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(small_frag_config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(small_frag_config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(small_frag_config, "20240501"));
             EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(small_frag_config));
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(small_frag_config, S2N_TLS_MAX_FRAG_LEN_512));
 
@@ -283,7 +283,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(larger_frag_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(larger_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(larger_frag_config, chain_and_key));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(larger_frag_config, "default"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(larger_frag_config, "20240501"));
             EXPECT_SUCCESS(s2n_config_accept_max_fragment_length(larger_frag_config));
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(larger_frag_config, S2N_TLS_MAX_FRAG_LEN_4096));
 
