@@ -532,6 +532,8 @@ static int s2n_config_add_cert_chain_and_key_impl(struct s2n_config *config, str
     POSIX_ENSURE_REF(config->domain_name_to_cert_map);
     POSIX_ENSURE_REF(cert_key_pair);
 
+    POSIX_GUARD_RESULT(s2n_security_policy_validate_certificate_chain(config->security_policy, cert_key_pair));
+
     s2n_pkey_type cert_type = s2n_cert_chain_and_key_get_pkey_type(cert_key_pair);
     config->is_rsa_cert_configured |= (cert_type == S2N_PKEY_TYPE_RSA);
 
@@ -567,6 +569,11 @@ S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *conf
     RESULT_ENSURE_REF(config);
     RESULT_ENSURE_REF(security_policy);
 
+    if (security_policy->certificate_key_preferences == NULL
+            && security_policy->certificate_signature_preferences == NULL) {
+        return S2N_RESULT_OK;
+    }
+
     /* validate the default certs */
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         struct s2n_cert_chain_and_key *cert = config->default_certs_by_type.certs[i];
@@ -577,6 +584,10 @@ S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *conf
     }
 
     /* validate the certs in the domain map */
+    if (config->domain_name_to_cert_map == NULL) {
+        return S2N_RESULT_OK;
+    }
+
     struct s2n_map_iterator iter = { 0 };
     RESULT_GUARD(s2n_map_iterator_init(&iter, config->domain_name_to_cert_map));
 
