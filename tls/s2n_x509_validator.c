@@ -874,21 +874,13 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     int status = 0;
     int reason = 0;
 
-    /* extract hash algorithm used to hash values in cert_id struct and ensure it's sha1 */
-    OCSP_SINGLERESP *single = OCSP_resp_get0(basic_response, 0);
-    RESULT_ENSURE(single != NULL, S2N_ERR_CERT_UNTRUSTED);
-
-    OCSP_CERTID *cid = (OCSP_CERTID *) OCSP_SINGLERESP_get0_id(single);
-    RESULT_ENSURE(cid != NULL, S2N_ERR_CERT_UNTRUSTED);
-
-    const EVP_MD *dgst = NULL;
-    ASN1_OBJECT *pmd = NULL;
-    RESULT_GUARD_OSSL(OCSP_id_get0_info(NULL, &pmd, NULL, NULL, cid), S2N_ERR_CERT_UNTRUSTED);
-    dgst = EVP_get_digestbyobj(pmd);
-    int dgst_nid = EVP_MD_type(dgst);
-    RESULT_ENSURE(dgst_nid == NID_sha1, S2N_ERR_UNSUPPORTED_OCSP_HASH);
-
-    /* sha1 is the only supported OCSP digest */
+    /* SHA-1 is the only supported OCSP digest due to its wide compatibility and established use
+    * in existing systems. Supporting additional hash algorithms would require changes to error 
+    * handling and compatibility checks, which are not currently justified by user demand. For 
+    * verifying OCSP response with non-SHA-1 hash algorithm, users can call 
+    * s2n_connection_get_ocsp_response() to retrieve the received OCSP stapling information for 
+    * manual verification. 
+    */
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
 
