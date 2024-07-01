@@ -105,6 +105,33 @@ static uint8_t verify_host_verify_alt(const char *host_name, size_t host_name_le
     return 0;
 }
 
+struct verify_host_fallthrough_data {
+    const char *expected_san;
+    const char *expected_cn;
+    bool found_san;
+    bool found_cn;
+    uint8_t callback_invoked;
+};
+static uint8_t verify_host_fallthrough(const char *host_name, size_t host_name_len, void *data)
+{
+    struct verify_host_fallthrough_data *verify_data =
+            (struct verify_host_fallthrough_data *) data;
+    verify_data->callback_invoked++;
+
+    if (!verify_data->found_san) {
+        if (strcmp(host_name, verify_data->expected_san) == 0) {
+            verify_data->found_san = true;
+            return 0;
+        }
+    } else if (!verify_data->found_cn) {
+        if (strcmp(host_name, verify_data->expected_cn) == 0) {
+            verify_data->found_cn = true;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* some tests try to mock the system time to a date post 2038. If this test is
  * run on a platform where time_t is 32 bits, the time_t will overflow, so we
  * only run these tests on platforms with a 64 bit time_t.
@@ -373,6 +400,47 @@ int main(int argc, char **argv)
 
         s2n_x509_validator_wipe(&validator);
         s2n_x509_trust_store_wipe(&trust_store);
+    };
+
+    /* Test that validator falls back to valid CN if URI SAN is found but invalid
+     */
+    {
+        DEFER_CLEANUP(struct s2n_x509_trust_store trust_store = { 0 },
+                s2n_x509_trust_store_wipe);
+        s2n_x509_trust_store_init_empty(&trust_store);
+        EXPECT_SUCCESS(s2n_x509_trust_store_from_ca_file(&trust_store,
+                S2N_RSA_2048_SHA256_URI_SANS_CERT, NULL));
+
+        DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
+        EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 1));
+
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
+        struct verify_host_fallthrough_data verify_data = {
+            .expected_san = "foo://bar",
+            .expected_cn = "s2nTestServer",
+        };
+        EXPECT_SUCCESS(s2n_connection_set_verify_host_callback(conn,
+                verify_host_fallthrough, &verify_data));
+
+        DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_OK(s2n_test_cert_chain_data_from_pem(conn,
+                S2N_RSA_2048_SHA256_URI_SANS_CERT, &cert_chain_stuffer));
+        uint32_t chain_len = s2n_stuffer_data_available(&cert_chain_stuffer);
+        uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
+        EXPECT_NOT_NULL(chain_data);
+
+        DEFER_CLEANUP(struct s2n_pkey public_key_out = { 0 }, s2n_pkey_free);
+        EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
+        s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+        EXPECT_OK(s2n_x509_validator_validate_cert_chain(&validator,
+                conn, chain_data, chain_len, &pkey_type, &public_key_out));
+
+        EXPECT_EQUAL(verify_data.callback_invoked, 2);
+        EXPECT_TRUE(verify_data.found_san);
+        EXPECT_TRUE(verify_data.found_cn);
     };
 
     /* test validator in safe mode, with properly configured trust store, using s2n PEM Parser. */
