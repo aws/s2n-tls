@@ -1021,8 +1021,7 @@ int s2n_cipher_suites_init(void)
             /* Can we use the record algorithm's cipher? Won't be available if the system CPU architecture
              * doesn't support it or if the libcrypto lacks the feature. All hmac_algs are supported.
              */
-            bool cipher_available = false;
-            if (s2n_result_is_ok(cur_suite->all_record_algs[j]->cipher->is_available(&cipher_available)) && cipher_available) {
+            if (cur_suite->all_record_algs[j]->cipher->is_available()) {
                 /* Found a supported record algorithm. Use it. */
                 cur_suite->available = 1;
                 cur_suite->record_alg = cur_suite->all_record_algs[j];
@@ -1037,8 +1036,7 @@ int s2n_cipher_suites_init(void)
         }
 
         /* Initialize SSLv3 cipher suite if SSLv3 utilizes a different record algorithm */
-        bool cipher_available = false;
-        if (cur_suite->sslv3_record_alg && s2n_result_is_ok(cur_suite->sslv3_record_alg->cipher->is_available(&cipher_available)) && cipher_available) {
+        if (cur_suite->sslv3_record_alg && cur_suite->sslv3_record_alg->cipher->is_available()) {
             struct s2n_blob cur_suite_mem = { 0 };
             POSIX_GUARD(s2n_blob_init(&cur_suite_mem, (uint8_t *) cur_suite, sizeof(struct s2n_cipher_suite)));
             struct s2n_blob new_suite_mem = { 0 };

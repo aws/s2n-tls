@@ -34,16 +34,13 @@
     #define S2N_CHACHA20_POLY1305_AVAILABLE_OSSL
 #endif
 
-static S2N_RESULT s2n_aead_chacha20_poly1305_available(bool *available)
+static bool s2n_aead_chacha20_poly1305_available(void)
 {
-    RESULT_ENSURE_REF(available);
-
 #if defined(S2N_CHACHA20_POLY1305_AVAILABLE_OSSL) || defined(S2N_CHACHA20_POLY1305_AVAILABLE_BSSL_AWSLC)
-    *available = 1;
+    return true;
 #else
-    *available = 0;
+    return false;
 #endif
-    return S2N_RESULT_OK;
 }
 
 #if defined(S2N_CHACHA20_POLY1305_AVAILABLE_OSSL) /* OpenSSL implementation */

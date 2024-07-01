@@ -30,13 +30,10 @@ static const EVP_CIPHER *s2n_evp_rc4()
 #endif
 }
 
-static S2N_RESULT s2n_stream_cipher_rc4_available(bool *available)
+static bool s2n_stream_cipher_rc4_available(void)
 {
-    RESULT_ENSURE_REF(available);
-
     if (s2n_is_in_fips_mode()) {
-        *available = 0;
-        return S2N_RESULT_OK;
+        return false;
     }
 
     /* RC4 MIGHT be available in Openssl-3.0, depending on whether or not the
@@ -44,13 +41,10 @@ static S2N_RESULT s2n_stream_cipher_rc4_available(bool *available)
      * is unavailable.
      */
     if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
-        *available = 0;
-        return S2N_RESULT_OK;
+        return false;
     }
 
-    *available = (s2n_evp_rc4() ? 1 : 0);
-
-    return S2N_RESULT_OK;
+    return (s2n_evp_rc4() ? true : false);
 }
 
 static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)

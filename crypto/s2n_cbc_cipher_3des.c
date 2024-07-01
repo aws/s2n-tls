@@ -21,13 +21,9 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static S2N_RESULT s2n_cbc_cipher_3des_available(bool *available)
+static bool s2n_cbc_cipher_3des_available(void)
 {
-    RESULT_ENSURE_REF(available);
-
-    *available = (EVP_des_ede3_cbc() ? 1 : 0);
-
-    return S2N_RESULT_OK;
+    return (EVP_des_ede3_cbc() ? true : false);
 }
 
 static int s2n_cbc_cipher_3des_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)

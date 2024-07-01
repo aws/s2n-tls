@@ -82,7 +82,7 @@ struct s2n_cipher {
         struct s2n_composite_cipher comp;
     } io;
     uint8_t key_material_size;
-    S2N_RESULT (*is_available)(bool *available);
+    bool (*is_available)(void);
     int (*init)(struct s2n_session_key *key);
     int (*set_decryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
     int (*set_encryption_key)(struct s2n_session_key *key, struct s2n_blob *in);

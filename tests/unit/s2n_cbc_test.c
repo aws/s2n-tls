@@ -57,9 +57,7 @@ int main(int argc, char **argv)
                 }
 
                 /* Skip unsupported ciphers. */
-                bool is_cipher_available = false;
-                EXPECT_OK(test_cipher_suite.record_alg->cipher->is_available(&is_cipher_available));
-                if (!is_cipher_available) {
+                if (!test_cipher_suite.record_alg->cipher->is_available()) {
                     continue;
                 }
 

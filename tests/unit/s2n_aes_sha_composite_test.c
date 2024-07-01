@@ -66,20 +66,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Skip test if we can't use the ciphers */
-    bool is_aes128_sha_available = false;
-    bool is_aes256_sha_available = false;
-    bool is_aes128_sha256_available = false;
-    bool is_aes256_sha256_available = false;
-
-    EXPECT_OK(s2n_aes128_sha.is_available(&is_aes128_sha_available));
-    EXPECT_OK(s2n_aes256_sha.is_available(&is_aes256_sha_available));
-    EXPECT_OK(s2n_aes128_sha256.is_available(&is_aes128_sha256_available));
-    EXPECT_OK(s2n_aes256_sha256.is_available(&is_aes256_sha256_available));
-
-    if (!is_aes128_sha_available
-            || !is_aes256_sha_available
-            || !is_aes128_sha256_available
-            || !is_aes256_sha256_available) {
+    if (!s2n_aes128_sha.is_available()
+            || !s2n_aes256_sha.is_available()
+            || !s2n_aes128_sha256.is_available()
+            || !s2n_aes256_sha256.is_available()) {
         END_TEST();
     }
 

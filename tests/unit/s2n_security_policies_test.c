@@ -567,9 +567,7 @@ int main(int argc, char **argv)
     }
 
     /* Test that security policies have valid chacha20 boosting configurations when chacha20 is available */
-    bool cipher_available = false;
-    EXPECT_OK(s2n_chacha20_poly1305.is_available(&cipher_available));
-    if (cipher_available) {
+    if (s2n_chacha20_poly1305.is_available()) {
         for (size_t i = 0; security_policy_selection[i].version != NULL; i++) {
             const struct s2n_security_policy *sec_policy = security_policy_selection[i].security_policy;
             EXPECT_NOT_NULL(sec_policy);

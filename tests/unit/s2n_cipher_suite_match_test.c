@@ -684,9 +684,7 @@ int main(int argc, char **argv)
             conn->actual_protocol_version = S2N_TLS13;
             conn->server_protocol_version = S2N_TLS13;
 
-            bool is_chacha20_poly1305_available = false;
-            EXPECT_OK(s2n_chacha20_poly1305.is_available(&is_chacha20_poly1305_available));
-            if (is_chacha20_poly1305_available) {
+            if (s2n_chacha20_poly1305.is_available()) {
                 EXPECT_SUCCESS(s2n_set_cipher_as_tls_server(conn, wire_ciphers2, count));
                 EXPECT_EQUAL(conn->secure->cipher_suite, &s2n_tls13_chacha20_poly1305_sha256);
             } else {
@@ -912,9 +910,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
 
-        bool is_chacha20_poly1305_available = false;
-        EXPECT_OK(s2n_chacha20_poly1305.is_available(&is_chacha20_poly1305_available));
-        if (is_chacha20_poly1305_available) {
+        if (s2n_chacha20_poly1305.is_available()) {
             /* Test chacha20 boosting when ciphersuites fail auth validation */
             {
                 DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
@@ -1376,9 +1372,7 @@ int main(int argc, char **argv)
             };
         }
 
-        is_chacha20_poly1305_available = false;
-        EXPECT_OK(s2n_chacha20_poly1305.is_available(&is_chacha20_poly1305_available));
-        if (!is_chacha20_poly1305_available) {
+        if (!s2n_chacha20_poly1305.is_available()) {
             /* Chacha20 can't be negotiated when it's not available in libcrypto */
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(connection);
