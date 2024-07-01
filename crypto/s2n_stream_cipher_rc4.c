@@ -35,7 +35,6 @@ static bool s2n_stream_cipher_rc4_available(void)
     if (s2n_is_in_fips_mode()) {
         return false;
     }
-
     /* RC4 MIGHT be available in Openssl-3.0, depending on whether or not the
      * "legacy" provider is loaded. However, for simplicity, assume that RC4
      * is unavailable.
@@ -43,7 +42,6 @@ static bool s2n_stream_cipher_rc4_available(void)
     if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
         return false;
     }
-
     return (s2n_evp_rc4() ? true : false);
 }
 

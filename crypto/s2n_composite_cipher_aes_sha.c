@@ -95,7 +95,6 @@ static bool s2n_composite_cipher_aes128_sha_available(void)
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-
     return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha1() ? true : false);
 }
 
@@ -105,7 +104,6 @@ static bool s2n_composite_cipher_aes256_sha_available(void)
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-
     return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha1() ? true : false);
 }
 
@@ -115,7 +113,6 @@ static bool s2n_composite_cipher_aes128_sha256_available(void)
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-
     return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha256() ? true : false);
 }
 
@@ -125,7 +122,6 @@ static bool s2n_composite_cipher_aes256_sha256_available(void)
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-
     return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha256() ? true : false);
 }
 
