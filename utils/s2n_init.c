@@ -12,6 +12,9 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+#include "utils/s2n_init.h"
+
 #include <pthread.h>
 
 #include "crypto/s2n_fips.h"
@@ -112,17 +115,30 @@ static bool s2n_cleanup_atexit_impl(void)
 
 int s2n_cleanup(void)
 {
-    /* s2n_cleanup is supposed to be called from each thread before exiting,
-     * so ensure that whatever clean ups we have here are thread safe */
-    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
+    POSIX_GUARD(s2n_cleanup_thread());
 
     /* If this is the main thread and atexit cleanup is disabled,
      * perform final cleanup now */
     if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
-        /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
-        POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-        POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
+        POSIX_GUARD(s2n_cleanup_final());
     }
+
+    return 0;
+}
+
+int s2n_cleanup_thread(void)
+{
+    /* s2n_cleanup_thread is supposed to be called from each thread before exiting,
+     * so ensure that whatever clean ups we have here are thread safe */
+    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
+    return 0;
+}
+
+int s2n_cleanup_final(void)
+{
+    /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
+    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
 
     return 0;
 }
