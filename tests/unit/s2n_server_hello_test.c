@@ -170,11 +170,15 @@ int main(int argc, char **argv)
 
     /* Test Server Hello Recv with invalid cipher */
     {
-        struct s2n_connection *server_conn = NULL;
-        struct s2n_connection *client_conn = NULL;
+        DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client_conn);
+        DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server_conn);
 
-        EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client_conn, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240501"));
 
         server_conn->actual_protocol_version = S2N_TLS12;
 
@@ -189,9 +193,6 @@ int main(int argc, char **argv)
 
         /* The client should fail the handshake because an invalid cipher was offered */
         EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_recv(client_conn), S2N_ERR_CIPHER_NOT_SUPPORTED);
-
-        EXPECT_SUCCESS(s2n_connection_free(client_conn));
-        EXPECT_SUCCESS(s2n_connection_free(server_conn));
     };
 
     /* Non-matching session IDs turn off EMS for the connection */
