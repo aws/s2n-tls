@@ -1137,6 +1137,7 @@ struct s2n_security_policy_selection security_policy_selection[] = {
     { .version = "default_tls13", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "default_fips", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240701", .security_policy = &security_policy_20240701, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
+    /* Previous 'default' policy with no TLS1.3 support */
     { .version = "20240501", .security_policy = &security_policy_20240501, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240502", .security_policy = &security_policy_20240502, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
     { .version = "20240503", .security_policy = &security_policy_20240503, .ecc_extension_required = 0, .pq_kem_extension_required = 0 },
@@ -1309,7 +1310,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
-    /* If the certificates loaded in the config are incompatible with the security 
+    /* If the certificates loaded in the config are incompatible with the security
      * policy's certificate preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
 
