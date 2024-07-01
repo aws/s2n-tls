@@ -34,7 +34,7 @@
  *
  * This feature requires this Openssl commit for Openssl 1.1.x versions: openssl/openssl@4088b92
  */
-#if RSA_PSS_SIGNING_SUPPORTED && OPENSSL_VERSION_NUMBER > 0x1010104fL
+#if defined(S2N_LIBCRYPTO_SUPPORTS_RSA_PSS_SIGNING) && OPENSSL_VERSION_NUMBER > 0x1010104fL
     #define RSA_PSS_CERTS_SUPPORTED 1
 #else
     #define RSA_PSS_CERTS_SUPPORTED 0

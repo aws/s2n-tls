@@ -405,7 +405,7 @@ int main(int argc, char **argv)
      * The server sends a HelloRetryRequest that requires the client to generate a
      * key share on the server negotiated curve.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *= type=test
      *# Otherwise, the client MUST process all extensions in the
      *# HelloRetryRequest and send a second updated ClientHello.
@@ -469,7 +469,7 @@ int main(int argc, char **argv)
      * The server then sends a HelloRetryRequest that requires the
      * client to generate a key share on the P-256 curve.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.1
      *= type=test
      *# If the server selects an (EC)DHE group and the client did not offer a
      *# compatible "key_share" extension in the initial ClientHello, the
@@ -539,7 +539,7 @@ int main(int argc, char **argv)
      * Ensure the client aborts the handshake if more than one
      * HelloRetryRequest is received
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *= type=test
      *# If a client receives a second
      *# HelloRetryRequest in the same connection (i.e., where the ClientHello
@@ -620,7 +620,7 @@ int main(int argc, char **argv)
      * Ensure that s2n_random_value_is_hello_retry returns true for hello
      * retry random values, and false otherwise
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.3
      *= type=test
      *# Upon receiving a message with type server_hello, implementations MUST
      *# first examine the Random value and, if it matches this value, process
@@ -642,7 +642,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *= type=test
      *# Upon receiving
      *# the ServerHello, clients MUST check that the cipher suite supplied in
@@ -681,7 +681,7 @@ int main(int argc, char **argv)
     /*
      * Self-Talk
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2
      *= type=test
      *# The client will also send a
      *# ClientHello when the server has responded to its ClientHello with a
@@ -928,7 +928,7 @@ int main(int argc, char **argv)
         /* Test: Ensure that the connection fails if the cipher suite list changes such that the
          * server cannot negotiate its original selection from the first ClientHello
          *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *= type=test
          *# Servers MUST ensure that they negotiate the
          *# same cipher suite when receiving a conformant updated ClientHello (if
@@ -1449,7 +1449,7 @@ int main(int argc, char **argv)
      * Ensure all hello retry extensions sent by the server will have first
      * been sent by the client.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *= type=test
      *# As with the ServerHello, a HelloRetryRequest MUST NOT contain any
      *# extensions that were not first offered by the client in its
@@ -1477,7 +1477,7 @@ int main(int argc, char **argv)
      * legacy_session_id_echo, cipher_suite, and
      * legacy_compression_method
      *
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *= type=test
      *# Upon receipt of a HelloRetryRequest, the client MUST check the
      *# legacy_version, legacy_session_id_echo, cipher_suite, and
@@ -1588,7 +1588,7 @@ int main(int argc, char **argv)
         /**
          * The client MUST check the cipher_suite
          *
-         *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
          *= type=test
          *# A client which receives a cipher suite that was not offered MUST
          *# abort the handshake.
@@ -1683,7 +1683,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *= type=test
      *# The server's extensions MUST contain "supported_versions".
      **/
@@ -1747,7 +1747,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
      *= type=test
      *# Servers MUST ensure that they negotiate the
      *# same cipher suite when receiving a conformant updated ClientHello (if
@@ -1818,7 +1818,7 @@ int main(int argc, char **argv)
       * Ensure that the client aborts the handshake if selected_version
       * differs in the received server hellos
       *
-      *= https://tools.ietf.org/rfc/rfc8446#4.1.4
+      *= https://www.rfc-editor.org/rfc/rfc8446#4.1.4
       *= type=test
       *# The value of selected_version in the HelloRetryRequest
       *# "supported_versions" extension MUST be retained in the ServerHello,
@@ -1872,7 +1872,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
      *= type=test
      *# Upon receipt of this extension in a HelloRetryRequest, the client
      *# MUST verify that (1) the selected_group field corresponds to a group
@@ -1953,7 +1953,7 @@ int main(int argc, char **argv)
     };
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+     *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
      *= type=test
      *# If using (EC)DHE key establishment and a HelloRetryRequest containing a
      *# "key_share" extension was received by the client, the client MUST

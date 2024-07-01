@@ -17,6 +17,7 @@
 
 #include "api/s2n.h"
 #include "crypto/s2n_hash.h"
+#include "crypto/s2n_pkey.h"
 #include "crypto/s2n_signature.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_signature_scheme.h"
@@ -35,3 +36,5 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn);
 int s2n_recv_supported_sig_scheme_list(struct s2n_stuffer *in, struct s2n_sig_scheme_list *sig_hash_algs);
 S2N_RESULT s2n_signature_algorithms_supported_list_send(struct s2n_connection *conn,
         struct s2n_stuffer *out);
+
+S2N_RESULT s2n_signature_algorithm_get_pkey_type(s2n_signature_algorithm sig_alg, s2n_pkey_type *pkey_type);

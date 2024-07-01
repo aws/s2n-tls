@@ -94,6 +94,11 @@ struct s2n_security_policy_selection {
 
 extern struct s2n_security_policy_selection security_policy_selection[];
 
+/* Defaults as of 05/24 */
+extern const struct s2n_security_policy security_policy_20240501;
+extern const struct s2n_security_policy security_policy_20240502;
+extern const struct s2n_security_policy security_policy_20240503;
+
 extern const struct s2n_security_policy security_policy_20140601;
 extern const struct s2n_security_policy security_policy_20141001;
 extern const struct s2n_security_policy security_policy_20150202;
@@ -117,6 +122,8 @@ extern const struct s2n_security_policy security_policy_20230317;
 extern const struct s2n_security_policy security_policy_20240331;
 extern const struct s2n_security_policy security_policy_20240417;
 extern const struct s2n_security_policy security_policy_20240416;
+extern const struct s2n_security_policy security_policy_20240603;
+
 extern const struct s2n_security_policy security_policy_rfc9151;
 extern const struct s2n_security_policy security_policy_test_all;
 

@@ -14,6 +14,7 @@ env:
   RUST_NIGHTLY_TOOLCHAIN: nightly-2024-01-01
   ROOT_PATH: bindings/rust
   EXAMPLE_WORKSPACE: bindings/rust-examples
+  PCAP_TEST_PATH: tests/pcap
 
 jobs:
   generate:
@@ -256,3 +257,32 @@ jobs:
       - name: Check MSRV of s2n-tokio
         run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-tokio/Cargo.toml
 
+  pcaps:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: true
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable --component clippy
+          rustup override set stable
+
+      - name: Install tshark
+        run: sudo apt-get install -y tshark
+
+      - name: Generate bindings
+        working-directory: ${{env.ROOT_PATH}}
+        run: ./generate.sh --skip-tests
+
+      - name: Run lints
+        working-directory: ${{env.PCAP_TEST_PATH}}
+        run: |
+          cargo fmt --all -- --check
+          cargo clippy --all-targets -- -D warnings
+
+      - name: Run tests
+        working-directory: ${{env.PCAP_TEST_PATH}}
+        run: cargo test

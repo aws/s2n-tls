@@ -1241,16 +1241,17 @@ int main(int argc, char **argv)
     if (s2n_is_tls13_fully_supported()) {
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
+
+        /* Freeze time */
+        POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
+        EXPECT_OK(s2n_config_mock_wall_clock(config, &now));
+
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name1, s2n_array_len(ticket_key_name1),
                 ticket_key1, s2n_array_len(ticket_key1), 0));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
-
-        /* Freeze time */
-        POSIX_GUARD(config->wall_clock(config->sys_clock_ctx, &now));
-        EXPECT_OK(s2n_config_mock_wall_clock(config, &now));
 
         /* Send one NewSessionTicket */
         cb_session_data_len = 0;

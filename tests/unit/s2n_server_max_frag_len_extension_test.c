@@ -72,7 +72,7 @@ int main(int argc, char **argv)
 
     /* Test receive - does not match requested value
      *
-     *= https://tools.ietf.org/rfc/rfc6066#section-4
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-4
      *= type=test
      *# Similarly, if a client
      *# receives a maximum fragment length negotiation response that differs

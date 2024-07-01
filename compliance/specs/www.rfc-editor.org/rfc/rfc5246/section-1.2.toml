@@ -1,0 +1,94 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-1.2"
+
+# 1.2.  Major Differences from TLS 1.1
+#
+# This document is a revision of the TLS 1.1 [TLS1.1] protocol which
+# contains improved flexibility, particularly for negotiation of
+# cryptographic algorithms.  The major changes are:
+# 
+# -  The MD5/SHA-1 combination in the pseudorandom function (PRF) has
+#    been replaced with cipher-suite-specified PRFs.  All cipher suites
+#    in this document use P_SHA256.
+# 
+# -  The MD5/SHA-1 combination in the digitally-signed element has been
+#    replaced with a single hash.  Signed elements now include a field
+#    that explicitly specifies the hash algorithm used.
+# 
+# -  Substantial cleanup to the client's and server's ability to
+#    specify which hash and signature algorithms they will accept.
+#    Note that this also relaxes some of the constraints on signature
+#    and hash algorithms from previous versions of TLS.
+# 
+# -  Addition of support for authenticated encryption with additional
+#    data modes.
+# 
+# -  TLS Extensions definition and AES Cipher Suites were merged in
+#    from external [TLSEXT] and [TLSAES].
+# 
+# -  Tighter checking of EncryptedPreMasterSecret version numbers.
+# 
+# -  Tightened up a number of requirements.
+# 
+# -  Verify_data length now depends on the cipher suite (default is
+#    still 12).
+# 
+# -  Cleaned up description of Bleichenbacher/Klima attack defenses.
+# 
+# -  Alerts MUST now be sent in many cases.
+# 
+# -  After a certificate_request, if no certificates are available,
+#    clients now MUST send an empty certificate list.
+# 
+# -  TLS_RSA_WITH_AES_128_CBC_SHA is now the mandatory to implement
+#    cipher suite.
+# 
+# -  Added HMAC-SHA256 cipher suites.
+# 
+# -  Removed IDEA and DES cipher suites.  They are now deprecated and
+#    will be documented in a separate document.
+# 
+# -  Support for the SSLv2 backward-compatible hello is now a MAY, not
+#    a SHOULD, with sending it a SHOULD NOT.  Support will probably
+#    become a SHOULD NOT in the future.
+# 
+# -  Added limited "fall-through" to the presentation language to allow
+#    multiple case arms to have the same encoding.
+# 
+# -  Added an Implementation Pitfalls sections
+# 
+# -  The usual clarifications and editorial work.
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  Alerts MUST now be sent in many cases.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  After a certificate_request, if no certificates are available,
+clients now MUST send an empty certificate list.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+-  Support for the SSLv2 backward-compatible hello is now a MAY, not
+a SHOULD, with sending it a SHOULD NOT.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+-  Support for the SSLv2 backward-compatible hello is now a MAY, not
+a SHOULD, with sending it a SHOULD NOT.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Support will probably
+become a SHOULD NOT in the future.
+'''
+
