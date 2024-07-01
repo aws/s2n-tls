@@ -13,8 +13,6 @@
 # permissions and limitations under the License.
 set -eu
 source ./codebuild/bin/utils.sh
-# Disable PQ
-export S2N_NO_PQ=1
 export AWS_S3_BUCKET="s3://s2n-tls-logs/"
 # Limit the number of child processes in the test run
 export RUST_BACKTRACE=1
