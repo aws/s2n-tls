@@ -76,18 +76,18 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(config);
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     DEFER_CLEANUP(struct s2n_config *config_with_reneg_cb = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(config_with_reneg_cb);
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_reneg_cb, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_reneg_cb, "20240501"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_reneg_cb));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_reneg_cb, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config_with_reneg_cb, s2n_test_reneg_req_cb, NULL));
 
-    /* Test: Hello requests received during the handshake are a no-op */
+    /* Test: Hello requests received during the handshake are a no-op for TLS1.2 */
     {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -167,7 +167,7 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_config *config_with_warns = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config_with_warns);
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_warns, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_warns, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_warns));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_warns, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_alert_behavior(config_with_warns, S2N_ALERT_IGNORE_WARNINGS));
