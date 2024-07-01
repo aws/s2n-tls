@@ -874,7 +874,13 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     int status = 0;
     int reason = 0;
 
-    /* sha1 is the only supported OCSP digest */
+    /* SHA-1 is the only supported OCSP digest due to its wide compatibility and established use
+    * in existing systems. Supporting additional hash algorithms would require changes to error 
+    * handling and compatibility checks, which are not currently justified by user demand. For 
+    * verifying OCSP response with non-SHA-1 hash algorithm, users can call 
+    * s2n_connection_get_ocsp_response() to retrieve the received OCSP stapling information for 
+    * manual verification. 
+    */
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
 
