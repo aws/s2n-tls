@@ -157,7 +157,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config);
 
         /* TLS1.2 cipher preferences */
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -208,7 +208,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
@@ -228,7 +228,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
-        /* s2n clients support EMS by default. To manually prevent them from sending the EMS extension, add a 
+        /* s2n clients support EMS by default. To manually prevent them from sending the EMS extension, add a
          * resumption ticket to the connection, which indicates the previous session did not negotiate
          * EMS and therefore this session shouldn't either. The resumption ticket does not have to be valid
          * as this test is only interested in EMS. */
@@ -253,7 +253,7 @@ int main(int argc, char **argv)
         struct s2n_config *config = s2n_config_new();
         EXPECT_NOT_NULL(config);
 
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,

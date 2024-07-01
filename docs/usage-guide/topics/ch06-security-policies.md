@@ -6,7 +6,7 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 
 ## Supported TLS Versions
 
-Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.
+TLS 1.3 support is enabled by default.
 
 ### SSL 3.0, TLS 1.0, and TLS 1.1
 s2n-tls supports older versions, but their use is not recommended.
@@ -17,6 +17,9 @@ Compatibility with older versions of TLS may also require support for older ciph
 s2n-tls will not negotiate SSL 2.0, but will accept SSLv2 ClientHellos advertising a higher protocol version like TLS1.2. See the ["Compatibility with SSL 2.0"](https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2) section in the TLS 1.2 RFC.
 
 Compatibility with SSLv2 ClientHellos advertising TLS1.2 may require similar support for older ciphersuites as compatibility with older versions of TLS does. In particular, SSLv2 ClientHellos are likely to require support for SHA1 and either RSA or DHE key exchange. This is due to technical limitations of the SSLv2 ClientHello, which does not include TLS extensions.
+||||||| parent of 36abc9eef (wip: add tls13 to default)
+Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.
+**Note:** s2n-tls does not support SSL2.0 for sending and receiving encrypted data, but does accept SSL2.0 hello messages.
 
 ### Chart: Security Policy Version To Protocol Version And Ciphersuites
 
@@ -24,9 +27,11 @@ The following chart maps the security policy version to protocol version and cip
 
 |    version    | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3 | AES-CBC | AES-GCM | CHACHAPOLY | 3DES | RC4 | DHE | ECDHE | RSA kx |
 |---------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|--------|
-|    default    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
-| default_fips  |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
+|    default    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
+| default_fips  |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
 | default_tls13 |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
+|   20240701    |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
+|   20240702    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
 |   20240501    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240502    |        |        |    X   |        |    X    |    X    |            |      |     |     |   X   |        |
 |   20240503    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
@@ -55,12 +60,11 @@ The following chart maps the security policy version to protocol version and cip
 The "default", "default_tls13", and "default_fips" versions are special in that they will be updated with future s2n-tls changes to keep up-to-date with current security best practices. Ciphersuites, protocol versions, and other options may be added or removed, or their internal order of preference might change. **Warning**: this means that the default policies may change as a result of library updates, which could break peers that rely on legacy options.
 
 In contrast, numbered or dated versions are fixed and will never change. The numbered equivalents of the default policies are currently:
-* "default": "20240501"
-* "default_fips": "20240502"
+* "default": "20240701"
+* "default_fips": "20240702"
 * "default_tls13": "20240503"
-For previous defaults, see the "Default Policy History" section below.
 
-"default_fips" does not currently support TLS1.3. If you need a policy that supports both FIPS and TLS1.3, choose "20230317". We plan to add TLS1.3 support to both "default" and "default_fips" in the future.
+For previous defaults versions, see the "Default Policy History" section below.
 
 "rfc9151" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151). This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
 Like the default policies, this policy may also change if the source RFC definition changes.
@@ -85,6 +89,8 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |    default    |     X     |   X   |              |    X    |
 | default_fips  |     X     |   X   |              |    X    |
 | default_tls13 |     X     |   X   |              |    X    |
+|   20240701    |     X     |   X   |              |    X    |
+|   20240701    |     X     |   X   |              |    X    |
 |   20240501    |     X     |   X   |              |    X    |
 |   20240502    |     X     |   X   |              |    X    |
 |   20240503    |     X     |   X   |              |    X    |
@@ -120,6 +126,8 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 |    default    |     X     |     X     |    X   |
 | default_fips  |     X     |     X     |        |
 | default_tls13 |     X     |     X     |    X   |
+|   20240701    |     X     |     X     |    X   |
+|   20240702    |     X     |     X     |        |
 |   20240501    |     X     |     X     |    X   |
 |   20240502    |     X     |     X     |        |
 |   20240503    |     X     |     X     |    X   |
@@ -147,5 +155,6 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 ### Default Policy History
 |  Version   | "default" | "default_fips" | "default_tls13" |
 |------------|-----------|----------------|-----------------|
+|  v1.4.TODO   | 20240701  |   20247502     |    20240503     |
 |  v1.4.16   | 20240501  |   20240502     |    20240503     |
 |   Older    | 20170210  |   20240416     |    20240417     |

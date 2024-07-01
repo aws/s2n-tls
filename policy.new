@@ -1,0 +1,15 @@
+NEW
+
+                                   protocol                        security_policy
+
+                                | tls12  tls13  |  default  default_fips  default_tls13  default_tls12
+                                |               |
+ * non_fips:                    |               |
+ *   no_call:                   |          N    |     x
+ *   s2n_enable_tls13_in_test:  |          x    |     N
+ *   s2n_disable_tls13_in_test: |   x           |                                            N
+ *                              |               |
+ * fips:                        |               |
+ *   no_call:                   |          N    |               x
+ *   s2n_enable_tls13_in_test:  |          x    |               N
+ *   s2n_disable_tls13_in_test: |   x           |                                            N

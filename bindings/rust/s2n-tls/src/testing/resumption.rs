@@ -66,11 +66,13 @@ mod tests {
     fn resume_session() -> Result<(), Box<dyn Error>> {
         let keypair = CertKeyPair::default();
 
+        let tls12_policy = security::Policy::from_version("20240502")?;
         // Initialize config for server with a ticket key
         let mut server_config_builder = Builder::new();
         server_config_builder
             .add_session_ticket_key(&KEYNAME, &KEY, SystemTime::now())?
-            .load_pem(keypair.cert(), keypair.key())?;
+            .load_pem(keypair.cert(), keypair.key())?
+            .set_security_policy(&tls12_policy)?;
         let server_config = server_config_builder.build()?;
 
         let handler = SessionTicketHandler::default();
@@ -83,7 +85,8 @@ mod tests {
             .set_session_ticket_callback(handler.clone())?
             .trust_pem(keypair.cert())?
             .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
-            .set_connection_initializer(handler)?;
+            .set_connection_initializer(handler)?
+            .set_security_policy(&tls12_policy)?;
         let client_config = client_config_builder.build()?;
 
         // initial handshake, no resumption

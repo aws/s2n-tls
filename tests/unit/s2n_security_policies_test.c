@@ -178,17 +178,26 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
-        EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
         security_policy = NULL;
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kems);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &security_policy));
+        EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
+        EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
+        EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->kem_count);
+        EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
+        EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
         /* The "all" security policy contains both TLS 1.2 KEM extension and TLS 1.3 KEM SupportedGroup entries*/
         security_policy = NULL;
@@ -452,8 +461,6 @@ int main(int argc, char **argv)
 
     {
         char tls12_only_security_policy_strings[][255] = {
-            "default",
-            "default_fips",
             "ELBSecurityPolicy-TLS-1-0-2015-04",
             "ELBSecurityPolicy-TLS-1-0-2015-05",
             "ELBSecurityPolicy-2016-08",
@@ -512,6 +519,8 @@ int main(int argc, char **argv)
         }
 
         char tls13_security_policy_strings[][255] = {
+            "default",
+            "default_fips",
             "default_tls13",
             "test_all",
             "test_all_tls13",
@@ -1041,6 +1050,7 @@ int main(int argc, char **argv)
         {
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20170210,
+                &security_policy_20240701,
                 &security_policy_20240501,
             };
 
@@ -1077,6 +1087,7 @@ int main(int argc, char **argv)
             const struct s2n_security_policy *versioned_policies[] = {
                 &security_policy_20240416,
                 &security_policy_20240502,
+                &security_policy_20240702,
             };
 
             const struct s2n_supported_cert supported_certs[] = {

@@ -143,7 +143,7 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240502"));
     EXPECT_SUCCESS(s2n_config_ktls_enable_unsafe_tls13(config));
 
     /* Even if we detected ktls support at compile time, enabling ktls
