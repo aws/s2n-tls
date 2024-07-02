@@ -65,11 +65,12 @@ static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
-    const struct s2n_security_policy *default_security_policy = NULL, *tls13_security_policy = NULL, *fips_security_policy = NULL;
+    const struct s2n_security_policy *default_security_policy = NULL, *tls12_security_policy = NULL,
+                                     *tls13_security_policy = NULL, *fips_security_policy = NULL;
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &tls12_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
@@ -81,10 +82,13 @@ int main(int argc, char **argv)
 
     /* Test: s2n_config_new and tls13_default_config match */
     {
-        struct s2n_config *config = NULL, *default_config = NULL;
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
 
-        EXPECT_NOT_NULL(config = s2n_config_new());
+        struct s2n_config *default_config = NULL;
         EXPECT_NOT_NULL(default_config = s2n_fetch_default_config());
+        EXPECT_NOT_NULL(default_config);
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
         EXPECT_EQUAL(default_config->security_policy, config->security_policy);
@@ -97,15 +101,15 @@ int main(int argc, char **argv)
         /* TLS1.3 default does not match non-TLS1.3 default */
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_NOT_EQUAL(default_config, s2n_fetch_default_config());
-        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_reset_tls13_in_test());
     };
 
     /* Connections created with default configs */
     {
         /* For TLS1.2 */
         if (!s2n_is_in_fips_mode()) {
+            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
             struct s2n_connection *conn = NULL;
             const struct s2n_security_policy *security_policy = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -113,9 +117,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
 
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_EQUAL(security_policy, default_security_policy);
+            EXPECT_EQUAL(security_policy, tls12_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
+            EXPECT_SUCCESS(s2n_reset_tls13_in_test());
         }
 
         /* For TLS1.3 */
@@ -128,10 +133,10 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
 
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_EQUAL(security_policy, tls13_security_policy);
+            EXPECT_EQUAL(security_policy, default_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+            EXPECT_SUCCESS(s2n_reset_tls13_in_test());
         };
 
         /* For fips */
@@ -146,7 +151,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(security_policy, fips_security_policy);
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
     };
 
@@ -162,7 +166,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(config = s2n_config_new());
             EXPECT_EQUAL(config->security_policy, tls13_security_policy);
             EXPECT_SUCCESS(s2n_config_free(config));
-            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+            EXPECT_SUCCESS(s2n_reset_tls13_in_test());
         }
     };
 
