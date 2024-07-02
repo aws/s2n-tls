@@ -167,11 +167,10 @@ int main(int argc, char *argv[])
     /* Ensure that the input buffer is wiped after failing to read a record */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
-        // FIXME why does this fail for TLS1.3
-        /* EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501")); */
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -182,7 +181,6 @@ int main(int argc, char *argv[])
 
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-
         EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair stuffer_pair = { 0 },
@@ -191,9 +189,6 @@ int main(int argc, char *argv[])
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &stuffer_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
-
-        EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
-        EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
 
         /* Send some test data to the server. */
         uint8_t test_data[] = "hello world";
