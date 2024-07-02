@@ -71,20 +71,20 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
     return 0;
 }
 
-static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_ENSURE_EQ(in->size, 16);
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_ENSURE_EQ(in->size, 16);
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
