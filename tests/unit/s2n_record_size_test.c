@@ -38,8 +38,8 @@
 
 static int destroy_server_keys(struct s2n_connection *server_conn)
 {
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
 
     return S2N_SUCCESS;
 }
@@ -116,8 +116,8 @@ int main(int argc, char **argv)
 
         /* Clean up */
         conn->secure->cipher_suite->record_alg = &s2n_record_alg_null; /* restore mutated null cipher suite */
-        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
-        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
+        EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
+        EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
     };
 
     /* Test s2n_record_max_write_payload_size() have proper checks in place */

@@ -189,22 +189,22 @@ static int s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n_sessio
     return S2N_SUCCESS;
 }
 
-static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
-    POSIX_ENSURE_REF(key);
+    RESULT_ENSURE_REF(key);
 
     EVP_AEAD_CTX_zero(key->evp_aead_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 {
-    POSIX_ENSURE_REF(key);
+    RESULT_ENSURE_REF(key);
 
     EVP_AEAD_CTX_cleanup(key->evp_aead_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 #else /* Standard AES-GCM implementation */
@@ -368,11 +368,11 @@ static S2N_RESULT s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
     return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 #endif

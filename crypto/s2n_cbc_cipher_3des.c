@@ -81,11 +81,11 @@ static S2N_RESULT s2n_cbc_cipher_3des_init(struct s2n_session_key *key)
     return S2N_RESULT_OK;
 }
 
-static int s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 const struct s2n_cipher s2n_3des = {

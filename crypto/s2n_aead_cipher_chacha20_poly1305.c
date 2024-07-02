@@ -150,11 +150,11 @@ static S2N_RESULT s2n_aead_chacha20_poly1305_init(struct s2n_session_key *key)
     return S2N_RESULT_OK;
 }
 
-static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 #elif defined(S2N_CHACHA20_POLY1305_AVAILABLE_BSSL_AWSLC) /* BoringSSL and AWS-LC implementation */
@@ -219,11 +219,11 @@ static S2N_RESULT s2n_aead_chacha20_poly1305_init(struct s2n_session_key *key)
     return S2N_RESULT_OK;
 }
 
-static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
 {
     EVP_AEAD_CTX_cleanup(key->evp_aead_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 #else /* No ChaCha20-Poly1305 implementation exists for chosen cryptographic provider (E.g Openssl 1.0.x) */
@@ -253,9 +253,9 @@ static S2N_RESULT s2n_aead_chacha20_poly1305_init(struct s2n_session_key *key)
     RESULT_BAIL(S2N_ERR_KEY_INIT);
 }
 
-static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
 {
-    POSIX_BAIL(S2N_ERR_KEY_DESTROY);
+    RESULT_BAIL(S2N_ERR_KEY_DESTROY);
 }
 
 #endif

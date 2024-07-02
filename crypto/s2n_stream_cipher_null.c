@@ -38,9 +38,9 @@ static int s2n_stream_cipher_null_get_key(struct s2n_session_key *key, struct s2
     return 0;
 }
 
-static int s2n_stream_cipher_null_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_stream_cipher_null_destroy_key(struct s2n_session_key *key)
 {
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static S2N_RESULT s2n_stream_cipher_null_init(struct s2n_session_key *key)

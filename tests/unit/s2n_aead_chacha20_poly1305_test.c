@@ -31,8 +31,8 @@
 
 static int destroy_server_keys(struct s2n_connection *server_conn)
 {
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
     return 0;
 }
 
@@ -182,8 +182,8 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-        POSIX_GUARD(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->server_key));
-        POSIX_GUARD(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->client_key));
+        POSIX_GUARD_RESULT(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->server_key));
+        POSIX_GUARD_RESULT(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->client_key));
 
         /* Tamper with the TAG and ensure decryption fails */
         for (size_t j = 0; j < S2N_TLS_CHACHA20_POLY1305_TAG_LEN; j++) {
@@ -208,8 +208,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-            POSIX_GUARD(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->server_key));
-            POSIX_GUARD(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->client_key));
+            POSIX_GUARD_RESULT(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->server_key));
+            POSIX_GUARD_RESULT(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->client_key));
         }
 
         /* Tamper with the encrypted payload in the ciphertext and ensure decryption fails */
@@ -235,8 +235,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->header_in));
             EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
-            POSIX_GUARD(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->server_key));
-            POSIX_GUARD(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->client_key));
+            POSIX_GUARD_RESULT(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->server_key));
+            POSIX_GUARD_RESULT(conn->initial->cipher_suite->record_alg->cipher->destroy_key(&conn->initial->client_key));
         }
     }
 
