@@ -20,11 +20,11 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "tls/s2n_tls.h"
 
-bool s2n_use_default_tls13_config_flag = false;
+static s2n_testing_config_override s2n_config_override_flag = S2N_NO_CONFIG_PREFERENCE;
 
-bool s2n_use_default_tls13_config()
+s2n_testing_config_override s2n_testing_get_config_override()
 {
-    return s2n_use_default_tls13_config_flag;
+    return s2n_config_override_flag;
 }
 
 bool s2n_is_tls13_fully_supported()
@@ -58,7 +58,7 @@ int s2n_enable_tls13()
 int s2n_enable_tls13_in_test()
 {
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_use_default_tls13_config_flag = true;
+    s2n_config_override_flag = S2N_USE_TLS_13_CONFIG;
     return S2N_SUCCESS;
 }
 
@@ -72,7 +72,7 @@ int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    s2n_use_default_tls13_config_flag = false;
+    s2n_config_override_flag = S2N_USE_TLS_12_CONFIG;
     return S2N_SUCCESS;
 }
 
@@ -85,7 +85,7 @@ int s2n_reset_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_use_default_tls13_config_flag = false;
+    s2n_config_override_flag = S2N_NO_CONFIG_PREFERENCE;
     return S2N_SUCCESS;
 }
 
