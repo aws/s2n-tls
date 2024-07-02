@@ -74,11 +74,11 @@ static int s2n_cbc_cipher_3des_set_encryption_key(struct s2n_session_key *key, s
     return 0;
 }
 
-static int s2n_cbc_cipher_3des_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_cbc_cipher_3des_init(struct s2n_session_key *key)
 {
-    s2n_evp_ctx_init(key->evp_cipher_ctx);
+    RESULT_EVP_CTX_INIT(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_cbc_cipher_3des_destroy_key(struct s2n_session_key *key)

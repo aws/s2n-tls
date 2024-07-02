@@ -143,11 +143,11 @@ static int s2n_aead_chacha20_poly1305_set_decryption_key(struct s2n_session_key 
     return 0;
 }
 
-static int s2n_aead_chacha20_poly1305_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_chacha20_poly1305_init(struct s2n_session_key *key)
 {
-    s2n_evp_ctx_init(key->evp_cipher_ctx);
+    RESULT_EVP_CTX_INIT(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 static int s2n_aead_chacha20_poly1305_destroy_key(struct s2n_session_key *key)
