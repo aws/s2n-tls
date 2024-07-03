@@ -25,7 +25,7 @@ int s2n_session_key_alloc(struct s2n_session_key *key)
 {
     POSIX_ENSURE_EQ(key->evp_cipher_ctx, NULL);
     POSIX_ENSURE_REF(key->evp_cipher_ctx = EVP_CIPHER_CTX_new());
-#if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
     POSIX_ENSURE_EQ(key->evp_aead_ctx, NULL);
     key->evp_aead_ctx = OPENSSL_malloc(sizeof(EVP_AEAD_CTX));
     if (key->evp_aead_ctx == NULL) {
@@ -44,7 +44,7 @@ int s2n_session_key_free(struct s2n_session_key *key)
         EVP_CIPHER_CTX_free(key->evp_cipher_ctx);
         key->evp_cipher_ctx = NULL;
     }
-#if defined(S2N_CIPHER_AEAD_API_AVAILABLE)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
     if (key->evp_aead_ctx != NULL) {
         EVP_AEAD_CTX_free(key->evp_aead_ctx);
         key->evp_aead_ctx = NULL;
