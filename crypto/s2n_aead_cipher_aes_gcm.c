@@ -22,7 +22,7 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
     #define S2N_AEAD_AES_GCM_AVAILABLE
 #endif
 
