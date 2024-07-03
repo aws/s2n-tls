@@ -109,7 +109,9 @@ static int s2n_config_init(struct s2n_config *config)
 
     POSIX_GUARD(s2n_config_setup_default(config));
 
-    switch (s2n_testing_get_config_override()) {
+    s2n_testing_config_override flag = S2N_NO_CONFIG_PREFERENCE;
+    POSIX_GUARD_RESULT(s2n_testing_get_config_override(&flag));
+    switch (flag) {
         case S2N_NO_CONFIG_PREFERENCE:
             break;
         case S2N_USE_TLS_12_CONFIG:
@@ -224,7 +226,9 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
-    switch (s2n_testing_get_config_override()) {
+    s2n_testing_config_override flag = S2N_NO_CONFIG_PREFERENCE;
+    PTR_GUARD_RESULT(s2n_testing_get_config_override(&flag));
+    switch (flag) {
         case S2N_NO_CONFIG_PREFERENCE:
             break;
         case S2N_USE_TLS_12_CONFIG:

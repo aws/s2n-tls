@@ -42,7 +42,7 @@ typedef enum {
     S2N_USE_TLS_13_CONFIG,
 } s2n_testing_config_override;
 
-s2n_testing_config_override s2n_testing_get_config_override();
+S2N_RESULT s2n_testing_get_config_override(s2n_testing_config_override *flag);
 bool s2n_is_tls13_fully_supported();
 int s2n_get_highest_fully_supported_tls_version();
 int s2n_enable_tls13_in_test();

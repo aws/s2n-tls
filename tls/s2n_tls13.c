@@ -22,9 +22,15 @@
 
 static s2n_testing_config_override s2n_config_override_flag = S2N_NO_CONFIG_PREFERENCE;
 
-s2n_testing_config_override s2n_testing_get_config_override()
+S2N_RESULT s2n_testing_get_config_override(s2n_testing_config_override *flag)
 {
-    return s2n_config_override_flag;
+    RESULT_ENSURE_REF(flag);
+    if (!s2n_in_unit_test()) {
+        RESULT_ENSURE_EQ(s2n_config_override_flag, S2N_NO_CONFIG_PREFERENCE);
+    }
+    *flag = s2n_config_override_flag;
+
+    return S2N_RESULT_OK;
 }
 
 bool s2n_is_tls13_fully_supported()
@@ -57,6 +63,7 @@ int s2n_enable_tls13()
  */
 int s2n_enable_tls13_in_test()
 {
+    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
     s2n_config_override_flag = S2N_USE_TLS_13_CONFIG;
     return S2N_SUCCESS;
