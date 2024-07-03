@@ -28,6 +28,7 @@ struct s2n_cipher_preferences {
 };
 
 extern const struct s2n_cipher_preferences cipher_preferences_20240701;
+extern const struct s2n_cipher_preferences cipher_preferences_20240702;
 extern const struct s2n_cipher_preferences cipher_preferences_20230317;
 extern const struct s2n_cipher_preferences cipher_preferences_20240331;
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;
