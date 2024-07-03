@@ -63,7 +63,6 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
     return 0;
 }
 
-/* Default now supports TLS1.3 */
 static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
 static struct s2n_config s2n_default_tls12_config = { 0 };
@@ -109,10 +108,10 @@ static int s2n_config_init(struct s2n_config *config)
 
     POSIX_GUARD(s2n_config_setup_default(config));
 
-    s2n_testing_config_override flag = S2N_NO_CONFIG_PREFERENCE;
+    s2n_testing_config_override flag = S2N_NO_CONFIG_OVERRIDE;
     POSIX_GUARD_RESULT(s2n_testing_get_config_override(&flag));
     switch (flag) {
-        case S2N_NO_CONFIG_PREFERENCE:
+        case S2N_NO_CONFIG_OVERRIDE:
             break;
         case S2N_USE_TLS_12_CONFIG:
             POSIX_GUARD(s2n_config_setup_tls12(config));
@@ -226,10 +225,10 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
-    s2n_testing_config_override flag = S2N_NO_CONFIG_PREFERENCE;
+    s2n_testing_config_override flag = S2N_NO_CONFIG_OVERRIDE;
     PTR_GUARD_RESULT(s2n_testing_get_config_override(&flag));
     switch (flag) {
-        case S2N_NO_CONFIG_PREFERENCE:
+        case S2N_NO_CONFIG_OVERRIDE:
             break;
         case S2N_USE_TLS_12_CONFIG:
             return &s2n_default_tls12_config;
@@ -266,7 +265,9 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
     }
 
-    /* TLS 1.2 default config is only used in tests so avoid initialization costs in applications */
+    /* TLS 1.2 default config is only used in tests so avoid initialization
+     * costs (s2n_config_load_system_certs) in applications
+     */
     POSIX_GUARD(s2n_config_init(&s2n_default_tls12_config));
     POSIX_GUARD(s2n_config_setup_tls12(&s2n_default_tls12_config));
 

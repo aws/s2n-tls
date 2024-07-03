@@ -37,7 +37,7 @@ S2N_API __attribute__((deprecated)) int s2n_enable_tls13();
 extern uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
 
 typedef enum {
-    S2N_NO_CONFIG_PREFERENCE = 0,
+    S2N_NO_CONFIG_OVERRIDE = 0,
     S2N_USE_TLS_12_CONFIG,
     S2N_USE_TLS_13_CONFIG,
 } s2n_testing_config_override;
