@@ -375,7 +375,7 @@ struct s2n_cipher_suite *cipher_suites_20240702[] = {
 
 const struct s2n_cipher_preferences cipher_preferences_20240702 = {
     .count = s2n_array_len(cipher_suites_20240702),
-    .suites = cipher_suites_20240331,
+    .suites = cipher_suites_20240702,
     .allow_chacha20_boosting = false,
 };
 
