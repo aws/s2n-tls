@@ -998,12 +998,6 @@ S2N_API extern int s2n_config_set_verify_host_callback(struct s2n_config *config
  * be skipped.
  *
  * The default value is 1 if the underlying libCrypto implementation supports OCSP. 
- *
- * @note SHA-1 is the only supported hash algorithm for the `certID` field. If a different hash 
- * algorithm is used, validation will fail and manual verification will be needed. This is 
- * different from the hash algorithm used for the signature algorithm. See 
- * [RFC6960](https://datatracker.ietf.org/doc/html/rfc6960#section-4.1.1) for details about 
- * `certID` field.
  * 
  * @param config The configuration object being updated
  * @param check_ocsp The desired OCSP response check configuration
@@ -1117,7 +1111,19 @@ typedef enum {
 /**
  * Sets up a connection to request the certificate status of a peer during an SSL handshake. If set
  * to S2N_STATUS_REQUEST_NONE, no status request is made.
- *
+ * 
+ * @note SHA-1 is the only supported hash algorithm for the `certID` field. This is different 
+ * from the hash algorithm used for the OCSP signature. If a different hash algorithm is used, 
+ * validation will fail.
+ * If the underlying libcrypto supports OCSP validation, the OCSP stapling information will 
+ * be automatically validated. Users can disable this OCSP verification by calling 
+ * `s2n_config_set_check_stapled_ocsp_response()` with "0" to turn OCSP validation off. Users may 
+ * use `s2n_connection_get_ocsp_response()` together with OCSP validation turned off to retrieve 
+ * the received OCSP stapling information for manual verification. This workaround is however 
+ * unlikely to be needed in most scenarios, as SHA-1 is typically used in the `certID` field.
+ * For more details about the `certID` field, refer to 
+ * [RFC6960](https://datatracker.ietf.org/doc/html/rfc6960#section-4.1.1).
+ * 
  * @param config The configuration object being updated
  * @param type The desired request status type
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
