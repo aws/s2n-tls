@@ -998,7 +998,7 @@ S2N_API extern int s2n_config_set_verify_host_callback(struct s2n_config *config
  * be skipped.
  *
  * The default value is 1 if the underlying libCrypto implementation supports OCSP. 
- * 
+ *
  * @param config The configuration object being updated
  * @param check_ocsp The desired OCSP response check configuration
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
