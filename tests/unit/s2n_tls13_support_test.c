@@ -30,22 +30,22 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     /* Test override behavior */
-    s2n_testing_config_override flag = S2N_NO_CONFIG_OVERRIDE;
+    s2n_testing_config_override flag = S2N_TESTING_NO_CONFIG_OVERRIDE;
 
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_NO_CONFIG_OVERRIDE);
+    EXPECT_EQUAL(flag, S2N_TESTING_NO_CONFIG_OVERRIDE);
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_USE_TLS_12_CONFIG);
+    EXPECT_EQUAL(flag, S2N_TESTING_USE_TLS_12_CONFIG);
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_USE_TLS_13_CONFIG);
+    EXPECT_EQUAL(flag, S2N_TESTING_USE_TLS_13_CONFIG);
 
     EXPECT_SUCCESS(s2n_reset_tls13_in_test());
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_NO_CONFIG_OVERRIDE);
+    EXPECT_EQUAL(flag, S2N_TESTING_NO_CONFIG_OVERRIDE);
 
     /* TLS1.3 is supported and configured by default */
     {
@@ -80,12 +80,12 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_USE_TLS_13_CONFIG);
+    EXPECT_EQUAL(flag, S2N_TESTING_USE_TLS_13_CONFIG);
 
     /* Re-enabling has no effect */
     EXPECT_SUCCESS(s2n_enable_tls13_in_test());
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_USE_TLS_13_CONFIG);
+    EXPECT_EQUAL(flag, S2N_TESTING_USE_TLS_13_CONFIG);
 
     /* If "enabled", TLS1.3 is supported and configured */
     {
@@ -120,12 +120,12 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_USE_TLS_12_CONFIG);
+    EXPECT_EQUAL(flag, S2N_TESTING_USE_TLS_12_CONFIG);
 
     /* Re-disabling has no effect */
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     EXPECT_OK(s2n_testing_get_config_override(&flag));
-    EXPECT_EQUAL(flag, S2N_USE_TLS_12_CONFIG);
+    EXPECT_EQUAL(flag, S2N_TESTING_USE_TLS_12_CONFIG);
 
     /* Test s2n_is_valid_tls13_cipher() */
     {

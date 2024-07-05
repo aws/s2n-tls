@@ -84,6 +84,7 @@ int main(int argc, char **argv)
         EXPECT_MEMCPY_SUCCESS(&server_cipher_preferences, default_cipher_preferences, sizeof(server_cipher_preferences));
         server_cipher_preferences.count = 1;
         struct s2n_cipher_suite *cur_cipher = default_cipher_preferences->suites[cipher_idx];
+        /* printf("\n======== cipher %s", cur_cipher->name); */
 
         if (!cur_cipher->available) {
             /* Skip ciphers that aren't supported with the linked libcrypto. */
@@ -102,9 +103,11 @@ int main(int argc, char **argv)
         struct s2n_test_io_pair io_pair;
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
+        /* printf("\n======== 1"); */
         EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
 
+        /* printf("\n======== 2"); */
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 

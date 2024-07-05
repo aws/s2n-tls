@@ -49,6 +49,13 @@
 struct s2n_cipher_preferences;
 
 typedef enum {
+    S2N_SETTING_DEFAULT = 0,
+    S2N_SETTING_FIPS,
+    S2N_SETTING_TESTING_TSL12,
+    S2N_SETTING_TESTING_TSL13,
+} s2n_default_config_setting;
+
+typedef enum {
     S2N_NOT_OWNED = 0,
     S2N_APP_OWNED,
     S2N_LIB_OWNED,

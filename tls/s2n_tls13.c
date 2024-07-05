@@ -21,7 +21,7 @@
 #include "tls/s2n_tls.h"
 
 /* Override the default config during testing */
-static s2n_testing_config_override s2n_config_override_flag = S2N_NO_CONFIG_OVERRIDE;
+static s2n_testing_config_override s2n_config_override_flag = S2N_TESTING_NO_CONFIG_OVERRIDE;
 
 S2N_RESULT s2n_testing_get_config_override(s2n_testing_config_override *flag)
 {
@@ -64,7 +64,7 @@ int s2n_enable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_config_override_flag = S2N_USE_TLS_13_CONFIG;
+    s2n_config_override_flag = S2N_TESTING_USE_TLS_13_CONFIG;
     return S2N_SUCCESS;
 }
 
@@ -78,7 +78,7 @@ int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    s2n_config_override_flag = S2N_USE_TLS_12_CONFIG;
+    s2n_config_override_flag = S2N_TESTING_USE_TLS_12_CONFIG;
     return S2N_SUCCESS;
 }
 
@@ -91,7 +91,7 @@ int s2n_reset_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_config_override_flag = S2N_NO_CONFIG_OVERRIDE;
+    s2n_config_override_flag = S2N_TESTING_NO_CONFIG_OVERRIDE;
     return S2N_SUCCESS;
 }
 

@@ -77,9 +77,7 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      */
     struct s2n_connection *conn = (struct s2n_connection *) (void *) blob.data;
 
-    /* printf("\n-------------------- %c", '2'); */
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
-    /* printf("\n-------------------- %c", '4'); */
 
     /* `mode` is initialized here since it's passed in as a parameter. */
     conn->mode = mode;
