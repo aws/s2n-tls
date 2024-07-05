@@ -49,11 +49,14 @@
 struct s2n_cipher_preferences;
 
 typedef enum {
-    S2N_SETTING_DEFAULT = 0,
-    S2N_SETTING_FIPS,
-    S2N_SETTING_TESTING_TSL12,
-    S2N_SETTING_TESTING_TSL13,
-} s2n_default_config_setting;
+    S2N_SEC_POLICY_SETTING_DEFAULT = 0,
+    S2N_SEC_POLICY_SETTING_FIPS,
+    /* Support for the deprecated mechanism of setting security policies in tests
+     * via `s2n_testing_security_policy_override`
+     */
+    S2N_SEC_POLICY_SETTING_TESTING_TSL12,
+    S2N_SEC_POLICY_SETTING_TESTING_TSL13,
+} s2n_default_security_policy_setting;
 
 typedef enum {
     S2N_NOT_OWNED = 0,

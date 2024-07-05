@@ -21,9 +21,9 @@
 #include "tls/s2n_tls.h"
 
 /* Override the default config during testing */
-static s2n_testing_config_override s2n_config_override_flag = S2N_TESTING_NO_CONFIG_OVERRIDE;
+static s2n_testing_security_policy_override s2n_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
 
-S2N_RESULT s2n_testing_get_config_override(s2n_testing_config_override *flag)
+S2N_RESULT s2n_testing_get_security_policy_override(s2n_testing_security_policy_override *flag)
 {
     RESULT_ENSURE_REF(flag);
     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
@@ -48,6 +48,22 @@ int s2n_get_highest_fully_supported_tls_version()
  *
  * Please consider using the default behavior and configuring
  * TLS1.2/TLS1.3 via explicit security policy instead.
+ *
+ * FIXME: -----------------
+ * Tracing the history back, it seems like we use to expose this as a public API
+ * and therefore need to continue supporting it. However, it calls the function `..in_test`
+ * which is not great.
+ *
+ * For sanity, I would like to add `POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST)` to
+ * all default overrides in this file. Therefore I think we should either:
+ * - (recommended) remove this function, since TLS1.3 is going to be enabled by default.
+ * - expose a different mechanism to enable tls1.3 without calling `s2n_enable_tls13_in_test`.
+ *
+ * In the long term we need to remove the use of `s2n_enable_tls13_in_test` and
+ * `s2n_disable_tls13_in_test`. These are only used for tests, and set/get global state and
+ * make testing/reasoning very difficult.
+ *
+ * FIXME: -----------------
  */
 int s2n_enable_tls13()
 {
@@ -64,7 +80,7 @@ int s2n_enable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_config_override_flag = S2N_TESTING_USE_TLS_13_CONFIG;
+    s2n_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_USE_TLS13;
     return S2N_SUCCESS;
 }
 
@@ -78,7 +94,7 @@ int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    s2n_config_override_flag = S2N_TESTING_USE_TLS_12_CONFIG;
+    s2n_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_USE_TLS12;
     return S2N_SUCCESS;
 }
 
@@ -91,7 +107,7 @@ int s2n_reset_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_config_override_flag = S2N_TESTING_NO_CONFIG_OVERRIDE;
+    s2n_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
     return S2N_SUCCESS;
 }
 

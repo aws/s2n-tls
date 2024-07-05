@@ -30,7 +30,7 @@ int main(int argc, char **argv)
 
     const struct s2n_security_policy *default_security_policy = NULL, *tls12_security_policy = NULL, *tls13_security_policy = NULL,
                                      *fips_security_policy = NULL;
-    EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &tls12_security_policy));
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240502", &tls12_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
