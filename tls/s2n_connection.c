@@ -77,7 +77,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
      */
     struct s2n_connection *conn = (struct s2n_connection *) (void *) blob.data;
 
+    /* printf("\n-------------------- %c", '2'); */
     PTR_GUARD_POSIX(s2n_connection_set_config(conn, s2n_fetch_default_config()));
+    /* printf("\n-------------------- %c", '4'); */
 
     /* `mode` is initialized here since it's passed in as a parameter. */
     conn->mode = mode;
@@ -363,7 +365,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
      * However, the s2n_config_set_verification_ca_location behavior predates client authentication
      * support for OCSP stapling, so could only affect whether clients requested OCSP stapling. We
      * therefore only have to maintain the legacy behavior for clients, not servers.
-     * 
+     *
      * Note: The Rust bindings do not maintain the legacy behavior.
      */
     conn->request_ocsp_status = config->ocsp_status_requested_by_user;
@@ -1189,11 +1191,11 @@ uint64_t s2n_connection_get_delay(struct s2n_connection *conn)
 
 /* s2n-tls has a random delay that will trigger for sensitive errors. This is a mitigation
  * for possible timing sidechannels.
- * 
+ *
  * The historical sidechannel that inspired s2n-tls blinding was the Lucky 13 attack, which takes
  * advantage of potential timing differences when removing padding from a record encrypted in CBC mode.
- * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur 
- * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and 
+ * The attack is only theoretical in TLS; the attack criteria is unlikely to ever occur
+ * (See: Fardan, N. J. A., & Paterson, K. G. (2013, May 1). Lucky Thirteen: Breaking the TLS and
  * DTLS Record Protocols.) However, we still include blinding to provide a defense in depth mitigation.
  */
 S2N_RESULT s2n_connection_calculate_blinding(struct s2n_connection *conn, int64_t *min, int64_t *max)

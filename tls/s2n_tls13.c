@@ -26,9 +26,7 @@ static s2n_testing_config_override s2n_config_override_flag = S2N_NO_CONFIG_OVER
 S2N_RESULT s2n_testing_get_config_override(s2n_testing_config_override *flag)
 {
     RESULT_ENSURE_REF(flag);
-    if (!s2n_in_unit_test()) {
-        RESULT_ENSURE_EQ(s2n_config_override_flag, S2N_NO_CONFIG_OVERRIDE);
-    }
+    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     *flag = s2n_config_override_flag;
 
     return S2N_RESULT_OK;

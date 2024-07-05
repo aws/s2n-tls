@@ -65,7 +65,8 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 
 static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
-static struct s2n_config s2n_default_tls12_config = { 0 };
+static struct s2n_config s2n_testing_tls12_config = { 0 };
+static struct s2n_config s2n_testing_tls13_config = { 0 };
 
 static int s2n_config_setup_default(struct s2n_config *config)
 {
@@ -75,7 +76,8 @@ static int s2n_config_setup_default(struct s2n_config *config)
 
 static int s2n_config_setup_tls12(struct s2n_config *config)
 {
-    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "20240501"));
+    /* TLS1.2 and FIPS compliant */
+    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "20240502"));
     return S2N_SUCCESS;
 }
 
@@ -225,20 +227,32 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
+    /* printf("\n-------------------- %s", "22"); */
     s2n_testing_config_override flag = S2N_NO_CONFIG_OVERRIDE;
     PTR_GUARD_RESULT(s2n_testing_get_config_override(&flag));
-    switch (flag) {
-        case S2N_NO_CONFIG_OVERRIDE:
-            break;
-        case S2N_USE_TLS_12_CONFIG:
-            return &s2n_default_tls12_config;
-        case S2N_USE_TLS_13_CONFIG:
-            return &s2n_default_config;
+    /* printf("\n--------------------bla %u", flag); */
+    if (flag == S2N_USE_TLS_13_CONFIG) {
+        PTR_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+        return &s2n_testing_tls13_config;
     }
-
     if (s2n_is_in_fips_mode()) {
+        // FIXME return fips 12
         return &s2n_default_fips_config;
     }
+
+    if (flag == S2N_USE_TLS_12_CONFIG) {
+        PTR_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+        return &s2n_testing_tls12_config;
+    }
+    /* switch (flag) { */
+    /*     case S2N_NO_CONFIG_OVERRIDE: */
+    /*         break; */
+    /*     case S2N_USE_TLS_12_CONFIG: */
+    /*         return &s2n_default_tls12_config; */
+    /*     case S2N_USE_TLS_13_CONFIG: */
+    /*         return &s2n_default_config; */
+    /* } */
+
     return &s2n_default_config;
 }
 
@@ -254,22 +268,27 @@ int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
 int s2n_config_defaults_init(void)
 {
     /* Set up fips defaults */
+    /* printf("\n-------------------- %s", "12"); */
     if (s2n_is_in_fips_mode()) {
+        /* printf("\n-------------------- %s", "1f"); */
         POSIX_GUARD(s2n_config_init(&s2n_default_fips_config));
         POSIX_GUARD(s2n_config_setup_fips(&s2n_default_fips_config));
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_fips_config));
     } else {
+        printf("\n-------------------- %s", "13");
         /* Set up default */
         POSIX_GUARD(s2n_config_init(&s2n_default_config));
         POSIX_GUARD(s2n_config_setup_default(&s2n_default_config));
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
     }
 
-    /* TLS 1.2 default config is only used in tests so avoid initialization
-     * costs (s2n_config_load_system_certs) in applications
+    /* Only used in tests so avoid initialization costs
+     * (s2n_config_load_system_certs) for applications
      */
-    POSIX_GUARD(s2n_config_init(&s2n_default_tls12_config));
-    POSIX_GUARD(s2n_config_setup_tls12(&s2n_default_tls12_config));
+    POSIX_GUARD(s2n_config_init(&s2n_testing_tls12_config));
+    POSIX_GUARD(s2n_config_setup_tls12(&s2n_testing_tls12_config));
+    POSIX_GUARD(s2n_config_init(&s2n_testing_tls13_config));
+    POSIX_GUARD(s2n_config_setup_tls13(&s2n_testing_tls13_config));
 
     return S2N_SUCCESS;
 }
@@ -278,7 +297,8 @@ void s2n_wipe_static_configs(void)
 {
     s2n_config_cleanup(&s2n_default_fips_config);
     s2n_config_cleanup(&s2n_default_config);
-    s2n_config_cleanup(&s2n_default_tls12_config);
+    s2n_config_cleanup(&s2n_testing_tls12_config);
+    s2n_config_cleanup(&s2n_testing_tls13_config);
 }
 
 int s2n_config_load_system_certs(struct s2n_config *config)
