@@ -1111,7 +1111,7 @@ typedef enum {
 /**
  * Sets up a connection to request the certificate status of a peer during an SSL handshake. If set
  * to S2N_STATUS_REQUEST_NONE, no status request is made.
- * 
+ *
  * @note SHA-1 is the only supported hash algorithm for the `certID` field. This is different 
  * from the hash algorithm used for the OCSP signature. If a different hash algorithm is used, 
  * validation will fail.
