@@ -170,7 +170,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240502"));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
