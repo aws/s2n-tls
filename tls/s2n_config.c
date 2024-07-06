@@ -93,29 +93,37 @@ static int s2n_config_setup_fips(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
+/* Determine the default security policy when creating a new config.
+ *
+ * s2n_config is instantiated with the 'default' security policy or 'default_fips'
+ * if a FIPS compliant libcrypto is used.
+ *
+ * In testing, a TLS1.2/TLS1.3 compliant security policy can be used. The
+ * testing override take precedence over the default behavior.
+ */
 static S2N_RESULT s2n_get_default_security_policy_setting(s2n_default_security_policy_setting *config_setting)
 {
+    RESULT_ENSURE_REF(config_setting);
+
+    /* Get test override settings */
     s2n_testing_security_policy_override flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
     RESULT_GUARD(s2n_testing_get_security_policy_override(&flag));
-    /* printf("\n--------------------fetch_default flag: %u", flag); */
+
+    /* printf("\n--------------------sec_policy_setting flag: %u", flag); */
     if (flag == S2N_TESTING_SEC_POLICY_OVERRIDE_USE_TLS13) {
-        /* printf("\n--------------------fetch_default policy: 13"); */
+        /* printf("\n--------------------sec_policy_setting policy: 13"); */
         RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL13;
-        return S2N_RESULT_OK;
-    }
-    if (flag == S2N_TESTING_SEC_POLICY_OVERRIDE_USE_TLS12) {
-        /* printf("\n--------------------fetch_default policy: 12"); */
+    } else if (flag == S2N_TESTING_SEC_POLICY_OVERRIDE_USE_TLS12) {
+        /* printf("\n--------------------sec_policy_setting policy: 12"); */
         RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL12;
-        return S2N_RESULT_OK;
-    }
-
-    *config_setting = S2N_SEC_POLICY_SETTING_DEFAULT;
-    if (s2n_is_in_fips_mode()) {
-        /* printf("\n--------------------fetch_default policy: fips"); */
+    } else if (s2n_is_in_fips_mode()) {
+        /* printf("\n--------------------sec_policy_setting policy: fips"); */
         *config_setting = S2N_SEC_POLICY_SETTING_FIPS;
-        return S2N_RESULT_OK;
+    } else {
+        /* printf("\n--------------------sec_policy_setting policy: default"); */
+        *config_setting = S2N_SEC_POLICY_SETTING_DEFAULT;
     }
 
     return S2N_RESULT_OK;
@@ -136,20 +144,6 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
-    POSIX_GUARD(s2n_config_setup_default(config));
-
-    /* s2n_testing_config_override flag = S2N_TESTING_NO_CONFIG_OVERRIDE; */
-    /* POSIX_GUARD_RESULT(s2n_testing_get_config_override(&flag)); */
-    /* switch (flag) { */
-    /*     case S2N_TESTING_NO_CONFIG_OVERRIDE: */
-    /*         break; */
-    /*     case S2N_TESTING_USE_TLS_12_CONFIG: */
-    /*         POSIX_GUARD(s2n_config_setup_tls12(config)); */
-    /*         break; */
-    /*     case S2N_TESTING_USE_TLS_13_CONFIG: */
-    /*         POSIX_GUARD(s2n_config_setup_tls13(config)); */
-    /*         break; */
-    /* } */
     s2n_default_security_policy_setting setting = S2N_SEC_POLICY_SETTING_DEFAULT;
     POSIX_GUARD_RESULT(s2n_get_default_security_policy_setting(&setting));
     switch (setting) {

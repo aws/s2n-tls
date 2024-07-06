@@ -26,7 +26,11 @@ static s2n_testing_security_policy_override s2n_config_override_flag = S2N_TESTI
 S2N_RESULT s2n_testing_get_security_policy_override(s2n_testing_security_policy_override *flag)
 {
     RESULT_ENSURE_REF(flag);
-    RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    /* Security policy override is only used for testing. */
+    if (!s2n_in_unit_test()) {
+        *flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
+        return S2N_RESULT_OK;
+    }
     *flag = s2n_config_override_flag;
 
     return S2N_RESULT_OK;
