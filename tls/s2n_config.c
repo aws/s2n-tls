@@ -65,8 +65,8 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 
 static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
-static struct s2n_config s2n_testing_tls12_config = { 0 };
-static struct s2n_config s2n_testing_tls13_config = { 0 };
+static struct s2n_config s2n_testing_default_tls12_config = { 0 };
+static struct s2n_config s2n_testing_default_tls13_config = { 0 };
 
 static int s2n_config_setup_default(struct s2n_config *config)
 {
@@ -269,9 +269,9 @@ struct s2n_config *s2n_fetch_default_config(void)
         case S2N_SEC_POLICY_SETTING_FIPS:
             return &s2n_default_fips_config;
         case S2N_SEC_POLICY_SETTING_TESTING_TSL12:
-            return &s2n_testing_tls12_config;
+            return &s2n_testing_default_tls12_config;
         case S2N_SEC_POLICY_SETTING_TESTING_TSL13:
-            return &s2n_testing_tls13_config;
+            return &s2n_testing_default_tls13_config;
     }
 
     return &s2n_default_config;
@@ -284,6 +284,13 @@ int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
     config->disable_x509_validation = 1;
 
     return S2N_SUCCESS;
+}
+
+S2N_RESULT s2n_config_testing_defaults_init_certs(void)
+{
+    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_testing_default_tls12_config));
+    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_testing_default_tls13_config));
+    return S2N_RESULT_OK;
 }
 
 int s2n_config_defaults_init(void)
@@ -308,13 +315,13 @@ int s2n_config_defaults_init(void)
     if (s2n_in_unit_test()) {
         /* printf("\n--------------------defaults_init %s", "testing_12"); */
         /* printf("\n--------------------defaults_init %s", "testing_13"); */
-        POSIX_GUARD(s2n_config_init(&s2n_testing_tls12_config));
-        POSIX_GUARD(s2n_config_setup_tls12(&s2n_testing_tls12_config));
-        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_tls12_config));
+        POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls12_config));
+        POSIX_GUARD(s2n_config_setup_tls12(&s2n_testing_default_tls12_config));
 
-        POSIX_GUARD(s2n_config_init(&s2n_testing_tls13_config));
-        POSIX_GUARD(s2n_config_setup_tls13(&s2n_testing_tls13_config));
-        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_tls13_config));
+        POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls13_config));
+        POSIX_GUARD(s2n_config_setup_tls13(&s2n_testing_default_tls13_config));
+
+        POSIX_GUARD_RESULT(s2n_config_testing_defaults_init_certs());
     }
 
     return S2N_SUCCESS;
@@ -324,8 +331,8 @@ void s2n_wipe_static_configs(void)
 {
     s2n_config_cleanup(&s2n_default_fips_config);
     s2n_config_cleanup(&s2n_default_config);
-    s2n_config_cleanup(&s2n_testing_tls12_config);
-    s2n_config_cleanup(&s2n_testing_tls13_config);
+    s2n_config_cleanup(&s2n_testing_default_tls12_config);
+    s2n_config_cleanup(&s2n_testing_default_tls13_config);
 }
 
 int s2n_config_load_system_certs(struct s2n_config *config)
