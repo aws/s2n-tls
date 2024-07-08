@@ -874,8 +874,8 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     int status = 0;
     int reason = 0;
 
-    /* SHA-1 is the only supported hash algorithm for the CertID due to its wide compatibility and 
-     * established use in OCSP responders. 
+    /* SHA-1 is the only supported hash algorithm for the CertID due to its established use in 
+     * OCSP responders. 
      */
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
