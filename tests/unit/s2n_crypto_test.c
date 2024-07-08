@@ -128,11 +128,6 @@ int main()
              * so this testing limitation is not a concern.
              */
 
-            // remove this and build with ossl1.0.2-fips to replicate error
-            //     if (s2n_is_in_fips_mode() && version == S2N_SSLv3) {
-            //         continue;
-            //     }
-
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
