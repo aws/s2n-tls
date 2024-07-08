@@ -127,9 +127,11 @@ int main()
              * Retrieving the master secret won't vary between FIPS and non-FIPS,
              * so this testing limitation is not a concern.
              */
-            if (s2n_is_in_fips_mode() && version == S2N_SSLv3) {
-                continue;
-            }
+
+            // remove this and build with ossl1.0.2-fips to replicate error
+            //     if (s2n_is_in_fips_mode() && version == S2N_SSLv3) {
+            //         continue;
+            //     }
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
