@@ -1535,7 +1535,7 @@ int main(int argc, char **argv)
         }
 
         /* Server does send tickets when legacy tickets are disabled and TLS1.3 is negotiated */
-        if (s2n_is_tls13_fully_supported()){
+        if (s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
