@@ -4,11 +4,11 @@ NEW
 
  * non_fips:
  *   no_call:                          N    ||       x
- *   enable_tls13:                     x    ||                                   x
+ *   enable_tls13:                     x    ||       N
  *   disable_tls13:       x                 ||                                                    N
  *
  * fips:
  *   no_call:                          N    ||                   x
- *   enable_tls13:                     x    ||                                   x
+ *   enable_tls13:                     x    ||                   N
  *   disable_tls13:       x                 ||                                                    N
 

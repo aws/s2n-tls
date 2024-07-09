@@ -70,7 +70,6 @@ static struct s2n_config s2n_default_fips_config = { 0 };
  * underlying libcrypto FIPS support.
  */
 static struct s2n_config s2n_testing_default_tls12_config = { 0 };
-static struct s2n_config s2n_testing_default_tls13_config = { 0 };
 
 static int s2n_config_setup_default(struct s2n_config *config)
 {
@@ -82,12 +81,6 @@ static int s2n_config_setup_tls12(struct s2n_config *config)
 {
     /* A FIPS compliant TLS1.2 policy */
     POSIX_GUARD(s2n_config_set_cipher_preferences(config, "20240502"));
-    return S2N_SUCCESS;
-}
-
-static int s2n_config_setup_tls13(struct s2n_config *config)
-{
-    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "default_tls13"));
     return S2N_SUCCESS;
 }
 
@@ -109,10 +102,8 @@ static S2N_RESULT s2n_config_get_default_security_policy_setting(s2n_default_sec
 {
     RESULT_ENSURE_REF(config_setting);
 
-    /* Get test override settings */
-    /* s2n_testing_security_policy_override override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE; */
-    /* RESULT_GUARD(s2n_testing_get_security_policy_override(&override_flag)); */
     if (s2n_testing_override_use_tls12()) {
+        /* Testing override */
         RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL12;
     } else if (s2n_is_in_fips_mode()) {
@@ -120,18 +111,6 @@ static S2N_RESULT s2n_config_get_default_security_policy_setting(s2n_default_sec
     } else {
         *config_setting = S2N_SEC_POLICY_SETTING_DEFAULT;
     }
-
-    /* if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13) { */
-    /*     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST); */
-    /*     *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL13; */
-    /* } else if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13) { */
-    /*     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST); */
-    /*     *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL12; */
-    /* } else if (s2n_is_in_fips_mode()) { */
-    /*     *config_setting = S2N_SEC_POLICY_SETTING_FIPS; */
-    /* } else { */
-    /*     *config_setting = S2N_SEC_POLICY_SETTING_DEFAULT; */
-    /* } */
 
     return S2N_RESULT_OK;
 }
@@ -162,9 +141,6 @@ static int s2n_config_init(struct s2n_config *config)
             break;
         case S2N_SEC_POLICY_SETTING_TESTING_TSL12:
             POSIX_GUARD(s2n_config_setup_tls12(config));
-            break;
-        case S2N_SEC_POLICY_SETTING_TESTING_TSL13:
-            POSIX_GUARD(s2n_config_setup_tls13(config));
             break;
     }
 
@@ -277,8 +253,6 @@ struct s2n_config *s2n_fetch_default_config(void)
             return &s2n_default_fips_config;
         case S2N_SEC_POLICY_SETTING_TESTING_TSL12:
             return &s2n_testing_default_tls12_config;
-        case S2N_SEC_POLICY_SETTING_TESTING_TSL13:
-            return &s2n_testing_default_tls13_config;
     }
 
     return &s2n_default_config;
@@ -314,11 +288,7 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls12_config));
         POSIX_GUARD(s2n_config_setup_tls12(&s2n_testing_default_tls12_config));
 
-        POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls13_config));
-        POSIX_GUARD(s2n_config_setup_tls13(&s2n_testing_default_tls13_config));
-
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_default_tls12_config));
-        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_default_tls13_config));
     }
 
     return S2N_SUCCESS;
@@ -329,7 +299,6 @@ void s2n_wipe_static_configs(void)
     s2n_config_cleanup(&s2n_default_fips_config);
     s2n_config_cleanup(&s2n_default_config);
     s2n_config_cleanup(&s2n_testing_default_tls12_config);
-    s2n_config_cleanup(&s2n_testing_default_tls13_config);
 }
 
 int s2n_config_load_system_certs(struct s2n_config *config)

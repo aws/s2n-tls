@@ -107,15 +107,12 @@ int main(int argc, char **argv)
 
     /* Connections created with default configs */
     {
-        s2n_testing_security_policy_override testing_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
-
         /* With testing override */
         {
             /* With TLS1.2 testng override */
             {
                 EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-                EXPECT_OK(s2n_testing_get_security_policy_override(&testing_override_flag));
-                EXPECT_EQUAL(testing_override_flag, S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13);
+                EXPECT_TRUE(s2n_testing_override_use_tls12());
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
@@ -132,8 +129,7 @@ int main(int argc, char **argv)
             /* With TLS1.3 testng override */
             {
                 EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-                EXPECT_OK(s2n_testing_get_security_policy_override(&testing_override_flag));
-                EXPECT_EQUAL(testing_override_flag, S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13);
+                EXPECT_FALSE(s2n_testing_override_use_tls12());
 
                 DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
                 EXPECT_NOT_NULL(conn);
@@ -154,8 +150,7 @@ int main(int argc, char **argv)
 
         /* Without testing override */
         {
-            EXPECT_OK(s2n_testing_get_security_policy_override(&testing_override_flag));
-            EXPECT_EQUAL(testing_override_flag, S2N_TESTING_SEC_POLICY_OVERRIDE_NONE);
+            EXPECT_FALSE(s2n_testing_override_use_tls12());
 
             /* With fips support */
             if (s2n_is_in_fips_mode()) {

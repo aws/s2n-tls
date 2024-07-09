@@ -56,10 +56,8 @@ typedef enum {
     /* Use the "default_fips" security policy */
     S2N_SEC_POLICY_SETTING_FIPS,
 
-    /* Support overriding the security policies in testing via
-     * `s2n_testing_security_policy_override` */
+    /* Support overriding the security policies in testing */
     S2N_SEC_POLICY_SETTING_TESTING_TSL12,
-    S2N_SEC_POLICY_SETTING_TESTING_TSL13,
 } s2n_default_security_policy_setting;
 
 typedef enum {

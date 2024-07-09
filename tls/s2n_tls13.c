@@ -22,24 +22,11 @@
 
 bool s2n_use_default_tls12_config_flag = false;
 
-/* Override the default security policy when initializing a config. */
-static s2n_testing_security_policy_override s2n_testing_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
-
-S2N_RESULT s2n_testing_get_security_policy_override(s2n_testing_security_policy_override *flag)
-{
-    RESULT_ENSURE_REF(flag);
-    /* Security policy override is only used for testing. */
-    if (!s2n_in_unit_test()) {
-        *flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
-        return S2N_RESULT_OK;
-    }
-    *flag = s2n_testing_config_override_flag;
-
-    return S2N_RESULT_OK;
-}
-
 bool s2n_testing_override_use_tls12()
 {
+    if (!s2n_in_unit_test()) {
+        return false;
+    }
     return s2n_use_default_tls12_config_flag;
 }
 
@@ -63,7 +50,6 @@ int s2n_get_highest_fully_supported_tls_version()
 int s2n_enable_tls13()
 {
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_testing_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13;
     s2n_use_default_tls12_config_flag = false;
 
     return S2N_SUCCESS;
@@ -91,7 +77,6 @@ int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    s2n_testing_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13;
     s2n_use_default_tls12_config_flag = true;
 
     return S2N_SUCCESS;
@@ -106,7 +91,6 @@ int s2n_reset_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_testing_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
     s2n_use_default_tls12_config_flag = false;
 
     return S2N_SUCCESS;
