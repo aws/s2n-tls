@@ -184,11 +184,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
-        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
         EXPECT_EQUAL(0, security_policy->kem_preferences->kems);
         EXPECT_NULL(security_policy->kem_preferences->tls13_kem_groups);
         EXPECT_EQUAL(0, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_NULL(security_policy->kem_preferences->kems);
+        EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
 
         EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
