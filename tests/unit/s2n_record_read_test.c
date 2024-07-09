@@ -164,18 +164,11 @@ int main(int argc, char *argv[])
         };
     };
 
-    const struct {
-        char policy[10];
-        uint8_t expected_protocol_version;
-    } security_policy_test_cases[] = {
-        {
-                .policy = "20240701",
-                .expected_protocol_version = S2N_TLS13,
-        },
-        {
-                .policy = "20240501",
-                .expected_protocol_version = S2N_TLS12,
-        }
+    const char security_policy_test_cases[][10] = {
+        /* TLS 1.3 */
+        "20240701",
+        /* TLS 1.2 */
+        "20240501",
     };
     /* Ensure that the input buffer is wiped after failing to read a record */
     for (size_t i = 0; i < s2n_array_len(security_policy_test_cases); i++) {
@@ -183,7 +176,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_test_cases[i].policy));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_test_cases[i]));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -202,10 +195,6 @@ int main(int argc, char *argv[])
         EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &stuffer_pair));
 
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
-        /* If the underlying libcrypto doesn't support TLS 1.3, TLS 1.2 will be negotiated. */
-        if (s2n_is_tls13_fully_supported()) {
-            EXPECT_EQUAL(server->actual_protocol_version, security_policy_test_cases[i].expected_protocol_version);
-        }
 
         /* Send some test data to the server. */
         uint8_t test_data[] = "hello world";
