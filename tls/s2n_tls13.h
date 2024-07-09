@@ -36,13 +36,11 @@ S2N_API __attribute__((deprecated)) int s2n_enable_tls13();
 /* from RFC: https://tools.ietf.org/html/rfc8446#section-4.1.3*/
 extern uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
 
-/* This mechanism is deprecated and new tests should implicitly set the
- * security policy on the config/connection.
- */
+/* Override the default security policy when initializing a config. */
 typedef enum {
     S2N_TESTING_SEC_POLICY_OVERRIDE_NONE = 0,
-    S2N_TESTING_SEC_POLICY_OVERRIDE_USE_TLS12,
-    S2N_TESTING_SEC_POLICY_OVERRIDE_USE_TLS13,
+    S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS12,
+    S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13,
 } s2n_testing_security_policy_override;
 
 S2N_RESULT s2n_testing_get_security_policy_override(s2n_testing_security_policy_override *flag);

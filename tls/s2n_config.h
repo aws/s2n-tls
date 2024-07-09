@@ -48,11 +48,16 @@
 
 struct s2n_cipher_preferences;
 
+/* Determine the default security policy when creating a new config. */
 typedef enum {
+    /* Use the "default" security policy */
     S2N_SEC_POLICY_SETTING_DEFAULT = 0,
+
+    /* Use the "default_fips" security policy */
     S2N_SEC_POLICY_SETTING_FIPS,
-    /* Support for the deprecated mechanism of setting security policies in tests
-     * via `s2n_testing_security_policy_override` */
+
+    /* Support overriding the security policies in testing via
+     * `s2n_testing_security_policy_override` */
     S2N_SEC_POLICY_SETTING_TESTING_TSL12,
     S2N_SEC_POLICY_SETTING_TESTING_TSL13,
 } s2n_default_security_policy_setting;
