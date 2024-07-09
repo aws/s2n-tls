@@ -23,7 +23,7 @@
 #define S2N_APPLICATION_SECRET S2N_MASTER_SECRET
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#appendix-A
+ *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A
  *# The notation "K_{send,recv} = foo" means "set
  *# the send/recv key to the given key".
  */
@@ -59,7 +59,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
     RESULT_ENSURE_REF(cipher);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *# The traffic keying material is generated from the following input
      *# values:
      *#
@@ -71,7 +71,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
     RESULT_GUARD(s2n_tls13_secrets_get(conn, secret_type, mode, &secret));
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *#
      *# -  A purpose value indicating the specific value being generated
      **/
@@ -79,7 +79,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
     const struct s2n_blob *iv_purpose = &s2n_tls13_label_traffic_secret_iv;
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *#
      *# -  The length of the key being generated
      **/
@@ -96,7 +96,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac));
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *#
      *# The traffic keying material is generated from an input traffic secret
      *# value using:
@@ -108,7 +108,7 @@ static S2N_RESULT s2n_tls13_key_schedule_get_keying_material(
     RESULT_GUARD_POSIX(s2n_hkdf_expand_label(&hmac, hmac_alg,
             &secret, key_purpose, &s2n_zero_length_context, key));
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-7.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-7.3
      *# [sender]_write_iv  = HKDF-Expand-Label(Secret, "iv", "", iv_length)
      **/
     RESULT_ENSURE_LTE(iv_size, iv->size);
@@ -156,7 +156,7 @@ S2N_RESULT s2n_tls13_key_schedule_set_key(struct s2n_connection *conn, s2n_extra
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-5.3
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-5.3
      *# Each sequence number is
      *# set to zero at the beginning of a connection and whenever the key is
      *# changed; the first record transmitted under a particular traffic key
@@ -176,13 +176,13 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
     /**
      * How client keys are set varies depending on early data state.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A
      *# Actions which are taken only in certain circumstances
      *# are indicated in [].
      */
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#                              START <----+
      *#               Send ClientHello |        | Recv HelloRetryRequest
      *#          [K_send = early data] |        |
@@ -192,7 +192,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_EARLY_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#                                v        |
      *#           /                 WAIT_SH ----+
      *#           |                    | Recv ServerHello
@@ -202,7 +202,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#       Can |                    V
      *#      send |                 WAIT_EE
      *#     early |                    | Recv EncryptedExtensions
@@ -227,7 +227,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#                              | [Send Certificate [+ CertificateVerify]]
      *#    Can send                  | Send Finished
      *#    app data   -->            | K_send = K_recv = application
@@ -237,7 +237,7 @@ static S2N_RESULT s2n_client_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_APPLICATION_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.1
      *#    after here                v
      *#                          CONNECTED
      */
@@ -251,7 +251,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
     message_type_t message_type = s2n_conn_get_current_message_type(conn);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                              START <-----+
      *#               Recv ClientHello |         | Send HelloRetryRequest
      *#                                v         |
@@ -266,7 +266,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                                | Send EncryptedExtensions
      *#                                | [Send CertificateRequest]
      *# Can send                       | [Send Certificate + CertificateVerify]
@@ -277,7 +277,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_send(conn, S2N_APPLICATION_SECRET);
         /* clang-format off */
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *# here                  +--------+--------+
      *#              No 0-RTT |                 | 0-RTT
      *#                       |                 |
@@ -291,7 +291,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         }
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *# [Skip decrypt errors] |    +------> WAIT_EOED -+
      *#                       |    |       Recv |      | Recv EndOfEarlyData
      *#                       |    | early data |      | K_recv = handshake
@@ -301,7 +301,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_HANDSHAKE_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                       |                        |
      *#                       +> WAIT_FLIGHT2 <--------+
      *#                                |
@@ -323,7 +323,7 @@ static S2N_RESULT s2n_server_key_schedule(struct s2n_connection *conn)
         K_recv(conn, S2N_APPLICATION_SECRET);
     }
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-A.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-A.2
      *#                                v
      *#                            CONNECTED
      */

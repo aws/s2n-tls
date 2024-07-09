@@ -551,7 +551,7 @@ int main(int argc, char **argv)
     };
 
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
      *= type=test
      *# Clients MUST abort the handshake with an
      *# "illegal_parameter" alert if the HelloRetryRequest would not result
@@ -566,7 +566,7 @@ int main(int argc, char **argv)
         /**
          * Retry for key share is valid
          *
-         *= https://tools.ietf.org/rfc/rfc8446#4.2.8
+         *= https://www.rfc-editor.org/rfc/rfc8446#4.2.8
          *= type=test
          *# and (2) the selected_group field does not
          *# correspond to a group which was provided in the "key_share" extension

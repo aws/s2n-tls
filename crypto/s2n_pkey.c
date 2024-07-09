@@ -194,6 +194,30 @@ S2N_RESULT s2n_asn1der_to_public_key_and_type(struct s2n_pkey *pub_key,
     return S2N_RESULT_OK;
 }
 
+S2N_RESULT s2n_pkey_get_type(EVP_PKEY *evp_pkey, s2n_pkey_type *pkey_type)
+{
+    RESULT_ENSURE_REF(evp_pkey);
+    RESULT_ENSURE_REF(pkey_type);
+    *pkey_type = S2N_PKEY_TYPE_UNKNOWN;
+
+    int type = EVP_PKEY_base_id(evp_pkey);
+    switch (type) {
+        case EVP_PKEY_RSA:
+            *pkey_type = S2N_PKEY_TYPE_RSA;
+            break;
+        case EVP_PKEY_RSA_PSS:
+            *pkey_type = S2N_PKEY_TYPE_RSA_PSS;
+            break;
+        case EVP_PKEY_EC:
+            *pkey_type = S2N_PKEY_TYPE_ECDSA;
+            break;
+        default:
+            RESULT_BAIL(S2N_ERR_DECODE_CERTIFICATE);
+    }
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_pkey_from_x509(X509 *cert, struct s2n_pkey *pub_key_out,
         s2n_pkey_type *pkey_type_out)
 {
@@ -204,23 +228,19 @@ S2N_RESULT s2n_pkey_from_x509(X509 *cert, struct s2n_pkey *pub_key_out,
     DEFER_CLEANUP(EVP_PKEY *evp_public_key = X509_get_pubkey(cert), EVP_PKEY_free_pointer);
     RESULT_ENSURE(evp_public_key != NULL, S2N_ERR_DECODE_CERTIFICATE);
 
-    /* Check for success in decoding certificate according to type */
-    int type = EVP_PKEY_base_id(evp_public_key);
-    switch (type) {
-        case EVP_PKEY_RSA:
+    RESULT_GUARD(s2n_pkey_get_type(evp_public_key, pkey_type_out));
+    switch (*pkey_type_out) {
+        case S2N_PKEY_TYPE_RSA:
             RESULT_GUARD(s2n_rsa_pkey_init(pub_key_out));
             RESULT_GUARD(s2n_evp_pkey_to_rsa_public_key(&pub_key_out->key.rsa_key, evp_public_key));
-            *pkey_type_out = S2N_PKEY_TYPE_RSA;
             break;
-        case EVP_PKEY_RSA_PSS:
+        case S2N_PKEY_TYPE_RSA_PSS:
             RESULT_GUARD(s2n_rsa_pss_pkey_init(pub_key_out));
             RESULT_GUARD(s2n_evp_pkey_to_rsa_pss_public_key(&pub_key_out->key.rsa_key, evp_public_key));
-            *pkey_type_out = S2N_PKEY_TYPE_RSA_PSS;
             break;
-        case EVP_PKEY_EC:
+        case S2N_PKEY_TYPE_ECDSA:
             RESULT_GUARD(s2n_ecdsa_pkey_init(pub_key_out));
             RESULT_GUARD(s2n_evp_pkey_to_ecdsa_public_key(&pub_key_out->key.ecdsa_key, evp_public_key));
-            *pkey_type_out = S2N_PKEY_TYPE_ECDSA;
             break;
         default:
             RESULT_BAIL(S2N_ERR_DECODE_CERTIFICATE);

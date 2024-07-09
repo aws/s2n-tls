@@ -462,7 +462,7 @@ int main(int argc, char **argv)
 
     /* Test that curve selection will be NIST P-256 when tls12 client does not send curve extension.
      *
-     *= https://tools.ietf.org/rfc/rfc4492#section-4
+     *= https://www.rfc-editor.org/rfc/rfc4492#section-4
      *= type=test
      *# A client that proposes ECC cipher suites may choose not to include these extensions.
      *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.

@@ -1121,7 +1121,7 @@ int s2n_config_set_verify_after_sign(struct s2n_config *config, s2n_verify_after
 }
 
 /*
- *= https://tools.ietf.org/rfc/rfc5746#5
+ *= https://www.rfc-editor.org/rfc/rfc5746#5
  *# TLS implementations SHOULD provide a mechanism to disable and enable
  *# renegotiation.
  */
@@ -1235,6 +1235,16 @@ int s2n_config_set_serialization_version(struct s2n_config *config, s2n_serializ
     /* Currently there is only one format version supported */
     POSIX_ENSURE_EQ(version, S2N_SERIALIZED_CONN_V1);
     config->serialized_connection_version = version;
+
+    return S2N_SUCCESS;
+}
+
+int s2n_config_set_max_blinding_delay(struct s2n_config *config, uint32_t seconds)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->custom_blinding_set = 1;
+    config->max_blinding = seconds;
 
     return S2N_SUCCESS;
 }

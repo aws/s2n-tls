@@ -2014,6 +2014,63 @@ const struct s2n_cipher_preferences cipher_preferences_20210816_gcm = {
     .allow_chacha20_boosting = false,
 };
 
+/* Cipher suite options for backwards compatibility with older clients,
+ * while prioritizing forward secret key exchange and ECDSA certificates.
+ */
+struct s2n_cipher_suite *cipher_suites_20240603[] = {
+    /* TLS1.3 suites */
+    &s2n_tls13_aes_128_gcm_sha256,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_chacha20_poly1305_sha256,
+
+    /* Preferred ECDHE + ECDSA suites */
+    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_ecdsa_with_chacha20_poly1305_sha256,
+
+    /* Preferred ECDHE + RSA suites */
+    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
+    &s2n_ecdhe_rsa_with_chacha20_poly1305_sha256,
+
+    /* Legacy ECDHE suites */
+    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_128_cbc_sha,
+    &s2n_ecdhe_rsa_with_aes_256_cbc_sha,
+
+    /* DHE suites */
+    &s2n_dhe_rsa_with_aes_128_gcm_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_256_gcm_sha384,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha256,
+    &s2n_dhe_rsa_with_aes_128_cbc_sha,
+    &s2n_dhe_rsa_with_aes_256_cbc_sha,
+
+    /* 3DES suites */
+    &s2n_ecdhe_rsa_with_3des_ede_cbc_sha,
+    &s2n_dhe_rsa_with_3des_ede_cbc_sha,
+
+    /* RSA kex suites */
+    &s2n_rsa_with_aes_128_gcm_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha256,
+    &s2n_rsa_with_aes_256_gcm_sha384,
+    &s2n_rsa_with_aes_256_cbc_sha256,
+    &s2n_rsa_with_aes_128_cbc_sha,
+    &s2n_rsa_with_aes_256_cbc_sha,
+    &s2n_rsa_with_3des_ede_cbc_sha,
+};
+
+const struct s2n_cipher_preferences cipher_preferences_20240603 = {
+    .count = s2n_array_len(cipher_suites_20240603),
+    .suites = cipher_suites_20240603,
+    .allow_chacha20_boosting = true,
+};
+
 struct s2n_cipher_suite *cipher_suites_rfc9151[] = {
     /* TLS1.2 */
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,

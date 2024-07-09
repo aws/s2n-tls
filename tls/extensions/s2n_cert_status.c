@@ -63,7 +63,7 @@ int s2n_cert_status_recv(struct s2n_connection *conn, struct s2n_stuffer *in)
 {
     POSIX_ENSURE_REF(conn);
     /**
-     *= https://tools.ietf.org/rfc/rfc6066#section-8
+     *= https://www.rfc-editor.org/rfc/rfc6066#section-8
      *#   struct {
      *#       CertificateStatusType status_type;
      *#       select (status_type) {

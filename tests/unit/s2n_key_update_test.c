@@ -100,7 +100,7 @@ int main(int argc, char **argv)
     {
         /* Key update message not allowed when running with QUIC
          *
-         *= https://tools.ietf.org/rfc/rfc9001.txt#6
+         *= https://www.rfc-editor.org/rfc/rfc9001#6
          *= type=test
          *# Endpoints MUST treat the receipt of a TLS KeyUpdate message as a connection error
          *# of type 0x010a, equivalent to a fatal TLS alert of unexpected_message

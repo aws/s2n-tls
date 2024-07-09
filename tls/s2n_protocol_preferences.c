@@ -62,7 +62,7 @@ S2N_RESULT s2n_protocol_preferences_append(struct s2n_blob *application_protocol
     RESULT_ENSURE_REF(protocol);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc7301#section-3.1
+     *= https://www.rfc-editor.org/rfc/rfc7301#section-3.1
      *# Empty strings
      *# MUST NOT be included and byte strings MUST NOT be truncated.
      */
@@ -114,7 +114,7 @@ S2N_RESULT s2n_protocol_preferences_set(struct s2n_blob *application_protocols, 
         size_t length = strlen(protocols[i]);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7301#section-3.1
+         *= https://www.rfc-editor.org/rfc/rfc7301#section-3.1
          *# Empty strings
          *# MUST NOT be included and byte strings MUST NOT be truncated.
          */

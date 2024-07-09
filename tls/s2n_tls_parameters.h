@@ -119,7 +119,7 @@
 #define TLS_PSK_DHE_KE_MODE 1
 
 /**
- *= https://tools.ietf.org/rfc/rfc9001.txt#8.2
+ *= https://www.rfc-editor.org/rfc/rfc9001#8.2
  *#   enum {
  *#      quic_transport_parameters(0x39), (65535)
  *#   } ExtensionType;

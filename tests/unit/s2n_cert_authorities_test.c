@@ -186,7 +186,7 @@ int main(int argc, char **argv)
 
     /* Test: ClientHello extension ignored
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
      *= type=test
      *# The client MAY send the "certificate_authorities" extension in the
      *# ClientHello message.
@@ -247,7 +247,7 @@ int main(int argc, char **argv)
 
     /* Self-talk test: CertificateRequest extension parsed
      *
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.4
      *= type=test
      *# The server MAY send it in the CertificateRequest message.
      **/
