@@ -268,15 +268,16 @@ int main(int argc, char **argv)
 
     /* s2n_config invariant: always respects config->security_policy cert preferences */
     {
-        DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
         EXPECT_SUCCESS(
-                s2n_test_cert_permutation_load_server_chain(&cert, "ec", "ecdsa", "p384", "sha256"));
+                s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
         /* configure security policy then load an invalid cert */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "rfc9151"));
 
-            EXPECT_FAILURE(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
             /* assert that no certs were loaded */
             uint32_t domain_certs = 0;
@@ -289,9 +290,10 @@ int main(int argc, char **argv)
         /* load a cert then configure an invalid security policy */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
             const struct s2n_security_policy *default_sp = config->security_policy;
-            EXPECT_FAILURE(s2n_config_set_cipher_preferences(config, "rfc9151"));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
 
             /* assert that the security policy was not changed */
             EXPECT_EQUAL(config->security_policy, default_sp);
