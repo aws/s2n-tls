@@ -1478,17 +1478,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client->ticket_lifetime_hint, 0);
     }
 
-    /* Test: Server calls s2n_config_disable_legacy_tickets */
+    /* Test: Server disables legacy tickets */
     {
-        DEFER_CLEANUP(struct s2n_config *disable_legacy_tickets_config = s2n_config_new(),
+        DEFER_CLEANUP(struct s2n_config *no_tls12_tickets_config = s2n_config_new(),
                 s2n_config_ptr_free);
-        EXPECT_NOT_NULL(disable_legacy_tickets_config);
-        EXPECT_SUCCESS(s2n_config_disable_legacy_tickets(disable_legacy_tickets_config));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(disable_legacy_tickets_config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(disable_legacy_tickets_config,
+        EXPECT_NOT_NULL(no_tls12_tickets_config);
+        EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, false));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_tls12_tickets_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_tls12_tickets_config,
                 chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(disable_legacy_tickets_config, 1));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(disable_legacy_tickets_config, ticket_key_name1,
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_tls12_tickets_config, 1));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(no_tls12_tickets_config, ticket_key_name1,
                 s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         DEFER_CLEANUP(struct s2n_config *tls12_client_config = s2n_config_new(),
@@ -1517,7 +1517,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server);
 
             EXPECT_SUCCESS(s2n_connection_set_config(client, tls12_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server, disable_legacy_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
                     s2n_io_stuffer_pair_free);
@@ -1535,7 +1535,7 @@ int main(int argc, char **argv)
         }
 
         /* Server does send tickets when legacy tickets are disabled and TLS1.3 is negotiated */
-        {
+        if (s2n_is_tls13_fully_supported()){
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
@@ -1544,7 +1544,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server);
 
             EXPECT_SUCCESS(s2n_connection_set_config(client, tls13_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server, disable_legacy_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
                     s2n_io_stuffer_pair_free);
@@ -1562,15 +1562,15 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test: Client calls s2n_config_disable_legacy_tickets */
+    /* Test: Client disables legacy tickets */
     {
-        DEFER_CLEANUP(struct s2n_config *disable_legacy_tickets_config = s2n_config_new(),
+        DEFER_CLEANUP(struct s2n_config *no_tls12_tickets_config = s2n_config_new(),
                 s2n_config_ptr_free);
-        EXPECT_NOT_NULL(disable_legacy_tickets_config);
-        EXPECT_SUCCESS(s2n_config_disable_legacy_tickets(disable_legacy_tickets_config));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(disable_legacy_tickets_config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(disable_legacy_tickets_config, 1));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(disable_legacy_tickets_config));
+        EXPECT_NOT_NULL(no_tls12_tickets_config);
+        EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, false));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_tls12_tickets_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_tls12_tickets_config, 1));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_tls12_tickets_config));
 
         DEFER_CLEANUP(struct s2n_config *tls12_server_config = s2n_config_new(),
                 s2n_config_ptr_free);
@@ -1603,7 +1603,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
 
-            EXPECT_SUCCESS(s2n_connection_set_config(client, disable_legacy_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, no_tls12_tickets_config));
             EXPECT_SUCCESS(s2n_connection_set_config(server, tls12_server_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
@@ -1620,7 +1620,7 @@ int main(int argc, char **argv)
         }
 
         /* A ticket is received when legacy tickets are disabled and TLS1.3 is negotiated */
-        {
+        if (s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
@@ -1628,7 +1628,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
 
-            EXPECT_SUCCESS(s2n_connection_set_config(client, disable_legacy_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, no_tls12_tickets_config));
             EXPECT_SUCCESS(s2n_connection_set_config(server, tls13_server_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },

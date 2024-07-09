@@ -1271,15 +1271,21 @@ S2N_API extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, c
         uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
 
 /**
- * Turns off ticketed resumption for TLS1.2 connections. Clients should not expect
+ * Toggles ticketed resumption for TLS1.2 connections. Clients should not expect
  * session tickets from servers and servers will not send session tickets when TLS1.2
- * is negotiated with this behavior enabled. TLS1.3 connections will continue to produce
- * session tickets.
+ * is negotiated and legacy tickets are disabled. Tickets will continue to be produced
+ * when TLS1.3 is negotiated and legacy tickets are disabled.
+ * 
+ * @note Disabling legacy tickets is a security improvement as TLS1.2 tickets
+ * are not forward secret.
+ * 
+ * @note The default behavior is that legacy tickets are enabled.
  *
  * @param config The config object being updated
+ * @param enabled Indicates if legacy tickets are enabled or disabled
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_config_disable_legacy_tickets(struct s2n_config *config);
+S2N_API extern int s2n_config_legacy_tickets(struct s2n_config *config, bool enabled);
 
 /**
  * Sets user defined context on the `s2n_config` object.

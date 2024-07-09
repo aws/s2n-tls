@@ -107,7 +107,7 @@ struct s2n_config {
 
     unsigned custom_blinding_set : 1;
 
-    unsigned disable_legacy_tickets : 1;
+    unsigned legacy_tickets : 1;
 
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
