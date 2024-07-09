@@ -1006,6 +1006,15 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     return 0;
 }
 
+int s2n_config_disable_legacy_tickets(struct s2n_config *config)
+{
+    POSIX_ENSURE_REF(config);
+
+    config->disable_legacy_tickets = 1;
+
+    return 0;
+}
+
 int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb)
 {
     config->cert_tiebreak_cb = cert_tiebreak_cb;

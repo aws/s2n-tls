@@ -1269,6 +1269,18 @@ S2N_API extern int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config 
  */
 S2N_API extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len,
         uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
+
+/**
+ * Turns off ticketed resumption for TLS1.2 connections. Clients should not expect
+ * session tickets from servers and servers will not send session tickets when TLS1.2
+ * is negotiated with this behavior enabled. TLS1.3 connections will continue to produce
+ * session tickets.
+ *
+ * @param config The config object being updated
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_disable_legacy_tickets(struct s2n_config *config);
+
 /**
  * Sets user defined context on the `s2n_config` object.
  *
