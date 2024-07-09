@@ -82,7 +82,7 @@ int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    s2n_testing_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS12;
+    s2n_testing_config_override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13;
     return S2N_SUCCESS;
 }
 

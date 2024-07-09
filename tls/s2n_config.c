@@ -65,6 +65,10 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 
 static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
+/* Create dedicated configs for testing the different protocols, since the
+ * 'default' vs 'default_fips' configs are selectively initialized based on the
+ * underlying libcrypto FIPS support.
+ */
 static struct s2n_config s2n_testing_default_tls12_config = { 0 };
 static struct s2n_config s2n_testing_default_tls13_config = { 0 };
 
@@ -93,7 +97,6 @@ static int s2n_config_setup_fips(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
-/* TODO test */
 /* Determine the default security policy when creating a new config.
  *
  * s2n_config is instantiated with the 'default' security policy or 'default_fips'
@@ -102,7 +105,7 @@ static int s2n_config_setup_fips(struct s2n_config *config)
  * In testing, a TLS1.2/TLS1.3 compliant security policy can be used. The
  * testing override take precedence over the default behavior.
  */
-static S2N_RESULT s2n_get_default_security_policy_setting(s2n_default_security_policy_setting *config_setting)
+static S2N_RESULT s2n_config_get_default_security_policy_setting(s2n_default_security_policy_setting *config_setting)
 {
     RESULT_ENSURE_REF(config_setting);
 
@@ -113,7 +116,7 @@ static S2N_RESULT s2n_get_default_security_policy_setting(s2n_default_security_p
     if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13) {
         RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL13;
-    } else if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS12) {
+    } else if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13) {
         RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL12;
     } else if (s2n_is_in_fips_mode()) {
@@ -141,7 +144,7 @@ static int s2n_config_init(struct s2n_config *config)
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
     s2n_default_security_policy_setting setting = S2N_SEC_POLICY_SETTING_DEFAULT;
-    POSIX_GUARD_RESULT(s2n_get_default_security_policy_setting(&setting));
+    POSIX_GUARD_RESULT(s2n_config_get_default_security_policy_setting(&setting));
     switch (setting) {
         case S2N_SEC_POLICY_SETTING_DEFAULT:
             POSIX_GUARD(s2n_config_setup_default(config));
@@ -258,7 +261,7 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
 struct s2n_config *s2n_fetch_default_config(void)
 {
     s2n_default_security_policy_setting setting = S2N_SEC_POLICY_SETTING_DEFAULT;
-    PTR_GUARD_RESULT(s2n_get_default_security_policy_setting(&setting));
+    PTR_GUARD_RESULT(s2n_config_get_default_security_policy_setting(&setting));
     switch (setting) {
         case S2N_SEC_POLICY_SETTING_DEFAULT:
             return &s2n_default_config;

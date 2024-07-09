@@ -39,7 +39,7 @@ extern uint8_t hello_retry_req_random[S2N_TLS_RANDOM_DATA_LEN];
 /* Override the default security policy when initializing a config. */
 typedef enum {
     S2N_TESTING_SEC_POLICY_OVERRIDE_NONE = 0,
-    S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS12,
+    S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13,
     S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13,
 } s2n_testing_security_policy_override;
 
