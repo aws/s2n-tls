@@ -1510,7 +1510,7 @@ int main(int argc, char **argv)
         /* Server does not send ticket when legacy tickets are disabled and TLS1.2 is negotiated */
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -1537,7 +1537,7 @@ int main(int argc, char **argv)
         /* Server does send tickets when legacy tickets are disabled and TLS1.3 is negotiated */
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -1593,11 +1593,11 @@ int main(int argc, char **argv)
                 chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(tls13_server_config, ticket_key_name1,
                 s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
-     
+
         /* No ticket is received when legacy tickets are disabled and TLS1.2 is negotiated */
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -1622,7 +1622,7 @@ int main(int argc, char **argv)
         /* A ticket is received when legacy tickets are disabled and TLS1.3 is negotiated */
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                s2n_connection_ptr_free);
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client);
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);

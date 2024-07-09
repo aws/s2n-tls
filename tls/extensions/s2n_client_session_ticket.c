@@ -51,8 +51,8 @@ static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2
 
 static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (conn->config->use_tickets != 1 || conn->actual_protocol_version > S2N_TLS12 ||
-        conn->config->disable_legacy_tickets) {
+    if (conn->config->use_tickets != 1 || conn->actual_protocol_version > S2N_TLS12
+            || conn->config->disable_legacy_tickets) {
         /* Ignore the extension. */
         return S2N_SUCCESS;
     }
