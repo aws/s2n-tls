@@ -285,14 +285,6 @@ int s2n_config_set_unsafe_for_testing(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
-/* Load default system certs for the default test configs. */
-S2N_RESULT s2n_config_testing_default_init_certs(void)
-{
-    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_testing_default_tls12_config));
-    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_testing_default_tls13_config));
-    return S2N_RESULT_OK;
-}
-
 int s2n_config_defaults_init(void)
 {
     /* Set up fips defaults */
@@ -317,7 +309,8 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls13_config));
         POSIX_GUARD(s2n_config_setup_tls13(&s2n_testing_default_tls13_config));
 
-        POSIX_GUARD_RESULT(s2n_config_testing_default_init_certs());
+        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_default_tls12_config));
+        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_default_tls13_config));
     }
 
     return S2N_SUCCESS;
