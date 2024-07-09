@@ -144,9 +144,10 @@ int main(int argc, char **argv)
     };
 
     /* Test default fips */
-
     if (s2n_is_in_fips_mode()) {
+        /* Disable test override when testing FIPS */
         EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
         struct s2n_connection *conn = NULL;
         const struct s2n_cipher_preferences *cipher_preferences = NULL;
         const struct s2n_security_policy *security_policy = NULL;
@@ -196,6 +197,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ecc_preferences, security_policy_test_all_fips.ecc_preferences);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* Restore test settings */
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test for NULL */
