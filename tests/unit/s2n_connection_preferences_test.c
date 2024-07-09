@@ -28,10 +28,9 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    const struct s2n_security_policy *default_security_policy = NULL, *tls12_security_policy = NULL, *tls13_security_policy = NULL,
+    const struct s2n_security_policy *default_security_policy = NULL, *tls12_security_policy = NULL,
                                      *fips_security_policy = NULL;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240502", &tls12_security_policy));
-    EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
 
@@ -101,6 +100,13 @@ int main(int argc, char **argv)
         const struct s2n_ecc_preferences *ecc_preferences = NULL;
 
         EXPECT_NULL(conn->security_policy_override);
+
+        const struct s2n_security_policy *tls13_security_policy = NULL;
+        if (s2n_is_in_fips_mode()) {
+            tls13_security_policy = fips_security_policy;
+        } else {
+            tls13_security_policy = default_security_policy;
+        }
 
         EXPECT_SUCCESS(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
         EXPECT_EQUAL(cipher_preferences, tls13_security_policy->cipher_preferences);

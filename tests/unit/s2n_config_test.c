@@ -69,9 +69,8 @@ int main(int argc, char **argv)
     const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
     const struct s2n_security_policy *default_security_policy = NULL, *tls12_security_policy = NULL,
-                                     *tls13_security_policy = NULL, *fips_security_policy = NULL;
+                                     *fips_security_policy = NULL;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240502", &tls12_security_policy));
-    EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
 
@@ -143,7 +142,11 @@ int main(int argc, char **argv)
 
                 const struct s2n_security_policy *security_policy = NULL;
                 EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-                EXPECT_EQUAL(security_policy, tls13_security_policy);
+                if (s2n_is_in_fips_mode()) {
+                    EXPECT_EQUAL(security_policy, fips_security_policy);
+                } else {
+                    EXPECT_EQUAL(security_policy, default_security_policy);
+                }
 
                 EXPECT_SUCCESS(s2n_reset_tls13_in_test());
             };
@@ -190,7 +193,11 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_EQUAL(config->security_policy, tls13_security_policy);
+            if (s2n_is_in_fips_mode()) {
+                EXPECT_EQUAL(config->security_policy, fips_security_policy);
+            } else {
+                EXPECT_EQUAL(config->security_policy, default_security_policy);
+            }
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_reset_tls13_in_test());
         }

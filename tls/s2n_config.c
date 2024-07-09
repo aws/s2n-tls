@@ -110,13 +110,9 @@ static S2N_RESULT s2n_config_get_default_security_policy_setting(s2n_default_sec
     RESULT_ENSURE_REF(config_setting);
 
     /* Get test override settings */
-    s2n_testing_security_policy_override override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE;
-    RESULT_GUARD(s2n_testing_get_security_policy_override(&override_flag));
-
-    if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13) {
-        RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
-        *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL13;
-    } else if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13) {
+    /* s2n_testing_security_policy_override override_flag = S2N_TESTING_SEC_POLICY_OVERRIDE_NONE; */
+    /* RESULT_GUARD(s2n_testing_get_security_policy_override(&override_flag)); */
+    if (s2n_testing_override_use_tls12()) {
         RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
         *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL12;
     } else if (s2n_is_in_fips_mode()) {
@@ -124,6 +120,18 @@ static S2N_RESULT s2n_config_get_default_security_policy_setting(s2n_default_sec
     } else {
         *config_setting = S2N_SEC_POLICY_SETTING_DEFAULT;
     }
+
+    /* if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_ENABLE_TLS13) { */
+    /*     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST); */
+    /*     *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL13; */
+    /* } else if (override_flag == S2N_TESTING_SEC_POLICY_OVERRIDE_DISABLE_TLS13) { */
+    /*     RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST); */
+    /*     *config_setting = S2N_SEC_POLICY_SETTING_TESTING_TSL12; */
+    /* } else if (s2n_is_in_fips_mode()) { */
+    /*     *config_setting = S2N_SEC_POLICY_SETTING_FIPS; */
+    /* } else { */
+    /*     *config_setting = S2N_SEC_POLICY_SETTING_DEFAULT; */
+    /* } */
 
     return S2N_RESULT_OK;
 }

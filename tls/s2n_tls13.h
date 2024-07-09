@@ -44,6 +44,7 @@ typedef enum {
 } s2n_testing_security_policy_override;
 
 S2N_RESULT s2n_testing_get_security_policy_override(s2n_testing_security_policy_override *flag);
+bool s2n_testing_override_use_tls12();
 bool s2n_is_tls13_fully_supported();
 int s2n_get_highest_fully_supported_tls_version();
 int s2n_enable_tls13_in_test();
