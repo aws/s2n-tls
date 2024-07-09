@@ -102,8 +102,8 @@ static int s2n_config_setup_fips(struct s2n_config *config)
  * s2n_config is instantiated with the 'default' security policy or 'default_fips'
  * if a FIPS compliant libcrypto is used.
  *
- * In testing, a TLS1.2/TLS1.3 compliant security policy can be used. The
- * testing override take precedence over the default behavior.
+ * Testing override take precedence over the default behavior. In testing, a
+ * TLS1.2/TLS1.3 compliant security policy can be used.
  */
 static S2N_RESULT s2n_config_get_default_security_policy_setting(s2n_default_security_policy_setting *config_setting)
 {
