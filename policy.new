@@ -1,0 +1,14 @@
+NEW
+
+                        tls12        tls13  ||    default    default_fips    default_tls13    default_tls12
+
+ * non_fips:
+ *   no_call:                          N    ||       x
+ *   enable_tls13:                     x    ||                                   x
+ *   disable_tls13:       x                 ||                                                    N
+ *
+ * fips:
+ *   no_call:                          N    ||                   x
+ *   enable_tls13:                     x    ||                                   x
+ *   disable_tls13:       x                 ||                                                    N
+
