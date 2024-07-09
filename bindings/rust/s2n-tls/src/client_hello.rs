@@ -241,7 +241,7 @@ pub mod fingerprint {
                 .unwrap()
                 .build()?;
             let mut pair = TestPair::from_config(&config);
-            pair.handshake().unwrap();
+            pair.handshake()?;
             // this doesn't have the handshake header
             let client_hello_message = pair.server.client_hello()?.raw_message()?;
             // handshake header is {tag: u8, client_hello_length: u24}
