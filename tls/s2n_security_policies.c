@@ -21,7 +21,7 @@
 #include "utils/s2n_safety.h"
 
 /* TODO update the date before merge */
-/* TLS1.2 default as of 07/01 */
+/* default as of 07/01. Supports TLS 1.3 */
 const struct s2n_security_policy security_policy_20240701 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20240701,
@@ -34,7 +34,7 @@ const struct s2n_security_policy security_policy_20240701 = {
 };
 
 /* TODO update the date before merge */
-/* FIPS default as of 07/01 */
+/* FIPS default as of 07/01. Supports TLS 1.3 */
 const struct s2n_security_policy security_policy_20240702 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20240702,
