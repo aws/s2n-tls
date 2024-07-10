@@ -152,6 +152,7 @@ int main(int argc, char **argv)
     /* Test default fips */
     if (s2n_is_in_fips_mode()) {
         /* Disable test override when testing FIPS */
+        EXPECT_TRUE(s2n_testing_override_use_tls12());
         EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
         struct s2n_connection *conn = NULL;
@@ -204,8 +205,9 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
 
-        /* Restore test settings */
+        /* Restore previous override settings */
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        EXPECT_TRUE(s2n_testing_override_use_tls12());
     }
 
     /* Test for NULL */

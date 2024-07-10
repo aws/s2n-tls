@@ -70,12 +70,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
-    EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
-
     /* Client and server both support NPN. ALPN is negotiated since it is also
      * supported and the server prefers ALPN. */
     {
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+        EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
 
         /* Create nonblocking pipes */
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);

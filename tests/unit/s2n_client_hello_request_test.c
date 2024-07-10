@@ -87,7 +87,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_reneg_cb, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config_with_reneg_cb, s2n_test_reneg_req_cb, NULL));
 
-    /* Test: Hello requests received during the handshake are a no-op for TLS1.2 */
+    /* Test: Hello requests received during the handshake are a no-op */
     {
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);

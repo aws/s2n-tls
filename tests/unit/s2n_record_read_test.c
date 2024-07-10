@@ -164,7 +164,7 @@ int main(int argc, char *argv[])
         };
     };
 
-    const char security_policy_test_cases[][10] = {
+    const char *security_policy_test_cases[] = {
         /* TLS 1.3 */
         "20240701",
         /* TLS 1.2 */
@@ -204,6 +204,8 @@ int main(int argc, char *argv[])
 
         /* Invalidate an encrypted byte to cause decryption to fail. */
         struct s2n_stuffer invalidation_stuffer = stuffer_pair.server_in;
+        /* Offset and corrupt the 6th byte, which is used by both TLS 1.2 and TLS 1.3
+         * during decryption */
         EXPECT_SUCCESS(s2n_stuffer_skip_read(&invalidation_stuffer, 5));
         uint8_t *first_byte = s2n_stuffer_raw_read(&invalidation_stuffer, 1);
         EXPECT_NOT_NULL(first_byte);

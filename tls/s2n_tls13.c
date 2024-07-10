@@ -47,6 +47,8 @@ int s2n_get_highest_fully_supported_tls_version()
  * Please consider using the default behavior and configuring
  * TLS1.2/TLS1.3 via explicit security policy instead.
  */
+/* TODO: This function is not used.. can we delete it? Seems like it was added to the public */
+/* API when the S2N_API macro was added. */
 int s2n_enable_tls13()
 {
     s2n_highest_protocol_version = S2N_TLS13;
