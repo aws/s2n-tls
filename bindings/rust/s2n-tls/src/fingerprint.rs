@@ -205,7 +205,6 @@ impl Builder {
     pub fn new(method: FingerprintType) -> Result<Self, Error> {
         crate::init::init();
         let ptr = unsafe { s2n_fingerprint_new(method.into()).into_result() }?;
-        println!("ptr = {:?}", ptr);
         let hash = String::with_capacity(Self::ptr_hash_size(&ptr)?);
         let raw = String::new();
         Ok(Builder {
@@ -323,7 +322,7 @@ impl ClientHello {
     /// `fingerprint_string` will try to calculate the fingerprint and store the
     /// resulting string in `output`. If `output` does not have sufficient
     /// capacity an Error of `ErrorType::UsageError` will be returned.
-    #[deprecated = "Users should prefer Fingerprint::raw() method"]
+    #[deprecated = "Users should prefer the Fingerprint::raw() method"]
     pub fn fingerprint_string(
         &self,
         hash: FingerprintType,
@@ -353,9 +352,10 @@ mod tests {
     use crate::{
         error::ErrorType,
         security,
+        security::Policy,
         testing::{build_config, TestPair},
     };
-    use std::error::Error;
+    use std::{collections::HashSet, error::Error};
 
     const CLIENT_HELLO_BYTES: &'static [u8] = &[
         0x01, 0x00, 0x00, 0xEC, 0x03, 0x03, 0x90, 0xe8, 0xcc, 0xee, 0xe5, 0x70, 0xa2, 0xa1, 0x2f,
@@ -381,7 +381,7 @@ mod tests {
     const JA3_HASH: &str = "839bbe3ed07fed922ded5aaf714d6842";
 
     fn simple_handshake() -> Result<TestPair, Box<dyn Error>> {
-        let config = build_config(&security::DEFAULT).unwrap();
+        let config = build_config(&security::DEFAULT)?;
         let mut pair = TestPair::from_config(&config);
         pair.handshake()?;
         Ok(pair)
@@ -468,6 +468,48 @@ mod tests {
         fingerprint
             .raw_size()
             .expect_err("Fingerprint state not reset");
+
+        Ok(())
+    }
+
+    #[test]
+    fn multiple_connection_fingerprints() -> Result<(), Box<dyn Error>> {
+        let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
+        // Use a good variety of security policies
+        let configs = [
+            build_config(&Policy::from_version("20240501")?)?,
+            build_config(&Policy::from_version("20240502")?)?,
+            build_config(&Policy::from_version("20240503")?)?,
+            build_config(&Policy::from_version("test_all")?)?,
+        ];
+        let mut fingerprints: Vec<String> = Vec::new();
+
+        let handshake_count = configs.len() * 5;
+        for i in 0..handshake_count {
+            let i = i % configs.len();
+
+            let config = &configs[i];
+            let mut pair = TestPair::from_config(config);
+            pair.handshake()?;
+
+            let client_hello = pair.server.client_hello()?;
+            let mut fingerprint = builder.build(&client_hello)?;
+
+            let hash = fingerprint.hash()?;
+            hex::decode(hash)?;
+
+            // Verify that the same config produces the same fingerprint
+            if let Some(previous) = fingerprints.get(i) {
+                assert_eq!(previous.as_str(), hash);
+            } else {
+                fingerprints.push(hash.to_string());
+            }
+        }
+        assert_eq!(configs.len(), fingerprints.len());
+
+        // Verify that we actually tested different unique fingerprints
+        let unique: HashSet<&String> = HashSet::from_iter(fingerprints.iter());
+        assert_eq!(unique.len(), fingerprints.len());
 
         Ok(())
     }
