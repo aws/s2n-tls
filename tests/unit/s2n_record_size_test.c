@@ -48,8 +48,8 @@ static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob
 {
     POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->server_key));
     POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->client_key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, key));
 
     return S2N_SUCCESS;
 }
@@ -84,8 +84,8 @@ int main(int argc, char **argv)
         conn->secure->cipher_suite->record_alg = &s2n_record_alg_aes128_sha;
         EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
         EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
-        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &aes128));
-        EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &aes128));
+        EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &aes128));
+        EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &aes128));
         EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
         EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
         conn->actual_protocol_version = S2N_TLS11;
@@ -254,8 +254,8 @@ int main(int argc, char **argv)
             server_conn->server = server_conn->secure;
             EXPECT_OK(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->server_key));
             EXPECT_OK(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->client_key));
-            EXPECT_SUCCESS(server_conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->secure->server_key, &des3));
-            EXPECT_SUCCESS(server_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure->client_key, &des3));
+            EXPECT_OK(server_conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->secure->server_key, &des3));
+            EXPECT_OK(server_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure->client_key, &des3));
             EXPECT_SUCCESS(s2n_hmac_init(&server_conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
 
             EXPECT_OK(s2n_record_min_write_payload_size(server_conn, &size));
@@ -370,8 +370,8 @@ int main(int argc, char **argv)
             server_conn->initial->cipher_suite->record_alg = &s2n_record_alg_aes128_sha_composite;
             server_conn->actual_protocol_version = S2N_TLS11;
             uint8_t mac_key_sha[20] = "server key shaserve";
-            EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, &aes128));
-            EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, &aes128));
+            EXPECT_OK(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, &aes128));
+            EXPECT_OK(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, &aes128));
             EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial->server_key, mac_key_sha, sizeof(mac_key_sha)));
             EXPECT_SUCCESS(server_conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&server_conn->initial->client_key, mac_key_sha, sizeof(mac_key_sha)));
 
@@ -409,8 +409,8 @@ int main(int argc, char **argv)
         /* init record algorithm */
         EXPECT_OK(cipher_suite->record_alg->cipher->init(session_key));
         S2N_BLOB_FROM_HEX(key, "0123456789abcdef0123456789abcdef");
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
-        EXPECT_SUCCESS(cipher_suite->record_alg->cipher->set_decryption_key(session_key, &key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->set_encryption_key(session_key, &key));
+        EXPECT_OK(cipher_suite->record_alg->cipher->set_decryption_key(session_key, &key));
 
         S2N_BLOB_FROM_HEX(iv, "0123456789abcdef01234567");
 
