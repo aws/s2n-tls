@@ -1478,17 +1478,17 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(client->ticket_lifetime_hint, 0);
     }
 
-    /* Test: Server disables legacy tickets */
+    /* Test: Server disables tls12 tickets */
     {
-        DEFER_CLEANUP(struct s2n_config *no_tls12_tickets_config = s2n_config_new(),
+        DEFER_CLEANUP(struct s2n_config *forward_secret_config = s2n_config_new(),
                 s2n_config_ptr_free);
-        EXPECT_NOT_NULL(no_tls12_tickets_config);
-        EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, false));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_tls12_tickets_config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(no_tls12_tickets_config,
+        EXPECT_NOT_NULL(forward_secret_config);
+        EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, true));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(forward_secret_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(forward_secret_config,
                 chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_tls12_tickets_config, 1));
-        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(no_tls12_tickets_config, ticket_key_name1,
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(forward_secret_config, 1));
+        EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(forward_secret_config, ticket_key_name1,
                 s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
         DEFER_CLEANUP(struct s2n_config *tls12_client_config = s2n_config_new(),
@@ -1507,7 +1507,7 @@ int main(int argc, char **argv)
         /* Security policy that does support TLS1.3 */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "default_tls13"));
 
-        /* Server does not send ticket when legacy tickets are disabled and TLS1.2 is negotiated */
+        /* Server does not send ticket when forward secrecy is enforced and TLS1.2 is negotiated */
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -1517,7 +1517,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server);
 
             EXPECT_SUCCESS(s2n_connection_set_config(client, tls12_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, forward_secret_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
                     s2n_io_stuffer_pair_free);
@@ -1533,7 +1533,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(tickets_sent, 0);
         }
 
-        /* Server does send tickets when legacy tickets are disabled and TLS1.3 is negotiated */
+        /* Server does send tickets when forward secrecy is enforced and TLS1.3 is negotiated */
         if (s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -1543,7 +1543,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server);
 
             EXPECT_SUCCESS(s2n_connection_set_config(client, tls13_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, forward_secret_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
                     s2n_io_stuffer_pair_free);
@@ -1559,7 +1559,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(tickets_sent, 1);
         }
 
-        /* Server does not accept valid TLS1.2 ticket when legacy tickets are disabled */
+        /* Server does not accept valid TLS1.2 ticket when forward secrecy is enforced */
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -1568,11 +1568,11 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
 
-            /* Enable legacy tickets for the first handshake */
-            EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, true));
+            /* Disable forward secrecy for the first handshake */
+            EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, false));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client, tls12_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, forward_secret_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
                     s2n_io_stuffer_pair_free);
@@ -1590,8 +1590,8 @@ int main(int argc, char **argv)
             uint8_t session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
             EXPECT_SUCCESS(s2n_connection_get_session(client, session_data, sizeof(session_data)));
 
-            /* Disables legacy tickets for the second handshake */
-            EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, false));
+            /* Enable forward secrecy for the second handshake */
+            EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, true));
 
             EXPECT_SUCCESS(s2n_connection_wipe(client));
             EXPECT_SUCCESS(s2n_connection_wipe(server));
@@ -1599,7 +1599,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_session(client, session_data, sizeof(session_data)));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client, tls12_client_config));
-            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, forward_secret_config));
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
@@ -1616,15 +1616,15 @@ int main(int argc, char **argv)
         }
     }
 
-    /* Test: Client disables legacy tickets */
+    /* Test: Client disables tls12 tickets */
     {
-        DEFER_CLEANUP(struct s2n_config *no_tls12_tickets_config = s2n_config_new(),
+        DEFER_CLEANUP(struct s2n_config *forward_secret_config = s2n_config_new(),
                 s2n_config_ptr_free);
-        EXPECT_NOT_NULL(no_tls12_tickets_config);
-        EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, false));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_tls12_tickets_config, "default_tls13"));
-        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_tls12_tickets_config, 1));
-        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_tls12_tickets_config));
+        EXPECT_NOT_NULL(forward_secret_config);
+        EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, true));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(forward_secret_config, "default_tls13"));
+        EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(forward_secret_config, 1));
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(forward_secret_config));
 
         DEFER_CLEANUP(struct s2n_config *tls12_server_config = s2n_config_new(),
                 s2n_config_ptr_free);
@@ -1648,7 +1648,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(tls13_server_config, ticket_key_name1,
                 s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
 
-        /* No ticket is received when legacy tickets are disabled and TLS1.2 is negotiated */
+        /* No ticket is received when forward secrecy is enforced and TLS1.2 is negotiated */
         {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -1657,7 +1657,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
 
-            EXPECT_SUCCESS(s2n_connection_set_config(client, no_tls12_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, forward_secret_config));
             EXPECT_SUCCESS(s2n_connection_set_config(server, tls12_server_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
@@ -1673,7 +1673,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(client->client_ticket.size, 0);
         }
 
-        /* A ticket is received when legacy tickets are disabled and TLS1.3 is negotiated */
+        /* A ticket is received when forward secrecy is enforced and TLS1.3 is negotiated */
         if (s2n_is_tls13_fully_supported()) {
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -1682,7 +1682,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server);
 
-            EXPECT_SUCCESS(s2n_connection_set_config(client, no_tls12_tickets_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client, forward_secret_config));
             EXPECT_SUCCESS(s2n_connection_set_config(server, tls13_server_config));
 
             DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },

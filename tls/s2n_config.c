@@ -97,7 +97,6 @@ static int s2n_config_init(struct s2n_config *config)
     config->decrypt_key_lifetime_in_nanos = S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS;
     config->async_pkey_validation_mode = S2N_ASYNC_PKEY_VALIDATION_FAST;
     config->check_ocsp = 1;
-    config->legacy_tickets = 1;
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
@@ -1007,11 +1006,11 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     return 0;
 }
 
-int s2n_config_legacy_tickets(struct s2n_config *config, bool enabled)
+int s2n_config_enforce_ticket_forward_secrecy(struct s2n_config *config, bool enabled)
 {
     POSIX_ENSURE_REF(config);
 
-    config->legacy_tickets = enabled;
+    config->ticket_forward_secrecy = enabled;
 
     return 0;
 }
