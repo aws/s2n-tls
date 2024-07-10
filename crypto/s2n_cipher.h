@@ -87,9 +87,6 @@ struct s2n_cipher {
     S2N_RESULT (*set_decryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
     S2N_RESULT (*set_encryption_key)(struct s2n_session_key *key, struct s2n_blob *in);
     S2N_RESULT (*destroy_key)(struct s2n_session_key *key);
-    int (*init)(struct s2n_session_key *key);
-
-    int (*destroy_key)(struct s2n_session_key *key);
     S2N_RESULT (*set_ktls_info)(struct s2n_ktls_crypto_info_inputs *inputs,
             struct s2n_ktls_crypto_info *crypto_info);
 };
