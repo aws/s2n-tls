@@ -32,10 +32,6 @@ impl Harness {
     pub fn connection(&self) -> &Connection {
         &self.connection
     }
-
-    pub fn connection_mut(&mut self) -> &mut Connection {
-        &mut self.connection
-    }
 }
 
 impl super::Connection for Harness {
@@ -236,7 +232,7 @@ mod tests {
         callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
         enums::ClientAuthType,
         error::ErrorType,
-        testing::{client_hello::*, s2n_tls::*, *},
+        testing::{self, client_hello::*, s2n_tls::*, *},
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
@@ -246,13 +242,13 @@ mod tests {
     #[test]
     fn handshake_default() {
         let config = build_config(&security::DEFAULT).unwrap();
-        establish_connection(config);
+        assert!(TestPair::handshake_with_config(&config).is_ok());
     }
 
     #[test]
     fn handshake_default_tls13() {
         let config = build_config(&security::DEFAULT_TLS13).unwrap();
-        establish_connection(config)
+        assert!(TestPair::handshake_with_config(&config).is_ok());
     }
 
     #[test]
@@ -368,44 +364,20 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            // create and configure a server connection
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
-            Harness::new(server)
-        };
+        let mut pair = TestPair::from_config(&config);
+        pair.server.set_waker(Some(&waker))?;
+        let s2n_err = pair.handshake().unwrap_err();
+        // the underlying error should be the custom error the application provided
+        let app_err = s2n_err.application_error().unwrap();
+        let io_err = app_err.downcast_ref::<std::io::Error>().unwrap();
+        let _custom_err = io_err
+            .get_ref()
+            .unwrap()
+            .downcast_ref::<CustomError>()
+            .unwrap();
 
-        let client = {
-            // create a client connection
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let mut pair = Pair::new(server, client);
-        loop {
-            match pair.poll() {
-                Poll::Ready(result) => {
-                    let err = result.expect_err("handshake should fail");
-
-                    // the underlying error should be the custom error the application provided
-                    let s2n_err = err.downcast_ref::<crate::error::Error>().unwrap();
-                    let app_err = s2n_err.application_error().unwrap();
-                    let io_err = app_err.downcast_ref::<std::io::Error>().unwrap();
-                    let _custom_err = io_err
-                        .get_ref()
-                        .unwrap()
-                        .downcast_ref::<CustomError>()
-                        .unwrap();
-                    break;
-                }
-                Poll::Pending => continue,
-            }
-        }
         // assert that the future is async returned Poll::Pending once
         assert_eq!(wake_count, 1);
-
         Ok(())
     }
 
@@ -422,24 +394,10 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            // create and configure a server connection
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
-            Harness::new(server)
-        };
+        let mut pair = TestPair::from_config(&config);
+        pair.server.set_waker(Some(&waker))?;
+        pair.handshake()?;
 
-        let client = {
-            // create a client connection
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let pair = Pair::new(server, client);
-
-        poll_tls_pair(pair);
         // confirm that the callback returned Pending `require_pending_count` times
         assert_eq!(wake_count, require_pending_count);
         // confirm that the final invoked count is +1 more than `require_pending_count`
@@ -450,6 +408,7 @@ mod tests {
 
         Ok(())
     }
+
     #[test]
     fn client_hello_callback_sync() -> Result<(), Error> {
         let (waker, wake_count) = new_count_waker();
@@ -491,25 +450,12 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            // create and configure a server connection
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            server.set_waker(Some(&waker))?;
-            Harness::new(server)
-        };
-
-        let client = {
-            // create a client connection
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let pair = Pair::new(server, client);
+        let mut pair = TestPair::from_config(&config);
+        pair.server.set_waker(Some(&waker))?;
 
         assert_eq!(callback.count(), 0);
-        poll_tls_pair(pair);
+
+        pair.handshake()?;
         assert_eq!(callback.count(), 1);
         assert_eq!(wake_count, 0);
         Ok(())
@@ -538,7 +484,7 @@ mod tests {
         builder.load_pem(&fs::read(&cert)?, &fs::read(&key)?)?;
         builder.trust_location(Some(&cert), None)?;
 
-        establish_connection(builder.build()?);
+        TestPair::handshake_with_config(&builder.build()?)?;
         Ok(())
     }
 
@@ -576,13 +522,9 @@ mod tests {
                 config.build()?
             };
 
-            let mut pair = tls_pair(config);
-            pair.server
-                .0
-                .connection_mut()
-                .set_waker(Some(&noop_waker()))?;
-
-            poll_tls_pair(pair);
+            let mut pair = TestPair::from_config(&config);
+            pair.server.set_waker(Some(&noop_waker()))?;
+            pair.handshake()?;
         }
         Ok(())
     }
@@ -602,23 +544,17 @@ mod tests {
         };
 
         // confirm that default connection establishment fails
-        let mut pair = tls_pair(reject_config.clone());
-        assert!(poll_tls_pair_result(&mut pair).is_err());
+        let mut pair = TestPair::from_config(&reject_config);
+        assert!(pair.handshake().is_err());
 
         // confirm that overriding the verify_host_callback on connection causes
         // the handshake to succeed
-        pair = tls_pair(reject_config);
-        pair.server
-            .0
-            .connection
-            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-            .unwrap();
+        let mut pair = TestPair::from_config(&reject_config);
         pair.client
-            .0
-            .connection
-            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-            .unwrap();
-        assert!(poll_tls_pair_result(&mut pair).is_ok());
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+        pair.server
+            .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
+        pair.handshake()?;
 
         Ok(())
     }
@@ -633,24 +569,10 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            Harness::new(server)
-        };
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
 
-        let client = {
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
-        let server = pair.server.0.connection;
-        let client = pair.client.0.connection;
-
-        for conn in [server, client] {
+        for conn in [pair.server, pair.client] {
             assert!(!conn.client_cert_used());
             let cert = conn.client_cert_chain_bytes()?;
             assert!(cert.is_none());
@@ -673,28 +595,14 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            Harness::new(server)
-        };
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
 
-        let client = {
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
-        let server = pair.server.0.connection;
-        let client = pair.client.0.connection;
-
-        let cert = server.client_cert_chain_bytes()?;
+        let cert = pair.server.client_cert_chain_bytes()?;
         assert!(cert.is_some());
         assert!(!cert.unwrap().is_empty());
 
-        for conn in [server, client] {
+        for conn in [pair.server, pair.client] {
             assert!(conn.client_cert_used());
             let sig_alg = conn.selected_client_signature_algorithm()?;
             assert!(sig_alg.is_some());
@@ -706,7 +614,7 @@ mod tests {
     }
 
     #[test]
-    fn system_certs_loaded_by_default() {
+    fn system_certs_loaded_by_default() -> Result<(), Error> {
         let keypair = CertKeyPair::default();
 
         // Load the server certificate into the trust store by overriding the OpenSSL default
@@ -714,20 +622,18 @@ mod tests {
         temp_env::with_var("SSL_CERT_FILE", Some(keypair.cert_path()), || {
             let mut builder = Builder::new();
             builder
-                .load_pem(keypair.cert(), keypair.key())
-                .unwrap()
-                .set_security_policy(&security::DEFAULT_TLS13)
-                .unwrap()
-                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-                .unwrap();
+                .load_pem(keypair.cert(), keypair.key())?
+                .set_security_policy(&security::DEFAULT_TLS13)?
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
 
             let config = builder.build().unwrap();
-            establish_connection(config);
-        });
+            TestPair::handshake_with_config(&config)?;
+            Ok(())
+        })
     }
 
     #[test]
-    fn disable_loading_system_certs() {
+    fn disable_loading_system_certs() -> Result<(), Error> {
         let keypair = CertKeyPair::default();
 
         // Load the server certificate into the trust store by overriding the OpenSSL default
@@ -736,24 +642,19 @@ mod tests {
             // Test the Builder itself, and also the Builder produced by the Config builder() API.
             for mut builder in [Builder::new(), Config::builder()] {
                 builder
-                    .load_pem(keypair.cert(), keypair.key())
-                    .unwrap()
-                    .set_security_policy(&security::DEFAULT_TLS13)
-                    .unwrap()
-                    .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
-                    .unwrap();
+                    .load_pem(keypair.cert(), keypair.key())?
+                    .set_security_policy(&security::DEFAULT_TLS13)?
+                    .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?;
 
                 // Disable loading system certificates
-                builder.with_system_certs(false).unwrap();
+                builder.with_system_certs(false)?;
 
-                let config = builder.build().unwrap();
+                let config = builder.build()?;
                 let mut config_with_system_certs = config.clone();
-
-                let mut pair = tls_pair(config);
 
                 // System certificates should not be loaded into the trust store. The handshake
                 // should fail since the certificate should not be trusted.
-                assert!(poll_tls_pair_result(&mut pair).is_err());
+                assert!(TestPair::handshake_with_config(&config).is_err());
 
                 // The handshake should succeed after trusting the certificate.
                 unsafe {
@@ -761,9 +662,10 @@ mod tests {
                         config_with_system_certs.as_mut_ptr(),
                     );
                 }
-                establish_connection(config_with_system_certs);
+                TestPair::handshake_with_config(&config_with_system_certs)?;
             }
-        });
+            Ok(())
+        })
     }
 
     #[test]
@@ -776,24 +678,10 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            Harness::new(server)
-        };
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
 
-        let client = {
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
-
-        let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
-        let server = pair.server.0.connection;
-        let client = pair.client.0.connection;
-
-        for conn in [server, client] {
+        for conn in [pair.server, pair.client] {
             let chain = conn.peer_cert_chain()?;
             assert_eq!(chain.len(), 1);
             for cert in chain.iter() {
@@ -816,29 +704,15 @@ mod tests {
             config.build()?
         };
 
-        let server = {
-            let mut server = crate::connection::Connection::new_server();
-            server.set_config(config.clone())?;
-            Harness::new(server)
-        };
-
-        let client = {
-            let mut client = crate::connection::Connection::new_client();
-            client.set_config(config)?;
-            Harness::new(client)
-        };
+        let mut pair = TestPair::from_config(&config);
 
         // None before handshake...
-        assert!(server.connection.selected_cert().is_none());
-        assert!(client.connection.selected_cert().is_none());
+        assert!(pair.server.selected_cert().is_none());
+        assert!(pair.client.selected_cert().is_none());
 
-        let pair = Pair::new(server, client);
+        pair.handshake()?;
 
-        let pair = poll_tls_pair(pair);
-        let server = pair.server.0.connection;
-        let client = pair.client.0.connection;
-
-        for conn in [&server, &client] {
+        for conn in [&pair.server, &pair.client] {
             let chain = conn.selected_cert().unwrap();
             assert_eq!(chain.len(), 1);
             for cert in chain.iter() {
@@ -851,14 +725,14 @@ mod tests {
         // Same config is used for both and we are doing mTLS, so both should select the same
         // certificate.
         assert_eq!(
-            server
+            pair.server
                 .selected_cert()
                 .unwrap()
                 .iter()
                 .next()
                 .unwrap()?
                 .der()?,
-            client
+            pair.client
                 .selected_cert()
                 .unwrap()
                 .iter()
@@ -874,12 +748,11 @@ mod tests {
     fn master_secret_success() -> Result<(), Error> {
         let policy = security::Policy::from_version("test_all_tls12")?;
         let config = config_builder(&policy)?.build()?;
-        let pair = poll_tls_pair(tls_pair(config));
-        let server = pair.server.0.connection;
-        let client = pair.client.0.connection;
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
 
-        let server_secret = server.master_secret()?;
-        let client_secret = client.master_secret()?;
+        let server_secret = pair.server.master_secret()?;
+        let client_secret = pair.client.master_secret()?;
         assert_eq!(server_secret, client_secret);
 
         Ok(())
@@ -888,16 +761,13 @@ mod tests {
     #[test]
     fn master_secret_failure() -> Result<(), Error> {
         // TLS1.3 does not support getting the master secret
-        let config = config_builder(&security::DEFAULT_TLS13)?.build()?;
-        let pair = poll_tls_pair(tls_pair(config));
-        let server = pair.server.0.connection;
-        let client = pair.client.0.connection;
+        let mut pair = TestPair::from_config(&build_config(&security::DEFAULT_TLS13)?);
+        pair.handshake()?;
 
-        let server_error = server.master_secret().unwrap_err();
-        assert_eq!(server_error.kind(), ErrorType::UsageError);
-
-        let client_error = client.master_secret().unwrap_err();
-        assert_eq!(client_error.kind(), ErrorType::UsageError);
+        for conn in [pair.client, pair.server] {
+            let err = conn.master_secret().unwrap_err();
+            assert_eq!(err.kind(), ErrorType::UsageError);
+        }
 
         Ok(())
     }
@@ -912,26 +782,21 @@ mod tests {
             send_key_updates: 0,
         };
 
-        let pair = tls_pair(build_config(&security::DEFAULT_TLS13)?);
-        let mut pair = poll_tls_pair(pair);
+        let mut pair = TestPair::from_config(&build_config(&security::DEFAULT_TLS13)?);
+        pair.handshake()?;
 
         // there haven't been any key updates at the start of the connection
-        let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
-        assert_eq!(client_updates, empty_key_updates);
-        let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
-        assert_eq!(server_updates, empty_key_updates);
+        assert_eq!(pair.client.key_update_counts()?, empty_key_updates);
+        assert_eq!(pair.server.key_update_counts()?, empty_key_updates);
 
         pair.server
-            .0
-            .connection
-            .as_mut()
             .request_key_update(PeerKeyUpdate::KeyUpdateNotRequested)?;
-        assert!(pair.poll_send(Mode::Server, &[0]).is_ready());
+        assert!(pair.server.poll_send(&[0]).is_ready());
 
         // the server send key has been updated
-        let client_updates = pair.client.0.connection.as_ref().key_update_counts()?;
+        let client_updates = pair.client.key_update_counts()?;
         assert_eq!(client_updates, empty_key_updates);
-        let server_updates = pair.server.0.connection.as_ref().key_update_counts()?;
+        let server_updates = pair.server.key_update_counts()?;
         assert_eq!(server_updates.recv_key_updates, 0);
         assert_eq!(server_updates.send_key_updates, 1);
 
@@ -1023,6 +888,61 @@ mod tests {
         assert!(poll_tls_pair_result(&mut pair).is_ok());
         let protocol = pair.server.0.connection.application_protocol().unwrap();
         assert_eq!(protocol, b"h2");
+        Ok(())
+    }
+
+    #[test]
+    fn client_hello_sslv2_negative() -> Result<(), testing::Error> {
+        let config = testing::build_config(&security::DEFAULT_TLS13)?;
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+        assert!(!pair.server.client_hello_is_sslv2()?);
+        Ok(())
+    }
+
+    #[test]
+    fn client_hello_sslv2_positive() -> Result<(), testing::Error> {
+        // copy-pasted from s2n-tls/tests/testlib/s2n_sslv2_client_hello.h
+        // by concatenating these fields together, a valid SSLv2 formatted client hello
+        // can be assembled
+        const SSLV2_CLIENT_HELLO_HEADER: &[u8] = &[0x80, 0xb3, 0x01, 0x03, 0x03];
+        const SSLV2_CLIENT_HELLO_PREFIX: &[u8] = &[0x00, 0x8a, 0x00, 0x00, 0x00, 0x20];
+        const SSLV2_CLIENT_HELLO_CIPHER_SUITES: &[u8] = &[
+            0x00, 0xc0, 0x24, 0x00, 0xc0, 0x28, 0x00, 0x00, 0x3d, 0x00, 0xc0, 0x26, 0x00, 0xc0,
+            0x2a, 0x00, 0x00, 0x6b, 0x00, 0x00, 0x6a, 0x00, 0xc0, 0x0a, 0x07, 0x00, 0xc0, 0x00,
+            0xc0, 0x14, 0x00, 0x00, 0x35, 0x00, 0xc0, 0x05, 0x00, 0xc0, 0x0f, 0x00, 0x00, 0x39,
+            0x00, 0x00, 0x38, 0x00, 0xc0, 0x23, 0x00, 0xc0, 0x27, 0x00, 0x00, 0x3c, 0x00, 0xc0,
+            0x25, 0x00, 0xc0, 0x29, 0x00, 0x00, 0x67, 0x00, 0x00, 0x40, 0x00, 0xc0, 0x09, 0x06,
+            0x00, 0x40, 0x00, 0xc0, 0x13, 0x00, 0x00, 0x2f, 0x00, 0xc0, 0x04, 0x01, 0x00, 0x80,
+            0x00, 0xc0, 0x0e, 0x00, 0x00, 0x33, 0x00, 0x00, 0x32, 0x00, 0xc0, 0x2c, 0x00, 0xc0,
+            0x2b, 0x00, 0xc0, 0x30, 0x00, 0x00, 0x9d, 0x00, 0xc0, 0x2e, 0x00, 0xc0, 0x32, 0x00,
+            0x00, 0x9f, 0x00, 0x00, 0xa3, 0x00, 0xc0, 0x2f, 0x00, 0x00, 0x9c, 0x00, 0xc0, 0x2d,
+            0x00, 0xc0, 0x31, 0x00, 0x00, 0x9e, 0x00, 0x00, 0xa2, 0x00, 0x00, 0xff,
+        ];
+        const SSLV2_CLIENT_HELLO_CHALLENGE: &[u8] = &[
+            0x5b, 0xe9, 0xcc, 0xad, 0xd6, 0xa5, 0x20, 0xac, 0xa3, 0xf4, 0x8e, 0x88, 0x06, 0xb5,
+            0x95, 0x53, 0x2d, 0x53, 0xfe, 0xd7, 0xa1, 0x00, 0x57, 0xc0, 0x53, 0x9d, 0x84, 0x71,
+            0x80, 0x7f, 0x30, 0x7e,
+        ];
+
+        let config = testing::build_config(&security::Policy::from_version("test_all")?)?;
+        // we use the pair to setup IO, but we don't want the client to write anything.
+        // So we drop the client and just directly write the SSLv2 header to the
+        // client_tx_stream
+        let mut pair = TestPair::from_config(&config);
+        drop(pair.client);
+
+        let mut client_tx_stream = pair.client_tx_stream.borrow_mut();
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_HEADER)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_PREFIX)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CIPHER_SUITES)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CHALLENGE)?;
+        // end the exclusive borrow
+        drop(client_tx_stream);
+
+        // the first server.poll_negotiate causes the server to read in the client hello
+        assert!(pair.server.poll_negotiate()?.is_pending());
+        assert!(pair.server.client_hello_is_sslv2()?);
         Ok(())
     }
 }
