@@ -82,8 +82,9 @@ int main(int argc, char **argv)
     {
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-        struct s2n_config *config = NULL, *default_config = NULL;
-        EXPECT_NOT_NULL(config = s2n_config_new());
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        struct s2n_config *default_config = NULL;
         EXPECT_NOT_NULL(default_config = s2n_fetch_default_config());
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
