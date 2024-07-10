@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.17-9371c90f</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.17-78efb6f0</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -5705,6 +5705,7 @@ Safety</h1>
       </table>
 </div><div class="memdoc">
 <p >Sets up a connection to request the certificate status of a peer during an SSL handshake. If set to S2N_STATUS_REQUEST_NONE, no status request is made.</p>
+<dl class="section note"><dt>Note</dt><dd>SHA-1 is the only supported hash algorithm for the <code>certID</code> field. This is different from the hash algorithm used for the OCSP signature. See <a href="https://datatracker.ietf.org/doc/html/rfc6960#section-4.1.1">RFC 6960</a> for more information. While unlikely to be the case, if support for a different hash algorithm is required, the s2n-tls validation can be disabled with <code><a class="el" href="s2n_8h.html#affff244d7ed6f3b8d1f885df1b307f4e">s2n_config_set_check_stapled_ocsp_response()</a></code> and the response can be retrieved for manual validation with <code><a class="el" href="s2n_8h.html#a8ad8092d7c616efd40bb0145c4895f1f">s2n_connection_get_ocsp_response()</a></code>.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
