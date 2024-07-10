@@ -28,7 +28,7 @@
 
 static bool s2n_aead_cipher_aes128_gcm_available(void)
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
     return (EVP_aead_aes_128_gcm() ? true : false);
 #else
     return (EVP_aes_128_gcm() ? true : false);
@@ -37,7 +37,7 @@ static bool s2n_aead_cipher_aes128_gcm_available(void)
 
 static bool s2n_aead_cipher_aes256_gcm_available(void)
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
     return (EVP_aead_aes_256_gcm() ? true : false);
 #else
     return (EVP_aes_256_gcm() ? true : false);
