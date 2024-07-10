@@ -9,6 +9,9 @@ on:
   pull_request:
     branches-ignore:
       - gh-pages
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
 
 # USAGE
 #
