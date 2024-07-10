@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 
             server_conn->secure->cipher_suite = test_cipher_suite;
             POSIX_GUARD(server_conn->secure->cipher_suite->record_alg->cipher->init(&server_conn->secure->client_key));
-            POSIX_GUARD(server_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure->client_key, &test_key));
+            POSIX_GUARD_RESULT(server_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->secure->client_key, &test_key));
             server_conn->client = server_conn->secure;
 
             DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
@@ -108,7 +108,7 @@ int main(int argc, char **argv)
 
                 client_conn->secure->cipher_suite = test_cipher_suite;
                 POSIX_GUARD(client_conn->secure->cipher_suite->record_alg->cipher->init(&client_conn->secure->server_key));
-                POSIX_GUARD(client_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&client_conn->secure->server_key, &test_key));
+                POSIX_GUARD_RESULT(client_conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&client_conn->secure->server_key, &test_key));
                 client_conn->server = client_conn->secure;
 
                 DEFER_CLEANUP(struct s2n_stuffer io_stuffer = { 0 }, s2n_stuffer_free);
