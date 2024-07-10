@@ -1271,12 +1271,12 @@ S2N_API extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, c
         uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
 
 /**
- * Toggles ticketed resumption for TLS1.2 connections. Clients should not expect
- * session tickets from servers and servers will not send session tickets when TLS1.2
+ * Toggles ticket-based resumption for TLS 1.2 connections. Clients should not expect
+ * session tickets from servers and servers will not send session tickets when TLS 1.2
  * is negotiated and legacy tickets are disabled. Tickets will continue to be produced
- * when TLS1.3 is negotiated and legacy tickets are disabled.
+ * when TLS 1.3 is negotiated and legacy tickets are disabled.
  * 
- * @note Disabling legacy tickets is a security improvement as TLS1.2 tickets
+ * @note Disabling legacy tickets is a security improvement as TLS 1.2 tickets
  * are not forward secret.
  * 
  * @note The default behavior is that legacy tickets are enabled.

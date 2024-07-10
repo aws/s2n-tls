@@ -1525,7 +1525,6 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
-
             EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS12);
             EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS12);
 
@@ -1552,13 +1551,68 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
 
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
-
             EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
             EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
 
             uint16_t tickets_sent = 0;
             EXPECT_SUCCESS(s2n_connection_get_tickets_sent(server, &tickets_sent));
             EXPECT_EQUAL(tickets_sent, 1);
+        }
+
+        /* Server does not accept valid TLS1.2 ticket when legacy tickets are disabled */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client);
+            DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server);
+
+            /* Enable legacy tickets for the first handshake */
+            EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, true));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client, tls12_client_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
+                    s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS12);
+
+            uint16_t tickets_sent = 0;
+            EXPECT_SUCCESS(s2n_connection_get_tickets_sent(server, &tickets_sent));
+            EXPECT_EQUAL(tickets_sent, 1);
+
+            uint8_t session_data[S2N_TLS12_SESSION_SIZE] = { 0 };
+            EXPECT_SUCCESS(s2n_connection_get_session(client, session_data, sizeof(session_data)));
+
+            /* Disables legacy tickets for the second handshake */
+            EXPECT_SUCCESS(s2n_config_legacy_tickets(no_tls12_tickets_config, false));
+
+            EXPECT_SUCCESS(s2n_connection_wipe(client));
+            EXPECT_SUCCESS(s2n_connection_wipe(server));
+
+            EXPECT_SUCCESS(s2n_connection_set_session(client, session_data, sizeof(session_data)));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client, tls12_client_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server, no_tls12_tickets_config));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client, server, &test_io));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));
+            EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS12);
+            EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS12);
+
+            /* Session ticket not accepted */
+            EXPECT_TRUE(IS_FULL_HANDSHAKE(client));
+            EXPECT_TRUE(IS_FULL_HANDSHAKE(server));
+
+            /* No ticket issued */
+            EXPECT_SUCCESS(s2n_connection_get_tickets_sent(server, &tickets_sent));
+            EXPECT_EQUAL(tickets_sent, 0);
         }
     }
 
