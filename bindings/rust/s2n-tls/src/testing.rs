@@ -77,7 +77,6 @@ pub trait Context {
 
 pub enum Mode {
     Client,
-    Server,
 }
 
 #[derive(Debug)]
@@ -128,31 +127,9 @@ impl<Server: Connection, Client: Connection> Pair<Server, Client> {
         }
     }
 
-    pub fn poll_send(&mut self, sender: Mode, buf: &[u8]) -> Poll<Result<()>> {
-        let result = match sender {
-            Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
-                connection::Connection::poll_send(conn, buf)
-            }),
-            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
-                connection::Connection::poll_send(conn, buf)
-            }),
-        };
-        self.server.1.transfer(&mut self.client.1);
-        match result {
-            Poll::Ready(result) => {
-                result?;
-                Ok(()).into()
-            }
-            Poll::Pending => Poll::Pending,
-        }
-    }
-
     pub fn poll_recv(&mut self, receiver: Mode, buf: &mut [u8]) -> Poll<Result<()>> {
         let result = match receiver {
             Mode::Client => self.client.0.poll_action(&mut self.client.1, |conn| {
-                connection::Connection::poll_recv(conn, buf)
-            }),
-            Mode::Server => self.server.0.poll_action(&mut self.server.1, |conn| {
                 connection::Connection::poll_recv(conn, buf)
             }),
         };
@@ -292,25 +269,6 @@ pub fn tls_pair(config: crate::config::Config) -> Pair<Harness, Harness> {
     let client = Harness::new(client);
 
     Pair::new(server, client)
-}
-
-pub fn establish_connection(config: crate::config::Config) {
-    // create and configure a server connection
-    let mut server = crate::connection::Connection::new_server();
-    server
-        .set_config(config.clone())
-        .expect("Failed to bind config to server connection");
-    let server = Harness::new(server);
-
-    // create a client connection
-    let mut client = crate::connection::Connection::new_client();
-    client
-        .set_config(config)
-        .expect("Unable to set client config");
-    let client = Harness::new(client);
-
-    let pair = Pair::new(server, client);
-    poll_tls_pair(pair);
 }
 
 pub fn poll_tls_pair(mut pair: Pair<Harness, Harness>) -> Pair<Harness, Harness> {

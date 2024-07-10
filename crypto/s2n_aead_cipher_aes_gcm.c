@@ -22,13 +22,9 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-    #define S2N_AEAD_AES_GCM_AVAILABLE
-#endif
-
 static uint8_t s2n_aead_cipher_aes128_gcm_available()
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
     return (EVP_aead_aes_128_gcm() ? 1 : 0);
 #else
     return (EVP_aes_128_gcm() ? 1 : 0);
@@ -37,14 +33,14 @@ static uint8_t s2n_aead_cipher_aes128_gcm_available()
 
 static uint8_t s2n_aead_cipher_aes256_gcm_available()
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
     return (EVP_aead_aes_256_gcm() ? 1 : 0);
 #else
     return (EVP_aes_256_gcm() ? 1 : 0);
 #endif
 }
 
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE) /* BoringSSL and AWS-LC AEAD API implementation */
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS) /* BoringSSL and AWS-LC AEAD API implementation */
 
 static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
