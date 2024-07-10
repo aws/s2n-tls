@@ -22,7 +22,6 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-
 static bool s2n_aead_cipher_aes128_gcm_available(void)
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
