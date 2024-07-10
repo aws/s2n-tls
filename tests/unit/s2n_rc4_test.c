@@ -129,8 +129,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
         EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
     } else {
-        EXPECT_ERROR(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv));
-        EXPECT_ERROR(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv));
+        EXPECT_ERROR_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &key_iv), S2N_ERR_KEY_INIT);
+        EXPECT_ERROR_WITH_ERRNO(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &key_iv), S2N_ERR_KEY_INIT);
     }
     EXPECT_SUCCESS(s2n_connection_free(conn));
     END_TEST();
