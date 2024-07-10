@@ -97,8 +97,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha, sizeof(mac_key_sha)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha, sizeof(mac_key_sha)));
 
@@ -173,8 +173,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha, sizeof(mac_key_sha)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha, sizeof(mac_key_sha)));
 
@@ -249,8 +249,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes128));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes128));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha256, sizeof(mac_key_sha256)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
@@ -325,8 +325,8 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
 
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
-            EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&conn->initial->server_key, &aes256));
+            EXPECT_OK(conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&conn->initial->client_key, &aes256));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->server_key, mac_key_sha256, sizeof(mac_key_sha256)));
             EXPECT_SUCCESS(conn->initial->cipher_suite->record_alg->cipher->io.comp.set_mac_write_key(&conn->initial->client_key, mac_key_sha256, sizeof(mac_key_sha256)));
 
