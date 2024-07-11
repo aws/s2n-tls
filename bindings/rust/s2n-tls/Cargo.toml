@@ -24,7 +24,6 @@ pin-project-lite = "0.2"
 hex = "0.4"
 
 [dev-dependencies]
-bytes = "1"
 futures-test = "0.3"
 openssl = "0.10"
 temp-env = "0.3"
