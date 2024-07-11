@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.17-2c4d0127</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.4.17-a99299a9</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -457,6 +457,8 @@ Functions</h2></td></tr>
 <tr class="separator:a59be9ad4336811d9910f07bb74edb364"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae6d6a59a875a39fdd9f81ae02595173d"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ae6d6a59a875a39fdd9f81ae02595173d">s2n_config_add_ticket_crypto_key</a> (struct s2n_config *config, const uint8_t *name, uint32_t name_len, uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch)</td></tr>
 <tr class="separator:ae6d6a59a875a39fdd9f81ae02595173d"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a83b61c7518ebbb88cf0c481dd3412b48"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a83b61c7518ebbb88cf0c481dd3412b48">s2n_config_require_ticket_forward_secrecy</a> (struct s2n_config *config, bool enabled)</td></tr>
+<tr class="separator:a83b61c7518ebbb88cf0c481dd3412b48"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a99493d7c1f33f5f5390dd0fdd95ab431"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a99493d7c1f33f5f5390dd0fdd95ab431">s2n_config_set_ctx</a> (struct s2n_config *config, void *ctx)</td></tr>
 <tr class="separator:a99493d7c1f33f5f5390dd0fdd95ab431"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ab325136d7c254e6f72d2a134ad59f759"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ab325136d7c254e6f72d2a134ad59f759">s2n_config_get_ctx</a> (struct s2n_config *config, void **ctx)</td></tr>
@@ -4311,6 +4313,45 @@ s2n-tls has never supported compression methods in any TLS version and therefore
 <p >This function has better performance than <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code> because it does not load default system certificates into the trust store by default. To add system certificates to this config, call <code><a class="el" href="s2n_8h.html#a3f99ca29318603bee3d3e1fb713e4577">s2n_config_load_system_certs()</a></code>.</p>
 <p >The returned config should be freed with <code><a class="el" href="s2n_8h.html#a414a19458d8ce45e039dbd01e7dd67f4">s2n_config_free()</a></code> after it's no longer in use by any connection.</p>
 <dl class="section return"><dt>Returns</dt><dd>A new configuration object suitable for configuring connections and associating certs and keys. </dd></dl>
+
+</div>
+</div>
+<a id="a83b61c7518ebbb88cf0c481dd3412b48" name="a83b61c7518ebbb88cf0c481dd3412b48"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a83b61c7518ebbb88cf0c481dd3412b48">&#9670;&#160;</a></span>s2n_config_require_ticket_forward_secrecy()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_config_require_ticket_forward_secrecy </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_config *&#160;</td>
+          <td class="paramname"><em>config</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype">bool&#160;</td>
+          <td class="paramname"><em>enabled</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >Requires that session tickets are only used when forward secrecy is possible.</p>
+<p >Restricts session resumption to TLS1.3, as the tickets used in TLS1.2 resumption are not forward secret. Clients should not expect to receive new session tickets and servers will not send new session tickets when TLS1.2 is negotiated and ticket forward secrecy is required.</p>
+<dl class="section note"><dt>Note</dt><dd>The default behavior is that forward secrecy is not required.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">config</td><td>The config object being updated </td></tr>
+    <tr><td class="paramname">enabled</td><td>Indicates if forward secrecy is required or not on tickets </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure </dd></dl>
 
 </div>
 </div>
