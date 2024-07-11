@@ -329,10 +329,12 @@ const struct s2n_cipher_preferences cipher_preferences_20240331 = {
 
 /*
  * TLS1.3 support.
+ * FIPS compliant.
  * No DHE (would require extra setup with s2n_config_add_dhparams)
  */
 struct s2n_cipher_suite *cipher_suites_20240701[] = {
-    S2N_TLS13_CIPHER_SUITES_20190801,
+    &s2n_tls13_aes_256_gcm_sha384,
+    &s2n_tls13_aes_128_gcm_sha256,
     /* TLS1.2 with ECDSA */
     &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
     &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
@@ -349,33 +351,6 @@ struct s2n_cipher_suite *cipher_suites_20240701[] = {
 const struct s2n_cipher_preferences cipher_preferences_20240701 = {
     .count = s2n_array_len(cipher_suites_20240701),
     .suites = cipher_suites_20240701,
-    .allow_chacha20_boosting = false,
-};
-
-/*
- * TLS1.3 support.
- * FIPS compliant.
- * No DHE (would require extra setup with s2n_config_add_dhparams)
- */
-struct s2n_cipher_suite *cipher_suites_20240702[] = {
-    &s2n_tls13_aes_256_gcm_sha384,
-    &s2n_tls13_aes_128_gcm_sha256,
-    /* TLS1.2 with ECDSA */
-    &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_ecdsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_ecdsa_with_aes_256_cbc_sha384,
-
-    /* TLS1.2 with RSA */
-    &s2n_ecdhe_rsa_with_aes_128_gcm_sha256,
-    &s2n_ecdhe_rsa_with_aes_256_gcm_sha384,
-    &s2n_ecdhe_rsa_with_aes_128_cbc_sha256,
-    &s2n_ecdhe_rsa_with_aes_256_cbc_sha384,
-};
-
-const struct s2n_cipher_preferences cipher_preferences_20240702 = {
-    .count = s2n_array_len(cipher_suites_20240702),
-    .suites = cipher_suites_20240702,
     .allow_chacha20_boosting = false,
 };
 
