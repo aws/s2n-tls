@@ -15,7 +15,7 @@ The following chart maps the security policy version to protocol version and cip
 
 |    version    | TLS1.0 | TLS1.1 | TLS1.2 | TLS1.3 | AES-CBC | AES-GCM | CHACHAPOLY | 3DES | RC4 | DHE | ECDHE | RSA kx |
 |---------------|--------|--------|--------|--------|---------|---------|------------|------|-----|-----|-------|--------|
-|    default    |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
+|    default    |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
 | default_fips  |        |        |    X   |    X   |    X    |    X    |            |      |     |     |   X   |        |
 | default_tls13 |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
 |   20240701    |        |        |    X   |    X   |    X    |    X    |      X     |      |     |     |   X   |        |
