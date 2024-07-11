@@ -137,7 +137,7 @@ S2N_API int s2n_fingerprint_get_raw_size(const struct s2n_fingerprint *fingerpri
  * @param fingerprint The s2n_fingerprint to be used for the raw string
  * @param max_output_size The maximum size of data that may be written to `output`.
  * If `output` is too small, an S2N_ERR_T_USAGE error will occur.
- * @param output The location that the requested hash will be written to.
+ * @param output The location that the requested raw string will be written to.
  * @param output_size Output variable to be set to the actual size of the data
  * written to `output`.
  * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
