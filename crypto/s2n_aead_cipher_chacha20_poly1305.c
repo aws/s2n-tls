@@ -34,12 +34,12 @@
     #define S2N_CHACHA20_POLY1305_AVAILABLE_OSSL
 #endif
 
-static uint8_t s2n_aead_chacha20_poly1305_available(void)
+static bool s2n_aead_chacha20_poly1305_available(void)
 {
 #if defined(S2N_CHACHA20_POLY1305_AVAILABLE_OSSL) || defined(S2N_CHACHA20_POLY1305_AVAILABLE_BSSL_AWSLC)
-    return 1;
+    return true;
 #else
-    return 0;
+    return false;
 #endif
 }
 

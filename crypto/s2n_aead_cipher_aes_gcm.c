@@ -22,21 +22,21 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static uint8_t s2n_aead_cipher_aes128_gcm_available()
+static bool s2n_aead_cipher_aes128_gcm_available(void)
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
-    return (EVP_aead_aes_128_gcm() ? 1 : 0);
+    return (EVP_aead_aes_128_gcm() ? true : false);
 #else
-    return (EVP_aes_128_gcm() ? 1 : 0);
+    return (EVP_aes_128_gcm() ? true : false);
 #endif
 }
 
-static uint8_t s2n_aead_cipher_aes256_gcm_available()
+static bool s2n_aead_cipher_aes256_gcm_available(void)
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
-    return (EVP_aead_aes_256_gcm() ? 1 : 0);
+    return (EVP_aead_aes_256_gcm() ? true : false);
 #else
-    return (EVP_aes_256_gcm() ? 1 : 0);
+    return (EVP_aes_256_gcm() ? true : false);
 #endif
 }
 

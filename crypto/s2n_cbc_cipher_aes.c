@@ -21,14 +21,14 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static uint8_t s2n_cbc_cipher_aes128_available()
+static bool s2n_cbc_cipher_aes128_available(void)
 {
-    return (EVP_aes_128_cbc() ? 1 : 0);
+    return (EVP_aes_128_cbc() ? true : false);
 }
 
-static uint8_t s2n_cbc_cipher_aes256_available()
+static bool s2n_cbc_cipher_aes256_available(void)
 {
-    return (EVP_aes_256_cbc() ? 1 : 0);
+    return (EVP_aes_256_cbc() ? true : false);
 }
 
 static int s2n_cbc_cipher_aes_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *in, struct s2n_blob *out)
