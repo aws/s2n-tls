@@ -1271,18 +1271,19 @@ S2N_API extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, c
         uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
 
 /**
- * Gates ticket-based resumption to TLS 1.3, as the secret used in TLS 1.2 resumption
- * is not forward-secret. Clients should not expect session tickets from servers and
- * servers will not send session tickets when TLS 1.2 is negotiated and forward secrecy
- * is enforced. 
+ * Requires that session tickets are only used when forward secrecy is possible.
+ *
+ * Restricts session resumption to TLS1.3, as the tickets used in TLS1.2 resumption are
+ * not forward secret. Clients should not expect to receive new session tickets and servers
+ * will not send new session tickets when TLS1.2 is negotiated and ticket forward secrecy is required.
  * 
- * @note The default behavior is that forward secrecy is not enforced
+ * @note The default behavior is that forward secrecy is not required.
  *
  * @param config The config object being updated
- * @param enabled Indicates if forward secrecy is enforced or not on tickets
+ * @param enabled Indicates if forward secrecy is required or not on tickets
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
-S2N_API extern int s2n_config_enforce_ticket_forward_secrecy(struct s2n_config *config, bool enabled);
+S2N_API extern int s2n_config_require_ticket_forward_secrecy(struct s2n_config *config, bool enabled);
 
 /**
  * Sets user defined context on the `s2n_config` object.

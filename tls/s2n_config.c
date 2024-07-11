@@ -1006,13 +1006,13 @@ int s2n_config_add_ticket_crypto_key(struct s2n_config *config,
     return 0;
 }
 
-int s2n_config_enforce_ticket_forward_secrecy(struct s2n_config *config, bool enabled)
+int s2n_config_require_ticket_forward_secrecy(struct s2n_config *config, bool enabled)
 {
     POSIX_ENSURE_REF(config);
 
     config->ticket_forward_secrecy = enabled;
 
-    return 0;
+    return S2N_SUCCESS;
 }
 
 int s2n_config_set_cert_tiebreak_callback(struct s2n_config *config, s2n_cert_tiebreak_callback cert_tiebreak_cb)

@@ -1483,7 +1483,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *forward_secret_config = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(forward_secret_config);
-        EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, true));
+        EXPECT_SUCCESS(s2n_config_require_ticket_forward_secrecy(forward_secret_config, true));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(forward_secret_config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(forward_secret_config,
                 chain_and_key));
@@ -1569,7 +1569,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server);
 
             /* Disable forward secrecy for the first handshake */
-            EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, false));
+            EXPECT_SUCCESS(s2n_config_require_ticket_forward_secrecy(forward_secret_config, false));
 
             EXPECT_SUCCESS(s2n_connection_set_config(client, tls12_client_config));
             EXPECT_SUCCESS(s2n_connection_set_config(server, forward_secret_config));
@@ -1591,7 +1591,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_get_session(client, session_data, sizeof(session_data)));
 
             /* Enable forward secrecy for the second handshake */
-            EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, true));
+            EXPECT_SUCCESS(s2n_config_require_ticket_forward_secrecy(forward_secret_config, true));
 
             EXPECT_SUCCESS(s2n_connection_wipe(client));
             EXPECT_SUCCESS(s2n_connection_wipe(server));
@@ -1621,7 +1621,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *forward_secret_config = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(forward_secret_config);
-        EXPECT_SUCCESS(s2n_config_enforce_ticket_forward_secrecy(forward_secret_config, true));
+        EXPECT_SUCCESS(s2n_config_require_ticket_forward_secrecy(forward_secret_config, true));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(forward_secret_config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(forward_secret_config, 1));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(forward_secret_config));
