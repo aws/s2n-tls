@@ -229,30 +229,21 @@ pub mod fingerprint {
                 fingerprint::{FingerprintType, MD5_HASH_SIZE},
                 ClientHello,
             },
-            connection::Connection,
             error::{Error, ErrorType},
             security,
-            testing::{poll_tls_pair, tls_pair},
+            testing::TestPair,
         };
 
         /// This function is a test fixture used a generate a valid ClientHello so
         /// that we don't have to copy and paste the raw bytes for test fixtures
-        fn get_client_hello_bytes() -> Vec<u8> {
+        fn get_client_hello_bytes() -> Result<Vec<u8>, crate::error::Error> {
             let config = crate::testing::config_builder(&security::DEFAULT_TLS13)
                 .unwrap()
-                .build()
-                .unwrap();
-            let pair = tls_pair(config);
-            let pair = poll_tls_pair(pair);
+                .build()?;
+            let mut pair = TestPair::from_config(&config);
+            pair.handshake()?;
             // this doesn't have the handshake header
-            let client_hello_message = pair
-                .server
-                .0
-                .connection()
-                .client_hello()
-                .unwrap()
-                .raw_message()
-                .unwrap();
+            let client_hello_message = pair.server.client_hello()?.raw_message()?;
             // handshake header is {tag: u8, client_hello_length: u24}
             let mut client_hello = vec![0; 4];
             // As long as the client hello is small, no bit fiddling is required
@@ -261,7 +252,7 @@ pub mod fingerprint {
             client_hello[0] = 1;
             client_hello[3] = client_hello_message.len() as u8;
             client_hello.extend(client_hello_message.iter());
-            client_hello
+            Ok(client_hello)
         }
 
         fn known_test_case(
@@ -290,7 +281,7 @@ pub mod fingerprint {
         pub fn get_client_hello() -> Box<ClientHello> {
             // sets up connection and handshakes
             let raw_client_hello = get_client_hello_bytes();
-            ClientHello::parse_client_hello(raw_client_hello.as_slice()).unwrap()
+            ClientHello::parse_client_hello(raw_client_hello.unwrap().as_slice()).unwrap()
         }
 
         pub fn client_hello_bytes() -> Vec<u8> {
@@ -324,28 +315,23 @@ pub mod fingerprint {
                 .unwrap()
                 .build()
                 .unwrap();
-            let pair = crate::testing::tls_pair(config);
+            let mut pair = TestPair::from_config(&config);
 
             // client_hellos can not be accessed before the handshake
-            assert!(pair.client.0.connection().client_hello().is_err());
-            assert!(pair.server.0.connection().client_hello().is_err());
+            assert!(pair.client.client_hello().is_err());
+            assert!(pair.server.client_hello().is_err());
 
-            let pair = poll_tls_pair(pair);
-            let server_conn = pair.server.0.connection();
-            let client_conn = pair.server.0.connection();
+            pair.handshake().unwrap();
 
-            let check_client_hello = |conn: &Connection| -> Result<(), Error> {
-                let client_hello = conn.client_hello().unwrap();
-                let mut hash = Vec::new();
-                let fingerprint_size =
-                    client_hello.fingerprint_hash(FingerprintType::JA3, &mut hash)?;
-                let mut string = String::with_capacity(fingerprint_size as usize);
-                client_hello.fingerprint_string(FingerprintType::JA3, &mut string)?;
-                Ok(())
-            };
-
-            assert!(check_client_hello(server_conn).is_ok());
-            assert!(check_client_hello(client_conn).is_ok());
+            let client_hello = pair.server.client_hello().unwrap();
+            let mut hash = Vec::new();
+            let fingerprint_size = client_hello
+                .fingerprint_hash(FingerprintType::JA3, &mut hash)
+                .unwrap();
+            let mut string = String::with_capacity(fingerprint_size as usize);
+            client_hello
+                .fingerprint_string(FingerprintType::JA3, &mut string)
+                .unwrap();
         }
 
         // known value test case copied from s2n_fingerprint_ja3_test.c

@@ -1112,6 +1112,13 @@ typedef enum {
  * Sets up a connection to request the certificate status of a peer during an SSL handshake. If set
  * to S2N_STATUS_REQUEST_NONE, no status request is made.
  *
+ * @note SHA-1 is the only supported hash algorithm for the `certID` field. This is different
+ * from the hash algorithm used for the OCSP signature. See 
+ * [RFC 6960](https://datatracker.ietf.org/doc/html/rfc6960#section-4.1.1) for more information.
+ * While unlikely to be the case, if support for a different hash algorithm is required, the
+ * s2n-tls validation can be disabled with `s2n_config_set_check_stapled_ocsp_response()` and the
+ * response can be retrieved for manual validation with `s2n_connection_get_ocsp_response()`.
+ * 
  * @param config The configuration object being updated
  * @param type The desired request status type
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure

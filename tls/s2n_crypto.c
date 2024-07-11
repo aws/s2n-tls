@@ -66,8 +66,8 @@ S2N_RESULT s2n_crypto_parameters_wipe(struct s2n_crypto_parameters *params)
             && params->cipher_suite->record_alg
             && params->cipher_suite->record_alg->cipher
             && params->cipher_suite->record_alg->cipher->destroy_key) {
-        RESULT_GUARD_POSIX(params->cipher_suite->record_alg->cipher->destroy_key(&params->client_key));
-        RESULT_GUARD_POSIX(params->cipher_suite->record_alg->cipher->destroy_key(&params->server_key));
+        RESULT_GUARD(params->cipher_suite->record_alg->cipher->destroy_key(&params->client_key));
+        RESULT_GUARD(params->cipher_suite->record_alg->cipher->destroy_key(&params->server_key));
     }
 
     *params = (struct s2n_crypto_parameters){ 0 };
