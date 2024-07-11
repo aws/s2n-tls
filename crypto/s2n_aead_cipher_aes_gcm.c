@@ -22,21 +22,21 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-static uint8_t s2n_aead_cipher_aes128_gcm_available()
+static bool s2n_aead_cipher_aes128_gcm_available(void)
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
-    return (EVP_aead_aes_128_gcm() ? 1 : 0);
+    return (EVP_aead_aes_128_gcm() ? true : false);
 #else
-    return (EVP_aes_128_gcm() ? 1 : 0);
+    return (EVP_aes_128_gcm() ? true : false);
 #endif
 }
 
-static uint8_t s2n_aead_cipher_aes256_gcm_available()
+static bool s2n_aead_cipher_aes256_gcm_available(void)
 {
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
-    return (EVP_aead_aes_256_gcm() ? 1 : 0);
+    return (EVP_aead_aes_256_gcm() ? true : false);
 #else
-    return (EVP_aes_256_gcm() ? 1 : 0);
+    return (EVP_aes_256_gcm() ? true : false);
 #endif
 }
 
@@ -185,22 +185,22 @@ static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n
     return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
-    POSIX_ENSURE_REF(key);
+    RESULT_ENSURE_REF(key);
 
     EVP_AEAD_CTX_zero(key->evp_aead_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 {
-    POSIX_ENSURE_REF(key);
+    RESULT_ENSURE_REF(key);
 
     EVP_AEAD_CTX_cleanup(key->evp_aead_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 #else /* Standard AES-GCM implementation */
@@ -357,18 +357,18 @@ static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n
     return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
-    s2n_evp_ctx_init(key->evp_cipher_ctx);
+    RESULT_EVP_CTX_INIT(key->evp_cipher_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 #endif
