@@ -65,10 +65,14 @@ impl HandshakeMessage {
         // 'fragment_ids' here is a list of the packets containing
         // TLS records which contain fragments of this handshake message.
         //
-        // The "tls.handshake.fragment" data from tshark actually includes the
-        // full hex of each fragment, not just the id of each packet. But rtshark
-        // uses the `show` tag instead of the `value` tag, and the `show` tag is
-        // just the packet id. There's currently no way to access the `value` tag.
+        // Note: `all_metadata` uses the tshark "value" field. For Self::FRAGMENT,
+        // the "value" field is the id of the packet containing the fragment.
+        // The "raw_value" field is the fragment payload. However, the "raw_value"
+        // field does not contain the TLS record header, only the TLS handshake
+        // message. TLS record headers could be useful for later replaying the
+        // handshake, so we continue to use "value" and manually reassemble the
+        // TLS handshake messages from the fragment packets.
+        // See https://github.com/CrabeDeFrance/rtshark/pull/17
         let fragment_ids = packet.all_metadata(Self::FRAGMENT);
         let fragment_ids = if fragment_ids.is_empty() {
             vec![packet.id()]
@@ -86,8 +90,10 @@ impl HandshakeMessage {
             let fragment = tcp_packets
                 .get(&fragment_id)
                 .context("Missing handshake message fragment record")?;
+            // TCP payloads can also be fragmented, so check for a reassembled payload first.
             let tcp_payload = fragment
-                .metadata(Builder::TCP_PAYLOAD)
+                .metadata(Builder::TCP_REASSEMBLED)
+                .or_else(|| fragment.metadata(Builder::TCP_PAYLOAD))
                 .context("Missing handshake message tcp payload")?;
             // The TCP payload is a hex string. However, rtshark formats hex strings
             // like "AB:CD:EF:12" instead of "ABCDEF12".
@@ -129,14 +135,8 @@ pub struct Builder {
 }
 
 impl Builder {
-    // "tcp.payload" is actually insufficient. It's uncommon,
-    // but a TLS record can be split across multiple TCP segments.
-    // Then we would also need to check for "tcp.reassembled.data".
-    // However, rtshark currently doesn't support that field:
-    // https://github.com/CrabeDeFrance/rtshark/pull/16
-    //
-    // For now, parsing will fail if TLS records are reassembled.
     const TCP_PAYLOAD: &'static str = "tcp.payload";
+    const TCP_REASSEMBLED: &'static str = "tcp.reassembled.data";
 
     const MESSAGE_TYPE: &'static str = "tls.handshake.type";
 
@@ -173,6 +173,7 @@ impl Builder {
         let tcp_capture = capture
             .display_filter(Self::TCP_PAYLOAD)
             .metadata_whitelist(Self::TCP_PAYLOAD)
+            .metadata_whitelist(Self::TCP_REASSEMBLED)
             .metadata_whitelist(Packet::PACKET_ID)
             .spawn()?;
 
@@ -199,7 +200,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn fragmentation() -> Result<()> {
+    fn tls_fragmentation() -> Result<()> {
         let mut builder = Builder::default();
         builder.set_capture_file("data/fragmented_ch.pcap");
         let messages = builder.build()?;
@@ -209,6 +210,21 @@ mod tests {
         let bytes = first.bytes();
         // Correct length read from wireshark
         assert_eq!(bytes.len(), 16262);
+
+        Ok(())
+    }
+
+    #[test]
+    fn tcp_fragmentation() -> Result<()> {
+        let mut builder = Builder::default();
+        builder.set_capture_file("data/tcp_fragmentation.pcap");
+        let messages = builder.build()?;
+
+        let first = messages.first().unwrap();
+        assert_eq!(first.records.len(), 1);
+        let bytes = first.bytes();
+        // Correct length read from wireshark
+        assert_eq!(bytes.len(), 271);
 
         Ok(())
     }
