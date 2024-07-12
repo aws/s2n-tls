@@ -232,16 +232,17 @@ pub fn is_overflow_safe<T>(a: T, b: T, max: T) -> bool {
     todo!()
 }
 
+// TODO get the correct conn type
 // TODO add drop
-pub struct s2n_blinding_guard<T> {
-    conn: *mut T,
+pub struct s2n_blinding_guard {
+    conn: *mut core::ffi::c_void,
 }
 
-pub fn with_error_blinding<T>(conn: *mut T) -> s2n_blinding_guard<T> {
+pub fn with_error_blinding<T>(conn: *mut T) -> s2n_blinding_guard {
     todo!("return a guard and apply blinding")
 }
 
-pub fn blinding_cancel<T>(guard: s2n_blinding_guard<T>) {
+pub fn blinding_cancel(guard: s2n_blinding_guard) {
     todo!()
 }
 
@@ -305,6 +306,30 @@ impl CtPtr {
         xor
     }
 }
+
+pub trait AsBool {
+    fn as_bool(self) -> bool;
+}
+
+macro_rules! impl_as_bool {
+    ($ty:ty) => {
+        impl AsBool for $ty {
+            fn as_bool(self) -> bool {
+                self > 0
+            }
+        }
+    };
+}
+impl_as_bool!(u8);
+impl_as_bool!(i8);
+impl_as_bool!(u16);
+impl_as_bool!(i16);
+impl_as_bool!(u32);
+impl_as_bool!(i32);
+impl_as_bool!(u64);
+impl_as_bool!(i64);
+impl_as_bool!(usize);
+impl_as_bool!(isize);
 
 #[cfg(test)]
 mod tests {

@@ -6,13 +6,13 @@ use std::path::{Path, PathBuf};
 use xshell::{cmd, Shell};
 
 pub fn run(sh: &Shell) -> Result<PathBuf> {
-    let include = setup_include(&sh)?;
-    let commands = collect_commands(&sh)?;
-    let commands = process_commands(&sh, commands, &include)?;
+    let include = setup_include(sh)?;
+    let commands = collect_commands(sh)?;
+    let commands = process_commands(sh, commands, &include)?;
 
-    let out = transpile(&sh, &commands)?;
-    clean_up_entrypoints(&sh, &out)?;
-    generate_errors(&sh, &out)?;
+    let out = transpile(sh, &commands)?;
+    clean_up_entrypoints(sh, &out)?;
+    generate_errors(sh, &out)?;
     Ok(out)
 }
 

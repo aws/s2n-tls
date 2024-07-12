@@ -18,6 +18,8 @@ impl<'a> Overrides<'a> {
 }
 
 #[allow(dead_code)]
+mod api;
+#[allow(dead_code)]
 mod libc;
 
 pub fn run(sh: &Shell) -> Result<HashSet<PathBuf>> {
@@ -27,6 +29,7 @@ pub fn run(sh: &Shell) -> Result<HashSet<PathBuf>> {
     };
 
     o.write("libc.rs", include_str!("./replace/libc.rs"))?;
+    o.write("api.rs", include_str!("./replace/api.rs"))?;
 
     crate::crypto::run(&mut o)?;
     crate::error::run(&mut o)?;

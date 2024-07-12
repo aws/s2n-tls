@@ -28,7 +28,7 @@ struct Owner {
     module: String,
 }
 
-fn index_structs(_sh: &Shell, c_src: &Path, overrides: &Overrides) -> Result<StructIndex> {
+fn index_structs(_sh: &Shell, c_src: &Path, _overrides: &Overrides) -> Result<StructIndex> {
     std::env::set_current_dir(c_src)?;
 
     let mut modules = HashMap::new();
@@ -298,6 +298,9 @@ processors!(
         prelude: Prelude,
         extern_block: ExternBlock,
         libcrypto: LibcryptoPath,
+        literal_casts: LiteralCasts,
+        encryption_limit: CiphersuiteEncryptionLimit,
+        remove_casts: RemoveCasts,
     }
 );
 
@@ -314,7 +317,18 @@ impl ConstFilter {
         let Some(candidate) = trimmed.strip_prefix("pub const ") else {
             return ControlFlow::Continue(());
         };
-        for prefix in ["S2N_ERR_", "_SC_", "S2N_SUCCESS", "S2N_FAILURE"] {
+        for prefix in [
+            "S2N_ERR_",
+            "_SC_",
+            "S2N_SUCCESS",
+            "S2N_FAILURE",
+            "S2N_SSLv2",
+            "S2N_SSLv3",
+            "S2N_TLS10",
+            "S2N_TLS11",
+            "S2N_TLS12",
+            "S2N_TLS13",
+        ] {
             if candidate.starts_with(prefix) {
                 return ControlFlow::Break(());
             }
@@ -513,7 +527,7 @@ impl OwningStruct {
 }
 
 macro_rules! rewrite {
-    ($name:ident, [$($pat:expr),* $(,)?], $out:expr) => {
+    ($name:ident, [$($pat:expr),* $(,)?], $out:expr $(,)?) => {
         struct $name {}
 
         impl $name {
@@ -819,6 +833,15 @@ replace!(
         (
             "low_level: s2n_hash_low_level_digest {",
             "low_level: crate::crypto::s2n_hash::s2n_hash_low_level_digest {"
+        ),
+        (
+            "io: C2RustUnnamed_1 {",
+            // TODO this should be in a different place
+            "io: crate::crypto::s2n_aead_cipher_aes_gcm::C2RustUnnamed_2 {",
+        )(
+            "io: C2RustUnnamed_2 {",
+            // TODO this should be in a different place
+            "io: crate::crypto::s2n_aead_cipher_aes_gcm::C2RustUnnamed_2 {",
         )
     ]
 );
@@ -872,7 +895,89 @@ replace!(
     ]
 );
 
-replace!(AsBool, [("as bool", "!= 0"),]);
+replace!(AsBool, [("as bool", ".as_bool()"),]);
+
+replace!(
+    RemoveCasts,
+    [
+        ("foobarbaz", ""),
+        ("as libc::c_ulonglong", ""),
+        //("as libc::c_ulong", ""),
+        ("as libc::c_longlong", ""),
+        ("as libc::c_long", ""),
+        //("as libc::c_int", ""),
+    ]
+);
+
+rewrite!(
+    CiphersuiteEncryptionLimit,
+    ["encryption_limit: u64::MAX as libc::c_ulong,"],
+    "encryption_limit: u64::MAX",
+);
+
+struct LiteralCasts {
+    indices: Vec<usize>,
+}
+
+impl LiteralCasts {
+    fn new(_path: &Path, _config: &Arc<Config>) -> Self {
+        Self { indices: vec![] }
+    }
+
+    fn on_line(&mut self, line: &mut String) -> ControlFlow<()> {
+        let nums = &['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'][..];
+        let casts = &[
+            " as libc::c_int",
+            " as libc::c_ulonglong",
+            " as libc::c_ulong",
+            " as libc::longlong",
+            " as libc::long",
+            /*
+            " as i8",
+            " as u8",
+            " as i16",
+            " as u16",
+            " as i32",
+            " as u32",
+            " as i64",
+            " as u64",
+            */
+        ][..];
+        let indices = line.rmatch_indices(nums).map(|(idx, _)| idx);
+        self.indices.clear();
+        self.indices.extend(indices);
+        for mut index in self.indices.iter().copied() {
+            let match_line = &line[index..];
+            let mut m = match_line.trim_start_matches(nums);
+            index += match_line.len() - m.len();
+            let initial_len = m.len();
+
+            loop {
+                let mut found_match = false;
+                for cast in casts {
+                    if let Some(s) = m.strip_prefix(cast) {
+                        m = s;
+                        found_match = true;
+                    }
+                }
+
+                if !found_match {
+                    break;
+                }
+            }
+
+            let len = initial_len - m.len();
+
+            if len == 0 {
+                continue;
+            }
+
+            let range = index..index + len;
+            line.drain(range);
+        }
+        ControlFlow::Continue(())
+    }
+}
 
 enum LibRs {
     ProcessingHeader,
@@ -907,6 +1012,9 @@ impl LibRs {
                 line.insert_str(
                     0,
                     r#"
+mod api;
+pub use api::*;
+
 #[macro_use]
 pub mod error {
     pub mod s2n_errno;
