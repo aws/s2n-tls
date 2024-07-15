@@ -150,9 +150,9 @@ S2N_RESULT s2n_tls13_key_schedule_set_key(struct s2n_connection *conn, s2n_extra
 
     bool is_sending_secret = (mode == conn->mode);
     if (is_sending_secret) {
-        RESULT_GUARD_POSIX(cipher->set_encryption_key(session_key, &key));
+        RESULT_GUARD(cipher->set_encryption_key(session_key, &key));
     } else {
-        RESULT_GUARD_POSIX(cipher->set_decryption_key(session_key, &key));
+        RESULT_GUARD(cipher->set_decryption_key(session_key, &key));
     }
 
     /**

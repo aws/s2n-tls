@@ -22,29 +22,25 @@
 #include "utils/s2n_blob.h"
 #include "utils/s2n_safety.h"
 
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
-    #define S2N_AEAD_AES_GCM_AVAILABLE
-#endif
-
-static uint8_t s2n_aead_cipher_aes128_gcm_available()
+static bool s2n_aead_cipher_aes128_gcm_available(void)
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
-    return (EVP_aead_aes_128_gcm() ? 1 : 0);
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
+    return (EVP_aead_aes_128_gcm() ? true : false);
 #else
-    return (EVP_aes_128_gcm() ? 1 : 0);
+    return (EVP_aes_128_gcm() ? true : false);
 #endif
 }
 
-static uint8_t s2n_aead_cipher_aes256_gcm_available()
+static bool s2n_aead_cipher_aes256_gcm_available(void)
 {
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE)
-    return (EVP_aead_aes_256_gcm() ? 1 : 0);
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS)
+    return (EVP_aead_aes_256_gcm() ? true : false);
 #else
-    return (EVP_aes_256_gcm() ? 1 : 0);
+    return (EVP_aes_256_gcm() ? true : false);
 #endif
 }
 
-#if defined(S2N_AEAD_AES_GCM_AVAILABLE) /* BoringSSL and AWS-LC AEAD API implementation */
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_AEAD_TLS) /* BoringSSL and AWS-LC AEAD API implementation */
 
 static int s2n_aead_cipher_aes_gcm_encrypt(struct s2n_session_key *key, struct s2n_blob *iv, struct s2n_blob *aad, struct s2n_blob *in, struct s2n_blob *out)
 {
@@ -93,118 +89,118 @@ static int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s
     return S2N_SUCCESS;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls12(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_128_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
 
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_AEAD_CTX_init(key->evp_aead_ctx, EVP_aead_aes_256_gcm_tls13(), in->data, in->size, S2N_TLS_GCM_TAG_LEN, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
-    POSIX_ENSURE_REF(key);
+    RESULT_ENSURE_REF(key);
 
     EVP_AEAD_CTX_zero(key->evp_aead_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 {
-    POSIX_ENSURE_REF(key);
+    RESULT_ENSURE_REF(key);
 
     EVP_AEAD_CTX_cleanup(key->evp_aead_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 #else /* Standard AES-GCM implementation */
@@ -281,98 +277,98 @@ static int s2n_aead_cipher_aes_gcm_decrypt(struct s2n_session_key *key, struct s
     return S2N_SUCCESS;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
 
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
 
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_128_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_128_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
 
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
+    RESULT_ENSURE_EQ(in->size, S2N_TLS_AES_256_GCM_KEY_LEN);
 
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, EVP_aes_256_gcm(), NULL, NULL, NULL), S2N_ERR_KEY_INIT);
 
     EVP_CIPHER_CTX_ctrl(key->evp_cipher_ctx, EVP_CTRL_GCM_SET_IVLEN, S2N_TLS_GCM_IV_LEN, NULL);
 
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, NULL, NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_GUARD(s2n_aead_cipher_aes128_gcm_set_encryption_key(key, in));
+    RESULT_GUARD(s2n_aead_cipher_aes128_gcm_set_encryption_key(key, in));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_encryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_GUARD(s2n_aead_cipher_aes256_gcm_set_encryption_key(key, in));
+    RESULT_GUARD(s2n_aead_cipher_aes256_gcm_set_encryption_key(key, in));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes128_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes128_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_GUARD(s2n_aead_cipher_aes128_gcm_set_decryption_key(key, in));
+    RESULT_GUARD(s2n_aead_cipher_aes128_gcm_set_decryption_key(key, in));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_aead_cipher_aes256_gcm_set_decryption_key_tls13(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_GUARD(s2n_aead_cipher_aes256_gcm_set_decryption_key(key, in));
+    RESULT_GUARD(s2n_aead_cipher_aes256_gcm_set_decryption_key(key, in));
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_init(struct s2n_session_key *key)
 {
-    s2n_evp_ctx_init(key->evp_cipher_ctx);
+    RESULT_EVP_CTX_INIT(key->evp_cipher_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_aead_cipher_aes_gcm_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
 #endif

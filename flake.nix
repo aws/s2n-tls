@@ -32,6 +32,7 @@
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
           pkgs.gdb
+          pkgs.tshark
 
           # C Compiler Tooling: llvmPkgs.clangUseLLVM -- wrapper to overwrite default compiler with clang
           llvmPkgs.llvm
@@ -68,8 +69,7 @@
           configurePhase = ''
             cmake -S . -B./build \
                   -DBUILD_SHARED_LIBS=ON \
-                  -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-                  -DS2N_NO_PQ=0
+                  -DCMAKE_BUILD_TYPE=RelWithDebInfo
           ''; # TODO: set when system like aarch64/mips,etc
 
           buildPhase = ''

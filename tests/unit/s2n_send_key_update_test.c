@@ -50,12 +50,12 @@ static int s2n_test_init_encryption(struct s2n_connection *conn)
     uint8_t *client_implicit_iv = conn->client->client_implicit_iv;
 
     /* Initialize record algorithm */
-    POSIX_GUARD(cipher_suite->record_alg->cipher->init(server_session_key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->init(client_session_key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_encryption_key(server_session_key, &key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_encryption_key(client_session_key, &key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_decryption_key(server_session_key, &key));
-    POSIX_GUARD(cipher_suite->record_alg->cipher->set_decryption_key(client_session_key, &key));
+    POSIX_GUARD_RESULT(cipher_suite->record_alg->cipher->init(server_session_key));
+    POSIX_GUARD_RESULT(cipher_suite->record_alg->cipher->init(client_session_key));
+    POSIX_GUARD_RESULT(cipher_suite->record_alg->cipher->set_encryption_key(server_session_key, &key));
+    POSIX_GUARD_RESULT(cipher_suite->record_alg->cipher->set_encryption_key(client_session_key, &key));
+    POSIX_GUARD_RESULT(cipher_suite->record_alg->cipher->set_decryption_key(server_session_key, &key));
+    POSIX_GUARD_RESULT(cipher_suite->record_alg->cipher->set_decryption_key(client_session_key, &key));
 
     /* Initialized secrets */
     POSIX_CHECKED_MEMCPY(conn->secrets.version.tls13.server_app_secret, application_secret.data, application_secret.size);
