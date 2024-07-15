@@ -17,6 +17,8 @@ PROOF_UID = s2n_hmac_init
 HARNESS_ENTRY = $(PROOF_UID)_harness
 HARNESS_FILE = $(HARNESS_ENTRY).c
 
+CBMC_OBJECT_BITS ?= 10
+
 PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/md5_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/sha_override.c
@@ -40,9 +42,6 @@ REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_free
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_free
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_new
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_reset
-
-# This one should not be removed, but CBMC crashes if it is. TBD.
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_digest
 
 # The upper bound limit for these loops is me maximum possible value for xor_pad_size field
 # in struct s2n_hmac_state (128) plus one. See definition for struct s2n_hmac_state
