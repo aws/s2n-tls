@@ -1,0 +1,29 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
+//! Harness to build a configured s2n-tls config object.
+//!
+//! This harness only measures the cost of setting the security policy and host callback verification.
+//! Loading and trusting certs is typically also included in this step but for a more fine-grain
+//! performance analysis, it is left out so cert creation can be measured in its own harness
+//!
+
+use crabgrind as cg;
+use s2n_tls::security;
+use regression::{create_empty_config, configure_config};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    cg::cachegrind::stop_instrumentation();
+    
+    let builder = create_empty_config()?;
+    
+    cg::cachegrind::start_instrumentation();
+    
+    let builder = configure_config(builder, &security::DEFAULT_TLS13)?;
+    
+    let _config = builder.build().expect("Failed to build config");
+
+    cg::cachegrind::stop_instrumentation();
+    
+    Ok(())
+}

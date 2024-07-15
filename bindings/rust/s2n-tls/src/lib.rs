@@ -27,5 +27,5 @@ pub mod security;
 
 pub use s2n_tls_sys as ffi;
 
-#[cfg(test)]
-mod testing;
+#[cfg(any(feature = "testing", test))]
+pub mod testing;
