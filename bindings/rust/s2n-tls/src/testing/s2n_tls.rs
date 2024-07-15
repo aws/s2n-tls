@@ -1,242 +1,13 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
-use crate::{
-    connection::Connection,
-    testing::{Context, Error, Result},
-};
-use bytes::BytesMut;
-use core::task::Poll;
-use libc::c_void;
-use s2n_tls_sys::s2n_status_code::Type as s2n_status_code;
-
-const SEND_BUFFER_CAPACITY: usize = 4096;
-
-#[derive(Debug)]
-pub struct Harness {
-    connection: Connection,
-    send_buffer: BytesMut,
-    handshake_done: bool,
-    // TODO add a size
-}
-
-impl Harness {
-    pub fn new(connection: Connection) -> Self {
-        Self {
-            connection,
-            send_buffer: BytesMut::new(),
-            handshake_done: false,
-        }
-    }
-
-    pub fn connection(&self) -> &Connection {
-        &self.connection
-    }
-
-    pub fn connection_mut(&mut self) -> &mut Connection {
-        &mut self.connection
-    }
-}
-
-impl super::Connection for Harness {
-    fn poll_negotiate<Ctx: Context>(&mut self, context: &mut Ctx) -> Poll<Result<()>> {
-        let mut callback: Callback<Ctx> = Callback {
-            context,
-            err: None,
-            send_buffer: &mut self.send_buffer,
-        };
-
-        unsafe {
-            // Safety: the callback struct must live as long as the callbacks are
-            // set on on the connection
-            callback.set(&mut self.connection);
-        }
-
-        let result = self.connection.poll_negotiate().map_ok(|_| ());
-
-        callback.unset(&mut self.connection)?;
-
-        match result {
-            Poll::Ready(Ok(_)) => {
-                if !self.handshake_done {
-                    self.handshake_done = true;
-                }
-                Ok(()).into()
-            }
-            Poll::Ready(Err(err)) => Err(err.into()).into(),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-
-    fn poll_action<Ctx: Context, F>(&mut self, context: &mut Ctx, action: F) -> Poll<Result<()>>
-    where
-        F: FnOnce(&mut Connection) -> Poll<Result<usize, crate::error::Error>>,
-    {
-        let mut callback: Callback<Ctx> = Callback {
-            context,
-            err: None,
-            send_buffer: &mut self.send_buffer,
-        };
-
-        unsafe {
-            // Safety: the callback struct must live as long as the callbacks are
-            // set on on the connection
-            callback.set(&mut self.connection);
-        }
-
-        let result = action(&mut self.connection);
-
-        callback.unset(&mut self.connection)?;
-
-        match result {
-            Poll::Ready(Ok(_)) => Ok(()).into(),
-            Poll::Ready(Err(err)) => Err(err.into()).into(),
-            Poll::Pending => Poll::Pending,
-        }
-    }
-}
-
-struct Callback<'a, T> {
-    pub context: &'a mut T,
-    pub err: Option<Error>,
-    pub send_buffer: &'a mut BytesMut,
-}
-
-impl<'a, T: 'a + Context> Callback<'a, T> {
-    unsafe fn set(&mut self, connection: &mut Connection) {
-        let context = self as *mut Self as *mut c_void;
-
-        // We use unwrap here since s2n-tls will just check if connection is not null
-        connection.set_send_callback(Some(Self::send_cb)).unwrap();
-        connection.set_send_context(context).unwrap();
-        connection
-            .set_receive_callback(Some(Self::recv_cb))
-            .unwrap();
-        connection.set_receive_context(context).unwrap();
-    }
-
-    /// Removes all of the callback and context pointers from the connection
-    pub fn unset(mut self, connection: &mut Connection) -> Result<()> {
-        unsafe {
-            unsafe extern "C" fn send_cb(
-                _context: *mut c_void,
-                _data: *const u8,
-                _len: u32,
-            ) -> s2n_status_code {
-                -1
-            }
-
-            unsafe extern "C" fn recv_cb(
-                _context: *mut c_void,
-                _data: *mut u8,
-                _len: u32,
-            ) -> s2n_status_code {
-                -1
-            }
-
-            // We use unwrap here since s2n-tls will just check if connection is not null
-            connection.set_send_callback(Some(send_cb)).unwrap();
-            connection.set_send_context(core::ptr::null_mut()).unwrap();
-            connection.set_receive_callback(Some(recv_cb)).unwrap();
-            connection
-                .set_receive_context(core::ptr::null_mut())
-                .unwrap();
-
-            // Flush the send buffer before returning to the connection
-            self.flush();
-
-            if let Some(err) = self.err {
-                return Err(err);
-            }
-
-            Ok(())
-        }
-    }
-
-    unsafe extern "C" fn send_cb(
-        context: *mut c_void,
-        data: *const u8,
-        len: u32,
-    ) -> s2n_status_code {
-        let context = &mut *(context as *mut Self);
-        let data = core::slice::from_raw_parts(data, len as _);
-        context.on_write(data) as _
-    }
-
-    /// Called when sending data
-    fn on_write(&mut self, data: &[u8]) -> usize {
-        // If this write would cause the current send buffer to reallocate,
-        // we should flush and create a new send buffer.
-        let remaining_capacity = self.send_buffer.capacity() - self.send_buffer.len();
-
-        if remaining_capacity < data.len() {
-            // Flush the send buffer before reallocating it
-            self.flush();
-
-            // ensure we only do one allocation for this write
-            let len = SEND_BUFFER_CAPACITY.max(data.len());
-
-            debug_assert!(
-                self.send_buffer.is_empty(),
-                "dropping a send buffer with data will result in data loss"
-            );
-            *self.send_buffer = BytesMut::with_capacity(len);
-        }
-
-        // Write the current data to the send buffer
-        //
-        // NOTE: we don't immediately flush to the context since s2n-tls may do
-        //       several small writes in a row.
-        self.send_buffer.extend_from_slice(data);
-
-        data.len()
-    }
-
-    /// Flushes the send buffer into the context
-    fn flush(&mut self) {
-        if !self.send_buffer.is_empty() {
-            let chunk = self.send_buffer.split().freeze();
-            self.context.send(chunk);
-        }
-    }
-
-    /// The function s2n-tls calls when it wants to receive data
-    unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> s2n_status_code {
-        let context = &mut *(context as *mut Self);
-        let data = core::slice::from_raw_parts_mut(data, len as _);
-        match context.on_read(data) {
-            0 => {
-                // https://aws.github.io/s2n-tls/doxygen/s2n_8h.html#a699fd9e05a8e8163811db6cab01af973
-                // s2n-tls wants us to set the global errno to signal blocked
-                errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
-                -1
-            }
-            len => len as _,
-        }
-    }
-
-    /// Called when receiving data
-    fn on_read(&mut self, data: &mut [u8]) -> usize {
-        let max_len = Some(data.len());
-
-        // TODO: loop until data buffer is full.
-        if let Some(chunk) = self.context.receive(max_len) {
-            let len = chunk.len();
-            data[..len].copy_from_slice(&chunk);
-            len
-        } else {
-            0
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use crate::{
         callbacks::{ClientHelloCallback, ConnectionFuture, ConnectionFutureResult},
         enums::ClientAuthType,
         error::ErrorType,
-        testing::{client_hello::*, *},
+        testing::{self, client_hello::*, Error, Result, *},
     };
     use alloc::sync::Arc;
     use core::sync::atomic::Ordering;
@@ -871,27 +642,77 @@ mod tests {
     #[test]
     fn no_application_protocol() -> Result<(), Error> {
         let config = config_builder(&security::DEFAULT)?.build()?;
-        let mut pair = tls_pair(config);
-        assert!(poll_tls_pair_result(&mut pair).is_ok());
-        assert!(pair.server.0.connection.application_protocol().is_none());
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+        assert!(pair.server.application_protocol().is_none());
         Ok(())
     }
 
     #[test]
     fn application_protocol() -> Result<(), Error> {
         let config = config_builder(&security::DEFAULT)?.build()?;
-        let mut pair = tls_pair(config);
+        let mut pair = TestPair::from_config(&config);
         pair.server
-            .0
-            .connection
             .set_application_protocol_preference(["http/1.1", "h2"])?;
-        pair.client
-            .0
-            .connection
-            .append_application_protocol_preference(b"h2")?;
-        assert!(poll_tls_pair_result(&mut pair).is_ok());
-        let protocol = pair.server.0.connection.application_protocol().unwrap();
+        pair.client.append_application_protocol_preference(b"h2")?;
+        pair.handshake()?;
+        let protocol = pair.server.application_protocol().unwrap();
         assert_eq!(protocol, b"h2");
+        Ok(())
+    }
+
+    #[test]
+    fn client_hello_sslv2_negative() -> Result<(), testing::Error> {
+        let config = testing::build_config(&security::DEFAULT_TLS13)?;
+        let mut pair = TestPair::from_config(&config);
+        pair.handshake()?;
+        assert!(!pair.server.client_hello_is_sslv2()?);
+        Ok(())
+    }
+
+    #[test]
+    fn client_hello_sslv2_positive() -> Result<(), testing::Error> {
+        // copy-pasted from s2n-tls/tests/testlib/s2n_sslv2_client_hello.h
+        // by concatenating these fields together, a valid SSLv2 formatted client hello
+        // can be assembled
+        const SSLV2_CLIENT_HELLO_HEADER: &[u8] = &[0x80, 0xb3, 0x01, 0x03, 0x03];
+        const SSLV2_CLIENT_HELLO_PREFIX: &[u8] = &[0x00, 0x8a, 0x00, 0x00, 0x00, 0x20];
+        const SSLV2_CLIENT_HELLO_CIPHER_SUITES: &[u8] = &[
+            0x00, 0xc0, 0x24, 0x00, 0xc0, 0x28, 0x00, 0x00, 0x3d, 0x00, 0xc0, 0x26, 0x00, 0xc0,
+            0x2a, 0x00, 0x00, 0x6b, 0x00, 0x00, 0x6a, 0x00, 0xc0, 0x0a, 0x07, 0x00, 0xc0, 0x00,
+            0xc0, 0x14, 0x00, 0x00, 0x35, 0x00, 0xc0, 0x05, 0x00, 0xc0, 0x0f, 0x00, 0x00, 0x39,
+            0x00, 0x00, 0x38, 0x00, 0xc0, 0x23, 0x00, 0xc0, 0x27, 0x00, 0x00, 0x3c, 0x00, 0xc0,
+            0x25, 0x00, 0xc0, 0x29, 0x00, 0x00, 0x67, 0x00, 0x00, 0x40, 0x00, 0xc0, 0x09, 0x06,
+            0x00, 0x40, 0x00, 0xc0, 0x13, 0x00, 0x00, 0x2f, 0x00, 0xc0, 0x04, 0x01, 0x00, 0x80,
+            0x00, 0xc0, 0x0e, 0x00, 0x00, 0x33, 0x00, 0x00, 0x32, 0x00, 0xc0, 0x2c, 0x00, 0xc0,
+            0x2b, 0x00, 0xc0, 0x30, 0x00, 0x00, 0x9d, 0x00, 0xc0, 0x2e, 0x00, 0xc0, 0x32, 0x00,
+            0x00, 0x9f, 0x00, 0x00, 0xa3, 0x00, 0xc0, 0x2f, 0x00, 0x00, 0x9c, 0x00, 0xc0, 0x2d,
+            0x00, 0xc0, 0x31, 0x00, 0x00, 0x9e, 0x00, 0x00, 0xa2, 0x00, 0x00, 0xff,
+        ];
+        const SSLV2_CLIENT_HELLO_CHALLENGE: &[u8] = &[
+            0x5b, 0xe9, 0xcc, 0xad, 0xd6, 0xa5, 0x20, 0xac, 0xa3, 0xf4, 0x8e, 0x88, 0x06, 0xb5,
+            0x95, 0x53, 0x2d, 0x53, 0xfe, 0xd7, 0xa1, 0x00, 0x57, 0xc0, 0x53, 0x9d, 0x84, 0x71,
+            0x80, 0x7f, 0x30, 0x7e,
+        ];
+
+        let config = testing::build_config(&security::Policy::from_version("test_all")?)?;
+        // we use the pair to setup IO, but we don't want the client to write anything.
+        // So we drop the client and just directly write the SSLv2 header to the
+        // client_tx_stream
+        let mut pair = TestPair::from_config(&config);
+        drop(pair.client);
+
+        let mut client_tx_stream = pair.client_tx_stream.borrow_mut();
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_HEADER)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_PREFIX)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CIPHER_SUITES)?;
+        client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CHALLENGE)?;
+        // end the exclusive borrow
+        drop(client_tx_stream);
+
+        // the first server.poll_negotiate causes the server to read in the client hello
+        assert!(pair.server.poll_negotiate()?.is_pending());
+        assert!(pair.server.client_hello_is_sslv2()?);
         Ok(())
     }
 }
