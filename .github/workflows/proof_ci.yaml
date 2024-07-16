@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-# CBMC starter kit 2.9
+# CBMC starter kit 2.10
 name: Run CBMC proofs
 on:
   push:
@@ -38,11 +38,11 @@ jobs:
       - name: Parse config file
         run: |
           CONFIG_FILE='.github/workflows/proof_ci_resources/config.yaml'
-          for setting in cadical-tag cbmc-version cbmc-viewer-version kissat-tag litani-version proofs-dir run-cbmc-proofs-command; do
+          for setting in cadical-tag cbmc-version cbmc-viewer-version kissat-tag litani-version z3-version proofs-dir run-cbmc-proofs-command; do
             VAR=$(echo $setting | tr "[:lower:]" "[:upper:]" | tr - _)
             echo "${VAR}"=$(yq .$setting $CONFIG_FILE) >> $GITHUB_ENV
           done
-      - name: Ensure CBMC, CBMC viewer, Litani versions have been specified
+      - name: Ensure CBMC, CBMC viewer, Litani, Z3 versions have been specified
         shell: bash
         run: |
           should_exit=false
@@ -56,6 +56,14 @@ jobs:
           fi
           if [ "${{ env.LITANI_VERSION }}" == "" ]; then
             echo "You must specify a Litani version (e.g. 'latest' or '1.27.0')"
+            should_exit=true
+          fi
+          if [ "${{ env.Z3_VERSION }}" == "" ]; then
+            echo "You must specify a Z3 version (e.g. '4.13.0')"
+            should_exit=true
+          fi
+          if [ "${{ env.Z3_VERSION }}" == "latest" ]; then
+            echo "Z3 latest now supported at this time. You must specify an exact Z3 version (e.g. '4.13.0')"
             should_exit=true
           fi
           if [[ "$should_exit" == true ]]; then exit 1; fi
@@ -114,6 +122,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes ./litani.deb
           rm ./litani.deb
+      - name: Install Z3 ${{ env.Z3_VERSION }}
+        if: ${{ env.Z3_VERSION != 'latest' }}
+        shell: bash
+        run: |
+          curl -o z3.zip -L \
+            https://github.com/Z3Prover/z3/releases/download/z3-${{ env.Z3_VERSION }}/z3-${{ env.Z3_VERSION }}-x64-glibc-2.35.zip
+          unzip z3.zip
+          cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.35/bin; echo "$(pwd)" >> $GITHUB_PATH
+          cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.35/bin; ./z3 --version
+          rm ./z3.zip
       - name: Install ${{ env.KISSAT_TAG }} kissat
         if: ${{ env.KISSAT_TAG != '' }}
         shell: bash

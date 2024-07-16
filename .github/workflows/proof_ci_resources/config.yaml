@@ -3,5 +3,6 @@ cbmc-version: "5.95.1"
 cbmc-viewer-version: latest
 kissat-tag: latest
 litani-version: latest
+z3-version: "4.13.0"
 proofs-dir: tests/cbmc/proofs
 run-cbmc-proofs-command: ./run-cbmc-proofs.py
