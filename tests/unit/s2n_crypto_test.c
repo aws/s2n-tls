@@ -127,7 +127,7 @@ int main()
              * Retrieving the master secret won't vary between FIPS and non-FIPS,
              * so this testing limitation is not a concern.
              */
-            if (s2n_is_in_fips_mode() && version == S2N_SSLv3 && !S2N_OPENSSL_VERSION_AT_LEAST(1, 0, 3)) {
+            if (s2n_is_in_fips_mode() && version == S2N_SSLv3 && !s2n_libcrypto_is_awslc()) {
                 DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
                 EXPECT_NOT_NULL(config);
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
@@ -152,7 +152,7 @@ int main()
 
                 /* SSLv3 Handshake is not supported when built with OpenSSL-1.0.2-FIPS */
                 EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
-                        S2N_ERR_SSLV3_HANDSHAKE_WITH_OSSL_1_0_2_FIPS_NOT_SUPPORTED);
+                        S2N_ERR_SSLV3_HANDSHAKE_WITH_OSSL_FIPS_NOT_SUPPORTED);
                 continue;
             }
 
