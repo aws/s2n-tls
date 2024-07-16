@@ -970,11 +970,11 @@ const char *s2n_connection_get_kem_group_name(struct s2n_connection *conn)
 {
     PTR_ENSURE_REF(conn);
 
-    if (conn->actual_protocol_version < S2N_TLS13 || !conn->kex_params.client_kem_group_params.kem_group) {
+    if (conn->actual_protocol_version < S2N_TLS13 || !conn->kex_params.server_kem_group_params.kem_group) {
         return "NONE";
     }
 
-    return conn->kex_params.client_kem_group_params.kem_group->name;
+    return conn->kex_params.server_kem_group_params.kem_group->name;
 }
 
 static S2N_RESULT s2n_connection_get_client_supported_version(struct s2n_connection *conn,
