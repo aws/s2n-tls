@@ -1278,6 +1278,8 @@ int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *ver
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
+    /* If the config contains certificates violating the security policy cert preferences, return an error. */
+    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
     config->security_policy = security_policy;
     return 0;
 }
