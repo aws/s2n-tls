@@ -280,7 +280,12 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
 
 static S2N_RESULT s2n_validate_ticket_age(uint64_t current_time, uint64_t ticket_issue_time)
 {
-    RESULT_ENSURE(current_time >= ticket_issue_time, S2N_ERR_INVALID_SESSION_TICKET);
+    /* In the event of clock skew or a clock jump, we assume that the clock skew
+     * is less than one week and therefore the ticket is valid.
+     */
+    if (current_time < ticket_issue_time) {
+        return S2N_RESULT_OK;
+    }
     uint64_t ticket_age_in_nanos = current_time - ticket_issue_time;
     uint64_t ticket_age_in_sec = ticket_age_in_nanos / ONE_SEC_IN_NANOS;
     RESULT_ENSURE(ticket_age_in_sec <= ONE_WEEK_IN_SEC, S2N_ERR_INVALID_SESSION_TICKET);
