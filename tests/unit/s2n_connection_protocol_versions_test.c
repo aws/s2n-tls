@@ -250,9 +250,11 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
 
+        /* SSLv3 handshake is not supported when built with openssl-fips */
         if (s2n_is_in_fips_mode() && client->client_protocol_version == S2N_SSLv3 && !s2n_libcrypto_is_awslc()) {
             EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_CERT),
                     S2N_ERR_SSLV3_HANDSHAKE_WITH_OSSL_FIPS_NOT_SUPPORTED);
+            continue;
         }
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_CERT));
 
