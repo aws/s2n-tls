@@ -8,14 +8,13 @@
 //!
 
 use crabgrind as cg;
-use regression::create_empty_config;
 use s2n_tls::config::Builder;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), s2n_tls::error::Error> {
     
-    let builder: Builder = create_empty_config()?;
+    let builder: Builder = Builder::new();
     
-    builder.build().map_err(|e| Box::new(e) as Box<dyn std::error::Error>)?;
+    builder.build()?;
 
     cg::cachegrind::stop_instrumentation();
     

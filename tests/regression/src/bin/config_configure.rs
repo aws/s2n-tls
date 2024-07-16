@@ -9,18 +9,22 @@
 //!
 
 use crabgrind as cg;
-use s2n_tls::security;
-use regression::{create_empty_config, configure_config};
+use s2n_tls::{security, config::Builder};
+use regression::InsecureAcceptAllCertificatesHandler;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     cg::cachegrind::stop_instrumentation();
     
-    let builder = create_empty_config()?;
+    let mut builder = Builder::new();
     
     cg::cachegrind::start_instrumentation();
-    
-    let builder = configure_config(builder, &security::DEFAULT_TLS13)?;
-    
+
+    builder
+        .set_security_policy(&security::DEFAULT_TLS13)
+        .expect("Unable to set config cipher preferences");
+    builder
+        .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})
+        .expect("Unable to set a host verify callback.");
     let _config = builder.build().expect("Failed to build config");
 
     cg::cachegrind::stop_instrumentation();

@@ -10,8 +10,7 @@ run_harness() {
     local annotated_output="perf_outputs/${harness}_annotated.txt"
 
     echo "Running harness: $harness"
-    cargo build
-    valgrind --tool=cachegrind --cachegrind-out-file=$output_file target/debug/$harness
+    valgrind --tool=cachegrind --cachegrind-out-file=$output_file target/release/$harness
     cg_annotate $output_file > $annotated_output
 
     echo "Annotated output saved to: $annotated_output"
