@@ -1253,7 +1253,7 @@ int main(int argc, char **argv)
 
     /* s2n_validate_ticket_age */
     {
-        /* Ticket issue time is unreasonable far in the future */
+        /* Ticket issue time is unreasonably far in the future */
         {
             uint64_t current_time = SECONDS_TO_NANOS(0);
             uint64_t issue_time = SECONDS_TO_NANOS(ONE_WEEK_IN_SEC + 1);
