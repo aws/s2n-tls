@@ -14,6 +14,7 @@
 */
 
 #include "api/s2n.h"
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
@@ -249,6 +250,9 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
 
+        if (s2n_is_in_fips_mode() && client->client_protocol_version == S2N_SSLv3 && !S2N_OPENSSL_VERSION_AT_LEAST(1, 0, 3)) {
+            EXPECT_ERROR_WITH_ERRNO(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_CERT), S2N_ERR_SSLV3_HANDSHAKE_WITH_OSSL_1_0_2_FIPS_NOT_SUPPORTED);
+        }
         EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server, client, SERVER_CERT));
 
         EXPECT_EQUAL(s2n_connection_get_server_protocol_version(client), server_version);
