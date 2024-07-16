@@ -23,6 +23,7 @@ PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/ec_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
