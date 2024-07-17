@@ -30,19 +30,19 @@ static const EVP_CIPHER *s2n_evp_rc4()
 #endif
 }
 
-static uint8_t s2n_stream_cipher_rc4_available()
+static bool s2n_stream_cipher_rc4_available(void)
 {
     if (s2n_is_in_fips_mode()) {
-        return 0;
+        return false;
     }
     /* RC4 MIGHT be available in Openssl-3.0, depending on whether or not the
      * "legacy" provider is loaded. However, for simplicity, assume that RC4
      * is unavailable.
      */
     if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
-        return 0;
+        return false;
     }
-    return (s2n_evp_rc4() ? 1 : 0);
+    return (s2n_evp_rc4() ? true : false);
 }
 
 static int s2n_stream_cipher_rc4_encrypt(struct s2n_session_key *key, struct s2n_blob *in, struct s2n_blob *out)
@@ -71,34 +71,34 @@ static int s2n_stream_cipher_rc4_decrypt(struct s2n_session_key *key, struct s2n
     return 0;
 }
 
-static int s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_stream_cipher_rc4_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
-    POSIX_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_ENSURE_EQ(in->size, 16);
+    RESULT_GUARD_OSSL(EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_stream_cipher_rc4_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
-    POSIX_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
+    RESULT_ENSURE_EQ(in->size, 16);
+    RESULT_GUARD_OSSL(EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_rc4(), NULL, in->data, NULL), S2N_ERR_KEY_INIT);
 
-    return S2N_SUCCESS;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_stream_cipher_rc4_init(struct s2n_session_key *key)
 {
-    s2n_evp_ctx_init(key->evp_cipher_ctx);
+    RESULT_EVP_CTX_INIT(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_stream_cipher_rc4_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 const struct s2n_cipher s2n_rc4 = {

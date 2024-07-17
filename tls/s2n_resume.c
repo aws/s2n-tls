@@ -796,8 +796,8 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
 
     POSIX_GUARD(s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN));
     POSIX_GUARD(s2n_session_key_alloc(&aes_ticket_key));
-    POSIX_GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
-    POSIX_GUARD(s2n_aes256_gcm.set_encryption_key(&aes_ticket_key, &aes_key_blob));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.init(&aes_ticket_key));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.set_encryption_key(&aes_ticket_key, &aes_key_blob));
 
     POSIX_GUARD(s2n_stuffer_init(&aad, &aad_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
@@ -817,7 +817,7 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
 
     POSIX_GUARD(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
 
-    POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
     POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
     return S2N_SUCCESS;
@@ -851,8 +851,8 @@ int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
 
     POSIX_GUARD(s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN));
     POSIX_GUARD(s2n_session_key_alloc(&aes_ticket_key));
-    POSIX_GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
-    POSIX_GUARD(s2n_aes256_gcm.set_decryption_key(&aes_ticket_key, &aes_key_blob));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.init(&aes_ticket_key));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.set_decryption_key(&aes_ticket_key, &aes_key_blob));
 
     POSIX_GUARD(s2n_stuffer_init(&aad, &aad_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
@@ -931,8 +931,8 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
 
     POSIX_GUARD(s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN));
     POSIX_GUARD(s2n_session_key_alloc(&aes_ticket_key));
-    POSIX_GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
-    POSIX_GUARD(s2n_aes256_gcm.set_decryption_key(&aes_ticket_key, &aes_key_blob));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.init(&aes_ticket_key));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.set_decryption_key(&aes_ticket_key, &aes_key_blob));
 
     POSIX_GUARD(s2n_stuffer_init(&aad, &aad_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
@@ -941,7 +941,7 @@ int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *f
     POSIX_GUARD(s2n_stuffer_read(from, &en_blob));
 
     POSIX_GUARD(s2n_aes256_gcm.io.aead.decrypt(&aes_ticket_key, &iv, &aad_blob, &en_blob, &en_blob));
-    POSIX_GUARD(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
+    POSIX_GUARD_RESULT(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
     POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
     POSIX_GUARD(s2n_stuffer_init(&state, &state_blob));

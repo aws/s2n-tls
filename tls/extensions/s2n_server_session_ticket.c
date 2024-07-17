@@ -34,7 +34,8 @@ const s2n_extension_type s2n_server_session_ticket_extension = {
 
 static bool s2n_session_ticket_should_send(struct s2n_connection *conn)
 {
-    return s2n_server_sending_nst(conn) && s2n_connection_get_protocol_version(conn) < S2N_TLS13;
+    return s2n_server_sending_nst(conn) && s2n_connection_get_protocol_version(conn) < S2N_TLS13
+            && !conn->config->ticket_forward_secrecy;
 }
 
 static int s2n_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
