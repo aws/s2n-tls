@@ -287,11 +287,14 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
         return 0;
     }
 
-    const struct s2n_security_policy *security_policy = conn->security_policy_override;
-    if (!security_policy) {
-        security_policy = config->security_policy;
+    /* s2n_config invariant: any s2n_config is always in a state that respects the
+     * config->security_policy certificate preferences. Therefore we only need to
+     * validate certificates here if the connection is using a security policy override.
+     */
+    const struct s2n_security_policy *security_policy_override = conn->security_policy_override;
+    if (security_policy_override) {
+        POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy_override));
     }
-    POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(config, security_policy));
 
     /* We only support one client certificate */
     if (s2n_config_get_num_default_certs(config) > 1 && conn->mode == S2N_CLIENT) {
@@ -1703,7 +1706,7 @@ bool s2n_connection_check_io_status(struct s2n_connection *conn, s2n_io_status s
     bool full_duplex = !read_closed && !write_closed;
 
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6.1
      *# Note that this is a change from versions of TLS prior to TLS 1.3 in
      *# which implementations were required to react to a "close_notify" by
      *# discarding pending writes and sending an immediate "close_notify"

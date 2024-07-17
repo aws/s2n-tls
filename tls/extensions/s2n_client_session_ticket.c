@@ -39,7 +39,8 @@ const s2n_extension_type s2n_client_session_ticket_extension = {
 
 static bool s2n_client_session_ticket_should_send(struct s2n_connection *conn)
 {
-    return conn->config->use_tickets && !s2n_client_psk_should_send(conn);
+    return conn->config->use_tickets && !conn->config->ticket_forward_secrecy
+            && !s2n_client_psk_should_send(conn);
 }
 
 static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2n_stuffer *out)
@@ -50,7 +51,8 @@ static int s2n_client_session_ticket_send(struct s2n_connection *conn, struct s2
 
 static int s2n_client_session_ticket_recv(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
-    if (conn->config->use_tickets != 1 || conn->actual_protocol_version > S2N_TLS12) {
+    if (conn->config->use_tickets != 1 || conn->actual_protocol_version > S2N_TLS12
+            || conn->config->ticket_forward_secrecy) {
         /* Ignore the extension. */
         return S2N_SUCCESS;
     }

@@ -1,0 +1,81 @@
+target = "https://www.rfc-editor.org/rfc/rfc7627#section-5.2"
+
+# 5.2.  Client and Server Behavior: Full Handshake
+#
+# In the following, we use the phrase "abort the handshake" as
+# shorthand for terminating the handshake by sending a fatal
+# "handshake_failure" alert.
+# 
+# In all handshakes, a client implementing this document MUST send the
+# "extended_master_secret" extension in its ClientHello.
+# 
+# If a server implementing this document receives the
+# "extended_master_secret" extension, it MUST include the extension in
+# its ServerHello message.
+# 
+# If both the ClientHello and ServerHello contain the extension, the
+# new session uses the extended master secret computation.
+# 
+# If the server receives a ClientHello without the extension, it SHOULD
+# abort the handshake if it does not wish to interoperate with legacy
+# clients.  If it chooses to continue the handshake, then it MUST NOT
+# include the extension in the ServerHello.
+# 
+# If a client receives a ServerHello without the extension, it SHOULD
+# abort the handshake if it does not wish to interoperate with legacy
+# servers.
+# 
+# If the client and server choose to continue a full handshake without
+# the extension, they MUST use the standard master secret derivation
+# for the new session.  In this case, the new session is not protected
+# by the mechanisms described in this document.  So, implementers
+# should follow the guidelines in Section 5.4 to avoid dangerous usage
+# scenarios.  In particular, the master secret derived from the new
+# session should not be used for application-level authentication.
+
+[[spec]]
+level = "MUST"
+quote = '''
+In all handshakes, a client implementing this document MUST send the
+"extended_master_secret" extension in its ClientHello.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If a server implementing this document receives the
+"extended_master_secret" extension, it MUST include the extension in
+its ServerHello message.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If the server receives a ClientHello without the extension, it SHOULD
+abort the handshake if it does not wish to interoperate with legacy
+clients.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If it chooses to continue the handshake, then it MUST NOT
+include the extension in the ServerHello.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+If a client receives a ServerHello without the extension, it SHOULD
+abort the handshake if it does not wish to interoperate with legacy
+servers.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the client and server choose to continue a full handshake without
+the extension, they MUST use the standard master secret derivation
+for the new session.
+'''
+

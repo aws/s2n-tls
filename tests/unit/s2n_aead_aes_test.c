@@ -30,17 +30,17 @@
 
 static int destroy_server_keys(struct s2n_connection *server_conn)
 {
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->server_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->destroy_key(&server_conn->initial->client_key));
     return 0;
 }
 
 static int setup_server_keys(struct s2n_connection *server_conn, struct s2n_blob *key)
 {
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->server_key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->client_key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, key));
-    POSIX_GUARD(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->server_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->init(&server_conn->initial->client_key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->set_encryption_key(&server_conn->initial->server_key, key));
+    POSIX_GUARD_RESULT(server_conn->initial->cipher_suite->record_alg->cipher->set_decryption_key(&server_conn->initial->client_key, key));
 
     return 0;
 }

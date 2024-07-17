@@ -780,7 +780,7 @@ S2N_RESULT s2n_x509_validator_validate_cert_chain(struct s2n_x509_validator *val
         /* Only process certificate extensions received in the first certificate. Extensions received in all other
          * certificates are ignored.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.4.2
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.2
          *# If an extension applies to the entire chain, it SHOULD be included in
          *# the first CertificateEntry.
          */
@@ -874,12 +874,14 @@ S2N_RESULT s2n_x509_validator_validate_cert_stapled_ocsp_response(struct s2n_x50
     int status = 0;
     int reason = 0;
 
-    /* sha1 is the only supported OCSP digest */
+    /* SHA-1 is the only supported hash algorithm for the CertID due to its established use in 
+     * OCSP responders. 
+     */
     OCSP_CERTID *cert_id = OCSP_cert_to_id(EVP_sha1(), subject, issuer);
     RESULT_ENSURE_REF(cert_id);
 
     /**
-     *= https://www.rfc-editor.org/rfc/rfc6960.html#section-2.4
+     *= https://www.rfc-editor.org/rfc/rfc6960#section-2.4
      *#
      *# thisUpdate      The most recent time at which the status being
      *#                 indicated is known by the responder to have been

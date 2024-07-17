@@ -56,7 +56,7 @@ static S2N_RESULT s2n_translate_protocol_error_to_alert(int error_code, uint8_t 
         S2N_ALERT_CASE(S2N_ERR_MISSING_CERT_REQUEST, S2N_TLS_ALERT_UNEXPECTED_MESSAGE);
 
         /* For errors involving secure renegotiation:
-         *= https://tools.ietf.org/rfc/rfc5746#3.4
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.4
          *# Note: later in Section 3, "abort the handshake" is used as
          *# shorthand for "send a fatal handshake_failure alert and
          *# terminate the connection".
@@ -152,7 +152,7 @@ static bool s2n_alerts_supported(struct s2n_connection *conn)
 }
 
 /* In TLS1.3 all Alerts
- *= https://tools.ietf.org/rfc/rfc8446#section-6
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-6
  *# MUST be treated as error alerts when received
  *# regardless of the AlertLevel in the message.
  */
@@ -237,7 +237,7 @@ int s2n_process_alert_fragment(struct s2n_connection *conn)
 
             /* All other alerts are treated as fatal errors.
              *
-             *= https://tools.ietf.org/rfc/rfc8446#section-6
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-6
              *# Unknown Alert types MUST be treated as error alerts.
              */
             POSIX_GUARD_RESULT(s2n_connection_set_closed(conn));
@@ -273,7 +273,7 @@ int s2n_queue_reader_handshake_failure_alert(struct s2n_connection *conn)
 S2N_RESULT s2n_queue_reader_no_renegotiation_alert(struct s2n_connection *conn)
 {
     /**
-     *= https://tools.ietf.org/rfc/rfc5746#4.5
+     *= https://www.rfc-editor.org/rfc/rfc5746#4.5
      *# SSLv3 does not define the "no_renegotiation" alert (and does
      *# not offer a way to indicate a refusal to renegotiate at a "warning"
      *# level).  SSLv3 clients that refuse renegotiation SHOULD use a fatal
@@ -297,7 +297,7 @@ S2N_RESULT s2n_alerts_write_error_or_close_notify(struct s2n_connection *conn)
     }
 
     /*
-     *= https://tools.ietf.org/rfc/rfc8446#section-6.2
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-6.2
      *= type=exception
      *= reason=Specific alerts could expose a side-channel attack vector.
      *# The phrases "terminate the connection with an X

@@ -139,6 +139,16 @@ S2N_RESULT s2n_stuffer_reservation_validate(const struct s2n_stuffer_reservation
 int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint8(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint16(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
 int S2N_RESULT_MUST_USE s2n_stuffer_reserve_uint24(struct s2n_stuffer *stuffer, struct s2n_stuffer_reservation *reservation);
+int S2N_RESULT_MUST_USE s2n_stuffer_write_reservation(struct s2n_stuffer_reservation *reservation, const uint32_t value);
+/* Reservations are primarily intended to handle the variable-length vector type
+ * defined in the RFC: https://tools.ietf.org/html/rfc8446#section-3.4
+ * Variable-length vectors are preceded by the total size of the vector in bytes
+ * (not to be confused with the number of elements in the vector).
+ *
+ * These methods calculate the size of the vector just written to a stuffer based
+ * on the stuffer's current write cursor.
+ */
+int S2N_RESULT_MUST_USE s2n_stuffer_get_vector_size(const struct s2n_stuffer_reservation *reservation, uint32_t *size);
 int S2N_RESULT_MUST_USE s2n_stuffer_write_vector_size(struct s2n_stuffer_reservation *reservation);
 
 /* Copy one stuffer to another */

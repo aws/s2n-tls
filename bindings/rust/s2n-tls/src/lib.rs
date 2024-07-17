@@ -19,11 +19,13 @@ pub mod client_hello;
 pub mod config;
 pub mod connection;
 pub mod enums;
+#[cfg(feature = "unstable-fingerprint")]
+pub mod fingerprint;
 pub mod init;
 pub mod pool;
 pub mod security;
 
 pub use s2n_tls_sys as ffi;
 
-#[cfg(any(feature = "testing", test))]
-pub mod testing;
+#[cfg(test)]
+mod testing;

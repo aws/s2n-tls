@@ -228,14 +228,14 @@ S2N_RESULT s2n_signature_algorithm_select(struct s2n_connection *conn)
          * otherwise an intentional deviation from the RFC.
          *
          * TLS1.3 servers:
-         *= https://www.rfc-editor.org/rfc/rfc8446.html#section-4.4.3
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.3
          *# If the CertificateVerify message is sent by a server, the signature
          *# algorithm MUST be one offered in the client's "signature_algorithms"
          *# extension unless no valid certificate chain can be produced without
          *# unsupported algorithms
          *
          * TLS1.3 clients:
-         *= https://www.rfc-editor.org/rfc/rfc8446.html#section-4.4.3
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.4.3
          *= type=exception
          *= reason=Compatibility with hypothetical faulty peers
          *# If sent by a client, the signature algorithm used in the signature

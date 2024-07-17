@@ -648,6 +648,31 @@ int main(int argc, char **argv)
             conn->security_policy_override = &rfc9151_applied_locally;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_config(conn, config), S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
+
+        /* s2n_connection_set_config doesn't enforce cert preferences
+        * 
+        * Customers may configure large numbers of certs on each config. This test
+        * asserts that we don't do any validation on certificates as part of set_config,
+        * because that would incur a potentially large performance penalty.
+        */
+        {
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(
+                    s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
+
+            DEFER_CLEANUP(struct s2n_config *invalid_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(invalid_config, invalid_cert));
+
+            /* directly set the security policy to avoid the validation in "set_cipher_preferences" */
+            const struct s2n_security_policy *security_policy = NULL;
+            POSIX_GUARD(s2n_find_security_policy_from_version("rfc9151", &security_policy));
+            invalid_config->security_policy = security_policy;
+
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            POSIX_ENSURE_REF(conn);
+            /* Success implies that certificates are not validated as during "set_config" */
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, invalid_config));
+        };
     };
 
     /* Test s2n_connection_get_wire_bytes_out */

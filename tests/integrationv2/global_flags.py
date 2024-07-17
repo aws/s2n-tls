@@ -2,9 +2,6 @@
 # These flags enable Providers and Tests to determine how to behave
 # based on the environment.
 
-# If PQ support was not compiled in to S2N
-S2N_NO_PQ = 's2n_no_pq'
-
 # If S2N is operating in FIPS mode
 S2N_FIPS_MODE = 's2n_fips_mode'
 

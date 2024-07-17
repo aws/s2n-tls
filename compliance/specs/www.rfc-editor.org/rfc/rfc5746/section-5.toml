@@ -1,0 +1,68 @@
+target = "https://www.rfc-editor.org/rfc/rfc5746#section-5"
+
+# 5.  Security Considerations
+#
+# The extension described in this document prevents an attack on TLS.
+# If this extension is not used, TLS renegotiation is subject to an
+# attack in which the attacker can inject their own conversation with
+# the TLS server as a prefix to the client's conversation.  This attack
+# is invisible to the client and looks like an ordinary renegotiation
+# to the server.  The extension defined in this document allows
+# renegotiation to be performed safely.  Servers SHOULD NOT allow
+# clients to renegotiate without using this extension.  Many servers
+# can mitigate this attack simply by refusing to renegotiate at all.
+# 
+# While this extension mitigates the man-in-the-middle attack described
+# in the overview, it does not resolve all possible problems an
+# application may face if it is unaware of renegotiation.  For example,
+# during renegotiation, either the client or the server can present a
+# different certificate than was used earlier.  This may come as a
+# surprise to application developers (who might have expected, for
+# example, that a "getPeerCertificates()" API call returns the same
+# value if called twice), and might be handled in an insecure way.
+# 
+# TLS implementations SHOULD provide a mechanism to disable and enable
+# renegotiation.
+# 
+# TLS implementers are encouraged to clearly document how renegotiation
+# interacts with the APIs offered to applications (for example, which
+# API calls might return different values on different calls, or which
+# callbacks might get called multiple times).
+# 
+# To make life simpler for applications that use renegotiation but do
+# not expect the certificate to change once it has been authenticated,
+# TLS implementations may also wish to offer the applications the
+# option to abort the renegotiation if the peer tries to authenticate
+# with a different certificate and/or different server name (in the
+# server_name extension) than was used earlier.  TLS implementations
+# may alternatively offer the option to disable renegotiation once the
+# client certificate has been authenticated.  However, enabling these
+# options by default for all applications could break existing
+# applications that depend on using renegotiation to change from one
+# certificate to another.  (For example, long-lived TLS connections
+# could change to a renewed certificate; or renegotiation could select
+# a different cipher suite that requires using a different
+# certificate.)
+# 
+# Finally, designers of applications that depend on renegotiation are
+# reminded that many TLS APIs represent application data as a simple
+# octet stream; applications may not be able to determine exactly which
+# application data octets were received before, during, or after
+# renegotiation.  Especially if the peer presents a different
+# certificate during renegotiation, care is needed when specifying how
+# the application should handle the data.
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+Servers SHOULD NOT allow
+clients to renegotiate without using this extension.
+'''
+
+[[spec]]
+level = "SHOULD"
+quote = '''
+TLS implementations SHOULD provide a mechanism to disable and enable
+renegotiation.
+'''
+

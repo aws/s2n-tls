@@ -50,10 +50,11 @@ int main(int argc, char **argv)
 
     /* test the 3des cipher with a SHA1 hash */
     conn->secure->cipher_suite->record_alg = &s2n_record_alg_3des_sha;
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &des3));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &des3));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->server_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->init(&conn->secure->client_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(&conn->secure->server_key, &des3));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(&conn->secure->client_key, &des3));
+
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->client_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     EXPECT_SUCCESS(s2n_hmac_init(&conn->secure->server_record_mac, S2N_HMAC_SHA1, mac_key, sizeof(mac_key)));
     conn->actual_protocol_version = S2N_TLS11;
@@ -107,8 +108,8 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_wipe(&conn->in));
     }
 
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
-    EXPECT_SUCCESS(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->server_key));
+    EXPECT_OK(conn->secure->cipher_suite->record_alg->cipher->destroy_key(&conn->secure->client_key));
     EXPECT_SUCCESS(s2n_connection_free(conn));
 
     END_TEST();

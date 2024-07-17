@@ -646,7 +646,7 @@ int main(int argc, char **argv)
 
     /* Test: TLS 1.3 MIDDLEBOX_COMPAT handshakes all follow CCS middlebox compatibility rules.
      *
-     *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+     *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.4
      *= type=test
      *# Field measurements [Ben17a] [Ben17b] [Res17a] [Res17b] have found
      *# that a significant number of middleboxes misbehave when a TLS
@@ -656,7 +656,7 @@ int main(int argc, char **argv)
      */
     {
         /*
-         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.4
          *= type=test
          *# If not offering early data, the client sends a dummy
          *# change_cipher_spec record (see the third paragraph of Section 5)
@@ -695,7 +695,7 @@ int main(int argc, char **argv)
         }
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.4
          *= type=test
          *# If offering early data, the record is placed immediately after the
          *# first ClientHello.
@@ -717,7 +717,7 @@ int main(int argc, char **argv)
         }
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#appendix-D.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#appendix-D.4
          *= type=test
          *# The server sends a dummy change_cipher_spec record immediately
          *# after its first handshake message.  This may either be after a

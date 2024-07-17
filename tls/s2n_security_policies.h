@@ -122,6 +122,8 @@ extern const struct s2n_security_policy security_policy_20230317;
 extern const struct s2n_security_policy security_policy_20240331;
 extern const struct s2n_security_policy security_policy_20240417;
 extern const struct s2n_security_policy security_policy_20240416;
+extern const struct s2n_security_policy security_policy_20240603;
+
 extern const struct s2n_security_policy security_policy_rfc9151;
 extern const struct s2n_security_policy security_policy_test_all;
 

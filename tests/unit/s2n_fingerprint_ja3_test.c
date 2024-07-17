@@ -159,21 +159,21 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_string(NULL, S2N_FINGERPRINT_JA3,
                         sizeof(output_mem), output_mem, &output_size),
-                S2N_ERR_NULL);
+                S2N_ERR_INVALID_ARGUMENT);
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_hash(NULL, S2N_FINGERPRINT_JA3,
                         sizeof(output_mem), output_mem, &output_size, &str_size),
-                S2N_ERR_NULL);
+                S2N_ERR_INVALID_ARGUMENT);
 
         /* Valid output buffer required */
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_string(client_hello, S2N_FINGERPRINT_JA3,
                         sizeof(output_mem), NULL, &output_size),
-                S2N_ERR_NULL);
+                S2N_ERR_INVALID_ARGUMENT);
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_hash(client_hello, S2N_FINGERPRINT_JA3,
                         sizeof(output_mem), NULL, &output_size, &str_size),
-                S2N_ERR_NULL);
+                S2N_ERR_INVALID_ARGUMENT);
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_string(client_hello, S2N_FINGERPRINT_JA3,
                         0, NULL, &output_size),
@@ -187,15 +187,15 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_string(client_hello, S2N_FINGERPRINT_JA3,
                         sizeof(output_mem), output_mem, NULL),
-                S2N_ERR_NULL);
+                S2N_ERR_INVALID_ARGUMENT);
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_hash(client_hello, S2N_FINGERPRINT_JA3,
                         sizeof(output_mem), output_mem, NULL, &str_size),
-                S2N_ERR_NULL);
+                S2N_ERR_INVALID_ARGUMENT);
         EXPECT_FAILURE_WITH_ERRNO(
                 s2n_client_hello_get_fingerprint_hash(client_hello, S2N_FINGERPRINT_JA3,
                         sizeof(output_mem), output_mem, &output_size, NULL),
-                S2N_ERR_NULL);
+                S2N_ERR_INVALID_ARGUMENT);
 
         /* Only JA3 currently supported */
         EXPECT_FAILURE_WITH_ERRNO(

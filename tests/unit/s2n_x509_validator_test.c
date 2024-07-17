@@ -26,8 +26,8 @@ static int mock_time(void *data, uint64_t *timestamp)
 
 static int fetch_expired_after_ocsp_timestamp(void *data, uint64_t *timestamp)
 {
-    /* 2200-11-27 */
-    *timestamp = 7283958536000000000;
+    /* 2250-01-01 */
+    *timestamp = 8835984000000000000;
     return 0;
 }
 
@@ -212,7 +212,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -238,7 +237,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
@@ -287,7 +285,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -325,7 +322,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -406,7 +402,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -444,7 +439,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
@@ -489,7 +483,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
@@ -546,7 +539,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
@@ -585,11 +577,12 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         /* alter a random byte in the certificate to make it invalid */
-        chain_data[500] = (uint8_t) (chain_data[500] << 2);
+        size_t corrupt_index = 200;
+        EXPECT_TRUE(chain_len > corrupt_index);
+        chain_data[corrupt_index] = (uint8_t) (chain_data[corrupt_index] << 2);
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
         s2n_pkey_type pkey_type = S2N_PKEY_TYPE_UNKNOWN;
@@ -629,7 +622,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -677,7 +669,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -717,7 +708,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
@@ -765,7 +755,6 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        /* The default cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;

@@ -169,12 +169,12 @@ int main(int argc, char **argv)
 
         /** When early data accepted.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *= type=test
          *# A server which receives an "early_data" extension MUST behave in one
          *# of three ways:
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *= type=test
          *# -  Return its own "early_data" extension in EncryptedExtensions,
          *#    indicating that it intends to process the early data.
@@ -209,7 +209,7 @@ int main(int argc, char **argv)
 
         /** When early data rejected.
          *
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
          *# A server which receives an "early_data" extension MUST behave in one
          *# of three ways:
          *#
@@ -244,12 +244,12 @@ int main(int argc, char **argv)
         };
 
         /*
-        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+        *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
         *= type=test
         *# A server which receives an "early_data" extension MUST behave in one
         *# of three ways:
         *
-        *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+        *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
         *= type=test
         *# -  Request that the client send another ClientHello by responding
         *#    with a HelloRetryRequest.
