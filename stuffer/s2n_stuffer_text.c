@@ -227,8 +227,18 @@ static void s2n_va_list_cleanup(struct s2n_va_list *list)
     }
 }
 
+/* For CBMC verification, calls to "vsnprintf()" are re-directed to
+ * a local stub. For deployment, some hosts define "vsnprintf" as
+ * a macro that expands to call whatever is required, so for
+ * CBMC mode, we undef that symbol here
+ */
+#ifdef CBMC
+#undef vsnprintf
+#endif
+
 int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs_in)
 {
+
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(format);
 
