@@ -1608,11 +1608,6 @@ int s2n_negotiate_impl(struct s2n_connection *conn, s2n_blocked_status *blocked)
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(blocked);
 
-    /* SSLv3 handshake is not supported when built with openssl-fips */
-    if (s2n_is_in_fips_mode() && conn->client_protocol_version == S2N_SSLv3 && !s2n_libcrypto_is_awslc()) {
-        POSIX_BAIL(S2N_ERR_SSLV3_HANDSHAKE_WITH_OSSL_FIPS_NOT_SUPPORTED);
-    }
-
     while (!s2n_handshake_is_complete(conn) && ACTIVE_MESSAGE(conn) != conn->handshake.end_of_messages) {
         errno = 0;
         s2n_errno = S2N_ERR_OK;
