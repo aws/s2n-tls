@@ -135,10 +135,11 @@ jobs:
         shell: bash
         run: |
           curl -o z3.zip -L \
-            https://github.com/Z3Prover/z3/releases/download/z3-${{ env.Z3_VERSION }}/z3-${{ env.Z3_VERSION }}-x64-glibc-2.35.zip
+            https://github.com/Z3Prover/z3/releases/download/z3-${{ env.Z3_VERSION }}/z3-${{ env.Z3_VERSION }}-x64-glibc-2.31.zip
+          sudo apt-get install --no-install-recommends --yes unzip
           unzip z3.zip
-          cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.35/bin; echo "$(pwd)" >> $GITHUB_PATH
-          cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.35/bin; ./z3 --version
+          cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.31/bin; echo "$(pwd)" >> $GITHUB_PATH
+          cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.31/bin; ./z3 --version
           rm ./z3.zip
       - name: Build and Install Bitwuzla ${{ env.BITWUZLA_VERSION }}
         if: ${{ env.BITWUZLA_VERSION != 'latest' }}
@@ -147,7 +148,7 @@ jobs:
           echo "Installing Bitwuzla dependencies"
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes libgmp-dev cmake
-          pip3 install --user meson
+          sudo pip3 install meson
           echo "Building Bitwuzla"
           BITWUZLA_TAG_NAME=${{ env.BITWUZLA_VERSION }}
           git clone https://github.com/bitwuzla/bitwuzla.git \
