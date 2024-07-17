@@ -313,7 +313,11 @@ int main(int argc, char **argv)
      */
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
-        /* use a very insecure cert that would not be included in any reasonable cert preferences */
+        /* use a very insecure cert that would not be included in any reasonable cert preferences 
+         * 
+         * OpenSSL FIPS module requires the key size for RSA to be bigger than or equal to 1024 bits.
+         * See https://github.com/aws/s2n-tls/issues/4651 for more information.
+         */
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "1024", "sha1"));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
