@@ -12,7 +12,7 @@ use crabgrind as cg;
 use s2n_tls::{security, config::Builder};
 use regression::InsecureAcceptAllCertificatesHandler;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), s2n_tls::error::Error> {
     cg::cachegrind::stop_instrumentation();
     
     let mut builder = Builder::new();
