@@ -21,6 +21,7 @@
 
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_evp_signing.h"
+#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_signing.h"
@@ -120,6 +121,11 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
     /* Safety: RSA_public_encrypt does not mutate the key */
     int r = RSA_public_encrypt(in->size, (unsigned char *) in->data, (unsigned char *) out->data,
             s2n_unsafe_rsa_get_non_const(pub_key), RSA_PKCS1_PADDING);
+
+    if (s2n_is_in_fips_mode() && !s2n_libcrypto_is_awslc()) {
+        POSIX_ENSURE((int64_t) r != -1, S2N_ERR_INVALID_RSA_KEY_SIZE_IN_OSSL_FIPS_MODE);
+    }
+
     POSIX_ENSURE((int64_t) r == (int64_t) out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
