@@ -13,13 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
 #include "utils/s2n_map.h"
-#include "crypto/s2n_fips.h"
 
 #define CHAIN_LENGTH 3
 
