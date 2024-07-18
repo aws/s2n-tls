@@ -2,7 +2,9 @@ name: "CodeQL - Python"
 
 on:
   push:
-    branches: [ "main" ]
+    branches:
+      - 'main'
+      - 'gh-readonly-queue/main/*'
     paths-ignore:
       - '**/tests/integration/*'
   pull_request:
@@ -11,9 +13,6 @@ on:
       - '**/tests/integration/*'
   schedule:
     - cron: "1 18 * * 0"
-  merge_group:
-    types: [checks_requested]
-    branches: [main]
 
 jobs:
   analyze:
