@@ -800,7 +800,7 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     /* Ensure we never encrypt with a zero-filled key */
     uint8_t zero_block[S2N_AES256_KEY_LEN] = { 0 };
     POSIX_ENSURE(s2n_constant_time_equals(key->aes_key, zero_block, S2N_AES256_KEY_LEN) != 1,
-        S2N_ERR_KEY_CHECK);
+            S2N_ERR_KEY_CHECK);
     POSIX_GUARD(s2n_stuffer_init(&aad, &aad_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
