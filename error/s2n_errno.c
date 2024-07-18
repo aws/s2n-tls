@@ -307,12 +307,12 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_KTLS_RENEG, "kTLS does not support secure renegotiation") \
     ERR_ENTRY(S2N_ERR_KTLS_KEYUPDATE, "Received KeyUpdate from peer, but kernel does not support updating tls keys") \
     ERR_ENTRY(S2N_ERR_KTLS_KEY_LIMIT, "Reached key encryption limit, but kernel does not support updating tls keys") \
-    ERR_ENTRY(S2N_ERR_INVALID_RSA_KEY_SIZE_IN_OSSL_FIPS_MODE, "OpenSSL FIPS module requires the key size for RSA to be bigger than or equal to 1024 bits.") \
     ERR_ENTRY(S2N_ERR_UNEXPECTED_CERT_REQUEST, "Client forbids mutual authentication, but server requested a cert") \
     ERR_ENTRY(S2N_ERR_MISSING_CERT_REQUEST, "Client requires mutual authentication, but server did not request a cert") \
     ERR_ENTRY(S2N_ERR_MISSING_CLIENT_CERT, "Server requires client certificate") \
     ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_CONNECTION, "Serialized connection is invalid"); \
     ERR_ENTRY(S2N_ERR_TOO_MANY_CAS, "Too many certificate authorities in trust store"); \
+    ERR_ENTRY(S2N_ERR_INVALID_RSA_KEY_SIZE_IN_OSSL_FIPS_MODE, "OpenSSL FIPS module requires the key size for RSA to be bigger than or equal to 1024 bits.") \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \
