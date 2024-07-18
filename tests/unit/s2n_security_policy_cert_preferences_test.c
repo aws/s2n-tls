@@ -318,7 +318,8 @@ int main(int argc, char **argv)
             /* OpenSSL FIPS module requires the key size for RSA to be bigger than or equal to 1024 bits.
              * See https://github.com/aws/s2n-tls/issues/4651 for more information.
              */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "512", "sha1"), S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "512", "sha1"),
+                    S2N_ERR_INVALID_RSA_KEY_SIZE_IN_OSSL_FIPS_MODE);
         } else {
             /* use a very insecure cert that would not be included in any reasonable cert preferences */
             EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "512", "sha1"));
