@@ -1,128 +1,106 @@
 # Regression Testing for s2n-tls
 
-This folder contains regression tests and benchmarking tools for the `s2n-tls` library. The tests focus on various aspects of TLS connections, including handshakes and session resumptions.
+This folder contains regression tests and benchmarking tools for the `s2n-tls` library. The tests focus on various aspects of TLS connections.
 
 ## Testing Philosophy
 
 Currently, s2n-tls implements a wall clock benchmarking tool which measures end-to-end handshake performance to compare s2n-tls with rustls and OpenSSL. In the past, s2n-tls has tried benchmarking to detect regressions through criterion in Rust, but the subprocess and spin-up time contributed to performance measurement which made the results inaccurate and difficult to use in CI. The project has a slightly different focus, learning from these existing tools. Performance assertion in s2n-tls focuses on a benchmarking tool that can detail performance by API path and do so with enough repeatability and accuracy to detect regressions between two versions of s2n-tls so that performance analysis can occur at PR time. This means that the scope of each harness is limited and mutually exclusive of other harnesses since we are intersted in measuring the performance of the important paths a TLS connection typically follows. 
 ## Contents
 
-1. **Regression Harnesses**
-   - **config_create.rs**: Creates a minimal s2n-tls configuration.
-   - **config_configure.rs**: Configures an s2n-tls config with security policies and certificate key pairs.
+1. **lib.rs**
+   - **test_set_security_policy_and_build**: Sets an s2n-tls config with a security policy and host callback.
+   - **test_rsa_handshake**: Performs an RSA handshake in s2n-tls.
 
 2. **Cargo.toml**
    - The configuration file for building and running the regression tests using Cargo.
-
-3. **run_harnesses.sh**
-   - Script to run all harnesses, a specified harness, or a combination of harnesses with Valgrind and store annotated results.
 
 
 ## Prerequisites
 
 Ensure you have the following installed:
 - Rust (with Cargo)
-- Valgrind (for crabgrind instrumentation)
+- Valgrind (for cachegrind instrumentation)
 
-## Running the Harnesses with Valgrind
-To run the harnesses with Valgrind and store the annotated results, use the `run_harnesses.sh` script:
-
-### Build s2n-tls
-To build and ensure ensure the necessary files and dependencies are generated, follow these steps:
-
-
-Run the 'generate.sh script to generate required files:
+## Running the Harnesses with Valgrind (scalar performance)
+To run the harnesses with Valgrind and store the annotated results, run:
 
 ```
-./generate.sh
+VALGRIND = true cargo test
 ```
 
-Use cargo to build the project in release mode:
+This will recursively call all tests with valgrind enabled so the performance output is generated and stored
+## Running the tests w/o Valgrind
 
 ```
-cargo build --release
+cargo test
 ```
 
-### Run All Harnesses
-
-To run all harnesses, execute the script without any arguments:
-
-```
-./run_harnesses.sh
-```
-
-### Run a Specific Harness
-
-To run a specific harness, provide the harness name as an argument:
-
-```
-./run_harnesses.sh config_create
-```
-
-### Run Multiple Specified Harnesses
-
-To run multiple specified harnesses, provide the harness names as arguments:
-
-```
-./run_harnesses.sh config_create config_configure
-```
-
-The script will build the harnesses, run each specified harness with Valgrind, store the unformatted output in the root directory and store the annotated output in the `perf_outputs` folder.
-
+This will run the tests without valgrind to test if the process completes as expected
 ## Sample Output
 
-Running the script will produce annotated cachegrind files which detail the instruction counts, how many instructions a particular file/function account for, and even the contribution of individual lines of code to the overall instruction count. For example, these are the first few lines of the output generated for 'config_create':
+Running the test will run all harnesses and fail if any number of harnesses exceed the performance threshold. For example, a regression test faliure could look like:
+```
+---- tests::test_set_security_policy_and_build stdout ----
+Running command: valgrind --tool=cachegrind --cachegrind-out-file=cachegrind_test_set_security_policy_and_build.out /home/ubuntu/proj/s2n/tests/regression/target/debug/deps/regression-7c7d86aeafe3b426 test_set_security_policy_and_build
+Running command: cg_annotate cachegrind_test_set_security_policy_and_build.out > perf_outputs/test_set_security_policy_and_build.annotated.txt
+thread 'tests::test_set_security_policy_and_build' panicked at src/lib.rs:174:9:
+Instruction count difference in test_set_security_policy_and_build exceeds the threshold, regression of 13975865 instructions
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+---- tests::test_rsa_handshake stdout ----
+Running command: valgrind --tool=cachegrind --cachegrind-out-file=cachegrind_test_rsa_handshake.out /home/ubuntu/proj/s2n/tests/regression/target/debug/deps/regression-7c7d86aeafe3b426 test_rsa_handshake
+Running command: cg_annotate cachegrind_test_rsa_handshake.out > perf_outputs/test_rsa_handshake.annotated.txt
+thread 'tests::test_rsa_handshake' panicked at src/lib.rs:174:9:
+Instruction count difference in test_rsa_handshake exceeds the threshold, regression of 51176459 instructions
+
+
+failures:
+    tests::test_rsa_handshake
+    tests::test_set_security_policy_and_build
+```
+
+It also produces annotated cachegrind files stored in the `perf_ouput` directory which detail the instruction counts, how many instructions a particular file/function account for, and the contribution of individual lines of code to the overall instruction count. For example, these are the first few lines of the output generated for 'test_rsa_handshake.annotated.txt':
 
 ```
 --------------------------------------------------------------------------------
 -- Summary
 --------------------------------------------------------------------------------
-Ir__________________ 
+Ir_________________ 
 
-282,156,931 (100.0%)  PROGRAM TOTALS
+79,270,744 (100.0%)  PROGRAM TOTALS
 
 --------------------------------------------------------------------------------
 -- File:function summary
 --------------------------------------------------------------------------------
-  Ir________________________  file:function
+  Ir_______________________  file:function
 
-< 113,200,122 (40.1%, 40.1%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/crypto/base64/base64.c:
-   38,297,760 (13.6%)           base64_ascii_to_bin
-   27,474,480  (9.7%)           constant_time_in_range_8
-   21,230,280  (7.5%)           constant_time_lt_args_8
-   14,949,848  (5.3%)           aws_lc_0_19_0_EVP_DecodeUpdate
-   11,238,410  (4.0%)           base64_decode_quad
+< 71,798,872 (90.6%, 90.6%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/x86_64-mont5.S:
+  54,908,926 (69.3%)           aws_lc_0_19_0_bn_sqr8x_internal
+  15,699,024 (19.8%)           mul4x_internal
+   1,114,840  (1.4%)           __bn_post4x_internal
 
-<  63,695,512 (22.6%, 62.7%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/crypto/base64/../internal.h:
-   17,483,760  (6.2%)           constant_time_msb_w
-   17,483,760  (6.2%)           constant_time_is_zero_w
-   14,986,080  (5.3%)           constant_time_eq_8
-   13,737,240  (4.9%)           constant_time_eq_w
+<  1,551,316  (2.0%, 92.5%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/p256-x86_64-asm.S:
+     676,336  (0.9%)           __ecp_nistz256_mul_montq
+     475,750  (0.6%)           __ecp_nistz256_sqr_montq
+      95,732  (0.1%)           aws_lc_0_19_0_ecp_nistz256_point_double
 
-<  17,876,168  (6.3%, 69.0%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/crypto/bytestring/cbs.c:
-    5,466,108  (1.9%)           cbs_get
-    3,704,868  (1.3%)           aws_lc_0_19_0_CBS_get_u8
-    2,199,934  (0.8%)           cbs_get_any_asn1_element
-    1,316,592  (0.5%)           aws_lc_0_19_0_CBS_len
-    1,062,264  (0.4%)           parse_asn1_tag
-      864,690  (0.3%)           aws_lc_0_19_0_CBS_init
-      765,468  (0.3%)           aws_lc_0_19_0_CBS_get_any_ber_asn1_element
-      758,760  (0.3%)           aws_lc_0_19_0_CBS_get_bytes
-      506,760  (0.2%)           aws_lc_0_19_0_CBS_skip
-      399,990  (0.1%)           aws_lc_0_19_0_CBS_is_valid_asn1_oid
+<    833,553  (1.1%, 93.6%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/sha256-x86_64.S:
+     830,671  (1.0%)           sha256_block_data_order_avx
+
+<    557,697  (0.7%, 94.3%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/x86_64-mont.S:
+     493,032  (0.6%)           bn_mul4x_mont
 
 ```
 
-### Understanding the Output
+### Understanding the Annotated Output
 The total instruction counts are listed at the top, and segmented by file:function beneath it. When comparing versions of s2n-tls (during PR workflow or otherwise) this can be useful to pinpoint the source of instruction count difference to inform you on how changes to the code impact performance. This [link](https://valgrind.org/docs/manual/cg-manual.html#cg-manual.running-cg_annotate:~:text=Information%20Source%20Code%20Documentation%20Contact%20How%20to%20Help%20Gallery,5.2.3.%C2%A0Running%20cg_annotate,-Before%20using%20cg_annotate) provides a more detailed description to fully understand the output file. 
 
 ## Test Details
 
-### config_create.rs
-
-Creates a minimal s2n-tls configuration and ensures it can be built successfully.
-
-### config_configure.rs
+### test_set_security_policy_and_build
 
 Configures an s2n-tls configuration with a specified security policy and loads a certificate key pair. Ensures the configuration is valid and can be built.
 
+### test_rsa_handshake
+
+Performs an RSA handshake in s2n-tls and validates the handshake process utilizing rsa_4096_sha512.
