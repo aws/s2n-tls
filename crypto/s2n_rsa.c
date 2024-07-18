@@ -121,11 +121,7 @@ static int s2n_rsa_encrypt(const struct s2n_pkey *pub, struct s2n_blob *in, stru
     /* Safety: RSA_public_encrypt does not mutate the key */
     int r = RSA_public_encrypt(in->size, (unsigned char *) in->data, (unsigned char *) out->data,
             s2n_unsafe_rsa_get_non_const(pub_key), RSA_PKCS1_PADDING);
-
-    if (s2n_is_in_fips_mode() && !s2n_libcrypto_is_awslc()) {
-        POSIX_ENSURE((int64_t) r != -1, S2N_ERR_INVALID_RSA_KEY_SIZE_IN_OSSL_FIPS_MODE);
-    }
-
+    POSIX_ENSURE(r > 0, S2N_ERR_ENCRYPT);
     POSIX_ENSURE((int64_t) r == (int64_t) out->size, S2N_ERR_SIZE_MISMATCH);
 
     return 0;
@@ -148,6 +144,7 @@ static int s2n_rsa_decrypt(const struct s2n_pkey *priv, struct s2n_blob *in, str
     /* Safety: RSA_private_decrypt does not mutate the key */
     int r = RSA_private_decrypt(in->size, (unsigned char *) in->data, intermediate,
             s2n_unsafe_rsa_get_non_const(priv_key), RSA_NO_PADDING);
+    POSIX_ENSURE(r > 0, S2N_ERR_DECRYPT);
     POSIX_ENSURE((int64_t) r == (int64_t) expected_size, S2N_ERR_SIZE_MISMATCH);
 
     s2n_constant_time_pkcs1_unpad_or_dont(out->data, intermediate, r, out->size);
