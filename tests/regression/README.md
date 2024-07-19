@@ -25,7 +25,7 @@ Ensure you have the following installed:
 To run the harnesses with Valgrind and store the annotated results, run:
 
 ```
-VALGRIND = true cargo test
+ENABLE_VALGRIND = true cargo test
 ```
 
 This will recursively call all tests with valgrind enabled so the performance output is generated and stored
