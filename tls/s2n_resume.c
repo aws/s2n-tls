@@ -293,7 +293,7 @@ static S2N_RESULT s2n_validate_ticket_age(uint64_t current_time, uint64_t ticket
     if (current_time < ticket_issue_time) {
         uint64_t clock_skew_in_nanos = ticket_issue_time - current_time;
         uint64_t clock_skew_in_seconds = clock_skew_in_nanos / ONE_SEC_IN_NANOS;
-        RESULT_ENSURE(clock_skew_in_seconds <= ONE_WEEK_IN_SEC, S2N_ERR_INVALID_SESSION_TICKET);
+        RESULT_ENSURE(clock_skew_in_seconds <= MAX_ALLOWED_CLOCK_SKEW_SEC, S2N_ERR_INVALID_SESSION_TICKET);
     } else {
         uint64_t ticket_age_in_nanos = current_time - ticket_issue_time;
         uint64_t ticket_age_in_sec = ticket_age_in_nanos / ONE_SEC_IN_NANOS;
