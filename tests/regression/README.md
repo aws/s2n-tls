@@ -8,7 +8,7 @@ Currently, s2n-tls implements a wall clock benchmarking tool which measures end-
 ## Contents
 
 1. **lib.rs**
-   - **test_set_security_policy_and_build**: Sets an s2n-tls config with a security policy and host callback.
+   - **test_set_config**: Builds a new s2n-tls config with a security policy, host callback and certs
    - **test_rsa_handshake**: Performs an RSA handshake in s2n-tls.
 
 2. **Cargo.toml**
@@ -36,7 +36,7 @@ cargo test
 ```
 
 This will run the tests without valgrind to test if the process completes as expected
-## Sample Output
+## Sample Output for Valgrind test
 
 Running the test will run all harnesses and fail if any number of harnesses exceed the performance threshold. For example, a regression test faliure could look like:
 ```
@@ -97,9 +97,9 @@ The total instruction counts are listed at the top, and segmented by file:functi
 
 ## Test Details
 
-### test_set_security_policy_and_build
+### test_set_config
 
-Configures an s2n-tls configuration with a specified security policy and loads a certificate key pair. Ensures the configuration is valid and can be built.
+Configures and creates a new s2n-tls configuration with a specified security policy and loads a certificate key pair. Ensures the configuration is valid and can be built.
 
 ### test_rsa_handshake
 
