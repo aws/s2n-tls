@@ -288,7 +288,7 @@ static S2N_RESULT s2n_validate_ticket_age(uint64_t current_time, uint64_t ticket
 {
     /* If the `ticket_issue_time` is in the future, then we are observing clock skew.
      * We shouldn't fully reject the ticket, but we assert that the clock skew is
-     * less than some very generous bound (one week)
+     * less than some MAX_ALLOWED_CLOCK_SKEW_SEC
      */
     if (current_time < ticket_issue_time) {
         uint64_t clock_skew_in_nanos = ticket_issue_time - current_time;
