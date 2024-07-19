@@ -757,8 +757,6 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
             if (now >= ticket_key->intro_timestamp
                             + config->encrypt_decrypt_key_lifetime_in_nanos
                             + config->decrypt_key_lifetime_in_nanos) {
-                s2n_config_wipe_expired_ticket_crypto_keys(config, i);
-
                 return NULL;
             }
 
@@ -772,7 +770,6 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
 int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to)
 {
     struct s2n_ticket_key *key = NULL;
-    struct s2n_session_key aes_ticket_key = { 0 };
     struct s2n_blob aes_key_blob = { 0 };
 
     uint8_t iv_data[S2N_TLS_GCM_IV_LEN] = { 0 };
@@ -795,10 +792,15 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD(s2n_stuffer_write(to, &iv));
 
     POSIX_GUARD(s2n_blob_init(&aes_key_blob, key->aes_key, S2N_AES256_KEY_LEN));
+    DEFER_CLEANUP(struct s2n_session_key aes_ticket_key = { 0 }, s2n_session_key_free);
     POSIX_GUARD(s2n_session_key_alloc(&aes_ticket_key));
     POSIX_GUARD_RESULT(s2n_aes256_gcm.init(&aes_ticket_key));
     POSIX_GUARD_RESULT(s2n_aes256_gcm.set_encryption_key(&aes_ticket_key, &aes_key_blob));
 
+    /* Ensure we never encrypt with a zero-filled key */
+    uint8_t zero_block[S2N_AES256_KEY_LEN] = { 0 };
+    POSIX_ENSURE(!s2n_constant_time_equals(key->aes_key, zero_block, S2N_AES256_KEY_LEN),
+            S2N_ERR_KEY_CHECK);
     POSIX_GUARD(s2n_stuffer_init(&aad, &aad_blob));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->implicit_aad, S2N_TICKET_AAD_IMPLICIT_LEN));
     POSIX_GUARD(s2n_stuffer_write_bytes(&aad, key->key_name, S2N_TICKET_KEY_NAME_LEN));
@@ -818,7 +820,6 @@ int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *
     POSIX_GUARD(s2n_aes256_gcm.io.aead.encrypt(&aes_ticket_key, &iv, &aad_blob, &state_blob, &state_blob));
 
     POSIX_GUARD_RESULT(s2n_aes256_gcm.destroy_key(&aes_ticket_key));
-    POSIX_GUARD(s2n_session_key_free(&aes_ticket_key));
 
     return S2N_SUCCESS;
 }
