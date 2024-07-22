@@ -30,12 +30,14 @@ static const uint8_t hex_to_value[] = {
     /* clang-format on */
 };
 
-static S2N_RESULT s2n_stuffer_hex_validate_char(uint8_t c)
+static S2N_RESULT s2n_stuffer_hex_digit_from_char(uint8_t c, uint8_t *i)
 {
     RESULT_ENSURE(c < s2n_array_len(hex_to_value), S2N_ERR_BAD_HEX);
+    /* Invalid characters map to 0 in hex_to_value, but so does '0'. */
     if (hex_to_value[c] == 0) {
         RESULT_ENSURE(c == '0', S2N_ERR_BAD_HEX);
     }
+    *i = hex_to_value[c];
     return S2N_RESULT_OK;
 }
 
@@ -56,14 +58,10 @@ S2N_RESULT s2n_stuffer_read_hex(struct s2n_stuffer *bytes_out, const struct s2n_
     uint8_t *in = hex_in->data;
 
     for (size_t i = 0; i < bytes_size; i++) {
-        uint8_t hex_high = in[(i * 2)];
-        RESULT_GUARD(s2n_stuffer_hex_validate_char(hex_high));
-
-        uint8_t hex_low = in[(i * 2) + 1];
-        RESULT_GUARD(s2n_stuffer_hex_validate_char(hex_low));
-
-        out[i] = hex_to_value[hex_low];
-        out[i] += hex_to_value[hex_high] * 16;
+        uint8_t hex_high = 0, hex_low = 0;
+        RESULT_GUARD(s2n_stuffer_hex_digit_from_char(in[(i * 2)], &hex_high));
+        RESULT_GUARD(s2n_stuffer_hex_digit_from_char(in[(i * 2) + 1], &hex_low));
+        out[i] = (hex_high * 16) + hex_low;
     }
 
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(bytes_out, bytes_size));
@@ -107,8 +105,9 @@ static S2N_RESULT s2n_stuffer_hex_read_n_bytes(struct s2n_stuffer *stuffer, uint
     *u = 0;
     for (size_t i = 0; i < b.size; i++) {
         *u <<= 4;
-        RESULT_GUARD(s2n_stuffer_hex_validate_char(b.data[i]));
-        *u |= hex_to_value[b.data[i]];
+        uint8_t hex = 0;
+        RESULT_GUARD(s2n_stuffer_hex_digit_from_char(b.data[i], &hex));
+        *u += hex;
     }
 
     return S2N_RESULT_OK;
@@ -119,7 +118,8 @@ S2N_RESULT s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u)
     RESULT_ENSURE_REF(u);
     uint64_t u64 = 0;
     RESULT_GUARD(s2n_stuffer_hex_read_n_bytes(stuffer, sizeof(uint16_t), &u64));
-    *u = u64 & 0xffff;
+    RESULT_ENSURE_LTE(u64, UINT16_MAX);
+    *u = u64;
     return S2N_RESULT_OK;
 }
 
@@ -128,7 +128,8 @@ S2N_RESULT s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u)
     RESULT_ENSURE_REF(u);
     uint64_t u64 = 0;
     RESULT_GUARD(s2n_stuffer_hex_read_n_bytes(stuffer, sizeof(uint8_t), &u64));
-    *u = u64 & 0xff;
+    RESULT_ENSURE_LTE(u64, UINT8_MAX);
+    *u = u64;
     return S2N_RESULT_OK;
 }
 
