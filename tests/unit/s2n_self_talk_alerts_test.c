@@ -55,6 +55,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, s2n_alert_behavior alert_behav
 
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
     s2n_config_disable_x509_verification(config);
     s2n_config_set_alert_behavior(config, alert_behavior);
     s2n_connection_set_config(conn, config);
@@ -177,7 +178,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         /* Set up the callback to send an alert after receiving ClientHello */
         struct alert_ctx warning_alert = { .write_fd = io_pair.server, .invoked = 0, .count = 2, .level = TLS_ALERT_LEVEL_WARNING, .code = TLS_ALERT_UNRECOGNIZED_NAME };

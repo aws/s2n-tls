@@ -28,37 +28,39 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    const struct s2n_security_policy *default_security_policy = NULL, *tls13_security_policy = NULL, *fips_security_policy = NULL;
-    EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
+    const struct s2n_security_policy *default_security_policy = NULL, *tls12_security_policy = NULL,
+                                     *fips_security_policy = NULL;
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240502", &tls12_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
 
     /* Test default TLS1.2 */
     if (!s2n_is_in_fips_mode()) {
-        struct s2n_connection *conn = NULL;
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
         const struct s2n_cipher_preferences *cipher_preferences = NULL;
         const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_kem_preferences *kem_preferences = NULL;
         const struct s2n_signature_preferences *signature_preferences = NULL;
         const struct s2n_ecc_preferences *ecc_preferences = NULL;
 
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NULL(conn->security_policy_override);
 
         EXPECT_SUCCESS(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
-        EXPECT_EQUAL(cipher_preferences, default_security_policy->cipher_preferences);
+        EXPECT_EQUAL(cipher_preferences, tls12_security_policy->cipher_preferences);
 
         EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-        EXPECT_EQUAL(security_policy, default_security_policy);
+        EXPECT_EQUAL(security_policy, tls12_security_policy);
 
         EXPECT_SUCCESS(s2n_connection_get_kem_preferences(conn, &kem_preferences));
-        EXPECT_EQUAL(kem_preferences, default_security_policy->kem_preferences);
+        EXPECT_EQUAL(kem_preferences, tls12_security_policy->kem_preferences);
 
         EXPECT_SUCCESS(s2n_connection_get_signature_preferences(conn, &signature_preferences));
-        EXPECT_EQUAL(signature_preferences, default_security_policy->signature_preferences);
+        EXPECT_EQUAL(signature_preferences, tls12_security_policy->signature_preferences);
 
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
-        EXPECT_EQUAL(ecc_preferences, default_security_policy->ecc_preferences);
+        EXPECT_EQUAL(ecc_preferences, tls12_security_policy->ecc_preferences);
 
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20170328"));
         EXPECT_NOT_NULL(conn->security_policy_override);
@@ -82,22 +84,29 @@ int main(int argc, char **argv)
         ecc_preferences = NULL;
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
         EXPECT_EQUAL(ecc_preferences, security_policy_20170328.ecc_preferences);
-
-        EXPECT_SUCCESS(s2n_connection_free(conn));
     }
 
     /* Test TLS1.3 */
     {
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-        struct s2n_connection *conn = NULL;
+        DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(conn);
+
         const struct s2n_cipher_preferences *cipher_preferences = NULL;
         const struct s2n_security_policy *security_policy = NULL;
         const struct s2n_kem_preferences *kem_preferences = NULL;
         const struct s2n_signature_preferences *signature_preferences = NULL;
         const struct s2n_ecc_preferences *ecc_preferences = NULL;
 
-        EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_NULL(conn->security_policy_override);
+
+        const struct s2n_security_policy *tls13_security_policy = NULL;
+        if (s2n_is_in_fips_mode()) {
+            tls13_security_policy = fips_security_policy;
+        } else {
+            tls13_security_policy = default_security_policy;
+        }
 
         EXPECT_SUCCESS(s2n_connection_get_cipher_preferences(conn, &cipher_preferences));
         EXPECT_EQUAL(cipher_preferences, tls13_security_policy->cipher_preferences);
@@ -137,13 +146,15 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
         EXPECT_EQUAL(ecc_preferences, security_policy_test_all_tls13.ecc_preferences);
 
-        EXPECT_SUCCESS(s2n_connection_free(conn));
         EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     };
 
     /* Test default fips */
-
     if (s2n_is_in_fips_mode()) {
+        /* Disable test override when testing FIPS */
+        EXPECT_TRUE(s2n_testing_override_use_tls12());
+        EXPECT_SUCCESS(s2n_reset_tls13_in_test());
+
         struct s2n_connection *conn = NULL;
         const struct s2n_cipher_preferences *cipher_preferences = NULL;
         const struct s2n_security_policy *security_policy = NULL;
@@ -193,6 +204,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(ecc_preferences, security_policy_test_all_fips.ecc_preferences);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
+
+        /* Restore previous override settings */
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+        EXPECT_TRUE(s2n_testing_override_use_tls12());
     }
 
     /* Test for NULL */

@@ -27,6 +27,7 @@ struct s2n_cipher_preferences {
     bool allow_chacha20_boosting;
 };
 
+extern const struct s2n_cipher_preferences cipher_preferences_20240701;
 extern const struct s2n_cipher_preferences cipher_preferences_20230317;
 extern const struct s2n_cipher_preferences cipher_preferences_20240331;
 extern const struct s2n_cipher_preferences cipher_preferences_20140601;
