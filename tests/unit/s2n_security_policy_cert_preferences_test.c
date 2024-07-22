@@ -18,6 +18,7 @@
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_signature_scheme.h"
+#include "utils/s2n_map.h"
 
 #define CHAIN_LENGTH 3
 
@@ -263,6 +264,61 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_set_cipher_preferences(conn, "rfc9151"),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         }
+    };
+
+    /* s2n_config invariant: always respects config->security_policy cert preferences */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *invalid_cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&invalid_cert,
+                "ec", "ecdsa", "p384", "sha256"));
+
+        /* configure security policy then load an invalid cert */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "rfc9151"));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+
+            /* assert that no certs were loaded */
+            uint32_t domain_certs = 0;
+            EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
+            EXPECT_OK(s2n_map_size(config->domain_name_to_cert_map, &domain_certs));
+            EXPECT_EQUAL(domain_certs, 0);
+            EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 0);
+        };
+
+        /* load a cert then configure an invalid security policy */
+        {
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
+            const struct s2n_security_policy *default_sp = config->security_policy;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"),
+                    S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+
+            /* assert that the security policy was not changed */
+            EXPECT_EQUAL(config->security_policy, default_sp);
+        };
+    };
+
+    /* default policy check: ensure that the default security policy doesn't 
+     * enforce certificate preferences.
+     * 
+     * Adding certificate preferences to the default security policy would be a
+     * breaking change, because it would prevent customers from adding 
+     * non-compliant certs unless they first set the security policy.
+     * 
+     * This test ensures that such a breaking change would be visible and
+     * deliberate.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
+        /* use a very insecure cert that would not be included in any reasonable cert preferences */
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "1024", "sha1"));
+
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+        EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 1);
     };
 
     END_TEST();
