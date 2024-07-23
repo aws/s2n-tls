@@ -27,3 +27,5 @@ tokio = { version = "1", features = [ "io-std", "io-util", "macros", "net", "rt-
 # cargo package / cargo publish, as those commands do not respect the version pin
 # in downstream dev-dependencies (in s2n-tls-sys, in this case)
 jobserver = "=0.1.26"
+# newer versions require rust 1.70
+tokio-macros = "=2.3.0"
