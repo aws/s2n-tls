@@ -827,12 +827,13 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_resume_decrypt_session_impl(struct s2n_connection *conn, struct s2n_stuffer *from,
+static S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct s2n_stuffer *from,
         uint64_t *key_intro_time)
 {
     RESULT_ENSURE_REF(conn);
     RESULT_ENSURE_REF(from);
     RESULT_ENSURE_REF(conn->config);
+    RESULT_ENSURE_REF(key_intro_time);
 
     /* Read key name */
     uint8_t key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
@@ -895,7 +896,7 @@ S2N_RESULT s2n_resume_decrypt_session_ticket(struct s2n_connection *conn, struct
     RESULT_ENSURE_REF(conn->config);
 
     uint64_t key_intro_time = 0;
-    RESULT_GUARD(s2n_resume_decrypt_session_impl(conn, from, &key_intro_time));
+    RESULT_GUARD(s2n_resume_decrypt_session(conn, from, &key_intro_time));
 
     if (s2n_connection_get_protocol_version(conn) >= S2N_TLS13) {
         return S2N_RESULT_OK;
@@ -916,7 +917,7 @@ S2N_RESULT s2n_resume_decrypt_session_ticket(struct s2n_connection *conn, struct
 S2N_RESULT s2n_resume_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from)
 {
     uint64_t key_intro_time = 0;
-    RESULT_GUARD(s2n_resume_decrypt_session_impl(conn, from, &key_intro_time));
+    RESULT_GUARD(s2n_resume_decrypt_session(conn, from, &key_intro_time));
     return S2N_RESULT_OK;
 }
 
