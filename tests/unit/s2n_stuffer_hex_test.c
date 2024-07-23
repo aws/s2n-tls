@@ -16,100 +16,572 @@
 #include "s2n_test.h"
 #include "stuffer/s2n_stuffer.h"
 #include "testlib/s2n_testlib.h"
-#include "utils/s2n_random.h"
 
 int main(int argc, char **argv)
 {
-    uint8_t pad[100];
-    struct s2n_blob b = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&b, pad, sizeof(pad)));
-    struct s2n_stuffer stuffer = { 0 };
-    uint8_t u8 = 0;
-    uint16_t u16 = 0;
-    uint32_t u32 = 0;
-    uint64_t u64 = 0;
-
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    /* Create a 100 byte stuffer */
-    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b));
+    /* Test: Safety */
+    {
+        struct s2n_stuffer stuffer = { 0 };
+        struct s2n_blob blob = { 0 };
 
-    /* Try to write 51 1-byte ints bytes */
-    for (uint8_t i = 0; i < 50; i++) {
-        uint8_t value = i * (0xff / 50);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&stuffer, value));
+        /* s2n_stuffer_read_hex */
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_read_hex(&stuffer, NULL), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_read_hex(NULL, &blob), S2N_ERR_NULL);
+
+        /* s2n_stuffer_write_hex */
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_write_hex(&stuffer, NULL), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_write_hex(NULL, &blob), S2N_ERR_NULL);
+
+        /* s2n_stuffer_read_uint8_hex */
+        uint8_t value_u8 = 0;
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_read_uint8_hex(&stuffer, NULL), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_read_uint8_hex(NULL, &value_u8), S2N_ERR_NULL);
+
+        /* s2n_stuffer_write_uint8_hex */
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_write_uint8_hex(NULL, 0), S2N_ERR_NULL);
+
+        /* s2n_stuffer_read_uint16_hex */
+        uint16_t value_u16 = 0;
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_read_uint16_hex(&stuffer, NULL), S2N_ERR_NULL);
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_read_uint16_hex(NULL, &value_u16), S2N_ERR_NULL);
+
+        /* s2n_stuffer_write_uint16_hex */
+        EXPECT_ERROR_WITH_ERRNO(s2n_stuffer_write_uint16_hex(NULL, 0), S2N_ERR_NULL);
     }
-    EXPECT_FAILURE(s2n_stuffer_write_uint8_hex(&stuffer, 1));
 
-    /* Read those back, and expect the same results */
-    for (int8_t i = 0; i < 50; i++) {
-        uint8_t value = i * (0xff / 50);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
-        EXPECT_EQUAL(u8, value);
+    /* Test hex with uint8 */
+    {
+        const size_t expected_size = 2;
+        struct {
+            const uint8_t num;
+            const char *hex;
+        } test_cases[] = {
+            /* Test first digit */
+            { .num = 0, .hex = "00" },
+            { .num = 1, .hex = "01" },
+            { .num = 5, .hex = "05" },
+            { .num = 15, .hex = "0f" },
+            /* Test second digit */
+            { .num = 0x10, .hex = "10" },
+            { .num = 0x50, .hex = "50" },
+            { .num = 0xf0, .hex = "f0" },
+            /* Test all numbers */
+            { .num = 0x12, .hex = "12" },
+            { .num = 0x34, .hex = "34" },
+            { .num = 0x56, .hex = "56" },
+            { .num = 0x78, .hex = "78" },
+            { .num = 0x90, .hex = "90" },
+            /* Test all letters */
+            { .num = 0xab, .hex = "ab" },
+            { .num = 0xcd, .hex = "cd" },
+            { .num = 0xef, .hex = "ef" },
+            /* Test mix of numbers and letters */
+            { .num = 0x1a, .hex = "1a" },
+            { .num = 0x9f, .hex = "9f" },
+            /* Test high values */
+            { .num = UINT8_MAX - 1, .hex = "fe" },
+            { .num = UINT8_MAX, .hex = "ff" },
+        };
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            /* Test s2n_stuffer_write_uint8_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex, 0));
+                EXPECT_OK(s2n_stuffer_write_uint8_hex(&hex, test_cases[i].num));
+
+                size_t actual_size = s2n_stuffer_data_available(&hex);
+                EXPECT_EQUAL(actual_size, expected_size);
+                EXPECT_EQUAL(strlen(test_cases[i].hex), expected_size);
+
+                const char *actual_hex = s2n_stuffer_raw_read(&hex, actual_size);
+                EXPECT_BYTEARRAY_EQUAL(actual_hex, test_cases[i].hex, actual_size);
+            };
+
+            /* Test s2n_stuffer_read_uint8_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, expected_size));
+                EXPECT_SUCCESS(s2n_stuffer_write_text(&hex, test_cases[i].hex, expected_size));
+
+                uint8_t actual_num = 0;
+                EXPECT_OK(s2n_stuffer_read_uint8_hex(&hex, &actual_num));
+                EXPECT_EQUAL(actual_num, test_cases[i].num);
+                EXPECT_FALSE(s2n_stuffer_data_available(&hex));
+            };
+
+            /* Test s2n_stuffer_write_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer num_in = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&num_in, sizeof(uint8_t)));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint8(&num_in, test_cases[i].num));
+
+                DEFER_CLEANUP(struct s2n_stuffer hex_out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex_out, 0));
+                EXPECT_OK(s2n_stuffer_write_hex(&hex_out, &num_in.blob));
+
+                size_t actual_size = s2n_stuffer_data_available(&hex_out);
+                EXPECT_EQUAL(actual_size, expected_size);
+                EXPECT_EQUAL(strlen(test_cases[i].hex), expected_size);
+
+                const char *actual_hex = s2n_stuffer_raw_read(&hex_out, actual_size);
+                EXPECT_BYTEARRAY_EQUAL(actual_hex, test_cases[i].hex, actual_size);
+            };
+
+            /* Test s2n_stuffer_read_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer hex_in = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&hex_in, expected_size));
+                EXPECT_SUCCESS(s2n_stuffer_write_text(&hex_in, test_cases[i].hex, expected_size));
+
+                DEFER_CLEANUP(struct s2n_stuffer num_out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&num_out, 0));
+                EXPECT_OK(s2n_stuffer_read_hex(&num_out, &hex_in.blob));
+
+                uint8_t actual_num = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint8(&num_out, &actual_num));
+                EXPECT_EQUAL(actual_num, test_cases[i].num);
+                EXPECT_FALSE(s2n_stuffer_data_available(&num_out));
+            };
+        }
+    };
+
+    /* Test hex with uint16 */
+    {
+        const size_t expected_size = 4;
+        struct {
+            uint16_t num;
+            const char *hex;
+        } test_cases[] = {
+            /* Test first digit */
+            { .num = 0, .hex = "0000" },
+            { .num = 1, .hex = "0001" },
+            { .num = 5, .hex = "0005" },
+            { .num = 15, .hex = "000f" },
+            /* Test second digit */
+            { .num = 0x10, .hex = "0010" },
+            { .num = 0x50, .hex = "0050" },
+            { .num = 0xf0, .hex = "00f0" },
+            /* Test third digit */
+            { .num = 0x0100, .hex = "0100" },
+            { .num = 0x0500, .hex = "0500" },
+            { .num = 0x0f00, .hex = "0f00" },
+            /* Test fourth digit */
+            { .num = 0x1000, .hex = "1000" },
+            { .num = 0x5000, .hex = "5000" },
+            { .num = 0xf000, .hex = "f000" },
+            /* Test all numbers */
+            { .num = 0x1234, .hex = "1234" },
+            { .num = 0x5678, .hex = "5678" },
+            { .num = 0x9012, .hex = "9012" },
+            /* Test all letters */
+            { .num = 0xabcd, .hex = "abcd" },
+            { .num = 0xefab, .hex = "efab" },
+            /* Test mix of numbers and letters */
+            { .num = 0x1a2b, .hex = "1a2b" },
+            { .num = 0x8e9f, .hex = "8e9f" },
+            /* Test high values */
+            { .num = UINT16_MAX - 1, .hex = "fffe" },
+            { .num = UINT16_MAX, .hex = "ffff" },
+        };
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            /* Test s2n_stuffer_write_uint16_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex, 0));
+                EXPECT_OK(s2n_stuffer_write_uint16_hex(&hex, test_cases[i].num));
+
+                size_t actual_size = s2n_stuffer_data_available(&hex);
+                EXPECT_EQUAL(actual_size, expected_size);
+                EXPECT_EQUAL(strlen(test_cases[i].hex), expected_size);
+
+                const char *actual_hex = s2n_stuffer_raw_read(&hex, actual_size);
+                EXPECT_BYTEARRAY_EQUAL(actual_hex, test_cases[i].hex, actual_size);
+            };
+
+            /* Test s2n_stuffer_read_uint16_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, expected_size));
+                EXPECT_SUCCESS(s2n_stuffer_write_text(&hex, test_cases[i].hex, expected_size));
+
+                uint16_t actual_num = 0;
+                EXPECT_OK(s2n_stuffer_read_uint16_hex(&hex, &actual_num));
+                EXPECT_EQUAL(actual_num, test_cases[i].num);
+                EXPECT_FALSE(s2n_stuffer_data_available(&hex));
+            };
+
+            /* Test s2n_stuffer_write_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer num_in = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&num_in, sizeof(uint16_t)));
+                EXPECT_SUCCESS(s2n_stuffer_write_uint16(&num_in, test_cases[i].num));
+
+                DEFER_CLEANUP(struct s2n_stuffer hex_out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex_out, 0));
+                EXPECT_OK(s2n_stuffer_write_hex(&hex_out, &num_in.blob));
+
+                size_t actual_size = s2n_stuffer_data_available(&hex_out);
+                EXPECT_EQUAL(actual_size, expected_size);
+                EXPECT_EQUAL(strlen(test_cases[i].hex), expected_size);
+
+                const char *actual_hex = s2n_stuffer_raw_read(&hex_out, actual_size);
+                EXPECT_BYTEARRAY_EQUAL(actual_hex, test_cases[i].hex, actual_size);
+            };
+
+            /* Test s2n_stuffer_read_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer hex_in = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&hex_in, expected_size));
+                EXPECT_SUCCESS(s2n_stuffer_write_text(&hex_in, test_cases[i].hex, expected_size));
+
+                DEFER_CLEANUP(struct s2n_stuffer num_out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&num_out, 0));
+                EXPECT_OK(s2n_stuffer_read_hex(&num_out, &hex_in.blob));
+
+                uint16_t actual_num = 0;
+                EXPECT_SUCCESS(s2n_stuffer_read_uint16(&num_out, &actual_num));
+                EXPECT_EQUAL(actual_num, test_cases[i].num);
+                EXPECT_FALSE(s2n_stuffer_data_available(&num_out));
+            };
+        }
+    };
+
+    /* Test longer series of bytes */
+    {
+        struct {
+            uint8_t bytes[50];
+            uint8_t bytes_size;
+            const char *hex;
+        } test_cases[] = {
+            /* clang-format off */
+            {
+                .bytes = { 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef },
+                .bytes_size = 8,
+                .hex = "1234567890abcdef",
+            },
+            {
+                .bytes = { 0 },
+                .bytes_size = 4,
+                .hex = "00000000",
+            },
+            {
+                .bytes = { 0xff, 0x11, 0x22, 0x55, 0xaa },
+                .bytes_size = 5,
+                .hex = "ff112255aa",
+            },
+            {
+                .bytes = { 0x10, 0x10, 0x10, 0x10 },
+                .bytes_size = 4,
+                .hex = "10101010",
+            },
+            {
+                .bytes = { 0x00, 0x00, 0x01 },
+                .bytes_size = 3,
+                .hex = "000001",
+            },
+            {
+                .bytes = { 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef },
+                .bytes_size = 16,
+                .hex = "1234567890abcdef"
+                       "0000000000000000",
+            },
+            {
+                .bytes = {
+                    0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef,
+                    0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0x01,
+                    0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0x02,
+                    0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0x03,
+                },
+                .bytes_size = 8 * 4,
+                .hex =
+                    "1234567890abcdef"
+                    "1234567890abcd01"
+                    "1234567890abcd02"
+                    "1234567890abcd03",
+            },
+            /* clang-format on */
+        };
+
+        for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+            size_t hex_size = strlen(test_cases[i].hex);
+            EXPECT_EQUAL(test_cases[i].bytes_size * 2, hex_size);
+
+            /* Test s2n_stuffer_write_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer num_in = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&num_in, test_cases[i].bytes_size));
+                EXPECT_SUCCESS(s2n_stuffer_write_bytes(&num_in,
+                        test_cases[i].bytes, test_cases[i].bytes_size));
+
+                DEFER_CLEANUP(struct s2n_stuffer hex_out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex_out, 0));
+                EXPECT_OK(s2n_stuffer_write_hex(&hex_out, &num_in.blob));
+
+                size_t actual_size = s2n_stuffer_data_available(&hex_out);
+                EXPECT_EQUAL(actual_size, hex_size);
+
+                const char *actual_hex = s2n_stuffer_raw_read(&hex_out, actual_size);
+                EXPECT_BYTEARRAY_EQUAL(actual_hex, test_cases[i].hex, actual_size);
+            };
+
+            /* Test s2n_stuffer_read_hex */
+            {
+                DEFER_CLEANUP(struct s2n_stuffer hex_in = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&hex_in, hex_size));
+                EXPECT_SUCCESS(s2n_stuffer_write_text(&hex_in, test_cases[i].hex, hex_size));
+
+                DEFER_CLEANUP(struct s2n_stuffer num_out = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&num_out, 0));
+                EXPECT_OK(s2n_stuffer_read_hex(&num_out, &hex_in.blob));
+
+                size_t actual_size = s2n_stuffer_data_available(&num_out);
+                EXPECT_EQUAL(actual_size, test_cases[i].bytes_size);
+
+                const uint8_t *actual_bytes = s2n_stuffer_raw_read(&num_out, actual_size);
+                EXPECT_BYTEARRAY_EQUAL(actual_bytes, test_cases[i].bytes, actual_size);
+            };
+        }
+    };
+
+    /* Test bad hex string */
+    {
+        /* Test bad uint8 hex */
+        {
+            const char *test_hexes[] = {
+                /* clang-format off */
+                /* one good hex as a control */
+                "FFFFFF",
+                /* too short */
+                "", "0", "1",
+                /* invalid characters: symbols <'0' */
+                "0/", "!0",
+                /* invalid characters: symbols >'9', <'A' */
+                "0:", "@0",
+                /* invalid characters: symbols >'Z', <'a' */
+                "0[", "`0",
+                /* invalid characters: symbols >'z' */
+                "0{", "~0",
+                /* invalid characters: non-hex letters */
+                "0g", "z0", "0G", "Z0",
+                /* clang-format on */
+            };
+
+            for (size_t i = 0; i < s2n_array_len(test_hexes); i++) {
+                const char *test_hex = test_hexes[i];
+
+                /* Test s2n_stuffer_read_uint8_hex */
+                {
+                    DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, strlen(test_hex)));
+                    EXPECT_SUCCESS(s2n_stuffer_write_str(&hex, test_hex));
+
+                    uint8_t actual_num = 0;
+                    if (i == 0) {
+                        EXPECT_OK(s2n_stuffer_read_uint8_hex(&hex, &actual_num));
+                    } else {
+                        EXPECT_ERROR_WITH_ERRNO(
+                                s2n_stuffer_read_uint8_hex(&hex, &actual_num),
+                                S2N_ERR_BAD_HEX);
+                    }
+                };
+
+                /* Test s2n_stuffer_read_hex */
+                {
+                    DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, strlen(test_hex)));
+                    EXPECT_SUCCESS(s2n_stuffer_write_str(&hex, test_hex));
+
+                    DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+                    if (i == 0) {
+                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
+                    } else if (strlen(test_hex) == 0) {
+                        /* Unlike s2n_stuffer_read_uint8_hex, read_hex accepts
+                         * empty input since it has no size expectations */
+                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
+                    } else {
+                        EXPECT_ERROR_WITH_ERRNO(
+                                s2n_stuffer_read_hex(&out, &hex.blob),
+                                S2N_ERR_BAD_HEX);
+                    }
+                };
+            }
+        };
+
+        /* Test bad uint16 hex */
+        {
+            const char *test_hexes[] = {
+                /* clang-format off */
+                /* one good hex as a control */
+                "FFFFFF",
+                /* too short */
+                "", "0", "1", "00", "01", "000", "001",
+                /* invalid characters: symbols <'0' */
+                "000/", "00!0", "0.00", "#000",
+                /* invalid characters: symbols >'9', <'A' */
+                "000:", "00@0", "0?00", ";000",
+                /* invalid characters: symbols >'Z', <'a' */
+                "000[", "00`0", "0_00", "^000",
+                /* invalid characters: symbols >'z' */
+                "000{", "00~0", "0}00", "|000",
+                /* invalid characters: non-hex letters */
+                "000g", "00z0", "000G", "00Z0", "0Y00", "S000",
+                /* clang-format on */
+            };
+
+            for (size_t i = 0; i < s2n_array_len(test_hexes); i++) {
+                const char *test_hex = test_hexes[i];
+
+                /* Test s2n_stuffer_read_uint16_hex */
+                {
+                    DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, strlen(test_hex)));
+                    EXPECT_SUCCESS(s2n_stuffer_write_str(&hex, test_hex));
+
+                    uint16_t actual_num = 0;
+                    if (i == 0) {
+                        EXPECT_OK(s2n_stuffer_read_uint16_hex(&hex, &actual_num));
+                    } else {
+                        EXPECT_ERROR_WITH_ERRNO(
+                                s2n_stuffer_read_uint16_hex(&hex, &actual_num),
+                                S2N_ERR_BAD_HEX);
+                    }
+                };
+
+                /* Test s2n_stuffer_read_hex */
+                {
+                    DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, strlen(test_hex)));
+                    EXPECT_SUCCESS(s2n_stuffer_write_str(&hex, test_hex));
+
+                    DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+                    if (i == 0) {
+                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
+                    } else if (strlen(test_hex) < sizeof(uint16_t) * 2
+                            && strlen(test_hex) % 2 == 0) {
+                        /* Unlike s2n_stuffer_read_uint16_hex, read_hex accepts
+                         * input of any valid size */
+                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
+                    } else {
+                        EXPECT_ERROR_WITH_ERRNO(
+                                s2n_stuffer_read_hex(&out, &hex.blob),
+                                S2N_ERR_BAD_HEX);
+                    }
+                };
+            }
+        };
     }
-    EXPECT_FAILURE(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
 
-    /* Try to write 26 2-byte ints bytes */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
-    for (uint16_t i = 0; i < 25; i++) {
-        uint16_t value = i * (0xffff / 25);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint16_hex(&stuffer, value));
+    /* Test converting to and from all uint8_t */
+    for (size_t i = 0; i <= UINT8_MAX; i++) {
+        DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex, 0));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&hex, i));
+
+        uint8_t value = 0;
+        EXPECT_OK(s2n_stuffer_read_uint8_hex(&hex, &value));
+        EXPECT_EQUAL(value, i);
     }
-    EXPECT_FAILURE(s2n_stuffer_write_uint16_hex(&stuffer, 1));
 
-    /* Read those back, and expect the same results */
-    for (uint16_t i = 0; i < 25; i++) {
-        uint16_t value = i * (0xffff / 25);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint16_hex(&stuffer, &u16));
-        EXPECT_EQUAL(value, u16);
+    /* Test converting to and from all uint16_t */
+    for (size_t i = 0; i <= UINT16_MAX; i++) {
+        DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex, 0));
+        EXPECT_OK(s2n_stuffer_write_uint16_hex(&hex, i));
+
+        uint16_t value = 0;
+        EXPECT_OK(s2n_stuffer_read_uint16_hex(&hex, &value));
+        EXPECT_EQUAL(value, i);
     }
-    EXPECT_FAILURE(s2n_stuffer_read_uint16_hex(&stuffer, &u16));
 
-    /* Try to write 13 4-byte ints bytes */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
-    EXPECT_SUCCESS(s2n_stuffer_init(&stuffer, &b));
-    for (uint32_t i = 0; i < 12; i++) {
-        uint32_t value = i * (0xffffffff / 12);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint32_hex(&stuffer, value));
-    }
-    EXPECT_FAILURE(s2n_stuffer_write_uint32_hex(&stuffer, 1));
+    /* Test reading and writing multiple values with different methods */
+    {
+        const uint8_t values_u8[] = {
+            /* clang-format off */
+            0x00, 0x01, 0x02, 0x03, 0x04, 0x00,
+            0x12, 0x34, 0x56, 0x78, 0x90, 0x00,
+            0xab, 0xbc, 0xcd, 0xde, 0xef, 0x00,
+            /* clang-format on */
+        };
+        const uint16_t values_u16[] = {
+            /* clang-format off */
+            0x0001, 0x0203, 0x0400,
+            0x1234, 0x5678, 0x9000,
+            0xabbc, 0xcdde, 0xef00,
+            /* clang-format on */
+        };
+        const size_t bytes_size = sizeof(values_u8);
+        const char hex_str[] =
+                "000102030400"
+                "123456789000"
+                "abbccddeef00";
 
-    /* Read those back, and expect the same results */
-    for (uint32_t i = 0; i < 12; i++) {
-        uint32_t value = i * (0xffffffff / 12);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint32_hex(&stuffer, &u32));
-        EXPECT_EQUAL(value, u32);
-    }
-    EXPECT_FAILURE(s2n_stuffer_read_uint32_hex(&stuffer, &u32));
+        enum s2n_test_hex_method {
+            S2N_TEST_U8 = 0,
+            S2N_TEST_U16,
+            S2N_TEST_N,
+            S2N_TEST_HEX_METHOD_COUNT
+        };
 
-    /* Try to write 7 8-byte ints bytes */
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
-    for (uint64_t i = 0; i < 6; i++) {
-        uint64_t value = i * (0xffffffffffffffff / 6);
-        EXPECT_SUCCESS(s2n_stuffer_write_uint64_hex(&stuffer, value));
-    }
-    EXPECT_FAILURE(s2n_stuffer_write_uint64_hex(&stuffer, 1));
+        for (size_t writer_i = 0; writer_i < S2N_TEST_HEX_METHOD_COUNT; writer_i++) {
+            for (size_t reader_i = 0; reader_i < S2N_TEST_HEX_METHOD_COUNT; reader_i++) {
+                DEFER_CLEANUP(struct s2n_stuffer hex = { 0 }, s2n_stuffer_free);
+                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&hex, 0));
 
-    /* Read those back, and expect the same results */
-    for (uint64_t i = 0; i < 6; i++) {
-        uint64_t value = i * (0xffffffffffffffff / 6);
-        EXPECT_SUCCESS(s2n_stuffer_read_uint64_hex(&stuffer, &u64));
-        EXPECT_EQUAL(value, u64);
-    }
-    EXPECT_FAILURE(s2n_stuffer_read_uint64_hex(&stuffer, &u64));
+                if (writer_i == S2N_TEST_U8) {
+                    for (size_t i = 0; i < sizeof(values_u8); i++) {
+                        EXPECT_OK(s2n_stuffer_write_uint8_hex(&hex, values_u8[i]));
+                    }
+                } else if (writer_i == S2N_TEST_U16) {
+                    for (size_t i = 0; i < s2n_array_len(values_u16); i++) {
+                        EXPECT_OK(s2n_stuffer_write_uint16_hex(&hex, values_u16[i]));
+                    }
+                } else if (writer_i == S2N_TEST_N) {
+                    DEFER_CLEANUP(struct s2n_stuffer input = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_alloc(&input, bytes_size));
+                    EXPECT_SUCCESS(s2n_stuffer_write_bytes(&input, values_u8, bytes_size));
 
-    EXPECT_SUCCESS(s2n_stuffer_wipe(&stuffer));
-    uint8_t hex[] = "f0F0Zz";
-    struct s2n_blob text = { 0 };
-    EXPECT_SUCCESS(s2n_blob_init(&text, hex, strlen((char *) hex)));
-    EXPECT_SUCCESS(s2n_stuffer_write(&stuffer, &text));
+                    EXPECT_OK(s2n_stuffer_write_hex(&hex, &input.blob));
+                } else {
+                    FAIL_MSG("unknown hex method");
+                }
 
-    EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
-    EXPECT_EQUAL(u8, 240);
-    EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
-    EXPECT_EQUAL(u8, 240);
-    EXPECT_FAILURE(s2n_stuffer_read_uint8_hex(&stuffer, &u8));
+                size_t written = s2n_stuffer_data_available(&hex);
+                EXPECT_EQUAL(written, strlen(hex_str));
+                EXPECT_BYTEARRAY_EQUAL(hex_str, hex.blob.data, written);
+
+                if (reader_i == S2N_TEST_U8) {
+                    for (size_t i = 0; i < sizeof(values_u8); i++) {
+                        uint8_t byte = 0;
+                        EXPECT_OK(s2n_stuffer_read_uint8_hex(&hex, &byte));
+                        EXPECT_EQUAL(byte, values_u8[i]);
+                    }
+                    EXPECT_FALSE(s2n_stuffer_data_available(&hex));
+                } else if (reader_i == S2N_TEST_U16) {
+                    for (size_t i = 0; i < s2n_array_len(values_u16); i++) {
+                        uint16_t value = 0;
+                        EXPECT_OK(s2n_stuffer_read_uint16_hex(&hex, &value));
+                        EXPECT_EQUAL(value, values_u16[i]);
+                    }
+                    EXPECT_FALSE(s2n_stuffer_data_available(&hex));
+                } else if (reader_i == S2N_TEST_N) {
+                    DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+                    hex.blob.size = s2n_stuffer_data_available(&hex);
+                    EXPECT_OK(s2n_stuffer_read_hex(&output, &hex.blob));
+
+                    EXPECT_EQUAL(s2n_stuffer_data_available(&output), sizeof(values_u8));
+                    EXPECT_BYTEARRAY_EQUAL(values_u8, output.blob.data, sizeof(values_u8));
+                } else {
+                    FAIL_MSG("unknown hex method");
+                }
+            }
+        }
+    };
 
     END_TEST();
 }
