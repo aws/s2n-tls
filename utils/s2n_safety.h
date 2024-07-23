@@ -44,7 +44,7 @@ int s2n_in_integ_test_set(bool is_integ);
 bool s2n_in_unit_test();
 bool s2n_in_test();
 
-/* Returns 1 if a and b are equal, in constant time */
+/* Returns true if a and b are equal, in constant time */
 bool s2n_constant_time_equals(const uint8_t* a, const uint8_t* b, const uint32_t len);
 
 /* Copy src to dst, or don't copy it, in constant time */

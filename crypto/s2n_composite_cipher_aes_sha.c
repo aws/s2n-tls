@@ -86,7 +86,7 @@ static const EVP_CIPHER *s2n_evp_aes_256_cbc_hmac_sha256(void)
 #endif
 }
 
-static uint8_t s2n_composite_cipher_aes128_sha_available(void)
+static bool s2n_composite_cipher_aes128_sha_available(void)
 {
     /* EVP_aes_128_cbc_hmac_sha1() returns NULL if the implementations aren't available.
      * See https://github.com/openssl/openssl/blob/master/crypto/evp/e_aes_cbc_hmac_sha1.c#L952
@@ -95,34 +95,34 @@ static uint8_t s2n_composite_cipher_aes128_sha_available(void)
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha1() ? 1 : 0);
+    return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha1() ? true : false);
 }
 
-static uint8_t s2n_composite_cipher_aes256_sha_available(void)
+static bool s2n_composite_cipher_aes256_sha_available(void)
 {
     /* Composite ciphers cannot be used when FIPS mode is set. Ciphers require the
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha1() ? 1 : 0);
+    return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha1() ? true : false);
 }
 
-static uint8_t s2n_composite_cipher_aes128_sha256_available(void)
+static bool s2n_composite_cipher_aes128_sha256_available(void)
 {
     /* Composite ciphers cannot be used when FIPS mode is set. Ciphers require the
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha256() ? 1 : 0);
+    return (!s2n_is_in_fips_mode() && s2n_evp_aes_128_cbc_hmac_sha256() ? true : false);
 }
 
-static uint8_t s2n_composite_cipher_aes256_sha256_available(void)
+static bool s2n_composite_cipher_aes256_sha256_available(void)
 {
     /* Composite ciphers cannot be used when FIPS mode is set. Ciphers require the
      * EVP_CIPH_FLAG_FIPS OpenSSL flag to be set for use when in FIPS mode, and composite
      * ciphers cause OpenSSL errors due to the lack of the flag.
      */
-    return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha256() ? 1 : 0);
+    return (!s2n_is_in_fips_mode() && s2n_evp_aes_256_cbc_hmac_sha256() ? true : false);
 }
 
 static int s2n_composite_cipher_aes_sha_initial_hmac(struct s2n_session_key *key, uint8_t *sequence_number, uint8_t content_type,
@@ -207,98 +207,98 @@ static int s2n_composite_cipher_aes_sha256_set_mac_write_key(struct s2n_session_
     return 0;
 }
 
-static int s2n_composite_cipher_aes128_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes128_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
+    RESULT_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes128_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes128_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
+    RESULT_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha1(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes256_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes256_sha_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 32);
+    RESULT_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes256_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes256_sha_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 32);
+    RESULT_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha1(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes128_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes128_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
+    RESULT_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes128_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes128_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 16);
+    RESULT_ENSURE_EQ(in->size, 16);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_128_cbc_hmac_sha256(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes256_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes256_sha256_set_encryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 32);
+    RESULT_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_EncryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes256_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_composite_cipher_aes256_sha256_set_decryption_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_EQ(in->size, 32);
+    RESULT_ENSURE_EQ(in->size, 32);
 
     EVP_CIPHER_CTX_set_padding(key->evp_cipher_ctx, 0);
     EVP_DecryptInit_ex(key->evp_cipher_ctx, s2n_evp_aes_256_cbc_hmac_sha256(), NULL, in->data, NULL);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes_sha_init(struct s2n_session_key *key)
+static S2N_RESULT s2n_composite_cipher_aes_sha_init(struct s2n_session_key *key)
 {
-    s2n_evp_ctx_init(key->evp_cipher_ctx);
+    RESULT_EVP_CTX_INIT(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
-static int s2n_composite_cipher_aes_sha_destroy_key(struct s2n_session_key *key)
+static S2N_RESULT s2n_composite_cipher_aes_sha_destroy_key(struct s2n_session_key *key)
 {
     EVP_CIPHER_CTX_cleanup(key->evp_cipher_ctx);
 
-    return 0;
+    return S2N_RESULT_OK;
 }
 
 const struct s2n_cipher s2n_aes128_sha = {

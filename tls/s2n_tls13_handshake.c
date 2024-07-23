@@ -185,10 +185,10 @@ int s2n_update_application_traffic_keys(struct s2n_connection *conn, s2n_mode mo
     uint8_t *count = NULL;
     POSIX_GUARD(s2n_tls13_derive_traffic_keys(&keys, &app_secret_update, &app_key, &app_iv));
     if (status == RECEIVING) {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
+        POSIX_GUARD_RESULT(conn->secure->cipher_suite->record_alg->cipher->set_decryption_key(old_key, &app_key));
         count = &conn->recv_key_updated;
     } else {
-        POSIX_GUARD(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
+        POSIX_GUARD_RESULT(conn->secure->cipher_suite->record_alg->cipher->set_encryption_key(old_key, &app_key));
         count = &conn->send_key_updated;
     }
 
