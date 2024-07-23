@@ -1412,6 +1412,32 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_free(config));
         };
 
+        /* Check session ticket can never be encrypted with a zero-filled ticket key */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            /* Add a valid ticket key to the store */
+            EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
+            EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(config, ticket_key_name, strlen((char *) ticket_key_name),
+                    ticket_key.data, ticket_key.size, 0));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+
+            /* Manually zero out key bytes */
+            struct s2n_ticket_key *key = NULL;
+            EXPECT_OK(s2n_set_get(config->ticket_keys, 0, (void **) &key));
+            EXPECT_NOT_NULL(key);
+            POSIX_CHECKED_MEMSET((uint8_t *) key->aes_key, 0, S2N_AES256_KEY_LEN);
+
+            DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_encrypt_session_ticket(conn, &output), S2N_ERR_KEY_CHECK);
+        };
+
         /* Check session ticket is correct when using early data with TLS1.3. */
         {
             const uint8_t test_early_data_context[] = "context";
