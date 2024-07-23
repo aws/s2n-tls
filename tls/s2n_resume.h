@@ -23,18 +23,18 @@
 #define S2N_TLS13_FIXED_STATE_SIZE            21
 #define S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE 3
 
-#define S2N_TLS_SESSION_CACHE_TTL   (6 * 60 * 60)
-#define S2N_TICKET_KEY_NAME_LEN     16
-#define S2N_TICKET_AAD_IMPLICIT_LEN 12
-#define S2N_TICKET_AAD_LEN          (S2N_TICKET_AAD_IMPLICIT_LEN + S2N_TICKET_KEY_NAME_LEN)
-#define S2N_AES256_KEY_LEN          32
-#define ONE_SEC_IN_NANOS            1000000000
-#define ONE_MILLISEC_IN_NANOS       1000000
-#define ONE_WEEK_IN_SEC             604800
 /* This is used in session ticket validation. This controls how far in the future
  * the session ticket issue time can be while still being accepted.
  */
 #define MAX_ALLOWED_CLOCK_SKEW_SEC     3600
+#define S2N_TLS_SESSION_CACHE_TTL      (6 * 60 * 60)
+#define S2N_TICKET_KEY_NAME_LEN        16
+#define S2N_TICKET_AAD_IMPLICIT_LEN    12
+#define S2N_TICKET_AAD_LEN             (S2N_TICKET_AAD_IMPLICIT_LEN + S2N_TICKET_KEY_NAME_LEN)
+#define S2N_AES256_KEY_LEN             32
+#define ONE_SEC_IN_NANOS               1000000000
+#define ONE_MILLISEC_IN_NANOS          1000000
+#define ONE_WEEK_IN_SEC                604800
 #define S2N_TLS12_TICKET_SIZE_IN_BYTES (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN \
         + S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
 
