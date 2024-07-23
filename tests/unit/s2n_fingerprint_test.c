@@ -597,7 +597,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(output_size, legacy_output_size * 2);
             for (size_t i = 0; i < legacy_output_size; i++) {
                 uint8_t output_byte = 0;
-                EXPECT_SUCCESS(s2n_stuffer_read_uint8_hex(&output_stuffer, &output_byte));
+                EXPECT_OK(s2n_stuffer_read_uint8_hex(&output_stuffer, &output_byte));
                 EXPECT_EQUAL(output_byte, legacy_output[i]);
             }
         };
