@@ -154,6 +154,23 @@ int S2N_RESULT_MUST_USE s2n_stuffer_write_vector_size(struct s2n_stuffer_reserva
 /* Copy one stuffer to another */
 int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t len);
 
+/* Convert between hex strings and raw bytes.
+ *
+ * When reading hex, the characters can be uppercase or lowercase.
+ * When writing hex, lowercase characters are used.
+ *
+ * Examples:
+ * "1234567890ABCdef" == [ 0x12, 0x34, 0x56, 0x78, 0x90, 0xab, 0xcd, 0xef ]
+ * "FF" == 255 or [ 0xff ]
+ * "0001" == 1 or [ 0x00, 0x01 ]
+ */
+S2N_RESULT s2n_stuffer_read_hex(struct s2n_stuffer *bytes_out, const struct s2n_blob *hex_in);
+S2N_RESULT s2n_stuffer_write_hex(struct s2n_stuffer *hex_out, const struct s2n_blob *bytes_in);
+S2N_RESULT s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u);
+S2N_RESULT s2n_stuffer_write_uint8_hex(struct s2n_stuffer *stuffer, uint8_t u);
+S2N_RESULT s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u);
+S2N_RESULT s2n_stuffer_write_uint16_hex(struct s2n_stuffer *stuffer, uint16_t u);
+
 /* Read and write base64 */
 int s2n_stuffer_read_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *out);
 int s2n_stuffer_write_base64(struct s2n_stuffer *stuffer, struct s2n_stuffer *in);
