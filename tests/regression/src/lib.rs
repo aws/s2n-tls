@@ -8,7 +8,7 @@ use s2n_tls::{
 };
 type Error = s2n_tls::error::Error;
 
-// Function to create default config with specified parameters
+/// Function to create default config with specified parameters.
 pub fn set_config(
     cipher_prefs: &security::Policy,
     keypair: CertKeyPair,
@@ -40,7 +40,9 @@ mod tests {
         process::Command,
     };
 
-    const COST: u64 = 1_000_000; //configurable threshold for regression
+    /// Configurable threshold for regression testing. 
+    /// Tests will fail if the instruction count difference is greater than the value of this constant.
+    const MAX_DIFF: u64 = 1_000_000; 
 
     struct InstrumentationControl;
 
@@ -53,7 +55,7 @@ mod tests {
             cg::cachegrind::start_instrumentation();
         }
     }
-    // environment variable to determine whether to run under valgrind or solely test functionality
+    /// Environment variable to determine whether to run under valgrind or solely test functionality.
     fn is_running_under_valgrind() -> bool {
         env::var("ENABLE_VALGRIND").is_ok()
     }
@@ -71,7 +73,7 @@ mod tests {
         }
     }
 
-    //test to create new config, set security policy, host_callback information, load/trust certs, and build config
+    /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
     #[test]
     fn test_set_config() {
         valgrind_test("test_set_config", |ctrl| {
@@ -85,6 +87,7 @@ mod tests {
         .unwrap();
     }
 
+    /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake. 
     #[test]
     fn test_rsa_handshake() {
         valgrind_test("test_rsa_handshake", |ctrl| {
@@ -102,16 +105,17 @@ mod tests {
         })
         .unwrap();
     }
-    // function to run specified test using valgrind
+    /// Function to run specified test using valgrind
     fn run_valgrind_test(test_name: &str) {
         let exe_path = std::env::args().next().unwrap();
-        let _dir_path = create_dir(Path::new("target/cg_artifacts"));
+        create_dir(Path::new("target/cg_artifacts")).unwrap();
         let output_file = format!("target/cg_artifacts/cachegrind_{}.out", test_name);
         let output_command = format!("--cachegrind-out-file={}", &output_file);
         let mut command = Command::new("valgrind");
         command
             .args(["--tool=cachegrind", &output_command, &exe_path, test_name])
-            .env_remove("ENABLE_VALGRIND"); //ensures that the recursive call is made to the actual harness code block rather than back to this function
+            // Ensures that the recursive call is made to the actual harness code block rather than back to this function
+            .env_remove("ENABLE_VALGRIND"); 
 
         println!("Running command: {:?}", command);
         let status = command.status().expect("Failed to execute valgrind");
@@ -128,26 +132,27 @@ mod tests {
         if !annotate_output.status.success() {
             panic!("cg_annotate failed");
         }
-        let _dir_path = create_dir(Path::new("target/perf_outputs"));
+        create_dir(Path::new("target/perf_outputs")).unwrap();
         let annotate_file = format!("target/perf_outputs/{}.annotated.txt", test_name);
         let mut file = File::create(&annotate_file).expect("Failed to create annotation file");
         file.write_all(&annotate_output.stdout)
             .expect("Failed to write annotation file");
 
-        let count = grep_for_instructions(&annotate_file)
+        let count = find_instruction_count(&annotate_file)
             .expect("Failed to get instruction count from file");
-        //this is temporary code to showcase the future diff functionality, here the code regresses by 10% each time so this test will almost always fail
+        // This is temporary code to showcase the future diff functionality, here the code regresses by 10% each time so this test will almost always fail
         let new_count = count + count / 10;
         let diff = new_count - count;
-        assert!(diff <= self::COST, "Instruction count difference in {} exceeds the threshold, regression of {} instructions", test_name, diff);
+        assert!(diff <= self::MAX_DIFF, "Instruction count difference in {} exceeds the threshold, regression of {} instructions", test_name, diff);
     }
 
-    // parses the annotated file for the overall instruction count total
-    fn grep_for_instructions(file_path: &str) -> Result<u64, io::Error> {
+    /// Parses the annotated file for the overall instruction count total
+    fn find_instruction_count(file_path: &str) -> Result<u64, io::Error> {
         let path = Path::new(file_path);
         let file = File::open(path)?;
         let reader = io::BufReader::new(file);
-
+        // Example of the line being parsed:
+        // "79,278,369 (100.0%)  PROGRAM TOTALS"
         for line in reader.lines() {
             let line = line?;
             if line.contains("PROGRAM TOTALS") {
@@ -160,9 +165,6 @@ mod tests {
             }
         }
 
-        Err(io::Error::new(
-            io::ErrorKind::NotFound,
-            "Failed to find instruction count in annotated file",
-        ))
+        panic!("Failed to find instruction count in annotated file");
     }
 }
