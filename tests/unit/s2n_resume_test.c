@@ -1433,7 +1433,7 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
             EXPECT_NOT_EQUAL(s2n_stuffer_data_available(&conn->client_ticket_to_decrypt), 0);
 
-            // Modify the version number of the ticket
+            /* Modify the version number of the ticket */
             uint8_t *version_num = conn->client_ticket_to_decrypt.blob.data;
             EXPECT_EQUAL(*version_num, S2N_PRE_ENCRYPTED_STATE_V1);
             *version_num = S2N_PRE_ENCRYPTED_STATE_V1 + 100;
