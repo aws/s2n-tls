@@ -105,7 +105,8 @@ mod tests {
     // function to run specified test using valgrind
     fn run_valgrind_test(test_name: &str) {
         let exe_path = std::env::args().next().unwrap();
-        let output_file = format!("cachegrind_{}.out", test_name);
+        let _dir_path = create_dir(Path::new("target/cg_artifacts"));
+        let output_file = format!("target/cg_artifacts/cachegrind_{}.out", test_name);
         let output_command = format!("--cachegrind-out-file={}", &output_file);
         let mut command = Command::new("valgrind");
         command
