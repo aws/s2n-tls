@@ -312,6 +312,7 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_MISSING_CLIENT_CERT, "Server requires client certificate") \
     ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_CONNECTION, "Serialized connection is invalid"); \
     ERR_ENTRY(S2N_ERR_TOO_MANY_CAS, "Too many certificate authorities in trust store"); \
+    ERR_ENTRY(S2N_ERR_BAD_HEX, "Could not parse malformed hex string"); \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

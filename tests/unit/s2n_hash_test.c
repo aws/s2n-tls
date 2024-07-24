@@ -76,7 +76,7 @@ int main(int argc, char **argv)
 
         EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
         for (int i = 0; i < 16; i++) {
-            EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+            EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
         }
 
         /* Reference value from command line md5sum */
@@ -117,7 +117,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha1sum */
@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha1sum */
@@ -172,7 +172,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha1sum */
@@ -194,7 +194,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 20; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha1sum */
@@ -229,7 +229,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 28; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha224sum */
@@ -259,7 +259,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 32; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha256sum */
@@ -290,7 +290,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 48; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha384sum */
@@ -325,7 +325,7 @@ int main(int argc, char **argv)
 
     EXPECT_SUCCESS(s2n_stuffer_init(&output, &out));
     for (int i = 0; i < 64; i++) {
-        EXPECT_SUCCESS(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
+        EXPECT_OK(s2n_stuffer_write_uint8_hex(&output, digest_pad[i]));
     }
 
     /* Reference value from command line sha512sum */
