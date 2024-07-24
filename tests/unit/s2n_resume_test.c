@@ -1312,7 +1312,6 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = NULL;
             struct s2n_config *config = NULL;
-            uint64_t current_time = 0;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -1348,7 +1347,6 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = NULL;
             struct s2n_config *config = NULL;
-            uint64_t current_time = 0;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -1385,7 +1383,6 @@ int main(int argc, char **argv)
         {
             struct s2n_connection *conn = NULL;
             struct s2n_config *config = NULL;
-            uint64_t current_time = 0;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
 
@@ -1471,7 +1468,6 @@ int main(int argc, char **argv)
             const char test_app_proto[] = "https";
 
             /* Setting up session resumption encryption key */
-            uint64_t current_time = 0;
             struct s2n_config *config = s2n_config_new();
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
