@@ -1437,6 +1437,11 @@ int main(int argc, char **argv)
 
             EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt),
                     S2N_ERR_SAFETY);
+
+            /* The correct version number should succeed */
+            *version_num = S2N_PRE_ENCRYPTED_STATE_V1;
+            EXPECT_SUCCESS(s2n_stuffer_reread(&conn->client_ticket_to_decrypt));
+            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
         }
 
         /* Check session ticket can never be encrypted with a zero-filled ticket key */
