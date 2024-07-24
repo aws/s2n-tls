@@ -28,7 +28,7 @@ libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 
 function clean {
     banner "Cleanup ./build"
-    rm -rf ./build
+    rm -rf ./build ./s2n_head
 }
 
 function configure {
@@ -48,7 +48,9 @@ function build {
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
     # Build s2n from HEAD
-    $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
+    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
+        $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
+    fi
 }
 
 function unit {
