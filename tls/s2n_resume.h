@@ -23,6 +23,10 @@
 #define S2N_TLS13_FIXED_STATE_SIZE            21
 #define S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE 3
 
+/* This is used in session ticket validation. This controls how far in the future
+ * the session ticket issue time can be while still being accepted.
+ */
+#define MAX_ALLOWED_CLOCK_SKEW_SEC     3600
 #define S2N_TLS_SESSION_CACHE_TTL      (6 * 60 * 60)
 #define S2N_TICKET_KEY_NAME_LEN        16
 #define S2N_TICKET_AAD_IMPLICIT_LEN    12
