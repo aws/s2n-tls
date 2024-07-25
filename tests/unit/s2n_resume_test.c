@@ -1253,11 +1253,21 @@ int main(int argc, char **argv)
 
     /* s2n_validate_ticket_age */
     {
-        /* Ticket issue time is in the future */
+        /* Ticket issue time is beyond MAX_ALLOWED_CLOCK_SKEW */
         {
             uint64_t current_time = SECONDS_TO_NANOS(0);
-            uint64_t issue_time = 10;
+            uint64_t issue_time = SECONDS_TO_NANOS(MAX_ALLOWED_CLOCK_SKEW_SEC + 1);
             EXPECT_ERROR_WITH_ERRNO(s2n_validate_ticket_age(current_time, issue_time), S2N_ERR_INVALID_SESSION_TICKET);
+        };
+
+        /* Ticket issue time is within MAX_ALLOWED_CLOCK_SKEW
+         * Distributed deployments with clock skew may see a ticket issue time in
+         * the future.
+         */
+        {
+            uint64_t current_time = SECONDS_TO_NANOS(0);
+            EXPECT_OK(s2n_validate_ticket_age(current_time, SECONDS_TO_NANOS(MAX_ALLOWED_CLOCK_SKEW_SEC - 1)));
+            EXPECT_OK(s2n_validate_ticket_age(current_time, SECONDS_TO_NANOS(MAX_ALLOWED_CLOCK_SKEW_SEC)));
         };
 
         /** Ticket age is longer than a week
