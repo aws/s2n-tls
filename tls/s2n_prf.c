@@ -157,6 +157,10 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
 
         struct s2n_hash_state *md5 = workspace;
         POSIX_GUARD(s2n_hash_reset(md5));
+        /* enable md5 flag in fips mode */
+        if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+            POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
+        }
         POSIX_GUARD(s2n_hash_init(md5, S2N_HASH_MD5));
         POSIX_GUARD(s2n_hash_update(md5, secret->data, secret->size));
         POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
