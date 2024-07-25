@@ -1,2 +1,0 @@
-# Depends: authz_core
-LoadModule authz_user_module ${APACHE_NIX_STORE}/modules/mod_authz_user.so

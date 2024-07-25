@@ -1,1 +1,0 @@
-LoadModule dir_module ${APACHE_NIX_STORE}/modules/mod_dir.so

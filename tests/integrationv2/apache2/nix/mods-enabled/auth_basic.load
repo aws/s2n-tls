@@ -1,2 +1,0 @@
-# Depends: authn_core
-LoadModule auth_basic_module ${APACHE_NIX_STORE}/modules/mod_auth_basic.so

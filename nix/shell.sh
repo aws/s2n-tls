@@ -166,23 +166,23 @@ function apache2_config(){
     # Unprivileged groupname differs
     export APACHE_RUN_GROUP=$(awk 'BEGIN{FS=":"} /65534/{print $1}' /etc/group)
     export APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid"
-    export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run" 
+    export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run"
     export APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock"
-    export APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log" 
+    export APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log"
     export APACHE_CERT_DIR="$SRC_ROOT/tests/pems"
 }
 
 function apache2_start(){
     if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
         apache2_config
-        if [[ ! -f "$APACHE2_INSTALL_DIR/apache2.conf" ]]; then
+        if [[ ! -f "$APACHE2_INSTALL_DIR/conf/apache2.conf" ]]; then
             mkdir -p $APACHE2_INSTALL_DIR/{run,log,lock}
             # NixOs specific base apache config
             cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
             # Integrationv2::renegotiate site
             cp -R ./codebuild/bin/apache2/{www,sites-enabled} $APACHE2_INSTALL_DIR
         fi
-        httpd -k start -f "${APACHE2_INSTALL_DIR}/apache2.conf"
+        httpd -k start -f "${APACHE2_INSTALL_DIR}/conf/apache2.conf"
         trap 'pkill httpd' ERR EXIT
     else
       echo "Apache is already running...and if the APACHE2_INSTALL_DIR is stale, it might be in an unknown state."

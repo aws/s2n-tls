@@ -1,2 +1,0 @@
-# Depends: filter
-LoadModule deflate_module ${APACHE_NIX_STORE}/modules/mod_deflate.so
