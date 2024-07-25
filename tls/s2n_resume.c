@@ -278,12 +278,27 @@ static S2N_RESULT s2n_tls12_client_deserialize_session_state(struct s2n_connecti
     return S2N_RESULT_OK;
 }
 
+/* `s2n_validate_ticket_age` is a best effort check that the session ticket is
+ * less than one week old.
+ *
+ * Clock skew between hosts or the possibility of a clock jump prevent this from
+ * being a precise check.
+ */
 static S2N_RESULT s2n_validate_ticket_age(uint64_t current_time, uint64_t ticket_issue_time)
 {
-    RESULT_ENSURE(current_time >= ticket_issue_time, S2N_ERR_INVALID_SESSION_TICKET);
-    uint64_t ticket_age_in_nanos = current_time - ticket_issue_time;
-    uint64_t ticket_age_in_sec = ticket_age_in_nanos / ONE_SEC_IN_NANOS;
-    RESULT_ENSURE(ticket_age_in_sec <= ONE_WEEK_IN_SEC, S2N_ERR_INVALID_SESSION_TICKET);
+    /* If the `ticket_issue_time` is in the future, then we are observing clock skew.
+     * We shouldn't fully reject the ticket, but we assert that the clock skew is
+     * less than some MAX_ALLOWED_CLOCK_SKEW_SEC
+     */
+    if (current_time < ticket_issue_time) {
+        uint64_t clock_skew_in_nanos = ticket_issue_time - current_time;
+        uint64_t clock_skew_in_seconds = clock_skew_in_nanos / ONE_SEC_IN_NANOS;
+        RESULT_ENSURE(clock_skew_in_seconds <= MAX_ALLOWED_CLOCK_SKEW_SEC, S2N_ERR_INVALID_SESSION_TICKET);
+    } else {
+        uint64_t ticket_age_in_nanos = current_time - ticket_issue_time;
+        uint64_t ticket_age_in_sec = ticket_age_in_nanos / ONE_SEC_IN_NANOS;
+        RESULT_ENSURE(ticket_age_in_sec <= ONE_WEEK_IN_SEC, S2N_ERR_INVALID_SESSION_TICKET);
+    }
     return S2N_RESULT_OK;
 }
 
