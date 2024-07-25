@@ -233,12 +233,11 @@ static void s2n_va_list_cleanup(struct s2n_va_list *list)
  * CBMC mode, we undef that symbol here
  */
 #ifdef CBMC
-#undef vsnprintf
+    #undef vsnprintf
 #endif
 
 int s2n_stuffer_vprintf(struct s2n_stuffer *stuffer, const char *format, va_list vargs_in)
 {
-
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_ENSURE_REF(format);
 
