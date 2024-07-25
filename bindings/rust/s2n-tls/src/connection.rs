@@ -590,7 +590,7 @@ impl Connection {
     /// Safety: this function is always safe to call, and additionally:
     /// 1. It will never deinitialize any bytes in `buf`.
     /// 2. If it returns `Ok(n)`, then the first `n` bytes of `buf`
-    /// will have been initialized by this function.
+    ///    will have been initialized by this function.
     pub fn poll_recv_uninitialized(
         &mut self,
         buf: &mut [MaybeUninit<u8>],
