@@ -139,7 +139,7 @@ jobs:
           sudo apt-get install --no-install-recommends --yes unzip
           unzip z3.zip
           cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.31/bin \
-            && echo "Adding $(pwd) to PATH for Z3" \\
+            && echo "Adding $(pwd) to PATH for Z3" \
             && echo "$(pwd)" >> $GITHUB_PATH
           rm ./z3.zip
       - name: Build and Install Bitwuzla ${{ env.BITWUZLA_VERSION }}
