@@ -34,7 +34,7 @@ mod tests {
     use s2n_tls::testing::TestPair;
     use std::{
         env,
-        fs::{create_dir, File},
+        fs::{create_dir_all, File},
         io::{self, BufRead, Write},
         path::Path,
         process::Command,
@@ -108,7 +108,7 @@ mod tests {
     /// Function to run specified test using valgrind
     fn run_valgrind_test(test_name: &str) {
         let exe_path = std::env::args().next().unwrap();
-        create_dir(Path::new("target/cg_artifacts")).unwrap();
+        create_dir_all(Path::new("target/cg_artifacts")).unwrap();
         let output_file = format!("target/cg_artifacts/cachegrind_{}.out", test_name);
         let output_command = format!("--cachegrind-out-file={}", &output_file);
         let mut command = Command::new("valgrind");
@@ -132,7 +132,7 @@ mod tests {
         if !annotate_output.status.success() {
             panic!("cg_annotate failed");
         }
-        create_dir(Path::new("target/perf_outputs")).unwrap();
+        create_dir_all(Path::new("target/perf_outputs")).unwrap();
         let annotate_file = format!("target/perf_outputs/{}.annotated.txt", test_name);
         let mut file = File::create(&annotate_file).expect("Failed to create annotation file");
         file.write_all(&annotate_output.stdout)
