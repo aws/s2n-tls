@@ -55,7 +55,7 @@ mod tests {
             cg::cachegrind::start_instrumentation();
         }
     }
-    
+
     /// Environment variable to determine whether to run under valgrind or solely test functionality.
     fn is_running_under_valgrind() -> bool {
         env::var("ENABLE_VALGRIND").is_ok()
@@ -78,7 +78,7 @@ mod tests {
         let suffix = get_test_suffix();
         if !is_running_under_valgrind() {
             if is_diff_mode() {
-                run_diff_test(test_name); 
+                run_diff_test(test_name);
                 Ok(())
             } else {
                 let ctrl = InstrumentationControl;
@@ -128,24 +128,27 @@ mod tests {
         let exe_path = std::env::args().next().unwrap();
         let output_file = create_output_file_path(test_name, suffix);
         let command = build_valgrind_command(&exe_path, test_name, &output_file);
-        
+
         println!("Running command: {:?}", command);
         execute_command(command);
-        
+
         let annotate_output = run_cg_annotate(&output_file);
         save_annotate_output(&annotate_output, suffix, test_name);
-        
+
         let count = find_instruction_count(&annotate_output)
             .expect("Failed to get instruction count from file");
 
         println!("Instruction count for {}: {}", test_name, count);
     }
-    /// Creates the path for the unannotated output file.
+
     fn create_output_file_path(test_name: &str, suffix: &str) -> String {
         create_dir_all(Path::new("target/cg_artifacts")).unwrap();
-        format!("target/cg_artifacts/cachegrind_{}_{}.out", test_name, suffix)
+        format!(
+            "target/cg_artifacts/cachegrind_{}_{}.out",
+            test_name, suffix
+        )
     }
-    /// Builds the valgrind command.
+
     fn build_valgrind_command(exe_path: &str, test_name: &str, output_file: &str) -> Command {
         let output_command = format!("--cachegrind-out-file={}", output_file);
         let mut command = Command::new("valgrind");
@@ -154,14 +157,14 @@ mod tests {
             .env_remove("ENABLE_VALGRIND");
         command
     }
-    /// Executes the given command.
+
     fn execute_command(mut command: Command) {
         let status = command.status().expect("Failed to execute valgrind");
         if !status.success() {
             panic!("Valgrind failed");
         }
     }
-    /// Runs the cg_annotate command on the output file.
+
     fn run_cg_annotate(output_file: &str) -> std::process::Output {
         let annotate_output = Command::new("cg_annotate")
             .arg(output_file)
@@ -172,41 +175,50 @@ mod tests {
         }
         annotate_output
     }
+
     /// Saves the annotated output to prev, curr, or diff accordingly
     fn save_annotate_output(output: &std::process::Output, suffix: &str, test_name: &str) {
         let directory = format!("target/perf_outputs/{}", suffix);
         create_dir_all(Path::new(&directory)).unwrap();
-        let annotate_file = format!("target/perf_outputs/{}/{}_{}.annotated.txt", suffix, test_name, suffix);
-        let mut file = File::create(&annotate_file).expect("Failed to create annotation file");
+        let annotate_file = format!(
+            "target/perf_outputs/{}/{}_{}.annotated.txt",
+            suffix, test_name, suffix
+        );
+        let mut file = File::create(annotate_file).expect("Failed to create annotation file");
         file.write_all(&output.stdout)
             .expect("Failed to write annotation file");
     }
+
     /// Function to run the diff test using valgrind, only called when diff mode is set
     fn run_diff_test(test_name: &str) {
         let (prev_file, curr_file) = get_diff_files(test_name);
         ensure_diff_files_exist(&prev_file, &curr_file);
-        
+
         let diff_output = run_cg_annotate_diff(&prev_file, &curr_file);
         save_diff_output(&diff_output, test_name);
-        
+
         let diff = find_instruction_count(&diff_output)
             .expect("Failed to parse cg_annotate --diff output");
 
         assert_diff_within_threshold(diff, test_name);
     }
-    /// Retrieves the file paths for the diff test.
+
     fn get_diff_files(test_name: &str) -> (String, String) {
         (
             format!("target/cg_artifacts/cachegrind_{}_prev.out", test_name),
             format!("target/cg_artifacts/cachegrind_{}_curr.out", test_name),
         )
     }
-    /// Ensures that the required performance files exist to use diff functionality
+
     fn ensure_diff_files_exist(prev_file: &str, curr_file: &str) {
         if !Path::new(prev_file).exists() || !Path::new(curr_file).exists() {
-            panic!("Required cachegrind files not found: {} or {}", prev_file, curr_file);
+            panic!(
+                "Required cachegrind files not found: {} or {}",
+                prev_file, curr_file
+            );
         }
     }
+
     /// Runs the cg_annotate diff command to parse already generated performance files and compare them
     fn run_cg_annotate_diff(prev_file: &str, curr_file: &str) -> std::process::Output {
         let diff_output = Command::new("cg_annotate")
@@ -218,15 +230,15 @@ mod tests {
         }
         diff_output
     }
-    /// Saves the output of the cg_annotate diff command to a file.
+
     fn save_diff_output(output: &std::process::Output, test_name: &str) {
         create_dir_all(Path::new("target/perf_outputs/diff")).unwrap();
         let diff_file = format!("target/perf_outputs/diff/{}_diff.annotated.txt", test_name);
-        let mut file = File::create(&diff_file).expect("failed to create diff annotation file");
+        let mut file = File::create(diff_file).expect("failed to create diff annotation file");
         file.write_all(&output.stdout)
             .expect("Failed to write diff annotation file");
     }
-    /// Asserts that the instruction count difference is within the threshold.
+
     fn assert_diff_within_threshold(diff: i64, test_name: &str) {
         assert!(
             diff <= MAX_DIFF,
