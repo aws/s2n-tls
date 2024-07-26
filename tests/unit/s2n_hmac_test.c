@@ -54,7 +54,9 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
         if (s2n_is_in_fips_mode()) {
             POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.inner));
+            POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.inner_just_key));
             POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.outer));
+            POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.outer_just_key));
         }
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_MD5, sekrit, strlen((char *) sekrit)));
         EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *) hello)));
