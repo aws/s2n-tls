@@ -28,7 +28,7 @@ libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 
 function clean {
     banner "Cleanup ./build"
-    rm -rf ./build
+    rm -rf ./build ./s2n_head
 }
 
 function configure {
@@ -47,6 +47,10 @@ function build {
     banner "Running Build"
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
+    # Build s2n from HEAD
+    if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
+        $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
+    fi
 }
 
 function unit {
@@ -60,21 +64,16 @@ function unit {
 function integ {
     if [ "$1" == "help" ]; then
         echo "The following tests are not supported:"
-        echo " - cross_compatibility"
-        echo "    This test depends on s2nc_head and s2nd_head. To run"
-        echo "    the test build s2n-tls from the main branch on github."
-        echo "    Change the names of s2n[cd] to s2n[cd]_head and add those"
-        echo "    binaries to \$PATH."
         echo "- renegotiate_apache"
         echo "   This test requires apache to be running. See codebuild/bin/s2n_apache.sh"
         echo "    for more info."
         return
     fi
     if [[ -z "$1" ]]; then
-        banner "Running all integ tests except cross_compatibility, renegotiate_apache."
+        banner "Running all integ tests except renegotiate_apache."
         (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
     else
-        banner "Warning: cross_compatibility & renegotiate_apache are not supported in nix for various reasons integ help for more info."
+        banner "Warning: renegotiate_apache is not supported in nix for various reasons integ help for more info."
         for test in $@; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
