@@ -123,39 +123,6 @@ int main()
         for (size_t i = 0; i < s2n_array_len(supported_versions); i++) {
             const uint8_t version = supported_versions[i];
 
-            /* See https://github.com/aws/s2n-tls/issues/4476
-             * Retrieving the master secret won't vary between FIPS and non-FIPS,
-             * so this testing limitation is not a concern.
-             */
-            if (s2n_is_in_fips_mode() && version == S2N_SSLv3 && !s2n_libcrypto_is_awslc()) {
-                DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-                EXPECT_NOT_NULL(config);
-                EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
-                EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
-
-                DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(client);
-                EXPECT_SUCCESS(s2n_connection_set_config(client, config));
-                client->client_protocol_version = version;
-
-                DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
-                        s2n_connection_ptr_free);
-                EXPECT_NOT_NULL(server);
-                EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-                memset(server->secrets.version.tls12.master_secret, 1, S2N_TLS_SECRET_LEN);
-
-                struct s2n_test_io_pair io_pair = { 0 };
-                EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-                EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
-
-                /* SSLv3 Handshake is not supported when built with OpenSSL-1.0.2-FIPS */
-                EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server, client),
-                        S2N_ERR_SSLV3_HANDSHAKE_WITH_OSSL_FIPS_NOT_SUPPORTED);
-                continue;
-            }
-
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));

@@ -712,11 +712,6 @@ int s2n_client_hello_send(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->actual_protocol_version, S2N_TLS12);
     }
 
-    /* SSLv3 handshake is not supported when built with openssl-fips */
-    if (s2n_is_in_fips_mode() && conn->client_protocol_version == S2N_SSLv3 && !s2n_libcrypto_is_awslc()) {
-        POSIX_BAIL(S2N_ERR_SSLV3_HANDSHAKE_WITH_OSSL_FIPS_NOT_SUPPORTED);
-    }
-
     struct s2n_stuffer *out = &conn->handshake.io;
     uint8_t client_protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
 
