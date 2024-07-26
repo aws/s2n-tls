@@ -773,6 +773,13 @@ struct s2n_unique_ticket_key {
     uint8_t output_key[S2N_AES256_KEY_LEN];
 };
 
+/* Ensures that a session ticket encryption key is used only once per ticket.
+ *
+ * The AES-GCM encryption scheme breaks if the same nonce is used with the same key more than once.
+ * As the number of TLS connections increases per second, it becomes more probable that the same
+ * random nonce will be generated twice and used with the same ticket key.
+ * To avoid this we generate a unique session ticket encryption key for each ticket.
+ **/
 static S2N_RESULT s2n_resume_generate_unique_ticket_key(struct s2n_unique_ticket_key *key)
 {
     RESULT_ENSURE_REF(key);
@@ -802,7 +809,7 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct
     /* No keys loaded by the user or the keys are either in decrypt-only or expired state */
     RESULT_ENSURE(key != NULL, S2N_ERR_NO_TICKET_ENCRYPT_DECRYPT_KEY);
 
-    /* Generate unique per-ticket key */
+    /* Generate unique per-ticket encryption key */
     struct s2n_unique_ticket_key ticket_key = { 0 };
     RESULT_CHECKED_MEMCPY(ticket_key.initial_key, key->aes_key, sizeof(key->aes_key));
     struct s2n_blob info_blob = { 0 };

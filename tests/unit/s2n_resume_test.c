@@ -1417,7 +1417,8 @@ int main(int argc, char **argv)
 
         /* Check error is thrown when wrong version number is read */
         {
-            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
@@ -1442,6 +1443,41 @@ int main(int argc, char **argv)
             *version_num = S2N_PRE_ENCRYPTED_STATE_V1;
             EXPECT_SUCCESS(s2n_stuffer_reread(&conn->client_ticket_to_decrypt));
             EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt));
+        }
+
+        /* Check error is thrown when info bytes used to generate the ticket key are incorrect */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+
+            EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
+            EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
+            conn->actual_protocol_version = S2N_TLS12;
+            conn->handshake.handshake_type = NEGOTIATED;
+
+            DEFER_CLEANUP(struct s2n_stuffer valid_ticket = { 0 }, s2n_stuffer_free);
+            EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&valid_ticket, 0));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &valid_ticket));
+            uint32_t ticket_size = s2n_stuffer_data_available(&valid_ticket);
+
+            /* Copy ticket so that we don't modify the original ticket */
+            EXPECT_SUCCESS(s2n_stuffer_copy(&valid_ticket, &conn->client_ticket_to_decrypt,
+                    ticket_size));
+
+            /* Zero out the info bytes on the ticket */
+            uint8_t *info_ptr = conn->client_ticket_to_decrypt.blob.data + S2N_TICKET_VERSION_SIZE
+                    + S2N_TICKET_KEY_NAME_LEN;
+            memset(info_ptr, 0, S2N_TICKET_INFO_SIZE);
+
+            EXPECT_ERROR_WITH_ERRNO(s2n_resume_decrypt_session_ticket(conn, &conn->client_ticket_to_decrypt),
+                    S2N_ERR_DECRYPT);
+
+            /* The correct info bytes should succeed */
+            EXPECT_SUCCESS(s2n_stuffer_reread(&valid_ticket));
+            EXPECT_OK(s2n_resume_decrypt_session_ticket(conn, &valid_ticket));
         }
 
         /* Check session ticket can never be encrypted with a zero-filled ticket key */

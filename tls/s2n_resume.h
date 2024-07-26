@@ -93,6 +93,11 @@ typedef enum {
     S2N_SERIALIZED_FORMAT_TLS12_V3,
 } s2n_serial_format_version;
 
+/* Used to specify the format of the ticket schema before encryption.
+ *
+ * This makes it easier to make changes to the ticket schema in the future
+ * as it allows us to interpret and parse all ticket schemas.
+ **/
 typedef enum {
     S2N_PRE_ENCRYPTED_STATE_V1 = 1,
 } s2n_pre_encrypted_state;

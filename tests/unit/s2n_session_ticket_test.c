@@ -1118,9 +1118,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Setup stuffers value containing the valid key name, valid iv and invalid encrypted blob */
+        /* Setup stuffers value containing the valid version number, valid key name, valid info, valid iv and invalid encrypted blob */
         POSIX_GUARD(s2n_stuffer_write_uint8(&server_conn->client_ticket_to_decrypt, S2N_PRE_ENCRYPTED_STATE_V1));
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, ticket_key_name1, s2n_array_len(ticket_key_name1)));
+
+        uint8_t valid_info[S2N_TICKET_INFO_SIZE] = { 0 };
+        POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_info, sizeof(valid_info)));
 
         uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = { 0 };
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_iv, sizeof(valid_iv)));
@@ -1145,9 +1148,12 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_ticket_crypto_key(server_config, ticket_key_name1, s2n_array_len(ticket_key_name1), ticket_key1, s2n_array_len(ticket_key1), 0));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
-        /* Setup stuffers value containing the invalid key name, valid iv and invalid encrypted blob */
+        /* Setup stuffers value containing the valid version number, invalid key name, valid iv, valid info, and invalid encrypted blob */
         POSIX_GUARD(s2n_stuffer_write_uint8(&server_conn->client_ticket_to_decrypt, S2N_PRE_ENCRYPTED_STATE_V1));
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, ticket_key_name2, s2n_array_len(ticket_key_name2)));
+
+        uint8_t valid_info[S2N_TICKET_INFO_SIZE] = { 0 };
+        POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_info, sizeof(valid_info)));
 
         uint8_t valid_iv[S2N_TLS_GCM_IV_LEN] = { 0 };
         POSIX_GUARD(s2n_stuffer_write_bytes(&server_conn->client_ticket_to_decrypt, valid_iv, sizeof(valid_iv)));
