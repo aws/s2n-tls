@@ -99,6 +99,11 @@ impl PrivateKeyOperation {
         }
         Ok(())
     }
+
+    #[allow(dead_code)] // Needed by renegotiate.rs tests
+    pub(crate) fn as_ptr(&mut self) -> *mut s2n_async_pkey_op {
+        self.raw.as_ptr()
+    }
 }
 
 impl Drop for PrivateKeyOperation {

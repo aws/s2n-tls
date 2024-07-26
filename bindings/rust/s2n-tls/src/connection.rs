@@ -394,6 +394,14 @@ impl Connection {
         Ok(self)
     }
 
+    /// # Safety
+    ///
+    /// The `context` pointer must live at least as long as the connection
+    pub unsafe fn set_send_context(&mut self, context: *mut c_void) -> Result<&mut Self, Error> {
+        s2n_connection_set_send_ctx(self.connection.as_ptr(), context).into_result()?;
+        Ok(self)
+    }
+
     /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
     /// trusted.
     ///
@@ -425,14 +433,6 @@ impl Connection {
             )
             .into_result()
         }?;
-        Ok(self)
-    }
-
-    /// # Safety
-    ///
-    /// The `context` pointer must live at least as long as the connection
-    pub unsafe fn set_send_context(&mut self, context: *mut c_void) -> Result<&mut Self, Error> {
-        s2n_connection_set_send_ctx(self.connection.as_ptr(), context).into_result()?;
         Ok(self)
     }
 
@@ -484,6 +484,17 @@ impl Connection {
         Ok(self)
     }
 
+    pub(crate) fn trigger_initializer(&mut self) {
+        if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
+            if let Some(config) = self.config() {
+                if let Some(callback) = config.context().connection_initializer.as_ref() {
+                    let future = callback.initialize_connection(self);
+                    AsyncCallback::trigger(future, self);
+                }
+            }
+        }
+    }
+
     /// Performs the TLS handshake to completion
     ///
     /// Multiple callbacks can be configured for a connection and config, but
@@ -495,14 +506,7 @@ impl Connection {
     /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
-            if let Some(config) = self.config() {
-                if let Some(callback) = config.context().connection_initializer.as_ref() {
-                    let future = callback.initialize_connection(self);
-                    AsyncCallback::trigger(future, self);
-                }
-            }
-        }
+        self.trigger_initializer();
 
         loop {
             // check if an async task exists and poll it to completion
@@ -531,7 +535,7 @@ impl Connection {
                 Poll::Pending => {
                     // if there is no connection_future then return, otherwise continue
                     // looping and polling the future
-                    if self.context_mut().async_callback.is_none() {
+                    if !self.has_async_task() {
                         return Poll::Pending;
                     }
                 }
@@ -542,7 +546,7 @@ impl Connection {
     // Poll the connection future if it exists.
     //
     // If the future returns Pending, then re-set it back on the Connection.
-    fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
+    pub(crate) fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
         self.take_async_callback().map(|mut callback| {
             let waker = self.waker().ok_or(Error::MISSING_WAKER)?.clone();
             let mut ctx = core::task::Context::from_waker(&waker);
@@ -555,6 +559,10 @@ impl Connection {
                 }
             }
         })
+    }
+
+    pub(crate) fn has_async_task(&self) -> bool {
+        self.context().async_callback.is_some()
     }
 
     /// Encrypts and sends data on a connection where
@@ -756,7 +764,7 @@ impl Connection {
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the connection.
-    fn context_mut(&mut self) -> &mut Context {
+    pub(crate) fn context_mut(&mut self) -> &mut Context {
         unsafe {
             let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
                 .into_result()
@@ -1134,12 +1142,12 @@ impl Connection {
     }
 }
 
-struct Context {
+pub(crate) struct Context {
     mode: Mode,
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
-    connection_initialized: bool,
+    pub(crate) connection_initialized: bool,
     app_context: Option<Box<dyn Any + Send + Sync>>,
 }
 

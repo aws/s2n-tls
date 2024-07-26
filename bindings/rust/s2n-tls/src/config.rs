@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "unstable-renegotiate")]
+use crate::renegotiate::RenegotiateCallback;
 use crate::{
     callbacks::*,
     enums::*,
@@ -160,7 +162,7 @@ impl Drop for Config {
 }
 
 pub struct Builder {
-    config: Config,
+    pub(crate) config: Config,
     load_system_certs: bool,
     enable_ocsp: bool,
 }
@@ -762,7 +764,7 @@ impl Builder {
         Ok(self.config)
     }
 
-    fn as_mut_ptr(&mut self) -> *mut s2n_config {
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
         self.config.as_mut_ptr()
     }
 }
@@ -797,6 +799,8 @@ pub(crate) struct Context {
     pub(crate) connection_initializer: Option<Box<dyn ConnectionInitializer>>,
     pub(crate) wall_clock: Option<Box<dyn WallClock>>,
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) renegotiate: Option<Box<dyn RenegotiateCallback>>,
 }
 
 impl Default for Context {
@@ -814,6 +818,8 @@ impl Default for Context {
             connection_initializer: None,
             wall_clock: None,
             monotonic_clock: None,
+            #[cfg(feature = "unstable-renegotiate")]
+            renegotiate: None,
         }
     }
 }
