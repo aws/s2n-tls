@@ -22,6 +22,7 @@
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_connection.h"
+#include "tls/s2n_security_policies.h"
 #include "tls/s2n_internal.h"
 
 struct client_hello_context {
@@ -104,6 +105,22 @@ int mock_client(struct s2n_test_io_pair *io_pair, int expect_failure, int expect
     exit(result);
 }
 
+bool security_policy_contains_cipher(const char* security_policy_name, uint8_t* cipher_iana) {
+    const struct s2n_security_policy *security_policy = NULL;
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version(security_policy_name, &security_policy));
+    EXPECT_NOT_NULL(security_policy);
+    const struct s2n_cipher_preferences *cipher_prefs = security_policy->cipher_preferences;
+    for (uint8_t i = 0; i < cipher_prefs->count; ++i) {
+        const struct s2n_cipher_suite *cipher_suite = cipher_prefs->suites[i];
+        if (memcmp(cipher_suite->iana_value, cipher_iana, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+            /* Matching cipher found */
+            return true;
+        }
+    }
+    /* No matching cipher found */
+    return false;
+}
+
 int client_hello_swap_config(struct s2n_connection *conn, void *ctx)
 {
     struct client_hello_context *client_hello_ctx = NULL;
@@ -180,6 +197,26 @@ int client_hello_fail_handshake(struct s2n_connection *conn, void *ctx)
 
     /* Return negative value to terminate the handshake */
     return -1;
+}
+
+int client_hello_set_default_cipher_preferences(struct s2n_connection *conn, void *ctx)
+{
+    struct client_hello_context *client_hello_ctx = ctx;
+    if (client_hello_ctx == NULL) {
+        return -1;
+    }
+
+    /* Increment counter to indicate that the callback was invoked */
+    client_hello_ctx->invoked++;
+
+    /* Set the cipher preferences for this conn */
+    EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
+
+    if (client_hello_ctx->mark_done_during_callback) {
+        EXPECT_SUCCESS(s2n_client_hello_cb_done(conn));
+    }
+
+    return 0;
 }
 
 int s2n_negotiate_nonblocking_ch_cb(struct s2n_connection *conn,
@@ -432,6 +469,54 @@ int run_test_reject_handshake_ch_cb(s2n_client_hello_cb_mode cb_mode, struct cli
     return S2N_SUCCESS;
 }
 
+int run_test_set_cipher_preferences_ch_cb(s2n_client_hello_cb_mode cb_mode, struct client_hello_context *ch_ctx)
+{
+    struct s2n_test_io_pair io_pair = { 0 };
+    struct s2n_config *config = NULL;
+    struct s2n_connection *conn = NULL;
+    pid_t pid = 0;
+    struct s2n_cert_chain_and_key *chain_and_key = NULL;
+    uint8_t negotiated_cipher_actual_iana[S2N_TLS_CIPHER_SUITE_LEN] = { 0 };
+
+    EXPECT_SUCCESS(start_client_conn(&io_pair, &pid, 0, 0));
+
+    /* Prepare test config */
+    EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+    EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+    /* Set a security policy with no cipher suites, so that successful negotiation confirms a mid-callback cipher preference switch */
+    struct s2n_cipher_preferences test_cipher_preferences = {
+        .suites = NULL,
+        .count = 0,
+    };
+    struct s2n_security_policy test_security_policy = security_policy_test_all;
+    test_security_policy.cipher_preferences = &test_cipher_preferences;
+    config->security_policy = &test_security_policy;
+
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb_mode(config, cb_mode));
+    EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, client_hello_set_default_cipher_preferences, ch_ctx));
+
+    EXPECT_SUCCESS(init_server_conn(&conn, &io_pair, config));
+
+    /* Do the handshake */
+    if (cb_mode == S2N_CLIENT_HELLO_CB_NONBLOCKING && !ch_ctx->mark_done_during_callback) {
+        EXPECT_SUCCESS(s2n_negotiate_nonblocking_ch_cb(conn, ch_ctx, false));
+    } else {
+        EXPECT_SUCCESS(s2n_negotiate_blocking_ch_cb(conn, ch_ctx));
+    }
+
+    /* Test that a cipher was negotiated, to confirm that a cipher preference was successfully applied by the callback */
+    EXPECT_SUCCESS(s2n_connection_get_cipher_iana_value(conn, &negotiated_cipher_actual_iana[0], &negotiated_cipher_actual_iana[1]));
+    EXPECT_TRUE(security_policy_contains_cipher("default", negotiated_cipher_actual_iana));
+
+    /* Drain remaining connection */
+    EXPECT_SUCCESS(server_recv(conn));
+
+    /* Cleanup */
+    EXPECT_SUCCESS(test_case_clean(conn, pid, config, &io_pair, ch_ctx, chain_and_key));
+    return S2N_SUCCESS;
+}
+
 int main(int argc, char **argv)
 {
     struct client_hello_context client_hello_ctx = { 0 };
@@ -466,6 +551,11 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(run_test_reject_handshake_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING, &client_hello_ctx));
 
     EXPECT_SUCCESS(run_test_reject_handshake_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING, &client_hello_ctx));
+
+    /* Test changing connection cipher preferences in client hello callback */
+    EXPECT_SUCCESS(run_test_set_cipher_preferences_ch_cb(S2N_CLIENT_HELLO_CB_BLOCKING, &client_hello_ctx));
+
+    EXPECT_SUCCESS(run_test_set_cipher_preferences_ch_cb(S2N_CLIENT_HELLO_CB_NONBLOCKING, &client_hello_ctx));
 
     END_TEST();
 
