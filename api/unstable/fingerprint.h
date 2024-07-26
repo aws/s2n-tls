@@ -35,6 +35,116 @@ typedef enum {
     S2N_FINGERPRINT_JA3,
 } s2n_fingerprint_type;
 
+struct s2n_fingerprint;
+
+/**
+ * Create a reusable fingerprint structure.
+ *
+ * Fingerprinting is primarily used to identify malicious or abusive clients,
+ * so fingerprinting needs to be efficient and require minimal resources.
+ * The `s2n_client_hello_get_fingerprint_hash` and `s2n_client_hello_get_fingerprint_string`
+ * methods may require additional memory to calculate the fingerprint. Reusing
+ * the same `s2n_fingerprint` structure to calculate multiple fingerprints reduces
+ * the cost of each individual fingerprint.
+ *
+ * @param type The algorithm to use for the fingerprint.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API struct s2n_fingerprint *s2n_fingerprint_new(s2n_fingerprint_type type);
+
+/**
+ * Frees the memory allocated by `s2n_fingerprint_new` for a fingerprint structure.
+ *
+ * @param fingerprint The s2n_fingerprint structure to be freed.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API int s2n_fingerprint_free(struct s2n_fingerprint **fingerprint);
+
+/**
+ * Resets the fingerprint for safe reuse with a different ClientHello.
+ *
+ * @param fingerprint The s2n_fingerprint structure to be reset.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API int s2n_fingerprint_wipe(struct s2n_fingerprint *fingerprint);
+
+/**
+ * Sets the ClientHello to be fingerprinted.
+ *
+ * @param fingerprint The s2n_fingerprint to be modified
+ * @param ch The client hello to be fingerprinted. It will not be copied, so needs
+ * to live at least as long as this fingerprinting operation.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API int s2n_fingerprint_set_client_hello(struct s2n_fingerprint *fingerprint, struct s2n_client_hello *ch);
+
+/**
+ * Get the size of the fingerprint hash.
+ *
+ * Fingerprint hashes should be a constant size, but that size will vary based
+ * on the fingerprinting method used.
+ *
+ * @param fingerprint The s2n_fingerprint to be used for the hash
+ * @param size Output variable to be set to the size of the hash
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API int s2n_fingerprint_get_hash_size(const struct s2n_fingerprint *fingerprint, uint32_t *size);
+
+/**
+ * Calculates a fingerprint hash.
+ *
+ * The output of this method depends on the type of fingerprint.
+ *
+ * JA3: A hex-encoded string representing the MD5 hash of the raw string.
+ * - See https://engineering.salesforce.com/tls-fingerprinting-with-ja3-and-ja3s-247362855967
+ * - Example: "c34a54599a1fbaf1786aa6d633545a60"
+ *
+ * @param fingerprint The s2n_fingerprint to be used for the hash
+ * @param max_output_size The maximum size of data that may be written to `output`.
+ * If `output` is too small, an S2N_ERR_T_USAGE error will occur.
+ * @param output The location that the requested hash will be written to.
+ * @param output_size Output variable to be set to the actual size of the data
+ * written to `output`.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API int s2n_fingerprint_get_hash(struct s2n_fingerprint *fingerprint,
+        uint32_t max_output_size, uint8_t *output, uint32_t *output_size);
+
+/**
+ * Get the size of the raw fingerprint string.
+ *
+ * The size of the raw string depends on the ClientHello and cannot be known
+ * without calculating the fingerprint. Either `s2n_fingerprint_get_hash` or
+ * `s2n_fingerprint_get_raw` must be called before this method.
+ *
+ * @param fingerprint The s2n_fingerprint to be used for the raw string
+ * @param size Output variable to be set to the size of the raw string
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API int s2n_fingerprint_get_raw_size(const struct s2n_fingerprint *fingerprint, uint32_t *size);
+
+/**
+ * Calculates the raw string for a fingerprint.
+ *
+ * The output of this method depends on the type of fingerprint.
+ *
+ * JA3: A string consisting of lists of decimal values.
+ * - See https://engineering.salesforce.com/tls-fingerprinting-with-ja3-and-ja3s-247362855967
+ * - Example: "771,4866-4867-4865-49196-49200-159-52393-52392-52394-49195-49199-158-
+ *             49188-49192-107-49187-49191-103-49162-49172-57-49161-49171-51-157-
+ *             156-61-60-53-47-255,11-10-35-22-23-13-43-45-51,29-23-30-25-24,0-1-2"
+ *
+ * @param fingerprint The s2n_fingerprint to be used for the raw string
+ * @param max_output_size The maximum size of data that may be written to `output`.
+ * If `output` is too small, an S2N_ERR_T_USAGE error will occur.
+ * @param output The location that the requested raw string will be written to.
+ * @param output_size Output variable to be set to the actual size of the data
+ * written to `output`.
+ * @returns S2N_SUCCESS on success, S2N_FAILURE on failure.
+ */
+S2N_API int s2n_fingerprint_get_raw(struct s2n_fingerprint *fingerprint,
+        uint32_t max_output_size, uint8_t *output, uint32_t *output_size);
+
 /**
  * Calculates a fingerprint hash for a given ClientHello.
  *

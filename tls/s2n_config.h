@@ -107,6 +107,8 @@ struct s2n_config {
 
     unsigned custom_blinding_set : 1;
 
+    unsigned ticket_forward_secrecy : 1;
+
     struct s2n_dh_params *dhparams;
     /* Needed until we can deprecate s2n_config_add_cert_chain_and_key. This is
      * used to release memory allocated only in the deprecated API that the application 

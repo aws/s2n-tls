@@ -25,21 +25,21 @@
 const s2n_mode modes[] = { S2N_SERVER, S2N_CLIENT };
 
 static uint8_t test_send_key[S2N_TLS_AES_256_GCM_KEY_LEN] = { 0 };
-static int s2n_test_set_send_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_test_set_send_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
-    POSIX_CHECKED_MEMCPY(test_send_key, in->data, in->size);
-    return S2N_SUCCESS;
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
+    RESULT_CHECKED_MEMCPY(test_send_key, in->data, in->size);
+    return S2N_RESULT_OK;
 }
 
 static uint8_t test_recv_key[S2N_TLS_AES_256_GCM_KEY_LEN] = { 0 };
-static int s2n_test_set_recv_key(struct s2n_session_key *key, struct s2n_blob *in)
+static S2N_RESULT s2n_test_set_recv_key(struct s2n_session_key *key, struct s2n_blob *in)
 {
-    POSIX_ENSURE_REF(key);
-    POSIX_ENSURE_REF(in);
-    POSIX_CHECKED_MEMCPY(test_recv_key, in->data, in->size);
-    return S2N_SUCCESS;
+    RESULT_ENSURE_REF(key);
+    RESULT_ENSURE_REF(in);
+    RESULT_CHECKED_MEMCPY(test_recv_key, in->data, in->size);
+    return S2N_RESULT_OK;
 }
 
 #define EXPECT_IVS_EQUAL(conn, iv, iv_mode)                                               \

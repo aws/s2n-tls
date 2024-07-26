@@ -1112,6 +1112,13 @@ typedef enum {
  * Sets up a connection to request the certificate status of a peer during an SSL handshake. If set
  * to S2N_STATUS_REQUEST_NONE, no status request is made.
  *
+ * @note SHA-1 is the only supported hash algorithm for the `certID` field. This is different
+ * from the hash algorithm used for the OCSP signature. See 
+ * [RFC 6960](https://datatracker.ietf.org/doc/html/rfc6960#section-4.1.1) for more information.
+ * While unlikely to be the case, if support for a different hash algorithm is required, the
+ * s2n-tls validation can be disabled with `s2n_config_set_check_stapled_ocsp_response()` and the
+ * response can be retrieved for manual validation with `s2n_connection_get_ocsp_response()`.
+ * 
  * @param config The configuration object being updated
  * @param type The desired request status type
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
@@ -1269,6 +1276,22 @@ S2N_API extern int s2n_config_set_ticket_decrypt_key_lifetime(struct s2n_config 
  */
 S2N_API extern int s2n_config_add_ticket_crypto_key(struct s2n_config *config, const uint8_t *name, uint32_t name_len,
         uint8_t *key, uint32_t key_len, uint64_t intro_time_in_seconds_from_epoch);
+
+/**
+ * Requires that session tickets are only used when forward secrecy is possible.
+ *
+ * Restricts session resumption to TLS1.3, as the tickets used in TLS1.2 resumption are
+ * not forward secret. Clients should not expect to receive new session tickets and servers
+ * will not send new session tickets when TLS1.2 is negotiated and ticket forward secrecy is required.
+ * 
+ * @note The default behavior is that forward secrecy is not required.
+ *
+ * @param config The config object being updated
+ * @param enabled Indicates if forward secrecy is required or not on tickets
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_config_require_ticket_forward_secrecy(struct s2n_config *config, bool enabled);
+
 /**
  * Sets user defined context on the `s2n_config` object.
  *
