@@ -753,7 +753,7 @@ impl Builder {
     }
 
     /// Requires that session tickets are only used when forward secrecy is possible
-    pub fn require_ticket_forward_secrecy(&mut self, bool: enable) -> Result<&mut Self, Error> {
+    pub fn require_ticket_forward_secrecy(&mut self, enable: bool) -> Result<&mut Self, Error> {
         unsafe {
             s2n_config_require_ticket_forward_secrecy(self.as_mut_ptr(), enable.into()).into_result()
         }?;
