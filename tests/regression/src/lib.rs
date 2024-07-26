@@ -40,9 +40,9 @@ mod tests {
         process::Command,
     };
 
-    /// Configurable threshold for regression testing. 
+    /// Configurable threshold for regression testing.
     /// Tests will fail if the instruction count difference is greater than the value of this constant.
-    const MAX_DIFF: u64 = 1_000_000; 
+    const MAX_DIFF: i64 = 1_000;
 
     struct InstrumentationControl;
 
@@ -55,20 +55,37 @@ mod tests {
             cg::cachegrind::start_instrumentation();
         }
     }
+    
     /// Environment variable to determine whether to run under valgrind or solely test functionality.
     fn is_running_under_valgrind() -> bool {
         env::var("ENABLE_VALGRIND").is_ok()
+    }
+
+    /// Function to get the test suffix from environment variables. If the var is not set, it defaults to curr.
+    fn get_test_suffix() -> String {
+        env::var("TEST_SUFFIX").unwrap_or_else(|_| "curr".to_string())
+    }
+
+    /// Function to determine if diff mode is enabled.
+    fn is_diff_mode() -> bool {
+        env::var("DIFF_MODE").is_ok()
     }
 
     fn valgrind_test<F>(test_name: &str, test_body: F) -> Result<(), s2n_tls::error::Error>
     where
         F: FnOnce(&InstrumentationControl) -> Result<(), s2n_tls::error::Error>,
     {
+        let suffix = get_test_suffix();
         if !is_running_under_valgrind() {
-            let ctrl = InstrumentationControl;
-            test_body(&ctrl)
+            if is_diff_mode() {
+                run_diff_test(test_name); 
+                Ok(())
+            } else {
+                let ctrl = InstrumentationControl;
+                test_body(&ctrl)
+            }
         } else {
-            run_valgrind_test(test_name);
+            run_valgrind_test(test_name, &suffix);
             Ok(())
         }
     }
@@ -87,7 +104,7 @@ mod tests {
         .unwrap();
     }
 
-    /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake. 
+    /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake.
     #[test]
     fn test_rsa_handshake() {
         valgrind_test("test_rsa_handshake", |ctrl| {
@@ -105,52 +122,123 @@ mod tests {
         })
         .unwrap();
     }
+
     /// Function to run specified test using valgrind
-    fn run_valgrind_test(test_name: &str) {
+    fn run_valgrind_test(test_name: &str, suffix: &str) {
         let exe_path = std::env::args().next().unwrap();
+        let output_file = create_output_file_path(test_name, suffix);
+        let command = build_valgrind_command(&exe_path, test_name, &output_file);
+        
+        println!("Running command: {:?}", command);
+        execute_command(command);
+        
+        let annotate_output = run_cg_annotate(&output_file);
+        save_annotate_output(&annotate_output, suffix, test_name);
+        
+        let count = find_instruction_count(&annotate_output)
+            .expect("Failed to get instruction count from file");
+
+        println!("Instruction count for {}: {}", test_name, count);
+    }
+    /// Creates the path for the unannotated output file.
+    fn create_output_file_path(test_name: &str, suffix: &str) -> String {
         create_dir_all(Path::new("target/cg_artifacts")).unwrap();
-        let output_file = format!("target/cg_artifacts/cachegrind_{}.out", test_name);
-        let output_command = format!("--cachegrind-out-file={}", &output_file);
+        format!("target/cg_artifacts/cachegrind_{}_{}.out", test_name, suffix)
+    }
+    /// Builds the valgrind command.
+    fn build_valgrind_command(exe_path: &str, test_name: &str, output_file: &str) -> Command {
+        let output_command = format!("--cachegrind-out-file={}", output_file);
         let mut command = Command::new("valgrind");
         command
-            .args(["--tool=cachegrind", &output_command, &exe_path, test_name])
-            // Ensures that the recursive call is made to the actual harness code block rather than back to this function
-            .env_remove("ENABLE_VALGRIND"); 
-
-        println!("Running command: {:?}", command);
+            .args(["--tool=cachegrind", &output_command, exe_path, test_name])
+            .env_remove("ENABLE_VALGRIND");
+        command
+    }
+    /// Executes the given command.
+    fn execute_command(mut command: Command) {
         let status = command.status().expect("Failed to execute valgrind");
-
         if !status.success() {
             panic!("Valgrind failed");
         }
-
+    }
+    /// Runs the cg_annotate command on the output file.
+    fn run_cg_annotate(output_file: &str) -> std::process::Output {
         let annotate_output = Command::new("cg_annotate")
-            .arg(&output_file)
+            .arg(output_file)
             .output()
             .expect("Failed to run cg_annotate");
-
         if !annotate_output.status.success() {
             panic!("cg_annotate failed");
         }
-        create_dir_all(Path::new("target/perf_outputs")).unwrap();
-        let annotate_file = format!("target/perf_outputs/{}.annotated.txt", test_name);
+        annotate_output
+    }
+    /// Saves the annotated output to prev, curr, or diff accordingly
+    fn save_annotate_output(output: &std::process::Output, suffix: &str, test_name: &str) {
+        let directory = format!("target/perf_outputs/{}", suffix);
+        create_dir_all(Path::new(&directory)).unwrap();
+        let annotate_file = format!("target/perf_outputs/{}/{}_{}.annotated.txt", suffix, test_name, suffix);
         let mut file = File::create(&annotate_file).expect("Failed to create annotation file");
-        file.write_all(&annotate_output.stdout)
+        file.write_all(&output.stdout)
             .expect("Failed to write annotation file");
+    }
+    /// Function to run the diff test using valgrind, only called when diff mode is set
+    fn run_diff_test(test_name: &str) {
+        let (prev_file, curr_file) = get_diff_files(test_name);
+        ensure_diff_files_exist(&prev_file, &curr_file);
+        
+        let diff_output = run_cg_annotate_diff(&prev_file, &curr_file);
+        save_diff_output(&diff_output, test_name);
+        
+        let diff = find_instruction_count(&diff_output)
+            .expect("Failed to parse cg_annotate --diff output");
 
-        let count = find_instruction_count(&annotate_file)
-            .expect("Failed to get instruction count from file");
-        // This is temporary code to showcase the future diff functionality, here the code regresses by 10% each time so this test will almost always fail
-        let new_count = count + count / 10;
-        let diff = new_count - count;
-        assert!(diff <= self::MAX_DIFF, "Instruction count difference in {} exceeds the threshold, regression of {} instructions", test_name, diff);
+        assert_diff_within_threshold(diff, test_name);
+    }
+    /// Retrieves the file paths for the diff test.
+    fn get_diff_files(test_name: &str) -> (String, String) {
+        (
+            format!("target/cg_artifacts/cachegrind_{}_prev.out", test_name),
+            format!("target/cg_artifacts/cachegrind_{}_curr.out", test_name),
+        )
+    }
+    /// Ensures that the required performance files exist to use diff functionality
+    fn ensure_diff_files_exist(prev_file: &str, curr_file: &str) {
+        if !Path::new(prev_file).exists() || !Path::new(curr_file).exists() {
+            panic!("Required cachegrind files not found: {} or {}", prev_file, curr_file);
+        }
+    }
+    /// Runs the cg_annotate diff command to parse already generated performance files and compare them
+    fn run_cg_annotate_diff(prev_file: &str, curr_file: &str) -> std::process::Output {
+        let diff_output = Command::new("cg_annotate")
+            .args(["--diff", prev_file, curr_file])
+            .output()
+            .expect("Failed to run cg_annotate --diff");
+        if !diff_output.status.success() {
+            panic!("cg_annotate --diff failed");
+        }
+        diff_output
+    }
+    /// Saves the output of the cg_annotate diff command to a file.
+    fn save_diff_output(output: &std::process::Output, test_name: &str) {
+        create_dir_all(Path::new("target/perf_outputs/diff")).unwrap();
+        let diff_file = format!("target/perf_outputs/diff/{}_diff.annotated.txt", test_name);
+        let mut file = File::create(&diff_file).expect("failed to create diff annotation file");
+        file.write_all(&output.stdout)
+            .expect("Failed to write diff annotation file");
+    }
+    /// Asserts that the instruction count difference is within the threshold.
+    fn assert_diff_within_threshold(diff: i64, test_name: &str) {
+        assert!(
+            diff <= MAX_DIFF,
+            "Instruction count difference in {} exceeds the threshold, regression of {} instructions",
+            test_name,
+            diff,
+        );
     }
 
-    /// Parses the annotated file for the overall instruction count total
-    fn find_instruction_count(file_path: &str) -> Result<u64, io::Error> {
-        let path = Path::new(file_path);
-        let file = File::open(path)?;
-        let reader = io::BufReader::new(file);
+    /// Parses the annotated file for the overall instruction count total.
+    fn find_instruction_count(output: &std::process::Output) -> Result<i64, io::Error> {
+        let reader = io::BufReader::new(&output.stdout[..]);
         // Example of the line being parsed:
         // "79,278,369 (100.0%)  PROGRAM TOTALS"
         for line in reader.lines() {
@@ -159,12 +247,11 @@ mod tests {
                 if let Some(instructions) = line.split_whitespace().next() {
                     return instructions
                         .replace(',', "")
-                        .parse::<u64>()
+                        .parse::<i64>()
                         .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e));
                 }
             }
         }
-
         panic!("Failed to find instruction count in annotated file");
     }
 }
