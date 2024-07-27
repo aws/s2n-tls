@@ -24,6 +24,17 @@
 #include "testlib/s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
+static S2N_RESULT s2n_allow_md5_for_fips(struct s2n_hmac_state *hmac)
+{
+    if (s2n_is_in_fips_mode()) {
+        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hmac->inner));
+        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hmac->inner_just_key));
+        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hmac->outer));
+        RESULT_GUARD_POSIX(s2n_hash_allow_md5_for_fips(&hmac->outer_just_key));
+    }
+    return S2N_RESULT_OK;
+}
+
 int main(int argc, char **argv)
 {
     uint8_t digest_pad[256];
@@ -52,12 +63,7 @@ int main(int argc, char **argv)
         uint8_t hmac_sslv3_md5_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
         EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
-        if (s2n_is_in_fips_mode()) {
-            POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.inner));
-            POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.inner_just_key));
-            POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.outer));
-            POSIX_GUARD(s2n_hash_allow_md5_for_fips(&hmac.outer_just_key));
-        }
+        EXPECT_OK(allow_md5_for_fips_if_needed(&hmac));
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_MD5, sekrit, strlen((char *) sekrit)));
         EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *) hello)));
         EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
