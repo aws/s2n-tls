@@ -1,0 +1,14 @@
+[package]
+name = "regression"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+s2n-tls = { path = "../../bindings/rust/s2n-tls", features = ["unstable-testing"] }
+bytes = { version = "1", optional = true }
+errno = { version = "0.3" }
+libc = "0.2"
+crabgrind = "0.1"
+futures-test = "0.3.30"
+[profile.release]
+debug = true
