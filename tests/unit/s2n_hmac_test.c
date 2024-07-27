@@ -63,7 +63,7 @@ int main(int argc, char **argv)
         uint8_t hmac_sslv3_md5_size = 0;
         POSIX_GUARD(s2n_hmac_digest_size(S2N_HMAC_SSLv3_MD5, &hmac_sslv3_md5_size));
         EXPECT_EQUAL(hmac_sslv3_md5_size, 16);
-        EXPECT_OK(allow_md5_for_fips_if_needed(&hmac));
+        EXPECT_OK(s2n_allow_md5_for_fips(&hmac));
         EXPECT_SUCCESS(s2n_hmac_init(&hmac, S2N_HMAC_SSLv3_MD5, sekrit, strlen((char *) sekrit)));
         EXPECT_SUCCESS(s2n_hmac_update(&hmac, hello, strlen((char *) hello)));
         EXPECT_SUCCESS(s2n_hmac_digest(&hmac, digest_pad, 16));
