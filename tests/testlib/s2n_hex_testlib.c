@@ -37,8 +37,6 @@ S2N_RESULT s2n_stuffer_alloc_from_hex(struct s2n_stuffer *bytes_out, const char 
     return S2N_RESULT_OK;
 }
 
-/* Unlike other hex methods, the hex string read here may include spaces.
- * This is useful for hex strings with odd whitespace for readability purposes. */
 S2N_RESULT s2n_blob_alloc_from_hex_with_whitespace(struct s2n_blob *bytes_out, const char *hex_cstr)
 {
     RESULT_ENSURE_REF(bytes_out);
