@@ -179,6 +179,8 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         exit(1);
     }
 
+    GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
+
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 
     GUARD_EXIT(s2n_config_set_status_request_type(config, type), "OCSP validation is not supported by the linked libCrypto implementation. It cannot be set.");
