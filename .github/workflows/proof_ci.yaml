@@ -158,8 +158,8 @@ jobs:
             && ./configure.py \
             && cd build \
             && ninja;
-          cd bitwuzla/build/src/main \
-            && echo "Adding $(pwd) to PATH for Bitwuzla" \\
+          cd src/main \
+            && echo "Adding $(pwd) to PATH for Bitwuzla" \
             && echo "$(pwd)" >> $GITHUB_PATH
       - name: Install ${{ env.KISSAT_TAG }} kissat
         if: ${{ env.KISSAT_TAG != '' }}
