@@ -489,7 +489,7 @@ uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *da
         return (uint8_t) (strcasecmp(suffix, host_name + 1) == 0);
     }
 
-    /* If we're connecting to localhost, accept any values that represents localhost */
+    /* If we're connecting to localhost, accept any values that represent localhost */
     bool is_localhost = (strcasecmp(verify_data->trusted_host, "localhost") == 0);
     is_localhost |= (strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
     if (is_localhost) {
