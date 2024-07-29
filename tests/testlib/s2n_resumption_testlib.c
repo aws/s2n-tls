@@ -21,7 +21,7 @@ S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config)
      *# PRK  = 0x077709362c2e32df0ddc3f0dc47bba63
      *#        90b6c73bb50f9c3122ec844ad7c2b3e5 (32 octets)
      **/
-    S2N_RESULT_BLOB_FROM_HEX(ticket_key,
+    S2N_CHECKED_BLOB_FROM_HEX(ticket_key, RESULT_GUARD,
             "077709362c2e32df0ddc3f0dc47bba63"
             "90b6c73bb50f9c3122ec844ad7c2b3e5");
 
