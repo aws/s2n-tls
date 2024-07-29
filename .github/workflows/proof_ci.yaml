@@ -141,7 +141,7 @@ jobs:
           cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.31/bin \
             && echo "Adding $(pwd) to PATH for Z3" \
             && echo "$(pwd)" >> $GITHUB_PATH
-          rm ./z3.zip
+          rm ../z3.zip
       - name: Build and Install Bitwuzla ${{ env.BITWUZLA_VERSION }}
         if: ${{ env.BITWUZLA_VERSION != 'latest' }}
         shell: bash
