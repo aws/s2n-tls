@@ -155,16 +155,19 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
 type LocalDataBuffer = RefCell<VecDeque<u8>>;
 
 #[derive(Debug)]
-#[allow(dead_code)] // needed by renegotiate.rs tests
+// We allow dead_code, because otherwise the compiler complains about the tx_streams
+// never being read. This is because it can't reason through the pointers that were
+// passed into the s2n-tls connection io contexts.
+#[allow(dead_code)]
 pub struct TestPairIO {
     // Pin: since we are dereferencing this pointer (because it is passed as the send/recv ctx)
     // we need to ensure that the pointer remains in the same place
     // Box: A Vec (or VecDeque) may be moved or reallocated, so we need another layer of
     // indirection to have a stable (pinned) reference
     /// a data buffer that the server writes to and the client reads from
-    pub(crate) server_tx_stream: Pin<Box<LocalDataBuffer>>,
+    pub server_tx_stream: Pin<Box<LocalDataBuffer>>,
     /// a data buffer that the client writes to and the server reads from
-    pub(crate) client_tx_stream: Pin<Box<LocalDataBuffer>>,
+    pub client_tx_stream: Pin<Box<LocalDataBuffer>>,
 }
 
 /// TestPair is a testing utility used to easily test handshakes and send data.
@@ -192,15 +195,10 @@ pub struct TestPairIO {
 //
 // The doctest is `ignore`d because testing utilities are not publicly exported
 // and therefore can't be referenced in a doc comment.
-//
-// We allow dead_code, because otherwise the compiler complains about the tx_streams
-// never being read. This is because it can't reason through the pointers that were
-// passed into the s2n-tls connection io contexts.
-#[allow(dead_code)]
 pub struct TestPair {
     pub server: connection::Connection,
     pub client: connection::Connection,
-    pub(crate) io: TestPairIO,
+    pub io: TestPairIO,
 }
 
 impl TestPair {

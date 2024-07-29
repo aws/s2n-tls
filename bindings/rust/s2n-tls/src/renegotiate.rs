@@ -73,21 +73,14 @@ impl Connection {
     ///  - Methods to set the recv callback:
     ///    ([Connection::set_receive_callback()], [Connection::set_receive_context()])
     /// Additionally, the application does not need to re-call:
-    /// - [Connection::set_application_context()]
     /// - [Connection::set_waker()]
-    ///
-    fn wipe_for_renegotiate(&mut self) -> Result<(), Error> {
-        // Reset any values in the context that need to be reset
-        self.context_mut().connection_initialized = false;
-        unsafe {
-            // Retrieve the context before the wipe
-            let context = s2n_connection_get_ctx(self.as_ptr()).into_result()?;
-
-            s2n_renegotiate_wipe(self.as_ptr()).into_result()?;
-
-            // Re-set the context
-            s2n_connection_set_ctx(self.as_ptr(), context.as_ptr()).into_result()?;
-        }
+    pub fn wipe_for_renegotiate(&mut self) -> Result<(), Error> {
+        let waker = self.waker().map(|waker| waker.clone());
+        self.wipe_method(|conn| {
+            let result = unsafe { s2n_renegotiate_wipe(conn.as_ptr()).into_result() };
+            result
+        })?;
+        self.set_waker(waker.as_ref())?;
         Ok(())
     }
 
@@ -101,40 +94,17 @@ impl Connection {
     /// and the data is written to `buf`.
     ///
     /// See s2n_renegotiate in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
-    fn poll_renegotiate(&mut self, buf: &mut [u8]) -> (Poll<Result<(), Error>>, usize) {
-        self.trigger_initializer();
-
-        // Check whether renegotiate is blocked by any async callbacks
-        match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
-            Poll::Ready(Err(err)) => return (Poll::Ready(Err(err)), 0),
-            Poll::Pending => return (Poll::Pending, 0),
-            Poll::Ready(Ok(_)) => {}
-        };
-
+    pub fn poll_renegotiate(&mut self, buf: &mut [u8]) -> (Poll<Result<(), Error>>, usize) {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().unwrap_or(0);
         let buf_ptr = buf.as_mut_ptr();
         let mut read: isize = 0;
-        let result =
-            unsafe { s2n_renegotiate(self.as_ptr(), buf_ptr, buf_len, &mut read, &mut blocked) }
+        
+        let r = self.poll_negotiate_method(|conn| {
+            unsafe { s2n_renegotiate(conn.as_ptr(), buf_ptr, buf_len, &mut read, &mut blocked) }
                 .into_poll()
-                .map_ok(|_| ());
-
-        if read > 0 {
-            // Renegotiate encountered application data.
-            // Report that application data to the application,
-            // regardless of the renegotiate result.
-            return (result, read.try_into().unwrap());
-        } else if result.is_ready() {
-            // Renegotiate succeeded or failed.
-            return (result, 0);
-        } else if self.has_async_task() {
-            // Renegotiate triggered an async callback.
-            // Poll this method again to resolve the callback.
-            return self.poll_renegotiate(buf);
-        } else {
-            return (Poll::Pending, 0);
-        }
+        });
+        (r, read.try_into().unwrap())
     }
 }
 
@@ -251,6 +221,10 @@ mod tests {
     // This makes it impossible to test renegotiation without direct access to
     // s2n-tls internals like the methods for sending arbitrary records.
     // Instead, we need to use openssl as our server.
+    //
+    // The openssl SslStream::new method requires an owned Stream,
+    // so the openssl server owns the TestPairIO. This is possible because the
+    // s2n-tls client only references the TestPairIO via C callbacks. 
     struct RenegotiateTestPair {
         client: Connection,
         server: SslStream<ServerTestStream>,
@@ -297,23 +271,18 @@ mod tests {
         }
 
         // Translate the output of openssl's `accept` to match s2n-tls's `poll_negotiate`.
-        pub fn poll_openssl_negotiate(
+        fn poll_openssl_negotiate(
             server: &mut SslStream<ServerTestStream>,
         ) -> Poll<Result<(), Box<dyn Error>>> {
             match server.accept() {
                 Ok(_) => Ready(Ok(())),
-                Err(err) => {
-                    if err.code() == ErrorCode::WANT_READ {
-                        Pending
-                    } else {
-                        Ready(Err(err.into()))
-                    }
-                }
+                Err(err) if err.code() == ErrorCode::WANT_READ => Pending,
+                Err(err) => Ready(Err(err.into())),
             }
         }
 
         // Perform a handshake with the s2n-tls client and openssl server
-        pub fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
+        fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
             loop {
                 match (
                     self.client.poll_negotiate(),
@@ -331,7 +300,7 @@ mod tests {
 
         // Send and receive the hello request message, triggering renegotiate.
         // The result of s2n-tls receiving the request is returned.
-        pub fn trigger_renegotiate(&mut self) -> Result<(), crate::error::Error> {
+        fn trigger_renegotiate(&mut self) -> Result<(), crate::error::Error> {
             let openssl_ptr = self.server.ssl().as_ptr();
 
             // Sanity check that renegotiation is not initially scheduled
@@ -360,7 +329,7 @@ mod tests {
         // Send and receive application data.
         // We have to ensure that application data continues to work during / after
         // the renegotiate.
-        pub fn send_and_receive(&mut self) -> Result<(), Box<dyn Error>> {
+        fn send_and_receive(&mut self) -> Result<(), Box<dyn Error>> {
             let to_send = [0; 1];
             let mut recv_buffer = [0; 1];
             self.server.write_all(&to_send)?;
@@ -368,6 +337,24 @@ mod tests {
             unwrap_poll(self.client.poll_send(&to_send))?;
             self.server.read(&mut recv_buffer)?;
             Ok(())
+        }
+        
+        fn assert_renegotiate(&mut self) {
+            let mut empty = [0; 0];
+            let mut buf = [0; 1];
+            let mut result = Pending;
+            while result.is_pending() {
+                // openssl can only make progress by sending and receiving a 0-length array.
+                // Both operations can fail for a number of irrelevant reasons while
+                // still making progress, so we just ignore the results.
+                _ = self.server.write(&empty);
+                _ = self.server.read(&mut empty);
+    
+                let (r, n) = self.client.poll_renegotiate(&mut buf);
+                assert_eq!(n, 0, "Unexpected application data");
+                result = r;
+            }
+            unwrap_poll(result).expect("Renegotiate");
         }
     }
 
@@ -443,21 +430,7 @@ mod tests {
             .wipe_for_renegotiate()
             .expect("Wipe for renegotiate");
 
-        let mut empty = [0; 0];
-        let mut buf = [0; 1];
-        let mut result = Pending;
-        while result.is_pending() {
-            // openssl can only make progress by sending and receiving a 0-length array.
-            // Both operations can fail for a number of irrelevant reasons while
-            // still making progress, so we just ignore the results.
-            _ = pair.server.write(&empty);
-            _ = pair.server.read(&mut empty);
-
-            let (r, n) = pair.client.poll_renegotiate(&mut buf);
-            assert_eq!(n, 0, "Unexpected application data");
-            result = r;
-        }
-        unwrap_poll(result).expect("Renegotiate");
+        pair.assert_renegotiate();
 
         pair.send_and_receive()
             .expect("Application data after renegotiate");
@@ -527,7 +500,7 @@ mod tests {
                     Pending
                 } else {
                     // Perform the pkey operation with the selected cert / key pair.
-                    let mut op = this.op.take().unwrap();
+                    let op = this.op.take().unwrap();
                     let opt_ptr = op.as_ptr();
                     let chain_ptr = conn.selected_cert().unwrap().as_mut_ptr().as_ptr();
                     unsafe {
@@ -565,21 +538,7 @@ mod tests {
             .wipe_for_renegotiate()
             .expect("Wipe for renegotiate");
 
-        let mut empty = [0; 0];
-        let mut buf = [0; 1];
-        let mut result = Pending;
-        while result.is_pending() {
-            // openssl can only make progress by sending and receiving a 0-length array.
-            // Both operations can fail for a number of irrelevant reasons while
-            // still making progress, so we just ignore the results.
-            _ = pair.server.write(&empty);
-            _ = pair.server.read(&mut empty);
-
-            let (r, n) = pair.client.poll_renegotiate(&mut buf);
-            assert_eq!(n, 0, "Unexpected application data");
-            result = r;
-        }
-        unwrap_poll(result).expect("Renegotiate");
+        pair.assert_renegotiate();
         assert_eq!(wake_count, count_per_handshake * 2);
 
         Ok(())
@@ -649,21 +608,7 @@ mod tests {
         // Verify that the wipe cleared the server name
         assert!(pair.client.server_name().is_none());
 
-        let mut empty = [0; 0];
-        let mut buf = [0; 1];
-        let mut result = Pending;
-        while result.is_pending() {
-            // openssl can only make progress by sending and receiving a 0-length array.
-            // Both operations can fail for a number of irrelevant reasons while
-            // still making progress, so we just ignore the results.
-            _ = pair.server.write(&empty);
-            _ = pair.server.read(&mut empty);
-
-            let (r, n) = pair.client.poll_renegotiate(&mut buf);
-            assert_eq!(n, 0, "Unexpected application data");
-            result = r;
-        }
-        unwrap_poll(result).expect("Renegotiate");
+        pair.assert_renegotiate();
         assert_eq!(wake_count, count_per_handshake * 2);
 
         // Both the client and server should have the correct server name

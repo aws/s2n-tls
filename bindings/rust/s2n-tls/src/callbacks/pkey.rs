@@ -73,7 +73,7 @@ impl PrivateKeyOperation {
     /// The size of the slice returned by [`input()`]
     pub fn input_size(&self) -> Result<usize, Error> {
         let mut size = 0;
-        unsafe { s2n_async_pkey_op_get_input_size(self.raw.as_ptr(), &mut size) }.into_result()?;
+        unsafe { s2n_async_pkey_op_get_input_size(self.as_ptr(), &mut size) }.into_result()?;
         size.try_into().map_err(|_| Error::INVALID_INPUT)
     }
 
@@ -84,7 +84,7 @@ impl PrivateKeyOperation {
     pub fn input(&self, buf: &mut [u8]) -> Result<(), Error> {
         let buf_len: u32 = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut u8;
-        unsafe { s2n_async_pkey_op_get_input(self.raw.as_ptr(), buf_ptr, buf_len) }
+        unsafe { s2n_async_pkey_op_get_input(self.as_ptr(), buf_ptr, buf_len) }
             .into_result()?;
         Ok(())
     }
@@ -94,14 +94,13 @@ impl PrivateKeyOperation {
         let buf_len: u32 = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr();
         unsafe {
-            s2n_async_pkey_op_set_output(self.raw.as_ptr(), buf_ptr, buf_len).into_result()?;
-            s2n_async_pkey_op_apply(self.raw.as_ptr(), conn.as_ptr()).into_result()?;
+            s2n_async_pkey_op_set_output(self.as_ptr(), buf_ptr, buf_len).into_result()?;
+            s2n_async_pkey_op_apply(self.as_ptr(), conn.as_ptr()).into_result()?;
         }
         Ok(())
     }
 
-    #[allow(dead_code)] // Needed by renegotiate.rs tests
-    pub(crate) fn as_ptr(&mut self) -> *mut s2n_async_pkey_op {
+    pub(crate) fn as_ptr(&self) -> *mut s2n_async_pkey_op {
         self.raw.as_ptr()
     }
 }

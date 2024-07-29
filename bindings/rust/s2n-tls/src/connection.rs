@@ -462,6 +462,23 @@ impl Connection {
         unsafe { s2n_connection_use_corked_io(self.connection.as_ptr()).into_result() }?;
         Ok(self)
     }
+    
+    pub(crate) fn wipe_method<F, T>(&mut self, wipe: F) -> Result<(), Error>
+        where F: FnOnce(&mut Self) -> Result<T, Error>
+    {
+        let mode = self.mode();
+        unsafe {
+            // Wiping the connection will wipe the pointer to the context,
+            // so retrieve and drop that memory first.
+            let ctx = self.context_mut();
+            drop(Box::from_raw(ctx));
+
+            wipe(self)
+        }?;
+
+        self.init_context(mode);
+        Ok(())
+    }
 
     /// wipes an existing connection and allows it to be reused.
     ///
@@ -470,21 +487,13 @@ impl Connection {
     /// called. Reusing the same connection handle(s) is more performant than repeatedly
     /// calling s2n_connection_new and s2n_connection_free
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
-        let mode = self.mode();
-        unsafe {
-            // Wiping the connection will wipe the pointer to the context,
-            // so retrieve and drop that memory first.
-            let ctx = self.context_mut();
-            drop(Box::from_raw(ctx));
-
-            s2n_connection_wipe(self.connection.as_ptr()).into_result()
-        }?;
-
-        self.init_context(mode);
+        self.wipe_method(|conn| {
+            unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() }
+        })?;
         Ok(self)
     }
 
-    pub(crate) fn trigger_initializer(&mut self) {
+    fn trigger_initializer(&mut self) {
         if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
             if let Some(config) = self.config() {
                 if let Some(callback) = config.context().connection_initializer.as_ref() {
@@ -495,58 +504,10 @@ impl Connection {
         }
     }
 
-    /// Performs the TLS handshake to completion
-    ///
-    /// Multiple callbacks can be configured for a connection and config, but
-    /// [`Self::poll_negotiate()`] can only execute and block on one callback at a time.
-    /// The handshake is sequential, not concurrent, and stops execution when
-    /// it encounters an async callback.
-    ///
-    /// The handshake does not continue execution (and therefore can't call
-    /// any other callbacks) until the blocking async task reports completion.
-    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        self.trigger_initializer();
-
-        loop {
-            // check if an async task exists and poll it to completion
-            if let Some(fut) = self.poll_async_task() {
-                match fut {
-                    Poll::Ready(Ok(())) => {
-                        // happy case:
-                        // continue and call s2n_negotiate to make progress on the handshake
-                    }
-                    Poll::Ready(Err(err)) => {
-                        // error case:
-                        // if the callback returned an error then abort the handshake
-                        return Poll::Ready(Err(err));
-                    }
-                    Poll::Pending => return Poll::Pending,
-                }
-            }
-
-            let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
-
-            match res {
-                Poll::Ready(res) => {
-                    let res = res.map(|_| self);
-                    return Poll::Ready(res);
-                }
-                Poll::Pending => {
-                    // if there is no connection_future then return, otherwise continue
-                    // looping and polling the future
-                    if !self.has_async_task() {
-                        return Poll::Pending;
-                    }
-                }
-            }
-        }
-    }
-
     // Poll the connection future if it exists.
     //
     // If the future returns Pending, then re-set it back on the Connection.
-    pub(crate) fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
+    fn poll_async_task(&mut self) -> Option<Poll<Result<(), Error>>> {
         self.take_async_callback().map(|mut callback| {
             let waker = self.waker().ok_or(Error::MISSING_WAKER)?.clone();
             let mut ctx = core::task::Context::from_waker(&waker);
@@ -560,9 +521,36 @@ impl Connection {
             }
         })
     }
+    
+    pub(crate) fn poll_negotiate_method<F, T>(&mut self, negotiate: F) -> Poll<Result<(), Error>>
+        where F: FnOnce(&mut Connection) -> Poll<Result<T, Error>>,
+    {
+        self.trigger_initializer();
 
-    pub(crate) fn has_async_task(&self) -> bool {
-        self.context().async_callback.is_some()
+        // Check whether renegotiate is blocked by any async callbacks
+        match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
+            Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(Ok(_)) => {}
+        };
+
+        negotiate(self).map_ok(|_| ())
+    }
+
+    /// Performs the TLS handshake to completion
+    ///
+    /// Multiple callbacks can be configured for a connection and config, but
+    /// [`Self::poll_negotiate()`] can only execute and block on one callback at a time.
+    /// The handshake is sequential, not concurrent, and stops execution when
+    /// it encounters an async callback.
+    ///
+    /// The handshake does not continue execution (and therefore can't call
+    /// any other callbacks) until the blocking async task reports completion.
+    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        self.poll_negotiate_method(|conn| {
+            unsafe { s2n_negotiate(conn.as_ptr(), &mut blocked).into_poll() }
+        }).map_ok(|_| self)
     }
 
     /// Encrypts and sends data on a connection where
@@ -764,7 +752,7 @@ impl Connection {
     }
 
     /// Retrieve a mutable reference to the [`Context`] stored on the connection.
-    pub(crate) fn context_mut(&mut self) -> &mut Context {
+    fn context_mut(&mut self) -> &mut Context {
         unsafe {
             let ctx = s2n_connection_get_ctx(self.connection.as_ptr())
                 .into_result()
@@ -1142,12 +1130,12 @@ impl Connection {
     }
 }
 
-pub(crate) struct Context {
+struct Context {
     mode: Mode,
     waker: Option<Waker>,
     async_callback: Option<AsyncCallback>,
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
-    pub(crate) connection_initialized: bool,
+    connection_initialized: bool,
     app_context: Option<Box<dyn Any + Send + Sync>>,
 }
 
