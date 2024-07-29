@@ -40,3 +40,5 @@ build/
 result
 result-*
 *.class
+# Exclude rust build directories
+*target/
