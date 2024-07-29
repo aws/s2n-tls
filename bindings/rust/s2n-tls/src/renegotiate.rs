@@ -99,7 +99,7 @@ impl Connection {
         let buf_len: isize = buf.len().try_into().unwrap_or(0);
         let buf_ptr = buf.as_mut_ptr();
         let mut read: isize = 0;
-        
+
         let r = self.poll_negotiate_method(|conn| {
             unsafe { s2n_renegotiate(conn.as_ptr(), buf_ptr, buf_len, &mut read, &mut blocked) }
                 .into_poll()
@@ -134,7 +134,7 @@ impl config::Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = self.context_mut();
         context.renegotiate = Some(handler);
         unsafe {
             s2n_config_set_renegotiate_request_cb(
@@ -224,7 +224,7 @@ mod tests {
     //
     // The openssl SslStream::new method requires an owned Stream,
     // so the openssl server owns the TestPairIO. This is possible because the
-    // s2n-tls client only references the TestPairIO via C callbacks. 
+    // s2n-tls client only references the TestPairIO via C callbacks.
     struct RenegotiateTestPair {
         client: Connection,
         server: SslStream<ServerTestStream>,
@@ -338,7 +338,7 @@ mod tests {
             self.server.read(&mut recv_buffer)?;
             Ok(())
         }
-        
+
         fn assert_renegotiate(&mut self) {
             let mut empty = [0; 0];
             let mut buf = [0; 1];
@@ -349,7 +349,7 @@ mod tests {
                 // still making progress, so we just ignore the results.
                 _ = self.server.write(&empty);
                 _ = self.server.read(&mut empty);
-    
+
                 let (r, n) = self.client.poll_renegotiate(&mut buf);
                 assert_eq!(n, 0, "Unexpected application data");
                 result = r;

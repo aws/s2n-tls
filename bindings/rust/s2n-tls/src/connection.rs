@@ -462,9 +462,10 @@ impl Connection {
         unsafe { s2n_connection_use_corked_io(self.connection.as_ptr()).into_result() }?;
         Ok(self)
     }
-    
+
     pub(crate) fn wipe_method<F, T>(&mut self, wipe: F) -> Result<(), Error>
-        where F: FnOnce(&mut Self) -> Result<T, Error>
+    where
+        F: FnOnce(&mut Self) -> Result<T, Error>,
     {
         let mode = self.mode();
         unsafe {
@@ -487,9 +488,7 @@ impl Connection {
     /// called. Reusing the same connection handle(s) is more performant than repeatedly
     /// calling s2n_connection_new and s2n_connection_free
     pub fn wipe(&mut self) -> Result<&mut Self, Error> {
-        self.wipe_method(|conn| {
-            unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() }
-        })?;
+        self.wipe_method(|conn| unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() })?;
         Ok(self)
     }
 
@@ -521,9 +520,10 @@ impl Connection {
             }
         })
     }
-    
+
     pub(crate) fn poll_negotiate_method<F, T>(&mut self, negotiate: F) -> Poll<Result<(), Error>>
-        where F: FnOnce(&mut Connection) -> Poll<Result<T, Error>>,
+    where
+        F: FnOnce(&mut Connection) -> Poll<Result<T, Error>>,
     {
         self.trigger_initializer();
 
@@ -548,9 +548,10 @@ impl Connection {
     /// any other callbacks) until the blocking async task reports completion.
     pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-        self.poll_negotiate_method(|conn| {
-            unsafe { s2n_negotiate(conn.as_ptr(), &mut blocked).into_poll() }
-        }).map_ok(|_| self)
+        self.poll_negotiate_method(|conn| unsafe {
+            s2n_negotiate(conn.as_ptr(), &mut blocked).into_poll()
+        })
+        .map_ok(|_| self)
     }
 
     /// Encrypts and sends data on a connection where

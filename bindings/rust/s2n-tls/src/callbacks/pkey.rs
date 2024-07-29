@@ -84,8 +84,7 @@ impl PrivateKeyOperation {
     pub fn input(&self, buf: &mut [u8]) -> Result<(), Error> {
         let buf_len: u32 = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut u8;
-        unsafe { s2n_async_pkey_op_get_input(self.as_ptr(), buf_ptr, buf_len) }
-            .into_result()?;
+        unsafe { s2n_async_pkey_op_get_input(self.as_ptr(), buf_ptr, buf_len) }.into_result()?;
         Ok(())
     }
 
