@@ -383,8 +383,7 @@ int main()
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };
 
-        /* When client sent valid keyshares
-         * only for ECC, server should choose curves[0] and not send HRR. */
+        /* When client sent KeyShares only for ECC but also supports PQ, server should choose PQ and send HRR. */
         {
             struct s2n_connection *server_conn = NULL;
             EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
@@ -422,13 +421,12 @@ int main()
 
             EXPECT_SUCCESS(s2n_extensions_server_key_share_select(server_conn));
 
-            /* Server should update its choice to curve[0], no HRR */
-            EXPECT_EQUAL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve, ecc_pref->ecc_curves[0]);
-            EXPECT_NULL(server_params->kem_group);
-            EXPECT_NULL(server_params->kem_params.kem);
-            EXPECT_NULL(server_params->ecc_params.negotiated_curve);
+            EXPECT_NULL(server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+            EXPECT_EQUAL(server_params->kem_group, kem_group0);
+            EXPECT_EQUAL(server_params->kem_params.kem, kem_group0->kem);
+            EXPECT_EQUAL(server_params->ecc_params.negotiated_curve, kem_group0->curve);
             EXPECT_NULL(server_conn->kex_params.client_kem_group_params.kem_group);
-            EXPECT_FALSE(s2n_is_hello_retry_handshake(server_conn));
+            EXPECT_TRUE(s2n_is_hello_retry_handshake(server_conn));
 
             EXPECT_SUCCESS(s2n_connection_free(server_conn));
         };

@@ -284,7 +284,7 @@ int main(int argc, char **argv)
                     /* Server responds with HRR indicating x25519+Kyber as choice for negotiation;
                      * the last 6 bytes (0033 0002 2F39) are the key share extension with x25519+Kyber */
                     DEFER_CLEANUP(struct s2n_stuffer hrr = { 0 }, s2n_stuffer_free);
-                    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&hrr,
+                    EXPECT_OK(s2n_stuffer_alloc_from_hex(&hrr,
                             "0303CF21AD74E59A6111BE1D8C021E65B891C2A211167ABB8C5E079E09E2C8A8339C00130200000C002B00020304003300022F39"));
 
                     EXPECT_SUCCESS(s2n_stuffer_copy(&hrr, &conn->handshake.io, s2n_stuffer_data_available(&hrr)));

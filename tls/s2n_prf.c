@@ -967,9 +967,9 @@ static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_key_m
     POSIX_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(cipher->set_encryption_key(&conn->secure->client_key, &key_material->client_key));
+        POSIX_GUARD_RESULT(cipher->set_encryption_key(&conn->secure->client_key, &key_material->client_key));
     } else {
-        POSIX_GUARD(cipher->set_decryption_key(&conn->secure->client_key, &key_material->client_key));
+        POSIX_GUARD_RESULT(cipher->set_decryption_key(&conn->secure->client_key, &key_material->client_key));
     }
 
     return 0;
@@ -987,9 +987,9 @@ static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_key_m
     POSIX_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_SERVER) {
-        POSIX_GUARD(cipher->set_encryption_key(&conn->secure->server_key, &key_material->server_key));
+        POSIX_GUARD_RESULT(cipher->set_encryption_key(&conn->secure->server_key, &key_material->server_key));
     } else {
-        POSIX_GUARD(cipher->set_decryption_key(&conn->secure->server_key, &key_material->server_key));
+        POSIX_GUARD_RESULT(cipher->set_decryption_key(&conn->secure->server_key, &key_material->server_key));
     }
 
     return 0;
@@ -1033,8 +1033,8 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_prf_generate_key_material(conn, &key_material));
 
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
-    POSIX_GUARD(cipher->init(&conn->secure->client_key));
-    POSIX_GUARD(cipher->init(&conn->secure->server_key));
+    POSIX_GUARD_RESULT(cipher->init(&conn->secure->client_key));
+    POSIX_GUARD_RESULT(cipher->init(&conn->secure->server_key));
 
     /* Seed the client MAC */
     POSIX_GUARD(s2n_hmac_reset(&conn->secure->client_record_mac));

@@ -7,7 +7,7 @@ mod tests {
         callbacks::{SessionTicket, SessionTicketCallback},
         config::ConnectionInitializer,
         connection::{self, Connection},
-        testing::{s2n_tls::*, *},
+        testing::*,
     };
     use futures_test::task::noop_waker;
     use std::{error::Error, sync::Mutex, time::SystemTime};
@@ -86,59 +86,32 @@ mod tests {
             .set_connection_initializer(handler)?;
         let client_config = client_config_builder.build()?;
 
-        // create and configure a server connection
-        let mut server = connection::Connection::new_server();
-        server
-            .set_config(server_config.clone())
-            .expect("Failed to bind config to server connection");
+        // initial handshake, no resumption
+        {
+            let mut pair = TestPair::from_configs(&client_config, &server_config);
+            // Client needs a waker due to its use of an async callback
+            pair.client.set_waker(Some(&noop_waker()))?;
+            pair.handshake()?;
 
-        // create a client connection
-        let mut client = connection::Connection::new_client();
+            // Check connection was full handshake and a session ticket was included
+            assert!(!pair.client.resumed());
+            validate_session_ticket(&pair.client)?;
+        }
 
-        // Client needs a waker due to its use of an async callback
-        client
-            .set_waker(Some(&noop_waker()))?
-            .set_config(client_config.clone())
-            .expect("Unable to set client config");
+        // the first handshake yielded a session ticket, so the second handshake
+        // should be able to use resumption
+        {
+            let mut pair = TestPair::from_configs(&client_config, &server_config);
+            // Client needs a waker due to its use of an async callback
+            pair.client.set_waker(Some(&noop_waker()))?;
+            pair.handshake()?;
+            // Check new connection was resumed
+            assert!(pair.client.resumed());
+            // validate that a ticket is available
+            validate_session_ticket(&pair.client)?;
+            validate_session_ticket(&pair.server)?;
+        }
 
-        let server = Harness::new(server);
-        let client = Harness::new(client);
-        let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
-
-        let client = pair.client.0.connection();
-
-        // Check connection was full handshake and a session ticket was included
-        assert!(!client.resumed());
-        validate_session_ticket(client)?;
-
-        // create and configure a client/server connection again
-        let mut server = connection::Connection::new_server();
-        server
-            .set_config(server_config)
-            .expect("Failed to bind config to server connection");
-
-        // create a client connection with a resumption ticket
-        let mut client = connection::Connection::new_client();
-
-        client
-            .set_waker(Some(&noop_waker()))?
-            .set_config(client_config)
-            .expect("Unable to set client config");
-
-        let server = Harness::new(server);
-        let client = Harness::new(client);
-        let pair = Pair::new(server, client);
-        let pair = poll_tls_pair(pair);
-
-        let client = pair.client.0.connection();
-        let server = pair.server.0.connection();
-
-        // Check new connection was resumed
-        assert!(client.resumed());
-        // validate that a ticket is available
-        validate_session_ticket(client)?;
-        validate_session_ticket(server)?;
         Ok(())
     }
 
@@ -167,63 +140,26 @@ mod tests {
             .set_security_policy(&security::DEFAULT_TLS13)?;
         let client_config = client_config_builder.build()?;
 
-        // create and configure a server connection
-        let mut server = connection::Connection::new_server();
-        server
-            .set_config(server_config.clone())
-            .expect("Failed to bind config to server connection");
+        // 1st handshake: no session ticket, so no resumption
+        // 2nd handshake: should be able to use the session ticket from the first
+        //                handshake (stored on the config) to resume
+        for expected_resumption in [false, true] {
+            let mut pair = TestPair::from_configs(&client_config, &server_config);
+            // Client needs a waker due to its use of an async callback
+            pair.client.set_waker(Some(&noop_waker()))?;
+            pair.handshake()?;
 
-        // create a client connection
-        let mut client = connection::Connection::new_client();
-        client
-            .set_waker(Some(&noop_waker()))?
-            .set_config(client_config.clone())
-            .expect("Unable to set client config");
+            // Do a recv call on the client side to read a session ticket. Poll function
+            // returns pending since no application data was read, however it is enough
+            // to collect the session ticket.
+            assert!(pair.client.poll_recv(&mut [0]).is_pending());
 
-        let server = Harness::new(server);
-        let client = Harness::new(client);
-        let pair = Pair::new(server, client);
-        let mut pair = poll_tls_pair(pair);
+            // assert the resumption status
+            assert_eq!(pair.client.resumed(), expected_resumption);
 
-        // Do a recv call on the client side to read a session ticket. Poll function
-        // returns pending since no application data was read, however it is enough
-        // to collect the session ticket.
-        assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
-
-        let client = pair.client.0.connection();
-        // Check connection was full handshake
-        assert!(!client.resumed());
-        // validate that a ticket is available
-        validate_session_ticket(client)?;
-
-        // create and configure a client/server connection again
-        let mut server = connection::Connection::new_server();
-        server
-            .set_config(server_config)
-            .expect("Failed to bind config to server connection");
-
-        // create a client connection with a resumption ticket
-        let mut client = connection::Connection::new_client();
-        client
-            .set_waker(Some(&noop_waker()))?
-            .set_config(client_config)
-            .expect("Unable to set client config");
-
-        let server = Harness::new(server);
-        let client = Harness::new(client);
-        let pair = Pair::new(server, client);
-        let mut pair = poll_tls_pair(pair);
-
-        // Do a recv call on the client side to read a session ticket. Poll function
-        // returns pending since no application data was read, however it is enough
-        // to collect the session ticket.
-        assert!(pair.poll_recv(Mode::Client, &mut [0]).is_pending());
-
-        let client = pair.client.0.connection();
-        // Check new connection was resumed
-        assert!(client.resumed());
-        // validate that a ticket is available
-        validate_session_ticket(client)?;
+            // validate that a ticket is available
+            validate_session_ticket(&pair.client)?;
+        }
         Ok(())
     }
 }

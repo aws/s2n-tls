@@ -6,14 +6,10 @@ edition = "2021"
 publish = false
 
 [dependencies]
-s2n-tls = { path = "../s2n-tls", features = ["testing"] }
+s2n-tls = { path = "../s2n-tls"}
 s2n-tls-sys = { path = "../s2n-tls-sys" }
 criterion = { version = "0.3", features = ["html_reports"] }
 anyhow = "1"
-
-[[bench]]
-name = "handshake"
-harness = false
 
 [[bench]]
 name = "s2nc"

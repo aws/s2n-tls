@@ -28,9 +28,16 @@ use std::{any::Any, ffi::CStr};
 mod builder;
 pub use builder::*;
 
-macro_rules! static_const_str {
+/// return a &str scoped to the lifetime of the surrounding function
+///
+/// SAFETY: must be called on a null terminated string
+///
+/// SAFETY: the underlying data must live at least as long as the surrounding scope
+// We use a macro instead of a function so that the lifetime of the output is
+// automatically inferred to match the surrounding scope.
+macro_rules! const_str {
     ($c_chars:expr) => {
-        unsafe { CStr::from_ptr($c_chars) }
+        CStr::from_ptr($c_chars)
             .to_str()
             .map_err(|_| Error::INVALID_INPUT)
     };
@@ -583,7 +590,7 @@ impl Connection {
     /// Safety: this function is always safe to call, and additionally:
     /// 1. It will never deinitialize any bytes in `buf`.
     /// 2. If it returns `Ok(n)`, then the first `n` bytes of `buf`
-    /// will have been initialized by this function.
+    ///    will have been initialized by this function.
     pub fn poll_recv_uninitialized(
         &mut self,
         buf: &mut [MaybeUninit<u8>],
@@ -850,6 +857,7 @@ impl Connection {
         Ok(())
     }
 
+    /// Access the protocol version selected for the connection.
     pub fn actual_protocol_version(&self) -> Result<Version, Error> {
         let version = unsafe {
             s2n_connection_get_actual_protocol_version(self.connection.as_ptr()).into_result()?
@@ -857,25 +865,53 @@ impl Connection {
         version.try_into()
     }
 
+    /// Detects if the client hello is using the SSLv2 format.
+    ///
+    /// s2n-tls will not negotiate SSLv2, but will accept SSLv2 ClientHellos
+    /// advertising a higher protocol version like SSLv3 or TLS1.0.
+    /// [Connection::actual_protocol_version()] can be used to retrieve the
+    /// protocol version that is actually used on the connection.
+    pub fn client_hello_is_sslv2(&self) -> Result<bool, Error> {
+        let version = unsafe {
+            s2n_connection_get_client_hello_version(self.connection.as_ptr()).into_result()?
+        };
+        let version: Version = version.try_into()?;
+        Ok(version == Version::SSLV2)
+    }
+
     pub fn handshake_type(&self) -> Result<&str, Error> {
         let handshake = unsafe {
             s2n_connection_get_handshake_type_name(self.connection.as_ptr()).into_result()?
         };
-        // The strings returned by s2n_connection_get_handshake_type_name
-        // are static and immutable after they are first calculated
-        static_const_str!(handshake)
+        unsafe {
+            // SAFETY: Constructed strings have a null byte appended to them.
+            // SAFETY: The data has a 'static lifetime, because it resides in a
+            //         static char array, and is never modified after its initial
+            //         creation.
+            const_str!(handshake)
+        }
     }
 
     pub fn cipher_suite(&self) -> Result<&str, Error> {
         let cipher = unsafe { s2n_connection_get_cipher(self.connection.as_ptr()).into_result()? };
-        // The strings returned by s2n_connection_get_cipher
-        // are static and immutable since they are const fields on static const structs
-        static_const_str!(cipher)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: cipher has a static lifetime because it lives on s2n_cipher_suite,
+            //         a static struct.
+            const_str!(cipher)
+        }
     }
 
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
-        static_const_str!(curve)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: curve has a static lifetime because it lives on s2n_ecc_named_curve,
+            //         which is a static const struct.
+            const_str!(curve)
+        }
     }
 
     pub fn selected_signature_algorithm(&self) -> Result<SignatureAlgorithm, Error> {
@@ -924,6 +960,14 @@ impl Connection {
             s2n_tls_hash_algorithm::NONE => None,
             hash_alg => Some(hash_alg.try_into()?),
         })
+    }
+
+    pub fn application_protocol(&self) -> Option<&[u8]> {
+        let protocol = unsafe { s2n_get_application_protocol(self.connection.as_ptr()) };
+        if protocol.is_null() {
+            return None;
+        }
+        Some(unsafe { CStr::from_ptr(protocol).to_bytes() })
     }
 
     /// Provides access to the TLS-Exporter functionality.
