@@ -471,34 +471,6 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     conn->session_id_len = conn->client_hello.session_id.size;
     POSIX_CHECKED_MEMCPY(conn->session_id, conn->client_hello.session_id.data, conn->session_id_len);
 
-    /* Set default key exchange curve.
-     * This is going to be our fallback if the client has no preference.
-     *
-     * P-256 is our preferred fallback option because the TLS1.3 RFC requires
-     * all implementations to support it:
-     *
-     *     https://tools.ietf.org/rfc/rfc8446#section-9.1
-     *     A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256)
-     *     and SHOULD support key exchange with X25519 [RFC7748]
-     *
-     *= https://www.rfc-editor.org/rfc/rfc4492#section-4
-     *# A client that proposes ECC cipher suites may choose not to include these extensions.
-     *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.
-     *
-     */
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-    POSIX_ENSURE_GT(ecc_pref->count, 0);
-    if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
-        conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-    } else {
-        /* If P-256 isn't allowed by the current security policy, instead choose
-         * the first / most preferred curve.
-         */
-        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    }
-
     POSIX_GUARD_RESULT(s2n_client_hello_verify_for_retry(conn,
             &previous_hello_retry, &conn->client_hello, previous_client_random));
     return S2N_SUCCESS;
@@ -563,6 +535,34 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     if (!s2n_connection_supports_tls13(conn) || !s2n_security_policy_supports_tls13(security_policy)) {
         conn->server_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
+    }
+
+    /* Set default key exchange curve.
+     * This is going to be our fallback if the client has no preference.
+     *
+     * P-256 is our preferred fallback option because the TLS1.3 RFC requires
+     * all implementations to support it:
+     *
+     *     https://tools.ietf.org/rfc/rfc8446#section-9.1
+     *     A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256)
+     *     and SHOULD support key exchange with X25519 [RFC7748]
+     *
+     *= https://www.rfc-editor.org/rfc/rfc4492#section-4
+     *# A client that proposes ECC cipher suites may choose not to include these extensions.
+     *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.
+     *
+     */
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    POSIX_ENSURE_REF(ecc_pref);
+    POSIX_ENSURE_GT(ecc_pref->count, 0);
+    if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+    } else {
+        /* If P-256 isn't allowed by the current security policy, instead choose
+         * the first / most preferred curve.
+         */
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
     }
 
     POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &conn->client_hello.extensions));
@@ -672,7 +672,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         conn->client_hello.callback_invoked = true;
 
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
-        if (conn->config->client_hello_cb) {
+        if (conn->config && conn->config->client_hello_cb) {
             int rc = conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx);
             POSIX_GUARD_RESULT(s2n_client_hello_process_cb_response(conn, rc));
         }
