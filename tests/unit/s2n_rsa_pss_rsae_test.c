@@ -318,8 +318,8 @@ int main(int argc, char **argv)
         RSA_free(rsa_key_copy);
 
         struct s2n_stuffer message_stuffer = { 0 }, signature_stuffer = { 0 };
-        s2n_stuffer_alloc_ro_from_hex_string(&message_stuffer, test_case.message);
-        s2n_stuffer_alloc_ro_from_hex_string(&signature_stuffer, test_case.signature);
+        POSIX_GUARD_RESULT(s2n_stuffer_alloc_from_hex(&message_stuffer, test_case.message));
+        POSIX_GUARD_RESULT(s2n_stuffer_alloc_from_hex(&signature_stuffer, test_case.signature));
         hash_state_for_alg_new(verify_hash, test_case.hash_alg, message_stuffer.blob);
 
         int ret_val = rsa_public_key.verify(&rsa_public_key, S2N_SIGNATURE_RSA_PSS_RSAE,
