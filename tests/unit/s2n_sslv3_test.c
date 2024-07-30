@@ -53,7 +53,7 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    if (!s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5)) {
+    if (!s2n_hmac_is_available(S2N_HMAC_SSLv3_SHA1)) {
         /* AWS-LC should support SSLv3. */
         EXPECT_FALSE(s2n_libcrypto_is_awslc());
 
