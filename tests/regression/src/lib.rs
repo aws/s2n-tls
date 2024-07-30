@@ -126,14 +126,15 @@ mod tests {
     /// Function to run specified test using valgrind
     fn run_valgrind_test(test_name: &str, suffix: &str) {
         let exe_path = std::env::args().next().unwrap();
-        let output_file = create_output_file_path(test_name, suffix);
+        let commit_hash = get_current_commit_hash();
+        let output_file = create_output_file_path(test_name, &commit_hash);
         let command = build_valgrind_command(&exe_path, test_name, &output_file);
 
         println!("Running command: {:?}", command);
         execute_command(command);
 
         let annotate_output = run_cg_annotate(&output_file);
-        save_annotate_output(&annotate_output, suffix, test_name);
+        save_annotate_output(&annotate_output, &suffix, &commit_hash, test_name);
 
         let count = find_instruction_count(&annotate_output)
             .expect("Failed to get instruction count from file");
@@ -141,11 +142,26 @@ mod tests {
         println!("Instruction count for {}: {}", test_name, count);
     }
 
+    fn get_current_commit_hash() -> String {
+        let output = Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .expect("Failed to get commit hash");
+    
+        if !output.status.success() {
+            panic!("Git command failed");
+        }
+    
+        String::from_utf8(output.stdout)
+            .expect("Invalid UTF-8 in commit hash")
+            .trim()
+            .to_string()
+    }
+
     fn create_output_file_path(test_name: &str, suffix: &str) -> String {
         create_dir_all(Path::new("target/cg_artifacts")).unwrap();
         format!(
-            "target/cg_artifacts/cachegrind_{}_{}.out",
-            test_name, suffix
+            "target/cg_artifacts/cachegrind_{test_name}_{suffix}.out"
         )
     }
 
@@ -177,12 +193,11 @@ mod tests {
     }
 
     /// Saves the annotated output to prev, curr, or diff accordingly
-    fn save_annotate_output(output: &std::process::Output, suffix: &str, test_name: &str) {
-        let directory = format!("target/perf_outputs/{}", suffix);
+    fn save_annotate_output(output: &std::process::Output, suffix: &str, commit_hash: &str, test_name: &str) {
+        let directory = format!("target/perf_outputs/{suffix}");
         create_dir_all(Path::new(&directory)).unwrap();
         let annotate_file = format!(
-            "target/perf_outputs/{}/{}_{}.annotated.txt",
-            suffix, test_name, suffix
+            "target/perf_outputs/{suffix}/{test_name}_{commit_hash}.annotated.txt"
         );
         let mut file = File::create(annotate_file).expect("Failed to create annotation file");
         file.write_all(&output.stdout)
@@ -205,16 +220,15 @@ mod tests {
 
     fn get_diff_files(test_name: &str) -> (String, String) {
         (
-            format!("target/cg_artifacts/cachegrind_{}_prev.out", test_name),
-            format!("target/cg_artifacts/cachegrind_{}_curr.out", test_name),
+            format!("target/cg_artifacts/cachegrind_{test_name}_prev.out"),
+            format!("target/cg_artifacts/cachegrind_{test_name}_curr.out"),
         )
     }
 
     fn ensure_diff_files_exist(prev_file: &str, curr_file: &str) {
         if !Path::new(prev_file).exists() || !Path::new(curr_file).exists() {
             panic!(
-                "Required cachegrind files not found: {} or {}",
-                prev_file, curr_file
+                "Required cachegrind files not found: {prev_file} or {curr_file}"
             );
         }
     }
@@ -233,7 +247,7 @@ mod tests {
 
     fn save_diff_output(output: &std::process::Output, test_name: &str) {
         create_dir_all(Path::new("target/perf_outputs/diff")).unwrap();
-        let diff_file = format!("target/perf_outputs/diff/{}_diff.annotated.txt", test_name);
+        let diff_file = format!("target/perf_outputs/diff/{test_name}_diff.annotated.txt");
         let mut file = File::create(diff_file).expect("failed to create diff annotation file");
         file.write_all(&output.stdout)
             .expect("Failed to write diff annotation file");
@@ -242,9 +256,8 @@ mod tests {
     fn assert_diff_within_threshold(diff: i64, test_name: &str) {
         assert!(
             diff <= MAX_DIFF,
-            "Instruction count difference in {} exceeds the threshold, regression of {} instructions",
-            test_name,
-            diff,
+            "Instruction count difference in {test_name} exceeds the threshold, regression of {diff} instructions. 
+            Check the annotated output logs in {test_name}_diff.annoated.txt for debug information"
         );
     }
 
