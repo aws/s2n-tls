@@ -23,6 +23,10 @@
 #define S2N_TLS13_FIXED_STATE_SIZE            21
 #define S2N_TLS13_FIXED_EARLY_DATA_STATE_SIZE 3
 
+/* This is used in session ticket validation. This controls how far in the future
+ * the session ticket issue time can be while still being accepted.
+ */
+#define MAX_ALLOWED_CLOCK_SKEW_SEC     3600
 #define S2N_TLS_SESSION_CACHE_TTL      (6 * 60 * 60)
 #define S2N_TICKET_KEY_NAME_LEN        16
 #define S2N_TICKET_AAD_IMPLICIT_LEN    12
@@ -71,10 +75,9 @@ struct s2n_session_ticket {
 };
 
 struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint8_t name[S2N_TICKET_KEY_NAME_LEN]);
-int s2n_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
-int s2n_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
-int s2n_encrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *to);
-int s2n_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from);
+S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *to);
+S2N_RESULT s2n_resume_decrypt_session_ticket(struct s2n_connection *conn, struct s2n_stuffer *from);
+S2N_RESULT s2n_resume_decrypt_session_cache(struct s2n_connection *conn, struct s2n_stuffer *from);
 S2N_RESULT s2n_config_is_encrypt_key_available(struct s2n_config *config);
 int s2n_verify_unique_ticket_key(struct s2n_config *config, uint8_t *hash, uint16_t *insert_index);
 int s2n_config_wipe_expired_ticket_crypto_keys(struct s2n_config *config, int8_t expired_key_index);

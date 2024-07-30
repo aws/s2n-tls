@@ -16,6 +16,7 @@ unstable-renegotiate = ["s2n-tls-sys/unstable-renegotiate"]
 quic = ["s2n-tls-sys/quic"]
 fips = ["s2n-tls-sys/fips"]
 pq = ["s2n-tls-sys/pq"]
+unstable-testing = []
 
 [dependencies]
 errno = { version = "0.3" }
