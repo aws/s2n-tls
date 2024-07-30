@@ -72,16 +72,8 @@ impl Connection {
     ///    ([Connection::set_send_callback()], [Connection::set_send_context()])
     ///  - Methods to set the recv callback:
     ///    ([Connection::set_receive_callback()], [Connection::set_receive_context()])
-    /// Additionally, the application does not need to re-call:
-    /// - [Connection::set_waker()]
     pub fn wipe_for_renegotiate(&mut self) -> Result<(), Error> {
-        let waker = self.waker().map(|waker| waker.clone());
-        self.wipe_method(|conn| {
-            let result = unsafe { s2n_renegotiate_wipe(conn.as_ptr()).into_result() };
-            result
-        })?;
-        self.set_waker(waker.as_ref())?;
-        Ok(())
+        self.wipe_method(|conn| unsafe { s2n_renegotiate_wipe(conn.as_ptr()).into_result() })
     }
 
     /// Perform a new handshake on an already established connection.
@@ -537,6 +529,8 @@ mod tests {
         pair.client
             .wipe_for_renegotiate()
             .expect("Wipe for renegotiate");
+        // Reset the waker
+        pair.client.set_waker(Some(&waker))?;
 
         pair.assert_renegotiate();
         assert_eq!(wake_count, count_per_handshake * 2);
@@ -607,6 +601,8 @@ mod tests {
             .expect("Wipe for renegotiate");
         // Verify that the wipe cleared the server name
         assert!(pair.client.server_name().is_none());
+        // Reset the waker
+        pair.client.set_waker(Some(&waker))?;
 
         pair.assert_renegotiate();
         assert_eq!(wake_count, count_per_handshake * 2);
