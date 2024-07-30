@@ -41,8 +41,7 @@ Run the scalar performance for all harnesses on the current branch version of s2
 ENABLE_VALGRIND=true cargo test
 ```
 `git checkout` or `git switch` to mainline/version being compared to. Make sure you have stashed or committed any changes.
-```
-ENABLE_VALGRIND=true TEST_SUFFIX=prev cargo test
+ENABLE_VALGRIND=true cargo test
 DIFF_MODE=true cargo test
 ```
 Restore your original version by switching back to it. This will assert on the performance difference of the current version minus the previous. If the regression exceeds the const `MAX_DIFF`, the test fails. Performance output profiles are stored in `target/perf_outputs`:
