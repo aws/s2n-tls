@@ -45,6 +45,16 @@
 #define S2N_MAX_STACK_IOVECS     16
 #define S2N_MAX_STACK_IOVECS_MEM (S2N_MAX_STACK_IOVECS * sizeof(struct iovec))
 
+#ifdef __APPLE__
+#include <AvailabilityMacros.h>
+#if MAC_OS_X_VERSION_MIN_REQUIRED < 110000
+#ifdef __DARWIN_ALIGN32
+#undef __DARWIN_ALIGN32
+#define __DARWIN_ALIGN32(p) ((__darwin_size_t)((__darwin_size_t)(p) + __DARWIN_ALIGNBYTES32) &~ __DARWIN_ALIGNBYTES32)
+#endif
+#endif
+#endif
+
 /* Used to override sendmsg and recvmsg for testing. */
 static ssize_t s2n_ktls_default_sendmsg(void *io_context, const struct msghdr *msg);
 static ssize_t s2n_ktls_default_recvmsg(void *io_context, struct msghdr *msg);
