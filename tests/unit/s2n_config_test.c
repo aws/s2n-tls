@@ -1213,10 +1213,11 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
         }
     }
+
     /* Checks that servers don't use a config before the client hello callback is executed on a
      * SSLv2-formatted client hello.
      *
-     * Parsing SSLv2 hellos uses a different codepath and need to be tested separately.
+     * Parsing SSLv2 hellos uses a different code path and need to be tested separately.
      */
     {
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
