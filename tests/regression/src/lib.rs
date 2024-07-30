@@ -1,6 +1,3 @@
-// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
-// SPDX-License-Identifier: Apache-2.0
-
 use s2n_tls::{
     config::Builder,
     security,
@@ -40,8 +37,6 @@ mod tests {
         process::Command,
     };
 
-    /// Configurable threshold for regression testing.
-    /// Tests will fail if the instruction count difference is greater than the value of this constant.
     const MAX_DIFF: i64 = 1_000;
 
     struct InstrumentationControl;
@@ -56,17 +51,10 @@ mod tests {
         }
     }
 
-    /// Environment variable to determine whether to run under valgrind or solely test functionality.
     fn is_running_under_valgrind() -> bool {
         env::var("ENABLE_VALGRIND").is_ok()
     }
 
-    /// Function to get the test suffix from environment variables. If the var is not set, it defaults to curr.
-    fn get_test_suffix() -> String {
-        env::var("TEST_SUFFIX").unwrap_or_else(|_| "curr".to_string())
-    }
-
-    /// Function to determine if diff mode is enabled.
     fn is_diff_mode() -> bool {
         env::var("DIFF_MODE").is_ok()
     }
@@ -75,7 +63,6 @@ mod tests {
     where
         F: FnOnce(&InstrumentationControl) -> Result<(), s2n_tls::error::Error>,
     {
-        let suffix = get_test_suffix();
         if !is_running_under_valgrind() {
             if is_diff_mode() {
                 run_diff_test(test_name);
@@ -85,12 +72,11 @@ mod tests {
                 test_body(&ctrl)
             }
         } else {
-            run_valgrind_test(test_name, &suffix);
+            run_valgrind_test(test_name);
             Ok(())
         }
     }
 
-    /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
     #[test]
     fn test_set_config() {
         valgrind_test("test_set_config", |ctrl| {
@@ -104,17 +90,13 @@ mod tests {
         .unwrap();
     }
 
-    /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake.
     #[test]
     fn test_rsa_handshake() {
         valgrind_test("test_rsa_handshake", |ctrl| {
             ctrl.stop_instrumentation();
-            // Example usage with RSA keypair (default)
             let keypair_rsa = CertKeyPair::default();
             let config = set_config(&security::DEFAULT_TLS13, keypair_rsa)?;
-            // Create a pair (client + server) using that config, start handshake measurement
             let mut pair = TestPair::from_config(&config);
-            // Assert a successful handshake
             ctrl.start_instrumentation();
             assert!(pair.handshake().is_ok());
             ctrl.stop_instrumentation();
@@ -123,8 +105,7 @@ mod tests {
         .unwrap();
     }
 
-    /// Function to run specified test using valgrind
-    fn run_valgrind_test(test_name: &str, suffix: &str) {
+    fn run_valgrind_test(test_name: &str) {
         let exe_path = std::env::args().next().unwrap();
         let commit_hash = get_current_commit_hash();
         let output_file = create_output_file_path(test_name, &commit_hash);
@@ -134,7 +115,7 @@ mod tests {
         execute_command(command);
 
         let annotate_output = run_cg_annotate(&output_file);
-        save_annotate_output(&annotate_output, &suffix, &commit_hash, test_name);
+        save_annotate_output(&annotate_output, &commit_hash, test_name);
 
         let count = find_instruction_count(&annotate_output)
             .expect("Failed to get instruction count from file");
@@ -147,22 +128,20 @@ mod tests {
             .args(["rev-parse", "HEAD"])
             .output()
             .expect("Failed to get commit hash");
-    
+
         if !output.status.success() {
             panic!("Git command failed");
         }
-    
+
         String::from_utf8(output.stdout)
             .expect("Invalid UTF-8 in commit hash")
             .trim()
             .to_string()
     }
 
-    fn create_output_file_path(test_name: &str, suffix: &str) -> String {
+    fn create_output_file_path(test_name: &str, commit_hash: &str) -> String {
         create_dir_all(Path::new("target/cg_artifacts")).unwrap();
-        format!(
-            "target/cg_artifacts/cachegrind_{test_name}_{suffix}.out"
-        )
+        format!("target/cg_artifacts/cachegrind_{test_name}_{commit_hash}.out")
     }
 
     fn build_valgrind_command(exe_path: &str, test_name: &str, output_file: &str) -> Command {
@@ -192,13 +171,10 @@ mod tests {
         annotate_output
     }
 
-    /// Saves the annotated output to prev, curr, or diff accordingly
-    fn save_annotate_output(output: &std::process::Output, suffix: &str, commit_hash: &str, test_name: &str) {
-        let directory = format!("target/perf_outputs/{suffix}");
+    fn save_annotate_output(output: &std::process::Output, commit_hash: &str, test_name: &str) {
+        let directory = "target/perf_outputs";
         create_dir_all(Path::new(&directory)).unwrap();
-        let annotate_file = format!(
-            "target/perf_outputs/{suffix}/{test_name}_{commit_hash}.annotated.txt"
-        );
+        let annotate_file = format!("target/perf_outputs/{test_name}_{commit_hash}.annotated.txt");
         let mut file = File::create(annotate_file).expect("Failed to create annotation file");
         file.write_all(&output.stdout)
             .expect("Failed to write annotation file");
@@ -206,9 +182,7 @@ mod tests {
 
     /// Function to run the diff test using valgrind, only called when diff mode is set
     fn run_diff_test(test_name: &str) {
-        let (prev_file, curr_file) = get_diff_files(test_name);
-        ensure_diff_files_exist(&prev_file, &curr_file);
-
+        let (prev_file, curr_file) = find_and_validate_diff_files(test_name);
         let diff_output = run_cg_annotate_diff(&prev_file, &curr_file);
         save_diff_output(&diff_output, test_name);
 
@@ -218,22 +192,77 @@ mod tests {
         assert_diff_within_threshold(diff, test_name);
     }
 
-    fn get_diff_files(test_name: &str) -> (String, String) {
-        (
-            format!("target/cg_artifacts/cachegrind_{test_name}_prev.out"),
-            format!("target/cg_artifacts/cachegrind_{test_name}_curr.out"),
-        )
-    }
-
-    fn ensure_diff_files_exist(prev_file: &str, curr_file: &str) {
-        if !Path::new(prev_file).exists() || !Path::new(curr_file).exists() {
+    fn find_and_validate_diff_files(test_name: &str) -> (String, String) {
+        let annotated_files = find_annotated_files(test_name);
+        if annotated_files.len() != 2 {
             panic!(
-                "Required cachegrind files not found: {prev_file} or {curr_file}"
+                "Expected exactly 2 annotated files for {}, found {}",
+                test_name,
+                annotated_files.len()
             );
         }
+
+        let file1 = &annotated_files[0];
+        let file2 = &annotated_files[1];
+
+        if !is_commit_in_log(file1) || !is_commit_in_log(file2) {
+            panic!(
+                "One or both commit hashes are not in the git log: {} or {}",
+                extract_commit_hash(file1),
+                extract_commit_hash(file2)
+            );
+        }
+
+        let (old_file, new_file) = if is_older_commit(file1, file2) {
+            (file1.clone(), file2.clone())
+        } else if is_older_commit(file2, file1) {
+            (file2.clone(), file1.clone())
+        } else {
+            panic!(
+                "Cannot determine the older commit between {} and {}",
+                file1, file2
+            );
+        };
+
+        (old_file, new_file)
     }
 
-    /// Runs the cg_annotate diff command to parse already generated performance files and compare them
+    fn find_annotated_files(test_name: &str) -> Vec<String> {
+        let pattern = format!("target/perf_outputs/{}_*.annotated.txt", test_name);
+        glob::glob(&pattern)
+            .expect("Failed to read glob pattern")
+            .filter_map(Result::ok)
+            .map(|path| path.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    fn is_commit_in_log(file: &str) -> bool {
+        let commit = extract_commit_hash(file);
+        let output = Command::new("git")
+            .args(["log", "--pretty=format:%H"])
+            .output()
+            .expect("Failed to execute git log");
+        let log = String::from_utf8(output.stdout).expect("Invalid UTF-8 in git log output");
+        log.lines().any(|line| line == commit)
+    }
+
+    fn is_older_commit(file1: &str, file2: &str) -> bool {
+        let commit1 = extract_commit_hash(file1);
+        let commit2 = extract_commit_hash(file2);
+        let output = Command::new("git")
+            .args(["merge-base", "--is-ancestor", &commit1, &commit2])
+            .status()
+            .expect("Failed to execute git merge-base");
+        output.success()
+    }
+
+    fn extract_commit_hash(file: &str) -> String {
+        let parts: Vec<&str> = file.split('_').collect();
+        parts[parts.len() - 1]
+            .replace(".annotated.txt", "")
+            .to_string()
+    }
+
     fn run_cg_annotate_diff(prev_file: &str, curr_file: &str) -> std::process::Output {
         let diff_output = Command::new("cg_annotate")
             .args(["--diff", prev_file, curr_file])
@@ -256,8 +285,9 @@ mod tests {
     fn assert_diff_within_threshold(diff: i64, test_name: &str) {
         assert!(
             diff <= MAX_DIFF,
-            "Instruction count difference in {test_name} exceeds the threshold, regression of {diff} instructions. 
-            Check the annotated output logs in {test_name}_diff.annoated.txt for debug information"
+            "Instruction count difference in {} exceeds the threshold, regression of {} instructions. 
+            Check the annotated output logs in {}_diff.annotated.txt for debug information",
+            test_name, diff, test_name
         );
     }
 
