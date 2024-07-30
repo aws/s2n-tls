@@ -489,9 +489,15 @@ uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *da
         return (uint8_t) (strcasecmp(suffix, host_name + 1) == 0);
     }
 
-    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
-        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
-                || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    /* If we're connecting to localhost, accept any values that represent localhost */
+    bool is_localhost = (strcasecmp(verify_data->trusted_host, "localhost") == 0);
+    is_localhost |= (strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    if (is_localhost) {
+        bool match = (strcasecmp(host_name, "localhost") == 0);
+        match |= (strcasecmp(host_name, "127.0.0.1") == 0);
+        /* Some of our older test certificates use odd common names */
+        match |= (strcasecmp(host_name, "s2nTestServer") == 0);
+        return (uint8_t) match;
     }
 
     return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);
