@@ -176,11 +176,15 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_stuffer encoded, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_alloc(&encoded, sizeof(bytes) * 2));
-        EXPECT_OK(s2n_key_log_hex_encode(&encoded, bytes, sizeof(bytes)));
+        struct s2n_blob raw_bytes = { 0 };
+        EXPECT_SUCCESS(s2n_blob_init(&raw_bytes, bytes, sizeof(bytes)));
+        EXPECT_OK(s2n_stuffer_write_hex(&encoded, &raw_bytes));
 
         DEFER_CLEANUP(struct s2n_stuffer decoded, s2n_stuffer_free);
         EXPECT_SUCCESS(s2n_stuffer_alloc(&decoded, sizeof(bytes)));
-        EXPECT_SUCCESS(s2n_stuffer_read_hex(&encoded, &decoded, sizeof(bytes)));
+
+        encoded.blob.size = s2n_stuffer_data_available(&encoded);
+        EXPECT_OK(s2n_stuffer_read_hex(&decoded, &encoded.blob));
 
         uint8_t *out = s2n_stuffer_raw_read(&decoded, s2n_stuffer_data_available(&decoded));
         EXPECT_NOT_NULL(out);
