@@ -183,6 +183,7 @@ mod tests {
     /// Function to run the diff test using valgrind, only called when diff mode is set
     fn run_diff_test(test_name: &str) {
         let (prev_file, curr_file) = find_and_validate_diff_files(test_name);
+        print!("{prev_file} and {curr_file}");
         let diff_output = run_cg_annotate_diff(&prev_file, &curr_file);
         save_diff_output(&diff_output, test_name);
 
@@ -228,7 +229,7 @@ mod tests {
     }
 
     fn find_annotated_files(test_name: &str) -> Vec<String> {
-        let pattern = format!("target/perf_outputs/{}_*.annotated.txt", test_name);
+        let pattern = format!("target/cg_artifacts/cachegrind_{}_*.out", test_name);
         glob::glob(&pattern)
             .expect("Failed to read glob pattern")
             .filter_map(Result::ok)
@@ -259,7 +260,7 @@ mod tests {
     fn extract_commit_hash(file: &str) -> String {
         let parts: Vec<&str> = file.split('_').collect();
         parts[parts.len() - 1]
-            .replace(".annotated.txt", "")
+            .replace(".out", "")
             .to_string()
     }
 
