@@ -565,6 +565,7 @@ int main(int argc, char *const *argv)
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+    printf("libcrypto: %s\n", SSLeay_version(SSLEAY_VERSION));
 
     printf("Listening on %s:%s\n", host, port);
 
