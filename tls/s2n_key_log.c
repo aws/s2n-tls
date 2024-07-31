@@ -50,24 +50,6 @@
 /* hex requires 2 chars per byte */
 #define HEX_ENCODING_SIZE 2
 
-S2N_RESULT s2n_key_log_hex_encode(struct s2n_stuffer *output, uint8_t *bytes, size_t len)
-{
-    RESULT_ENSURE_MUT(output);
-    RESULT_ENSURE_REF(bytes);
-
-    const uint8_t chars[] = "0123456789abcdef";
-
-    for (size_t i = 0; i < len; i++) {
-        uint8_t upper = bytes[i] >> 4;
-        uint8_t lower = bytes[i] & 0x0f;
-
-        RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(output, chars[upper]));
-        RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(output, chars[lower]));
-    }
-
-    return S2N_RESULT_OK;
-}
-
 S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, const struct s2n_blob *secret, s2n_secret_type_t secret_type)
 {
     RESULT_ENSURE_REF(conn);
@@ -127,10 +109,14 @@ S2N_RESULT s2n_key_log_tls13_secret(struct s2n_connection *conn, const struct s2
     DEFER_CLEANUP(struct s2n_stuffer output, s2n_stuffer_free);
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(&output, len));
 
+    struct s2n_blob client_random = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->handshake_params.client_random,
+            sizeof(conn->handshake_params.client_random)));
+
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&output, label, label_size));
-    RESULT_GUARD(s2n_key_log_hex_encode(&output, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    RESULT_GUARD(s2n_stuffer_write_hex(&output, &client_random));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&output, ' '));
-    RESULT_GUARD(s2n_key_log_hex_encode(&output, secret->data, secret->size));
+    RESULT_GUARD(s2n_stuffer_write_hex(&output, secret));
 
     uint8_t *data = s2n_stuffer_raw_read(&output, len);
     RESULT_ENSURE_REF(data);
@@ -162,10 +148,18 @@ S2N_RESULT s2n_key_log_tls12_secret(struct s2n_connection *conn)
     DEFER_CLEANUP(struct s2n_stuffer output, s2n_stuffer_free);
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(&output, len));
 
+    struct s2n_blob client_random = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&client_random, conn->handshake_params.client_random,
+            sizeof(conn->handshake_params.client_random)));
+
+    struct s2n_blob master_secret = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&master_secret, conn->secrets.version.tls12.master_secret,
+            sizeof(conn->secrets.version.tls12.master_secret)));
+
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&output, label, label_size));
-    RESULT_GUARD(s2n_key_log_hex_encode(&output, conn->handshake_params.client_random, S2N_TLS_RANDOM_DATA_LEN));
+    RESULT_GUARD(s2n_stuffer_write_hex(&output, &client_random));
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint8(&output, ' '));
-    RESULT_GUARD(s2n_key_log_hex_encode(&output, conn->secrets.version.tls12.master_secret, S2N_TLS_SECRET_LEN));
+    RESULT_GUARD(s2n_stuffer_write_hex(&output, &master_secret));
 
     uint8_t *data = s2n_stuffer_raw_read(&output, len);
     RESULT_ENSURE_REF(data);
