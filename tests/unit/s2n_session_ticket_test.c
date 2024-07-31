@@ -25,6 +25,7 @@
 
 #define S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS (S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS + S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS) / ONE_SEC_IN_NANOS
 #define S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES         S2N_STATE_FORMAT_LEN + S2N_SESSION_TICKET_SIZE_LEN
+#define S2N_TICKET_KEY_NAME_LOCATION                    S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES + S2N_TICKET_VERSION_SIZE
 #define ONE_SEC_DELAY                                   1
 
 #define S2N_CLOCK_SYS CLOCK_REALTIME
@@ -229,8 +230,7 @@ int main(int argc, char **argv)
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
@@ -395,8 +395,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(s2n_connection_get_session_ticket_lifetime_hint(client_conn), S2N_SESSION_STATE_CONFIGURABLE_LIFETIME_IN_SECS);
 
         /* Verify that the new NST is encrypted using second ST */
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         EXPECT_SUCCESS(s2n_shutdown_test_server_and_client(server_conn, client_conn));
@@ -508,8 +507,7 @@ int main(int argc, char **argv)
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
@@ -580,8 +578,7 @@ int main(int argc, char **argv)
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         /* Verify the lifetime hint from the server */
@@ -648,8 +645,7 @@ int main(int argc, char **argv)
         /* Verify that the client received NST */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
@@ -696,8 +692,7 @@ int main(int argc, char **argv)
         /* Verify that client_ticket is empty */
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), 1 + 1 + client_conn->session_id_len + S2N_TLS12_STATE_SIZE_IN_BYTES);
         EXPECT_EQUAL(memcmp(serialized_session_state, &s2n_state_with_session_id, 1), 0);
-        EXPECT_NOT_EQUAL(memcmp(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                                         + S2N_TICKET_VERSION_SIZE,
+        EXPECT_NOT_EQUAL(memcmp(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                                  ticket_key_name2, s2n_array_len(ticket_key_name2)),
                 0);
 
@@ -822,8 +817,7 @@ int main(int argc, char **argv)
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name1, s2n_array_len(ticket_key_name1));
 
         /* Verify the lifetime hint from the server */
@@ -908,8 +902,7 @@ int main(int argc, char **argv)
             serialized_session_state_length = s2n_connection_get_session_length(client_conn);
             EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length),
                     serialized_session_state_length);
-            int result = memcmp(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                            + S2N_TICKET_VERSION_SIZE,
+            int result = memcmp(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                     ticket_key_name2,
                     s2n_array_len(ticket_key_name2));
             if (result == 0) {
@@ -984,8 +977,7 @@ int main(int argc, char **argv)
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         /* Verify the lifetime hint from the server */
@@ -1046,8 +1038,7 @@ int main(int argc, char **argv)
         /* Verify that the client received NST which is encrypted using a key which is at it's peak encryption */
         serialized_session_state_length = s2n_connection_get_session_length(client_conn);
         EXPECT_EQUAL(s2n_connection_get_session(client_conn, serialized_session_state, serialized_session_state_length), serialized_session_state_length);
-        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_PARTIAL_SESSION_STATE_INFO_IN_BYTES
-                        + S2N_TICKET_VERSION_SIZE,
+        EXPECT_BYTEARRAY_EQUAL(serialized_session_state + S2N_TICKET_KEY_NAME_LOCATION,
                 ticket_key_name2, s2n_array_len(ticket_key_name2));
 
         /* Verify that the keys are stored from oldest to newest */

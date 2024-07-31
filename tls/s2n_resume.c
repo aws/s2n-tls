@@ -768,7 +768,6 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
 }
 
 struct s2n_unique_ticket_key {
-    uint8_t initial_key[S2N_AES256_KEY_LEN];
     uint8_t info[S2N_AES256_KEY_LEN];
     uint8_t output_key[S2N_AES256_KEY_LEN];
 };
@@ -780,12 +779,12 @@ struct s2n_unique_ticket_key {
  * random nonce will be generated twice and used with the same ticket key.
  * To avoid this we generate a unique session ticket encryption key for each ticket.
  **/
-static S2N_RESULT s2n_resume_generate_unique_ticket_key(struct s2n_unique_ticket_key *key)
+static S2N_RESULT s2n_resume_generate_unique_ticket_key(uint8_t *initial_key, struct s2n_unique_ticket_key *key)
 {
     RESULT_ENSURE_REF(key);
 
     struct s2n_blob in_key_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&in_key_blob, key->initial_key, sizeof(key->initial_key)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&in_key_blob, initial_key, S2N_AES256_KEY_LEN));
     struct s2n_blob out_key_blob = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&out_key_blob, key->output_key, sizeof(key->output_key)));
     struct s2n_blob info_blob = { 0 };
@@ -794,6 +793,8 @@ static S2N_RESULT s2n_resume_generate_unique_ticket_key(struct s2n_unique_ticket
     RESULT_GUARD_POSIX(s2n_blob_init(&salt, NULL, 0));
 
     DEFER_CLEANUP(struct s2n_hmac_state hmac = { 0 }, s2n_hmac_free);
+    /* TODO: There may be an optimization here to reuse existing hmac memory instead of
+     * creating an entire new hmac. See: https://github.com/aws/s2n-tls/issues/3206 */
     RESULT_GUARD_POSIX(s2n_hmac_new(&hmac));
     RESULT_GUARD_POSIX(s2n_hkdf(&hmac, S2N_HMAC_SHA256, &salt, &in_key_blob, &info_blob, &out_key_blob));
 
@@ -811,15 +812,14 @@ S2N_RESULT s2n_resume_encrypt_session_ticket(struct s2n_connection *conn, struct
 
     /* Generate unique per-ticket encryption key */
     struct s2n_unique_ticket_key ticket_key = { 0 };
-    RESULT_CHECKED_MEMCPY(ticket_key.initial_key, key->aes_key, sizeof(key->aes_key));
     struct s2n_blob info_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&info_blob, ticket_key.info, sizeof(key->aes_key)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&info_blob, ticket_key.info, sizeof(ticket_key.info)));
     RESULT_GUARD(s2n_get_public_random_data(&info_blob));
-    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key));
+    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(key->aes_key, &ticket_key));
 
     /* Initialize AES key */
     struct s2n_blob aes_key_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&aes_key_blob, ticket_key.output_key, sizeof(key->aes_key)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&aes_key_blob, ticket_key.output_key, sizeof(ticket_key.output_key)));
     DEFER_CLEANUP(struct s2n_session_key aes_ticket_key = { 0 }, s2n_session_key_free);
     RESULT_GUARD_POSIX(s2n_session_key_alloc(&aes_ticket_key));
     RESULT_GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
@@ -896,9 +896,8 @@ static S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct
     RESULT_ENSURE(key != NULL, S2N_ERR_KEY_USED_IN_SESSION_TICKET_NOT_FOUND);
 
     struct s2n_unique_ticket_key ticket_key = { 0 };
-    RESULT_CHECKED_MEMCPY(ticket_key.initial_key, key->aes_key, sizeof(key->aes_key));
     RESULT_GUARD_POSIX(s2n_stuffer_read_bytes(from, ticket_key.info, sizeof(ticket_key.info)));
-    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(&ticket_key));
+    RESULT_GUARD(s2n_resume_generate_unique_ticket_key(key->aes_key, &ticket_key));
 
     /* Read IV */
     uint8_t iv_data[S2N_TLS_GCM_IV_LEN] = { 0 };
@@ -908,7 +907,7 @@ static S2N_RESULT s2n_resume_decrypt_session(struct s2n_connection *conn, struct
 
     /* Initialize AES key */
     struct s2n_blob aes_key_blob = { 0 };
-    RESULT_GUARD_POSIX(s2n_blob_init(&aes_key_blob, ticket_key.output_key, sizeof(key->aes_key)));
+    RESULT_GUARD_POSIX(s2n_blob_init(&aes_key_blob, ticket_key.output_key, sizeof(ticket_key.output_key)));
     DEFER_CLEANUP(struct s2n_session_key aes_ticket_key = { 0 }, s2n_session_key_free);
     RESULT_GUARD_POSIX(s2n_session_key_alloc(&aes_ticket_key));
     RESULT_GUARD(s2n_aes256_gcm.init(&aes_ticket_key));
