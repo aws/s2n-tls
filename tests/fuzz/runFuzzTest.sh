@@ -22,13 +22,14 @@ usage() {
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "4" ]; then
     usage
 fi
 
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
 CORPUS_UPLOAD_LOC=$3
+ARTIFACT_UPLOAD_LOC=$4
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
@@ -227,6 +228,14 @@ then
         if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
             printf "Uploading corpus files to S3 bucket...\n"
             aws s3 sync ./corpus/${TEST_NAME}/ $CORPUS_UPLOAD_LOC/${TEST_NAME}/
+        fi
+
+        # Store generated output files in the S3 bucket.
+        if [ "$ARTIFACT_UPLOAD_LOC" != "none" ]; then
+            printf "Uploading output files to S3 bucket...\n"
+            aws s3 cp ./tests/fuzz/${TEST_NAME}_output.txt s3://s2n-build-artifacts/s2nFuzzScheduledArtifacts/${TEST_NAME}/${TEST_NAME}_output_$(date +%Y-%m-%d).txt
+            aws s3 cp ./${TEST_NAME}_results.txt           s3://s2n-build-artifacts/s2nFuzzScheduledArtifacts/${TEST_NAME}/${TEST_NAME}_results_$(date +%Y-%m-%d).txt
+            aws s3 cp ./${TEST_NAME}                       s3://s2n-build-artifacts/s2nFuzzScheduledArtifacts/${TEST_NAME}/${TEST_NAME}_$(date +%Y-%m-%d)
         fi
     fi
 
