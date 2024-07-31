@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use s2n_tls::{
     config::Builder,
     security,
@@ -197,9 +200,7 @@ mod tests {
         let annotated_files = find_annotated_files(test_name);
         let file_len = annotated_files.len();
         if file_len != 2 {
-            panic!(
-                "Expected exactly 2 annotated files for {test_name}, found {file_len}"
-            );
+            panic!("Expected exactly 2 annotated files for {test_name}, found {file_len}");
         }
 
         let file1 = &annotated_files[0];
@@ -218,9 +219,7 @@ mod tests {
         } else if is_older_commit(file2, file1) {
             (file2.clone(), file1.clone())
         } else {
-            panic!(
-                "Cannot determine the older commit between {file1} and {file2}",
-            );
+            panic!("Cannot determine the older commit between {file1} and {file2}",);
         };
 
         (old_file, new_file)
@@ -257,9 +256,7 @@ mod tests {
 
     fn extract_commit_hash(file: &str) -> String {
         let parts: Vec<&str> = file.split('_').collect();
-        parts[parts.len() - 1]
-            .replace(".out", "")
-            .to_string()
+        parts[parts.len() - 1].replace(".out", "").to_string()
     }
 
     fn run_cg_annotate_diff(prev_file: &str, curr_file: &str) -> std::process::Output {
