@@ -71,7 +71,7 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 | PQ-TLS-1-2-2023-10-08 |    X    |    X    |     X*     |  X   |
 | PQ-TLS-1-2-2023-10-07 |    X    |    X    |     X*     |      |
 | PQ-TLS-1-3-2023-06-01 |    X    |    X    |     X*     |  X   |
-* only for TLS1.3
+\* only for TLS1.3
 
 ### Chart: Security Policy Version To Signature Schemes
 
