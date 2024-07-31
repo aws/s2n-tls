@@ -394,6 +394,14 @@ impl Connection {
         Ok(self)
     }
 
+    /// # Safety
+    ///
+    /// The `context` pointer must live at least as long as the connection
+    pub unsafe fn set_send_context(&mut self, context: *mut c_void) -> Result<&mut Self, Error> {
+        s2n_connection_set_send_ctx(self.connection.as_ptr(), context).into_result()?;
+        Ok(self)
+    }
+
     /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
     /// trusted.
     ///
@@ -428,14 +436,6 @@ impl Connection {
         Ok(self)
     }
 
-    /// # Safety
-    ///
-    /// The `context` pointer must live at least as long as the connection
-    pub unsafe fn set_send_context(&mut self, context: *mut c_void) -> Result<&mut Self, Error> {
-        s2n_connection_set_send_ctx(self.connection.as_ptr(), context).into_result()?;
-        Ok(self)
-    }
-
     /// Connections prefering low latency will be encrypted using small record sizes that
     /// can be decrypted sooner by the recipient.
     pub fn prefer_low_latency(&mut self) -> Result<&mut Self, Error> {
@@ -463,13 +463,10 @@ impl Connection {
         Ok(self)
     }
 
-    /// wipes an existing connection and allows it to be reused.
-    ///
-    /// This method erases all data associated with a connection including pending reads.
-    /// This function should be called after all I/O is completed and s2n_shutdown has been
-    /// called. Reusing the same connection handle(s) is more performant than repeatedly
-    /// calling s2n_connection_new and s2n_connection_free
-    pub fn wipe(&mut self) -> Result<&mut Self, Error> {
+    pub(crate) fn wipe_method<F, T>(&mut self, wipe: F) -> Result<(), Error>
+    where
+        F: FnOnce(&mut Self) -> Result<T, Error>,
+    {
         let mode = self.mode();
         unsafe {
             // Wiping the connection will wipe the pointer to the context,
@@ -477,63 +474,30 @@ impl Connection {
             let ctx = self.context_mut();
             drop(Box::from_raw(ctx));
 
-            s2n_connection_wipe(self.connection.as_ptr()).into_result()
+            wipe(self)
         }?;
 
         self.init_context(mode);
+        Ok(())
+    }
+
+    /// wipes an existing connection and allows it to be reused.
+    ///
+    /// This method erases all data associated with a connection including pending reads.
+    /// This function should be called after all I/O is completed and s2n_shutdown has been
+    /// called. Reusing the same connection handle(s) is more performant than repeatedly
+    /// calling s2n_connection_new and s2n_connection_free
+    pub fn wipe(&mut self) -> Result<&mut Self, Error> {
+        self.wipe_method(|conn| unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() })?;
         Ok(self)
     }
 
-    /// Performs the TLS handshake to completion
-    ///
-    /// Multiple callbacks can be configured for a connection and config, but
-    /// [`Self::poll_negotiate()`] can only execute and block on one callback at a time.
-    /// The handshake is sequential, not concurrent, and stops execution when
-    /// it encounters an async callback.
-    ///
-    /// The handshake does not continue execution (and therefore can't call
-    /// any other callbacks) until the blocking async task reports completion.
-    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+    fn trigger_initializer(&mut self) {
         if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
             if let Some(config) = self.config() {
                 if let Some(callback) = config.context().connection_initializer.as_ref() {
                     let future = callback.initialize_connection(self);
                     AsyncCallback::trigger(future, self);
-                }
-            }
-        }
-
-        loop {
-            // check if an async task exists and poll it to completion
-            if let Some(fut) = self.poll_async_task() {
-                match fut {
-                    Poll::Ready(Ok(())) => {
-                        // happy case:
-                        // continue and call s2n_negotiate to make progress on the handshake
-                    }
-                    Poll::Ready(Err(err)) => {
-                        // error case:
-                        // if the callback returned an error then abort the handshake
-                        return Poll::Ready(Err(err));
-                    }
-                    Poll::Pending => return Poll::Pending,
-                }
-            }
-
-            let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
-
-            match res {
-                Poll::Ready(res) => {
-                    let res = res.map(|_| self);
-                    return Poll::Ready(res);
-                }
-                Poll::Pending => {
-                    // if there is no connection_future then return, otherwise continue
-                    // looping and polling the future
-                    if self.context_mut().async_callback.is_none() {
-                        return Poll::Pending;
-                    }
                 }
             }
         }
@@ -555,6 +519,39 @@ impl Connection {
                 }
             }
         })
+    }
+
+    pub(crate) fn poll_negotiate_method<F, T>(&mut self, negotiate: F) -> Poll<Result<(), Error>>
+    where
+        F: FnOnce(&mut Connection) -> Poll<Result<T, Error>>,
+    {
+        self.trigger_initializer();
+
+        // Check whether renegotiate is blocked by any async callbacks
+        match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
+            Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(Ok(_)) => {}
+        };
+
+        negotiate(self).map_ok(|_| ())
+    }
+
+    /// Performs the TLS handshake to completion
+    ///
+    /// Multiple callbacks can be configured for a connection and config, but
+    /// [`Self::poll_negotiate()`] can only execute and block on one callback at a time.
+    /// The handshake is sequential, not concurrent, and stops execution when
+    /// it encounters an async callback.
+    ///
+    /// The handshake does not continue execution (and therefore can't call
+    /// any other callbacks) until the blocking async task reports completion.
+    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        self.poll_negotiate_method(|conn| unsafe {
+            s2n_negotiate(conn.as_ptr(), &mut blocked).into_poll()
+        })
+        .map_ok(|_| self)
     }
 
     /// Encrypts and sends data on a connection where

@@ -12,6 +12,7 @@ license = "Apache-2.0"
 default = []
 unstable-fingerprint = ["s2n-tls-sys/unstable-fingerprint"]
 unstable-ktls = ["s2n-tls-sys/unstable-ktls"]
+unstable-renegotiate = ["s2n-tls-sys/unstable-renegotiate"]
 quic = ["s2n-tls-sys/quic"]
 fips = ["s2n-tls-sys/fips"]
 pq = ["s2n-tls-sys/pq"]
@@ -27,6 +28,8 @@ hex = "0.4"
 [dev-dependencies]
 futures-test = "0.3"
 openssl = "0.10"
+openssl-sys = "0.9"
+foreign-types = "0.3"
 temp-env = "0.3"
 checkers = "0.6"
 # newer versions require rust 1.66, see https://github.com/aws/s2n-tls/issues/4241
