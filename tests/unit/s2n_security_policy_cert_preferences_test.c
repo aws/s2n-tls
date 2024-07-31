@@ -315,19 +315,11 @@ int main(int argc, char **argv)
     {
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert = NULL, s2n_cert_chain_and_key_ptr_free);
         /* use a very insecure cert that would not be included in any reasonable cert preferences */
-        if (s2n_is_in_fips_mode() && !s2n_libcrypto_is_awslc()) {
-            /* OpenSSL FIPS module requires the key size for RSA to be bigger than or equal to 1024 bits.
-             * See https://github.com/aws/s2n-tls/issues/4651 for more information.
-             */
-            EXPECT_FAILURE_WITH_ERRNO(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "512", "sha1"),
-                    S2N_ERR_ENCRYPT);
-        } else {
-            EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "512", "sha1"));
+        EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "1024", "sha1"));
 
-            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
-            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
-            EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 1);
-        }
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
+        EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 1);
     };
 
     END_TEST();

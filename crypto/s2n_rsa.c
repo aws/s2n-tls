@@ -21,7 +21,6 @@
 
 #include "crypto/s2n_drbg.h"
 #include "crypto/s2n_evp_signing.h"
-#include "crypto/s2n_fips.h"
 #include "crypto/s2n_hash.h"
 #include "crypto/s2n_pkey.h"
 #include "crypto/s2n_rsa_signing.h"
