@@ -563,6 +563,7 @@ int main(int argc, char *const *argv)
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+    printf("libcrypto: %s\n", SSLeay_version(SSLEAY_VERSION));
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));
