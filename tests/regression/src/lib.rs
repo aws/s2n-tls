@@ -120,7 +120,7 @@ mod tests {
         let count = find_instruction_count(&annotate_output)
             .expect("Failed to get instruction count from file");
 
-        println!("Instruction count for {}: {}", test_name, count);
+        println!("Instruction count for {test_name}: {count}");
     }
 
     fn get_current_commit_hash() -> String {
@@ -145,7 +145,7 @@ mod tests {
     }
 
     fn build_valgrind_command(exe_path: &str, test_name: &str, output_file: &str) -> Command {
-        let output_command = format!("--cachegrind-out-file={}", output_file);
+        let output_command = format!("--cachegrind-out-file={output_file}");
         let mut command = Command::new("valgrind");
         command
             .args(["--tool=cachegrind", &output_command, exe_path, test_name])
@@ -195,11 +195,10 @@ mod tests {
 
     fn find_and_validate_diff_files(test_name: &str) -> (String, String) {
         let annotated_files = find_annotated_files(test_name);
-        if annotated_files.len() != 2 {
+        let file_len = annotated_files.len();
+        if file_len != 2 {
             panic!(
-                "Expected exactly 2 annotated files for {}, found {}",
-                test_name,
-                annotated_files.len()
+                "Expected exactly 2 annotated files for {test_name}, found {file_len}"
             );
         }
 
@@ -207,10 +206,10 @@ mod tests {
         let file2 = &annotated_files[1];
 
         if !is_commit_in_log(file1) || !is_commit_in_log(file2) {
+            let first_hash = extract_commit_hash(file1);
+            let second_hash = extract_commit_hash(file2);
             panic!(
-                "One or both commit hashes are not in the git log: {} or {}",
-                extract_commit_hash(file1),
-                extract_commit_hash(file2)
+                "One or both commit hashes are not in the git log: {first_hash} or {second_hash}"
             );
         }
 
@@ -220,8 +219,7 @@ mod tests {
             (file2.clone(), file1.clone())
         } else {
             panic!(
-                "Cannot determine the older commit between {} and {}",
-                file1, file2
+                "Cannot determine the older commit between {file1} and {file2}",
             );
         };
 
@@ -229,7 +227,7 @@ mod tests {
     }
 
     fn find_annotated_files(test_name: &str) -> Vec<String> {
-        let pattern = format!("target/cg_artifacts/cachegrind_{}_*.out", test_name);
+        let pattern = format!("target/cg_artifacts/cachegrind_{test_name}_*.out");
         glob::glob(&pattern)
             .expect("Failed to read glob pattern")
             .filter_map(Result::ok)
@@ -286,9 +284,8 @@ mod tests {
     fn assert_diff_within_threshold(diff: i64, test_name: &str) {
         assert!(
             diff <= MAX_DIFF,
-            "Instruction count difference in {} exceeds the threshold, regression of {} instructions. 
-            Check the annotated output logs in {}_diff.annotated.txt for debug information",
-            test_name, diff, test_name
+            "Instruction count difference in {test_name} exceeds the threshold, regression of {diff} instructions. 
+            Check the annotated output logs in {test_name}_diff.annotated.txt for debug information"
         );
     }
 
