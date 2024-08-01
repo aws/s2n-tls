@@ -68,6 +68,7 @@ pub mod git {
 
     pub fn extract_commit_hash(file: &str) -> String {
         // input: "target/$commit_id/test_name.raw"
+        // output: "$commit_id"
         file.split("target/")
             .nth(1)
             .and_then(|s| s.split('/').next())
@@ -103,10 +104,12 @@ mod tests {
         }
     }
 
+    /// Environment variable to determine whether to run under valgrind or solely test functionality.
     fn is_running_under_valgrind() -> bool {
         env::var("ENABLE_VALGRIND").is_ok()
     }
 
+    /// Function to determine if diff mode is enabled, runs diff assertion if it is.
     fn is_diff_mode() -> bool {
         env::var("DIFF_MODE").is_ok()
     }
@@ -129,6 +132,7 @@ mod tests {
         }
     }
 
+    /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
     #[test]
     fn test_set_config() {
         valgrind_test("test_set_config", |ctrl| {
@@ -141,7 +145,7 @@ mod tests {
         })
         .unwrap();
     }
-
+    /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake.
     #[test]
     fn test_rsa_handshake() {
         valgrind_test("test_rsa_handshake", |ctrl| {
@@ -167,7 +171,10 @@ mod tests {
         execute_command(command);
 
         let annotate_output = run_annotation(&output_file);
-        write_to_file(&create_annotated_profile_path(test_name, &commit_hash), &annotate_output);
+        write_to_file(
+            &create_annotated_profile_path(test_name, &commit_hash),
+            &annotate_output,
+        );
 
         let count = find_instruction_count(&annotate_output)
             .expect("Failed to get instruction count from file");
