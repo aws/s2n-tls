@@ -233,9 +233,9 @@ then
         # Store generated output files in the S3 bucket.
         if [ "$ARTIFACT_UPLOAD_LOC" != "none" ]; then
             printf "Uploading output files to S3 bucket...\n"
-            aws s3 cp ./tests/fuzz/${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${TEST_NAME}_output_$(date +%Y-%m-%d).txt
-            aws s3 cp ./${TEST_NAME}_results.txt           ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${TEST_NAME}_results_$(date +%Y-%m-%d).txt
-            aws s3 cp ./${TEST_NAME}                       ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${TEST_NAME}_$(date +%Y-%m-%d)
+            aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${TEST_NAME}_output_$(date +%Y-%m-%d).txt
+            aws s3 cp ./${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${TEST_NAME}_results_$(date +%Y-%m-%d).txt
+            aws s3 cp ./${TEST_NAME} ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/${TEST_NAME}_$(date +%Y-%m-%d)
         fi
     fi
 
