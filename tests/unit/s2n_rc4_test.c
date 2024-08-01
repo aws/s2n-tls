@@ -36,6 +36,8 @@ int main(int argc, char **argv)
     /* Test Openssl-3.0 does not support RC4 */
     if (S2N_OPENSSL_VERSION_AT_LEAST(3, 0, 0)) {
         EXPECT_FALSE(s2n_rc4.is_available());
+    } else {
+        EXPECT_TRUE(s2n_rc4.is_available());
     }
 
     /* Test FIPS does not support RC4 */
