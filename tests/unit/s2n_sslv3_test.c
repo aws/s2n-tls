@@ -53,14 +53,6 @@ int main(int argc, char **argv)
 {
     BEGIN_TEST();
 
-    if (!s2n_hmac_is_available(S2N_HMAC_SSLv3_MD5)) {
-        /* AWS-LC should support SSLv3. */
-        EXPECT_FALSE(s2n_libcrypto_is_awslc());
-
-        /* Other libcryptos may not support SSLv3, so the tests are skipped. */
-        END_TEST();
-    }
-
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *rsa_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_chain_and_key,
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
