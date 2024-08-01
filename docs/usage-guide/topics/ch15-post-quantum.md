@@ -18,7 +18,6 @@ If you're unsure what cryptography library s2n-tls is built against, trying runn
 libcrypto: AWS-LC
 Listening on localhost:8000
 ```
-If you built s2n-tls with the [cmake build instructions](https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-s2n-tls), s2nd and s2nc can be found in `build/bin`.
 
 ### Security Policy
 
