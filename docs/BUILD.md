@@ -63,6 +63,7 @@ cmake3 . -Bbuild \
 cmake3 --build build -j $(nproc)
 cd build
 CTEST_PARALLEL_LEVEL=$(nproc) ctest3 --test-dir build
+cd ..
 cmake3 --install build
 ```
 </details>
