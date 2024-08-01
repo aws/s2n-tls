@@ -27,6 +27,55 @@ pub fn set_config(
     builder.build()
 }
 
+pub mod git {
+    use std::process::Command;
+
+    pub fn get_current_commit_hash() -> String {
+        let output = Command::new("git")
+            .args(["rev-parse", "HEAD"])
+            .output()
+            .expect("Failed to get commit hash");
+
+        if !output.status.success() {
+            panic!("Git command failed");
+        }
+
+        String::from_utf8(output.stdout)
+            .expect("Invalid UTF-8 in commit hash")
+            .trim()
+            .to_string()
+    }
+
+    pub fn is_commit_in_log(file: &str) -> bool {
+        let commit = extract_commit_hash(file);
+        let output = Command::new("git")
+            .args(["log", "--pretty=format:%H"])
+            .output()
+            .expect("Failed to execute git log");
+        let log = String::from_utf8(output.stdout).expect("Invalid UTF-8 in git log output");
+        log.lines().any(|line| line == commit)
+    }
+
+    pub fn is_older_commit(file1: &str, file2: &str) -> bool {
+        let commit1 = extract_commit_hash(file1);
+        let commit2 = extract_commit_hash(file2);
+        let output = Command::new("git")
+            .args(["merge-base", "--is-ancestor", &commit1, &commit2])
+            .status()
+            .expect("Failed to execute git merge-base");
+        output.success()
+    }
+
+    pub fn extract_commit_hash(file: &str) -> String {
+        // input: "target/$commit_id/test_name.raw"
+        file.split("target/")
+            .nth(1)
+            .and_then(|s| s.split('/').next())
+            .map(|s| s.to_string())
+            .unwrap_or_default() // This will return an empty string if the Option is None
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -110,15 +159,15 @@ mod tests {
 
     fn run_valgrind_test(test_name: &str) {
         let exe_path = std::env::args().next().unwrap();
-        let commit_hash = get_current_commit_hash();
+        let commit_hash = git::get_current_commit_hash();
         let output_file = create_raw_profile_path(test_name, &commit_hash);
         let command = build_valgrind_command(&exe_path, test_name, &output_file);
 
         println!("Running command: {:?}", command);
         execute_command(command);
 
-        let annotate_output = run_cg_annotate(&output_file);
-        write_to_file(&annotate_file_path(test_name, &commit_hash), &annotate_output);
+        let annotate_output = run_annotation(&output_file);
+        write_to_file(&create_annotated_profile_path(test_name, &commit_hash), &annotate_output);
 
         let count = find_instruction_count(&annotate_output)
             .expect("Failed to get instruction count from file");
@@ -132,7 +181,7 @@ mod tests {
         format!("{new_dir}/{test_name}.raw")
     }
 
-    fn annotate_file_path(test_name: &str, commit_hash: &str) -> String {
+    fn create_annotated_profile_path(test_name: &str, commit_hash: &str) -> String {
         let new_dir = format!("target/{commit_hash}");
         create_dir_all(Path::new(&new_dir)).unwrap();
         format!("{new_dir}/{test_name}.annotated")
@@ -155,7 +204,7 @@ mod tests {
         output
     }
 
-    fn run_cg_annotate(output_file: &str) -> String {
+    fn run_annotation(output_file: &str) -> String {
         let annotate_output = Command::new("cg_annotate")
             .arg(output_file)
             .output()
@@ -172,12 +221,11 @@ mod tests {
 
     fn assert_performance_diff(test_name: &str) {
         let (prev_file, curr_file) = find_and_validate_diff_files(test_name);
-        let diff_output = run_cg_annotate_diff(&prev_file, &curr_file);
-        write_to_file(&diff_profile_file_name(test_name), &diff_output);
+        let diff_output = run_diff_annotation(&prev_file, &curr_file);
+        write_to_file(&create_diff_profile_path(test_name), &diff_output);
 
         let diff = find_instruction_count(&diff_output)
             .expect("Failed to parse cg_annotate --diff output");
-
         assert_diff_within_threshold(diff, test_name);
     }
 
@@ -191,20 +239,18 @@ mod tests {
         let file1 = &annotated_files[0];
         let file2 = &annotated_files[1];
 
-        if !is_commit_in_log(file1) || !is_commit_in_log(file2) {
-            let first_hash = extract_commit_hash(file1);
-            let second_hash = extract_commit_hash(file2);
+        if !git::is_commit_in_log(file1) || !git::is_commit_in_log(file2) {
+            let first_hash = git::extract_commit_hash(file1);
+            let second_hash = git::extract_commit_hash(file2);
             panic!(
                 "One or both commit hashes are not in the git log: {first_hash} or {second_hash}"
             );
         }
 
-        let (old_file, new_file) = if is_older_commit(file1, file2) {
+        let (old_file, new_file) = if git::is_older_commit(file1, file2) {
             (file1.clone(), file2.clone())
-        } else if is_older_commit(file2, file1) {
-            (file2.clone(), file1.clone())
         } else {
-            panic!("Cannot determine the older commit between {file1} and {file2}",);
+            (file2.clone(), file1.clone())
         };
 
         (old_file, new_file)
@@ -219,7 +265,7 @@ mod tests {
             .collect()
     }
 
-    fn run_cg_annotate_diff(prev_file: &str, curr_file: &str) -> String {
+    fn run_diff_annotation(prev_file: &str, curr_file: &str) -> String {
         let diff_output = Command::new("cg_annotate")
             .args(["--diff", prev_file, curr_file])
             .output()
@@ -230,62 +276,17 @@ mod tests {
         String::from_utf8(diff_output.stdout).expect("Invalid UTF-8 in cg_annotate --diff output")
     }
 
-    fn diff_profile_file_name(test_name: &str) -> String {
-        create_dir_all(Path::new("target/perf_outputs/diff")).unwrap();
-        format!("target/perf_outputs/diff/{test_name}_diff.annotated.txt")
+    fn create_diff_profile_path(test_name: &str) -> String {
+        create_dir_all(Path::new("target/diff")).unwrap();
+        format!("target/diff/{test_name}.diff")
     }
 
     fn assert_diff_within_threshold(diff: i64, test_name: &str) {
         assert!(
             diff <= MAX_DIFF,
             "Instruction count difference in {test_name} exceeds the threshold, regression of {diff} instructions. 
-            Check the annotated output logs in {test_name}_diff.annotated.txt for debug information"
+            Check the annotated output logs in target/$commit_id/{test_name}.annotated for debug information"
         );
-    }
-
-    fn get_current_commit_hash() -> String {
-        let output = Command::new("git")
-            .args(["rev-parse", "HEAD"])
-            .output()
-            .expect("Failed to get commit hash");
-
-        if !output.status.success() {
-            panic!("Git command failed");
-        }
-
-        String::from_utf8(output.stdout)
-            .expect("Invalid UTF-8 in commit hash")
-            .trim()
-            .to_string()
-    }
-
-    fn is_commit_in_log(file: &str) -> bool {
-        let commit = extract_commit_hash(file);
-        let output = Command::new("git")
-            .args(["log", "--pretty=format:%H"])
-            .output()
-            .expect("Failed to execute git log");
-        let log = String::from_utf8(output.stdout).expect("Invalid UTF-8 in git log output");
-        log.lines().any(|line| line == commit)
-    }
-
-    fn is_older_commit(file1: &str, file2: &str) -> bool {
-        let commit1 = extract_commit_hash(file1);
-        let commit2 = extract_commit_hash(file2);
-        let output = Command::new("git")
-            .args(["merge-base", "--is-ancestor", &commit1, &commit2])
-            .status()
-            .expect("Failed to execute git merge-base");
-        output.success()
-    }
-
-    fn extract_commit_hash(file: &str) -> String {
-        // input: "target/$commit_id/test_name.raw"
-        file.split("target/")
-            .nth(1)
-            .and_then(|s| s.split('/').next())
-            .map(|s| s.to_string())
-            .unwrap_or_default() // This will return an empty string if the Option is None
     }
 
     /// Parses the annotated file for the overall instruction count total.

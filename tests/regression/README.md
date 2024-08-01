@@ -60,6 +60,12 @@ cargo test
 ```
 
 This will run the tests without valgrind to test if the hanresses complete as expected
+
+## Output Files
+- `target/$commit_id/test_name.raw`: Contains the raw cachegrind profile. On its own, the file is pretty much unreadable but is useful for the cg_annotate --diff functionality or to visualize the profile via tools like [KCachegrind](https://kcachegrind.github.io/html/Home.html).
+- `target/$commit_id/test_name.annotated`: The scalar annotated profile associated with that particular commit id. This file contains detailed infromation on the contribution of functions, files, and lines of code to the overall scalar performance count.
+- `target/diff/test_name.diff`: The annotated performance difference between two commits. This file contains the overall performance difference and also details the instruction counts, how many instructions a particular file/function account for, and the contribution of individual lines of code to the overall instruction count difference.
+
 ## Sample Output for Valgrind test (differential)
 
 Running the differential test will run all harnesses and fail if any number of harnesses exceed the performance threshold. For example, a regression test faliure could look like:
@@ -83,7 +89,7 @@ failures:
 test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
 ```
 
-It also produces annotated cachegrind diff files stored in the `perf_ouput` directory which detail the instruction counts, how many instructions a particular file/function account for, and the contribution of individual lines of code to the overall instruction count difference. For example, these are the first few lines of the output generated for 'test_set_config.txt' from the above faliure:
+### target/diff/test_set_config.diff
 
 ```
 --------------------------------------------------------------------------------
