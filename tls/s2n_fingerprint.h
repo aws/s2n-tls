@@ -22,6 +22,15 @@
 #include "tls/s2n_client_hello.h"
 #include "utils/s2n_result.h"
 
+#define S2N_JA3_HASH_STR_SIZE (MD5_DIGEST_LENGTH * 2)
+
+struct s2n_fingerprint {
+    size_t raw_size;
+    const struct s2n_fingerprint_method *method;
+    struct s2n_client_hello *client_hello;
+    struct s2n_hash_state hash;
+};
+
 struct s2n_fingerprint_hash {
     uint32_t bytes_digested;
     struct s2n_stuffer *buffer;
@@ -34,6 +43,7 @@ bool s2n_fingerprint_hash_do_digest(struct s2n_fingerprint_hash *hash);
 
 struct s2n_fingerprint_method {
     s2n_hash_algorithm hash;
+    uint32_t hash_str_size;
     S2N_RESULT (*fingerprint)(struct s2n_client_hello *ch,
             struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output);
 };

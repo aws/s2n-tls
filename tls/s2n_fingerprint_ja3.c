@@ -31,9 +31,12 @@ static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
         return S2N_RESULT_OK;
     }
 
-    uint8_t *digest = s2n_stuffer_raw_write(out, MD5_DIGEST_LENGTH);
-    RESULT_GUARD_PTR(digest);
-    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest, MD5_DIGEST_LENGTH));
+    uint8_t digest_bytes[MD5_DIGEST_LENGTH] = { 0 };
+    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest_bytes, sizeof(digest_bytes)));
+
+    struct s2n_blob digest = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&digest, digest_bytes, sizeof(digest_bytes)));
+    RESULT_GUARD(s2n_stuffer_write_hex(out, &digest));
 
     return S2N_RESULT_OK;
 }
@@ -204,5 +207,7 @@ struct s2n_fingerprint_method ja3_fingerprint = {
     /* The hash doesn't have to be cryptographically secure,
      * so the weakness of MD5 shouldn't be a problem. */
     .hash = S2N_HASH_MD5,
+    /* The hash string is a single MD5 digest represented as hex */
+    .hash_str_size = S2N_JA3_HASH_STR_SIZE,
     .fingerprint = s2n_fingerprint_ja3,
 };
