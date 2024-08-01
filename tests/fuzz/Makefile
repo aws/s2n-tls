@@ -76,7 +76,7 @@ run_tests:: $(FUZZ_TESTS) ld-preload
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; \
 	export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}; \
 	export LIBCRYPTO_ROOT=${LIBCRYPTO_ROOT}; \
-	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC}; ${ARTIFACT_UPLOAD_LOC} done; \
+	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC} ${ARTIFACT_UPLOAD_LOC} done; \
 	}
 	./calcTotalCov.sh
 
