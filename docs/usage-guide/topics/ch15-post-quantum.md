@@ -1,6 +1,6 @@
 # Post Quantum (PQ) Support
 
-s2n-tls supports post-quantum key exchange for TLS1.3. Currently, only [Kyber](https://pq-crystals.org/kyber/) is supported.
+s2n-tls supports post-quantum key exchange for TLS1.3. Currently, only [Kyber](https://pq-crystals.org/kyber/) is supported. See the draft IETF standard: https://datatracker.ietf.org/doc/html/draft-ietf-tls-hybrid-design
 
 Specifically, s2n-tls supports hybrid key exchange. PQ hybrid key exchange involves performing both classic ECDH key exchange and post-quantum Kyber key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth.
 
