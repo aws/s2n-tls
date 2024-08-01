@@ -1475,7 +1475,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(version_number, S2N_PRE_ENCRYPTED_STATE_V1);
             uint8_t key_name[S2N_TICKET_KEY_NAME_LEN] = { 0 };
             EXPECT_SUCCESS(s2n_stuffer_read_bytes(&conn->client_ticket_to_decrypt, key_name, sizeof(key_name)));
-            EXPECT_BYTEARRAY_EQUAL(key_name, "2016.07.26.15\0", S2N_TICKET_KEY_NAME_LEN);
+            EXPECT_BYTEARRAY_EQUAL(key_name, "2016.07.26.15\0\0", S2N_TICKET_KEY_NAME_LEN);
             uint8_t *info_ptr = s2n_stuffer_raw_read(&conn->client_ticket_to_decrypt, S2N_TICKET_INFO_SIZE);
 
             /* Zero out the info bytes on the ticket.*/
