@@ -145,6 +145,7 @@ mod tests {
         })
         .unwrap();
     }
+
     /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake.
     #[test]
     fn test_rsa_handshake() {
@@ -161,6 +162,7 @@ mod tests {
         .unwrap();
     }
 
+    /// Function to run specified test with valgrind for performance profiling.
     fn run_valgrind_test(test_name: &str) {
         let exe_path = std::env::args().next().unwrap();
         let commit_hash = git::get_current_commit_hash();
@@ -211,6 +213,7 @@ mod tests {
         output
     }
 
+    /// Annotates the .raw output file into readable .annotated files
     fn run_annotation(output_file: &str) -> String {
         let annotate_output = Command::new("cg_annotate")
             .arg(output_file)
@@ -226,6 +229,8 @@ mod tests {
         write(path, content).expect("Failed to write to file");
     }
 
+    /// Given exactly two commits that have already been profiled, this function asserts that the difference between the
+    /// new an old version differ by less than the MAX_DIFF variable.
     fn assert_performance_diff(test_name: &str) {
         let (prev_file, curr_file) = find_and_validate_diff_files(test_name);
         let diff_output = run_diff_annotation(&prev_file, &curr_file);
