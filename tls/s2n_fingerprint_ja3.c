@@ -24,8 +24,6 @@
 /* UINT16_MAX == 65535 */
 #define S2N_UINT16_STR_MAX_SIZE 5
 
-#define S2N_HEX_PER_BYTE 2
-
 static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
         struct s2n_stuffer *out)
 {
@@ -33,24 +31,12 @@ static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
         return S2N_RESULT_OK;
     }
 
-    if (hash->legacy_hash_format) {
-        uint8_t *digest = s2n_stuffer_raw_write(out, MD5_DIGEST_LENGTH);
-        RESULT_GUARD_PTR(digest);
-        RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest, MD5_DIGEST_LENGTH));
-        return S2N_RESULT_OK;
-    }
+    uint8_t digest_bytes[MD5_DIGEST_LENGTH] = { 0 };
+    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest_bytes, sizeof(digest_bytes)));
 
-    uint8_t digest[MD5_DIGEST_LENGTH] = { 0 };
-    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest, sizeof(digest)));
-
-    /* We allocate enough memory for the trailing '\0', but it is not
-     * included in the return value of snprintf. */
-    char hex[S2N_HEX_PER_BYTE + 1] = { 0 };
-    for (size_t i = 0; i < sizeof(digest); i++) {
-        int written = snprintf(hex, sizeof(hex), "%.*x", S2N_HEX_PER_BYTE, digest[i]);
-        RESULT_ENSURE_EQ(written, S2N_HEX_PER_BYTE);
-        RESULT_GUARD_POSIX(s2n_stuffer_write_str(out, hex));
-    }
+    struct s2n_blob digest = { 0 };
+    RESULT_GUARD_POSIX(s2n_blob_init(&digest, digest_bytes, sizeof(digest_bytes)));
+    RESULT_GUARD(s2n_stuffer_write_hex(out, &digest));
 
     return S2N_RESULT_OK;
 }
@@ -222,6 +208,6 @@ struct s2n_fingerprint_method ja3_fingerprint = {
      * so the weakness of MD5 shouldn't be a problem. */
     .hash = S2N_HASH_MD5,
     /* The hash string is a single MD5 digest represented as hex */
-    .hash_str_size = MD5_DIGEST_LENGTH * S2N_HEX_PER_BYTE,
+    .hash_str_size = S2N_JA3_HASH_STR_SIZE,
     .fingerprint = s2n_fingerprint_ja3,
 };
