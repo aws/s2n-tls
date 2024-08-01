@@ -179,7 +179,7 @@ function apache2_start(){
         httpd -k start -f "${APACHE2_INSTALL_DIR}/conf/apache2.conf"
         trap 'pkill httpd' ERR EXIT
     else
-      echo "Apache is already running...and if the APACHE2_INSTALL_DIR is stale, it might be in an unknown state."
+      echo "Apache is already running...and if \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
     fi
 
 }
