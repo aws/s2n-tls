@@ -61,7 +61,7 @@ if (s2n_negotiate(conn, &blocked) < 0) {
 }
 ```
 
-### Blinding
+## Blinding
 
 Blinding is a mitigation against timing side-channels which in some cases can leak information about encrypted data. [This](https://aws.amazon.com/blogs/security/s2n-and-lucky-13/) blog post includes a good description of blinding and how it mitigates timing side-channels like Lucky13.
 
@@ -71,7 +71,7 @@ For non-blocking blinding, an application can handle the delay itself. This is u
 
 The maximum blinding delay is configurable via `s2n_config_set_max_blinding_delay()`. However, setting a maximum delay lower than the recommended default (30s) will make timing side-channel attacks easier. The lower the delay, the fewer requests and less total time an attacker will need to execute a side-channel attack. If a lower delay is required for reasons such as client timeouts, then the highest value practically possible should be chosen to limit risk. Do not lower the blinding delay without fully understanding the risks.
 
-### Stacktraces
+## Stacktraces
 s2n-tls has an mechanism to capture stacktraces when errors occur.
 This mechanism is off by default, but can be enabled in code by calling `s2n_stack_traces_enabled_set()`.
 It can be enabled globally by setting the environment variable `S2N_PRINT_STACKTRACE=1`.
