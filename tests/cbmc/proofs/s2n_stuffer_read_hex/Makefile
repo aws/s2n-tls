@@ -28,6 +28,7 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/mlock.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
+PROOF_SOURCES += $(PROOF_STUB)/madvise.c
 
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_hex.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
