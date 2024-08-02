@@ -297,7 +297,7 @@ mod tests {
         assert!(
             diff <= MAX_DIFF,
             "Instruction count difference in {test_name} exceeds the threshold, regression of {diff} instructions. 
-            Check the annotated output logs in target/$commit_id/{test_name}.annotated for debug information"
+            Check the annotated output logs in target/diff/{test_name}.diff for debug information"
         );
     }
 
