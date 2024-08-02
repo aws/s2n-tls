@@ -33,6 +33,7 @@
 #include "api/unstable/npn.h"
 #include "api/unstable/renegotiate.h"
 #include "common.h"
+#include "crypto/s2n_openssl.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 
