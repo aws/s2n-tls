@@ -84,8 +84,12 @@ if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
         # The LD variables interferes with certificate validation when communicating with AWS S3.
         unset LD_PRELOAD
         unset LD_LIBRARY_PATH
-        printf "Copying corpus files from S3 bucket...\n"
-        aws s3 sync $CORPUS_UPLOAD_LOC/${TEST_NAME}/ "${TEMP_CORPUS_DIR}"
+        if aws s3 ls "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" > /dev/null 2>&1; then
+            echo "corpus.zip found, downloading from S3 bucket and unzipping..."
+            # Download corpus.zip
+            aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus.zip"
+            # Unzip the file
+            unzip -o "${TEMP_CORPUS_DIR}/corpus.zip" -d "${TEMP_CORPUS_DIR}"
     )
 else
     cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
@@ -225,8 +229,11 @@ then
         unset LD_PRELOAD
         unset LD_LIBRARY_PATH
         if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
-            printf "Uploading corpus files to S3 bucket...\n"
-            aws s3 sync ./corpus/${TEST_NAME}/ $CORPUS_UPLOAD_LOC/${TEST_NAME}/
+            printf "Zipping corpus files...\n"
+            zip -r ./corpus/${TEST_NAME}.zip ./corpus/${TEST_NAME}/
+            
+            printf "Uploading zipped corpus file to S3 bucket...\n"
+            aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus.zip
         fi
     fi
 
