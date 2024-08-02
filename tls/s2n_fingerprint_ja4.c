@@ -105,6 +105,7 @@ static S2N_RESULT s2n_fingerprint_ja4_digest(struct s2n_fingerprint_hash *hash,
     RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest.data, digest.size));
 
     /* JA4 digests are truncated */
+    RESULT_ENSURE_LTE(S2N_JA4_DIGEST_BYTE_LIMIT, digest.size);
     digest.size = S2N_JA4_DIGEST_BYTE_LIMIT;
     RESULT_GUARD(s2n_stuffer_write_hex(out, &digest));
     return S2N_RESULT_OK;
@@ -120,6 +121,8 @@ static S2N_RESULT s2n_fingerprint_ja4_digest(struct s2n_fingerprint_hash *hash,
  */
 static S2N_RESULT s2n_fingerprint_ja4_count(struct s2n_blob *output, uint16_t count)
 {
+    RESULT_ENSURE_REF(output);
+
     /**
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
      *# If there’s > 99, which there should never be, then output “99”.
@@ -135,10 +138,16 @@ static S2N_RESULT s2n_fingerprint_ja4_count(struct s2n_blob *output, uint16_t co
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_fingerprint_get_extension_version(s2n_parsed_extension *extension,
+static S2N_RESULT s2n_fingerprint_get_extension_version(struct s2n_client_hello *ch,
         uint16_t *client_version)
 {
+    RESULT_ENSURE_REF(ch);
     RESULT_ENSURE_REF(client_version);
+
+    s2n_parsed_extension *extension = NULL;
+    RESULT_GUARD_POSIX(s2n_client_hello_get_parsed_extension(
+            S2N_EXTENSION_SUPPORTED_VERSIONS, &ch->extensions, &extension));
+    RESULT_ENSURE_REF(extension);
 
     struct s2n_stuffer supported_versions = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&supported_versions, &extension->extension));
@@ -167,19 +176,8 @@ static S2N_RESULT s2n_fingerprint_get_extension_version(s2n_parsed_extension *ex
 static S2N_RESULT s2n_fingerprint_ja4_version(struct s2n_stuffer *output,
         struct s2n_client_hello *ch)
 {
-    RESULT_ENSURE_REF(ch);
-
     uint16_t client_version = 0;
-
-    s2n_parsed_extension *extension = NULL;
-    bool found_version = s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SUPPORTED_VERSIONS,
-                                 &ch->extensions, &extension)
-            == S2N_SUCCESS;
-    if (found_version) {
-        found_version = s2n_result_is_ok(s2n_fingerprint_get_extension_version(extension, &client_version));
-    }
-
-    if (!found_version) {
+    if (s2n_result_is_error(s2n_fingerprint_get_extension_version(ch, &client_version))) {
         /**
          *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
          *# If the extension doesn’t exist, then the TLS version is the value of
@@ -193,7 +191,10 @@ static S2N_RESULT s2n_fingerprint_ja4_version(struct s2n_stuffer *output,
      *# Handshake version (located at the top of the packet) should be ignored.
      */
 
-    const char *version_str = s2n_ja4_version_strings[client_version];
+    const char *version_str = NULL;
+    if (client_version < s2n_array_len(s2n_ja4_version_strings)) {
+        version_str = s2n_ja4_version_strings[client_version];
+    }
     if (version_str == NULL) {
         version_str = S2N_JA4_UNKNOWN_STR;
     }
@@ -204,9 +205,12 @@ static S2N_RESULT s2n_fingerprint_ja4_version(struct s2n_stuffer *output,
 
 static S2N_RESULT s2n_client_hello_get_first_alpn(struct s2n_client_hello *ch, struct s2n_blob *first)
 {
+    RESULT_ENSURE_REF(ch);
+
     s2n_parsed_extension *extension = NULL;
     RESULT_GUARD_POSIX(s2n_client_hello_get_parsed_extension(S2N_EXTENSION_ALPN,
             &ch->extensions, &extension));
+    RESULT_ENSURE_REF(extension);
 
     struct s2n_stuffer protocols = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&protocols, &extension->extension));
@@ -228,24 +232,23 @@ static S2N_RESULT s2n_fingerprint_ja4_alpn(struct s2n_stuffer *output,
         struct s2n_client_hello *ch)
 {
     struct s2n_blob protocol = { 0 };
-    if (s2n_result_is_error(s2n_client_hello_get_first_alpn(ch, &protocol))
-            || protocol.size < 2) {
+    if (s2n_result_is_ok(s2n_client_hello_get_first_alpn(ch, &protocol))
+            && protocol.size >= 2) {
         /**
          *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
-         *# If there are no ALPN values or no ALPN extension then we print “00”
-         *# as the value in the fingerprint.
+         *# The first and last characters of the ALPN (Application-Layer Protocol Negotiation) first value.
          */
-        RESULT_GUARD_POSIX(s2n_stuffer_write_str(output, "00"));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, protocol.data[0]));
+        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, protocol.data[protocol.size - 1]));
         return S2N_RESULT_OK;
     }
 
     /**
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
-     *# The first and last characters of the ALPN (Application-Layer Protocol Negotiation) first value.
+     *# If there are no ALPN values or no ALPN extension then we print “00”
+     *# as the value in the fingerprint.
      */
-    RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, protocol.data[0]));
-    RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, protocol.data[protocol.size - 1]));
-
+    RESULT_GUARD_POSIX(s2n_stuffer_write_str(output, "00"));
     return S2N_RESULT_OK;
 }
 
@@ -262,6 +265,8 @@ static S2N_RESULT s2n_fingerprint_ja4_alpn(struct s2n_stuffer *output,
 static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
         struct s2n_stuffer *output, struct s2n_blob *ciphers_count, struct s2n_blob *extensions_count)
 {
+    RESULT_ENSURE_REF(fingerprint);
+
     /**
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#quic
      *# If the protocol is QUIC then the first character of the fingerprint is “q”
@@ -320,6 +325,10 @@ static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
 static S2N_RESULT s2n_fingerprint_ja4_ciphers(struct s2n_fingerprint_hash *hash,
         struct s2n_client_hello *ch, struct s2n_stuffer *sort_space, uint16_t *ciphers_count)
 {
+    RESULT_ENSURE_REF(ch);
+    RESULT_ENSURE_REF(sort_space);
+    RESULT_ENSURE_REF(ciphers_count);
+
     struct s2n_stuffer cipher_suites = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&cipher_suites, &ch->cipher_suites));
 
@@ -361,6 +370,8 @@ static S2N_RESULT s2n_fingerprint_ja4_b(struct s2n_fingerprint *fingerprint,
         struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output,
         struct s2n_blob *ciphers_count)
 {
+    RESULT_ENSURE_REF(fingerprint);
+
     uint16_t ciphers_count_value = 0;
     RESULT_GUARD(s2n_fingerprint_ja4_ciphers(hash, fingerprint->client_hello,
             &fingerprint->workspace, &ciphers_count_value));
@@ -378,6 +389,10 @@ static S2N_RESULT s2n_fingerprint_ja4_b(struct s2n_fingerprint *fingerprint,
 static S2N_RESULT s2n_fingerprint_ja4_extensions(struct s2n_fingerprint_hash *hash,
         struct s2n_client_hello *ch, struct s2n_stuffer *sort_space, uint16_t *extensions_count)
 {
+    RESULT_ENSURE_REF(ch);
+    RESULT_ENSURE_REF(sort_space);
+    RESULT_ENSURE_REF(extensions_count);
+
     struct s2n_stuffer extensions = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&extensions, &ch->extensions.raw));
 
@@ -427,9 +442,12 @@ static S2N_RESULT s2n_fingerprint_ja4_extensions(struct s2n_fingerprint_hash *ha
 static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash,
         struct s2n_client_hello *ch)
 {
+    RESULT_ENSURE_REF(ch);
+
     s2n_parsed_extension *extension = NULL;
     RESULT_GUARD_POSIX(s2n_client_hello_get_parsed_extension(
             S2N_EXTENSION_SIGNATURE_ALGORITHMS, &ch->extensions, &extension));
+    RESULT_ENSURE_REF(extension);
 
     struct s2n_stuffer sig_algs = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&sig_algs, &extension->extension));
@@ -446,7 +464,9 @@ static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash
         if (s2n_is_grease_value(iana)) {
             continue;
         }
-        if (!is_first) {
+        if (is_first) {
+            RESULT_GUARD(s2n_fingerprint_hash_add_char(hash, S2N_JA4_PART_DIV));
+        } else {
             RESULT_GUARD_POSIX(s2n_stuffer_write_char(&entry, S2N_JA4_LIST_DIV));
         }
         RESULT_GUARD(s2n_stuffer_write_uint16_hex(&entry, iana));
@@ -468,6 +488,8 @@ static S2N_RESULT s2n_fingerprint_ja4_c(struct s2n_fingerprint *fingerprint,
         struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output,
         struct s2n_blob *extensions_count)
 {
+    RESULT_ENSURE_REF(fingerprint);
+
     uint16_t extensions_count_value = 0;
     RESULT_GUARD(s2n_fingerprint_ja4_extensions(hash, fingerprint->client_hello,
             &fingerprint->workspace, &extensions_count_value));
@@ -481,9 +503,10 @@ static S2N_RESULT s2n_fingerprint_ja4_c(struct s2n_fingerprint *fingerprint,
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
      *# If there are no signature algorithms in the hello packet,
      *# then the string ends without an underscore and is hashed.
+     *
+     * s2n_fingerprint_ja4_sig_algs handles writing the underscore because we
+     * need to skip writing it if there are no signature algorithms.
      */
-    RESULT_GUARD(s2n_fingerprint_hash_add_char(hash, S2N_JA4_PART_DIV));
-    /* Ignore missing or malformed signature algorithm */
     s2n_result_ignore(s2n_fingerprint_ja4_sig_algs(hash, fingerprint->client_hello));
 
     RESULT_GUARD(s2n_fingerprint_ja4_digest(hash, output));
@@ -512,6 +535,8 @@ static S2N_RESULT s2n_fingerprint_ja4(struct s2n_fingerprint *fingerprint,
         struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output)
 {
     RESULT_ENSURE_REF(fingerprint);
+    RESULT_ENSURE_REF(hash);
+    RESULT_ENSURE_REF(output);
 
     if (s2n_stuffer_is_freed(&fingerprint->workspace)) {
         RESULT_GUARD_POSIX(s2n_stuffer_growable_alloc(&fingerprint->workspace, S2N_JA4_WORKSPACE_SIZE));

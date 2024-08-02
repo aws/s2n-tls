@@ -147,7 +147,7 @@ static S2N_RESULT s2n_test_ja4_hash_from_cipher_count(uint16_t cipher_count,
     };
     RESULT_GUARD_POSIX(s2n_stuffer_write_bytes(&bytes, before_ciphers, sizeof(before_ciphers)));
 
-    size_t ciphers_size = cipher_count * S2N_TLS_PROTOCOL_VERSION_LEN;
+    size_t ciphers_size = cipher_count * S2N_TLS_CIPHER_SUITE_LEN;
     RESULT_GUARD_POSIX(s2n_stuffer_write_uint16(&bytes, ciphers_size));
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(&bytes, ciphers_size));
 
@@ -344,6 +344,10 @@ int main(int argc, char **argv)
                 { .bytes = { 0x03, 0x00 }, .version = S2N_SSLv3, .str = "s3" },
                 { .bytes = { 0x02, 0x00 }, .version = S2N_SSLv2, .str = "s2" },
                 { .bytes = { 0x01, 0x00 }, .version = 10, .str = "s1" },
+                /* Bad values */
+                { .bytes = { 0x00, 0x00 }, .version = 0, .str = "00" },
+                { .bytes = { 0x00, 0xFF }, .version = UINT8_MAX, .str = "00" },
+                { .bytes = { 0xFF, 0xFF }, .version = UINT8_MAX, .str = "00" },
             };
 
             for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
@@ -353,7 +357,7 @@ int main(int argc, char **argv)
                  *= type=test
                  *# Handshake version (located at the top of the packet) should be ignored.
                  */
-                {
+                if (strcmp(test_cases[i].str, "00") != 0) {
                     struct s2n_client_hello client_hello = *minimal_client_hello;
                     client_hello.legacy_version = 0;
                     client_hello.legacy_record_version = test_cases[i].version;
@@ -1170,18 +1174,57 @@ int main(int argc, char **argv)
          *# then the string ends without an underscore and is hashed.
          */
         {
-            S2N_INIT_CLIENT_HELLO(bytes,
-                    S2N_TEST_CLIENT_HELLO_VERSION,
-                    S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
-                    S2N_TEST_CLIENT_HELLO_CIPHERS,
-                    S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
-                    S2N_TEST_CLIENT_HELLO_EMPTY_EXTENSIONS);
+            /* Extensions exist -- does NOT end in an underscore */
+            {
+                S2N_INIT_CLIENT_HELLO(bytes,
+                        S2N_TEST_CLIENT_HELLO_VERSION,
+                        S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
+                        S2N_TEST_CLIENT_HELLO_CIPHERS,
+                        S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
+                        /* Add some extensions so that part c isn't completely empty */
+                        0x00, 4,
+                        0x00, 0x01, S2N_TEST_CLIENT_HELLO_EMPTY_EXTENSION);
 
-            uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
-            uint32_t output_size = 0;
-            EXPECT_OK(s2n_test_ja4_raw_from_bytes(bytes, sizeof(bytes),
-                    sizeof(output), output, &output_size));
-            EXPECT_EQUAL(output[output_size - 1], '_');
+                uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                uint32_t output_size = 0;
+                EXPECT_OK(s2n_test_ja4_raw_from_bytes(bytes, sizeof(bytes),
+                        sizeof(output), output, &output_size));
+
+                /* Last character is not an underscore */
+                EXPECT_TRUE(output_size > 1);
+                EXPECT_NOT_EQUAL(output[output_size - 1], '_');
+            };
+
+            /* No extensions -- does end in an underscore */
+            {
+                S2N_INIT_CLIENT_HELLO(bytes,
+                        S2N_TEST_CLIENT_HELLO_VERSION,
+                        S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
+                        S2N_TEST_CLIENT_HELLO_CIPHERS,
+                        S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
+                        S2N_TEST_CLIENT_HELLO_EMPTY_EXTENSIONS);
+
+                uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                uint32_t output_size = 0;
+                EXPECT_OK(s2n_test_ja4_raw_from_bytes(bytes, sizeof(bytes),
+                        sizeof(output), output, &output_size));
+
+                /* Does end in an underscore */
+                EXPECT_TRUE(output_size > 1);
+                EXPECT_EQUAL(output[output_size - 1], '_');
+
+                /* We only expect the underscores between parts a, b, and c (a_b_c).
+                 * The final underscore should be due to part c being missing
+                 * completely, not due to missing signature algorithms.
+                 */
+                size_t underscore_count = 0;
+                for (size_t i = 0; i < output_size; i++) {
+                    if (output[i] == '_') {
+                        underscore_count++;
+                    }
+                }
+                EXPECT_EQUAL(underscore_count, 2);
+            };
         };
     };
 
