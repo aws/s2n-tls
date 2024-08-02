@@ -282,9 +282,9 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
     DEFER_CLEANUP(struct s2n_stuffer personalization = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer returned_bits = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer reference_values = { 0 }, s2n_stuffer_free);
-    POSIX_GUARD(s2n_stuffer_alloc_ro_from_hex_string(&personalization, personalization_hex));
-    POSIX_GUARD(s2n_stuffer_alloc_ro_from_hex_string(&returned_bits, returned_bits_hex));
-    POSIX_GUARD(s2n_stuffer_alloc_ro_from_hex_string(&reference_values, reference_values_hex));
+    POSIX_GUARD_RESULT(s2n_stuffer_alloc_from_hex(&personalization, personalization_hex));
+    POSIX_GUARD_RESULT(s2n_stuffer_alloc_from_hex(&returned_bits, returned_bits_hex));
+    POSIX_GUARD_RESULT(s2n_stuffer_alloc_from_hex(&reference_values, reference_values_hex));
 
     for (int i = 0; i < 14; i++) {
         uint8_t ps[S2N_DRBG_MAX_SEED_SIZE] = { 0 };
@@ -428,7 +428,7 @@ int main(int argc, char **argv)
     EXPECT_OK(s2n_drbg_wipe(&aes256_pr_drbg));
 
     /* Check everything against the NIST AES 128 vectors with prediction resistance */
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&nist_aes128_reference_entropy, nist_aes128_reference_entropy_hex));
+    EXPECT_OK(s2n_stuffer_alloc_from_hex(&nist_aes128_reference_entropy, nist_aes128_reference_entropy_hex));
     EXPECT_SUCCESS(check_drgb_version(S2N_AES_128_CTR_NO_DF_PR, &nist_fake_128_entropy_data, 32, nist_aes128_reference_personalization_strings_hex,
             nist_aes128_reference_values_hex, nist_aes128_reference_returned_bits_hex));
 
@@ -438,8 +438,8 @@ int main(int argc, char **argv)
 
     /* Combine nist_aes256_reference_entropy_hex_part1 and nist_aes256_reference_entropy_hex_part2 to avoid C99
      * string length limit. */
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp1, nist_aes256_reference_entropy_hex_part1));
-    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&temp2, nist_aes256_reference_entropy_hex_part2));
+    EXPECT_OK(s2n_stuffer_alloc_from_hex(&temp1, nist_aes256_reference_entropy_hex_part1));
+    EXPECT_OK(s2n_stuffer_alloc_from_hex(&temp2, nist_aes256_reference_entropy_hex_part2));
     EXPECT_SUCCESS(s2n_stuffer_alloc(&nist_aes256_reference_entropy, temp1.write_cursor + temp2.write_cursor));
     EXPECT_SUCCESS(s2n_stuffer_copy(&temp1, &nist_aes256_reference_entropy, temp1.write_cursor));
     EXPECT_SUCCESS(s2n_stuffer_copy(&temp2, &nist_aes256_reference_entropy, temp2.write_cursor));

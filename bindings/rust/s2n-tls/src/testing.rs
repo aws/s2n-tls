@@ -60,35 +60,59 @@ impl Default for Counter {
 }
 
 pub struct CertKeyPair {
-    cert_path: &'static str,
-    cert: &'static [u8],
-    key: &'static [u8],
+    cert_path: String,
+    key_path: String,
+    ca_path: String,
+    cert: Vec<u8>,
+    key: Vec<u8>,
 }
 
 impl Default for CertKeyPair {
     fn default() -> Self {
-        CertKeyPair {
-            cert_path: concat!(
-                env!("CARGO_MANIFEST_DIR"),
-                "/../../../tests/pems/rsa_4096_sha512_client_cert.pem",
-            ),
-            cert: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_cert.pem")[..],
-            key: &include_bytes!("../../../../tests/pems/rsa_4096_sha512_client_key.pem")[..],
-        }
+        let prefix = concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/../../../tests/pems/rsa_4096_sha512_client_"
+        );
+        Self::from(prefix, "cert", "key", "cert")
     }
 }
 
 impl CertKeyPair {
-    pub fn cert_path(&self) -> &'static str {
-        self.cert_path
+    pub fn from(prefix: &str, chain: &str, key: &str, ca: &str) -> Self {
+        let cert_path = format!("{prefix}{chain}.pem");
+        let key_path = format!("{prefix}{key}.pem");
+        let ca_path = format!("{prefix}{ca}.pem");
+        let cert = std::fs::read(&cert_path)
+            .unwrap_or_else(|_| panic!("Failed to read cert at {cert_path}"));
+        let key =
+            std::fs::read(&key_path).unwrap_or_else(|_| panic!("Failed to read key at {key_path}"));
+        CertKeyPair {
+            cert_path,
+            key_path,
+            ca_path,
+            cert,
+            key,
+        }
     }
 
-    pub fn cert(&self) -> &'static [u8] {
-        self.cert
+    pub fn cert_path(&self) -> &str {
+        &self.cert_path
     }
 
-    pub fn key(&self) -> &'static [u8] {
-        self.key
+    pub fn key_path(&self) -> &str {
+        &self.key_path
+    }
+
+    pub fn ca_path(&self) -> &str {
+        &self.ca_path
+    }
+
+    pub fn cert(&self) -> &[u8] {
+        &self.cert
+    }
+
+    pub fn key(&self) -> &[u8] {
+        &self.key
     }
 }
 
@@ -130,6 +154,22 @@ pub fn config_builder(cipher_prefs: &security::Policy) -> Result<crate::config::
 
 type LocalDataBuffer = RefCell<VecDeque<u8>>;
 
+#[derive(Debug)]
+// We allow dead_code, because otherwise the compiler complains about the tx_streams
+// never being read. This is because it can't reason through the pointers that were
+// passed into the s2n-tls connection io contexts.
+#[allow(dead_code)]
+pub struct TestPairIO {
+    // Pin: since we are dereferencing this pointer (because it is passed as the send/recv ctx)
+    // we need to ensure that the pointer remains in the same place
+    // Box: A Vec (or VecDeque) may be moved or reallocated, so we need another layer of
+    // indirection to have a stable (pinned) reference
+    /// a data buffer that the server writes to and the client reads from
+    pub server_tx_stream: Pin<Box<LocalDataBuffer>>,
+    /// a data buffer that the client writes to and the server reads from
+    pub client_tx_stream: Pin<Box<LocalDataBuffer>>,
+}
+
 /// TestPair is a testing utility used to easily test handshakes and send data.
 ///
 /// SAFETY: if the server or client connection is moved outside of the struct, IO
@@ -155,23 +195,10 @@ type LocalDataBuffer = RefCell<VecDeque<u8>>;
 //
 // The doctest is `ignore`d because testing utilities are not publicly exported
 // and therefore can't be referenced in a doc comment.
-//
-// We allow dead_code, because otherwise the compiler complains about the tx_streams
-// never being read. This is because it can't reason through the pointers that were
-// passed into the s2n-tls connection io contexts.
-#[allow(dead_code)]
 pub struct TestPair {
     pub server: connection::Connection,
     pub client: connection::Connection,
-
-    // Pin: since we are dereferencing this pointer (because it is passed as the send/recv ctx)
-    // we need to ensure that the pointer remains in the same place
-    // Box: A Vec (or VecDeque) may be moved or reallocated, so we need another layer of
-    // indirection to have a stable (pinned) reference
-    /// a data buffer that the server writes to and the client reads from
-    server_tx_stream: Pin<Box<LocalDataBuffer>>,
-    /// a data buffer that the client writes to and the server reads from
-    client_tx_stream: Pin<Box<LocalDataBuffer>>,
+    pub io: TestPairIO,
 }
 
 impl TestPair {
@@ -212,12 +239,11 @@ impl TestPair {
         )
         .unwrap();
 
-        Self {
-            server,
-            client,
+        let io = TestPairIO {
             server_tx_stream,
             client_tx_stream,
-        }
+        };
+        Self { server, client, io }
     }
 
     /// create a connection ready for harness IO

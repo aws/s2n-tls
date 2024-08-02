@@ -123,11 +123,8 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(tls13_cert_chain_hex = malloc(S2N_MAX_TEST_PEM_SIZE));
         strcpy(tls13_cert_chain_hex, tls13_cert_chain_header_hex);
         strcat(tls13_cert_chain_hex, tls13_cert_hex);
-        /* convert certificate chain hex to bytes*/
-        struct s2n_blob tls13_cert = { 0 };
-        EXPECT_SUCCESS(s2n_alloc(&tls13_cert, strlen(tls13_cert_chain_hex) / 2));
-        POSIX_GUARD(s2n_hex_string_to_bytes((uint8_t *) tls13_cert_chain_hex, &tls13_cert));
 
+        S2N_BLOB_FROM_HEX(tls13_cert, tls13_cert_chain_hex);
         S2N_BLOB_FROM_HEX(tls13_cert_chain, tls13_cert_hex);
 
         struct s2n_connection *conn = NULL;
@@ -164,8 +161,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(conn));
 
         free(tls13_cert_chain_hex);
-        /* free memory allocated in s2n_alloc*/
-        free(tls13_cert.data);
     }
 
     /* Test server sends cert and client receives cert for tls 1.3 */

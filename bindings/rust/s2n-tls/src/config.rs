@@ -1,6 +1,8 @@
 // Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 // SPDX-License-Identifier: Apache-2.0
 
+#[cfg(feature = "unstable-renegotiate")]
+use crate::renegotiate::RenegotiateCallback;
 use crate::{
     callbacks::*,
     enums::*,
@@ -436,12 +438,12 @@ impl Builder {
             verify_host(host_name, host_name_len, handler)
         }
 
-        self.config.context_mut().verify_host_callback = Some(Box::new(handler));
+        self.context_mut().verify_host_callback = Some(Box::new(handler));
         unsafe {
             s2n_config_set_verify_host_callback(
                 self.as_mut_ptr(),
                 Some(verify_host_cb_fn),
-                self.config.context_mut() as *mut Context as *mut c_void,
+                self.context_mut() as *mut Context as *mut c_void,
             )
             .into_result()?;
         }
@@ -490,7 +492,7 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = self.context_mut();
         context.client_hello_callback = Some(handler);
 
         unsafe {
@@ -511,7 +513,7 @@ impl Builder {
     ) -> Result<&mut Self, Error> {
         // Store callback in config context
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = self.context_mut();
         context.connection_initializer = Some(handler);
         Ok(self)
     }
@@ -540,14 +542,14 @@ impl Builder {
 
         // Store callback in context
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = self.context_mut();
         context.session_ticket_callback = Some(handler);
 
         unsafe {
             s2n_config_set_session_ticket_cb(
                 self.as_mut_ptr(),
                 Some(session_ticket_cb),
-                self.config.context_mut() as *mut Context as *mut c_void,
+                self.context_mut() as *mut Context as *mut c_void,
             )
             .into_result()
         }?;
@@ -577,7 +579,7 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = self.context_mut();
         context.private_key_callback = Some(handler);
 
         unsafe {
@@ -611,13 +613,13 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = self.context_mut();
         context.wall_clock = Some(handler);
         unsafe {
             s2n_config_set_wall_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.config.context_mut() as *mut _ as *mut c_void,
+                self.context_mut() as *mut _ as *mut c_void,
             )
             .into_result()?;
         }
@@ -648,13 +650,13 @@ impl Builder {
         }
 
         let handler = Box::new(handler);
-        let context = self.config.context_mut();
+        let context = self.context_mut();
         context.monotonic_clock = Some(handler);
         unsafe {
             s2n_config_set_monotonic_clock(
                 self.as_mut_ptr(),
                 Some(clock_cb),
-                self.config.context_mut() as *mut _ as *mut c_void,
+                self.context_mut() as *mut _ as *mut c_void,
             )
             .into_result()?;
         }
@@ -762,8 +764,19 @@ impl Builder {
         Ok(self.config)
     }
 
-    fn as_mut_ptr(&mut self) -> *mut s2n_config {
+    pub(crate) fn as_mut_ptr(&mut self) -> *mut s2n_config {
         self.config.as_mut_ptr()
+    }
+
+    /// Retrieve a mutable reference to the [`Context`] stored on the config.
+    pub(crate) fn context_mut(&mut self) -> &mut Context {
+        let mut ctx = core::ptr::null_mut();
+        unsafe {
+            s2n_config_get_ctx(self.as_mut_ptr(), &mut ctx)
+                .into_result()
+                .unwrap();
+            &mut *(ctx as *mut Context)
+        }
     }
 }
 
@@ -797,6 +810,8 @@ pub(crate) struct Context {
     pub(crate) connection_initializer: Option<Box<dyn ConnectionInitializer>>,
     pub(crate) wall_clock: Option<Box<dyn WallClock>>,
     pub(crate) monotonic_clock: Option<Box<dyn MonotonicClock>>,
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) renegotiate: Option<Box<dyn RenegotiateCallback>>,
 }
 
 impl Default for Context {
@@ -814,6 +829,8 @@ impl Default for Context {
             connection_initializer: None,
             wall_clock: None,
             monotonic_clock: None,
+            #[cfg(feature = "unstable-renegotiate")]
+            renegotiate: None,
         }
     }
 }
