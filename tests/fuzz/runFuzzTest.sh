@@ -85,11 +85,9 @@ if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
         unset LD_PRELOAD
         unset LD_LIBRARY_PATH
         if aws s3 ls "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" > /dev/null 2>&1; then
-            echo "corpus.zip found, downloading from S3 bucket and unzipping..."
+            printf "corpus.zip found, downloading from S3 bucket and unzipping...\n"
             aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus.zip"
             unzip -o "${TEMP_CORPUS_DIR}/corpus.zip" -d "${TEMP_CORPUS_DIR}"
-        else 
-            cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
         fi
     )
 else
