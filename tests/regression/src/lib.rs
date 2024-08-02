@@ -87,7 +87,7 @@ mod tests {
         fs::{create_dir_all, write},
         io::{self, BufRead},
         path::Path,
-        process::{Command, Output},
+        process::Command,
     };
 
     const MAX_DIFF: i64 = 1_000;
@@ -104,32 +104,158 @@ mod tests {
         }
     }
 
-    /// Environment variable to determine whether to run under valgrind or solely test functionality.
-    fn is_running_under_valgrind() -> bool {
-        env::var("ENABLE_VALGRIND").is_ok()
+    #[derive(Debug)]
+    enum RegressionTestMode {
+        Default,
+        Valgrind,
+        Diff,
     }
 
-    /// Function to determine if diff mode is enabled, runs diff assertion if it is.
-    fn is_diff_mode() -> bool {
-        env::var("DIFF_MODE").is_ok()
+    impl RegressionTestMode {
+        fn from_env() -> Self {
+            if env::var("ENABLE_VALGRIND").is_ok() {
+                RegressionTestMode::Valgrind
+            } else if env::var("DIFF_MODE").is_ok() {
+                RegressionTestMode::Diff
+            } else {
+                RegressionTestMode::Default
+            }
+        }
     }
 
     fn valgrind_test<F>(test_name: &str, test_body: F) -> Result<(), s2n_tls::error::Error>
     where
         F: FnOnce(&InstrumentationControl) -> Result<(), s2n_tls::error::Error>,
     {
-        if !is_running_under_valgrind() {
-            if is_diff_mode() {
+        match RegressionTestMode::from_env() {
+            RegressionTestMode::Valgrind => {
+                run_valgrind_test(test_name);
+                Ok(())
+            },
+            RegressionTestMode::Diff => {
                 assert_performance_diff(test_name);
                 Ok(())
-            } else {
+            },
+            RegressionTestMode::Default => {
                 let ctrl = InstrumentationControl;
                 test_body(&ctrl)
-            }
-        } else {
-            run_valgrind_test(test_name);
-            Ok(())
+            },
         }
+    }
+
+    struct RawProfile {
+        test_name: String,
+        commit_hash: String,
+    }
+
+    impl RawProfile {
+        fn new(test_name: &str, commit_hash: &str) -> Self {
+            let new_dir = format!("target/{}", commit_hash);
+            create_dir_all(Path::new(&new_dir)).unwrap();
+            Self {
+                test_name: test_name.to_string(),
+                commit_hash: commit_hash.to_string(),
+            }
+        }
+
+        fn path(&self) -> String {
+            format!("target/{}/{}.raw", self.commit_hash, self.test_name)
+        }
+
+        fn annotate(&self) -> AnnotatedProfile {
+            let output_file = self.path();
+            let annotate_output = Command::new("cg_annotate")
+                .arg(&output_file)
+                .output()
+                .expect("Failed to run cg_annotate");
+            if !annotate_output.status.success() {
+                panic!("cg_annotate failed");
+            }
+            let annotate_content = String::from_utf8(annotate_output.stdout).expect("Invalid UTF-8 in cg_annotate output");
+            let annotated_path = format!("target/{}/{}.annotated", self.commit_hash, self.test_name);
+            write_to_file(&annotated_path, &annotate_content);
+            AnnotatedProfile {
+                path: annotated_path,
+                content: annotate_content,
+            }
+        }
+
+        fn execute_command(&self, mut command: Command) {
+            let output = command.output().expect("Failed to execute command");
+            if !output.status.success() {
+                panic!("Command failed: {:?}", output);
+            }
+        }
+    }
+
+    struct AnnotatedProfile {
+        path: String,
+        content: String,
+    }
+
+    impl AnnotatedProfile {
+        fn instruction_count(&self) -> Result<i64, io::Error> {
+            find_instruction_count(&self.content)
+        }
+    }
+
+    struct DiffProfile {
+        prev_profile: AnnotatedProfile,
+        curr_profile: AnnotatedProfile,
+    }
+
+    impl DiffProfile {
+        fn new(prev_profile: AnnotatedProfile, curr_profile: AnnotatedProfile) -> Self {
+            Self { prev_profile, curr_profile }
+        }
+
+        fn run_diff_annotation(&self) -> String {
+            let diff_output = Command::new("cg_annotate")
+                .args(["--diff", &self.prev_profile.path, &self.curr_profile.path])
+                .output()
+                .expect("Failed to run cg_annotate --diff");
+            if !diff_output.status.success() {
+                panic!("cg_annotate --diff failed");
+            }
+            String::from_utf8(diff_output.stdout).expect("Invalid UTF-8 in cg_annotate --diff output")
+        }
+
+        fn assert_diff_within_threshold(&self, test_name: &str, max_diff: i64) {
+            let diff_output = self.run_diff_annotation();
+            let diff_path = format!("target/diff/{}.diff", test_name);
+            write_to_file(&diff_path, &diff_output);
+
+            let diff = find_instruction_count(&diff_output)
+                .expect("Failed to parse cg_annotate --diff output");
+            assert!(
+                diff <= max_diff,
+                "Instruction count difference in {} exceeds the threshold, regression of {} instructions. 
+                Check the annotated output logs in target/diff/{}.diff for debug information",
+                test_name, diff, test_name
+            );
+        }
+    }
+
+    fn write_to_file(path: &str, content: &str) {
+        write(path, content).expect("Failed to write to file");
+    }
+
+    fn find_instruction_count(output: &str) -> Result<i64, io::Error> {
+        let reader = io::BufReader::new(output.as_bytes());
+        // Example of the line being parsed:
+        // "79,278,369 (100.0%)  PROGRAM TOTALS"
+        for line in reader.lines() {
+            let line = line?;
+            if line.contains("PROGRAM TOTALS") {
+                if let Some(instructions) = line.split_whitespace().next() {
+                    return instructions
+                        .replace(',', "")
+                        .parse::<i64>()
+                        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e));
+                }
+            }
+        }
+        panic!("Failed to find instruction count in annotated file");
     }
 
     /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
@@ -166,34 +292,20 @@ mod tests {
     fn run_valgrind_test(test_name: &str) {
         let exe_path = std::env::args().next().unwrap();
         let commit_hash = git::get_current_commit_hash();
-        let output_file = create_raw_profile_path(test_name, &commit_hash);
+        let raw_profile = RawProfile::new(test_name, &commit_hash);
+
+        let output_file = raw_profile.path();
         let command = build_valgrind_command(&exe_path, test_name, &output_file);
 
         println!("Running command: {:?}", command);
-        execute_command(command);
+        raw_profile.execute_command(command);
 
-        let annotate_output = run_annotation(&output_file);
-        write_to_file(
-            &create_annotated_profile_path(test_name, &commit_hash),
-            &annotate_output,
-        );
+        let annotated_profile = raw_profile.annotate();
 
-        let count = find_instruction_count(&annotate_output)
+        let count = annotated_profile.instruction_count()
             .expect("Failed to get instruction count from file");
 
-        println!("Instruction count for {test_name}: {count}");
-    }
-
-    fn create_raw_profile_path(test_name: &str, commit_hash: &str) -> String {
-        let new_dir = format!("target/{commit_hash}");
-        create_dir_all(Path::new(&new_dir)).unwrap();
-        format!("{new_dir}/{test_name}.raw")
-    }
-
-    fn create_annotated_profile_path(test_name: &str, commit_hash: &str) -> String {
-        let new_dir = format!("target/{commit_hash}");
-        create_dir_all(Path::new(&new_dir)).unwrap();
-        format!("{new_dir}/{test_name}.annotated")
+        println!("Instruction count for {}: {}", test_name, count);
     }
 
     fn build_valgrind_command(exe_path: &str, test_name: &str, output_file: &str) -> Command {
@@ -205,47 +317,28 @@ mod tests {
         command
     }
 
-    fn execute_command(mut command: Command) -> Output {
-        let output = command.output().expect("Failed to execute command");
-        if !output.status.success() {
-            panic!("Command failed: {:?}", output);
-        }
-        output
-    }
-
-    /// Annotates the .raw output file into readable .annotated files
-    fn run_annotation(output_file: &str) -> String {
-        let annotate_output = Command::new("cg_annotate")
-            .arg(output_file)
-            .output()
-            .expect("Failed to run cg_annotate");
-        if !annotate_output.status.success() {
-            panic!("cg_annotate failed");
-        }
-        String::from_utf8(annotate_output.stdout).expect("Invalid UTF-8 in cg_annotate output")
-    }
-
-    fn write_to_file(path: &str, content: &str) {
-        write(path, content).expect("Failed to write to file");
-    }
-
     /// Given exactly two commits that have already been profiled, this function asserts that the difference between the
     /// new an old version differ by less than the MAX_DIFF variable.
     fn assert_performance_diff(test_name: &str) {
         let (prev_file, curr_file) = find_and_validate_diff_files(test_name);
-        let diff_output = run_diff_annotation(&prev_file, &curr_file);
-        write_to_file(&create_diff_profile_path(test_name), &diff_output);
+        let prev_profile = AnnotatedProfile {
+            path: prev_file.clone(),
+            content: std::fs::read_to_string(&prev_file).expect("Failed to read previous annotated profile"),
+        };
+        let curr_profile = AnnotatedProfile {
+            path: curr_file.clone(),
+            content: std::fs::read_to_string(&curr_file).expect("Failed to read current annotated profile"),
+        };
 
-        let diff = find_instruction_count(&diff_output)
-            .expect("Failed to parse cg_annotate --diff output");
-        assert_diff_within_threshold(diff, test_name);
+        let diff_profile = DiffProfile::new(prev_profile, curr_profile);
+        diff_profile.assert_diff_within_threshold(test_name, MAX_DIFF);
     }
 
     fn find_and_validate_diff_files(test_name: &str) -> (String, String) {
         let annotated_files = find_annotated_files(test_name);
         let file_len = annotated_files.len();
         if file_len != 2 {
-            panic!("Expected exactly 2 annotated files for {test_name}, found {file_len}");
+            panic!("Expected exactly 2 annotated files for {}, found {}", test_name, file_len);
         }
 
         let file1 = &annotated_files[0];
@@ -255,7 +348,8 @@ mod tests {
             let first_hash = git::extract_commit_hash(file1);
             let second_hash = git::extract_commit_hash(file2);
             panic!(
-                "One or both commit hashes are not in the git log: {first_hash} or {second_hash}"
+                "One or both commit hashes are not in the git log: {} or {}",
+                first_hash, second_hash
             );
         }
 
@@ -269,54 +363,11 @@ mod tests {
     }
 
     fn find_annotated_files(test_name: &str) -> Vec<String> {
-        let pattern = format!("target/**/*{test_name}.raw");
+        let pattern = format!("target/**/*{}.raw", test_name);
         glob::glob(&pattern)
             .expect("Failed to read glob pattern")
             .filter_map(Result::ok)
             .map(|path| path.to_string_lossy().into_owned())
             .collect()
-    }
-
-    fn run_diff_annotation(prev_file: &str, curr_file: &str) -> String {
-        let diff_output = Command::new("cg_annotate")
-            .args(["--diff", prev_file, curr_file])
-            .output()
-            .expect("Failed to run cg_annotate --diff");
-        if !diff_output.status.success() {
-            panic!("cg_annotate --diff failed");
-        }
-        String::from_utf8(diff_output.stdout).expect("Invalid UTF-8 in cg_annotate --diff output")
-    }
-
-    fn create_diff_profile_path(test_name: &str) -> String {
-        create_dir_all(Path::new("target/diff")).unwrap();
-        format!("target/diff/{test_name}.diff")
-    }
-
-    fn assert_diff_within_threshold(diff: i64, test_name: &str) {
-        assert!(
-            diff <= MAX_DIFF,
-            "Instruction count difference in {test_name} exceeds the threshold, regression of {diff} instructions. 
-            Check the annotated output logs in target/diff/{test_name}.diff for debug information"
-        );
-    }
-
-    /// Parses the annotated file for the overall instruction count total.
-    pub fn find_instruction_count(output: &str) -> Result<i64, io::Error> {
-        let reader = io::BufReader::new(output.as_bytes());
-        // Example of the line being parsed:
-        // "79,278,369 (100.0%)  PROGRAM TOTALS"
-        for line in reader.lines() {
-            let line = line?;
-            if line.contains("PROGRAM TOTALS") {
-                if let Some(instructions) = line.split_whitespace().next() {
-                    return instructions
-                        .replace(',', "")
-                        .parse::<i64>()
-                        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e));
-                }
-            }
-        }
-        panic!("Failed to find instruction count in annotated file");
     }
 }
