@@ -1238,6 +1238,9 @@ static S2N_RESULT s2n_connection_kill(struct s2n_connection *conn)
 
     int64_t min = 0, max = 0;
     RESULT_GUARD(s2n_connection_calculate_blinding(conn, &min, &max));
+    if (max == 0) {
+        return S2N_RESULT_OK;
+    }
 
     /* Keep track of the delay so that it can be enforced */
     uint64_t rand_delay = 0;
