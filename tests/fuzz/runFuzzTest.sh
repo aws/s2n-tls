@@ -84,6 +84,10 @@ if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
         # The LD variables interferes with certificate validation when communicating with AWS S3.
         unset LD_PRELOAD
         unset LD_LIBRARY_PATH
+
+        # Check if corpus.zip exists in the specified S3 location.
+        # `> /dev/null 2>&1` redirects output to /dev/null.
+        # If the file is not found, `aws s3 ls` returns a non-zero exit code.
         if aws s3 ls "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" > /dev/null 2>&1; then
             printf "corpus.zip found, downloading from S3 bucket and unzipping...\n"
             aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus.zip"
