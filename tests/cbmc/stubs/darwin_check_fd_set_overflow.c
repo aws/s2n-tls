@@ -15,20 +15,11 @@
 
 #include <cbmc_proof/nondet.h>
 
-#include "crypto/s2n_fips.h"
-
-static bool s2n_fips_mode_flag = 0;
-static bool s2n_fips_mode_enabled = 0;
-
-/**
- * Return 1 if FIPS mode is set, 0 otherwise,
- * where FIPS mode is set nondeterministically on first call.
- */
-bool s2n_is_in_fips_mode()
+/* A reference to this function appears as a side-effect of  */
+/* building on macOS with some versions of XCode installed   */
+/* A dummy stub is supplied here to prevent CBMC complaining */
+/* of a missing body.                                        */
+int __darwin_check_fd_set_overflow(int x, const void *y, int z)
 {
-    if (s2n_fips_mode_flag == 0) {
-        s2n_fips_mode_enabled = nondet_bool() ? 1 : 0;
-        s2n_fips_mode_flag = 1;
-    }
-    return s2n_fips_mode_enabled;
+    return nondet_int();
 }
