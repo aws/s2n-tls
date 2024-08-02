@@ -291,7 +291,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(fingerprint->method, &ja3_fingerprint);
         EXPECT_TRUE(s2n_hash_is_ready_for_input(&fingerprint->hash));
         EXPECT_NULL(fingerprint->client_hello);
-        EXPECT_FALSE(fingerprint->legacy_hash_format);
         EXPECT_EQUAL(fingerprint->raw_size, 0);
 
         /* Free cleans up the fingerprint */
@@ -313,7 +312,6 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(fingerprint.method);
         EXPECT_TRUE(fingerprint.hash.is_ready_for_input);
         EXPECT_NOT_NULL(fingerprint.client_hello);
-        EXPECT_TRUE(fingerprint.legacy_hash_format);
         EXPECT_NOT_EQUAL(fingerprint.raw_size, 0);
 
         /* Verify that wipe only clears the expected fields */
@@ -321,7 +319,6 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(fingerprint.method);
         EXPECT_TRUE(fingerprint.hash.is_ready_for_input);
         EXPECT_NULL(fingerprint.client_hello);
-        EXPECT_TRUE(fingerprint.legacy_hash_format);
         EXPECT_EQUAL(fingerprint.raw_size, 0);
     };
 

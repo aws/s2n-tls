@@ -22,25 +22,19 @@
 #include "tls/s2n_client_hello.h"
 #include "utils/s2n_result.h"
 
+#define S2N_JA3_HASH_STR_SIZE (MD5_DIGEST_LENGTH * 2)
+
 struct s2n_fingerprint {
     size_t raw_size;
     const struct s2n_fingerprint_method *method;
     struct s2n_client_hello *client_hello;
     struct s2n_hash_state hash;
-    /* Originally we represented the hash as the raw bytes of the digest.
-     * However, the JA4 hash is composed of a string prefix and two digests,
-     * so cannot reasonably be represented as raw bytes.
-     * Keep the old behavior for the old method.
-     */
-    unsigned int legacy_hash_format : 1;
 };
 
 struct s2n_fingerprint_hash {
     uint32_t bytes_digested;
     struct s2n_stuffer *buffer;
     struct s2n_hash_state *hash;
-    /* See legacy_hash_format on s2n_fingerprint */
-    unsigned int legacy_hash_format : 1;
 };
 S2N_RESULT s2n_fingerprint_hash_add_char(struct s2n_fingerprint_hash *hash, char c);
 S2N_RESULT s2n_fingerprint_hash_add_str(struct s2n_fingerprint_hash *hash, const char *str, size_t str_size);

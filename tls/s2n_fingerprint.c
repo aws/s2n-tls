@@ -107,12 +107,7 @@ int s2n_fingerprint_get_hash(struct s2n_fingerprint *fingerprint,
     const struct s2n_fingerprint_method *method = fingerprint->method;
     POSIX_ENSURE_REF(method);
 
-    size_t min_output_size = method->hash_str_size;
-    if (fingerprint->legacy_hash_format) {
-        min_output_size /= 2;
-    }
-
-    POSIX_ENSURE(max_output_size >= min_output_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
+    POSIX_ENSURE(max_output_size >= method->hash_str_size, S2N_ERR_INSUFFICIENT_MEM_SIZE);
     POSIX_ENSURE(output, S2N_ERR_INVALID_ARGUMENT);
     POSIX_ENSURE(output_size, S2N_ERR_INVALID_ARGUMENT);
     *output_size = 0;
@@ -122,7 +117,6 @@ int s2n_fingerprint_get_hash(struct s2n_fingerprint *fingerprint,
 
     struct s2n_fingerprint_hash hash = {
         .hash = &fingerprint->hash,
-        .legacy_hash_format = fingerprint->legacy_hash_format,
     };
     POSIX_GUARD(s2n_hash_reset(&fingerprint->hash));
 
@@ -250,12 +244,30 @@ int s2n_client_hello_get_fingerprint_hash(struct s2n_client_hello *ch, s2n_finge
         uint32_t max_output_size, uint8_t *output, uint32_t *output_size, uint32_t *str_size)
 {
     POSIX_ENSURE(type == S2N_FINGERPRINT_JA3, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(max_output_size >= MD5_DIGEST_LENGTH, S2N_ERR_INSUFFICIENT_MEM_SIZE);
     POSIX_ENSURE(str_size, S2N_ERR_INVALID_ARGUMENT);
-    DEFER_CLEANUP(struct s2n_fingerprint fingerprint = { .legacy_hash_format = true },
-            s2n_fingerprint_free_fields);
+    POSIX_ENSURE(output_size, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(output, S2N_ERR_INVALID_ARGUMENT);
+
+    DEFER_CLEANUP(struct s2n_fingerprint fingerprint = { 0 }, s2n_fingerprint_free_fields);
     POSIX_GUARD_RESULT(s2n_fingerprint_init(&fingerprint, type));
     POSIX_GUARD(s2n_fingerprint_set_client_hello(&fingerprint, ch));
-    POSIX_GUARD(s2n_fingerprint_get_hash(&fingerprint, max_output_size, output, output_size));
+
+    uint32_t hex_hash_size = 0;
+    uint8_t hex_hash[S2N_JA3_HASH_STR_SIZE] = { 0 };
+    POSIX_GUARD(s2n_fingerprint_get_hash(&fingerprint, sizeof(hex_hash), hex_hash, &hex_hash_size));
+
+    /* s2n_client_hello_get_fingerprint_hash expects the raw bytes of the JA3 hash,
+     * but s2n_fingerprint_get_hash returns a hex string instead.
+     * We need to translate back to the raw bytes.
+     */
+    struct s2n_stuffer bytes_out = { 0 };
+    POSIX_GUARD(s2n_blob_init(&bytes_out.blob, output, max_output_size));
+    struct s2n_blob hex_in = { 0 };
+    POSIX_GUARD(s2n_blob_init(&hex_in, hex_hash, hex_hash_size));
+    POSIX_GUARD_RESULT(s2n_stuffer_read_hex(&bytes_out, &hex_in));
+    *output_size = s2n_stuffer_data_available(&bytes_out);
+
     POSIX_GUARD(s2n_fingerprint_get_raw_size(&fingerprint, str_size));
     return S2N_SUCCESS;
 }
