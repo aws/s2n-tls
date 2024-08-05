@@ -218,7 +218,7 @@ int s2n_test_cert_chain_and_key_new(struct s2n_cert_chain_and_key **chain_and_ke
  * @param digest indicates the certificate signature digest of `sha256` or
  * `sha384`
  * 
- * @note OpenSSL FIPS module requires the key size for RSA cert to be bigger than or equal to 1024 bits.
+ * @note The OpenSSL FIPS module requires the key size for RSA certs to be greater than or equal to 1024 bits.
  * See https://github.com/aws/s2n-tls/issues/4651 for more information.
  */
 int s2n_test_cert_permutation_load_server_chain(struct s2n_cert_chain_and_key **chain_and_key,
