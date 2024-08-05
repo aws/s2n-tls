@@ -46,7 +46,6 @@ CHECKFLAGS += --pointer-primitive-check
 
 # We override abort() to be assert(0)
 PROOF_SOURCES += $(PROOF_STUB)/abort_override_assert_false.c
-REMOVE_FUNCTION_BODY += abort
 
 # Useful for setting unwind limits to one more than some value.
 addone = $(shell echo $$(( $(1) + 1)))
