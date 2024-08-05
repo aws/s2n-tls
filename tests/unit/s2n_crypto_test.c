@@ -123,14 +123,6 @@ int main()
         for (size_t i = 0; i < s2n_array_len(supported_versions); i++) {
             const uint8_t version = supported_versions[i];
 
-            /* See https://github.com/aws/s2n-tls/issues/4476
-             * Retrieving the master secret won't vary between FIPS and non-FIPS,
-             * so this testing limitation is not a concern.
-             */
-            if (s2n_is_in_fips_mode() && version == S2N_SSLv3) {
-                continue;
-            }
-
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));

@@ -259,6 +259,11 @@ CBMC_FLAG_FLUSH ?= --flush
 
 CBMCFLAGS += $(CBMC_FLAG_FLUSH)
 
+# CBMC 6.0.0 enables all standard checks by default, which can make coverage analysis
+# very slow. See https://github.com/diffblue/cbmc/issues/8389
+# For now, we disable these checks when generating coverage info.
+COVERFLAGS ?= --no-standard-checks
+
 # CBMC flags used for property checking
 
 CHECKFLAGS += $(CBMC_FLAG_BOUNDS_CHECK)
@@ -382,6 +387,7 @@ PROJECT_SOURCES ?=
 # PROOF_SOURCES is the list of proof source files to compile, including
 # the proof harness, and including any function stubs being used.
 PROOF_SOURCES ?=
+PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 
 # The number of seconds that CBMC should be allowed to run for before
 # being forcefully terminated. Currently, this is set to be less than
@@ -492,7 +498,6 @@ COMMA :=,
 # Set C compiler defines
 
 CBMCFLAGS += --object-bits $(CBMC_OBJECT_BITS)
-COMPILE_FLAGS += --object-bits $(CBMC_OBJECT_BITS)
 
 DEFINES += -DCBMC=1
 DEFINES += -DCBMC_OBJECT_BITS=$(CBMC_OBJECT_BITS)

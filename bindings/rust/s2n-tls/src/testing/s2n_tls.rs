@@ -618,8 +618,8 @@ mod tests {
             builder
                 .set_client_hello_callback(TestClientHelloHandler {})
                 .unwrap();
-            builder.load_pem(keypair.cert, keypair.key).unwrap();
-            builder.trust_pem(keypair.cert).unwrap();
+            builder.load_pem(keypair.cert(), keypair.key()).unwrap();
+            builder.trust_pem(keypair.cert()).unwrap();
             builder.build().unwrap()
         };
         let mut pair = TestPair::from_config(&config);
@@ -702,7 +702,7 @@ mod tests {
         let mut pair = TestPair::from_config(&config);
         drop(pair.client);
 
-        let mut client_tx_stream = pair.client_tx_stream.borrow_mut();
+        let mut client_tx_stream = pair.io.client_tx_stream.borrow_mut();
         client_tx_stream.write_all(SSLV2_CLIENT_HELLO_HEADER)?;
         client_tx_stream.write_all(SSLV2_CLIENT_HELLO_PREFIX)?;
         client_tx_stream.write_all(SSLV2_CLIENT_HELLO_CIPHER_SUITES)?;

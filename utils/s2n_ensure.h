@@ -135,15 +135,19 @@ void *s2n_ensure_memmove_trace(void *to, const void *from, size_t size);
  * Violations of the function contracts are undefined behaviour.
  */
 #ifdef CBMC
+    #define CONTRACT_ASSERT(...)      __CPROVER_assert(__VA_ARGS__)
     #define CONTRACT_ASSIGNS(...)     __CPROVER_assigns(__VA_ARGS__)
     #define CONTRACT_ASSIGNS_ERR(...) CONTRACT_ASSIGNS(__VA_ARGS__, _s2n_debug_info, s2n_errno)
+    #define CONTRACT_ASSUME(...)      __CPROVER_assume(__VA_ARGS__)
     #define CONTRACT_REQUIRES(...)    __CPROVER_requires(__VA_ARGS__)
     #define CONTRACT_ENSURES(...)     __CPROVER_ensures(__VA_ARGS__)
     #define CONTRACT_INVARIANT(...)   __CPROVER_loop_invariant(__VA_ARGS__)
     #define CONTRACT_RETURN_VALUE     (__CPROVER_return_value)
 #else
+    #define CONTRACT_ASSERT(...)
     #define CONTRACT_ASSIGNS(...)
     #define CONTRACT_ASSIGNS_ERR(...)
+    #define CONTRACT_ASSUME(...)
     #define CONTRACT_REQUIRES(...)
     #define CONTRACT_ENSURES(...)
     #define CONTRACT_INVARIANT(...)
