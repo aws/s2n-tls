@@ -36,9 +36,7 @@ pub mod git {
             .output()
             .expect("Failed to get commit hash");
 
-        if !output.status.success() {
-            panic!("Git command failed");
-        }
+        assert!(output.status.success());
 
         String::from_utf8(output.stdout)
             .expect("Invalid UTF-8 in commit hash")
@@ -52,6 +50,9 @@ pub mod git {
             .args(["log", "--pretty=format:%H"])
             .output()
             .expect("Failed to execute git log");
+
+        assert!(output.status.success());
+
         let log = String::from_utf8(output.stdout).expect("Invalid UTF-8 in git log output");
         log.lines().any(|line| line == commit)
     }
@@ -63,6 +64,7 @@ pub mod git {
             .args(["merge-base", "--is-ancestor", &commit1, &commit2])
             .status()
             .expect("Failed to execute git merge-base");
+
         output.success()
     }
 
@@ -84,7 +86,7 @@ mod tests {
     use s2n_tls::testing::TestPair;
     use std::{
         env,
-        fs::{create_dir_all, write},
+        fs::{create_dir_all, write, read_to_string},
         io::{self, BufRead},
         path::Path,
         process::Command,
@@ -129,7 +131,8 @@ mod tests {
     {
         match RegressionTestMode::from_env() {
             RegressionTestMode::Valgrind => {
-                run_valgrind_test(test_name);
+                let raw_profile = RawProfile::new(test_name);
+                let _annotated_profile = AnnotatedProfile::new(&raw_profile);
                 Ok(())
             },
             RegressionTestMode::Diff => {
@@ -146,67 +149,128 @@ mod tests {
     struct RawProfile {
         test_name: String,
         commit_hash: String,
+        path: String,
     }
 
     impl RawProfile {
-        fn new(test_name: &str, commit_hash: &str) -> Self {
+        fn new(test_name: &str) -> Self {
+            let commit_hash = git::get_current_commit_hash();
             let new_dir = format!("target/{}", commit_hash);
             create_dir_all(Path::new(&new_dir)).unwrap();
+
+            let output_file = format!("target/{}/{}.raw", commit_hash, test_name);
+            let command = Self::build_valgrind_command(&test_name, &output_file);
+            Self::execute_command(command);
+
             Self {
                 test_name: test_name.to_string(),
-                commit_hash: commit_hash.to_string(),
+                commit_hash,
+                path: output_file,
             }
         }
 
-        fn path(&self) -> String {
-            format!("target/{}/{}.raw", self.commit_hash, self.test_name)
+        fn build_valgrind_command(test_name: &str, output_file: &str) -> Command {
+            let exe_path = std::env::args().next().unwrap();
+            let output_command = format!("--cachegrind-out-file={output_file}");
+            let mut command = Command::new("valgrind");
+            command
+                .args(["--tool=cachegrind", &output_command, &exe_path, test_name])
+                .env_remove("ENABLE_VALGRIND");
+            command
         }
 
-        fn annotate(&self) -> AnnotatedProfile {
-            let output_file = self.path();
-            let annotate_output = Command::new("cg_annotate")
-                .arg(&output_file)
-                .output()
-                .expect("Failed to run cg_annotate");
-            if !annotate_output.status.success() {
-                panic!("cg_annotate failed");
-            }
-            let annotate_content = String::from_utf8(annotate_output.stdout).expect("Invalid UTF-8 in cg_annotate output");
-            let annotated_path = format!("target/{}/{}.annotated", self.commit_hash, self.test_name);
-            write_to_file(&annotated_path, &annotate_content);
-            AnnotatedProfile {
-                path: annotated_path,
-                content: annotate_content,
-            }
-        }
-
-        fn execute_command(&self, mut command: Command) {
+        fn execute_command(mut command: Command) {
             let output = command.output().expect("Failed to execute command");
-            if !output.status.success() {
-                panic!("Command failed: {:?}", output);
+            assert!(output.status.success());
+        }
+
+        fn path(&self) -> &str {
+            &self.path
+        }
+
+        fn query(test_name: &str) -> (RawProfile, RawProfile) {
+            let raw_files = find_raw_files(test_name);
+            let file_len = raw_files.len();
+            if file_len != 2 {
+                panic!("Expected exactly 2 annotated files for {}, found {}", test_name, file_len);
             }
+
+            let file1 = &raw_files[0];
+            let file2 = &raw_files[1];
+
+            if !git::is_commit_in_log(file1) || !git::is_commit_in_log(file2) {
+                let first_hash = git::extract_commit_hash(file1);
+                let second_hash = git::extract_commit_hash(file2);
+                panic!(
+                    "One or both commit hashes are not in the git log: {} or {}",
+                    first_hash, second_hash
+                );
+            }
+
+            let (old_file, new_file) = if git::is_older_commit(file1, file2) {
+                (file1.to_string(), file2.to_string())
+            } else {
+                (file2.to_string(), file1.to_string())
+            };
+
+            (
+                RawProfile {
+                    test_name: test_name.to_string(),
+                    commit_hash: git::extract_commit_hash(&old_file),
+                    path: old_file,
+                },
+                RawProfile {
+                    test_name: test_name.to_string(),
+                    commit_hash: git::extract_commit_hash(&new_file),
+                    path: new_file,
+                },
+            )
         }
     }
 
     struct AnnotatedProfile {
         path: String,
-        content: String,
     }
 
     impl AnnotatedProfile {
-        fn instruction_count(&self) -> Result<i64, io::Error> {
-            find_instruction_count(&self.content)
+        fn new(raw_profile: &RawProfile) -> Self {
+            let output_file = raw_profile.path();
+            println!("Debug: Reading raw profile file {}", output_file);
+            let raw_content = read_to_string(output_file).expect("Failed to read raw profile file");
+            println!("Debug: Raw profile content: {}", raw_content);
+
+            let annotate_output = Command::new("cg_annotate")
+                .arg(output_file)
+                .output()
+                .expect("Failed to run cg_annotate");
+
+            if !annotate_output.status.success() {
+                panic!(
+                    "cg_annotate failed with status: {:?}\nstdout: {}\nstderr: {}",
+                    annotate_output.status,
+                    String::from_utf8_lossy(&annotate_output.stdout),
+                    String::from_utf8_lossy(&annotate_output.stderr),
+                );
+            }
+
+            let annotate_content = String::from_utf8(annotate_output.stdout).expect("Invalid UTF-8 in cg_annotate output");
+            let annotated_path = format!("target/{}/{}.annotated", raw_profile.commit_hash, raw_profile.test_name);
+            write_to_file(&annotated_path, &annotate_content);
+            Self {
+                path: annotated_path,
+            }
         }
     }
 
     struct DiffProfile {
-        prev_profile: AnnotatedProfile,
-        curr_profile: AnnotatedProfile,
+        prev_profile: RawProfile,
+        curr_profile: RawProfile,
+        test_name: String,
     }
 
     impl DiffProfile {
-        fn new(prev_profile: AnnotatedProfile, curr_profile: AnnotatedProfile) -> Self {
-            Self { prev_profile, curr_profile }
+        fn new(prev_profile: RawProfile, curr_profile: RawProfile, test_name: String) -> Self {
+            Self { prev_profile, curr_profile, test_name }
         }
 
         fn run_diff_annotation(&self) -> String {
@@ -214,24 +278,31 @@ mod tests {
                 .args(["--diff", &self.prev_profile.path, &self.curr_profile.path])
                 .output()
                 .expect("Failed to run cg_annotate --diff");
+
             if !diff_output.status.success() {
-                panic!("cg_annotate --diff failed");
+                panic!(
+                    "cg_annotate --diff failed with status: {:?}\nstdout: {}\nstderr: {}",
+                    diff_output.status,
+                    String::from_utf8_lossy(&diff_output.stdout),
+                    String::from_utf8_lossy(&diff_output.stderr),
+                );
             }
+
             String::from_utf8(diff_output.stdout).expect("Invalid UTF-8 in cg_annotate --diff output")
         }
 
-        fn assert_diff_within_threshold(&self, test_name: &str, max_diff: i64) {
+        fn assert_performance(&self) {
             let diff_output = self.run_diff_annotation();
-            let diff_path = format!("target/diff/{}.diff", test_name);
+            let diff_path = format!("target/diff/{}.diff", self.test_name);
             write_to_file(&diff_path, &diff_output);
 
             let diff = find_instruction_count(&diff_output)
                 .expect("Failed to parse cg_annotate --diff output");
             assert!(
-                diff <= max_diff,
-                "Instruction count difference in {} exceeds the threshold, regression of {} instructions. 
+                diff <= MAX_DIFF,
+                "Instruction count difference exceeds the threshold, regression of {} instructions. 
                 Check the annotated output logs in target/diff/{}.diff for debug information",
-                test_name, diff, test_name
+                diff, self.test_name
             );
         }
     }
@@ -256,6 +327,21 @@ mod tests {
             }
         }
         panic!("Failed to find instruction count in annotated file");
+    }
+
+    fn find_raw_files(test_name: &str) -> Vec<String> {
+        let pattern = format!("target/**/*{}.raw", test_name);
+        glob::glob(&pattern)
+            .expect("Failed to read glob pattern")
+            .filter_map(Result::ok)
+            .map(|path| path.to_string_lossy().into_owned())
+            .collect()
+    }
+
+    fn assert_performance_diff(test_name: &str) {
+        let (prev_profile, curr_profile) = RawProfile::query(test_name);
+        let diff_profile = DiffProfile::new(prev_profile, curr_profile, test_name.to_string());
+        diff_profile.assert_performance();
     }
 
     /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
@@ -286,88 +372,5 @@ mod tests {
             Ok(())
         })
         .unwrap();
-    }
-
-    /// Function to run specified test with valgrind for performance profiling.
-    fn run_valgrind_test(test_name: &str) {
-        let exe_path = std::env::args().next().unwrap();
-        let commit_hash = git::get_current_commit_hash();
-        let raw_profile = RawProfile::new(test_name, &commit_hash);
-
-        let output_file = raw_profile.path();
-        let command = build_valgrind_command(&exe_path, test_name, &output_file);
-
-        println!("Running command: {:?}", command);
-        raw_profile.execute_command(command);
-
-        let annotated_profile = raw_profile.annotate();
-
-        let count = annotated_profile.instruction_count()
-            .expect("Failed to get instruction count from file");
-
-        println!("Instruction count for {}: {}", test_name, count);
-    }
-
-    fn build_valgrind_command(exe_path: &str, test_name: &str, output_file: &str) -> Command {
-        let output_command = format!("--cachegrind-out-file={output_file}");
-        let mut command = Command::new("valgrind");
-        command
-            .args(["--tool=cachegrind", &output_command, exe_path, test_name])
-            .env_remove("ENABLE_VALGRIND");
-        command
-    }
-
-    /// Given exactly two commits that have already been profiled, this function asserts that the difference between the
-    /// new an old version differ by less than the MAX_DIFF variable.
-    fn assert_performance_diff(test_name: &str) {
-        let (prev_file, curr_file) = find_and_validate_diff_files(test_name);
-        let prev_profile = AnnotatedProfile {
-            path: prev_file.clone(),
-            content: std::fs::read_to_string(&prev_file).expect("Failed to read previous annotated profile"),
-        };
-        let curr_profile = AnnotatedProfile {
-            path: curr_file.clone(),
-            content: std::fs::read_to_string(&curr_file).expect("Failed to read current annotated profile"),
-        };
-
-        let diff_profile = DiffProfile::new(prev_profile, curr_profile);
-        diff_profile.assert_diff_within_threshold(test_name, MAX_DIFF);
-    }
-
-    fn find_and_validate_diff_files(test_name: &str) -> (String, String) {
-        let annotated_files = find_annotated_files(test_name);
-        let file_len = annotated_files.len();
-        if file_len != 2 {
-            panic!("Expected exactly 2 annotated files for {}, found {}", test_name, file_len);
-        }
-
-        let file1 = &annotated_files[0];
-        let file2 = &annotated_files[1];
-
-        if !git::is_commit_in_log(file1) || !git::is_commit_in_log(file2) {
-            let first_hash = git::extract_commit_hash(file1);
-            let second_hash = git::extract_commit_hash(file2);
-            panic!(
-                "One or both commit hashes are not in the git log: {} or {}",
-                first_hash, second_hash
-            );
-        }
-
-        let (old_file, new_file) = if git::is_older_commit(file1, file2) {
-            (file1.clone(), file2.clone())
-        } else {
-            (file2.clone(), file1.clone())
-        };
-
-        (old_file, new_file)
-    }
-
-    fn find_annotated_files(test_name: &str) -> Vec<String> {
-        let pattern = format!("target/**/*{}.raw", test_name);
-        glob::glob(&pattern)
-            .expect("Failed to read glob pattern")
-            .filter_map(Result::ok)
-            .map(|path| path.to_string_lossy().into_owned())
-            .collect()
     }
 }
