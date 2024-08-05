@@ -25,8 +25,8 @@ use tokio::{
 };
 
 // TODO use the version from s2n_quic_core
-mod contract;
-use contract::debug_assert_contract;
+mod task;
+use task::waker::debug_assert_contract as debug_assert_waker_contract;
 
 macro_rules! ready {
     ($x:expr) => {
@@ -109,7 +109,7 @@ where
     type Output = Result<(), Error>;
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        debug_assert_contract(ctx, |ctx| {
+        debug_assert_waker_contract(ctx, |ctx| {
             // Retrieve a result, either from the stored error
             // or by polling Connection::poll_negotiate().
             // Connection::poll_negotiate() only completes once,
@@ -225,7 +225,7 @@ where
         let mut async_context = Context::from_waker(tls.conn.as_ref().waker().unwrap());
         let stream = Pin::new(&mut tls.stream);
 
-        let res = debug_assert_contract(&mut async_context, |async_context| {
+        let res = debug_assert_waker_contract(&mut async_context, |async_context| {
             action(stream, async_context)
         });
 
@@ -268,7 +268,7 @@ where
     /// `poll_blinding` or `poll_shutdown` (which calls `poll_blinding`
     /// internally) returns ready.
     pub fn poll_blinding(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        debug_assert_contract(ctx, |ctx| {
+        debug_assert_waker_contract(ctx, |ctx| {
             let tls = self.get_mut();
 
             if tls.blinding.is_none() {
@@ -374,7 +374,7 @@ where
     }
 
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        debug_assert_contract(ctx, |ctx| {
+        debug_assert_waker_contract(ctx, |ctx| {
             ready!(self.as_mut().poll_blinding(ctx))?;
 
             // s2n_shutdown_send must not be called again if it errors
