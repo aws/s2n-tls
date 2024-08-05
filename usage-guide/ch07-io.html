@@ -220,6 +220,7 @@ For example:</p>
 if (flags &lt; 0) return S2N_FAILURE;
 if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) &lt; 0) return S2N_FAILURE;
 </code></pre>
+<p>Note: If an application requires non-blocking IO, it likely also requires self-service blinding. See <a href="./ch03-error-handling.html#Blinding">Blinding</a>.</p>
 <h2 id="errors-and-alerts"><a class="header" href="#errors-and-alerts">Errors and Alerts</a></h2>
 <p>If the peer sends an alert, the next call to a read IO method will report <strong>S2N_FAILURE</strong> and
 <code>s2n_error_get_type()</code> will return <strong>S2N_ERR_T_ALERT</strong>. The specific alert received
