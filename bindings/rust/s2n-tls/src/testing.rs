@@ -299,7 +299,9 @@ impl TestPair {
                 (_, Poll::Ready(Err(e))) => return Err(e),
                 // or an error on the client, then return the error
                 (Poll::Ready(Err(e)), _) => return Err(e),
-                _ => { /* not ready, poll again */ }
+                _ => {
+                    // not ready, poll again
+                }
             }
         }
     }
