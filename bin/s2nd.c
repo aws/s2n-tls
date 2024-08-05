@@ -34,7 +34,7 @@
 #include "api/s2n.h"
 #include "api/unstable/npn.h"
 #include "common.h"
-#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_libcrypto.h"
 #include "utils/s2n_safety.h"
 
 #define MAX_CERTIFICATES 50
@@ -566,7 +566,7 @@ int main(int argc, char *const *argv)
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
-    printf("libcrypto: %s\n", SSLeay_version(SSLEAY_VERSION));
+    printf("libcrypto: %s\n", s2n_libcrypto_get_version_name());
 
     printf("Listening on %s:%s\n", host, port);
 
