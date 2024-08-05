@@ -28,9 +28,16 @@ use std::{any::Any, ffi::CStr};
 mod builder;
 pub use builder::*;
 
-macro_rules! static_const_str {
+/// return a &str scoped to the lifetime of the surrounding function
+///
+/// SAFETY: must be called on a null terminated string
+///
+/// SAFETY: the underlying data must live at least as long as the surrounding scope
+// We use a macro instead of a function so that the lifetime of the output is
+// automatically inferred to match the surrounding scope.
+macro_rules! const_str {
     ($c_chars:expr) => {
-        unsafe { CStr::from_ptr($c_chars) }
+        CStr::from_ptr($c_chars)
             .to_str()
             .map_err(|_| Error::INVALID_INPUT)
     };
@@ -387,6 +394,14 @@ impl Connection {
         Ok(self)
     }
 
+    /// # Safety
+    ///
+    /// The `context` pointer must live at least as long as the connection
+    pub unsafe fn set_send_context(&mut self, context: *mut c_void) -> Result<&mut Self, Error> {
+        s2n_connection_set_send_ctx(self.connection.as_ptr(), context).into_result()?;
+        Ok(self)
+    }
+
     /// Sets the callback to use for verifying that a hostname from an X.509 certificate is
     /// trusted.
     ///
@@ -421,14 +436,6 @@ impl Connection {
         Ok(self)
     }
 
-    /// # Safety
-    ///
-    /// The `context` pointer must live at least as long as the connection
-    pub unsafe fn set_send_context(&mut self, context: *mut c_void) -> Result<&mut Self, Error> {
-        s2n_connection_set_send_ctx(self.connection.as_ptr(), context).into_result()?;
-        Ok(self)
-    }
-
     /// Connections prefering low latency will be encrypted using small record sizes that
     /// can be decrypted sooner by the recipient.
     pub fn prefer_low_latency(&mut self) -> Result<&mut Self, Error> {
@@ -456,13 +463,10 @@ impl Connection {
         Ok(self)
     }
 
-    /// wipes an existing connection and allows it to be reused.
-    ///
-    /// This method erases all data associated with a connection including pending reads.
-    /// This function should be called after all I/O is completed and s2n_shutdown has been
-    /// called. Reusing the same connection handle(s) is more performant than repeatedly
-    /// calling s2n_connection_new and s2n_connection_free
-    pub fn wipe(&mut self) -> Result<&mut Self, Error> {
+    pub(crate) fn wipe_method<F, T>(&mut self, wipe: F) -> Result<(), Error>
+    where
+        F: FnOnce(&mut Self) -> Result<T, Error>,
+    {
         let mode = self.mode();
         unsafe {
             // Wiping the connection will wipe the pointer to the context,
@@ -470,63 +474,30 @@ impl Connection {
             let ctx = self.context_mut();
             drop(Box::from_raw(ctx));
 
-            s2n_connection_wipe(self.connection.as_ptr()).into_result()
+            wipe(self)
         }?;
 
         self.init_context(mode);
+        Ok(())
+    }
+
+    /// wipes an existing connection and allows it to be reused.
+    ///
+    /// This method erases all data associated with a connection including pending reads.
+    /// This function should be called after all I/O is completed and s2n_shutdown has been
+    /// called. Reusing the same connection handle(s) is more performant than repeatedly
+    /// calling s2n_connection_new and s2n_connection_free
+    pub fn wipe(&mut self) -> Result<&mut Self, Error> {
+        self.wipe_method(|conn| unsafe { s2n_connection_wipe(conn.as_ptr()).into_result() })?;
         Ok(self)
     }
 
-    /// Performs the TLS handshake to completion
-    ///
-    /// Multiple callbacks can be configured for a connection and config, but
-    /// [`Self::poll_negotiate()`] can only execute and block on one callback at a time.
-    /// The handshake is sequential, not concurrent, and stops execution when
-    /// it encounters an async callback.
-    ///
-    /// The handshake does not continue execution (and therefore can't call
-    /// any other callbacks) until the blocking async task reports completion.
-    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+    fn trigger_initializer(&mut self) {
         if !core::mem::replace(&mut self.context_mut().connection_initialized, true) {
             if let Some(config) = self.config() {
                 if let Some(callback) = config.context().connection_initializer.as_ref() {
                     let future = callback.initialize_connection(self);
                     AsyncCallback::trigger(future, self);
-                }
-            }
-        }
-
-        loop {
-            // check if an async task exists and poll it to completion
-            if let Some(fut) = self.poll_async_task() {
-                match fut {
-                    Poll::Ready(Ok(())) => {
-                        // happy case:
-                        // continue and call s2n_negotiate to make progress on the handshake
-                    }
-                    Poll::Ready(Err(err)) => {
-                        // error case:
-                        // if the callback returned an error then abort the handshake
-                        return Poll::Ready(Err(err));
-                    }
-                    Poll::Pending => return Poll::Pending,
-                }
-            }
-
-            let res = unsafe { s2n_negotiate(self.connection.as_ptr(), &mut blocked).into_poll() };
-
-            match res {
-                Poll::Ready(res) => {
-                    let res = res.map(|_| self);
-                    return Poll::Ready(res);
-                }
-                Poll::Pending => {
-                    // if there is no connection_future then return, otherwise continue
-                    // looping and polling the future
-                    if self.context_mut().async_callback.is_none() {
-                        return Poll::Pending;
-                    }
                 }
             }
         }
@@ -548,6 +519,39 @@ impl Connection {
                 }
             }
         })
+    }
+
+    pub(crate) fn poll_negotiate_method<F, T>(&mut self, negotiate: F) -> Poll<Result<(), Error>>
+    where
+        F: FnOnce(&mut Connection) -> Poll<Result<T, Error>>,
+    {
+        self.trigger_initializer();
+
+        // Check whether renegotiate is blocked by any async callbacks
+        match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
+            Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+            Poll::Pending => return Poll::Pending,
+            Poll::Ready(Ok(_)) => {}
+        };
+
+        negotiate(self).map_ok(|_| ())
+    }
+
+    /// Performs the TLS handshake to completion
+    ///
+    /// Multiple callbacks can be configured for a connection and config, but
+    /// [`Self::poll_negotiate()`] can only execute and block on one callback at a time.
+    /// The handshake is sequential, not concurrent, and stops execution when
+    /// it encounters an async callback.
+    ///
+    /// The handshake does not continue execution (and therefore can't call
+    /// any other callbacks) until the blocking async task reports completion.
+    pub fn poll_negotiate(&mut self) -> Poll<Result<&mut Self, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        self.poll_negotiate_method(|conn| unsafe {
+            s2n_negotiate(conn.as_ptr(), &mut blocked).into_poll()
+        })
+        .map_ok(|_| self)
     }
 
     /// Encrypts and sends data on a connection where
@@ -583,7 +587,7 @@ impl Connection {
     /// Safety: this function is always safe to call, and additionally:
     /// 1. It will never deinitialize any bytes in `buf`.
     /// 2. If it returns `Ok(n)`, then the first `n` bytes of `buf`
-    /// will have been initialized by this function.
+    ///    will have been initialized by this function.
     pub fn poll_recv_uninitialized(
         &mut self,
         buf: &mut [MaybeUninit<u8>],
@@ -850,6 +854,7 @@ impl Connection {
         Ok(())
     }
 
+    /// Access the protocol version selected for the connection.
     pub fn actual_protocol_version(&self) -> Result<Version, Error> {
         let version = unsafe {
             s2n_connection_get_actual_protocol_version(self.connection.as_ptr()).into_result()?
@@ -857,25 +862,53 @@ impl Connection {
         version.try_into()
     }
 
+    /// Detects if the client hello is using the SSLv2 format.
+    ///
+    /// s2n-tls will not negotiate SSLv2, but will accept SSLv2 ClientHellos
+    /// advertising a higher protocol version like SSLv3 or TLS1.0.
+    /// [Connection::actual_protocol_version()] can be used to retrieve the
+    /// protocol version that is actually used on the connection.
+    pub fn client_hello_is_sslv2(&self) -> Result<bool, Error> {
+        let version = unsafe {
+            s2n_connection_get_client_hello_version(self.connection.as_ptr()).into_result()?
+        };
+        let version: Version = version.try_into()?;
+        Ok(version == Version::SSLV2)
+    }
+
     pub fn handshake_type(&self) -> Result<&str, Error> {
         let handshake = unsafe {
             s2n_connection_get_handshake_type_name(self.connection.as_ptr()).into_result()?
         };
-        // The strings returned by s2n_connection_get_handshake_type_name
-        // are static and immutable after they are first calculated
-        static_const_str!(handshake)
+        unsafe {
+            // SAFETY: Constructed strings have a null byte appended to them.
+            // SAFETY: The data has a 'static lifetime, because it resides in a
+            //         static char array, and is never modified after its initial
+            //         creation.
+            const_str!(handshake)
+        }
     }
 
     pub fn cipher_suite(&self) -> Result<&str, Error> {
         let cipher = unsafe { s2n_connection_get_cipher(self.connection.as_ptr()).into_result()? };
-        // The strings returned by s2n_connection_get_cipher
-        // are static and immutable since they are const fields on static const structs
-        static_const_str!(cipher)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: cipher has a static lifetime because it lives on s2n_cipher_suite,
+            //         a static struct.
+            const_str!(cipher)
+        }
     }
 
     pub fn selected_curve(&self) -> Result<&str, Error> {
         let curve = unsafe { s2n_connection_get_curve(self.connection.as_ptr()).into_result()? };
-        static_const_str!(curve)
+        unsafe {
+            // SAFETY: The data is null terminated because it is declared as a C
+            //         string literal.
+            // SAFETY: curve has a static lifetime because it lives on s2n_ecc_named_curve,
+            //         which is a static const struct.
+            const_str!(curve)
+        }
     }
 
     pub fn selected_signature_algorithm(&self) -> Result<SignatureAlgorithm, Error> {
@@ -924,6 +957,14 @@ impl Connection {
             s2n_tls_hash_algorithm::NONE => None,
             hash_alg => Some(hash_alg.try_into()?),
         })
+    }
+
+    pub fn application_protocol(&self) -> Option<&[u8]> {
+        let protocol = unsafe { s2n_get_application_protocol(self.connection.as_ptr()) };
+        if protocol.is_null() {
+            return None;
+        }
+        Some(unsafe { CStr::from_ptr(protocol).to_bytes() })
     }
 
     /// Provides access to the TLS-Exporter functionality.

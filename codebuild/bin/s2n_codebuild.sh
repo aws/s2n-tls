@@ -61,11 +61,6 @@ if [[ "$OS_NAME" == "linux" && "$TESTS" == "valgrind" ]]; then
     kill %1
 fi
 
-CMAKE_PQ_OPTION="S2N_NO_PQ=False"
-if [[ -n "$S2N_NO_PQ" ]]; then
-    CMAKE_PQ_OPTION="S2N_NO_PQ=True"
-fi
-
 test_linked_libcrypto() {
     s2n_executable="$1"
     so_path="${LIBCRYPTO_ROOT}/lib/libcrypto.so"
@@ -93,7 +88,6 @@ run_integration_v2_tests() {
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -D${CMAKE_PQ_OPTION} \
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
             -DS2N_INTEG_TESTS=on \
@@ -114,7 +108,6 @@ run_integration_v2_tests() {
 run_unit_tests() {
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -D${CMAKE_PQ_OPTION} \
             -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on
     cmake --build ./build -- -j $(nproc)

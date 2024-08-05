@@ -22,12 +22,13 @@ usage() {
     exit 1
 }
 
-if [ "$#" -ne "2" ]; then
+if [ "$#" -ne "3" ]; then
     usage
 fi
 
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
+CORPUS_UPLOAD_LOC=$3
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
@@ -75,8 +76,27 @@ ACTUAL_TEST_FAILURE=0
 
 # Copy existing Corpus to a temp directory so that new inputs from fuzz tests runs will add new inputs to the temp directory.
 # This allows us to minimize new inputs before merging to the original corpus directory.
+# If s3 directory is specified, use corpuses stored in S3 bucket instead.
 TEMP_CORPUS_DIR="$(mktemp -d)"
-cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
+if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
+    (
+        # Clean the environment before copying corpuses from the S3 bucket.
+        # The LD variables interferes with certificate validation when communicating with AWS S3.
+        unset LD_PRELOAD
+        unset LD_LIBRARY_PATH
+
+        # Check if corpus.zip exists in the specified S3 location.
+        # `> /dev/null 2>&1` redirects output to /dev/null.
+        # If the file is not found, `aws s3 ls` returns a non-zero exit code.
+        if aws s3 ls "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" > /dev/null 2>&1; then
+            printf "corpus.zip found, downloading from S3 bucket and unzipping...\n"
+            aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus.zip"
+            unzip -o "${TEMP_CORPUS_DIR}/corpus.zip" -d "${TEMP_CORPUS_DIR}"
+        fi
+    )
+else
+    cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
+fi
 
 # Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
 if [[ ${AFL_FUZZ} == "true" && ${FUZZ_COVERAGE} != "true" ]]; then
@@ -203,9 +223,20 @@ then
             COVERAGE_FAILURE_ALLOWED=1
         fi
 
-        if [ "$FEATURE_COVERAGE" -lt $MIN_FEATURES_COVERED && COVERAGE_FAILURE_ALLOWED -eq 0 ]; then
+        if [[ "$FEATURE_COVERAGE" -lt $MIN_FEATURES_COVERED && COVERAGE_FAILURE_ALLOWED -eq 0 ]]; then
             printf "\033[31;1mERROR!\033[0m ${TEST_NAME} only covers ${FEATURE_COVERAGE} features, which is below ${MIN_FEATURES_COVERED}! This may be due to missing corpus files or a bug.\n"
             exit -1;
+        fi
+
+        # Store generated corpus files in the S3 bucket.
+        unset LD_PRELOAD
+        unset LD_LIBRARY_PATH
+        if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
+            printf "Zipping corpus files...\n"
+            zip -r ./corpus/${TEST_NAME}.zip ./corpus/${TEST_NAME}/
+            
+            printf "Uploading zipped corpus file to S3 bucket...\n"
+            aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus.zip
         fi
     fi
 

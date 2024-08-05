@@ -216,7 +216,7 @@ S2N_RESULT s2n_offered_psk_list_read_next(struct s2n_offered_psk_list *psk_list,
     RESULT_ENSURE_REF(identity_data);
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
      *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
      *# used, and servers MUST ignore the value.
      */
@@ -285,7 +285,7 @@ static S2N_RESULT s2n_match_psk_identity(struct s2n_array *known_psks, const str
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.2.10
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.10
  *# For PSKs provisioned via NewSessionTicket, a server MUST validate
  *# that the ticket age for the selected PSK identity (computed by
  *# subtracting ticket_age_add from PskIdentity.obfuscated_ticket_age
@@ -326,8 +326,8 @@ int s2n_offered_psk_list_choose_psk(struct s2n_offered_psk_list *psk_list, struc
         POSIX_GUARD(s2n_stuffer_init(&ticket_stuffer, &psk->identity));
         POSIX_GUARD(s2n_stuffer_skip_write(&ticket_stuffer, psk->identity.size));
 
-        /* s2n_decrypt_session_ticket appends a new PSK with the decrypted values. */
-        POSIX_GUARD(s2n_decrypt_session_ticket(psk_list->conn, &ticket_stuffer));
+        /* s2n_resume_decrypt_session_ticket appends a new PSK with the decrypted values. */
+        POSIX_GUARD_RESULT(s2n_resume_decrypt_session_ticket(psk_list->conn, &ticket_stuffer));
     }
 
     struct s2n_psk *chosen_psk = NULL;
@@ -496,7 +496,7 @@ static S2N_RESULT s2n_psk_write_binder_list(struct s2n_connection *conn, const s
         RESULT_ENSURE_REF(psk);
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.1.4
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.1.4
          *# In addition, in its updated ClientHello, the client SHOULD NOT offer
          *# any pre-shared keys associated with a hash other than that of the
          *# selected cipher suite.  This allows the client to avoid having to

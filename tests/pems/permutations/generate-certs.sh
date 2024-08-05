@@ -170,6 +170,7 @@ then
     cert-gen   ec          ecdsa       384        SHA384      ec_ecdsa_p384_sha384
     cert-gen   ec          ecdsa       521        SHA384      ec_ecdsa_p521_sha384
     cert-gen   ec          ecdsa       521        SHA512      ec_ecdsa_p521_sha512
+    cert-gen   rsa        pkcsv1.5     1024       SHA1        rsae_pkcs_1024_sha1
     cert-gen   rsa        pkcsv1.5     2048       SHA1        rsae_pkcs_2048_sha1
     cert-gen   rsa        pkcsv1.5     2048       SHA224      rsae_pkcs_2048_sha224
     cert-gen   rsa        pkcsv1.5     2048       SHA256      rsae_pkcs_2048_sha256

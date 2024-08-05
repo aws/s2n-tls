@@ -145,10 +145,7 @@ int main(int argc, char **argv)
         uint8_t actual_result_data[OUTPUT_DATA_SIZE] = { 0 };
         EXPECT_SUCCESS(s2n_blob_init(&actual_result, actual_result_data, OUTPUT_DATA_SIZE));
 
-        struct s2n_blob expected_result = { 0 };
-        uint8_t expected_result_data[OUTPUT_DATA_SIZE] = { 0 };
-        EXPECT_SUCCESS(s2n_blob_init(&expected_result, expected_result_data, OUTPUT_DATA_SIZE));
-        EXPECT_SUCCESS(s2n_hex_string_to_bytes((const uint8_t *) expected_result_hex[hash_alg], &expected_result));
+        S2N_CHECKED_BLOB_FROM_HEX(expected_result, EXPECT_OK, expected_result_hex[hash_alg]);
 
         EXPECT_OK(s2n_hash_test(hash_alg, &actual_result));
         EXPECT_EQUAL(expected_result.size, actual_result.size);

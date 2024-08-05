@@ -561,7 +561,7 @@ int main(int argc, char **argv)
 
         /* TLS_EMPTY_RENEGOTIATION_INFO_SCSV included if TLS1.2 ciphers included
          *
-         *= https://tools.ietf.org/rfc/rfc5746#3.4
+         *= https://www.rfc-editor.org/rfc/rfc5746#3.4
          *= type=test
          *# o  The client MUST include either an empty "renegotiation_info"
          *#    extension, or the TLS_EMPTY_RENEGOTIATION_INFO_SCSV signaling
@@ -645,6 +645,33 @@ int main(int argc, char **argv)
             }
 
             EXPECT_SUCCESS(s2n_config_free(config));
+        };
+
+        /* Error if no cipher suites written. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(conn);
+
+            struct s2n_cipher_suite cipher_suite = s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
+            struct s2n_cipher_suite *cipher_suites = &cipher_suite;
+            struct s2n_cipher_preferences cipher_preferences = {
+                .suites = &cipher_suites,
+                .count = 1,
+            };
+            struct s2n_security_policy policy = *conn->config->security_policy;
+            policy.cipher_preferences = &cipher_preferences;
+            conn->security_policy_override = &policy;
+
+            /* Fails with no cipher suites available / written */
+            cipher_suite.available = false;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_client_hello_send(conn),
+                    S2N_ERR_INVALID_CIPHER_PREFERENCES);
+
+            /* Succeeds with one cipher suite available / written */
+            /* cppcheck-suppress redundantAssignment */
+            cipher_suite.available = true;
+            EXPECT_SUCCESS(s2n_client_hello_send(conn));
         };
     };
 

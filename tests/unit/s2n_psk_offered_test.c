@@ -30,7 +30,7 @@ static S2N_RESULT s2n_setup_encrypted_ticket(struct s2n_connection *conn, struct
     RESULT_CHECKED_MEMCPY(conn->tls13_ticket_fields.session_secret.data, test_secret_data, sizeof(test_secret_data));
 
     /* Create a valid resumption psk identity */
-    RESULT_GUARD_POSIX(s2n_encrypt_session_ticket(conn, output));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, output));
     output->blob.size = s2n_stuffer_data_available(output);
 
     return S2N_RESULT_OK;
@@ -193,7 +193,7 @@ int main(int argc, char **argv)
         };
 
         /**
-         *= https://tools.ietf.org/rfc/rfc8446#section-4.2.11
+         *= https://www.rfc-editor.org/rfc/rfc8446#section-4.2.11
          *= type=test
          *# For identities established externally, an obfuscated_ticket_age of 0 SHOULD be
          *# used, and servers MUST ignore the value.

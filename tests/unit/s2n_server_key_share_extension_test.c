@@ -259,7 +259,7 @@ int main(int argc, char **argv)
                 const char *payload = key_share_payloads[i];
 
                 EXPECT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-                EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, payload));
+                EXPECT_OK(s2n_stuffer_alloc_from_hex(&extension_stuffer, payload));
 
                 client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[i];
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
@@ -289,7 +289,7 @@ int main(int argc, char **argv)
                 const char *payload = key_share_payloads[0];
 
                 EXPECT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-                EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, payload));
+                EXPECT_OK(s2n_stuffer_alloc_from_hex(&extension_stuffer, payload));
 
                 client_conn->kex_params.client_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
                 EXPECT_SUCCESS(s2n_ecc_evp_generate_ephemeral_key(&client_conn->kex_params.client_ecc_evp_params));
@@ -318,7 +318,7 @@ int main(int argc, char **argv)
             const char *p256 = "001700410474cfd75c0ab7b57247761a277e1c92b5810dacb251bb758f43e9d15aaf292c4a2be43e886425ba55653ebb7a4f32fe368bacce3df00c618645cf1eb6";
 
             EXPECT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-            EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, p256));
+            EXPECT_OK(s2n_stuffer_alloc_from_hex(&extension_stuffer, p256));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &extension_stuffer), S2N_ERR_BAD_KEY_SHARE);
 
@@ -339,7 +339,7 @@ int main(int argc, char **argv)
             const char *p256 = "001700410474cfd75c0ab7b57247761a277e1c92b5810dacb251bb758f43e9d15aaf292c4a2be43e886425ba55653ebb7a4f32fe368bacce3df00c618645cf1eb646f22552";
 
             EXPECT_NULL(client_conn->kex_params.server_ecc_evp_params.negotiated_curve);
-            EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&extension_stuffer, p256));
+            EXPECT_OK(s2n_stuffer_alloc_from_hex(&extension_stuffer, p256));
 
             /* If s2n_is_evp_apis_supported is not supported, the ecc_prefs->ecc_curves contains only p-256, p-384 curves. */
             int p_384_index = s2n_is_evp_apis_supported() ? 2 : 1;
@@ -647,7 +647,7 @@ int main(int argc, char **argv)
                     /* In the HRR, the server indicated p256+Kyber as it's choice in the key share extension */
                     const struct s2n_kem_group *kem_group = &s2n_secp256r1_kyber_512_r3;
                     DEFER_CLEANUP(struct s2n_stuffer key_share_payload = { 0 }, s2n_stuffer_free);
-                    EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&key_share_payload, "2F3A"));
+                    EXPECT_OK(s2n_stuffer_alloc_from_hex(&key_share_payload, "2F3A"));
 
                     /* Client should successfully parse the indicated group */
                     EXPECT_SUCCESS(s2n_server_key_share_extension.recv(client_conn, &key_share_payload));
@@ -689,14 +689,14 @@ int main(int argc, char **argv)
                         /* Server sends a named group identifier that isn't in the client's KEM preferences */
                         const char *bad_group = "2F2C"; /* IANA ID for secp256r1_threebears-babybear-r2 (not imported into s2n) */
                         DEFER_CLEANUP(struct s2n_stuffer bad_group_stuffer = { 0 }, s2n_stuffer_free);
-                        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&bad_group_stuffer, bad_group));
+                        EXPECT_OK(s2n_stuffer_alloc_from_hex(&bad_group_stuffer, bad_group));
                         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &bad_group_stuffer),
                                 S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
                         /* Server sends a key share that is in the client's KEM preferences, but client didn't send a key share */
                         const char *wrong_share = "2F1F"; /* Full extension truncated - not necessary */
                         DEFER_CLEANUP(struct s2n_stuffer wrong_share_stuffer = { 0 }, s2n_stuffer_free);
-                        EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&wrong_share_stuffer, wrong_share));
+                        EXPECT_OK(s2n_stuffer_alloc_from_hex(&wrong_share_stuffer, wrong_share));
                         EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &wrong_share_stuffer),
                                 S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 

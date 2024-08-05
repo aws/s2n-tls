@@ -92,7 +92,7 @@ int s2n_server_nst_send(struct s2n_connection *conn)
      *# NewSessionTicket handshake message.
      **/
     POSIX_GUARD(s2n_stuffer_init(&to, &entry));
-    if (!conn->config->use_tickets || s2n_encrypt_session_ticket(conn, &to) != S2N_SUCCESS) {
+    if (!conn->config->use_tickets || s2n_result_is_error(s2n_resume_encrypt_session_ticket(conn, &to))) {
         POSIX_GUARD(s2n_stuffer_write_uint32(&conn->handshake.io, 0));
         POSIX_GUARD(s2n_stuffer_write_uint16(&conn->handshake.io, 0));
 
@@ -149,7 +149,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
     }
 
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Note that in principle it is possible to continue issuing new tickets
      *# which indefinitely extend the lifetime of the keying material
      *# originally derived from an initial non-PSK handshake (which was most
@@ -185,7 +185,7 @@ S2N_RESULT s2n_tls13_server_nst_send(struct s2n_connection *conn, s2n_blocked_st
 }
 
 /** 
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *# Indicates the lifetime in seconds as a 32-bit
  *# unsigned integer in network byte order from the time of ticket
  *# issuance. 
@@ -200,7 +200,7 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
     uint32_t session_lifetime_in_secs = conn->config->session_state_lifetime_in_nanos / ONE_SEC_IN_NANOS;
     uint32_t key_and_session_min_lifetime = MIN(key_lifetime_in_secs, session_lifetime_in_secs);
     /** 
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Servers MUST NOT use any value greater than
      *# 604800 seconds (7 days).
      **/
@@ -210,7 +210,7 @@ static S2N_RESULT s2n_generate_ticket_lifetime(struct s2n_connection *conn, uint
 }
 
 /** 
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *# A per-ticket value that is unique across all tickets
  *# issued on this connection.
  **/
@@ -226,7 +226,7 @@ static S2N_RESULT s2n_generate_ticket_nonce(uint16_t value, struct s2n_blob *out
 }
 
 /** 
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *# A securely generated, random 32-bit value that is
  *# used to obscure the age of the ticket that the client includes in
  *# the "pre_shared_key" extension.
@@ -245,7 +245,7 @@ static S2N_RESULT s2n_generate_ticket_age_add(struct s2n_blob *random_data, uint
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *# The PSK associated with the ticket is computed as:
  *#
  *#    HKDF-Expand-Label(resumption_master_secret,
@@ -288,7 +288,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     struct s2n_blob random_data = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&random_data, data, sizeof(data)));
     /** 
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *#  The server MUST generate a fresh value
      *#  for each ticket it sends.
      **/
@@ -310,7 +310,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
     /* Write ticket */
     struct s2n_stuffer_reservation ticket_size = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_reserve_uint16(output, &ticket_size));
-    RESULT_GUARD_POSIX(s2n_encrypt_session_ticket(conn, output));
+    RESULT_GUARD(s2n_resume_encrypt_session_ticket(conn, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_vector_size(&ticket_size));
 
     RESULT_GUARD_POSIX(s2n_extension_list_send(S2N_EXTENSION_LIST_NST, conn, output));
@@ -324,7 +324,7 @@ S2N_RESULT s2n_tls13_server_nst_write(struct s2n_connection *conn, struct s2n_st
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+ *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
  *#     struct {
  *#         uint32 ticket_lifetime;
  *#         uint32 ticket_age_add;
@@ -351,13 +351,13 @@ S2N_RESULT s2n_tls13_server_nst_recv(struct s2n_connection *conn, struct s2n_stu
     uint32_t ticket_lifetime = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint32(input, &ticket_lifetime));
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# Servers MUST NOT use any value greater than
      *# 604800 seconds (7 days).
      */
     RESULT_ENSURE(ticket_lifetime <= ONE_WEEK_IN_SEC, S2N_ERR_BAD_MESSAGE);
     /**
-     *= https://tools.ietf.org/rfc/rfc8446#section-4.6.1
+     *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.1
      *# The value of zero indicates that the
      *# ticket should be discarded immediately.
      */

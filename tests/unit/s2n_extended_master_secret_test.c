@@ -28,7 +28,7 @@ int main(int argc, char **argv)
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
          *= type=test
          *# If the original session used the "extended_master_secret"
          *# extension but the new ClientHello does not contain it, the server
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket with EMS data */
-            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -65,7 +65,7 @@ int main(int argc, char **argv)
         };
 
         /**
-         *= https://tools.ietf.org/rfc/rfc7627#section-5.3
+         *= https://www.rfc-editor.org/rfc/rfc7627#section-5.3
          *= type=test
          *# If the original session did not use the "extended_master_secret"
          *# extension but the new ClientHello contains the extension, then the
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket without EMS data */
-            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -126,7 +126,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_stuffer_init(&ticket, &ticket_blob));
 
             /* Encrypt the ticket with EMS data */
-            EXPECT_SUCCESS(s2n_encrypt_session_ticket(conn, &ticket));
+            EXPECT_OK(s2n_resume_encrypt_session_ticket(conn, &ticket));
 
             EXPECT_SUCCESS(s2n_connection_wipe(conn));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));

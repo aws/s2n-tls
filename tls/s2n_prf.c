@@ -122,11 +122,6 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
     POSIX_ENSURE_REF(conn->handshake.hashes);
     struct s2n_hash_state *workspace = &conn->handshake.hashes->hash_workspace;
 
-    /* FIPS specifically allows MD5 for the legacy PRF */
-    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
-        POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
-    }
-
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
     uint8_t iteration = 1;
@@ -157,6 +152,10 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
 
         struct s2n_hash_state *md5 = workspace;
         POSIX_GUARD(s2n_hash_reset(md5));
+        /* FIPS specifically allows MD5 for the legacy PRF */
+        if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+            POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
+        }
         POSIX_GUARD(s2n_hash_init(md5, S2N_HASH_MD5));
         POSIX_GUARD(s2n_hash_update(md5, secret->data, secret->size));
         POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));
@@ -731,7 +730,7 @@ int s2n_prf_calculate_master_secret(struct s2n_connection *conn, struct s2n_blob
 }
 
 /**
- *= https://tools.ietf.org/rfc/rfc7627#section-4
+ *= https://www.rfc-editor.org/rfc/rfc7627#section-4
  *# When the extended master secret extension is negotiated in a full
  *# handshake, the "master_secret" is computed as
  *#
@@ -967,9 +966,9 @@ static int s2n_prf_make_client_key(struct s2n_connection *conn, struct s2n_key_m
     POSIX_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_CLIENT) {
-        POSIX_GUARD(cipher->set_encryption_key(&conn->secure->client_key, &key_material->client_key));
+        POSIX_GUARD_RESULT(cipher->set_encryption_key(&conn->secure->client_key, &key_material->client_key));
     } else {
-        POSIX_GUARD(cipher->set_decryption_key(&conn->secure->client_key, &key_material->client_key));
+        POSIX_GUARD_RESULT(cipher->set_decryption_key(&conn->secure->client_key, &key_material->client_key));
     }
 
     return 0;
@@ -987,9 +986,9 @@ static int s2n_prf_make_server_key(struct s2n_connection *conn, struct s2n_key_m
     POSIX_ENSURE_REF(cipher->set_decryption_key);
 
     if (conn->mode == S2N_SERVER) {
-        POSIX_GUARD(cipher->set_encryption_key(&conn->secure->server_key, &key_material->server_key));
+        POSIX_GUARD_RESULT(cipher->set_encryption_key(&conn->secure->server_key, &key_material->server_key));
     } else {
-        POSIX_GUARD(cipher->set_decryption_key(&conn->secure->server_key, &key_material->server_key));
+        POSIX_GUARD_RESULT(cipher->set_decryption_key(&conn->secure->server_key, &key_material->server_key));
     }
 
     return 0;
@@ -1033,8 +1032,8 @@ int s2n_prf_key_expansion(struct s2n_connection *conn)
     POSIX_GUARD_RESULT(s2n_prf_generate_key_material(conn, &key_material));
 
     POSIX_ENSURE(cipher_suite->available, S2N_ERR_PRF_INVALID_ALGORITHM);
-    POSIX_GUARD(cipher->init(&conn->secure->client_key));
-    POSIX_GUARD(cipher->init(&conn->secure->server_key));
+    POSIX_GUARD_RESULT(cipher->init(&conn->secure->client_key));
+    POSIX_GUARD_RESULT(cipher->init(&conn->secure->server_key));
 
     /* Seed the client MAC */
     POSIX_GUARD(s2n_hmac_reset(&conn->secure->client_record_mac));

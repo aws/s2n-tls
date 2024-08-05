@@ -39,7 +39,7 @@ S2N_RESULT s2n_post_handshake_process(struct s2n_connection *conn, struct s2n_st
             /*
              * s2n-tls does not support post-handshake authentication.
              *
-             *= https://tools.ietf.org/rfc/rfc8446#section-4.6.2
+             *= https://www.rfc-editor.org/rfc/rfc8446#section-4.6.2
              *# A client that receives a CertificateRequest message without having
              *# sent the "post_handshake_auth" extension MUST send an
              *# "unexpected_message" fatal alert.

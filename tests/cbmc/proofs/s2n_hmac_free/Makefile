@@ -23,6 +23,7 @@ PROOF_SOURCES += $(OPENSSL_SOURCE)/bn_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/ec_override.c
 PROOF_SOURCES += $(OPENSSL_SOURCE)/evp_override.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
+PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_is_in_fips_mode.c
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
@@ -37,8 +38,6 @@ REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_reset
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_init
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_new
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_low_level_hash_reset
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_hash_allow_md5_for_fips
-REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_hash_c_s2n_evp_hash_allow_md5_for_fips
 
 UNWINDSET +=
 

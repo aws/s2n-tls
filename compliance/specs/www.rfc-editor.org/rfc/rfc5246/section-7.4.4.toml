@@ -1,0 +1,130 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-7.4.4"
+
+# 7.4.4.  Certificate Request
+#
+# When this message will be sent:
+# 
+#     A non-anonymous server can optionally request a certificate from
+#     the client, if appropriate for the selected cipher suite.  This
+#     message, if sent, will immediately follow the ServerKeyExchange
+#     message (if it is sent; otherwise, this message follows the
+#     server's Certificate message).
+# 
+# Structure of this message:
+# 
+#    enum {
+#        rsa_sign(1), dss_sign(2), rsa_fixed_dh(3), dss_fixed_dh(4),
+#        rsa_ephemeral_dh_RESERVED(5), dss_ephemeral_dh_RESERVED(6),
+#        fortezza_dms_RESERVED(20), (255)
+#    } ClientCertificateType;
+# 
+#    opaque DistinguishedName<1..2^16-1>;
+# 
+#    struct {
+#        ClientCertificateType certificate_types<1..2^8-1>;
+#        SignatureAndHashAlgorithm
+#          supported_signature_algorithms<2^16-1>;
+#        DistinguishedName certificate_authorities<0..2^16-1>;
+#    } CertificateRequest;
+# 
+# certificate_types
+#    A list of the types of certificate types that the client may
+#    offer.
+# 
+#       rsa_sign        a certificate containing an RSA key
+#       dss_sign        a certificate containing a DSA key
+#       rsa_fixed_dh    a certificate containing a static DH key.
+#       dss_fixed_dh    a certificate containing a static DH key
+# 
+# supported_signature_algorithms
+#    A list of the hash/signature algorithm pairs that the server is
+#    able to verify, listed in descending order of preference.
+# 
+# certificate_authorities
+#    A list of the distinguished names [X501] of acceptable
+#    certificate_authorities, represented in DER-encoded format.  These
+#    distinguished names may specify a desired distinguished name for a
+#    root CA or for a subordinate CA; thus, this message can be used to
+#    describe known roots as well as a desired authorization space.  If
+#    the certificate_authorities list is empty, then the client MAY
+#    send any certificate of the appropriate ClientCertificateType,
+#    unless there is some external arrangement to the contrary.
+# 
+# The interaction of the certificate_types and
+# supported_signature_algorithms fields is somewhat complicated.
+# certificate_types has been present in TLS since SSLv3, but was
+# somewhat underspecified.  Much of its functionality is superseded by
+# supported_signature_algorithms.  The following rules apply:
+# 
+# -  Any certificates provided by the client MUST be signed using a
+#    hash/signature algorithm pair found in
+#    supported_signature_algorithms.
+# 
+# -  The end-entity certificate provided by the client MUST contain a
+#    key that is compatible with certificate_types.  If the key is a
+#    signature key, it MUST be usable with some hash/signature
+#    algorithm pair in supported_signature_algorithms.
+# 
+# -  For historical reasons, the names of some client certificate types
+#    include the algorithm used to sign the certificate.  For example,
+#    in earlier versions of TLS, rsa_fixed_dh meant a certificate
+#    signed with RSA and containing a static DH key.  In TLS 1.2, this
+#    functionality has been obsoleted by the
+#    supported_signature_algorithms, and the certificate type no longer
+#    restricts the algorithm used to sign the certificate.  For
+#    example, if the server sends dss_fixed_dh certificate type and
+#    {{sha1, dsa}, {sha1, rsa}} signature types, the client MAY reply
+#    with a certificate containing a static DH key, signed with RSA-
+#    SHA1.
+# 
+# New ClientCertificateType values are assigned by IANA as described in
+# Section 12.
+# 
+# Note: Values listed as RESERVED may not be used.  They were used in
+# SSLv3.
+# 
+# Note: It is a fatal handshake_failure alert for an anonymous server
+# to request client authentication.
+
+[[spec]]
+level = "MAY"
+quote = '''
+If
+the certificate_authorities list is empty, then the client MAY
+send any certificate of the appropriate ClientCertificateType,
+unless there is some external arrangement to the contrary.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  Any certificates provided by the client MUST be signed using a
+hash/signature algorithm pair found in
+supported_signature_algorithms.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+-  The end-entity certificate provided by the client MUST contain a
+key that is compatible with certificate_types.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the key is a
+signature key, it MUST be usable with some hash/signature
+algorithm pair in supported_signature_algorithms.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+For
+example, if the server sends dss_fixed_dh certificate type and
+{{sha1, dsa}, {sha1, rsa}} signature types, the client MAY reply
+with a certificate containing a static DH key, signed with RSA-
+SHA1.
+'''
+

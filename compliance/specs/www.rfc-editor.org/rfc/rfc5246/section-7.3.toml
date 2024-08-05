@@ -1,0 +1,192 @@
+target = "https://www.rfc-editor.org/rfc/rfc5246#section-7.3"
+
+# 7.3.  Handshake Protocol Overview
+#
+# The cryptographic parameters of the session state are produced by the
+# TLS Handshake Protocol, which operates on top of the TLS record
+# layer.  When a TLS client and server first start communicating, they
+# agree on a protocol version, select cryptographic algorithms,
+# optionally authenticate each other, and use public-key encryption
+# techniques to generate shared secrets.
+# 
+# The TLS Handshake Protocol involves the following steps:
+# 
+# -  Exchange hello messages to agree on algorithms, exchange random
+#    values, and check for session resumption.
+# 
+# -  Exchange the necessary cryptographic parameters to allow the
+#    client and server to agree on a premaster secret.
+# 
+# -  Exchange certificates and cryptographic information to allow the
+#    client and server to authenticate themselves.
+# 
+# -  Generate a master secret from the premaster secret and exchanged
+#    random values.
+# 
+# -  Provide security parameters to the record layer.
+# 
+# -  Allow the client and server to verify that their peer has
+#    calculated the same security parameters and that the handshake
+#    occurred without tampering by an attacker.
+# 
+# Note that higher layers should not be overly reliant on whether TLS
+# always negotiates the strongest possible connection between two
+# peers.  There are a number of ways in which a man-in-the-middle
+# attacker can attempt to make two entities drop down to the least
+# secure method they support.  The protocol has been designed to
+# minimize this risk, but there are still attacks available: for
+# example, an attacker could block access to the port a secure service
+# runs on, or attempt to get the peers to negotiate an unauthenticated
+# connection.  The fundamental rule is that higher levels must be
+# cognizant of what their security requirements are and never transmit
+# information over a channel less secure than what they require.  The
+# TLS protocol is secure in that any cipher suite offers its promised
+# level of security: if you negotiate 3DES with a 1024-bit RSA key
+# exchange with a host whose certificate you have verified, you can
+# expect to be that secure.
+# 
+# These goals are achieved by the handshake protocol, which can be
+# summarized as follows: The client sends a ClientHello message to
+# which the server must respond with a ServerHello message, or else a
+# fatal error will occur and the connection will fail.  The ClientHello
+# and ServerHello are used to establish security enhancement
+# capabilities between client and server.  The ClientHello and
+# ServerHello establish the following attributes: Protocol Version,
+# Session ID, Cipher Suite, and Compression Method.  Additionally, two
+# random values are generated and exchanged: ClientHello.random and
+# ServerHello.random.
+# 
+# The actual key exchange uses up to four messages: the server
+# Certificate, the ServerKeyExchange, the client Certificate, and the
+# ClientKeyExchange.  New key exchange methods can be created by
+# specifying a format for these messages and by defining the use of the
+# messages to allow the client and server to agree upon a shared
+# secret.  This secret MUST be quite long; currently defined key
+# exchange methods exchange secrets that range from 46 bytes upwards.
+# 
+# Following the hello messages, the server will send its certificate in
+# a Certificate message if it is to be authenticated.  Additionally, a
+# ServerKeyExchange message may be sent, if it is required (e.g., if
+# the server has no certificate, or if its certificate is for signing
+# only).  If the server is authenticated, it may request a certificate
+# from the client, if that is appropriate to the cipher suite selected.
+# Next, the server will send the ServerHelloDone message, indicating
+# that the hello-message phase of the handshake is complete.  The
+# server will then wait for a client response.  If the server has sent
+# a CertificateRequest message, the client MUST send the Certificate
+# message.  The ClientKeyExchange message is now sent, and the content
+# of that message will depend on the public key algorithm selected
+# between the ClientHello and the ServerHello.  If the client has sent
+# a certificate with signing ability, a digitally-signed
+# CertificateVerify message is sent to explicitly verify possession of
+# the private key in the certificate.
+# 
+# At this point, a ChangeCipherSpec message is sent by the client, and
+# the client copies the pending Cipher Spec into the current Cipher
+# Spec.  The client then immediately sends the Finished message under
+# the new algorithms, keys, and secrets.  In response, the server will
+# send its own ChangeCipherSpec message, transfer the pending to the
+# current Cipher Spec, and send its Finished message under the new
+# Cipher Spec.  At this point, the handshake is complete, and the
+# client and server may begin to exchange application layer data.  (See
+# flow chart below.)  Application data MUST NOT be sent prior to the
+# completion of the first handshake (before a cipher suite other than
+# TLS_NULL_WITH_NULL_NULL is established).
+# 
+#    Client                                               Server
+# 
+#    ClientHello                  -------->
+#                                                    ServerHello
+#                                                   Certificate*
+#                                             ServerKeyExchange*
+#                                            CertificateRequest*
+#                                 <--------      ServerHelloDone
+#    Certificate*
+#    ClientKeyExchange
+#    CertificateVerify*
+#    [ChangeCipherSpec]
+#    Finished                     -------->
+#                                             [ChangeCipherSpec]
+#                                 <--------             Finished
+#    Application Data             <------->     Application Data
+# 
+#           Figure 1.  Message flow for a full handshake
+# 
+# * Indicates optional or situation-dependent messages that are not
+# always sent.
+# 
+# Note: To help avoid pipeline stalls, ChangeCipherSpec is an
+# independent TLS protocol content type, and is not actually a TLS
+# handshake message.
+# 
+# When the client and server decide to resume a previous session or
+# duplicate an existing session (instead of negotiating new security
+# parameters), the message flow is as follows:
+# 
+# The client sends a ClientHello using the Session ID of the session to
+# be resumed.  The server then checks its session cache for a match.
+# If a match is found, and the server is willing to re-establish the
+# connection under the specified session state, it will send a
+# ServerHello with the same Session ID value.  At this point, both
+# client and server MUST send ChangeCipherSpec messages and proceed
+# directly to Finished messages.  Once the re-establishment is
+# complete, the client and server MAY begin to exchange application
+# layer data.  (See flow chart below.)  If a Session ID match is not
+# found, the server generates a new session ID, and the TLS client and
+# server perform a full handshake.
+# 
+#    Client                                                Server
+# 
+#    ClientHello                   -------->
+#                                                     ServerHello
+#                                              [ChangeCipherSpec]
+#                                  <--------             Finished
+#    [ChangeCipherSpec]
+#    Finished                      -------->
+#    Application Data              <------->     Application Data
+# 
+#        Figure 2.  Message flow for an abbreviated handshake
+# 
+# The contents and significance of each message will be presented in
+# detail in the following sections.
+
+[[spec]]
+level = "MUST"
+quote = '''
+This secret MUST be quite long; currently defined key
+exchange methods exchange secrets that range from 46 bytes upwards.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the server has sent
+a CertificateRequest message, the client MUST send the Certificate
+message.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+(See
+flow chart below.)  Application data MUST NOT be sent prior to the
+completion of the first handshake (before a cipher suite other than
+TLS_NULL_WITH_NULL_NULL is established).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+At this point, both
+client and server MUST send ChangeCipherSpec messages and proceed
+directly to Finished messages.
+'''
+
+[[spec]]
+level = "MAY"
+quote = '''
+Once the re-establishment is
+complete, the client and server MAY begin to exchange application
+layer data.
+'''
+
