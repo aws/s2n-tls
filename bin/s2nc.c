@@ -76,6 +76,9 @@ const char default_trusted_cert[] =
 void usage()
 {
     /* clang-format off */
+    fprintf(stderr, "s2nc is an s2n-tls client testing utility.\n");
+    fprintf(stderr, "It is not intended for production use.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
     fprintf(stderr, " host: hostname or IP address to connect to\n");
     fprintf(stderr, " port: port to connect to\n");
@@ -200,6 +203,9 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         print_s2n_error("Error getting new config");
         exit(1);
     }
+
+    /* The s2n-tls blinding security feature is disabled for testing purposes to make debugging easier. */
+    GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 

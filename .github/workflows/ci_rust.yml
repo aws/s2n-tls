@@ -33,7 +33,7 @@ jobs:
           rustup override set stable
 
       # https://github.com/aws/aws-lc-rs/blob/main/aws-lc-fips-sys/README.md#build-prerequisites
-      # go required to build aws-lc-rs in FIPS mode
+      # go required for generate.sh to build aws-lc-rs in FIPS mode
       - name: Install go
         uses: actions/setup-go@v4
         with:
@@ -46,7 +46,8 @@ jobs:
 
       - name: Tests
         working-directory: ${{env.ROOT_PATH}}
-        run: cargo test --all-features
+        # Test all features except for FIPS, which is tested separately.
+        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq
 
       # Ensure that all tests pass with the default feature set
       - name: Default Tests
@@ -159,7 +160,11 @@ jobs:
         run: cargo test --all-features
 
   fips:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macOS-latest]
     steps:
       - uses: actions/checkout@v3
         with:
@@ -186,7 +191,16 @@ jobs:
       - name: Test fips
         working-directory: ${{env.ROOT_PATH}}
         run: |
-          cargo test --features fips
+          # The doc tests fail to link to AWS-LC in FIPS mode due to
+          # https://github.com/rust-lang/cargo/issues/8531. The --tests flag is provided to disable
+          # the doc tests. The doc tests are tested in the generate test, where FIPS is disabled.
+          cargo test --tests --features fips
+
+      # Test all features, including FIPS
+      - name: Test all
+        working-directory: ${{env.ROOT_PATH}}
+        run: |
+          cargo test --tests --all-features
 
   rustfmt:
     runs-on: ubuntu-latest
