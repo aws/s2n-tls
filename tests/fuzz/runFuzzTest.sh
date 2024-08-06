@@ -91,7 +91,7 @@ if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
         # If the file is not found, `aws s3 ls` returns a non-zero exit code.
         if aws s3 ls "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" > /dev/null 2>&1; then
             printf "corpus.zip found, downloading from S3 bucket and unzipping...\n"
-            aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus_$(date +%Y-%m-%d-%s).zip"
+            aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus.zip"
             unzip -o "${TEMP_CORPUS_DIR}/corpus.zip" -d "${TEMP_CORPUS_DIR}"
         fi
     )
@@ -202,6 +202,24 @@ then
 
     if [ $EXPECTED_TEST_FAILURE == 1 ];
     then
+        # Store corpus to S3 to be used for debugging if the test is negative
+        unset LD_PRELOAD
+        unset LD_LIBRARY_PATH
+        if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
+            printf "Zipping corpus files...\n"
+            zip -r ./corpus/${TEST_NAME}.zip ./corpus/${TEST_NAME}/
+            
+            printf "Uploading zipped corpus file to S3 bucket...\n"
+            aws s3 cp ./corpus/${TEST_NAME}_$(date +%Y-%m-%d-%s).zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus.zip
+        fi
+
+        # Store generated output files in the S3 bucket.
+        if [ "$ARTIFACT_UPLOAD_LOC" != "none" ]; then
+            printf "Uploading output files to S3 bucket...\n"
+            aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%s).txt
+            aws s3 cp ./${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%s).txt
+        fi
+
         # Clean up LibFuzzer corpus files if the test is negative.
         printf "\n"
         rm -f leak-* crash-*
@@ -238,13 +256,6 @@ then
             
             printf "Uploading zipped corpus file to S3 bucket...\n"
             aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus.zip
-        fi
-
-        # Store generated output files in the S3 bucket.
-        if [ "$ARTIFACT_UPLOAD_LOC" != "none" ]; then
-            printf "Uploading output files to S3 bucket...\n"
-            aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%s).txt
-            aws s3 cp ./${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%s).txt
         fi
     fi
 
