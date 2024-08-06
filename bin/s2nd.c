@@ -562,7 +562,7 @@ int main(int argc, char *const *argv)
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
-#ifdef SSLEAY_VERSION
+#if defined(SSLeay_version) && defined(SSLEAY_VERSION)
     printf("libcrypto: %s\n", SSLeay_version(SSLEAY_VERSION));
 #endif
 
