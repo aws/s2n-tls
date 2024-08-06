@@ -91,7 +91,7 @@ if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
         # If the file is not found, `aws s3 ls` returns a non-zero exit code.
         if aws s3 ls "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" > /dev/null 2>&1; then
             printf "corpus.zip found, downloading from S3 bucket and unzipping...\n"
-            aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus.zip"
+            aws s3 cp "${CORPUS_UPLOAD_LOC}/${TEST_NAME}/corpus.zip" "${TEMP_CORPUS_DIR}/corpus_$(date +%Y-%m-%d-%s).zip"
             unzip -o "${TEMP_CORPUS_DIR}/corpus.zip" -d "${TEMP_CORPUS_DIR}"
         fi
     )
