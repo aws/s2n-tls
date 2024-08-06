@@ -76,10 +76,6 @@ int main(int argc, char **argv)
     /* Test we can successfully receive an sslv2 client hello and set a
      * tls12 connection */
     for (uint8_t i = 0; i < 2; i++) {
-        if (i == 1) {
-            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-        }
-
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, i == 0 ? tls12_config : tls13_config));
 
@@ -109,8 +105,6 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->client_hello.callback_invoked, 1);
 
         s2n_connection_free(server_conn);
-
-        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     }
 
     /* Test that a tls12 client legacy version and tls12 server version
