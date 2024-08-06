@@ -210,7 +210,7 @@ then
             zip -r ./corpus/${TEST_NAME}.zip ./corpus/${TEST_NAME}/
             
             printf "Uploading zipped corpus file to S3 bucket...\n"
-            aws s3 cp ./corpus/${TEST_NAME}_$(date +%Y-%m-%d-%s).zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus.zip
+            aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus_$(date +%Y-%m-%d-%s).zip
         fi
 
         # Store generated output files in the S3 bucket.
