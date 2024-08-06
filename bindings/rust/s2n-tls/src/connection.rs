@@ -521,20 +521,41 @@ impl Connection {
         })
     }
 
-    pub(crate) fn poll_negotiate_method<F, T>(&mut self, negotiate: F) -> Poll<Result<(), Error>>
+    pub(crate) fn poll_negotiate_method<F, T>(
+        &mut self,
+        mut negotiate: F,
+    ) -> Poll<Result<(), Error>>
     where
-        F: FnOnce(&mut Connection) -> Poll<Result<T, Error>>,
+        F: FnMut(&mut Connection) -> Poll<Result<T, Error>>,
     {
         self.trigger_initializer();
 
-        // Check whether renegotiate is blocked by any async callbacks
-        match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
-            Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
-            Poll::Pending => return Poll::Pending,
-            Poll::Ready(Ok(_)) => {}
-        };
+        loop {
+            // Check whether renegotiate is blocked by any async callbacks
+            match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
+                Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                Poll::Pending => return Poll::Pending,
+                Poll::Ready(Ok(_)) => {}
+            };
 
-        negotiate(self).map_ok(|_| ())
+            match negotiate(self) {
+                Poll::Ready(res) => return Poll::Ready(res.map(|_| ())),
+                Poll::Pending => {
+                    // If `negotiate` returned `Pending` it could be blocked on a connection future
+                    // (i.e. not socket IO) so before we return, we need to make sure we poll
+                    // the associated future at least once. Otherwise, we will violate the waker contract.
+                    //
+                    // See https://github.com/aws/s2n-quic/pull/2248
+                    if self.context_mut().async_callback.is_some() {
+                        // continuing in the loop will poll the task
+                        continue;
+                    }
+
+                    // we don't have anything else to poll so return `Pending`
+                    return Poll::Pending;
+                }
+            }
+        }
     }
 
     /// Performs the TLS handshake to completion
