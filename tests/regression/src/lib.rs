@@ -17,17 +17,6 @@ pub mod git {
             .to_string()
     }
 
-    pub fn is_commit_in_log(commit: &str) -> bool {
-        let output = Command::new("git")
-            .args(["log", "--pretty=format:%H"])
-            .output()
-            .expect("Failed to execute git log");
-        assert!(output.status.success());
-
-        let log = String::from_utf8(output.stdout).expect("Invalid UTF-8 in git log output");
-        log.lines().any(|line| line == commit)
-    }
-
     /// Returns true if `commit1` is older than `commit2`
     pub fn is_older_commit(commit1: &str, commit2: &str) -> bool {
         let status = Command::new("git")
@@ -63,7 +52,7 @@ mod tests {
         env,
         fs::{create_dir_all, write},
         io::{self, BufRead},
-        process::Command,
+        process::{Command, Output},
     };
 
     const MAX_DIFF: i64 = 1_000;
@@ -89,12 +78,10 @@ mod tests {
 
     impl RegressionTestMode {
         fn from_env() -> Self {
-            if env::var("ENABLE_VALGRIND").is_ok() {
-                RegressionTestMode::Valgrind
-            } else if env::var("DIFF_MODE").is_ok() {
-                RegressionTestMode::Diff
-            } else {
-                RegressionTestMode::Default
+            match env::var("PERF_MODE").as_deref() {
+                Ok("valgrind") => RegressionTestMode::Valgrind,
+                Ok("diff") => RegressionTestMode::Diff,
+                _ => RegressionTestMode::Default,
             }
         }
     }
@@ -147,8 +134,8 @@ mod tests {
                     test_name,
                 ])
                 // remove environment variable to prevent recursive loop
-                .env_remove("ENABLE_VALGRIND");
-            assert!(command.output().unwrap().status.success());
+                .env_remove("PERF_MODE");
+            assert_command_success(command.output().unwrap());
 
             raw_profile
         }
@@ -179,13 +166,12 @@ mod tests {
                 commit_hash: git::extract_commit_hash(&raw_files[1]),
             };
 
-            assert!(git::is_commit_in_log(&profile1.commit_hash));
-            assert!(git::is_commit_in_log(&profile2.commit_hash));
-
             if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
                 (profile1, profile2)
-            } else {
+            } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
                 (profile2, profile1)
+            } else {
+                panic!("The commits are not in the same log");
             }
         }
     }
@@ -207,7 +193,7 @@ mod tests {
                 .arg(raw_profile.path())
                 .output()
                 .expect("Failed to run cg_annotate");
-            assert!(annotate_output.status.success());
+            assert_command_success(annotate_output.clone());
 
             // write annotated profile to disk
             let annotate_content = String::from_utf8(annotate_output.stdout)
@@ -236,7 +222,7 @@ mod tests {
                 .args(["--diff", &prev_profile.path(), &curr_profile.path()])
                 .output()
                 .expect("Failed to run cg_annotate --diff");
-            assert!(diff_output.status.success());
+            assert_command_success(diff_output.clone());
 
             // write the diff to disk
             let diff_content = String::from_utf8(diff_output.stdout)
@@ -282,6 +268,19 @@ mod tests {
         }
         panic!("Failed to find instruction count in annotated file");
     }
+
+    // Asserts that a command executed successfully, panic with stdout/stderr if it fails
+    fn assert_command_success(output: Output) {
+        if !output.status.success() {
+            let stdout = std::str::from_utf8(&output.stdout).unwrap_or("Failed to read stdout");
+            let stderr = std::str::from_utf8(&output.stderr).unwrap_or("Failed to read stderr");
+            panic!(
+                "Command failed with status: {}\nstdout: {}\nstderr: {}",
+                output.status, stdout, stderr
+            );
+        }
+    }
+
     /// Function to create default config with specified parameters.
     pub fn set_config(
         cipher_prefs: &security::Policy,

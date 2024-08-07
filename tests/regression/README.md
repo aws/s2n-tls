@@ -30,7 +30,7 @@ Ensure you have the following installed:
 To run the harnesses with Valgrind and store the annotated results, run:
 
 ```
-ENABLE_VALGRIND = true cargo test
+PERF_MODE=valgrind cargo test
 ```
 
 This will recursively call all tests with valgrind enabled so the performance output is generated and stored in target/perf_outputs. If you are looking for the scalar performance output of a PR, this will provide inisght into which portions of the code account for what share of the CPU instruction count.
@@ -38,15 +38,15 @@ This will recursively call all tests with valgrind enabled so the performance ou
 ## Running the Harnesses between versions (differential performance)
 Run the scalar performance for all harnesses on the current branch version of s2n-tls
 ```
-ENABLE_VALGRIND=true cargo test
+PERF_MODE=valgrind cargo test
 ```
 `git checkout` or `git switch` to mainline/version being compared to. Make sure you have stashed or committed any changes.
 ```
-ENABLE_VALGRIND=true cargo test
+PERF_MODE=valgrind cargo test
 ```
 `git checkout` or `git switch` back to the original version. At this point you should have two annotated performance outputs for each test. If you have more, the diff test will not be able to recognize the versions being compared.
 ```
-DIFF_MODE=true cargo test
+PERF_MODE=diff cargo test
 ```
 This will assert on the performance difference of the current version minus the previous. If the regression exceeds the const `MAX_DIFF`, the test fails. Performance output profiles are stored by their commit id in `/target/commit_id`:
 - `raw_profile` for the unannotated cachegrind output result
