@@ -22,13 +22,14 @@ usage() {
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "4" ]; then
     usage
 fi
 
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
 CORPUS_UPLOAD_LOC=$3
+ARTIFACT_UPLOAD_LOC=$4
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
@@ -201,6 +202,24 @@ then
 
     if [ $EXPECTED_TEST_FAILURE == 1 ];
     then
+        # Store corpus to S3 to be used for debugging if the test is negative
+        unset LD_PRELOAD
+        unset LD_LIBRARY_PATH
+        if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
+            printf "Zipping corpus files...\n"
+            zip -r ./corpus/${TEST_NAME}.zip ./corpus/${TEST_NAME}/
+            
+            printf "Uploading zipped corpus file to S3 bucket...\n"
+            aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus_$(date +%Y-%m-%d-%T).zip
+        fi
+
+        # Store generated output files in the S3 bucket.
+        if [ "$ARTIFACT_UPLOAD_LOC" != "none" ]; then
+            printf "Uploading output files to S3 bucket...\n"
+            aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%T).txt
+            aws s3 cp ./${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%T).txt
+        fi
+
         # Clean up LibFuzzer corpus files if the test is negative.
         printf "\n"
         rm -f leak-* crash-*
