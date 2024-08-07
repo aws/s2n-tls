@@ -27,7 +27,8 @@ if [ "$#" -ne "1" ]; then
 fi
 
 clone(){
-    git clone --branch main --single-branch . "$SRC_ROOT"/s2n_head
+    # Path differences for internal builds mean we always need to go back to GitHub for head.
+    git clone --branch main --single-branch https://github.com/aws/s2n-tls "$SRC_ROOT"/s2n_head
 }
 
 # CMake(nix) and Make are using different directory structures.
