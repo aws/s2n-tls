@@ -93,6 +93,32 @@ s2n_config_set_cipher_preferences(config, "default");
 s2n_config_set_cipher_preferences(config, "20150306")
 ```
 
+## Platform Support
+
+We’ve listed the distributions and platforms under two tiers: Tier 1 platforms are guaranteed to build, run, and pass tests in CI. Tier 2 platforms are guaranteed to build and we'll address issues opened against them, but they aren't currently running in our CI and are not actively reviewed with every modification. If you use a platform not listed below and would like to request (and help!) it be added to our CI, please open an issue for discussion.
+
+### Tier 1
+
+|Distribution in CI	                                    |Platform |
+|-------------------------------------------------------|---------|
+|Ubuntu18, Ubuntu22, AL2, NixOS, AL2023**, Ubuntu24**	| x86_64  |
+|OSX [latest](https://github.com/actions/runner-images?tab=readme-ov-file#available-images), AL2023**, AL2, NixOS| aarch64 |
+|OpenBSD [7.4](https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms)| x86_64  |
+|FreeBSD [latest](https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf)| x86_64  |
+
+**Work in Progress
+
+### Tier 2
+
+|Distribution not in CI	|Platform|
+|-----------------------|--------|
+| Fedora Core 34-36, Ubuntu14,16,20	|x86_64|
+| FedoraCore34-36, Ubuntu24 |aarch64|
+
+These distribution lists are not exhaustive and missing tooling or a missing supported libcrypto library could prevent a successful build.
+
+
+
 ## s2n-tls safety mechanisms
 
 Internally s2n-tls takes a systematic approach to data protection and includes several mechanisms designed to improve safety.
