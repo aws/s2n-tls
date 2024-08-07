@@ -122,11 +122,6 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
     POSIX_ENSURE_REF(conn->handshake.hashes);
     struct s2n_hash_state *workspace = &conn->handshake.hashes->hash_workspace;
 
-    /* FIPS specifically allows MD5 for the legacy PRF */
-    if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
-        POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
-    }
-
     uint32_t outputlen = out->size;
     uint8_t *output = out->data;
     uint8_t iteration = 1;
@@ -157,6 +152,10 @@ static int s2n_sslv3_prf(struct s2n_connection *conn, struct s2n_blob *secret, s
 
         struct s2n_hash_state *md5 = workspace;
         POSIX_GUARD(s2n_hash_reset(md5));
+        /* FIPS specifically allows MD5 for the legacy PRF */
+        if (s2n_is_in_fips_mode() && conn->actual_protocol_version < S2N_TLS12) {
+            POSIX_GUARD(s2n_hash_allow_md5_for_fips(workspace));
+        }
         POSIX_GUARD(s2n_hash_init(md5, S2N_HASH_MD5));
         POSIX_GUARD(s2n_hash_update(md5, secret->data, secret->size));
         POSIX_GUARD(s2n_hash_update(md5, sha_digest, sizeof(sha_digest)));

@@ -435,7 +435,7 @@ int main()
                 DEFER_CLEANUP(struct s2n_stuffer key_share_extension = { 0 }, s2n_stuffer_free);
                 /* The key shares in this extension are fake - that's OK, the server should ignore the
                  * KEM group ID and skip the share. */
-                EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_hex_string(&key_share_extension,
+                EXPECT_OK(s2n_stuffer_alloc_from_hex(&key_share_extension,
                         /* Shares size: 12 bytes */
                         "000C"
                         /* IANA ID for secp256r1_sikep434r3 */

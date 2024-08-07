@@ -314,6 +314,9 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
 
 int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path)
 {
+    /* The s2n-tls blinding security feature is disabled for testing purposes to make debugging easier. */
+    GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
+
     GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data), "Error setting max early data");
 
     GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");
@@ -489,9 +492,15 @@ uint8_t unsafe_verify_host(const char *host_name, size_t host_name_len, void *da
         return (uint8_t) (strcasecmp(suffix, host_name + 1) == 0);
     }
 
-    if (strcasecmp(host_name, "localhost") == 0 || strcasecmp(host_name, "127.0.0.1") == 0) {
-        return (uint8_t) (strcasecmp(verify_data->trusted_host, "localhost") == 0
-                || strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    /* If we're connecting to localhost, accept any values that represent localhost */
+    bool is_localhost = (strcasecmp(verify_data->trusted_host, "localhost") == 0);
+    is_localhost |= (strcasecmp(verify_data->trusted_host, "127.0.0.1") == 0);
+    if (is_localhost) {
+        bool match = (strcasecmp(host_name, "localhost") == 0);
+        match |= (strcasecmp(host_name, "127.0.0.1") == 0);
+        /* Some of our older test certificates use odd common names */
+        match |= (strcasecmp(host_name, "s2nTestServer") == 0);
+        return (uint8_t) match;
     }
 
     return (uint8_t) (strcasecmp(host_name, verify_data->trusted_host) == 0);

@@ -47,6 +47,28 @@
 #define OPT_SERIALIZE_OUT      1008
 #define OPT_DESERIALIZE_IN     1009
 
+/* This should match the final cert in the s2nd default_certificate_chain */
+const char default_trusted_cert[] =
+        "-----BEGIN CERTIFICATE-----"
+        "MIIC/jCCAeagAwIBAgIUFFjxpSf0mUsrVbyLPQhccDYfixowDQYJKoZIhvcNAQEL"
+        "BQAwFjEUMBIGA1UEAwwLczJuVGVzdFJvb3QwIBcNMjAwMTI0MDEwODIyWhgPMjEx"
+        "OTEyMzEwMTA4MjJaMBYxFDASBgNVBAMMC3MyblRlc3RSb290MIIBIjANBgkqhkiG"
+        "9w0BAQEFAAOCAQ8AMIIBCgKCAQEAz3AaOAlkcxJHryCI9SfwB9q4PA53hv5tz4ZL"
+        "be37b69v58mfP+D18cWIBHUmkmN6gWWoWZ/9hv75pxcNXW0zPn7+wOVvXLUjtmkq"
+        "1IGT/mykhasw00viaBFAuBHZ5iLwfc4/cjUFAPVCKLmfv5Xs7TJVzWA/0mR4r1h8"
+        "uFqqXczkVMklIbsOIrlZXz8ifQs3DpFA2FeoziEh+Pcb4c3QBPgCHFDEGyTSdqo9"
+        "+NbS+iRlw0T6tqUOpC0DdKXo/3mJNBmy4XPahTi9zgsu7b+UVqemL7eXXf/iSr5y"
+        "iwJKJjz+N/rLpcF1VJtF8q0fpHagzljQaN7/emjg7BplUUyLawIDAQABo0IwQDAP"
+        "BgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBTDmXkyQEJ7ZciyE4KF7wAJKDxMfDAO"
+        "BgNVHQ8BAf8EBAMCAYYwDQYJKoZIhvcNAQELBQADggEBAFobyhsc7mYoGaA7N4Pp"
+        "it+MQZZNzWte5vWal/3/2V7ZGrJsgeCPwLblzzTmey85RilX6ovMQHEqT1vBFSHq"
+        "nntMZnHkEl2QLU8XopJWR4MXK7LzjjQYaXiZhGbJbtylVSfATAa/ZzdgjBx1C8aD"
+        "IM1+ELGCP/UHD0YEJkFoxSUwXGAXoV8I+cPDAWHC6VnC4mY8qubhx95FpX02ERnz"
+        "1Cw2YWtntyO8P52dEJD1+0EJjtVX4Bj5wwgJHHbDkPP1IzFrR/uBC2LCjtRY+UtZ"
+        "kfoDfWu2tslkLK7/LaC5qZyCPKnpPHLLz8gUWKlvbuejM99FTlBg/tcH+bv5x7WB"
+        "MZ8="
+        "-----END CERTIFICATE-----";
+
 /*
  * s2nc is an example client that uses many s2n-tls APIs.
  * It is intended for testing purposes only, and should not be used in production.
@@ -54,6 +76,9 @@
 void usage()
 {
     /* clang-format off */
+    fprintf(stderr, "s2nc is an s2n-tls client testing utility.\n");
+    fprintf(stderr, "It is not intended for production use.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "usage: s2nc [options] host [port]\n");
     fprintf(stderr, " host: hostname or IP address to connect to\n");
     fprintf(stderr, " port: port to connect to\n");
@@ -178,6 +203,9 @@ static void setup_s2n_config(struct s2n_config *config, const char *cipher_prefs
         print_s2n_error("Error getting new config");
         exit(1);
     }
+
+    /* The s2n-tls blinding security feature is disabled for testing purposes to make debugging easier. */
+    GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
 
     GUARD_EXIT(s2n_config_set_cipher_preferences(config, cipher_prefs), "Error setting cipher prefs");
 
@@ -616,6 +644,8 @@ int main(int argc, char *const *argv)
             GUARD_EXIT(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key), "Error setting certificate/key");
         }
 
+        GUARD_EXIT(s2n_config_add_pem_to_trust_store(config, default_trusted_cert),
+                "Error adding default cert to trust store.");
         if (ca_file || ca_dir) {
             GUARD_EXIT(s2n_config_wipe_trust_store(config), "Error wiping trust store");
             if (s2n_config_set_verification_ca_location(config, ca_file, ca_dir) < 0) {
