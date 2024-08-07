@@ -210,14 +210,14 @@ then
             zip -r ./corpus/${TEST_NAME}.zip ./corpus/${TEST_NAME}/
             
             printf "Uploading zipped corpus file to S3 bucket...\n"
-            aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus_$(date +%Y-%m-%d-%s).zip
+            aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus_$(date +%Y-%m-%d-%T).zip
         fi
 
         # Store generated output files in the S3 bucket.
         if [ "$ARTIFACT_UPLOAD_LOC" != "none" ]; then
             printf "Uploading output files to S3 bucket...\n"
-            aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%s).txt
-            aws s3 cp ./${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%s).txt
+            aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%T).txt
+            aws s3 cp ./${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%T).txt
         fi
 
         # Clean up LibFuzzer corpus files if the test is negative.
