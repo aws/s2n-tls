@@ -195,3 +195,76 @@ async fn io_stream_access() -> Result<(), Box<dyn std::error::Error>> {
 
     Ok(())
 }
+
+#[tokio::test]
+async fn handshake_with_async_callback() -> Result<(), Box<dyn std::error::Error>> {
+    use core::{future::Future, pin::Pin, task::Poll};
+    use s2n_tls::{callbacks::*, connection, error};
+    use tokio::io::{AsyncReadExt as _, AsyncWriteExt as _};
+
+    let client_config = common::client_config()?.build()?;
+
+    let mut server_config = common::server_config()?;
+    server_config.set_client_hello_callback(DelayClientHelloHandler {
+        amount: Duration::from_secs(1),
+    })?;
+    let server_config = server_config.build()?;
+
+    let client = TlsConnector::new(client_config.clone());
+    let server = TlsAcceptor::new(server_config.clone());
+    let (server_stream, client_stream) = common::get_streams().await?;
+
+    let mut tasks = tokio::task::JoinSet::new();
+
+    tasks.spawn(async move {
+        let mut stream = client.connect("localhost", client_stream).await.unwrap();
+        stream.shutdown().await.unwrap();
+        let len = stream.read(&mut [0]).await.unwrap();
+        assert_eq!(len, 0);
+    });
+
+    tasks.spawn(async move {
+        let mut stream = server.accept(server_stream).await.unwrap();
+        stream.shutdown().await.unwrap();
+        let len = stream.read(&mut [0]).await.unwrap();
+        assert_eq!(len, 0);
+    });
+
+    // make sure the tasks completed
+    while let Some(res) = tasks.join_next().await {
+        res.unwrap();
+    }
+
+    /// Adds an artificial delay to a ClientHello callback
+    #[derive(Clone)]
+    pub struct DelayClientHelloHandler {
+        amount: Duration,
+    }
+
+    impl ClientHelloCallback for DelayClientHelloHandler {
+        fn on_client_hello(
+            &self,
+            _connection: &mut connection::Connection,
+        ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, error::Error> {
+            Ok(Some(Box::pin(DelayClientHelloFuture {
+                timer: Box::pin(tokio::time::sleep(self.amount)),
+            })))
+        }
+    }
+
+    pub struct DelayClientHelloFuture {
+        timer: Pin<Box<tokio::time::Sleep>>,
+    }
+
+    impl ConnectionFuture for DelayClientHelloFuture {
+        fn poll(
+            mut self: Pin<&mut Self>,
+            _connection: &mut connection::Connection,
+            ctx: &mut core::task::Context,
+        ) -> Poll<Result<(), error::Error>> {
+            self.timer.as_mut().poll(ctx).map(Ok)
+        }
+    }
+
+    Ok(())
+}

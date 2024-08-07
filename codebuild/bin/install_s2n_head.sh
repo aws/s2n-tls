@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License").
@@ -12,31 +12,53 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -ex
-pushd "$(pwd)"
+set -eu
 
 usage() {
     echo "install_s2n_head.sh build_dir"
     exit 1
 }
 
+BUILD_DIR=$1
+SRC_ROOT=${SRC_ROOT:-$(pwd)}
+
 if [ "$#" -ne "1" ]; then
     usage
 fi
 
-BUILD_DIR=$1
-source codebuild/bin/jobs.sh
-cd "$BUILD_DIR"
+clone(){
+    git clone --branch main --single-branch . "$SRC_ROOT"/s2n_head
+}
 
-# Clone the most recent s2n commit
-git clone --depth=1 https://github.com/aws/s2n-tls s2n_head
-cmake ./s2n_head -Bbuild -DCMAKE_PREFIX_PATH="$LIBCRYPTO_ROOT" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-cmake --build ./build -- -j $JOBS
+# CMake(nix) and Make are using different directory structures.
+set +u
+if [[ "$IN_NIX_SHELL" ]]; then
+    export DEST_DIR="$SRC_ROOT"/build/bin
+    export EXTRA_BUILD_FLAGS=""
+else
+    export DEST_DIR="$SRC_ROOT"/bin
+    export EXTRA_BUILD_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT"
+fi
+set -u
 
-# Copy new executables to bin directory
-cp -f "$BUILD_DIR"/build/bin/s2nc "$BASE_S2N_DIR"/bin/s2nc_head
-cp -f "$BUILD_DIR"/build/bin/s2nd "$BASE_S2N_DIR"/bin/s2nd_head
-
-popd
+# Cleanup any stale s2n_head clones.
+if [[ -d "$SRC_ROOT/s2n_head" ]]; then
+    now=$(date +%s)
+    last_modified=$(stat -c %Y s2n_head)
+    days_old=$(( (now - last_modified) / 86400))
+    if ((days_old > 1 )); then
+        echo "s2n_head is $days_old days old, removing and cloning again."
+        rm -rf s2n_head
+        clone
+    else
+        echo "s2n_head already exists and is $days_old days old."
+    fi
+else
+    clone
+fi
+cmake "$SRC_ROOT"/s2n_head -B"$BUILD_DIR" "$EXTRA_BUILD_FLAGS" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
+cmake --build "$BUILD_DIR" -- -j "$(nproc)"
+cp -f "$BUILD_DIR"/bin/s2nc "$DEST_DIR"/s2nc_head
+cp -f "$BUILD_DIR"/bin/s2nd "$DEST_DIR"/s2nd_head
 
 exit 0

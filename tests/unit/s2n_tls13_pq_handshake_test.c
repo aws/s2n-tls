@@ -237,6 +237,12 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(expected_kem_group->kem, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(expected_kem_group->curve, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+
+        /* Ensure s2n_connection_get_kem_group_name() gives the correct answer for both client and server */
+        POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(s2n_connection_get_kem_group_name(server_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_kem_group->name, s2n_connection_get_kem_group_name(server_conn), strlen(expected_kem_group->name)), 0);
+        POSIX_ENSURE_EQ(strlen(expected_kem_group->name), strlen(s2n_connection_get_kem_group_name(client_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_kem_group->name, s2n_connection_get_kem_group_name(client_conn), strlen(expected_kem_group->name)), 0);
     } else {
         POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_group);
         POSIX_ENSURE_EQ(NULL, client_conn->kex_params.server_kem_group_params.kem_params.kem);
@@ -247,6 +253,12 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.kem_params.kem);
         POSIX_ENSURE_EQ(NULL, server_conn->kex_params.server_kem_group_params.ecc_params.negotiated_curve);
         POSIX_ENSURE_EQ(expected_curve, server_conn->kex_params.server_ecc_evp_params.negotiated_curve);
+
+        /* Ensure s2n_connection_get_curve() gives the correct answer for both client and server */
+        POSIX_ENSURE_EQ(strlen(expected_curve->name), strlen(s2n_connection_get_curve(server_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_curve->name, s2n_connection_get_curve(server_conn), strlen(expected_curve->name)), 0);
+        POSIX_ENSURE_EQ(strlen(expected_curve->name), strlen(s2n_connection_get_curve(client_conn)));
+        POSIX_ENSURE_EQ(memcmp(expected_curve->name, s2n_connection_get_curve(client_conn), strlen(expected_curve->name)), 0);
     }
 
     /* Verify basic properties of secrets */

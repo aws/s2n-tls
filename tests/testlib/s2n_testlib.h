@@ -23,19 +23,11 @@
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
 
-/* Read and write hex */
-int s2n_stuffer_read_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *out, uint32_t n);
-int s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u);
-int s2n_stuffer_read_uint16_hex(struct s2n_stuffer *stuffer, uint16_t *u);
-int s2n_stuffer_read_uint32_hex(struct s2n_stuffer *stuffer, uint32_t *u);
-int s2n_stuffer_read_uint64_hex(struct s2n_stuffer *stuffer, uint64_t *u);
-
-int s2n_stuffer_write_hex(struct s2n_stuffer *stuffer, struct s2n_stuffer *in, uint32_t n);
-int s2n_stuffer_write_uint8_hex(struct s2n_stuffer *stuffer, uint8_t u);
-int s2n_stuffer_write_uint16_hex(struct s2n_stuffer *stuffer, uint16_t u);
-int s2n_stuffer_write_uint32_hex(struct s2n_stuffer *stuffer, uint32_t u);
-int s2n_stuffer_write_uint64_hex(struct s2n_stuffer *stuffer, uint64_t u);
-int s2n_stuffer_alloc_ro_from_hex_string(struct s2n_stuffer *stuffer, const char *str);
+/* Hex methods for testing */
+S2N_RESULT s2n_stuffer_alloc_from_hex(struct s2n_stuffer *stuffer, const char *str);
+/* Unlike other hex methods, the hex string read here may include spaces.
+ * This is useful for hex strings with odd whitespace for readability purposes. */
+S2N_RESULT s2n_blob_alloc_from_hex_with_whitespace(struct s2n_blob *bytes_out, const char *str);
 
 void s2n_print_connection(struct s2n_connection *conn, const char *marker);
 
@@ -301,3 +293,8 @@ int s2n_kem_recv_ciphertext_fuzz_test(const uint8_t *buf, size_t len, struct s2n
 int s2n_kem_recv_ciphertext_fuzz_test_init(const char *kat_file_path, struct s2n_kem_params *kem_params);
 
 S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
+
+#define S2N_BLOB_FROM_HEX(name, hex) S2N_CHECKED_BLOB_FROM_HEX(name, POSIX_GUARD_RESULT, hex)
+#define S2N_CHECKED_BLOB_FROM_HEX(name, check, hex)        \
+    DEFER_CLEANUP(struct s2n_blob name = { 0 }, s2n_free); \
+    check(s2n_blob_alloc_from_hex_with_whitespace(&name, (const char *) hex));
