@@ -35,6 +35,20 @@ pub mod git {
             .map(|s| s.to_string())
             .unwrap_or_default() // This will return an empty string if the Option is None
     }
+
+    pub fn is_mainline(commit1: &str) -> bool {
+        let output = Command::new("git")
+            .args(["branch", "--contains", commit1])
+            .output()
+            .expect("Failed to execute git branch");
+    
+        if !output.status.success() {
+            return false;
+        }
+    
+        let branches = String::from_utf8_lossy(&output.stdout);
+        branches.lines().any(|branch| branch.trim() == "personal" || branch.trim() == "* personal")
+    }
 }
 
 #[cfg(test)]
@@ -168,12 +182,18 @@ mod tests {
                 commit_hash: git::extract_commit_hash(&raw_files[1]),
             };
 
-            if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
-                (profile1, profile2)
-            } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
-                (profile2, profile1)
-            } else {
-                panic!("The commits are not in the same log");
+            match (git::is_mainline(&profile1.commit_hash), git::is_mainline(&profile2.commit_hash)) {
+                (true, false) => (profile1, profile2),  // profile1 is on the mainline, profile2 is not -> profile1 is prev
+                (false, true) => (profile2, profile1),  // profile2 is on the mainline, profile1 is not -> prfoile2 is prev
+                (true, true) | (false, false) => {      // Both are on the mainline or neither are -> which one is prev?
+                    if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
+                        (profile1, profile2)            // profile1 is prev
+                    } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
+                        (profile2, profile1)            // profile2 is prev
+                    } else {
+                        panic!("The commits are not in the same log or are identical");
+                    }
+                }
             }
         }
     }
