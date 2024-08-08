@@ -1,0 +1,83 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+name: Performance Regression Test
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  regression-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      - name: Update package list
+        run: sudo apt-get update
+
+      - name: Download Valgrind 3.23 Source
+        run: |
+          wget https://sourceware.org/pub/valgrind/valgrind-3.23.0.tar.bz2
+          tar -xjf valgrind-3.23.0.tar.bz2
+          cd valgrind-3.23.0
+          ./configure
+          make
+          sudo make install
+
+      - name: Generate
+        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
+
+      - name: Build project
+        env:
+          DEP_VALGRIND: /usr/include
+        run: cargo build --release --manifest-path=tests/regression/Cargo.toml
+
+      - name: Run scalar performance test (curr)
+        env:
+          PERF_MODE: valgrind
+        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
+
+      - name: Checkout mainline
+        run: |
+          git fetch origin main
+          git checkout main
+
+      - name: Build project (mainline)
+        run: cargo build --release --manifest-path=tests/regression/Cargo.toml
+
+      - name: Run scalar performance test (prev)
+        env:
+          PERF_MODE: valgrind
+        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
+
+      - name: Checkout pull request branch
+        run: git checkout ${{ github.event.pull_request.head.sha }}
+
+      - name: Run diff test
+        env:
+          PERF_MODE: diff
+        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
+
+      - name: Store annotated and diff results
+        run: |
+          mkdir -p target/perf_outputs
+          cp -r target/*/*.annotated.txt target/perf_outputs/
+          mkdir -p target/perf_outputs/diff
+          mv target/diff/* target/perf_outputs/diff/
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: perf-outputs
+          path: target/perf_outputs
