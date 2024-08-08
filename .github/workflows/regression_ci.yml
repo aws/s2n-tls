@@ -39,7 +39,7 @@ jobs:
           make
           sudo make install
 
-      # Generate the necessary bindings and other files
+      # Generate the necessary bindings
       - name: Generate
         run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
 
@@ -58,8 +58,12 @@ jobs:
       # Checkout the main branch
       - name: Checkout mainline
         run: |
-          git fetch origin main
-          git checkout main
+          git fetch origin personal
+          git checkout personal
+
+      # Regenrate bindings for main branch
+      - name: Generate
+        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
 
       # Build the project in release mode for main branch
       - name: Build project (mainline)
