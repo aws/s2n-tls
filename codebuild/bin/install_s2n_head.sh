@@ -27,7 +27,8 @@ if [ "$#" -ne "1" ]; then
 fi
 
 clone(){
-    git clone --branch main --single-branch . "$SRC_ROOT"/s2n_head
+    # Path differences for internal builds mean we always need to go back to GitHub for head.
+    git clone --branch main --single-branch "$CLONE_SRC" "$SRC_ROOT"/s2n_head
 }
 
 # CMake(nix) and Make are using different directory structures.
@@ -35,9 +36,13 @@ set +u
 if [[ "$IN_NIX_SHELL" ]]; then
     export DEST_DIR="$SRC_ROOT"/build/bin
     export EXTRA_BUILD_FLAGS=""
+    # Work around issue cloning inside a nix devshell https://github.com/NixOS/nixpkgs/issues/299949 
+    export CLONE_SRC="."
 else
     export DEST_DIR="$SRC_ROOT"/bin
     export EXTRA_BUILD_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT"
+    # Work around different pathing issues for internal rel.
+    export CLONE_SRC="https://github.com/aws/s2n-tls"
 fi
 set -u
 
