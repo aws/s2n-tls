@@ -89,7 +89,7 @@ jobs:
       - name: Store annotated and diff results
         run: |
           mkdir -p target/perf_outputs
-          cp -r target/*/*.annotated.txt target/perf_outputs/
+          cp -r target/*/*.annotated target/perf_outputs/
           mkdir -p target/perf_outputs/diff
           mv target/diff/* target/perf_outputs/diff/
 
