@@ -67,7 +67,7 @@ struct s2n_cert_chain_and_key {
     void *context;
 };
 
-struct certs_by_type {
+struct s2n_certs_by_type {
     struct s2n_cert_chain_and_key *certs[S2N_CERT_TYPE_COUNT];
 };
 

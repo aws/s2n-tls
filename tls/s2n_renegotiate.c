@@ -198,7 +198,7 @@ int s2n_renegotiate(struct s2n_connection *conn, uint8_t *app_data_buf, ssize_t 
     /* If we encounter application data while reading handshake records,
      * pass it back to the application.
      */
-    if (result != S2N_SUCCESS && s2n_errno == S2N_ERR_APP_DATA_BLOCKED) {
+    if (result != S2N_SUCCESS && S2N_ERRNO_GET() == S2N_ERR_APP_DATA_BLOCKED) {
         POSIX_GUARD_RESULT(s2n_renegotiate_read_app_data(conn,
                 app_data_buf, app_data_buf_size, app_data_size, blocked));
     }

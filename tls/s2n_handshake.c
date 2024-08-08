@@ -228,7 +228,7 @@ static int s2n_find_cert_matches(struct s2n_map *domain_name_to_cert_map,
     bool key_found = false;
     POSIX_GUARD_RESULT(s2n_map_lookup(domain_name_to_cert_map, dns_name, &map_value, &key_found));
     if (key_found) {
-        struct certs_by_type *value = (void *) map_value.data;
+        struct s2n_certs_by_type *value = (void *) map_value.data;
         for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
             matches[i] = value->certs[i];
         }

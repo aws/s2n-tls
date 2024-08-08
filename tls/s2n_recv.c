@@ -202,12 +202,12 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
         int r = s2n_read_full_record(conn, &record_type, &isSSLv2);
         if (r < 0) {
             /* Don't propagate the error if we already read some bytes. */
-            if (bytes_read && (s2n_errno == S2N_ERR_CLOSED || s2n_errno == S2N_ERR_IO_BLOCKED)) {
+            if (bytes_read && (S2N_ERRNO_GET() == S2N_ERR_CLOSED || S2N_ERRNO_GET() == S2N_ERR_IO_BLOCKED)) {
                 break;
             }
 
             /* If we get here, it's an error condition */
-            if (s2n_errno != S2N_ERR_IO_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
+            if (S2N_ERRNO_GET() != S2N_ERR_IO_BLOCKED && s2n_allowed_to_cache_connection(conn) && conn->session_id_len) {
                 conn->config->cache_delete(conn, conn->config->cache_delete_data, conn->session_id, conn->session_id_len);
             }
 
@@ -244,7 +244,7 @@ ssize_t s2n_recv_impl(struct s2n_connection *conn, void *buf, ssize_t size_signe
                     /* Ignore any errors due to insufficient input data from io.
                      * The next iteration of this loop will attempt to read more input data.
                      */
-                    if (s2n_result_is_error(result) && s2n_errno != S2N_ERR_IO_BLOCKED) {
+                    if (s2n_result_is_error(result) && S2N_ERRNO_GET() != S2N_ERR_IO_BLOCKED) {
                         WITH_ERROR_BLINDING(conn, POSIX_GUARD_RESULT(result));
                     }
                     break;
