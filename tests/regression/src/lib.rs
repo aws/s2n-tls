@@ -84,7 +84,11 @@ mod tests {
         }
     }
 
-    fn valgrind_test<F>(test_name: &str, max_diff: f64, test_body: F) -> Result<(), s2n_tls::error::Error>
+    fn valgrind_test<F>(
+        test_name: &str,
+        max_diff: f64,
+        test_body: F,
+    ) -> Result<(), s2n_tls::error::Error>
     where
         F: FnOnce(&InstrumentationControl) -> Result<(), s2n_tls::error::Error>,
     {
@@ -216,9 +220,10 @@ mod tests {
                 test_name: curr_profile.test_name.clone(),
                 // reads the annotated profile for previous instruction count
                 prev_profile_count: find_instruction_count(
-                    &std::fs::read_to_string
-                    (prev_profile.path().replace("raw", "annotated")
-                ).unwrap()).unwrap(),
+                    &std::fs::read_to_string(prev_profile.path().replace("raw", "annotated"))
+                        .unwrap(),
+                )
+                .unwrap(),
             };
 
             // diff the raw profile
