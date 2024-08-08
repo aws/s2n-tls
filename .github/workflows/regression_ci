@@ -5,7 +5,7 @@ name: Performance Regression Test
 on:
   pull_request:
     branches:
-      - main
+      - personal
 
 jobs:
   regression-test:
