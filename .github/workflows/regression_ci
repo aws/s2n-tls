@@ -12,20 +12,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # Checkout the code from the pull request branch
       - name: Checkout code
         uses: actions/checkout@v3
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
+      # Install the stable Rust toolchain
       - name: Install Rust toolchain
         id: toolchain
         run: |
           rustup toolchain install stable
           rustup override set stable
 
+      # Update the package list on the runner
       - name: Update package list
         run: sudo apt-get update
 
+      # Download and install Valgrind 3.23 from source
       - name: Download Valgrind 3.23 Source
         run: |
           wget https://sourceware.org/pub/valgrind/valgrind-3.23.0.tar.bz2
@@ -35,40 +39,49 @@ jobs:
           make
           sudo make install
 
+      # Generate the necessary bindings and other files
       - name: Generate
         run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
 
+      # Build the project in release mode for current branch
       - name: Build project
         env:
           DEP_VALGRIND: /usr/include
         run: cargo build --release --manifest-path=tests/regression/Cargo.toml
 
+      # Run performance tests using Valgrind for current branch
       - name: Run scalar performance test (curr)
         env:
           PERF_MODE: valgrind
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
+      # Checkout the main branch
       - name: Checkout mainline
         run: |
           git fetch origin main
           git checkout main
 
+      # Build the project in release mode for main branch
       - name: Build project (mainline)
         run: cargo build --release --manifest-path=tests/regression/Cargo.toml
 
+      # Run performance tests using Valgrind for main branch
       - name: Run scalar performance test (prev)
         env:
           PERF_MODE: valgrind
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
+      # Checkout the pull request branch again
       - name: Checkout pull request branch
         run: git checkout ${{ github.event.pull_request.head.sha }}
 
+      # Run the differential performance test
       - name: Run diff test
         env:
           PERF_MODE: diff
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
+      # Store the annotated and diff results
       - name: Store annotated and diff results
         run: |
           mkdir -p target/perf_outputs
@@ -76,6 +89,7 @@ jobs:
           mkdir -p target/perf_outputs/diff
           mv target/diff/* target/perf_outputs/diff/
 
+      # Upload the performance output artifacts
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         with:
