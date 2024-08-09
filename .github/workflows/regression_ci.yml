@@ -97,7 +97,8 @@ jobs:
         run: |
           mkdir -p perf_outputs
           mv tests/regression/target/$COMMIT_HASH perf_outputs/
-          cp -r $(find tests/regression/target -type f -name "*.annotated" -exec dirname {} \; | head -n 1) perf_outputs/ 
+          mainline_dir=$(find tests/regression/target -type f -name "*.annotated" -exec dirname {} \; | head -n 1)
+          cp -r "$mainline_dir" perf_outputs/ 
           mv tests/regression/target/diff/ perf_outputs/diff/
 
       # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
