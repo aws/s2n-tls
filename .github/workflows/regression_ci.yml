@@ -85,6 +85,12 @@ jobs:
           PERF_MODE: diff
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
+      - name: Print working directory
+        run: pwd
+      
+      - name: List files
+        run: ls
+
       # Store the annotated and diff results
       - name: Store annotated and diff results
         if: ${{ always() }}  
