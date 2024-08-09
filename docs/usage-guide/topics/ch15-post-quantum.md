@@ -103,4 +103,4 @@ If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall b
 #### Default Policy History
 |  Version   | "default_pq" |
 |------------|--------------|
-|  v1.4.19   |   20240730   |
+|  v1.5.0   |   20240730   |
