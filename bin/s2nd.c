@@ -138,6 +138,9 @@ static char default_private_key[] =
 void usage()
 {
     /* clang-format off */
+    fprintf(stderr, "s2nd is an s2n-tls server testing utility.\n");
+    fprintf(stderr, "It is not intended for production use.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "usage: s2nd [options] host port\n");
     fprintf(stderr, " host: hostname or IP address to listen on\n");
     fprintf(stderr, " port: port to listen on\n");
