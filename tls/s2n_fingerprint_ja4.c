@@ -445,8 +445,11 @@ static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash
     RESULT_ENSURE_REF(ch);
 
     s2n_parsed_extension *extension = NULL;
-    RESULT_GUARD_POSIX(s2n_client_hello_get_parsed_extension(
-            S2N_EXTENSION_SIGNATURE_ALGORITHMS, &ch->extensions, &extension));
+    int result = s2n_client_hello_get_parsed_extension(S2N_EXTENSION_SIGNATURE_ALGORITHMS,
+            &ch->extensions, &extension);
+    if (result != S2N_SUCCESS) {
+        return S2N_RESULT_OK;
+    }
     RESULT_ENSURE_REF(extension);
 
     struct s2n_stuffer sig_algs = { 0 };
@@ -457,7 +460,9 @@ static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash
     RESULT_GUARD_POSIX(s2n_blob_init(&entry.blob, entry_bytes, sizeof(entry_bytes)));
 
     bool is_first = true;
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&sig_algs, sizeof(uint16_t)));
+    if (s2n_stuffer_skip_read(&sig_algs, sizeof(uint16_t)) != S2N_SUCCESS) {
+        return S2N_RESULT_OK;
+    }
     while (s2n_stuffer_data_available(&sig_algs)) {
         uint16_t iana = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&sig_algs, &iana));
@@ -507,7 +512,7 @@ static S2N_RESULT s2n_fingerprint_ja4_c(struct s2n_fingerprint *fingerprint,
      * s2n_fingerprint_ja4_sig_algs handles writing the underscore because we
      * need to skip writing it if there are no signature algorithms.
      */
-    s2n_result_ignore(s2n_fingerprint_ja4_sig_algs(hash, fingerprint->client_hello));
+    RESULT_GUARD(s2n_fingerprint_ja4_sig_algs(hash, fingerprint->client_hello));
 
     RESULT_GUARD(s2n_fingerprint_ja4_digest(hash, output));
     RESULT_GUARD(s2n_fingerprint_ja4_count(extensions_count, extensions_count_value));
