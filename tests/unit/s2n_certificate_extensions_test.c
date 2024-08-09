@@ -77,6 +77,11 @@ static int s2n_setup_connection_for_ocsp_validate_test(struct s2n_connection **c
     nconn->actual_protocol_version = S2N_TLS13;
     nconn->handshake_params.our_chain_and_key = chain_and_key;
 
+    /* The OCSP tests ensure that an OCSP response can be successfully sent/received. They do NOT
+     * ensure that the OCSP response is correctly validated.
+     */
+    nconn->x509_validator.skip_cert_validation = true;
+
     POSIX_GUARD(s2n_connection_allow_all_response_extensions(nconn));
     nconn->status_type = S2N_STATUS_REQUEST_OCSP;
 
@@ -194,6 +199,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake_params.our_chain_and_key = chain_and_key;
+            conn->x509_validator.skip_cert_validation = true;
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
@@ -210,6 +216,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             conn->actual_protocol_version = S2N_TLS13;
             conn->handshake_params.our_chain_and_key = chain_and_key;
+            conn->x509_validator.skip_cert_validation = true;
 
             DEFER_CLEANUP(struct s2n_stuffer stuffer, s2n_stuffer_free);
             EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
