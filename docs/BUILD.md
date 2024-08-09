@@ -62,7 +62,7 @@ cmake3 . -Bbuild \
     -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz"
 cmake3 --build build -j $(nproc)
 cd build
-CTEST_PARALLEL_LEVEL=$(nproc) ctest3 --test-dir build
+CTEST_PARALLEL_LEVEL=$(nproc) ctest3
 cd ..
 cmake3 --install build
 ```
