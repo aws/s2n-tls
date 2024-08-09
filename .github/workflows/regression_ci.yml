@@ -87,14 +87,16 @@ jobs:
 
       # Store the annotated and diff results
       - name: Store annotated and diff results
+        if: ${{ always() }}  
         run: |
           mkdir -p target/perf_outputs
           cp -r target/*/*.annotated target/perf_outputs/
           mkdir -p target/perf_outputs/diff
           mv target/diff/* target/perf_outputs/diff/
 
-      # Upload the performance output artifacts
+      # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
       - name: Upload artifacts
+        if: ${{ always() }}  
         uses: actions/upload-artifact@v2
         with:
           name: perf-outputs
