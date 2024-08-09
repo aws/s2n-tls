@@ -1090,5 +1090,27 @@ int main(int argc, char **argv)
         };
     };
 
+    /* Test that default_pq always matches default_tls13 */
+    {
+        const struct s2n_security_policy *default_pq = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_pq", &default_pq));
+        EXPECT_NOT_EQUAL(default_pq->kem_preferences, &kem_preferences_null);
+
+        const struct s2n_security_policy *default_tls13 = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &default_tls13));
+        EXPECT_EQUAL(default_tls13->kem_preferences, &kem_preferences_null);
+
+        /* If we ignore kem preferences, the two policies match */
+        EXPECT_EQUAL(default_pq->minimum_protocol_version, default_tls13->minimum_protocol_version);
+        EXPECT_EQUAL(default_pq->cipher_preferences, default_tls13->cipher_preferences);
+        EXPECT_EQUAL(default_pq->signature_preferences, default_tls13->signature_preferences);
+        EXPECT_EQUAL(default_pq->certificate_signature_preferences,
+                default_tls13->certificate_signature_preferences);
+        EXPECT_EQUAL(default_pq->ecc_preferences, default_tls13->ecc_preferences);
+        EXPECT_EQUAL(default_pq->certificate_key_preferences, default_tls13->certificate_key_preferences);
+        EXPECT_EQUAL(default_pq->certificate_preferences_apply_locally,
+                default_tls13->certificate_preferences_apply_locally);
+    };
+
     END_TEST();
 }

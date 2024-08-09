@@ -15,3 +15,4 @@
 - [Offloading Private Key Operations](./ch12-private-key-ops.md)
 - [Pre-shared Keys](./ch13-preshared-keys.md)
 - [Early Data](./ch14-early-data.md)
+- [Post Quantum Support](./ch15-post-quantum.md)
