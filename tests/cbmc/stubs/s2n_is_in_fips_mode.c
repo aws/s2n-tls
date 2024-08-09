@@ -17,7 +17,7 @@
 
 #include "crypto/s2n_fips.h"
 
-static bool flag = 0;
+static bool s2n_fips_mode_flag = 0;
 static bool s2n_fips_mode_enabled = 0;
 
 /**
@@ -26,9 +26,9 @@ static bool s2n_fips_mode_enabled = 0;
  */
 bool s2n_is_in_fips_mode()
 {
-    if (flag == 0) {
+    if (s2n_fips_mode_flag == 0) {
         s2n_fips_mode_enabled = nondet_bool() ? 1 : 0;
-        flag = 1;
+        s2n_fips_mode_flag = 1;
     }
     return s2n_fips_mode_enabled;
 }

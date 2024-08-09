@@ -23,6 +23,8 @@ PROOF_SOURCES += $(PROOF_SOURCE)/cbmc_utils.c
 PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROOF_SOURCES += $(PROOF_STUB)/munlock.c
+PROOF_SOURCES += $(PROOF_STUB)/mlock.c
+PROOF_SOURCES += $(PROOF_STUB)/madvise.c
 PROOF_SOURCES += $(PROOF_STUB)/sysconf.c
 
 PROJECT_SOURCES += $(SRCDIR)/error/s2n_errno.c
@@ -34,7 +36,7 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
-REMOVE_FUNCTION_BODY +=  s2n_blob_slice
+REMOVE_FUNCTION_BODY +=
 
 UNWINDSET +=
 
