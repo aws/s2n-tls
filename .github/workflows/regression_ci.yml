@@ -94,7 +94,7 @@ jobs:
       - name: Get commit hash
         if: ${{ always() }} 
         id: vars
-        run: echo "COMMIT_HASH=$(git rev-parse --short HEAD)" >> $GITHUB_ENV
+        run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
       # Store the annotated and diff results
       - name: Store annotated and diff results
