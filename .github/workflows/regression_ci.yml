@@ -85,12 +85,7 @@ jobs:
           PERF_MODE: diff
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
-      - name: Print working directory
-        run: pwd
-      
-      - name: List files
-        run: ls
-
+      # Get the commit hash to reference the output files in the next step
       - name: Get commit hash
         if: ${{ always() }} 
         id: vars
@@ -100,12 +95,11 @@ jobs:
       - name: Store annotated and diff results
         if: ${{ always() }}  
         run: |
-          mkdir -p target/perf_outputs/$COMMIT_HASH
-          mv tests/regression/target/$COMMIT_HASH target/perf_outputs/$COMMIT_HASH
-          mkdir -p target/perf_outputs/mainline
-          cp -r $(find target -type f -name "*.annotated" -exec dirname {} \; | head -n 1) target/perf_outputs/mainline/
-          mkdir -p target/perf_outputs/diff
-          mv tests/regression/target/diff/ target/perf_outputs/diff/
+          mkdir -p perf_outputs/$COMMIT_HASH
+          mv tests/regression/target/$COMMIT_HASH perf_outputs/$COMMIT_HASH
+          mkdir -p perf_outputs/mainline
+          cp -r $(find tests/regression/target -type f -name "*.annotated" -exec dirname {} \; | head -n 1) perf_outputs/mainline/ 
+          mv tests/regression/target/diff/ perf_outputs/diff/
 
       # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
       - name: Upload artifacts
@@ -113,4 +107,4 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: perf-outputs
-          path: target/perf_outputs
+          path: perf_outputs
