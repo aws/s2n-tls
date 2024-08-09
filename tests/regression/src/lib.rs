@@ -146,6 +146,12 @@ mod tests {
             format!("target/{}/{}.raw", self.commit_hash, self.test_name)
         }
 
+        // Returns the annotated profile asociated with a raw profile
+        fn associated_annotated_profile(&self) -> AnnotatedProfile{
+            let annotated_profile = AnnotatedProfile::new(self);
+            annotated_profile
+        }
+
         /// Return the raw profiles for `test_name` in "git" order. `tuple.0` is older than `tuple.1`
         ///
         /// This method will panic if there are not two profiles.
@@ -208,6 +214,11 @@ mod tests {
         fn path(&self) -> String {
             format!("target/{}/{}.annotated", self.commit_hash, self.test_name)
         }
+
+        fn instruction_count(&self) -> i64 {
+            let output = &std::fs::read_to_string(self.path()).unwrap();
+            find_instruction_count(output).unwrap()
+        }
     }
 
     struct DiffProfile {
@@ -219,11 +230,7 @@ mod tests {
             let diff_profile = Self {
                 test_name: curr_profile.test_name.clone(),
                 // reads the annotated profile for previous instruction count
-                prev_profile_count: find_instruction_count(
-                    &std::fs::read_to_string(prev_profile.path().replace("raw", "annotated"))
-                        .unwrap(),
-                )
-                .unwrap(),
+                prev_profile_count: prev_profile.associated_annotated_profile().instruction_count()
             };
 
             // diff the raw profile
@@ -257,9 +264,11 @@ mod tests {
                 Check the annotated output logs in target/diff/{}.diff for debug information", self.test_name
             );
         }
+
     }
 
-    // Pulls the instruction count as an integer from the annotated output file.
+    /// Pulls the instruction count as an integer from the annotated output file. 
+    /// Accepts output from Annotated and Diff profile formats.
     fn find_instruction_count(output: &str) -> Result<i64, io::Error> {
         let reader = io::BufReader::new(output.as_bytes());
         // Example of the line being parsed:
