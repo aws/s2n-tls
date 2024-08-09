@@ -21,12 +21,14 @@
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_pq.h"
 #include "s2n_test.h"
+#include "testlib/s2n_sslv2_client_hello.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/extensions/s2n_client_supported_groups.h"
 #include "tls/s2n_connection.h"
 #include "tls/s2n_internal.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
+#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "unstable/npn.h"
 #include "utils/s2n_map.h"
@@ -35,6 +37,7 @@
 
 /* forward declaration */
 int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
+int s2n_parse_client_hello(struct s2n_connection *conn);
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
@@ -59,6 +62,13 @@ static int s2n_test_cert_validation_cb(struct s2n_connection *conn, struct s2n_c
 
 static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_pkey_op *op)
 {
+    return S2N_SUCCESS;
+}
+
+static int s2n_client_hello_cb_set_config(struct s2n_connection *conn, void *ctx)
+{
+    struct s2n_config *config = (struct s2n_config *) ctx;
+    POSIX_GUARD(s2n_connection_set_config(conn, config));
     return S2N_SUCCESS;
 }
 
@@ -1148,5 +1158,154 @@ int main(int argc, char **argv)
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
     };
+
+    /* Checks that servers don't use a config before the client hello callback is executed.
+     *
+     * We want to assert that a config is never used by a server until the client hello callback
+     * is called, given that users have the ability to swap out the config during this callback.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *tls12_client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(tls12_client_config);
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls12_client_config));
+        /* Security policy that only supports TLS12 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, "20240501"));
+
+        DEFER_CLEANUP(struct s2n_config *tls13_client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(tls13_client_config);
+        EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls13_client_config));
+        /* Security policy that supports TLS13 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "20240503"));
+
+        struct s2n_config *config_arr[] = { tls12_client_config, tls13_client_config };
+
+        /* Checks that the handshake can succeed with zero-initialized config at the beginning */
+        for (size_t i = 0; i < s2n_array_len(config_arr); i++) {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_arr[i]));
+
+            DEFER_CLEANUP(struct s2n_config *valid_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(valid_config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(valid_config, "20240503"));
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+                    S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(valid_config, cert_chain));
+
+            /* The only data that's on the blank config is a client hello callback which will set a valid
+            * config when invoked.
+            */
+            struct s2n_config blank_config = { 0 };
+            EXPECT_SUCCESS(s2n_config_set_client_hello_cb(&blank_config, s2n_client_hello_cb_set_config,
+                    valid_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, &blank_config));
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+        }
+
+        /* Checks that s2n_parse_client_hello can succeed with a NULL config */
+        for (size_t i = 0; i < s2n_array_len(config_arr); i++) {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_arr[i]));
+
+            /* Server config pointer is explicitly set to NULL */
+            server_conn->config = NULL;
+
+            struct s2n_test_io_pair io_pair = { 0 };
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_client_hello_send(client_conn));
+            EXPECT_SUCCESS(s2n_stuffer_copy(&client_conn->handshake.io, &server_conn->handshake.io,
+                    s2n_stuffer_data_available(&client_conn->handshake.io)));
+
+            /* Parsing should succeed without a config */
+            EXPECT_SUCCESS(s2n_parse_client_hello(server_conn));
+        }
+    }
+
+    /* Checks that servers don't use a config before the client hello callback is executed on a
+     * SSLv2-formatted client hello.
+     *
+     * Parsing SSLv2 hellos uses a different code path and need to be tested separately.
+     */
+    {
+        uint8_t sslv2_client_hello[] = {
+            SSLv2_CLIENT_HELLO_PREFIX,
+            SSLv2_CLIENT_HELLO_CIPHER_SUITES,
+            SSLv2_CLIENT_HELLO_CHALLENGE,
+        };
+
+        struct s2n_blob client_hello = {
+            .data = sslv2_client_hello,
+            .size = sizeof(sslv2_client_hello),
+            .allocated = 0,
+            .growable = 0
+        };
+
+        /* Checks that parsing and processing can succeed with zero-initialized config */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            DEFER_CLEANUP(struct s2n_config *valid_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(valid_config);
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *cert_chain = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&cert_chain,
+                    S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(valid_config, cert_chain));
+
+            /* The only data that's on the blank config is a client hello callback which will set a valid
+             * config when invoked.
+             */
+            struct s2n_config blank_config = { 0 };
+            EXPECT_SUCCESS(s2n_config_set_client_hello_cb(&blank_config, s2n_client_hello_cb_set_config,
+                    valid_config));
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, &blank_config));
+
+            /* Record version and protocol version are in the header for SSLv2 */
+            server_conn->client_hello_version = S2N_SSLv2;
+            server_conn->client_protocol_version = S2N_TLS12;
+
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
+            EXPECT_SUCCESS(s2n_client_hello_recv(server_conn));
+        }
+
+        /* Checks that s2n_parse_client_hello can succeed with a NULL config */
+        {
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            /* Record version and protocol version are in the header for SSLv2 */
+            server_conn->client_hello_version = S2N_SSLv2;
+            server_conn->client_protocol_version = S2N_TLS12;
+            EXPECT_SUCCESS(s2n_stuffer_write(&server_conn->handshake.io, &client_hello));
+
+            /* Explicitly set config pointer to NULL */
+            server_conn->config = NULL;
+
+            /* Parsing should succeed without a config */
+            EXPECT_SUCCESS(s2n_parse_client_hello(server_conn));
+        }
+    }
     END_TEST();
 }

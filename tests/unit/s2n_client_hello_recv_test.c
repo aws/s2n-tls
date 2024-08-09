@@ -81,7 +81,7 @@ int main(int argc, char **argv)
         }
 
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
-        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
+        EXPECT_SUCCESS(s2n_connection_set_config(server_conn, i == 0 ? tls12_config : tls13_config));
 
         /* Record version and protocol version are in the header for SSLv2 */
         server_conn->client_hello_version = S2N_SSLv2;

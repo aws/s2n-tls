@@ -85,7 +85,7 @@ int s2n_sslv2_record_header_parse(
      *
      * The protocol version read here will likely not be SSLv2, since we only
      * accept SSLv2 ClientHellos offering higher protocol versions.
-     * See s2n_sslv2_client_hello_recv.
+     * See s2n_sslv2_client_hello_parse.
      */
     uint8_t protocol_version[S2N_TLS_PROTOCOL_VERSION_LEN] = { 0 };
     POSIX_GUARD(s2n_stuffer_read_bytes(header_in, protocol_version, S2N_TLS_PROTOCOL_VERSION_LEN));
