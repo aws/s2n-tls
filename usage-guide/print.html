@@ -89,7 +89,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="ch00-introduction.html">Introduction</a></li><li class="chapter-item expanded "><a href="ch01-api.html"><strong aria-hidden="true">1.</strong> s2n-tls API</a></li><li class="chapter-item expanded "><a href="ch02-initialization.html"><strong aria-hidden="true">2.</strong> Initialization and Teardown</a></li><li class="chapter-item expanded "><a href="ch03-error-handling.html"><strong aria-hidden="true">3.</strong> Error Handling</a></li><li class="chapter-item expanded "><a href="ch04-connection.html"><strong aria-hidden="true">4.</strong> TLS Connections</a></li><li class="chapter-item expanded "><a href="ch05-config.html"><strong aria-hidden="true">5.</strong> Configuring the Connection</a></li><li class="chapter-item expanded "><a href="ch06-security-policies.html"><strong aria-hidden="true">6.</strong> Security Policies</a></li><li class="chapter-item expanded "><a href="ch07-io.html"><strong aria-hidden="true">7.</strong> IO</a></li><li class="chapter-item expanded "><a href="ch08-record-sizes.html"><strong aria-hidden="true">8.</strong> TLS Record Sizes</a></li><li class="chapter-item expanded "><a href="ch09-certificates.html"><strong aria-hidden="true">9.</strong> Certificates and Authentication</a></li><li class="chapter-item expanded "><a href="ch10-client-hello.html"><strong aria-hidden="true">10.</strong> Examining the Client Hello</a></li><li class="chapter-item expanded "><a href="ch11-resumption.html"><strong aria-hidden="true">11.</strong> Session Resumption</a></li><li class="chapter-item expanded "><a href="ch12-private-key-ops.html"><strong aria-hidden="true">12.</strong> Offloading Private Key Operations</a></li><li class="chapter-item expanded "><a href="ch13-preshared-keys.html"><strong aria-hidden="true">13.</strong> Pre-shared Keys</a></li><li class="chapter-item expanded "><a href="ch14-early-data.html"><strong aria-hidden="true">14.</strong> Early Data</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="ch00-introduction.html">Introduction</a></li><li class="chapter-item expanded "><a href="ch01-api.html"><strong aria-hidden="true">1.</strong> s2n-tls API</a></li><li class="chapter-item expanded "><a href="ch02-initialization.html"><strong aria-hidden="true">2.</strong> Initialization and Teardown</a></li><li class="chapter-item expanded "><a href="ch03-error-handling.html"><strong aria-hidden="true">3.</strong> Error Handling</a></li><li class="chapter-item expanded "><a href="ch04-connection.html"><strong aria-hidden="true">4.</strong> TLS Connections</a></li><li class="chapter-item expanded "><a href="ch05-config.html"><strong aria-hidden="true">5.</strong> Configuring the Connection</a></li><li class="chapter-item expanded "><a href="ch06-security-policies.html"><strong aria-hidden="true">6.</strong> Security Policies</a></li><li class="chapter-item expanded "><a href="ch07-io.html"><strong aria-hidden="true">7.</strong> IO</a></li><li class="chapter-item expanded "><a href="ch08-record-sizes.html"><strong aria-hidden="true">8.</strong> TLS Record Sizes</a></li><li class="chapter-item expanded "><a href="ch09-certificates.html"><strong aria-hidden="true">9.</strong> Certificates and Authentication</a></li><li class="chapter-item expanded "><a href="ch10-client-hello.html"><strong aria-hidden="true">10.</strong> Examining the Client Hello</a></li><li class="chapter-item expanded "><a href="ch11-resumption.html"><strong aria-hidden="true">11.</strong> Session Resumption</a></li><li class="chapter-item expanded "><a href="ch12-private-key-ops.html"><strong aria-hidden="true">12.</strong> Offloading Private Key Operations</a></li><li class="chapter-item expanded "><a href="ch13-preshared-keys.html"><strong aria-hidden="true">13.</strong> Pre-shared Keys</a></li><li class="chapter-item expanded "><a href="ch14-early-data.html"><strong aria-hidden="true">14.</strong> Early Data</a></li><li class="chapter-item expanded "><a href="ch15-post-quantum.html"><strong aria-hidden="true">15.</strong> Post Quantum Support</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
@@ -967,7 +967,94 @@ int s2n_early_data_cb_async_impl(struct s2n_connection *conn, struct s2n_offered
 }
 </code></pre>
 <p><code>s2n_offered_early_data_get_context_length()</code> and <code>s2n_offered_early_data_get_context()</code> can be called to examine the optional user context associated with the early data. Unlike most s2n-tls callbacks, the context is not configured when the callback is set. Instead, the context is associated with the specific pre-shared key or session ticket used for early data. The context can be set for external pre-shared keys by calling <code>s2n_psk_set_early_data_context()</code>. For session tickets, <code>s2n_connection_set_server_early_data_context()</code> can be used to set the context the server includes on its new session tickets. Because the server needs to serialize the context when creating a new session ticket, the context is a byte buffer instead of the usual void pointer.</p>
-
+<div style="break-before: page; page-break-before: always;"></div><h1 id="post-quantum-pq-support"><a class="header" href="#post-quantum-pq-support">Post Quantum (PQ) Support</a></h1>
+<p>s2n-tls supports post-quantum key exchange for TLS1.3. Currently, only <a href="https://pq-crystals.org/kyber/">Kyber</a> is supported. See the draft IETF standard: https://datatracker.ietf.org/doc/html/draft-ietf-tls-hybrid-design</p>
+<p>Specifically, s2n-tls supports hybrid key exchange. PQ hybrid key exchange involves performing both classic ECDH key exchange and post-quantum Kyber key exchange, then combining the two resultant secrets. This strategy combines the high assurance of the classical key exchange algorithms with the quantum-resistance of the new post-quantum key exchange algorithms. If one of the two algorithms is compromised, either because advances in quantum computing make the classic algorithms insecure or because cryptographers find a flaw in the relatively new post-quantum algorithms, the secret is still secure. Hybrid post-quantum key exchange is more secure than standard key exchange, but is slower and requires more processing and more network bandwidth.</p>
+<p>Careful: if an s2n-tls server is configured to support post-quantum key exchange, the server will require that any client that advertises support ultimately uses post-quantum key exchange. That will result in a retry and an extra round trip if the client does not intially provide a post-quantum key share.</p>
+<h2 id="requirements"><a class="header" href="#requirements">Requirements</a></h2>
+<h3 id="aws-lc"><a class="header" href="#aws-lc">AWS-LC</a></h3>
+<p>s2n-tls must be built with aws-lc to use post-quantum key exchange. See the <a href="https://github.com/aws/s2n-tls/blob/main/docs/BUILD.md#building-with-a-specific-libcrypto">s2n-tls build documentation</a> for how to build with aws-lc.</p>
+<p>If you're unsure what cryptography library s2n-tls is built against, trying running s2nd or s2nc:</p>
+<pre><code>&gt; s2nd localhost 8000
+libcrypto: AWS-LC
+Listening on localhost:8000
+</code></pre>
+<h3 id="security-policy"><a class="header" href="#security-policy">Security Policy</a></h3>
+<p>Post-quantum key exchange is enabled by configuring a security policy (see <a href="./ch06-security-policies.html">Security Policies</a>) that supports post-quantum key exchange algorithms.</p>
+<p>"default_pq" is the equivalent of "default_tls13", but with PQ support. Like the other default policies, "default_pq" may change as a result of library updates. The fixed, numbered equivalent of "default_pq" is currently "20240730". For previous defaults, see the "Default Policy History" section below.</p>
+<p>Other available PQ policies are compared in the tables below.</p>
+<h3 id="chart-security-policy-version-to-pq-hybrid-key-exchange-methods"><a class="header" href="#chart-security-policy-version-to-pq-hybrid-key-exchange-methods">Chart: Security Policy Version To PQ Hybrid Key Exchange Methods</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>secp256r1+kyber768</th><th>x25519+kyber768</th><th>secp384r1+kyber768</th><th>secp521r1+kyber1024</th><th>secp256r1+kyber512</th><th>x25519+kyber512</th></tr></thead><tbody>
+<tr><td>default_pq / 20240730</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-13</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-10</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-09</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+</tbody></table>
+</div>
+<h3 id="chart-security-policy-version-to-classic-key-exchange"><a class="header" href="#chart-security-policy-version-to-classic-key-exchange">Chart: Security Policy Version To Classic Key Exchange</a></h3>
+<p>If the peer doesn't support a PQ hybrid key exchange method, s2n-tls will fall back to a classical option.</p>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>secp256r1</th><th>x25519</th><th>secp384r1</th><th>secp521r1</th><th>DHE</th><th>RSA</th></tr></thead><tbody>
+<tr><td>default_pq / 20240730</td><td>X</td><td>X</td><td>X</td><td>X</td><td></td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td></td><td>X</td><td>X</td><td></td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-13</td><td>X</td><td></td><td>X</td><td>X</td><td></td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-10</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-09</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td><td>X</td><td></td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td><td>X</td><td></td><td></td><td>X</td></tr>
+<tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td></td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+</tbody></table>
+</div>
+<h3 id="chart-security-policy-version-to-ciphers"><a class="header" href="#chart-security-policy-version-to-ciphers">Chart: Security Policy Version To Ciphers</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th></tr></thead><tbody>
+<tr><td>default_pq / 20240730</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td>X</td><td></td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td>X</td><td></td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-13</td><td>X</td><td>X</td><td></td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-10</td><td>X</td><td>X</td><td>X*</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-09</td><td>X</td><td>X</td><td>X*</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td><td>X*</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td><td>X*</td><td></td></tr>
+<tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td><td>X*</td><td>X</td></tr>
+<tr><td>* only for TLS1.3</td><td></td><td></td><td></td><td></td></tr>
+</tbody></table>
+</div>
+<h3 id="chart-security-policy-version-to-signature-schemes"><a class="header" href="#chart-security-policy-version-to-signature-schemes">Chart: Security Policy Version To Signature Schemes</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>ECDSA</th><th>RSA</th><th>RSA-PSS</th><th>Legacy SHA1</th></tr></thead><tbody>
+<tr><td>default_pq / 20240730</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-13</td><td>X</td><td>X</td><td>X</td><td></td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-10</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-09</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td><td>X</td><td>X</td></tr>
+</tbody></table>
+</div>
+<h3 id="chart-security-policy-version-to-tls-protocol-version"><a class="header" href="#chart-security-policy-version-to-tls-protocol-version">Chart: Security Policy Version To TLS Protocol Version</a></h3>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>1.2</th><th>1.3</th></tr></thead><tbody>
+<tr><td>default_pq / 20240730</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-15</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-14</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-12-13</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-10</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-09</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-08</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-2-2023-10-07</td><td>X</td><td>X</td></tr>
+<tr><td>PQ-TLS-1-3-2023-06-01</td><td>X</td><td>X</td></tr>
+</tbody></table>
+</div>
+<h4 id="default-policy-history-1"><a class="header" href="#default-policy-history-1">Default Policy History</a></h4>
+<div class="table-wrapper"><table><thead><tr><th>Version</th><th>"default_pq"</th></tr></thead><tbody>
+<tr><td>v1.5.0</td><td>20240730</td></tr>
+</tbody></table>
+</div>
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
