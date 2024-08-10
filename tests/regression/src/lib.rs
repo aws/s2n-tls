@@ -241,6 +241,7 @@ mod tests {
             assert_command_success(diff_output.clone());
 
             // write the diff to disk
+            create_dir_all(format!("target/diff")).unwrap();
             let diff_content = String::from_utf8(diff_output.stdout)
                 .expect("Invalid UTF-8 in cg_annotate --diff output");
             write(diff_profile.path(), diff_content).expect("Failed to write to file");
