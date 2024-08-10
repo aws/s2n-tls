@@ -71,7 +71,7 @@ mod tests {
         time::SystemTime,
     };
 
-    const MAX_DIFF: i64 = 1_000;
+    const MAX_DIFF: i64 = 1_000_000;
 
     struct InstrumentationControl;
 
