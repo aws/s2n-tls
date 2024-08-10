@@ -108,8 +108,13 @@ int main(int argc, char **argv)
 
     /* Test recv */
     {
+        /* Disable x509 validation so that the OCSP test data can be successfully received. */
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
+
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_SUCCESS(s2n_test_enable_sending_extension(conn, chain_and_key));
 
         struct s2n_stuffer stuffer = { 0 };
