@@ -43,12 +43,6 @@ jobs:
       - name: Generate
         run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
 
-      # Build the project in release mode for current branch
-      - name: Build project
-        env:
-          DEP_VALGRIND: /usr/include
-        run: cargo build --release --manifest-path=tests/regression/Cargo.toml
-
       # Run performance tests using Valgrind for current branch
       - name: Run scalar performance test (curr)
         env:
@@ -64,10 +58,6 @@ jobs:
       # Regenrate bindings for main branch
       - name: Generate
         run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
-
-      # Build the project in release mode for main branch
-      - name: Build project (mainline)
-        run: cargo build --release --manifest-path=tests/regression/Cargo.toml
 
       # Run performance tests using Valgrind for main branch
       - name: Run scalar performance test (prev)
@@ -85,19 +75,20 @@ jobs:
           PERF_MODE: diff
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
-      # Get the commit hash to reference the output files in the next step
+      # Get the commit hash to reference the output files for getting and storing files (next step)
       - name: Get commit hash
         if: ${{ always() }} 
         id: vars
         run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
 
-      # Store the annotated and diff results
+      # Store the annotated and diff results in perf_outputs/. 
+      # Moves the current commit hash folder, then searches for the remaining folder and stores it by commit hash.
       - name: Store annotated and diff results
         if: ${{ always() }}  
         run: |
           mkdir -p perf_outputs
           mv tests/regression/target/$COMMIT_HASH perf_outputs/
-          mainline_dir=$(find tests/regression/target -type f -name "*.annotated" -exec dirname {} \; | head -n 1)
+          mainline_dir=$(find tests/regression/target -type f -name "*.annotated" -exec dirname {} \; | head -n 1) 
           cp -r "$mainline_dir" perf_outputs/ 
           mv tests/regression/target/diff/ perf_outputs/diff/
 
