@@ -47,7 +47,7 @@ pub mod git {
         }
     
         let branches = String::from_utf8_lossy(&output.stdout);
-        branches.lines().any(|branch| branch.trim() == "personal" || branch.trim() == "* personal")
+        branches.lines().any(|branch| branch.trim() == "main" || branch.trim() == "* main")
     }
 }
 

@@ -5,7 +5,7 @@ name: Performance Regression Test
 on:
   pull_request:
     branches:
-      - personal
+      - main
 
 jobs:
   regression-test:
@@ -52,8 +52,8 @@ jobs:
       # Checkout the main branch
       - name: Checkout mainline
         run: |
-          git fetch origin personal
-          git checkout personal
+          git fetch origin main
+          git checkout main
 
       # Regenrate bindings for main branch
       - name: Generate
