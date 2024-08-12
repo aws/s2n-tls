@@ -65,10 +65,10 @@ jobs:
           PERF_MODE: valgrind
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
-      # Switch to the pull request branch again
+      # Checkout pull request branch again
       # This is required for cg_annotate diff to locate the changes in the PR to properly annotate the output diff file
-      - name: Switch to pull request branch
-        run: git switch ${{ github.event.pull_request.head.sha }}
+      - name: Checkout pull request branch
+        run: git checkout ${{ github.event.pull_request.head.sha }}
 
       # Run the differential performance test
       - name: Run diff test
