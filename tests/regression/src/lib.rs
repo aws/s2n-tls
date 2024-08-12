@@ -42,13 +42,13 @@ pub mod git {
             .args(["branch", "--contains", commit1])
             .output()
             .expect("Failed to execute git branch");
-    
-        // If the command fails, it indicates that the commit is either detached 
+
+        // If the command fails, it indicates that the commit is either detached
         // or does not exist in any branches. Meaning, it is not part of mainline.
         if !output.status.success() {
             return false;
         }
-    
+
         // Convert the command output to a string and check each line.
         let branches = String::from_utf8_lossy(&output.stdout);
         branches.lines().any(|branch| {
@@ -166,7 +166,10 @@ mod tests {
         }
 
         fn path(&self) -> String {
-            format!("target/regression_artifacts/{}/{}.raw", self.commit_hash, self.test_name)
+            format!(
+                "target/regression_artifacts/{}/{}.raw",
+                self.commit_hash, self.test_name
+            )
         }
 
         /// Return the raw profiles for `test_name` in "git" order. `tuple.0` is older than `tuple.1`
@@ -190,7 +193,7 @@ mod tests {
                 test_name: test_name.to_string(),
                 commit_hash: git::extract_commit_hash(&raw_files[1]),
             };
-            
+
             if git::is_mainline(&profile1.commit_hash) ^ git::is_mainline(&profile2.commit_hash) {
                 // Exactly one of the profiles is on the mainline, so return the mainline first
                 if git::is_mainline(&profile1.commit_hash) {
@@ -202,12 +205,11 @@ mod tests {
                 // Neither or both profiles are on the mainline, so return the older one first
                 if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
                     (profile1, profile2)
-                } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash){
+                } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
                     (profile2, profile1)
                 } else {
                     panic!("The commits are not in the same log or are identical");
                 }
-                
             }
         }
     }
@@ -240,7 +242,10 @@ mod tests {
         }
 
         fn path(&self) -> String {
-            format!("target/regression_artifacts/{}/{}.annotated", self.commit_hash, self.test_name)
+            format!(
+                "target/regression_artifacts/{}/{}.annotated",
+                self.commit_hash, self.test_name
+            )
         }
     }
 
@@ -261,7 +266,7 @@ mod tests {
             assert_command_success(diff_output.clone());
 
             // write the diff to disk
-            create_dir_all(format!("target/regression_artifacts/diff")).unwrap();
+            create_dir_all("target/regression_artifacts/diff").unwrap();
             let diff_content = String::from_utf8(diff_output.stdout)
                 .expect("Invalid UTF-8 in cg_annotate --diff output");
             write(diff_profile.path(), diff_content).expect("Failed to write to file");
