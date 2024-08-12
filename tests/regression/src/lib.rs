@@ -146,7 +146,7 @@ mod tests {
             format!("target/{}/{}.raw", self.commit_hash, self.test_name)
         }
 
-        // Returns the annotated profile asociated with a raw profile
+        // Returns the annotated profile associated with a raw profile
         fn associated_annotated_profile(&self) -> AnnotatedProfile{
             let annotated_profile = AnnotatedProfile::new(self);
             annotated_profile
