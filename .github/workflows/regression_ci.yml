@@ -49,11 +49,11 @@ jobs:
           PERF_MODE: valgrind
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
-      # Switch to the main branch
-      - name: Switch to mainline
+      # Checkout the main branch
+      - name: Checkout mainline
         run: |
           git fetch origin main
-          git switch main
+          git checkout main
 
       # Regenerate bindings for main branch
       - name: Generate
