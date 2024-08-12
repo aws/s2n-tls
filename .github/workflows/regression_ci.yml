@@ -53,9 +53,9 @@ jobs:
       - name: Checkout mainline
         run: |
           git fetch origin main
-          git checkout main
+          git switch main
 
-      # Regenrate bindings for main branch
+      # Regenerate bindings for main branch
       - name: Generate
         run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
 
@@ -66,8 +66,9 @@ jobs:
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
       # Checkout the pull request branch again
+      # This is required for cg_annotate diff to locate the changes in the PR to properly annotate the output diff file
       - name: Checkout pull request branch
-        run: git checkout ${{ github.event.pull_request.head.sha }}
+        run: git switch ${{ github.event.pull_request.head.sha }}
 
       # Run the differential performance test
       - name: Run diff test
@@ -75,27 +76,10 @@ jobs:
           PERF_MODE: diff
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
-      # Get the commit hash to reference the output files for getting and storing files (next step)
-      - name: Get commit hash
-        if: ${{ always() }} 
-        id: vars
-        run: echo "COMMIT_HASH=$(git rev-parse HEAD)" >> $GITHUB_ENV
-
-      # Store the annotated and diff results in perf_outputs/. 
-      # Moves the current commit hash folder, then searches for the remaining folder and stores it by commit hash.
-      - name: Store annotated and diff results
-        if: ${{ always() }}  
-        run: |
-          mkdir -p perf_outputs
-          mv tests/regression/target/$COMMIT_HASH perf_outputs/
-          mainline_dir=$(find tests/regression/target -type f -name "*.annotated" -exec dirname {} \; | head -n 1) 
-          cp -r "$mainline_dir" perf_outputs/ 
-          mv tests/regression/target/diff/ perf_outputs/diff/
-
       # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
       - name: Upload artifacts
         if: ${{ always() }}  
         uses: actions/upload-artifact@v2
         with:
-          name: perf-outputs
-          path: perf_outputs
+          name: regression_artifacts
+          path: tests/regression/target/regression_artifacts
