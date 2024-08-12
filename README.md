@@ -101,10 +101,9 @@ We’ve listed the distributions and platforms under two tiers: Tier 1 platforms
 
 |Distribution in CI	                                    |Platform |
 |-------------------------------------------------------|---------|
-|Ubuntu18, Ubuntu22, AL2, NixOS, AL2023**, Ubuntu24**	| x86_64  |
-|OSX [latest](https://github.com/actions/runner-images?tab=readme-ov-file#available-images), AL2023**, AL2, NixOS| aarch64 |
-|OpenBSD [7.4](https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms)| x86_64  |
-|FreeBSD [latest](https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf)| x86_64  |
+|Ubuntu18/22/24**, AL2, AL2023**, NixOS, OpenBSD [7.4](https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms), FreeBSD [latest](https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf)| x86_64  |
+|Ubuntu22                                               | i686    |
+|OSX [latest](https://github.com/actions/runner-images?tab=readme-ov-file#available-images), AL2023**, Ubuntu24**, AL2, NixOS| aarch64 |
 
 **Work in Progress
 
@@ -112,8 +111,8 @@ We’ve listed the distributions and platforms under two tiers: Tier 1 platforms
 
 |Distribution not in CI	|Platform|
 |-----------------------|--------|
-| Fedora Core 34-36, Ubuntu14,16,20	|x86_64|
-| FedoraCore34-36, Ubuntu24 |aarch64|
+| Fedora Core 34-36, Ubuntu14/16/20, OSX	|x86_64|
+| FedoraCore34-36, Ubuntu24, OpenBSD, FreeBSD |aarch64|
 
 These distribution lists are not exhaustive and missing tooling or a missing supported libcrypto library could prevent a successful build.
 
