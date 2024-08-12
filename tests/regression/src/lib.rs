@@ -29,7 +29,7 @@ pub mod git {
     pub fn extract_commit_hash(file: &str) -> String {
         // input: "target/regression_artifacts/$commit_id/test_name.raw"
         // output: "$commit_id"
-        file.split("target/regression_artifacts")
+        file.split("target/regression_artifacts/")
             .nth(1)
             .and_then(|s| s.split('/').next())
             .map(|s| s.to_string())
@@ -185,7 +185,7 @@ mod tests {
                 test_name: test_name.to_string(),
                 commit_hash: git::extract_commit_hash(&raw_files[0]),
             };
-
+            println!("{}", profile1.test_name);
             let profile2 = RawProfile {
                 test_name: test_name.to_string(),
                 commit_hash: git::extract_commit_hash(&raw_files[1]),
@@ -202,9 +202,12 @@ mod tests {
                 // Neither or both profiles are on the mainline, so return the older one first
                 if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
                     (profile1, profile2)
-                } else {
+                } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash){
                     (profile2, profile1)
+                } else {
+                    panic!("The commits are not in the same log or are identical");
                 }
+                
             }
         }
     }
