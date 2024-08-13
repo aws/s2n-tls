@@ -64,7 +64,6 @@ RUN set -eux; \
   . codebuild/bin/s2n_setup_env.sh; \
   export PATH=$TEST_DEPS_DIR/clang/bin:$PATH; \
   TESTS=integrationv2 codebuild/bin/s2n_install_test_dependencies.sh; \
-  TESTS=benchmark codebuild/bin/s2n_install_test_dependencies.sh; \
   TESTS=fuzz codebuild/bin/s2n_install_test_dependencies.sh; \
   TESTS=unit BUILD_S2N=false S2N_LIBCRYPTO=openssl-1.0.2 codebuild/bin/install_default_dependencies.sh; \
   TESTS=unit BUILD_S2N=false S2N_LIBCRYPTO=openssl-1.0.2-fips codebuild/bin/install_default_dependencies.sh; \
