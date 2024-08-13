@@ -53,7 +53,8 @@ mod tests {
         env,
         fs::{create_dir_all, write},
         io::{self, BufRead},
-        process::{Command, Output}, time::SystemTime,
+        process::{Command, Output},
+        time::SystemTime,
     };
 
     const MAX_DIFF: i64 = 1_000;
@@ -399,5 +400,5 @@ mod tests {
             Ok(())
         })
         .unwrap();
-    } 
+    }
 }
