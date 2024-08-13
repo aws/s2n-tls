@@ -138,12 +138,3 @@ Performs an RSA handshake in s2n-tls and validates the handshake process utilizi
 ### test_session_resumption
 
 Performs an RSA handshake, setting a session ticket in the client. Then, measures the resumption utilizing the session ticket in a second RSA handshake and asserts that the client has resumed the session.
-
-## Contributing a regression test harness
-
-If you are interested in contributing to the test harnesses to increase coverage over performance benchmarking in s2n-tls, this section will walkthrough the contribution process.
-
-1. Define the test harness
-1. Find the threshold for the harness
-1. Inspect annotated profiles for the test
-
