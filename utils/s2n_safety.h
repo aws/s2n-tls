@@ -58,20 +58,24 @@ CONTRACT_REQUIRES(b != NULL && __CPROVER_is_fresh(b, len))
 CONTRACT_ENSURES(CONTRACT_RETURN_VALUE == __CPROVER_forall { unsigned k; (k >= 0 && k < len) ==> (a[k] == b[k]) });
 
 
-/* If BOTH a and n are non-NULL then                                     */
-/*   Returns true if a and b are equal. Execution time may depend on len */
-/*   but not on the value of the data denoted by a or b. If len == 0,    */
-/*   then returns true                                                   */
-/*                                                                       */
-/* If either of a or b is NULL, then returns false                       */
+/* If len == 0, then returns true, regardless of the values of a and b     */
+/*                                                                         */
+/* If len != 0 then                                                        */
+/*   If BOTH a and n are non-NULL then                                     */
+/*     Returns true if a and b are equal. Execution time may depend on len */
+/*     but not on the value of the data denoted by a or b.                 */
+/*                                                                         */
+/*   If either of a or b is NULL, then returns false                       */
 bool s2n_constant_time_equals_total(const uint8_t* const a,
                                     const uint8_t* const b,
                                     const uint32_t len)
 CONTRACT_REQUIRES(__CPROVER_is_fresh(a, len))
 CONTRACT_REQUIRES(__CPROVER_is_fresh(b, len))
-CONTRACT_ENSURES(((a != NULL && b != NULL) && CONTRACT_RETURN_VALUE == s2n_constant_time_equals_partial(a, b, len) )
+CONTRACT_ENSURES(((len == 0) && CONTRACT_RETURN_VALUE == true)
                  ||
-                 ((a == NULL || b == NULL) && CONTRACT_RETURN_VALUE == false)
+                 ((len != 0 && a != NULL && b != NULL) && CONTRACT_RETURN_VALUE == s2n_constant_time_equals_partial(a, b, len) )
+                 ||
+                 ((len != 0) && (a == NULL || b == NULL) && CONTRACT_RETURN_VALUE == false)
                 );
 
 

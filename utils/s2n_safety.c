@@ -108,6 +108,10 @@ bool s2n_constant_time_equals_total(const uint8_t *const a,
                                     const uint8_t *const b,
                                     const uint32_t len)
 {
+    if (len == 0) {
+        return true;
+    }
+
     if (a != NULL && b != NULL) {
         return s2n_constant_time_equals_partial(a, b, len);
     } else {
