@@ -182,8 +182,10 @@ int print_connection_info(struct s2n_connection *conn)
 
     const char *kem = s2n_connection_get_kem_name(conn);
     if (strcmp(kem, "NONE") != 0) {
-        printf("Legacy TLS1.2 KEM: %s (%s, but TLS1.3 PQ hybrid key exchange strongly recommended instead. "
-               "See https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch15-post-quantum.md)\n",
+        printf("Legacy TLS1.2 KEM: %s (%s, but the use of PQ key exchange with "
+               "TLS1.2 was experimental and is neither stable nor on a path to "
+               "standardization. The TLS1.3 version should be used instead: "
+               "https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch15-post-quantum.md)\n",
                 kem, pq_enabled_note);
     }
 
