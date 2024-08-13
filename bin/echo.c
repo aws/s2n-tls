@@ -185,7 +185,7 @@ int print_connection_info(struct s2n_connection *conn)
         printf("Legacy TLS1.2 KEM: %s (%s, but the use of PQ key exchange with "
                "TLS1.2 was experimental and is neither stable nor on a path to "
                "standardization. The TLS1.3 version should be used instead: "
-               "https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch15-post-quantum.md)\n",
+               "https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html)\n",
                 kem, pq_enabled_note);
     }
 
