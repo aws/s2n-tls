@@ -36,10 +36,10 @@ pub mod git {
             .unwrap_or_default() // This will return an empty string if the Option is None
     }
 
-    pub fn is_mainline(commit1: &str) -> bool {
+    pub fn is_mainline(commit_hash: &str) -> bool {
         // Execute the git command to check which branches contain the given commit.
         let output = Command::new("git")
-            .args(["branch", "--contains", commit1])
+            .args(["branch", "--contains", commit_hash])
             .output()
             .expect("Failed to execute git branch");
 
@@ -172,9 +172,12 @@ mod tests {
             )
         }
 
-        /// Return the raw profiles for `test_name` in "git" order. `tuple.0` is older than `tuple.1`
+        /// Return the raw profiles for `test_name` in "git" order. 
+        /// Mainline commit should return as `tuple.0`.
+        /// If both or neither are mainline, then `tuple.0` is older than `tuple.1`
         ///
         /// This method will panic if there are not two profiles.
+        /// This method will also panic if both commits are on different logs (not mainline).
         fn query(test_name: &str) -> (RawProfile, RawProfile) {
             let pattern = format!("target/regression_artifacts/**/*{}.raw", test_name);
             let raw_files: Vec<String> = glob::glob(&pattern)
@@ -193,8 +196,9 @@ mod tests {
                 commit_hash: git::extract_commit_hash(&raw_files[1]),
             };
 
+            // xor returns true if exactly one commit is mainline
             if git::is_mainline(&profile1.commit_hash) ^ git::is_mainline(&profile2.commit_hash) {
-                // Exactly one of the profiles is on the mainline, so return the mainline first
+                // Return the mainline as first commit
                 if git::is_mainline(&profile1.commit_hash) {
                     (profile1, profile2)
                 } else {
@@ -207,7 +211,7 @@ mod tests {
                 } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
                     (profile2, profile1)
                 } else {
-                    panic!("The commits are not in the same log or are identical");
+                    panic!("The commits are not in the same log, are identical, or there are not two commits available");
                 }
             }
         }
