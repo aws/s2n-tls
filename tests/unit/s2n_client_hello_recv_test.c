@@ -79,6 +79,7 @@ int main(int argc, char **argv)
         if (i == 1) {
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         }
+
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, tls12_config));
 
