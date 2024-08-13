@@ -39,6 +39,7 @@ pub mod git {
 
 #[cfg(test)]
 mod tests {
+    use futures_test::task::noop_waker;
     use s2n_tls::{
         config::Builder,
         security,
@@ -52,7 +53,7 @@ mod tests {
         env,
         fs::{create_dir_all, write},
         io::{self, BufRead},
-        process::{Command, Output},
+        process::{Command, Output}, time::SystemTime,
     };
 
     const MAX_DIFF: i64 = 1_000;
@@ -329,4 +330,74 @@ mod tests {
         })
         .unwrap();
     }
+
+    /// Test to measure session resumption by performing a handshake and resuming the handshake with a session ticket
+    #[test]
+    fn test_session_resumption() {
+        valgrind_test("test_session_resumption", |ctrl| {
+            const KEY_NAME: &str = "InsecureTestKey";
+            const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
+            ctrl.stop_instrumentation();
+            let keypair_rsa = CertKeyPair::default();
+
+            let mut server_config_builder = Builder::new();
+            server_config_builder
+                .add_session_ticket_key(
+                    KEY_NAME.as_bytes(),
+                    KEY_VALUE.as_slice(),
+                    SystemTime::now(),
+                )?
+                .load_pem(keypair_rsa.cert(), keypair_rsa.key())?
+                .set_security_policy(&security::DEFAULT_TLS13)?;
+            let server_config = server_config_builder.build()?;
+
+            let mut client_config_builder = Builder::new();
+            client_config_builder
+                .enable_session_tickets(true)?
+                .trust_pem(keypair_rsa.cert())?
+                .set_verify_host_callback(InsecureAcceptAllCertificatesHandler {})?
+                .set_security_policy(&security::DEFAULT_TLS13)?;
+            let client_config = client_config_builder.build()?;
+
+            // 1st handshake: no session ticket, so no resumption
+            let session_ticket = {
+                let mut pair = TestPair::from_configs(&client_config, &server_config);
+                pair.client.set_waker(Some(&noop_waker()))?;
+                pair.handshake()?;
+                assert!(pair.client.poll_recv(&mut [0]).is_pending());
+
+                let mut ticket: Vec<u8> = vec![0; pair.client.session_ticket_length().unwrap()];
+                pair.client.session_ticket(&mut ticket).unwrap();
+
+                assert!(!pair.client.resumed());
+                ticket
+            };
+
+            // Start Cachegrind instrumentation for the second handshake
+            ctrl.start_instrumentation();
+
+            // 2nd handshake: should be able to use the session ticket from the first
+            //                handshake (stored in `session ticket`) to resume
+            {
+                let mut pair = TestPair::from_configs(&client_config, &server_config);
+                pair.client.set_waker(Some(&noop_waker()))?;
+
+                pair.client.set_session_ticket(&session_ticket).unwrap();
+                pair.handshake()?;
+
+                // Do a recv call on the client side to read a session ticket. Poll function
+                // returns pending since no application data was read, however it is enough
+                // to collect the session ticket.
+                assert!(pair.client.poll_recv(&mut [0]).is_pending());
+
+                // Assert the resumption status
+                assert!(pair.client.resumed());
+            }
+
+            ctrl.stop_instrumentation();
+
+            Ok(())
+        })
+        .unwrap();
+    } 
 }
