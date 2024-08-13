@@ -148,8 +148,7 @@ mod tests {
 
         // Returns the annotated profile associated with a raw profile
         fn associated_annotated_profile(&self) -> AnnotatedProfile{
-            let annotated_profile = AnnotatedProfile::new(self);
-            annotated_profile
+            AnnotatedProfile::new(self)
         }
 
         /// Return the raw profiles for `test_name` in "git" order. `tuple.0` is older than `tuple.1`
