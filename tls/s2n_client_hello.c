@@ -446,7 +446,7 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     }
 
     if (conn->client_hello_version == S2N_SSLv2) {
-        POSIX_GUARD(s2n_sslv2_client_hello_parse(conn));
+        POSIX_GUARD(s2n_sslv2_client_hello_recv(conn));
         return S2N_SUCCESS;
     }
 
@@ -672,8 +672,14 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
         /* Mark the client hello callback as invoked to avoid calling it again. */
         conn->client_hello.callback_invoked = true;
 
+        /* Do NOT move this null check. A test exists to assert that a server connection can get
+         * as far as the client hello callback without using its config. To do this we need a
+         * specific error for a null config just before the client hello callback. The test's
+         * assertions are weakened if this check is moved. */
+        POSIX_ENSURE(conn->config, S2N_ERR_NULL_CONFIG_SIGNAL);
+
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
-        if (conn->config && conn->config->client_hello_cb) {
+        if (conn->config->client_hello_cb) {
             int rc = conn->config->client_hello_cb(conn, conn->config->client_hello_cb_ctx);
             POSIX_GUARD_RESULT(s2n_client_hello_process_cb_response(conn, rc));
         }

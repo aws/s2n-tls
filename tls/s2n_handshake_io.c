@@ -1497,7 +1497,7 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
         }
 
         if (conn->mode == S2N_CLIENT) {
-            s2n_cert_auth_type client_cert_auth_type;
+            s2n_cert_auth_type client_cert_auth_type = { 0 };
             POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
             /* If client auth is optional, we initially assume it will not be requested.
              * If we received a request, switch to a client auth handshake.
