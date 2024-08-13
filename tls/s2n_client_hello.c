@@ -830,8 +830,8 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     POSIX_GUARD(s2n_stuffer_init(&in_stuffer, &client_hello->raw_message));
     POSIX_GUARD(s2n_stuffer_skip_write(&in_stuffer, client_hello->raw_message.size));
     struct s2n_stuffer *in = &in_stuffer;
-    const struct s2n_security_policy *security_policy = NULL;
 
+    const struct s2n_security_policy *security_policy = NULL;
     POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
 
     if (conn->client_protocol_version < security_policy->minimum_protocol_version) {

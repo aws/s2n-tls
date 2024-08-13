@@ -27,7 +27,6 @@
 #include "tls/s2n_internal.h"
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
-#include "tls/s2n_tls.h"
 #include "tls/s2n_tls13.h"
 #include "unstable/npn.h"
 #include "utils/s2n_map.h"
@@ -36,7 +35,6 @@
 
 /* forward declaration */
 int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s2n_cert_chain_and_key *cert_key_pair);
-int s2n_parse_client_hello(struct s2n_connection *conn);
 
 static int s2n_test_select_psk_identity_callback(struct s2n_connection *conn, void *context,
         struct s2n_offered_psk_list *psk_identity_list)
