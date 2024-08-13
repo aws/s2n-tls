@@ -186,7 +186,6 @@ mod tests {
                 test_name: test_name.to_string(),
                 commit_hash: git::extract_commit_hash(&raw_files[0]),
             };
-            println!("{}", profile1.test_name);
             let profile2 = RawProfile {
                 test_name: test_name.to_string(),
                 commit_hash: git::extract_commit_hash(&raw_files[1]),

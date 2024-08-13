@@ -6,6 +6,8 @@ on:
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - tests/regression
 
 jobs:
   regression-test:
