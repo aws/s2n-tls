@@ -47,6 +47,34 @@ bool s2n_in_test();
 /* Returns true if a and b are equal, in constant time */
 bool s2n_constant_time_equals(const uint8_t* a, const uint8_t* b, const uint32_t len);
 
+/* Returns true if a and b are equal. Execution time may depend on len */
+/* but not on the value of the data denoted by a or b                  */
+/* Note that if len == 0, then returns true                            */
+bool s2n_constant_time_equals_partial(const uint8_t* const a,
+                                      const uint8_t* const b,
+                                      const uint32_t len)
+CONTRACT_REQUIRES(a != NULL && __CPROVER_is_fresh(a, len))
+CONTRACT_REQUIRES(b != NULL && __CPROVER_is_fresh(b, len))
+CONTRACT_ENSURES(CONTRACT_RETURN_VALUE == __CPROVER_forall { unsigned k; (k >= 0 && k < len) ==> (a[k] == b[k]) });
+
+
+/* If BOTH a and n are non-NULL then                                     */
+/*   Returns true if a and b are equal. Execution time may depend on len */
+/*   but not on the value of the data denoted by a or b. If len == 0,    */
+/*   then returns true                                                   */
+/*                                                                       */
+/* If either of a or b is NULL, then returns false                       */
+bool s2n_constant_time_equals_total(const uint8_t* const a,
+                                    const uint8_t* const b,
+                                    const uint32_t len)
+CONTRACT_REQUIRES(__CPROVER_is_fresh(a, len))
+CONTRACT_REQUIRES(__CPROVER_is_fresh(b, len))
+CONTRACT_ENSURES(((a != NULL && b != NULL) && CONTRACT_RETURN_VALUE == s2n_constant_time_equals_partial(a, b, len) )
+                 ||
+                 ((a == NULL || b == NULL) && CONTRACT_RETURN_VALUE == false)
+                );
+
+
 /* Copy src to dst, or don't copy it, in constant time */
 int s2n_constant_time_copy_or_dont(uint8_t* dst, const uint8_t* src, uint32_t len, uint8_t dont);
 

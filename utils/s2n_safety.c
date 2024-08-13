@@ -78,6 +78,45 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t
     return (xor == 0);
 }
 
+/*  See specification of this function in s2n_safety.h */
+bool s2n_constant_time_equals_partial(const uint8_t *const a,
+                                      const uint8_t *const b,
+                                      const uint32_t len)
+{
+    bool arrays_equal = true;
+    /* iterate over each byte in the slices */
+    for (uint32_t i = 0; i < len; i++)
+    CONTRACT_ASSIGNS(i, arrays_equal)
+    CONTRACT_INVARIANT(i <= len)
+    CONTRACT_INVARIANT(arrays_equal ==
+                       __CPROVER_forall { unsigned j; (j >= 0 && j < i) ==> (a[j] == b[j]) })
+    CONTRACT_DECREASES(len - i)
+    {
+        arrays_equal = arrays_equal && (a[i] == b[i]);
+    }
+
+    /* Substiture i = len into the loop invariant to get... */
+    CONTRACT_ASSERT(arrays_equal ==
+                     __CPROVER_forall { unsigned j; (j >= 0 && j < len) ==> (a[j] == b[j]) },
+                     "Post-loop assertion");
+    return arrays_equal;
+}
+
+
+/*  See specification of this function in s2n_safety.h */
+bool s2n_constant_time_equals_total(const uint8_t *const a,
+                                    const uint8_t *const b,
+                                    const uint32_t len)
+{
+    if (a != NULL && b != NULL) {
+        return s2n_constant_time_equals_partial(a, b, len);
+    } else {
+        return false;
+    }
+}
+
+
+
 /**
  * Given arrays "dest" and "src" of length "len", conditionally copy "src" to "dest"
  * The execution time of this function is independent of the values
