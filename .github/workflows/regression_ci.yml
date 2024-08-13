@@ -7,7 +7,7 @@ on:
     branches:
       - main
     paths-ignore:
-      - tests/regression
+      - tests/regression/**
 
 jobs:
   regression-test:
