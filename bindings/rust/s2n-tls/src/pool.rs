@@ -120,12 +120,15 @@ impl<T: Pool> Pool for Arc<T> {
 /// A pool of Connections. Not a pool of Configs.
 ///
 /// Instead of allocating and freeing new `Connection`s, this struct allows them
-/// to be "wiped" and reused.
+/// to be "wiped" and reused. This unlikely to be a significant performance 
+/// benefit unless customers are in an environment where allocations are unusually
+/// expensive.
 ///
-/// Customers should run their own benchmarks to determine exactly how much connection
-/// reuse can save, but in our own benchmarks savings are moderate.
-/// - connection reuse: 804 ns
-/// - connection allocation + free: 2.606 µs
+/// Customers should run their own benchmarks to determine exactly how much 
+/// of a benefit connection reuse can provide. In a simplistic single threaded
+/// benchmark, the per-connection savings are relatively small.
+/// - connection wiping cost: 804 ns
+/// - connection allocation + freeing cost: 2.606 µs
 /// - **Total Savings: 1.802 µs per connection**
 ///
 /// Generally a handshake will take ~ 1 ms, so connection reuse enables a 0.2%
