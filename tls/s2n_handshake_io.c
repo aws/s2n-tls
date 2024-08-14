@@ -1508,8 +1508,8 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
                 POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, CLIENT_AUTH));
             }
 
-            /* According to rfc6066 section 8, server may choose not to send "CertificateStatus"
-             * message even if it has sent "status_request" extension in the ServerHello message.
+            /* According to rfc6066 section 8, the server may choose not to send a "CertificateStatus"
+             * message even if it has sent a "status_request" extension in the ServerHello message.
              */
             if (EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_CERT_STATUS
                     && message_type != TLS_SERVER_CERT_STATUS) {

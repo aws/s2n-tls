@@ -676,7 +676,7 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
          * as far as the client hello callback without using its config. To do this we need a
          * specific error for a null config just before the client hello callback. The test's
          * assertions are weakened if this check is moved. */
-        POSIX_ENSURE(conn->config, S2N_ERR_NULL_CONFIG_SIGNAL);
+        POSIX_ENSURE(conn->config, S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
 
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
         if (conn->config->client_hello_cb) {

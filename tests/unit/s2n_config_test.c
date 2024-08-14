@@ -1186,13 +1186,14 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
             EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &test_io));
 
-            /* S2N_ERR_NULL_CONFIG_SIGNAL is only called in one location, just before calling the
+            /* S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK is only called in one location, just before the
              * client hello callback. Therefore, we can assert that if we hit this error, we
              * have gotten as far as the client hello callback without dereferencing the config.
              */
             EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
-                    S2N_ERR_NULL_CONFIG_SIGNAL);
+                    S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
         }
     }
+
     END_TEST();
 }
