@@ -78,10 +78,15 @@ bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t
     return (xor == 0);
 }
 
-/*  See specification of this function in s2n_safety.h */
-bool s2n_constant_time_equals_partial(const uint8_t *const a,
-                                      const uint8_t *const b,
-                                      const uint32_t len)
+/* Returns true if a and b are equal. Execution time may depend on len */
+/* but not on the value of the data denoted by a or b                  */
+/* Note that if len == 0, then returns true                            */
+static bool s2n_constant_time_equals_partial(const uint8_t* const a,
+                                             const uint8_t* const b,
+                                             const uint32_t len)
+CONTRACT_REQUIRES(a != NULL && __CPROVER_is_fresh(a, len))
+CONTRACT_REQUIRES(b != NULL && __CPROVER_is_fresh(b, len))
+CONTRACT_ENSURES(CONTRACT_RETURN_VALUE == __CPROVER_forall { unsigned k; (k >= 0 && k < len) ==> (a[k] == b[k]) })
 {
     bool arrays_equal = true;
     /* iterate over each byte in the slices */
@@ -89,7 +94,7 @@ bool s2n_constant_time_equals_partial(const uint8_t *const a,
     CONTRACT_ASSIGNS(i, arrays_equal)
     CONTRACT_INVARIANT(i <= len)
     CONTRACT_INVARIANT(arrays_equal ==
-                       __CPROVER_forall { unsigned j; (j >= 0 && j < i) ==> (a[j] == b[j]) })
+                       __CPROVER_forall { uint32_t j; (j >= 0 && j < i) ==> (a[j] == b[j]) })
     CONTRACT_DECREASES(len - i)
     {
         arrays_equal = arrays_equal && (a[i] == b[i]);
@@ -97,8 +102,8 @@ bool s2n_constant_time_equals_partial(const uint8_t *const a,
 
     /* Substiture i = len into the loop invariant to get... */
     CONTRACT_ASSERT(arrays_equal ==
-                     __CPROVER_forall { unsigned j; (j >= 0 && j < len) ==> (a[j] == b[j]) },
-                     "Post-loop assertion");
+                    __CPROVER_forall { uint32_t j; (j >= 0 && j < len) ==> (a[j] == b[j]) },
+                    "Post-loop assertion");
     return arrays_equal;
 }
 
@@ -112,11 +117,11 @@ bool s2n_constant_time_equals_total(const uint8_t *const a,
         return true;
     }
 
-    if (a != NULL && b != NULL) {
-        return s2n_constant_time_equals_partial(a, b, len);
-    } else {
+    if (a == NULL || b == NULL) {
         return false;
     }
+
+    return s2n_constant_time_equals_partial(a, b, len);
 }
 
 

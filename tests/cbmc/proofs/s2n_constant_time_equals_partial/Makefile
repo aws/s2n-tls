@@ -31,12 +31,15 @@ USE_DYNAMIC_FRAMES=1
 EXTERNAL_SAT_SOLVER=
 CBMCFLAGS=--bitwuzla
 
-
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
-
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # Set Verbose=on to see what litani is actually running
 VERBOSE=on
 
+
+#PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
+REWRITTEN_SOURCES = $(PROOFDIR)/s2n_safety.i
 include ../Makefile.common
+$(PROOFDIR)/s2n_safety.i_SOURCE = $(SRCDIR)/utils/s2n_safety.c
+$(PROOFDIR)/s2n_safety.i_FUNCTIONS = s2n_constant_time_equals_partial
+$(PROOFDIR)/s2n_safety.i_OBJECTS =

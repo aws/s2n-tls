@@ -17,6 +17,10 @@
 
 #include "utils/s2n_safety.h"
 
+bool s2n_constant_time_equals_partial(const uint8_t* const a,
+                                      const uint8_t* const b,
+                                      const uint32_t len);
+
 void s2n_constant_time_equals_partial_harness()
 {
     /* Non-deterministic inputs. */
