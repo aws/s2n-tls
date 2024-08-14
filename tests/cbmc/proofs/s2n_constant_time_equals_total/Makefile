@@ -31,6 +31,8 @@ USE_DYNAMIC_FRAMES=1
 EXTERNAL_SAT_SOLVER=
 CBMCFLAGS=--bitwuzla
 
+# Tell CBMC not to name-mangle and export file-local symbols
+EXPORT_FILE_LOCAL_SYMBOLS=
 
 PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
