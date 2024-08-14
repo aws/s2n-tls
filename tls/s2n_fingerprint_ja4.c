@@ -49,6 +49,8 @@
 #define S2N_JA4_IANA_ENTRY_SIZE (S2N_JA4_IANA_HEX_SIZE + 1)
 #define S2N_JA4_WORKSPACE_SIZE  ((S2N_JA4_LIST_LIMIT * (S2N_JA4_IANA_ENTRY_SIZE)))
 
+#define S2N_ASCII_MAX 127
+
 const char *s2n_ja4_version_strings[] = {
     /**
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
@@ -228,27 +230,41 @@ static S2N_RESULT s2n_client_hello_get_first_alpn(struct s2n_client_hello *ch, s
     return S2N_RESULT_OK;
 }
 
+/**
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
+ *# The first and last characters of the ALPN (Application-Layer Protocol Negotiation) first value.
+ */
 static S2N_RESULT s2n_fingerprint_ja4_alpn(struct s2n_stuffer *output,
         struct s2n_client_hello *ch)
 {
     struct s2n_blob protocol = { 0 };
-    if (s2n_result_is_ok(s2n_client_hello_get_first_alpn(ch, &protocol))
-            && protocol.size >= 2) {
-        /**
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
-         *# The first and last characters of the ALPN (Application-Layer Protocol Negotiation) first value.
-         */
-        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, protocol.data[0]));
-        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, protocol.data[protocol.size - 1]));
-        return S2N_RESULT_OK;
+    if (s2n_result_is_error(s2n_client_hello_get_first_alpn(ch, &protocol))) {
+        protocol.size = 0;
     }
 
     /**
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
      *# If there are no ALPN values or no ALPN extension then we print “00”
      *# as the value in the fingerprint.
+     *
+     * The spec doesn't define what to do with an 1-byte ALPNs. There also currently
+     * aren't any valid 1-byte ALPNs, and it seems unlikely one will be added in
+     * the future. But just in case, we match the behavior of the reference
+     * implementations and write a single '0' for any missing characters:
+     * - https://github.com/FoxIO-LLC/ja4/blob/main/rust/ja4/src/tls.rs#L455-L459
+     * - https://github.com/FoxIO-LLC/ja4/blob/main/python/ja4.py#L187-L194
      */
-    RESULT_GUARD_POSIX(s2n_stuffer_write_str(output, "00"));
+    uint8_t first_char = (protocol.size > 0) ? protocol.data[0] : '0';
+    uint8_t last_char = (protocol.size > 1) ? protocol.data[protocol.size - 1] : '0';
+
+    /* The reference implementations also replaces non-ascii characters with '9',
+     * although the spec does not document this behavior either.
+     */
+    first_char = (first_char > S2N_ASCII_MAX) ? '9' : first_char;
+    last_char = (last_char > S2N_ASCII_MAX) ? '9' : last_char;
+
+    RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, first_char));
+    RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, last_char));
     return S2N_RESULT_OK;
 }
 
@@ -275,11 +291,8 @@ static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
     bool is_quic = false;
     RESULT_GUARD_POSIX(s2n_client_hello_has_extension(fingerprint->client_hello,
             TLS_EXTENSION_QUIC_TRANSPORT_PARAMETERS, &is_quic));
-    if (is_quic) {
-        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, 'q'));
-    } else {
-        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, 't'));
-    }
+    char protocol_char = (is_quic) ? 'q' : 't';
+    RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, protocol_char));
 
     RESULT_GUARD(s2n_fingerprint_ja4_version(output, fingerprint->client_hello));
 
@@ -292,11 +305,8 @@ static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
     bool has_sni = false;
     RESULT_GUARD_POSIX(s2n_client_hello_has_extension(fingerprint->client_hello,
             TLS_EXTENSION_SERVER_NAME, &has_sni));
-    if (has_sni) {
-        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, 'd'));
-    } else {
-        RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, 'i'));
-    }
+    char sni_char = (has_sni) ? 'd' : 'i';
+    RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, sni_char));
 
     /* Reserve two characters for the "count of ciphers".
      * We'll calculate it later when we handle the cipher suite list for JA4_b.
@@ -367,8 +377,8 @@ static S2N_RESULT s2n_fingerprint_ja4_ciphers(struct s2n_fingerprint_hash *hash,
  *# first 12 characters.
  */
 static S2N_RESULT s2n_fingerprint_ja4_b(struct s2n_fingerprint *fingerprint,
-        struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output,
-        struct s2n_blob *ciphers_count)
+        struct s2n_fingerprint_hash *hash, struct s2n_blob *ciphers_count,
+        struct s2n_stuffer *output)
 {
     RESULT_ENSURE_REF(fingerprint);
 
@@ -490,8 +500,8 @@ static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash
  *# they appear (not sorted).
  */
 static S2N_RESULT s2n_fingerprint_ja4_c(struct s2n_fingerprint *fingerprint,
-        struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output,
-        struct s2n_blob *extensions_count)
+        struct s2n_fingerprint_hash *hash, struct s2n_blob *extensions_count,
+        struct s2n_stuffer *output)
 {
     RESULT_ENSURE_REF(fingerprint);
 
@@ -551,9 +561,9 @@ static S2N_RESULT s2n_fingerprint_ja4(struct s2n_fingerprint *fingerprint,
     struct s2n_blob extensions_count = { 0 };
     RESULT_GUARD(s2n_fingerprint_ja4_a(fingerprint, output, &ciphers_count, &extensions_count));
     RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, S2N_JA4_PART_DIV));
-    RESULT_GUARD(s2n_fingerprint_ja4_b(fingerprint, hash, output, &ciphers_count));
+    RESULT_GUARD(s2n_fingerprint_ja4_b(fingerprint, hash, &ciphers_count, output));
     RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, S2N_JA4_PART_DIV));
-    RESULT_GUARD(s2n_fingerprint_ja4_c(fingerprint, hash, output, &extensions_count));
+    RESULT_GUARD(s2n_fingerprint_ja4_c(fingerprint, hash, &extensions_count, output));
 
     if (s2n_fingerprint_hash_do_digest(hash)) {
         /* The extra two bytes are for the characters separating the parts */

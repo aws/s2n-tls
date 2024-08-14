@@ -14,9 +14,7 @@
  */
 
 #include "api/unstable/fingerprint.h"
-#include "crypto/s2n_fips.h"
 #include "s2n_test.h"
-#include "testlib/s2n_sslv2_client_hello.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"
 
@@ -79,8 +77,8 @@
 
 enum {
     S2N_JA4_A_PROTOCOL = 0,
-    S2N_JA4_A_VERSION_1,
-    S2N_JA4_A_VERSION_2,
+    S2N_JA4_A_VERSION_FIRST,
+    S2N_JA4_A_VERSION_SECOND,
     S2N_JA4_A_DEST,
     S2N_JA4_A_CIPHER_COUNT_1,
     S2N_JA4_A_CIPHER_COUNT_2,
@@ -374,9 +372,9 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_fingerprint_get_hash(fingerprint,
                             sizeof(output), output, &output_size));
 
-                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                    EXPECT_FALSE((output[S2N_JA4_A_VERSION_1] == test_cases[i].str[0])
-                            && (output[S2N_JA4_A_VERSION_2] == test_cases[i].str[1]));
+                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
+                    EXPECT_FALSE((output[S2N_JA4_A_VERSION_FIRST] == test_cases[i].str[0])
+                            && (output[S2N_JA4_A_VERSION_SECOND] == test_cases[i].str[1]));
                 };
 
                 /* Test version from extension
@@ -404,9 +402,9 @@ int main(int argc, char **argv)
                             client_hello_bytes, sizeof(client_hello_bytes),
                             sizeof(output), output, &output_size));
 
-                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[i].str[0]);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[i].str[1]);
+                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_FIRST], test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_SECOND], test_cases[i].str[1]);
                 };
 
                 /* Test version from legacy field
@@ -431,9 +429,9 @@ int main(int argc, char **argv)
                             client_hello_bytes, sizeof(client_hello_bytes),
                             sizeof(output), output, &output_size));
 
-                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[i].str[0]);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[i].str[1]);
+                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_FIRST], test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_SECOND], test_cases[i].str[1]);
                 };
             }
 
@@ -471,9 +469,9 @@ int main(int argc, char **argv)
                         client_hello_bytes, sizeof(client_hello_bytes),
                         sizeof(output), output, &output_size));
 
-                EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
-                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[0].str[0]);
-                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[0].str[1]);
+                EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
+                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_FIRST], test_cases[0].str[0]);
+                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_SECOND], test_cases[0].str[1]);
             };
         };
 
@@ -711,6 +709,56 @@ int main(int argc, char **argv)
                 };
             };
 
+            /* Test 1-byte alpn value */
+            {
+                S2N_INIT_CLIENT_HELLO(client_hello_bytes,
+                        S2N_TEST_CLIENT_HELLO_VERSION,
+                        S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
+                        S2N_TEST_CLIENT_HELLO_CIPHERS,
+                        S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
+                        /* extensions size */
+                        0x00, 10,
+                        /* extension: alpn */
+                        0x00, TLS_EXTENSION_ALPN, 0x00, 6,
+                        0x00, 4,
+                        0, 0x00, 1, 'q');
+
+                uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                uint32_t output_size = 0;
+                EXPECT_OK(s2n_test_ja4_hash_from_bytes(
+                        client_hello_bytes, sizeof(client_hello_bytes),
+                        sizeof(output), output, &output_size));
+
+                EXPECT_TRUE(output_size > S2N_JA4_A_ALPN_LAST);
+                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_FIRST], 'q');
+                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], '0');
+            };
+
+            /* Test non-ascii alpn value */
+            {
+                S2N_INIT_CLIENT_HELLO(client_hello_bytes,
+                        S2N_TEST_CLIENT_HELLO_VERSION,
+                        S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
+                        S2N_TEST_CLIENT_HELLO_CIPHERS,
+                        S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
+                        /* extensions size */
+                        0x00, 11,
+                        /* extension: alpn */
+                        0x00, TLS_EXTENSION_ALPN, 0x00, 7,
+                        0x00, 5,
+                        0, 0x00, 2, UINT8_MAX, 128);
+
+                uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                uint32_t output_size = 0;
+                EXPECT_OK(s2n_test_ja4_hash_from_bytes(
+                        client_hello_bytes, sizeof(client_hello_bytes),
+                        sizeof(output), output, &output_size));
+
+                EXPECT_TRUE(output_size > S2N_JA4_A_ALPN_LAST);
+                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_FIRST], '9');
+                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], '9');
+            };
+
             /* Test no ALPN
              *
              *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
@@ -756,7 +804,7 @@ int main(int argc, char **argv)
                     EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], '0');
                 };
 
-                /* Test invalid ALPN value */
+                /* Test empty / invalid alpn value */
                 {
                     S2N_INIT_CLIENT_HELLO(client_hello_bytes,
                             S2N_TEST_CLIENT_HELLO_VERSION,
@@ -764,11 +812,11 @@ int main(int argc, char **argv)
                             S2N_TEST_CLIENT_HELLO_CIPHERS,
                             S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
                             /* extensions size */
-                            0x00, 10,
+                            0x00, 9,
                             /* extension: alpn */
-                            0x00, TLS_EXTENSION_ALPN, 0x00, 6,
-                            0x00, 4,
-                            0, 0x00, 1, 'q');
+                            0x00, TLS_EXTENSION_ALPN, 0x00, 5,
+                            0x00, 3,
+                            0, 0x00, 0);
 
                     uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
                     uint32_t output_size = 0;
