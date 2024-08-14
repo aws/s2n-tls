@@ -50,6 +50,34 @@ Documentation for older versions or branches of s2n-tls can be generated locally
 
 Doxygen installation instructions are available at the [Doxygen](https://doxygen.nl/download.html) webpage.
 
+## Platform Support
+
+We’ve listed the distributions and platforms under two tiers: Tier 1 platforms are guaranteed to build, run, and pass tests in CI. Tier 2 platforms are guaranteed to build and we'll address issues opened against them, but they aren't currently running in our CI and are not actively reviewed with every commit. If you use a platform not listed below and would like to request (or help!) add it to our CI, please open an issue for discussion.
+
+### Tier 1
+
+|Distribution in CI	                                    |Platforms |
+|-------------------------------------------------------|---------|
+|Ubuntu18/22/24**                                       | x86_64  |
+|Ubuntu22                                               | i686    |
+|AL2, AL2023**                                          | x86_64  |
+|NixOS                                                  | x86_64, aarch64 |
+|OpenBSD [7.4](https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms)| x86_64  |
+|FreeBSD [latest](https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf)| x86_64  |
+|OSX [latest](https://github.com/actions/runner-images?tab=readme-ov-file#available-images) | aarch64 |
+
+**Work in Progress
+
+### Tier 2
+
+|Distribution not in CI	|Platforms|
+|-----------------------|--------|
+| Fedora Core 34-36     |x86_64, aarch64 |
+| Ubuntu14/16/20        |x86_64, aarch64 |
+| OSX	                |x86_64|
+
+These distribution lists are not exhaustive and missing tooling or a missing supported libcrypto library could prevent a successful build.
+
 ## Using s2n-tls
 
 The s2n-tls I/O APIs are designed to be intuitive to developers familiar with the widely-used POSIX I/O APIs, and s2n-tls supports blocking, non-blocking, and full-duplex I/O. Additionally there are no locks or mutexes within s2n-tls.
@@ -92,29 +120,6 @@ s2n_config_set_cipher_preferences(config, "default");
 /* Use a specific set of preferences, update when you're ready */
 s2n_config_set_cipher_preferences(config, "20150306")
 ```
-
-## Platform Support
-
-We’ve listed the distributions and platforms under two tiers: Tier 1 platforms are guaranteed to build, run, and pass tests in CI. Tier 2 platforms are guaranteed to build and we'll address issues opened against them, but they aren't currently running in our CI and are not actively reviewed with every commit. If you use a platform not listed below and would like to request (or help!) add it to our CI, please open an issue for discussion.
-
-### Tier 1
-
-|Distribution in CI	                                    |Platform |
-|-------------------------------------------------------|---------|
-|Ubuntu18/22/24**, AL2, AL2023**, NixOS, OpenBSD [7.4](https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms), FreeBSD [latest](https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf)| x86_64  |
-|Ubuntu22                                               | i686    |
-|OSX [latest](https://github.com/actions/runner-images?tab=readme-ov-file#available-images), AL2023**, Ubuntu24**, AL2, NixOS| aarch64 |
-
-**Work in Progress
-
-### Tier 2
-
-|Distribution not in CI	|Platform|
-|-----------------------|--------|
-| Fedora Core 34-36, Ubuntu14/16/20, OSX	|x86_64|
-| FedoraCore34-36, Ubuntu24, OpenBSD, FreeBSD |aarch64|
-
-These distribution lists are not exhaustive and missing tooling or a missing supported libcrypto library could prevent a successful build.
 
 
 
