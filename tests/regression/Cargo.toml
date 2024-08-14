@@ -10,5 +10,7 @@ errno = { version = "0.3" }
 libc = "0.2"
 crabgrind = "0.1"
 futures-test = "0.3.30"
+glob = "0.3.1"
+
 [profile.release]
 debug = true

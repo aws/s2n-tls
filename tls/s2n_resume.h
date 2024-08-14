@@ -35,8 +35,10 @@
 #define ONE_SEC_IN_NANOS               1000000000
 #define ONE_MILLISEC_IN_NANOS          1000000
 #define ONE_WEEK_IN_SEC                604800
-#define S2N_TLS12_TICKET_SIZE_IN_BYTES (S2N_TICKET_KEY_NAME_LEN + S2N_TLS_GCM_IV_LEN \
-        + S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
+#define S2N_TICKET_INFO_SIZE           32
+#define S2N_TICKET_VERSION_SIZE        1
+#define S2N_TLS12_TICKET_SIZE_IN_BYTES (S2N_TICKET_VERSION_SIZE + S2N_TICKET_KEY_NAME_LEN \
+        + S2N_TICKET_INFO_SIZE + S2N_TLS_GCM_IV_LEN + S2N_TLS12_STATE_SIZE_IN_BYTES + S2N_TLS_GCM_TAG_LEN)
 
 #define S2N_TICKET_ENCRYPT_DECRYPT_KEY_LIFETIME_IN_NANOS 7200000000000  /* 2 hours */
 #define S2N_TICKET_DECRYPT_KEY_LIFETIME_IN_NANOS         46800000000000 /* 13 hours */
@@ -94,6 +96,15 @@ typedef enum {
     S2N_SERIALIZED_FORMAT_TLS12_V2,
     S2N_SERIALIZED_FORMAT_TLS12_V3,
 } s2n_serial_format_version;
+
+/* Used to specify the format of the ticket schema before encryption.
+ *
+ * This makes it easier to make changes to the ticket schema in the future
+ * as it allows us to interpret and parse all ticket schemas.
+ **/
+typedef enum {
+    S2N_PRE_ENCRYPTED_STATE_V1 = 1,
+} s2n_pre_encrypted_state;
 
 int s2n_allowed_to_cache_connection(struct s2n_connection *conn);
 int s2n_resume_from_cache(struct s2n_connection *conn);
