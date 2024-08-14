@@ -95,7 +95,7 @@ s2n_config_set_cipher_preferences(config, "20150306")
 
 ## Platform Support
 
-We’ve listed the distributions and platforms under two tiers: Tier 1 platforms are guaranteed to build, run, and pass tests in CI. Tier 2 platforms are guaranteed to build and we'll address issues opened against them, but they aren't currently running in our CI and are not actively reviewed with every modification. If you use a platform not listed below and would like to request (and help!) it be added to our CI, please open an issue for discussion.
+We’ve listed the distributions and platforms under two tiers: Tier 1 platforms are guaranteed to build, run, and pass tests in CI. Tier 2 platforms are guaranteed to build and we'll address issues opened against them, but they aren't currently running in our CI and are not actively reviewed with every commit. If you use a platform not listed below and would like to request (or help!) add it to our CI, please open an issue for discussion.
 
 ### Tier 1
 
