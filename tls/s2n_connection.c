@@ -303,12 +303,7 @@ int s2n_connection_set_config(struct s2n_connection *conn, struct s2n_config *co
 
     s2n_x509_validator_wipe(&conn->x509_validator);
 
-    s2n_cert_auth_type auth_type = S2N_CERT_AUTH_NONE;
-    POSIX_GUARD_RESULT(s2n_connection_and_config_get_client_auth_type(conn, config, &auth_type));
-
-    int8_t dont_need_x509_validation = (conn->mode == S2N_SERVER) && (auth_type == S2N_CERT_AUTH_NONE);
-
-    if (config->disable_x509_validation || dont_need_x509_validation) {
+    if (config->disable_x509_validation) {
         POSIX_GUARD(s2n_x509_validator_init_no_x509_validation(&conn->x509_validator));
     } else {
         POSIX_GUARD(s2n_x509_validator_init(&conn->x509_validator, &config->trust_store, config->check_ocsp));
@@ -1238,6 +1233,9 @@ static S2N_RESULT s2n_connection_kill(struct s2n_connection *conn)
 
     int64_t min = 0, max = 0;
     RESULT_GUARD(s2n_connection_calculate_blinding(conn, &min, &max));
+    if (max == 0) {
+        return S2N_RESULT_OK;
+    }
 
     /* Keep track of the delay so that it can be enforced */
     uint64_t rand_delay = 0;

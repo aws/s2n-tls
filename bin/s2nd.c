@@ -34,6 +34,7 @@
 #include "api/s2n.h"
 #include "api/unstable/npn.h"
 #include "common.h"
+#include "crypto/s2n_libcrypto.h"
 #include "utils/s2n_safety.h"
 
 #define MAX_CERTIFICATES 50
@@ -138,6 +139,9 @@ static char default_private_key[] =
 void usage()
 {
     /* clang-format off */
+    fprintf(stderr, "s2nd is an s2n-tls server testing utility.\n");
+    fprintf(stderr, "It is not intended for production use.\n");
+    fprintf(stderr, "\n");
     fprintf(stderr, "usage: s2nd [options] host port\n");
     fprintf(stderr, " host: hostname or IP address to listen on\n");
     fprintf(stderr, " port: port to listen on\n");
@@ -562,6 +566,7 @@ int main(int argc, char *const *argv)
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+    printf("libcrypto: %s\n", s2n_libcrypto_get_version_name());
 
     printf("Listening on %s:%s\n", host, port);
 

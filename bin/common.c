@@ -314,6 +314,9 @@ int s2n_setup_external_psk_list(struct s2n_connection *conn, char *psk_optarg_li
 
 int s2n_set_common_server_config(int max_early_data, struct s2n_config *config, struct conn_settings conn_settings, const char *cipher_prefs, const char *session_ticket_key_file_path)
 {
+    /* The s2n-tls blinding security feature is disabled for testing purposes to make debugging easier. */
+    GUARD_EXIT(s2n_config_set_max_blinding_delay(config, 0), "Error setting blinding delay");
+
     GUARD_EXIT(s2n_config_set_server_max_early_data_size(config, max_early_data), "Error setting max early data");
 
     GUARD_EXIT(s2n_config_add_dhparams(config, dhparams), "Error adding DH parameters");

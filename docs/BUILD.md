@@ -68,6 +68,10 @@ cmake --install build
 
 Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
 
+Using the commands above, the libraries and headers will be located in the `s2n-tls-install` directory.
+
+The s2nc and s2nd test utilities are not installed by default, but can be found in the `build/bin` directory. To also install s2nc and s2nd, add `-DS2N_INSTALL_S2NC_S2ND=1` to the cmake command.
+
 ## Consuming s2n-tls via CMake
 
 s2n-tls ships with modern CMake finder scripts if CMake is used for the build. To take advantage of this from your CMake script, all you need to do to compile and link against s2n-tls in your project is:

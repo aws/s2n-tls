@@ -23,6 +23,11 @@
 
 int nondet_int(void);
 
+/* The MacOS.sdk defines a macro called "vsnprintf" which breaks the
+ * function definition below, so make sure it's undef'd here.
+ */
+#undef vsnprintf
+
 int vsnprintf(char *str, size_t size, const char *fmt, va_list ap)
 {
     if (size > 0)
