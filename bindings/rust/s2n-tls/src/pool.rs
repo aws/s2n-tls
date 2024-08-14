@@ -117,6 +117,34 @@ impl<T: Pool> Pool for Arc<T> {
     }
 }
 
+/// A pool of Connections. Not a pool of Configs.
+///
+/// Instead of allocating and freeing new `Connection`s, this struct allows them
+/// to be "wiped" and reused.
+///
+/// Usage of this struct comes with some very sharp edges and unintuitive behaviors.
+/// Customers should run their own benchmarks to determine exactly how much connection
+/// reuse can save, but in our own benchmarks savings are very moderate.
+/// - connection reuse: 776 ns
+/// - connection allocation + free: 2.529 µs
+/// - **Total Savings: 1.753 µs per connection**
+///
+/// Generally a handshake will take ~ 1 ms, so connection reuse enables a 0.1%
+/// latency saving. Customers should consider whether the sharp edges are worth
+/// the moderate performance benefit.
+///
+/// ### Usage Warning
+/// Wiping a `Connection` does not totally clear state, because it will not clear
+/// the associated config. If you use any Config callback to swap the associated
+/// config on a connection (such as the `ClientHelloConfigResolver`) then there
+/// can be some surprising interactions.
+///
+/// If you create a `ConfigPool` with a `config` that has a `ClientHelloConfigResolver`
+/// set on it, and none of the resolved configs have a `ClientHelloConfigResolver`
+/// set, then the `ClientHelloConfigResolver` will only be invoked _sometimes_.
+/// Specifically it will only be invoked the first time a connection is yielded
+/// from the `ConfigPool`. When a connection is reused, it will still be associated
+/// with the resolved config, which does not have a `ClientHelloConfigResolver` set.
 #[derive(Debug)]
 pub struct ConfigPool {
     mode: Mode,
