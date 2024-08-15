@@ -598,7 +598,7 @@ int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input
         POSIX_ENSURE_REF(existing_psk);
 
         bool duplicate = existing_psk->identity.size == input_psk->identity.size
-                && memcmp(existing_psk->identity.data, input_psk->identity.data, existing_psk->identity.size) == 0;
+                && s2n_constant_time_equals(existing_psk->identity.data, input_psk->identity.data, existing_psk->identity.size) == true;
         POSIX_ENSURE(!duplicate, S2N_ERR_DUPLICATE_PSK_IDENTITIES);
     }
 
