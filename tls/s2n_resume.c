@@ -767,7 +767,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
     for (uint32_t i = 0; i < ticket_keys_len; i++) {
         PTR_GUARD_RESULT(s2n_set_get(config->ticket_keys, i, (void **) &ticket_key));
 
-        if (s2n_constant_time_equals(ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN) == true) {
+        if (s2n_constant_time_equals(ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN)) {
             /* Check to see if the key has expired */
             if (now >= ticket_key->intro_timestamp
                             + config->encrypt_decrypt_key_lifetime_in_nanos

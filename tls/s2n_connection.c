@@ -923,9 +923,8 @@ int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *f
 
     /* ensure we've negotiated a cipher suite */
     POSIX_ENSURE(!s2n_constant_time_equals(conn->secure->cipher_suite->iana_value,
-                         s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value)),
-            S2N_ERR_INVALID_STATE);
-
+                s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value)),
+                S2N_ERR_INVALID_STATE);
     const uint8_t *iana_value = conn->secure->cipher_suite->iana_value;
     *first = iana_value[0];
     *second = iana_value[1];

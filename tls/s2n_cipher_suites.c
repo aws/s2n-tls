@@ -1151,7 +1151,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     struct s2n_cipher_suite *cipher_suite = NULL;
     for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
-        if (s2n_constant_time_equals(wire, ours, S2N_TLS_CIPHER_SUITE_LEN) == true) {
+        if (s2n_constant_time_equals(wire, ours, S2N_TLS_CIPHER_SUITE_LEN)) {
             cipher_suite = security_policy->cipher_preferences->suites[i];
             break;
         }
