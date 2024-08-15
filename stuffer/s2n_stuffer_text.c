@@ -72,7 +72,7 @@ int s2n_stuffer_read_expected_str(struct s2n_stuffer *stuffer, const char *expec
     POSIX_ENSURE(s2n_stuffer_data_available(stuffer) >= expected_length, S2N_ERR_STUFFER_OUT_OF_DATA);
     uint8_t *actual = stuffer->blob.data + stuffer->read_cursor;
     POSIX_ENSURE_REF(actual);
-    POSIX_ENSURE(s2n_constant_time_equals(actual, (const uint8_t *) expected, expected_length), S2N_ERR_STUFFER_NOT_FOUND);
+    POSIX_ENSURE(!memcmp(actual, expected, expected_length), S2N_ERR_STUFFER_NOT_FOUND);
     stuffer->read_cursor += expected_length;
     POSIX_POSTCONDITION(s2n_stuffer_validate(stuffer));
     return S2N_SUCCESS;
