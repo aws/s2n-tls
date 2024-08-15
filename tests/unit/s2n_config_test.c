@@ -1148,5 +1148,52 @@ int main(int argc, char **argv)
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
         };
     };
+
+    /* Checks that servers don't use a config before the client hello callback is executed.
+     *
+     * We want to assert that a config is never used by a server until the client hello callback
+     * is called, given that users have the ability to swap out the config during this callback.
+     */
+    {
+        DEFER_CLEANUP(struct s2n_config *tls12_client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(tls12_client_config);
+        /* Security policy that only supports TLS12 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, "20240501"));
+
+        DEFER_CLEANUP(struct s2n_config *tls13_client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(tls13_client_config);
+        /* Security policy that supports TLS13 */
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "20240503"));
+
+        struct s2n_config *config_arr[] = { tls12_client_config, tls13_client_config };
+
+        /* Checks that the handshake gets as far as the client hello callback with a NULL config */
+        for (size_t i = 0; i < s2n_array_len(config_arr); i++) {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config_arr[i]));
+
+            /* Server config pointer is explicitly set to NULL */
+            server_conn->config = NULL;
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair test_io = { 0 },
+                    s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&test_io));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(client_conn, server_conn, &test_io));
+
+            /* S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK is only called in one location, just before the
+             * client hello callback. Therefore, we can assert that if we hit this error, we
+             * have gotten as far as the client hello callback without dereferencing the config.
+             */
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
+        }
+    }
+
     END_TEST();
 }
