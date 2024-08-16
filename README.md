@@ -58,9 +58,9 @@ We’ve listed the distributions and platforms under two tiers: Tier 1 platforms
 
 |Distribution in CI	                                    |Platforms |
 |-------------------------------------------------------|---------|
-|Ubuntu18/22/24**                                       | x86_64  |
-|Ubuntu22                                               | i686    |
-|AL2, AL2023**                                          | x86_64  |
+|Ubuntu18/24**                                          | x86_64  |
+|Ubuntu22                                               | x86_64, i686 |
+|AL2, AL2023**                                          | x86_64, aarch64 |
 |NixOS                                                  | x86_64, aarch64 |
 |OpenBSD [7.4](https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms)| x86_64  |
 |FreeBSD [latest](https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf)| x86_64  |
@@ -74,6 +74,7 @@ We’ve listed the distributions and platforms under two tiers: Tier 1 platforms
 |-----------------------|--------|
 | Fedora Core 34-36     |x86_64, aarch64 |
 | Ubuntu14/16/20        |x86_64, aarch64 |
+| Ubuntu18/24           | aarch64 |
 | [OSX](https://github.com/actions/runner-images/tree/main/images/macos) 12-14 |x86_64|
 
 These distribution lists are not exhaustive and missing tooling or a missing supported libcrypto library could prevent a successful build.
