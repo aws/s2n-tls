@@ -80,8 +80,6 @@ mod tests {
         time::SystemTime,
     };
 
-    const MAX_DIFF: i64 = 1_000_000;
-
     struct InstrumentationControl;
 
     impl InstrumentationControl {
@@ -111,7 +109,11 @@ mod tests {
         }
     }
 
-    fn valgrind_test<F>(test_name: &str, test_body: F) -> Result<(), s2n_tls::error::Error>
+    fn valgrind_test<F>(
+        test_name: &str,
+        max_diff: f64,
+        test_body: F,
+    ) -> Result<(), s2n_tls::error::Error>
     where
         F: FnOnce(&InstrumentationControl) -> Result<(), s2n_tls::error::Error>,
     {
@@ -122,7 +124,7 @@ mod tests {
             }
             RegressionTestMode::Diff => {
                 let (prev_profile, curr_profile) = RawProfile::query(test_name);
-                DiffProfile::new(&prev_profile, &curr_profile).assert_performance();
+                DiffProfile::new(&prev_profile, &curr_profile).assert_performance(max_diff);
             }
             RegressionTestMode::Default => {
                 let ctrl = InstrumentationControl;
@@ -170,11 +172,14 @@ mod tests {
                 "target/regression_artifacts/{}/{}.raw",
                 self.commit_hash, self.test_name
             )
+        
+        // Returns the annotated profile associated with a raw profile
+        fn associated_annotated_profile(&self) -> AnnotatedProfile{
+            AnnotatedProfile::new(self)
         }
+      }
 
-        /// Return the raw profiles for `test_name` in "git" order. 
-        /// Mainline commit should return as `tuple.0`.
-        /// If both or neither are mainline, then `tuple.0` is older than `tuple.1`
+        /// Return the raw profiles for `test_name` in "git" order. `tuple.0` is older than `tuple.1`
         ///
         /// This method will panic if there are not two profiles.
         /// This method will also panic if both commits are on different logs (not mainline).
@@ -250,15 +255,23 @@ mod tests {
                 self.commit_hash, self.test_name
             )
         }
+
+        fn instruction_count(&self) -> i64 {
+            let output = &std::fs::read_to_string(self.path()).unwrap();
+            find_instruction_count(output).unwrap()
+        }
     }
 
     struct DiffProfile {
         test_name: String,
+        prev_profile_count: i64,
     }
     impl DiffProfile {
         fn new(prev_profile: &RawProfile, curr_profile: &RawProfile) -> Self {
             let diff_profile = Self {
                 test_name: curr_profile.test_name.clone(),
+                // reads the annotated profile for previous instruction count
+                prev_profile_count: prev_profile.associated_annotated_profile().instruction_count()
             };
 
             // diff the raw profile
@@ -281,21 +294,23 @@ mod tests {
             format!("target/regression_artifacts/diff/{}.diff", self.test_name)
         }
 
-        fn assert_performance(&self) {
+        fn assert_performance(&self, max_diff: f64) {
             let diff_content = std::fs::read_to_string(self.path()).unwrap();
-
             let diff = find_instruction_count(&diff_content)
                 .expect("Failed to parse cg_annotate --diff output");
+            // percentage difference is the overall difference divided by the previous instruction count
+            let diff_percentage = diff as f64 / self.prev_profile_count as f64;
             assert!(
-                diff <= MAX_DIFF,
-                "Instruction count difference exceeds the threshold, regression of {} instructions. 
-                Check the annotated output logs in target/regression_artifacts/diff/{}.diff for debug information",
-                diff, self.test_name
+                diff_percentage <= max_diff,
+                "Instruction count difference exceeds the threshold, regression of {diff_percentage}% ({diff} instructions). 
+                Check the annotated output logs in target/diff/{}.diff for debug information", self.test_name
             );
         }
+
     }
 
-    // Pulls the instruction count as an integer from the annotated output file.
+    /// Pulls the instruction count as an integer from the annotated output file. 
+    /// Accepts output from Annotated and Diff profile formats.
     fn find_instruction_count(output: &str) -> Result<i64, io::Error> {
         let reader = io::BufReader::new(output.as_bytes());
         // Example of the line being parsed:
@@ -348,7 +363,7 @@ mod tests {
     /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
     #[test]
     fn test_set_config() {
-        valgrind_test("test_set_config", |ctrl| {
+        valgrind_test("test_set_config", 0.01, |ctrl| {
             ctrl.stop_instrumentation();
             ctrl.start_instrumentation();
             let keypair_rsa = CertKeyPair::default();
@@ -362,7 +377,7 @@ mod tests {
     /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake.
     #[test]
     fn test_rsa_handshake() {
-        valgrind_test("test_rsa_handshake", |ctrl| {
+        valgrind_test("test_rsa_handshake", 0.01, |ctrl| {
             ctrl.stop_instrumentation();
             let keypair_rsa = CertKeyPair::default();
             let config = set_config(&security::DEFAULT_TLS13, keypair_rsa)?;

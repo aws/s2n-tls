@@ -6,7 +6,6 @@ This folder contains regression tests and benchmarking tools for the `s2n-tls` l
 ## Testing Philosophy
 
 Currently, s2n-tls implements a wall clock benchmarking tool which measures end-to-end handshake performance to compare s2n-tls with rustls and OpenSSL. In the past, s2n-tls has tried benchmarking to detect regressions through criterion in Rust, but the subprocess and spin-up time contributed to performance measurement which made the results inaccurate and difficult to use in CI. The project has a slightly different focus, learning from these existing tools. Performance assertion in s2n-tls focuses on a benchmarking tool that can detail performance by API path and do so with enough repeatability and accuracy to detect regressions between two versions of s2n-tls so that performance analysis can occur at PR time. This means that the scope of each harness is limited and mutually exclusive of other harnesses since we are interested in measuring the performance of the important paths a TLS connection typically follows. 
-Currently, s2n-tls implements a wall clock benchmarking tool which measures end-to-end handshake performance to compare s2n-tls with rustls and OpenSSL. In the past, s2n-tls has tried benchmarking to detect regressions through criterion in Rust, but the subprocess and spin-up time contributed to performance measurement which made the results inaccurate and difficult to use in CI. The project has a slightly different focus, learning from these existing tools. Performance assertion in s2n-tls focuses on a benchmarking tool that can detail performance by API path and do so with enough repeatability and accuracy to detect regressions between two versions of s2n-tls so that performance analysis can occur at PR time. This means that the scope of each harness is limited and mutually exclusive of other harnesses since we are interested in measuring the performance of the important paths a TLS connection typically follows. 
 
 ### Why CPU instructions
 The performance benchmarking framework utilizes CPU Instruction count across API paths to make the regression assertion. This technique reduces noise, ensuring that small performance differences are caught through this measure. While a difference in performance count may not result in a direct runtime difference, it is useful when comparing a PR to mainline and to dig into the specific sources of performance impact within the code. 
@@ -35,7 +34,7 @@ To run the harnesses with Valgrind and store the annotated results, run:
 PERF_MODE=valgrind cargo test
 ```
 
-This will recursively call all tests with valgrind enabled so the performance output is generated and stored in target/perf_outputs. If you are looking for the scalar performance output of a PR, this will provide inisght into which portions of the code account for what share of the CPU instruction count.
+This will recursively call all tests with valgrind enabled so the performance output is generated and stored in target/perf_outputs. If you are looking for the scalar performance output of a PR, this will provide insight into which portions of the code account for what share of the CPU instruction count.
 
 ## Running the Harnesses between versions (differential performance)
 Run the scalar performance for all harnesses on the current branch version of s2n-tls
