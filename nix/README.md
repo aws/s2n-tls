@@ -28,6 +28,11 @@ To enter the development shell, run `nix develop` at the root of the project.
 
 There are some helper scripts in the environment to make building easier, but if you're familiar with Nix, note that these are 
 separate from the buildPhase, configurePhase and checkPhase.
+
+### Specific libcrypto
+
+By default, the devShell uses Openssl-3. To run the devShell with a different libcrypto like awslc, use `nix develop .#awslc`. The currently supported options are awslc, openssl111, openssl102, and libressl. See flake.nix in the root directory.
+
 ### Configure and build
 
 From inside the devShell: `configure; build`.
