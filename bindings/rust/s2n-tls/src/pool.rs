@@ -125,6 +125,9 @@ impl<T: Pool> Pool for Arc<T> {
 }
 
 /// A pool of Connections. Not a pool of Configs.
+/// 
+/// Connections yielded from the pool will always be associated with `config` 
+/// from [ConfigPoolBuilder::new].
 ///
 /// For discussions about expected performance benefits see [self].
 #[derive(Debug)]
