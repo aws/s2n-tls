@@ -138,4 +138,4 @@ Performs an RSA handshake in s2n-tls and validates the handshake process utilizi
 
 ### test_session_resumption
 
-Performs an RSA handshake, setting a session ticket in the client. Then, measures the resumption utilizing the session ticket in a second RSA handshake and asserts that the client has resumed the session.
+Performs an RSA handshake with server authentication. Then, performs a resumption handshake using the session ticket obtained from the previous handshake.
