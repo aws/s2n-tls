@@ -29,6 +29,7 @@
           corretto
           pkgs.iproute2
           pkgs.apacheHttpd
+          pkgs.procps
           # GnuTLS-cli and serv utilities needed for some integration tests.
           pkgs.gnutls
           pkgs.gdb

@@ -1295,6 +1295,7 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection **c
         case S2N_ERR_CANCELLED:
         case S2N_ERR_CIPHER_NOT_SUPPORTED:
         case S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED:
+        case S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK:
             RESULT_GUARD(s2n_connection_set_closed(*conn));
             break;
         default:
