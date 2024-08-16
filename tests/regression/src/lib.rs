@@ -172,12 +172,12 @@ mod tests {
                 "target/regression_artifacts/{}/{}.raw",
                 self.commit_hash, self.test_name
             )
+        }
         
         // Returns the annotated profile associated with a raw profile
         fn associated_annotated_profile(&self) -> AnnotatedProfile{
             AnnotatedProfile::new(self)
         }
-      }
 
         /// Return the raw profiles for `test_name` in "git" order. `tuple.0` is older than `tuple.1`
         ///
@@ -393,7 +393,7 @@ mod tests {
     /// Test to measure session resumption by performing a handshake and resuming the handshake with a session ticket
     #[test]
     fn test_session_resumption() {
-        valgrind_test("test_session_resumption", |ctrl| {
+        valgrind_test("test_session_resumption", 0.01, |ctrl| {
             const KEY_NAME: &str = "InsecureTestKey";
             const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
             ctrl.stop_instrumentation();
