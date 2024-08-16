@@ -411,7 +411,10 @@ mod tests {
                 assert!(pair.client.poll_recv(&mut [0]).is_pending());
 
                 let mut ticket: Vec<u8> = vec![0; pair.client.session_ticket_length().unwrap()];
+
+                ctrl.start_instrumentation();
                 pair.client.session_ticket(&mut ticket).unwrap();
+                ctrl.stop_instrumentation();
 
                 assert!(!pair.client.resumed());
                 ticket
