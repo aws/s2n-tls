@@ -8,6 +8,13 @@
 //! Instead of allocating memory for a new connection, existing
 //! memory can be reused by calling
 //! [Connection::wipe()](`crate::connection::Connection::wipe()).
+//! 
+//! On modern systems with reasonably performant allocators, the benefits of reusing
+//! connections are reduced. Connection reuse is specifically intended for customers
+//! who are sensitive to allocations or for whom allocations are more expensive.
+//! Customers are encouraged to run their own benchmarks to determine the exact
+//! performance benefit. As a starting point, a simple benchmark comparing allocation
+//! against reuse can be found `bench/benches/connection_creation.rs`.
 //!
 //! The [`Pool`] trait allows applications to define an
 //! [Object pool](https://en.wikipedia.org/wiki/Object_pool_pattern) that
@@ -119,20 +126,7 @@ impl<T: Pool> Pool for Arc<T> {
 
 /// A pool of Connections. Not a pool of Configs.
 ///
-/// Instead of allocating and freeing new `Connection`s, this struct allows them
-/// to be "wiped" and reused. This unlikely to be a significant performance 
-/// benefit unless customers are in an environment where allocations are unusually
-/// expensive.
-///
-/// Customers should run their own benchmarks to determine exactly how much 
-/// of a benefit connection reuse can provide. In a simplistic single threaded
-/// benchmark, the per-connection savings are relatively small.
-/// - connection wiping cost: 804 ns
-/// - connection allocation + freeing cost: 2.606 µs
-/// - **Total Savings: 1.802 µs per connection**
-///
-/// Generally a handshake will take ~ 1 ms, so connection reuse enables a 0.2%
-/// handshake performance improvement.
+/// For discussions about expected performance benefits see [self].
 #[derive(Debug)]
 pub struct ConfigPool {
     mode: Mode,
