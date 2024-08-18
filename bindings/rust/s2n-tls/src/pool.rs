@@ -8,7 +8,7 @@
 //! Instead of allocating memory for a new connection, existing
 //! memory can be reused by calling
 //! [Connection::wipe()](`crate::connection::Connection::wipe()).
-//! 
+//!
 //! On modern systems with reasonably performant allocators, the benefits of reusing
 //! connections are reduced. Connection reuse is specifically intended for customers
 //! who are sensitive to allocations or for whom allocations are more expensive.
@@ -125,8 +125,8 @@ impl<T: Pool> Pool for Arc<T> {
 }
 
 /// A pool of Connections. Not a pool of Configs.
-/// 
-/// Connections yielded from the pool will always be associated with `config` 
+///
+/// Connections yielded from the pool will always be associated with `config`
 /// from [ConfigPoolBuilder::new].
 ///
 /// For discussions about expected performance benefits see [self].
