@@ -117,9 +117,8 @@ run_unit_tests() {
 
 run_fuzz_tests() {
     cmake . -Bbuild \
-            -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
-            -DBUILD_SHARED_LIBS=on \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=./s2n-tls-install \
             -DFUZZ=on
     cmake --build ./build -- -j $(nproc)
     cmake --build build --target run_fuzz 

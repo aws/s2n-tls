@@ -590,15 +590,12 @@ if (BUILD_TESTING)
 
     option(FUZZ "Enable Fuzz Testing with libFuzzer" OFF)
     if(FUZZ)
-        set(CMAKE_C_COMPILER clang)
-        set(CMAKE_CXX_COMPILER clang)
-
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
         # local
-        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libFuzzer.a")
-        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_dependencies")
+        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libFuzzer.a")
+        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_dependencies")
         
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
@@ -629,15 +626,10 @@ if (BUILD_TESTING)
             POSITION_INDEPENDENT_CODE ON
         )
 
-        target_compile_options(global_overrides PRIVATE
-            -Wno-unreachable-code
-            -O0
-            -I${LIBCRYPTO_ROOT}/include
-            -I${CMAKE_CURRENT_SOURCE_DIR}
-            -I${CMAKE_CURRENT_SOURCE_DIR}/api
-        )
-
         target_link_libraries(global_overrides PRIVATE testss2n -ldl)
+
+        set(CMAKE_C_COMPILER clang)
+        set(CMAKE_CXX_COMPILER clang)
 
         foreach(src ${FUZZ_TEST_SRCS})
             get_filename_component(TEST_NAME ${src} NAME_WE)
@@ -657,8 +649,6 @@ if (BUILD_TESTING)
                 -g -O0
                 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
                 -Wno-cast-qual  # Suppress the cast-qual warning
-                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
-                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
                 -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
                 -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99
             )
@@ -667,7 +657,6 @@ if (BUILD_TESTING)
             target_link_libraries(${TEST_NAME} PRIVATE 
                 testss2n  
                 ${LIBFUZZER_LIB}  # Manually link old libFuzzer.a
-                global_overrides
                 -lstdc++
                 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
             )
