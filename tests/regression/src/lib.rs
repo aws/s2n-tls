@@ -419,6 +419,7 @@ mod tests {
             let client_config = client_config_builder.build()?;
 
             // 1st handshake: no session ticket, so no resumption
+            ctrl.start_instrumentation();
             let session_ticket = {
                 let mut pair = TestPair::from_configs(&client_config, &server_config);
                 pair.client.set_waker(Some(&noop_waker()))?;
@@ -426,17 +427,11 @@ mod tests {
                 assert!(pair.client.poll_recv(&mut [0]).is_pending());
 
                 let mut ticket: Vec<u8> = vec![0; pair.client.session_ticket_length().unwrap()];
-
-                ctrl.start_instrumentation();
                 pair.client.session_ticket(&mut ticket).unwrap();
-                ctrl.stop_instrumentation();
 
                 assert!(!pair.client.resumed());
                 ticket
-            };
-
-            // Start Cachegrind instrumentation for the second handshake
-            ctrl.start_instrumentation();
+            }; 
 
             // 2nd handshake: should be able to use the session ticket from the first
             //                handshake (stored in `session ticket`) to resume
