@@ -597,8 +597,8 @@ if (BUILD_TESTING)
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
         # local
-        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libFuzzer.a")
-        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_dependencies")
+        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libFuzzer.a")
+        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_dependencies")
         
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
