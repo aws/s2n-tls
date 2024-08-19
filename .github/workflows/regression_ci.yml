@@ -16,7 +16,7 @@ jobs:
     steps:
       # Checkout the code from the pull request branch
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -81,7 +81,7 @@ jobs:
       # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
       - name: Upload artifacts
         if: ${{ always() }}  
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: regression_artifacts
           path: tests/regression/target/regression_artifacts
