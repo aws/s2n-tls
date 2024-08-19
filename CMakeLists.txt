@@ -607,6 +607,122 @@ if (BUILD_TESTING)
             set_property(TEST ${test_target} PROPERTY TIMEOUT 7200)
         endforeach()
     endif()
+
+    option(FUZZ "Enable Fuzz Testing with libFuzzer" OFF)
+    if(FUZZ)
+        set(CMAKE_C_COMPILER clang)
+        set(CMAKE_CXX_COMPILER clang)
+
+        set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
+        file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
+
+        # local
+        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libFuzzer.a")
+        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_dependencies")
+        
+        # Set default values for fuzzing if not defined
+        if(NOT DEFINED FUZZ_TIMEOUT_SEC)
+            set(FUZZ_TIMEOUT_SEC 60)
+        endif()
+
+        if(NOT DEFINED CORPUS_UPLOAD_LOC)
+            set(CORPUS_UPLOAD_LOC "none")
+        endif()
+
+        if(NOT DEFINED ARTIFACT_UPLOAD_LOC)
+            set(ARTIFACT_UPLOAD_LOC "none")
+        endif()
+
+        if(NOT DEFINED FUZZ_TESTS)
+            set(FUZZ_TESTS "${TESTS}")
+        endif()
+
+        # Build LD_PRELOAD shared libraries (need to add other preloads as well)
+        file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/global_overrides.c")
+
+        add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
+
+        # Ensure the overriding library is stored in the expected directory without "lib" prefix
+        set_target_properties(global_overrides PROPERTIES
+            PREFIX ""
+            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD
+            POSITION_INDEPENDENT_CODE ON
+        )
+
+        target_compile_options(global_overrides PRIVATE
+            -Wno-unreachable-code
+            -O0
+            -I${LIBCRYPTO_ROOT}/include
+            -I${CMAKE_CURRENT_SOURCE_DIR}
+            -I${CMAKE_CURRENT_SOURCE_DIR}/api
+        )
+
+        target_link_libraries(global_overrides PRIVATE testss2n -ldl)
+
+        foreach(src ${FUZZ_TEST_SRCS})
+            get_filename_component(TEST_NAME ${src} NAME_WE)
+
+            add_executable(${TEST_NAME} ${src})
+
+            # automatically link libFuzzer that comes with clang
+            # target_compile_options(${TEST_NAME} PRIVATE 
+            #     -g -O0 -fsanitize=fuzzer,address,undefined,leak
+            # )
+            # target_link_libraries(${TEST_NAME} PRIVATE 
+            #     testss2n  
+            #     -fsanitize=fuzzer,address,undefined,leak
+            # )
+
+            target_compile_options(${TEST_NAME} PRIVATE 
+                -g -O0
+                -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
+            )
+            
+            # Link with testss2n and manually link libFuzzer.a
+            target_link_libraries(${TEST_NAME} PRIVATE 
+                testss2n  
+                ${LIBFUZZER_LIB}  # Manually link old libFuzzer.a
+                global_overrides
+                -lstdc++
+                -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
+            )
+
+            # Set the output directory for the fuzzing binaries
+            set(FUZZ_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz")
+            set_target_properties(${TEST_NAME} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY ${FUZZ_BIN_DIR}
+            )
+
+            list(APPEND EXECUTABLE_TARGETS ${TEST_NAME})
+        endforeach()
+
+        foreach(TEST_NAME ${EXECUTABLE_TARGETS})
+            add_custom_command(
+                OUTPUT ${TEST_NAME}_result
+                COMMAND ${CMAKE_COMMAND} -E env
+                    bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh
+                    ${TEST_NAME}
+                    ${FUZZ_TIMEOUT_SEC}
+                    ${CORPUS_UPLOAD_LOC}
+                    ${ARTIFACT_UPLOAD_LOC}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
+                COMMENT "Running fuzz test ${TEST_NAME}"
+            )
+
+            add_custom_target(run_${TEST_NAME}
+                DEPENDS ${TEST_NAME}_result
+                COMMENT "Fuzz test ${TEST_NAME} completed"
+            )
+
+            list(APPEND FUZZ_TEST_TARGETS run_${TEST_NAME})
+        endforeach()
+
+        # This will run all fuzz tests
+        add_custom_target(run_fuzz
+            DEPENDS ${FUZZ_TEST_TARGETS}
+            COMMENT "Running all fuzz tests"
+        )
+    endif()
 endif()
 
 #install the s2n files
