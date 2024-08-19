@@ -74,7 +74,7 @@ We’ve listed the distributions and platforms under two tiers: Tier 1 platforms
 |-----------------------|---------|
 | Fedora Core 34-36     | x86_64, aarch64 |
 | Ubuntu14/16/20        | x86_64, aarch64 |
-| Ubuntu18/24           | aarch64         |
+| Ubuntu18/22/24        | aarch64         |
 | [OSX](https://github.com/actions/runner-images/tree/main/images/macos) 12-14 |x86_64|
 
 These distribution lists are not exhaustive and missing tooling or a missing supported libcrypto library could prevent a successful build.
