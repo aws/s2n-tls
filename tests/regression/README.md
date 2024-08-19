@@ -24,7 +24,7 @@ The performance benchmarking framework utilizes CPU Instruction count across API
 
 Ensure you have the following installed:
 - Rust (with Cargo)
-- Valgrind (for cachegrind instrumentation)
+- Valgrind (for cachegrind instrumentation): Valgrind 3.23 or newer is required to run the tests, since cachegrind annotation is not included in earlier versions. If this version is not automatically downloaded by running `apt install valgrind`, it can be installed manually by following https://valgrind.org/downloads/
 
 ## Running the Harnesses with Valgrind (scalar performance)
 To run the harnesses with Valgrind and store the annotated results, run:
