@@ -77,8 +77,8 @@
 
 enum {
     S2N_JA4_A_PROTOCOL = 0,
-    S2N_JA4_A_VERSION_FIRST,
-    S2N_JA4_A_VERSION_SECOND,
+    S2N_JA4_A_VERSION_1,
+    S2N_JA4_A_VERSION_2,
     S2N_JA4_A_DEST,
     S2N_JA4_A_CIPHER_COUNT_1,
     S2N_JA4_A_CIPHER_COUNT_2,
@@ -372,9 +372,9 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_fingerprint_get_hash(fingerprint,
                             sizeof(output), output, &output_size));
 
-                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
-                    EXPECT_FALSE((output[S2N_JA4_A_VERSION_FIRST] == test_cases[i].str[0])
-                            && (output[S2N_JA4_A_VERSION_SECOND] == test_cases[i].str[1]));
+                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
+                    EXPECT_FALSE((output[S2N_JA4_A_VERSION_1] == test_cases[i].str[0])
+                            && (output[S2N_JA4_A_VERSION_2] == test_cases[i].str[1]));
                 };
 
                 /* Test version from extension
@@ -402,9 +402,9 @@ int main(int argc, char **argv)
                             client_hello_bytes, sizeof(client_hello_bytes),
                             sizeof(output), output, &output_size));
 
-                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_FIRST], test_cases[i].str[0]);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_SECOND], test_cases[i].str[1]);
+                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[i].str[1]);
                 };
 
                 /* Test version from legacy field
@@ -429,9 +429,9 @@ int main(int argc, char **argv)
                             client_hello_bytes, sizeof(client_hello_bytes),
                             sizeof(output), output, &output_size));
 
-                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_FIRST], test_cases[i].str[0]);
-                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_SECOND], test_cases[i].str[1]);
+                    EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[i].str[1]);
                 };
             }
 
@@ -469,9 +469,9 @@ int main(int argc, char **argv)
                         client_hello_bytes, sizeof(client_hello_bytes),
                         sizeof(output), output, &output_size));
 
-                EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_SECOND);
-                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_FIRST], test_cases[0].str[0]);
-                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_SECOND], test_cases[0].str[1]);
+                EXPECT_TRUE(output_size > S2N_JA4_A_VERSION_2);
+                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_1], test_cases[0].str[0]);
+                EXPECT_EQUAL(output[S2N_JA4_A_VERSION_2], test_cases[0].str[1]);
             };
         };
 
@@ -1061,7 +1061,7 @@ int main(int argc, char **argv)
              *
              *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
              *= type=test
-             *# 0023,0012,002b,ff01,000b,000a,0015
+             *# 0005,0023,0012,002b,ff01,000b,000a,0015
              *# ```
              */
             0x00, 0x05, S2N_TEST_CLIENT_HELLO_EMPTY_EXTENSION,
