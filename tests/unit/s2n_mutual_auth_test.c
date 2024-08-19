@@ -306,6 +306,84 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_stuffer_free(&client_to_server));
     }
 
+    /* Ensure that the client's certificate is validated, regardless of how client auth was enabled */
+    {
+        typedef enum {
+            TEST_ENABLE_WITH_CONFIG,
+            TEST_ENABLE_WITH_CONN_BEFORE_CONFIG,
+            TEST_ENABLE_WITH_CONN_AFTER_CONFIG,
+            TEST_COUNT,
+        } test_case;
+
+        for (test_case test = TEST_ENABLE_WITH_CONFIG; test < TEST_COUNT; test++) {
+            DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(client_config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
+            EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
+
+            /* The client trusts the server's cert, and sends the same cert to the server. */
+            EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
+
+            DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(server_config);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
+            struct host_verify_data verify_data_allow = { .allow = 1 };
+            EXPECT_SUCCESS(s2n_config_set_verify_host_callback(server_config, verify_host_fn, &verify_data_allow));
+
+            /* The server sends its cert, but does NOT trust the client's cert. This should always
+             * cause certificate validation to fail on the server.
+             */
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
+
+            switch (test) {
+                case TEST_ENABLE_WITH_CONFIG:
+                    EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
+                    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+                    break;
+                case TEST_ENABLE_WITH_CONN_BEFORE_CONFIG:
+                    EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
+                    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+                    break;
+                case TEST_ENABLE_WITH_CONN_AFTER_CONFIG:
+                    EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
+                    EXPECT_SUCCESS(s2n_connection_set_client_auth_type(server_conn, S2N_CERT_AUTH_REQUIRED));
+                    break;
+                default:
+                    FAIL_MSG("Invalid test case");
+            }
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
+            EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
+
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_CERT_UNTRUSTED);
+
+            /* Ensure that a client certificate was received on the server, indicating that the
+             * validation error occurred when processing the client's certificate, rather than the
+             * server's.
+             */
+            uint8_t *client_cert_chain = NULL;
+            uint32_t client_cert_chain_len = 0;
+            EXPECT_SUCCESS(s2n_connection_get_client_cert_chain(server_conn,
+                    &client_cert_chain, &client_cert_chain_len));
+            EXPECT_TRUE(client_cert_chain_len > 0);
+        }
+    }
+
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(config));
     free(cert_chain_pem);

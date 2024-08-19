@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
-# CBMC starter kit 2.9
+# CBMC starter kit 2.10
 name: Run CBMC proofs
 on:
   push:
@@ -38,11 +38,11 @@ jobs:
       - name: Parse config file
         run: |
           CONFIG_FILE='.github/workflows/proof_ci_resources/config.yaml'
-          for setting in cadical-tag cbmc-version cbmc-viewer-version kissat-tag litani-version proofs-dir run-cbmc-proofs-command; do
+          for setting in cadical-tag cbmc-version cbmc-viewer-version kissat-tag litani-version z3-version bitwuzla-version proofs-dir run-cbmc-proofs-command; do
             VAR=$(echo $setting | tr "[:lower:]" "[:upper:]" | tr - _)
             echo "${VAR}"=$(yq .$setting $CONFIG_FILE) >> $GITHUB_ENV
           done
-      - name: Ensure CBMC, CBMC viewer, Litani versions have been specified
+      - name: Ensure CBMC, CBMC viewer, Litani, Z3, Bitwuzla versions have been specified
         shell: bash
         run: |
           should_exit=false
@@ -56,6 +56,22 @@ jobs:
           fi
           if [ "${{ env.LITANI_VERSION }}" == "" ]; then
             echo "You must specify a Litani version (e.g. 'latest' or '1.27.0')"
+            should_exit=true
+          fi
+          if [ "${{ env.Z3_VERSION }}" == "" ]; then
+            echo "You must specify a Z3 version (e.g. '4.13.0')"
+            should_exit=true
+          fi
+          if [ "${{ env.Z3_VERSION }}" == "latest" ]; then
+            echo "Z3 latest not supported at this time. You must specify an exact Z3 version (e.g. '4.13.0')"
+            should_exit=true
+          fi
+          if [ "${{ env.BITWUZLA_VERSION }}" == "" ]; then
+            echo "You must specify a Bitwuzla version (e.g. '0.5.0')"
+            should_exit=true
+          fi
+          if [ "${{ env.BITWUZLA_VERSION }}" == "latest" ]; then
+            echo "Bitwuzla latest not supported at this time. You must specify an exact version (e.g. '0.5.0')"
             should_exit=true
           fi
           if [[ "$should_exit" == true ]]; then exit 1; fi
@@ -84,7 +100,7 @@ jobs:
         run: |
           CBMC_VIEWER_REL="https://api.github.com/repos/model-checking/cbmc-viewer/releases/latest"
           CBMC_VIEWER_VERSION=$(curl -s $CBMC_VIEWER_REL --header 'authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' | jq -r .name | sed  's/viewer-//')
-          pip3 install cbmc-viewer==$CBMC_VIEWER_VERSION
+          sudo pip3 install cbmc-viewer==$CBMC_VIEWER_VERSION
       - name: Install CBMC viewer ${{ env.CBMC_VIEWER_VERSION }}
         if: ${{ env.CBMC_VIEWER_VERSION != 'latest' }}
         shell: bash
@@ -92,7 +108,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes \
             build-essential universal-ctags
-          pip3 install cbmc-viewer==${{ env.CBMC_VIEWER_VERSION }}
+          sudo pip3 install cbmc-viewer==${{ env.CBMC_VIEWER_VERSION }}
       - name: Install latest Litani
         if: ${{ env.LITANI_VERSION == 'latest' }}
         shell: bash
@@ -114,6 +130,37 @@ jobs:
           sudo apt-get update
           sudo apt-get install --no-install-recommends --yes ./litani.deb
           rm ./litani.deb
+      - name: Install Z3 ${{ env.Z3_VERSION }}
+        if: ${{ env.Z3_VERSION != 'latest' }}
+        shell: bash
+        run: |
+          curl -o z3.zip -L \
+            https://github.com/Z3Prover/z3/releases/download/z3-${{ env.Z3_VERSION }}/z3-${{ env.Z3_VERSION }}-x64-glibc-2.31.zip
+          sudo apt-get install --no-install-recommends --yes unzip
+          unzip z3.zip
+          cd z3-${{ env.Z3_VERSION }}-x64-glibc-2.31/bin \
+            && echo "Adding $(pwd) to PATH for Z3" \
+            && echo "$(pwd)" >> $GITHUB_PATH
+          rm ../../z3.zip
+      - name: Build and Install Bitwuzla ${{ env.BITWUZLA_VERSION }}
+        if: ${{ env.BITWUZLA_VERSION != 'latest' }}
+        shell: bash
+        run: |
+          echo "Installing Bitwuzla dependencies"
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends --yes libgmp-dev cmake
+          sudo pip3 install meson
+          echo "Building Bitwuzla"
+          BITWUZLA_TAG_NAME=${{ env.BITWUZLA_VERSION }}
+          git clone https://github.com/bitwuzla/bitwuzla.git \
+            && cd bitwuzla \
+            && git checkout $BITWUZLA_TAG_NAME \
+            && ./configure.py \
+            && cd build \
+            && ninja;
+          cd src/main \
+            && echo "Adding $(pwd) to PATH for Bitwuzla" \
+            && echo "$(pwd)" >> $GITHUB_PATH
       - name: Install ${{ env.KISSAT_TAG }} kissat
         if: ${{ env.KISSAT_TAG != '' }}
         shell: bash

@@ -469,6 +469,41 @@ const struct s2n_signature_preferences s2n_certificate_signature_preferences_rfc
     .signature_schemes = s2n_cert_sig_scheme_pref_list_rfc9151
 };
 
+/*
+ * Legacy compatibility policy based on s2n_sig_scheme_pref_list_20201021 with ECDSA prioritized.
+ * This list also removes ECDSA+SHA224, which is not known to be relied on by any legitimate
+ * use cases.
+ */
+const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_20240521[] = {
+    /* ECDSA */
+    &s2n_ecdsa_sha256,
+    &s2n_ecdsa_sha384,
+    &s2n_ecdsa_sha512,
+
+    /* RSA PSS */
+    &s2n_rsa_pss_pss_sha256,
+    &s2n_rsa_pss_pss_sha384,
+    &s2n_rsa_pss_pss_sha512,
+    &s2n_rsa_pss_rsae_sha256,
+    &s2n_rsa_pss_rsae_sha384,
+    &s2n_rsa_pss_rsae_sha512,
+
+    /* RSA PKCS1 */
+    &s2n_rsa_pkcs1_sha256,
+    &s2n_rsa_pkcs1_sha384,
+    &s2n_rsa_pkcs1_sha512,
+    &s2n_rsa_pkcs1_sha224,
+
+    /* SHA-1 Legacy */
+    &s2n_ecdsa_sha1,
+    &s2n_rsa_pkcs1_sha1,
+};
+
+const struct s2n_signature_preferences s2n_signature_preferences_20240521 = {
+    .count = s2n_array_len(s2n_sig_scheme_pref_list_20240521),
+    .signature_schemes = s2n_sig_scheme_pref_list_20240521
+};
+
 const struct s2n_signature_scheme* const s2n_sig_scheme_pref_list_test_all_fips[] = {
     /* RSA PSS */
     &s2n_rsa_pss_pss_sha256,

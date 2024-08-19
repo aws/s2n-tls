@@ -43,7 +43,7 @@ void s2n_hmac_free_harness()
         assert(state->inner_just_key.hash_impl->free != NULL);
         assert(state->outer.hash_impl->free != NULL);
         assert(state->outer_just_key.hash_impl->free != NULL);
-        
+
         if (s2n_is_in_fips_mode()) {
             assert(state->inner.digest.high_level.evp.ctx == NULL);
             assert(state->inner.digest.high_level.evp_md5_secondary.ctx == NULL);
@@ -93,7 +93,7 @@ void s2n_hmac_free_harness()
          */
         free_rc_keys_from_hash_state(&saved_inner_hash_state);
         free_rc_keys_from_hash_state(&saved_inner_just_key_hash_state);
-        free_rc_keys_from_hash_state(&saved_inner_hash_state);
+        free_rc_keys_from_hash_state(&saved_outer_hash_state);
         free_rc_keys_from_hash_state(&saved_outer_just_key_hash_state);
     }
     /* 3. free our heap-allocated `state` since `s2n_hash_free` only `free`s the contents. */
