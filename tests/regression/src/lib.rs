@@ -27,13 +27,36 @@ pub mod git {
     }
 
     pub fn extract_commit_hash(file: &str) -> String {
-        // input: "target/$commit_id/test_name.raw"
+        // input: "target/regression_artifacts/$commit_id/test_name.raw"
         // output: "$commit_id"
-        file.split("target/")
+        file.split("target/regression_artifacts/")
             .nth(1)
             .and_then(|s| s.split('/').next())
             .map(|s| s.to_string())
             .unwrap_or_default() // This will return an empty string if the Option is None
+    }
+
+    pub fn is_mainline(commit_hash: &str) -> bool {
+        // Execute the git command to check which branches contain the given commit.
+        let output = Command::new("git")
+            .args(["branch", "--contains", commit_hash])
+            .output()
+            .expect("Failed to execute git branch");
+
+        // If the command fails, it indicates that the commit is either detached
+        // or does not exist in any branches. Meaning, it is not part of mainline.
+        if !output.status.success() {
+            return false;
+        }
+
+        // Convert the command output to a string and check each line.
+        let branches = String::from_utf8_lossy(&output.stdout);
+        branches.lines().any(|branch| {
+            // Trim the branch name to remove any leading or trailing whitespace.
+            // The branch name could be prefixed with '*', indicating the current branch.
+            // We check for both "main" and "* main" to account for this possibility.
+            branch.trim() == "main" || branch.trim() == "* main"
+        })
     }
 }
 
@@ -54,8 +77,6 @@ mod tests {
         io::{self, BufRead},
         process::{Command, Output},
     };
-
-    const MAX_DIFF: i64 = 1_000;
 
     struct InstrumentationControl;
 
@@ -86,7 +107,11 @@ mod tests {
         }
     }
 
-    fn valgrind_test<F>(test_name: &str, test_body: F) -> Result<(), s2n_tls::error::Error>
+    fn valgrind_test<F>(
+        test_name: &str,
+        max_diff: f64,
+        test_body: F,
+    ) -> Result<(), s2n_tls::error::Error>
     where
         F: FnOnce(&InstrumentationControl) -> Result<(), s2n_tls::error::Error>,
     {
@@ -97,7 +122,7 @@ mod tests {
             }
             RegressionTestMode::Diff => {
                 let (prev_profile, curr_profile) = RawProfile::query(test_name);
-                DiffProfile::new(&prev_profile, &curr_profile).assert_performance();
+                DiffProfile::new(&prev_profile, &curr_profile).assert_performance(max_diff);
             }
             RegressionTestMode::Default => {
                 let ctrl = InstrumentationControl;
@@ -115,7 +140,7 @@ mod tests {
     impl RawProfile {
         fn new(test_name: &str) -> Self {
             let commit_hash = git::get_current_commit_hash();
-            create_dir_all(format!("target/{commit_hash}")).unwrap();
+            create_dir_all(format!("target/regression_artifacts/{commit_hash}")).unwrap();
 
             let raw_profile = Self {
                 test_name: test_name.to_owned(),
@@ -141,14 +166,23 @@ mod tests {
         }
 
         fn path(&self) -> String {
-            format!("target/{}/{}.raw", self.commit_hash, self.test_name)
+            format!(
+                "target/regression_artifacts/{}/{}.raw",
+                self.commit_hash, self.test_name
+            )
+        }
+
+        // Returns the annotated profile associated with a raw profile
+        fn associated_annotated_profile(&self) -> AnnotatedProfile{
+            AnnotatedProfile::new(self)
         }
 
         /// Return the raw profiles for `test_name` in "git" order. `tuple.0` is older than `tuple.1`
         ///
         /// This method will panic if there are not two profiles.
+        /// This method will also panic if both commits are on different logs (not mainline).
         fn query(test_name: &str) -> (RawProfile, RawProfile) {
-            let pattern = format!("target/**/*{}.raw", test_name);
+            let pattern = format!("target/regression_artifacts/**/*{}.raw", test_name);
             let raw_files: Vec<String> = glob::glob(&pattern)
                 .expect("Failed to read glob pattern")
                 .filter_map(Result::ok)
@@ -160,18 +194,28 @@ mod tests {
                 test_name: test_name.to_string(),
                 commit_hash: git::extract_commit_hash(&raw_files[0]),
             };
-
             let profile2 = RawProfile {
                 test_name: test_name.to_string(),
                 commit_hash: git::extract_commit_hash(&raw_files[1]),
             };
 
-            if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
-                (profile1, profile2)
-            } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
-                (profile2, profile1)
+            // xor returns true if exactly one commit is mainline
+            if git::is_mainline(&profile1.commit_hash) ^ git::is_mainline(&profile2.commit_hash) {
+                // Return the mainline as first commit
+                if git::is_mainline(&profile1.commit_hash) {
+                    (profile1, profile2)
+                } else {
+                    (profile2, profile1)
+                }
             } else {
-                panic!("The commits are not in the same log");
+                // Neither or both profiles are on the mainline, so return the older one first
+                if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
+                    (profile1, profile2)
+                } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
+                    (profile2, profile1)
+                } else {
+                    panic!("The commits are not in the same log, are identical, or there are not two commits available");
+                }
             }
         }
     }
@@ -204,17 +248,28 @@ mod tests {
         }
 
         fn path(&self) -> String {
-            format!("target/{}/{}.annotated", self.commit_hash, self.test_name)
+            format!(
+                "target/regression_artifacts/{}/{}.annotated",
+                self.commit_hash, self.test_name
+            )
+        }
+
+        fn instruction_count(&self) -> i64 {
+            let output = &std::fs::read_to_string(self.path()).unwrap();
+            find_instruction_count(output).unwrap()
         }
     }
 
     struct DiffProfile {
         test_name: String,
+        prev_profile_count: i64,
     }
     impl DiffProfile {
         fn new(prev_profile: &RawProfile, curr_profile: &RawProfile) -> Self {
             let diff_profile = Self {
                 test_name: curr_profile.test_name.clone(),
+                // reads the annotated profile for previous instruction count
+                prev_profile_count: prev_profile.associated_annotated_profile().instruction_count()
             };
 
             // diff the raw profile
@@ -225,6 +280,7 @@ mod tests {
             assert_command_success(diff_output.clone());
 
             // write the diff to disk
+            create_dir_all("target/regression_artifacts/diff").unwrap();
             let diff_content = String::from_utf8(diff_output.stdout)
                 .expect("Invalid UTF-8 in cg_annotate --diff output");
             write(diff_profile.path(), diff_content).expect("Failed to write to file");
@@ -233,24 +289,26 @@ mod tests {
         }
 
         fn path(&self) -> String {
-            format!("target/diff/{}.diff", self.test_name)
+            format!("target/regression_artifacts/diff/{}.diff", self.test_name)
         }
 
-        fn assert_performance(&self) {
+        fn assert_performance(&self, max_diff: f64) {
             let diff_content = std::fs::read_to_string(self.path()).unwrap();
-
             let diff = find_instruction_count(&diff_content)
                 .expect("Failed to parse cg_annotate --diff output");
+            // percentage difference is the overall difference divided by the previous instruction count
+            let diff_percentage = diff as f64 / self.prev_profile_count as f64;
             assert!(
-                diff <= MAX_DIFF,
-                "Instruction count difference exceeds the threshold, regression of {} instructions. 
-                Check the annotated output logs in target/diff/{}.diff for debug information",
-                diff, self.test_name
+                diff_percentage <= max_diff,
+                "Instruction count difference exceeds the threshold, regression of {diff_percentage}% ({diff} instructions). 
+                Check the annotated output logs in target/diff/{}.diff for debug information", self.test_name
             );
         }
+
     }
 
-    // Pulls the instruction count as an integer from the annotated output file.
+    /// Pulls the instruction count as an integer from the annotated output file. 
+    /// Accepts output from Annotated and Diff profile formats.
     fn find_instruction_count(output: &str) -> Result<i64, io::Error> {
         let reader = io::BufReader::new(output.as_bytes());
         // Example of the line being parsed:
@@ -303,7 +361,7 @@ mod tests {
     /// Test to create new config, set security policy, host_callback information, load/trust certs, and build config.
     #[test]
     fn test_set_config() {
-        valgrind_test("test_set_config", |ctrl| {
+        valgrind_test("test_set_config", 0.01, |ctrl| {
             ctrl.stop_instrumentation();
             ctrl.start_instrumentation();
             let keypair_rsa = CertKeyPair::default();
@@ -317,7 +375,7 @@ mod tests {
     /// Test which creates a TestPair from config using `rsa_4096_sha512`. Only measures a pair handshake.
     #[test]
     fn test_rsa_handshake() {
-        valgrind_test("test_rsa_handshake", |ctrl| {
+        valgrind_test("test_rsa_handshake", 0.01, |ctrl| {
             ctrl.stop_instrumentation();
             let keypair_rsa = CertKeyPair::default();
             let config = set_config(&security::DEFAULT_TLS13, keypair_rsa)?;

@@ -17,12 +17,14 @@ use core::ptr::NonNull;
 #[derive(Copy, Clone)]
 pub enum FingerprintType {
     JA3,
+    JA4,
 }
 
 impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
     fn from(value: FingerprintType) -> Self {
         match value {
             FingerprintType::JA3 => s2n_tls_sys::s2n_fingerprint_type::FINGERPRINT_JA3,
+            FingerprintType::JA4 => s2n_tls_sys::s2n_fingerprint_type::FINGERPRINT_JA4,
         }
     }
 }
