@@ -597,8 +597,8 @@ if (BUILD_TESTING)
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
         # local
-        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libFuzzer.a")
-        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_dependencies")
+        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libFuzzer.a")
+        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz_dependencies")
         
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
@@ -657,6 +657,10 @@ if (BUILD_TESTING)
                 -g -O0
                 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
                 -Wno-cast-qual  # Suppress the cast-qual warning
+                -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
+                -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
+                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
+                -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99
             )
 
             # Link with testss2n and manually link libFuzzer.a
