@@ -122,8 +122,6 @@ s2n_config_set_cipher_preferences(config, "default");
 s2n_config_set_cipher_preferences(config, "20150306")
 ```
 
-
-
 ## s2n-tls safety mechanisms
 
 Internally s2n-tls takes a systematic approach to data protection and includes several mechanisms designed to improve safety.
