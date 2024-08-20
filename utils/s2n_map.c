@@ -121,7 +121,7 @@ S2N_RESULT s2n_map_add(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
 
     /* Linear probing until we find an empty slot */
     while (map->table[slot].key.size) {
-        if (key->size != map->table[slot].key.size || !s2n_constant_time_equals(key->data, map->table[slot].key.data, key->size)) {
+        if (key->size != map->table[slot].key.size || memcmp(key->data, map->table[slot].key.data, key->size)) {
             slot++;
             slot %= map->capacity;
             continue;
@@ -153,7 +153,7 @@ S2N_RESULT s2n_map_put(struct s2n_map *map, struct s2n_blob *key, struct s2n_blo
 
     /* Linear probing until we find an empty slot */
     while (map->table[slot].key.size) {
-        if (key->size != map->table[slot].key.size || !s2n_constant_time_equals(key->data, map->table[slot].key.data, key->size)) {
+        if (key->size != map->table[slot].key.size || memcmp(key->data, map->table[slot].key.data, key->size)) {
             slot++;
             slot %= map->capacity;
             continue;
@@ -199,7 +199,7 @@ S2N_RESULT s2n_map_lookup(const struct s2n_map *map, struct s2n_blob *key, struc
     const uint32_t initial_slot = slot;
 
     while (map->table[slot].key.size) {
-        if (key->size != map->table[slot].key.size || !s2n_constant_time_equals(key->data, map->table[slot].key.data, key->size)) {
+        if (key->size != map->table[slot].key.size || memcmp(key->data, map->table[slot].key.data, key->size)) {
             slot++;
             slot %= map->capacity;
             /* We went over all the slots but found no match */

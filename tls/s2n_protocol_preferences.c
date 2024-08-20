@@ -48,7 +48,7 @@ S2N_RESULT s2n_protocol_preferences_contain(struct s2n_blob *protocol_preference
         struct s2n_blob match_against = { 0 };
         RESULT_GUARD(s2n_protocol_preferences_read(&app_protocols_stuffer, &match_against));
 
-        if (match_against.size == protocol->size && s2n_constant_time_equals(match_against.data, protocol->data, protocol->size)) {
+        if (match_against.size == protocol->size && memcmp(match_against.data, protocol->data, protocol->size) == 0) {
             *contains = true;
             return S2N_RESULT_OK;
         }
