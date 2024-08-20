@@ -77,7 +77,7 @@ mod tests {
         fs::{create_dir_all, write},
         io::{self, BufRead},
         process::{Command, Output},
-        time::SystemTime,
+        time::{Duration, SystemTime},
     };
 
     struct InstrumentationControl;
@@ -173,9 +173,9 @@ mod tests {
                 self.commit_hash, self.test_name
             )
         }
-        
+
         // Returns the annotated profile associated with a raw profile
-        fn associated_annotated_profile(&self) -> AnnotatedProfile{
+        fn associated_annotated_profile(&self) -> AnnotatedProfile {
             AnnotatedProfile::new(self)
         }
 
@@ -271,7 +271,9 @@ mod tests {
             let diff_profile = Self {
                 test_name: curr_profile.test_name.clone(),
                 // reads the annotated profile for previous instruction count
-                prev_profile_count: prev_profile.associated_annotated_profile().instruction_count()
+                prev_profile_count: prev_profile
+                    .associated_annotated_profile()
+                    .instruction_count(),
             };
 
             // diff the raw profile
@@ -306,10 +308,9 @@ mod tests {
                 Check the annotated output logs in target/diff/{}.diff for debug information", self.test_name
             );
         }
-
     }
 
-    /// Pulls the instruction count as an integer from the annotated output file. 
+    /// Pulls the instruction count as an integer from the annotated output file.
     /// Accepts output from Annotated and Diff profile formats.
     fn find_instruction_count(output: &str) -> Result<i64, io::Error> {
         let reader = io::BufReader::new(output.as_bytes());
@@ -393,9 +394,9 @@ mod tests {
     /// Test to measure session resumption by performing a handshake and resuming the handshake with a session ticket
     #[test]
     fn test_session_resumption() {
+        const KEY_NAME: &str = "InsecureTestKey";
+        const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
         valgrind_test("test_session_resumption", 0.01, |ctrl| {
-            const KEY_NAME: &str = "InsecureTestKey";
-            const KEY_VALUE: [u8; 16] = [3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5, 8, 9, 7, 9, 3];
             ctrl.stop_instrumentation();
             let keypair_rsa = CertKeyPair::default();
 
@@ -404,7 +405,7 @@ mod tests {
                 .add_session_ticket_key(
                     KEY_NAME.as_bytes(),
                     KEY_VALUE.as_slice(),
-                    SystemTime::now(),
+                    SystemTime::now() - Duration::from_secs(10),
                 )?
                 .load_pem(keypair_rsa.cert(), keypair_rsa.key())?
                 .set_security_policy(&security::DEFAULT_TLS13)?;
@@ -431,7 +432,7 @@ mod tests {
 
                 assert!(!pair.client.resumed());
                 ticket
-            }; 
+            };
 
             // 2nd handshake: should be able to use the session ticket from the first
             //                handshake (stored in `session ticket`) to resume
