@@ -596,7 +596,7 @@ if (BUILD_TESTING)
         # local
         # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libfuzzer/lib/libFuzzer.a")
         # venv
-        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/../libfuzzer/lib/libFuzzer.a")
+        set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/libfuzzer/lib/libFuzzer.a")
         
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
