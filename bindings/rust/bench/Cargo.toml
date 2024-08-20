@@ -22,6 +22,7 @@ crabgrind = { version = "0.1", optional = true }
 structopt = { version = "0.3", optional = true }
 serde_json = { version = "1.0", optional = true }
 semver = { version = "1.0", optional = true }
+rand = "0.8.5"
 
 [dependencies.plotters]
 version = "0.3"
@@ -59,4 +60,8 @@ harness = false
 
 [[bench]]
 name = "resumption"
+harness = false
+
+[[bench]]
+name = "constant_time_equals"
 harness = false
