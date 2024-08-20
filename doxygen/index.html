@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.1-057e2ca9</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.1-98bfc2c2</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -113,6 +113,45 @@ Documentation</h2>
 <p >Documentation for older versions or branches of s2n-tls can be generated locally. To generate the documentation, install doxygen and run <code>doxygen docs/doxygen/Doxyfile</code>. The doxygen documentation can now be found at <code>docs/doxygen/output/html/index.html</code>.</p>
 <p >Doxygen installation instructions are available at the <a href="https://doxygen.nl/download.html">Doxygen</a> webpage.</p>
 <h2><a class="anchor" id="autotoc_md22"></a>
+Platform Support</h2>
+<p >We’ve listed the distributions and platforms under two tiers: Tier 1 platforms are guaranteed to build, run, and pass tests in CI. Tier 2 platforms are guaranteed to build and we'll address issues opened against them, but they aren't currently running in our CI and are not actively reviewed with every commit. If you use a platform not listed below and would like to request (or help!) add it to our CI, please open an issue for discussion.</p>
+<h3><a class="anchor" id="autotoc_md23"></a>
+Tier 1</h3>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Distribution in CI   </th><th class="markdownTableHeadNone">Platforms    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Ubuntu18, Ubuntu24**   </td><td class="markdownTableBodyNone">x86_64    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Ubuntu22   </td><td class="markdownTableBodyNone">x86_64, i686    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">AL2, AL2023**   </td><td class="markdownTableBodyNone">x86_64, aarch64    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">NixOS   </td><td class="markdownTableBodyNone">x86_64, aarch64    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">OpenBSD <a href="https://github.com/cross-platform-actions/action/blob/master/readme.md#supported-platforms">7.4</a>   </td><td class="markdownTableBodyNone">x86_64    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">FreeBSD <a href="https://github.com/vmactions/freebsd-vm/blob/v1/conf/default.release.conf">latest</a>   </td><td class="markdownTableBodyNone">x86_64    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">OSX <a href="https://github.com/actions/runner-images?tab=readme-ov-file#available-images">latest</a>   </td><td class="markdownTableBodyNone">aarch64   </td></tr>
+</table>
+<p >**Work in Progress</p>
+<h3><a class="anchor" id="autotoc_md24"></a>
+Tier 2</h3>
+<table class="markdownTable">
+<tr class="markdownTableHead">
+<th class="markdownTableHeadNone">Distribution not in CI   </th><th class="markdownTableHeadNone">Platforms    </th></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Fedora Core 34-36   </td><td class="markdownTableBodyNone">x86_64, aarch64    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone">Ubuntu14/16/20   </td><td class="markdownTableBodyNone">x86_64, aarch64    </td></tr>
+<tr class="markdownTableRowOdd">
+<td class="markdownTableBodyNone">Ubuntu18/22/24   </td><td class="markdownTableBodyNone">aarch64    </td></tr>
+<tr class="markdownTableRowEven">
+<td class="markdownTableBodyNone"><a href="https://github.com/actions/runner-images/tree/main/images/macos">OSX</a> 12-14   </td><td class="markdownTableBodyNone">x86_64   </td></tr>
+</table>
+<p >These distribution lists are not exhaustive and missing tooling or a missing supported libcrypto library could prevent a successful build.</p>
+<h2><a class="anchor" id="autotoc_md25"></a>
 Using s2n-tls</h2>
 <p >The s2n-tls I/O APIs are designed to be intuitive to developers familiar with the widely-used POSIX I/O APIs, and s2n-tls supports blocking, non-blocking, and full-duplex I/O. Additionally there are no locks or mutexes within s2n-tls.</p>
 <div class="fragment"><div class="line"><span class="comment">/* Create a server mode connection handle */</span></div>
@@ -141,7 +180,7 @@ Using s2n-tls</h2>
 <div class="ttc" id="as2n_8h_html_ad3222e7aacf35a56be842678171be440"><div class="ttname"><a href="s2n_8h.html#ad3222e7aacf35a56be842678171be440">s2n_negotiate</a></div><div class="ttdeci">S2N_API int s2n_negotiate(struct s2n_connection *conn, s2n_blocked_status *blocked)</div></div>
 <div class="ttc" id="as2n_8h_html_af70ca0b089daa98cd79a424d3f6af15d"><div class="ttname"><a href="s2n_8h.html#af70ca0b089daa98cd79a424d3f6af15d">s2n_blocked_status</a></div><div class="ttdeci">s2n_blocked_status</div><div class="ttdef"><b>Definition:</b> s2n.h:2147</div></div>
 </div><!-- fragment --><p >For details on building the s2n-tls library and how to use s2n-tls in an application you are developing, see the <a href="https://aws.github.io/s2n-tls/usage-guide">Usage Guide</a>.</p>
-<h2><a class="anchor" id="autotoc_md23"></a>
+<h2><a class="anchor" id="autotoc_md26"></a>
 s2n-tls features</h2>
 <p >s2n-tls implements SSLv3, TLS1.0, TLS1.1, TLS1.2, and TLS1.3. For encryption, s2n-tls supports 128-bit and 256-bit AES in the CBC and GCM modes, ChaCha20, 3DES, and RC4. For forward secrecy, s2n-tls supports both DHE and ECDHE. s2n-tls also supports the Server Name Indicator (SNI), Application-Layer Protocol Negotiation (ALPN), and Online Certificate Status Protocol (OCSP) TLS extensions. SSLv3, RC4, 3DES, and DHE are each disabled by default for security reasons.</p>
 <p >As it can be difficult to keep track of which encryption algorithms and protocols are best to use, s2n-tls features a simple API to use the latest "default" set of preferences. If you prefer to remain on a specific version for backwards compatibility, that is also supported.</p>
@@ -151,41 +190,41 @@ s2n-tls features</h2>
 <div class="line"><span class="comment">/* Use a specific set of preferences, update when you&#39;re ready */</span></div>
 <div class="line"><a class="code hl_function" href="s2n_8h.html#a3afea5198d804621399d8fd9875cfdb0">s2n_config_set_cipher_preferences</a>(config, <span class="stringliteral">&quot;20150306&quot;</span>)</div>
 <div class="ttc" id="as2n_8h_html_a3afea5198d804621399d8fd9875cfdb0"><div class="ttname"><a href="s2n_8h.html#a3afea5198d804621399d8fd9875cfdb0">s2n_config_set_cipher_preferences</a></div><div class="ttdeci">S2N_API int s2n_config_set_cipher_preferences(struct s2n_config *config, const char *version)</div></div>
-</div><!-- fragment --><h2><a class="anchor" id="autotoc_md24"></a>
+</div><!-- fragment --><h2><a class="anchor" id="autotoc_md27"></a>
 s2n-tls safety mechanisms</h2>
 <p >Internally s2n-tls takes a systematic approach to data protection and includes several mechanisms designed to improve safety.</p>
-<p ><a class="anchor" id="autotoc_md25"></a> </p><h5>Small and auditable code base</h5>
+<p ><a class="anchor" id="autotoc_md28"></a> </p><h5>Small and auditable code base</h5>
 <p >Ignoring tests, blank lines and comments, s2n-tls is about 6,000 lines of code. s2n's code is also structured and written with a focus on reviewability. All s2n-tls code is subject to code review, and we plan to complete security evaluations of s2n-tls on an annual basis.</p>
 <p >To date there have been two external code-level reviews of s2n-tls, including one by a commercial security vendor. s2n-tls has also been shared with some trusted members of the broader cryptography, security, and Open Source communities. Any issues discovered are always recorded in the s2n-tls issue tracker.</p>
-<p ><a class="anchor" id="autotoc_md26"></a> </p><h5>Static analysis, fuzz-testing and penetration testing</h5>
+<p ><a class="anchor" id="autotoc_md29"></a> </p><h5>Static analysis, fuzz-testing and penetration testing</h5>
 <p >In addition to code reviews, s2n-tls is subject to regular static analysis, fuzz-testing, and penetration testing. Several penetration tests have occurred, including two by commercial vendors.</p>
-<p ><a class="anchor" id="autotoc_md27"></a> </p><h5>Unit tests and end-to-end testing</h5>
+<p ><a class="anchor" id="autotoc_md30"></a> </p><h5>Unit tests and end-to-end testing</h5>
 <p >s2n-tls includes positive and negative unit tests and end-to-end test cases.</p>
 <p >Unit test coverage can be viewed <a href="https://dx1inn44oyl7n.cloudfront.net/main/index.html">here</a>. Note that this represents unit coverage for a particular build. Since that build won't necessarily support all s2n-tls features, test coverage may be artificially lowered.</p>
-<p ><a class="anchor" id="autotoc_md28"></a> </p><h5>Erase on read</h5>
+<p ><a class="anchor" id="autotoc_md31"></a> </p><h5>Erase on read</h5>
 <p >s2n-tls encrypts or erases plaintext data as quickly as possible. For example, decrypted data buffers are erased as they are read by the application.</p>
-<p ><a class="anchor" id="autotoc_md29"></a> </p><h5>Built-in memory protection</h5>
+<p ><a class="anchor" id="autotoc_md32"></a> </p><h5>Built-in memory protection</h5>
 <p >s2n-tls uses operating system features to protect data from being swapped to disk or appearing in core dumps.</p>
-<p ><a class="anchor" id="autotoc_md30"></a> </p><h5>Minimalist feature adoption</h5>
+<p ><a class="anchor" id="autotoc_md33"></a> </p><h5>Minimalist feature adoption</h5>
 <p >s2n-tls avoids implementing rarely used options and extensions, as well as features with a history of triggering protocol-level vulnerabilities. For example there is no support for session renegotiation or DTLS.</p>
-<p ><a class="anchor" id="autotoc_md31"></a> </p><h5>Compartmentalized random number generation</h5>
+<p ><a class="anchor" id="autotoc_md34"></a> </p><h5>Compartmentalized random number generation</h5>
 <p >The security of TLS and its associated encryption algorithms depends upon secure random number generation. s2n-tls provides every thread with two separate random number generators. One for "public" randomly generated data that may appear in the clear, and one for "private" data that should remain secret. This approach lessens the risk of potential predictability weaknesses in random number generation algorithms from leaking information across contexts.</p>
-<p ><a class="anchor" id="autotoc_md32"></a> </p><h5>Modularized encryption</h5>
+<p ><a class="anchor" id="autotoc_md35"></a> </p><h5>Modularized encryption</h5>
 <p >s2n-tls has been structured so that different encryption libraries may be used. Today s2n-tls supports OpenSSL (versions 1.0.2, 1.1.1 and 3.0.x), LibreSSL, BoringSSL, AWS-LC, and the Apple Common Crypto framework to perform the underlying cryptographic operations.</p>
-<p ><a class="anchor" id="autotoc_md33"></a> </p><h5>Timing blinding</h5>
+<p ><a class="anchor" id="autotoc_md36"></a> </p><h5>Timing blinding</h5>
 <p >s2n-tls includes structured support for blinding time-based side-channels that may leak sensitive data. For example, if s2n-tls fails to parse a TLS record or handshake message, s2n-tls will add a randomized delay of between 10 and 30 seconds, granular to nanoseconds, before responding. This raises the complexity of real-world timing side-channel attacks by a factor of at least tens of trillions.</p>
-<p ><a class="anchor" id="autotoc_md34"></a> </p><h5>Table based state-machines</h5>
+<p ><a class="anchor" id="autotoc_md37"></a> </p><h5>Table based state-machines</h5>
 <p >s2n-tls uses simple tables to drive the TLS/SSL state machines, making it difficult for invalid out-of-order states to arise.</p>
-<p ><a class="anchor" id="autotoc_md35"></a> </p><h5>C safety</h5>
+<p ><a class="anchor" id="autotoc_md38"></a> </p><h5>C safety</h5>
 <p >s2n-tls is written in C, but makes light use of standard C library functions and wraps all memory handling, string handling, and serialization in systematic boundary-enforcing checks.</p>
-<h2><a class="anchor" id="autotoc_md36"></a>
+<h2><a class="anchor" id="autotoc_md39"></a>
 Security issue notifications</h2>
 <p >If you discover a potential security issue in s2n-tls we ask that you notify AWS Security via our <a href="http://aws.amazon.com/security/vulnerability-reporting/">vulnerability reporting page</a>. Please do <b>not</b> create a public github issue.</p>
 <p >If you package or distribute s2n-tls, or use s2n-tls as part of a large multi-user service, you may be eligible for pre-notification of future s2n-tls releases. Please contact <a href="#" onclick="location.href='mai'+'lto:'+'s2n'+'-p'+'re-'+'no'+'tif'+'ic'+'ati'+'on'+'@am'+'az'+'on.'+'co'+'m'; return false;">s2n-p<span class="obfuscator">.nosp@m.</span>re-n<span class="obfuscator">.nosp@m.</span>otifi<span class="obfuscator">.nosp@m.</span>cati<span class="obfuscator">.nosp@m.</span>on@am<span class="obfuscator">.nosp@m.</span>azon<span class="obfuscator">.nosp@m.</span>.com</a>.</p>
-<h2><a class="anchor" id="autotoc_md37"></a>
+<h2><a class="anchor" id="autotoc_md40"></a>
 Contributing to s2n-tls</h2>
 <p >If you are interested in contributing to s2n-tls, please see our <a href="https://github.com/aws/s2n-tls/blob/main/docs/DEVELOPMENT-GUIDE.md">development guide</a>.</p>
-<h2><a class="anchor" id="autotoc_md38"></a>
+<h2><a class="anchor" id="autotoc_md41"></a>
 Language Bindings for s2n-tls</h2>
 <p >See our <a href="https://github.com/aws/s2n-tls/blob/main/docs/BINDINGS.md">language bindings list</a> for language bindings for s2n-tls that we're aware of. </p>
 </div></div><!-- PageDoc -->
