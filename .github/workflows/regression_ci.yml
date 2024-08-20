@@ -84,4 +84,3 @@ jobs:
         with:
           name: regression_artifacts
           path: tests/regression/target/regression_artifacts
-          
