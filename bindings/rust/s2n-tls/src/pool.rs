@@ -9,6 +9,13 @@
 //! memory can be reused by calling
 //! [Connection::wipe()](`crate::connection::Connection::wipe()).
 //!
+//! On modern systems with reasonably performant allocators, the benefits of reusing
+//! connections are reduced. Connection reuse is specifically intended for customers
+//! who are sensitive to allocations or for whom allocations are more expensive.
+//! Customers are encouraged to run their own benchmarks to determine the exact
+//! performance benefit. As a starting point, a simple benchmark comparing allocation
+//! against reuse can be found `bench/benches/connection_creation.rs`.
+//!
 //! The [`Pool`] trait allows applications to define an
 //! [Object pool](https://en.wikipedia.org/wiki/Object_pool_pattern) that
 //! wipes and stores connections after they are dropped.
@@ -117,6 +124,12 @@ impl<T: Pool> Pool for Arc<T> {
     }
 }
 
+/// A pool of Connections. Not a pool of Configs.
+///
+/// Connections yielded from the pool will always be associated with `config`
+/// from [ConfigPoolBuilder::new].
+///
+/// For discussions about expected performance benefits see [self].
 #[derive(Debug)]
 pub struct ConfigPool {
     mode: Mode,
@@ -150,6 +163,8 @@ impl ConfigPoolBuilder {
     /// When the number of connections created exceeds the `max_pool_size`,
     /// excess reclaimed connections are dropped instead of stored
     /// in the pool.
+    ///
+    /// If this is not specified, then the max pool size will be usize::MAX
     pub fn set_max_pool_size(&mut self, max_pool_size: usize) -> &mut Self {
         self.0.max_pool_size = max_pool_size;
         self
@@ -185,9 +200,12 @@ impl Pool for ConfigPool {
             Err(_) => None,
         };
         let conn = match from_pool {
-            // Wiping a connection doesn't wipe the config,
-            // so we don't need to reset the config.
-            Some(conn) => conn,
+            // Wiping a connection doesn't wipe the config, but callbacks might
+            // have swapped the config so we reset it anyways.
+            Some(mut conn) => {
+                conn.set_config(self.config.clone())?;
+                conn
+            }
             // Create a new connection with the stored config.
             None => self.config.build_connection(self.mode)?,
         };
@@ -211,7 +229,12 @@ impl Pool for ConfigPool {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::config::Config;
+    use crate::{
+        callbacks::ClientHelloCallback,
+        config::{self, Config},
+        connection, error,
+        testing::TestPair,
+    };
 
     #[test]
     fn config_pool_single_connection() -> Result<(), Box<dyn std::error::Error>> {
@@ -317,6 +340,59 @@ mod tests {
         mut_pooled_conn.set_waker(Some(&waker))?;
         assert!(mut_pooled_conn.waker().unwrap().will_wake(&waker));
 
+        Ok(())
+    }
+
+    // A yielded connection should always be associated with `config` in the
+    // config pool, even if the connection's config is swapped by callbacks.
+    #[test]
+    fn yielded_connection_associated_config() -> Result<(), error::Error> {
+        fn associated_config_has_ch_callback(conn: &connection::Connection) -> bool {
+            conn.config()
+                .unwrap()
+                .context()
+                .client_hello_callback
+                .is_some()
+        }
+
+        struct ConfigSwapCallback(Config);
+        impl ClientHelloCallback for ConfigSwapCallback {
+            fn on_client_hello(
+                &self,
+                connection: &mut Connection,
+            ) -> crate::callbacks::ConnectionFutureResult {
+                connection.set_config(self.0.clone())?;
+                Ok(None)
+            }
+        }
+
+        let empty_config = config::Builder::new().build()?;
+
+        let mut config_with_callback = config::Builder::new();
+        let dead_end_callback = ConfigSwapCallback(empty_config);
+        config_with_callback.set_client_hello_callback(dead_end_callback)?;
+        let config_with_callback = config_with_callback.build()?;
+
+        let config_with_pooled_connections =
+            ConfigPoolBuilder::new(Mode::Server, config_with_callback).build();
+
+        let server_from_pool = config_with_pooled_connections.take()?;
+        let client = Connection::new_client();
+        let mut pair = TestPair::from_connections(client, server_from_pool);
+
+        assert!(associated_config_has_ch_callback(&pair.server));
+        assert!(pair.handshake().is_err());
+        assert!(!associated_config_has_ch_callback(&pair.server));
+
+        config_with_pooled_connections.give(pair.server);
+
+        let server_from_pool = config_with_pooled_connections.take()?;
+        // reused connection once again has callback
+        assert!(associated_config_has_ch_callback(&server_from_pool));
+        config_with_pooled_connections.give(server_from_pool);
+
+        // assert that there is only a single connection that was getting reused
+        assert_eq!(config_with_pooled_connections.pool_size(), 1);
         Ok(())
     }
 }
