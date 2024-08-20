@@ -30,10 +30,10 @@ s2n-tls includes a variety of formal methods which are used to _prove_ that s2n-
 ### CBMC
 > CBMC verifies memory safety (which includes array bounds checks and checks for the safe use of pointers), checks for various further variants of undefined behavior, and user-specified as­ser­tions.
 
-s2n-tls writes CBMC proofs for a number of sensitive or commonly used functions in the codebase. Proofs harnesses can be viewed [here](cbmc/proofs/)
+s2n-tls writes CBMC proofs for a number of sensitive or commonly used functions in the codebase. Proof harnesses can be viewed [here](cbmc/proofs/)
 
 ### SAW
-SAW verifies the correctness of code. More specifically, SAW can verify that some LLVM bitcode (compiled from C) matches the behavior of a cryptol specification. s2n-tls includes SAW proofs for it's HMAC and DRBG implementations, as well as the TLS handshake state machine.
+SAW verifies the correctness of code. More specifically, SAW can verify that some LLVM bitcode (compiled from C) matches the behavior of a cryptol specification. s2n-tls includes SAW proofs for its HMAC and DRBG implementations, as well as the TLS handshake state machine.
 
 ### Sidetrail
 Sidetrail verifies the absence of timing side-channels, and is implemented using [smack](https://github.com/smackers/smack). Our [SideTrail proofs](sidetrail/working/) cover a number of the record processing functions.
