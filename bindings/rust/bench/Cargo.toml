@@ -63,5 +63,9 @@ name = "resumption"
 harness = false
 
 [[bench]]
+name = "connection_creation"
+harness = false
+
+[[bench]]
 name = "constant_time_equals"
 harness = false
