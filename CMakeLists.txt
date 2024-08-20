@@ -209,7 +209,7 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
-if (NOT $ENV{S2N_LIBCRYPTO} MATCHES "awslc")
+if (NOT $ENV{S2N_LIBCRYPTO} MATCHES "awslc" AND NOT FUZZ)
     # add cast-qual back in for non AWS-LC
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
 endif()
