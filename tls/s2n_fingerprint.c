@@ -251,6 +251,7 @@ S2N_RESULT s2n_fingerprint_hash_digest(struct s2n_fingerprint_hash *hash, struct
 {
     RESULT_ENSURE_REF(hash);
     RESULT_ENSURE_REF(hash->hash);
+    RESULT_ENSURE_REF(output);
 
     uint64_t bytes = 0;
     RESULT_GUARD_POSIX(s2n_hash_get_currently_in_hash_total(hash->hash, &bytes));
