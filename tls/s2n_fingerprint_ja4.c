@@ -217,16 +217,10 @@ static S2N_RESULT s2n_client_hello_get_first_alpn(struct s2n_client_hello *ch, s
     struct s2n_stuffer protocols = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&protocols, &extension->extension));
 
-    uint16_t list_size = 0, name_size = 0;
-    uint8_t name_type = 0;
+    uint16_t list_size = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&protocols, &list_size));
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(&protocols, &name_type));
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&protocols, &name_size));
 
-    uint8_t *name = s2n_stuffer_raw_read(&protocols, name_size);
-    RESULT_ENSURE_REF(name);
-    RESULT_GUARD_POSIX(s2n_blob_init(first, name, name_size));
-
+    RESULT_GUARD(s2n_protocol_preferences_read(&protocols, first));
     return S2N_RESULT_OK;
 }
 
