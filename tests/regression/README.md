@@ -138,3 +138,16 @@ Performs an RSA handshake in s2n-tls and validates the handshake process utilizi
 ### test_session_resumption
 
 Performs an RSA handshake with server authentication. Then, performs a resumption handshake using the session ticket obtained from the previous handshake.
+
+## Contributing Test Harnesses
+
+To contribute to the test harnesses, you should define a test name, wrap the test code in the valgrind_test() function, and find the threshold for the test. To find the threshold, follow this workflow:
+
+1. Navigate to the find_threshold directory `cd find_threshold`
+2. Set the commit id to your current commit id, this lets the script find the profile when cargo test is run. 
+`EXPORT commit_id=#commit_id`
+3. Run `cargo run test_name= "your_test_name"`
+4. The script should run and output the threshold for your test
+
+### Threshold Setting Philosophy
+The find_threshold script runs the test a 100 times to find the range of instruction count outputs. Since there could be non-determinism attributed to a particular test, this script helps to find that threshold. By finding `range/minimum_value` we set an upper bound for percentage differences that can be attributed to non-determinism. Now, when a change is introduced that exceeds that percentage threshold we can be confident it is a regression and not the result of non-determinism.
