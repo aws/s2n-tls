@@ -78,7 +78,7 @@ S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_conne
     do {
         if (!client_early_done) {
             bool success = s2n_send_early_data(client_conn,
-                                   early_data_to_send->data + total_data_sent,
+                                   (early_data_to_send->data == NULL) ? NULL : early_data_to_send->data + total_data_sent,
                                    early_data_to_send->size - total_data_sent,
                                    &data_sent, &blocked)
                     == S2N_SUCCESS;
