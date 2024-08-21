@@ -41,3 +41,4 @@ result-*
 *.class
 # Exclude rust build directories
 *target/
+Cargo.lock
