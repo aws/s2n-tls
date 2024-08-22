@@ -442,9 +442,13 @@ int s2n_stuffer_shift(struct s2n_stuffer *stuffer)
     POSIX_ENSURE_REF(stuffer);
     struct s2n_stuffer copy = *stuffer;
     POSIX_GUARD(s2n_stuffer_rewrite(&copy));
+    /**
+     * Adding 0 to a null value is undefine behavior.
+     * This if statement prevents undefined behavior in the case
+     * where stuffer->blob.data is NULL and stuffer->read_cursor is 0.
+     */
     uint8_t *data = stuffer->blob.data;
 
-    /* Prevent null arithmetic if stuffer->read_cursor is zero */
     if (stuffer->read_cursor != 0) {
         data += stuffer->read_cursor;
     }
