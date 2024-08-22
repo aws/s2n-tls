@@ -38,6 +38,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
-UNWINDSET += s2n_stuffer_read_hex.8:$(MAX_BLOB_SIZE)
+UNWINDSET += s2n_stuffer_read_hex.7:$(MAX_BLOB_SIZE)
 
 include ../Makefile.common
