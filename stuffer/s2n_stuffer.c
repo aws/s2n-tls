@@ -323,7 +323,6 @@ int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in)
 
 int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *data, const uint32_t size)
 {
-    /* Exit when no bytes is written */
     if (size == 0) {
         return S2N_SUCCESS;
     }
@@ -442,13 +441,11 @@ int s2n_stuffer_shift(struct s2n_stuffer *stuffer)
     POSIX_ENSURE_REF(stuffer);
     struct s2n_stuffer copy = *stuffer;
     POSIX_GUARD(s2n_stuffer_rewrite(&copy));
-    /**
-     * Adding 0 to a null value is undefine behavior.
-     * This if statement prevents undefined behavior in the case
-     * where stuffer->blob.data is NULL and stuffer->read_cursor is 0.
+
+    /* Adding 0 to a null value is undefined behavior.
+     * This prevents undefined behavior in the case where the read cursor is 0.
      */
     uint8_t *data = stuffer->blob.data;
-
     if (stuffer->read_cursor != 0) {
         data += stuffer->read_cursor;
     }

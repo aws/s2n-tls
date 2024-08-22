@@ -77,8 +77,15 @@ S2N_RESULT s2n_negotiate_test_server_and_client_with_early_data(struct s2n_conne
     bool server_early_done = false, client_early_done = false;
     do {
         if (!client_early_done) {
+            /* Adding 0 to a null value is undefined behavior.
+            * This prevents undefined behavior in the case where the offset is 0.
+            */
+            uint8_t *early_data = early_data_to_send->data;
+            if (total_data_sent != 0) {
+                early_data += total_data_sent;
+            }
             bool success = s2n_send_early_data(client_conn,
-                                   (early_data_to_send->data == NULL) ? NULL : early_data_to_send->data + total_data_sent,
+                                   early_data,
                                    early_data_to_send->size - total_data_sent,
                                    &data_sent, &blocked)
                     == S2N_SUCCESS;
