@@ -83,6 +83,7 @@ Further information:
 s2n-tls maintains a set of Rust criterion benchmarks to assess the performance of s2n-tls. The most commonly used benchmarks cover
 - performance of handshakes
 - performance of data transfer (bulk encryption)
+
 But a number of other low-level benchmarks are also included.
 
 Further information:
