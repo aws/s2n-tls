@@ -23,7 +23,7 @@ _Is the functionality of s2n-tls correct and compatible with other implementatio
 
 Our integration tests involve interoperation with other TLS implementations, because testing against another implementation improves confidence that s2n-tls has implemented the feature correctly and is compliant with relevant RFCs.
 
-s2n-tls integration tests are run using our integrationv2 framework. Tests are implemented using "client" and "server" executables from various implementations. The client and server interactions are coordinated with pytest.
+s2n-tls integration tests are run using our integrationv2 framework. Tests are implemented using "client" and "server" executables from various implementations like Openssl and Boringssl. The client and server interactions are coordinated with pytest.
 
 Further information:
 - [readme](integrationv2/README.md)
