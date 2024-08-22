@@ -184,7 +184,8 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
+    target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
 endif()
 
 if(TSAN)
@@ -209,7 +210,7 @@ endif()
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake/modules")
 
-if (NOT $ENV{S2N_LIBCRYPTO} MATCHES "awslc" AND NOT FUZZ)
+if (NOT $ENV{S2N_LIBCRYPTO} MATCHES "awslc")
     # add cast-qual back in for non AWS-LC
     target_compile_options(${PROJECT_NAME} PRIVATE -Wcast-qual)
 endif()
@@ -588,20 +589,27 @@ if (BUILD_TESTING)
         endforeach()
     endif()
 
-    option(FUZZ "Enable Fuzz Testing with libFuzzer" OFF)
     if(FUZZ)
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
-        # local
+        file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+        file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
+
+        add_library(fuzztest STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+        target_include_directories(fuzztest PUBLIC tests)
+        target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
+
+        # if linking libfuzzer locally:
         # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libfuzzer/lib/libFuzzer.a")
-        # venv
-        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/libfuzzer/lib/libFuzzer.a")
-        set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
-        message("Current CMake Source Path: ${CMAKE_CURRENT_SOURCE_DIR}")
+        set(LIBFUZZER_LIB "/home/ubuntu/libFuzzer/lib/lib/libFuzzer.a")
+        # if linking libfuzzer in CI:
+        # set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
+
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
-            set(FUZZ_TIMEOUT_SEC 60)
+            # choose shorter duration for testing
+            set(FUZZ_TIMEOUT_SEC 30)
         endif()
 
         if(NOT DEFINED CORPUS_UPLOAD_LOC)
@@ -618,33 +626,46 @@ if (BUILD_TESTING)
 
         # Build LD_PRELOAD shared libraries (need to add other preloads as well)
         file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/global_overrides.c")
-
         add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
+
+        target_compile_options(global_overrides PRIVATE 
+            -Wno-unreachable-code -O0 -shared -fPIC
+        )   
 
         # Ensure the overriding library is stored in the expected directory without "lib" prefix
         set_target_properties(global_overrides PROPERTIES
             PREFIX ""
             LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD
-            POSITION_INDEPENDENT_CODE ON
         )
 
-        target_link_libraries(global_overrides PRIVATE testss2n -ldl)
+        target_include_directories(global_overrides PRIVATE ./)
+        # target_include_directories(global_overrides PRIVATE utils)
+        # target_include_directories(global_overrides PRIVATE api)
+
+        # target_link_libraries(global_overrides PRIVATE ${UTILS_SRC})
+        target_link_libraries(global_overrides PRIVATE fuzztest)
 
         set(CMAKE_C_COMPILER clang)
-        set(CMAKE_CXX_COMPILER clang)
 
         foreach(src ${FUZZ_TEST_SRCS})
             get_filename_component(TEST_NAME ${src} NAME_WE)
 
             add_executable(${TEST_NAME} ${src})
+            target_include_directories(${TEST_NAME} PRIVATE ./)
+            # target_link_libraries(${TEST_NAME} PRIVATE fuzztest)
+
+            # target_include_directories(${TEST_NAME} PRIVATE ./)
+            # target_include_directories(${TEST_NAME} PRIVATE tests)
+            # target_include_directories(${TEST_NAME} PRIVATE tests/testlib)
+            # target_include_directories(${TEST_NAME} PRIVATE api)
 
             # automatically link libFuzzer that comes with clang
-            # target_compile_options(${TEST_NAME} PRIVATE 
-            #     -g -O0 -fsanitize=fuzzer,address,undefined,leak
+            # target_compile_options(${TEST_NAME} PUBLIC 
+            #     -g -fsanitize=fuzzer
             # )
-            # target_link_libraries(${TEST_NAME} PRIVATE 
-            #     testss2n  
-            #     -fsanitize=fuzzer,address,undefined,leak
+            # target_link_libraries(${TEST_NAME} PUBLIC 
+            #     fuzztest
+            #     -fsanitize=fuzzer
             # )
             
             # Link with testss2n and manually link libFuzzer.a
@@ -652,11 +673,10 @@ if (BUILD_TESTING)
                 -g -O0
                 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
                 -Wno-cast-qual  # Suppress the cast-qual warning
-                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
-                -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99
+                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
-                testss2n  
+                fuzztest
                 ${LIBFUZZER_LIB}  # Manually link old libFuzzer.a
                 -lstdc++
                 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
