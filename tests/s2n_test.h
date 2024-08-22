@@ -200,11 +200,11 @@ int test_count;
 /* for use with S2N_RESULT */
 #define EXPECT_OK( function_call )  EXPECT_TRUE( s2n_result_is_ok(function_call) )
 
-/* Memcmp is annotated with a non-null attribute. The if statement prevents
- * calling memcmp with NULL arguments when the length is zero.
- */
 #define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) \
     do { \
+        /* Memcmp is annotated with a non-null attribute. The if statement prevents \
+         * calling memcmp with NULL arguments when the length is zero. \
+         */ \
         if (l != 0) { \
             EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 ); \
         } \
