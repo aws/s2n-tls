@@ -52,7 +52,7 @@ s2n-tls writes CBMC proofs for a number of sensitive or commonly used functions 
 Further information:
 - [readme](cbmc/README.md)
 - [proofs](cbmc/proofs/)
-- [CBMC documentation]()
+- [CBMC documentation](https://www.cprover.org/cbmc/)
 
 ### SAW
 SAW verifies the correctness of code. More specifically, SAW can verify that some LLVM bitcode (compiled from C) matches the behavior of a cryptol specification. s2n-tls includes SAW proofs for its HMAC and DRBG implementations, as well as the TLS handshake state machine.
