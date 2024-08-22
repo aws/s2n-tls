@@ -17,46 +17,16 @@ pub mod git {
             .to_string()
     }
 
-    /// Returns true if `commit1` is older than `commit2`
-    pub fn is_older_commit(commit1: &str, commit2: &str) -> bool {
-        let status = Command::new("git")
-            .args(["merge-base", "--is-ancestor", commit1, commit2])
-            .status()
-            .expect("Failed to execute git merge-base");
-        status.success()
-    }
-
     pub fn extract_commit_hash(file: &str) -> String {
-        // input: "target/regression_artifacts/$commit_id/test_name.raw"
-        // output: "$commit_id"
+        // input: "target/regression_artifacts/{commit_type}/{commit_id_test_name.raw}"
+        // output: "{commit_id}"
+
         file.split("target/regression_artifacts/")
-            .nth(1)
-            .and_then(|s| s.split('/').next())
+            .nth(1) // Get the part after "target/regression_artifacts/"
+            .and_then(|s| s.split('/').nth(1)) // Get the part after "{commit_type}/"
+            .and_then(|s| s.split('_').next()) // Get the commit_id before the first underscore
             .map(|s| s.to_string())
-            .unwrap_or_default() // This will return an empty string if the Option is None
-    }
-
-    pub fn is_mainline(commit_hash: &str) -> bool {
-        // Execute the git command to check which branches contain the given commit.
-        let output = Command::new("git")
-            .args(["branch", "--contains", commit_hash])
-            .output()
-            .expect("Failed to execute git branch");
-
-        // If the command fails, it indicates that the commit is either detached
-        // or does not exist in any branches. Meaning, it is not part of mainline.
-        if !output.status.success() {
-            return false;
-        }
-
-        // Convert the command output to a string and check each line.
-        let branches = String::from_utf8_lossy(&output.stdout);
-        branches.lines().any(|branch| {
-            // Trim the branch name to remove any leading or trailing whitespace.
-            // The branch name could be prefixed with '*', indicating the current branch.
-            // We check for both "main" and "* main" to account for this possibility.
-            branch.trim() == "main" || branch.trim() == "* main"
-        })
+            .unwrap_or_default() // Return an empty string if the Option is None
     }
 }
 
@@ -137,16 +107,25 @@ mod tests {
     struct RawProfile {
         test_name: String,
         commit_hash: String,
+        commit_type: String,
     }
 
     impl RawProfile {
         fn new(test_name: &str) -> Self {
-            let commit_hash = git::get_current_commit_hash();
-            create_dir_all(format!("target/regression_artifacts/{commit_hash}")).unwrap();
+            let commit_hash = git::get_current_commit_hash()[..7].to_string();
+            let commit_type = env::var("COMMIT_TYPE")
+                .expect("COMMIT_TYPE environment variable must be set to 'baseline' or 'altered'");
+            assert!(
+                commit_type == "baseline" || commit_type == "altered",
+                "COMMIT_TYPE must be either 'baseline' or 'altered'"
+            );
+
+            create_dir_all(format!("target/regression_artifacts/{commit_type}")).unwrap();
 
             let raw_profile = Self {
                 test_name: test_name.to_owned(),
                 commit_hash,
+                commit_type,
             };
 
             let mut command = Command::new("valgrind");
@@ -169,8 +148,8 @@ mod tests {
 
         fn path(&self) -> String {
             format!(
-                "target/regression_artifacts/{}/{}.raw",
-                self.commit_hash, self.test_name
+                "target/regression_artifacts/{}/{}_{}.raw",
+                self.commit_type, self.commit_hash, self.test_name
             )
         }
 
@@ -184,47 +163,43 @@ mod tests {
         /// This method will panic if there are not two profiles.
         /// This method will also panic if both commits are on different logs (not mainline).
         fn query(test_name: &str) -> (RawProfile, RawProfile) {
-            let pattern = format!("target/regression_artifacts/**/*{}.raw", test_name);
-            let raw_files: Vec<String> = glob::glob(&pattern)
+            let baseline_pattern =
+                format!("target/regression_artifacts/baseline/*_{}.raw", test_name);
+            let altered_pattern =
+                format!("target/regression_artifacts/altered/*_{}.raw", test_name);
+
+            let baseline_file = glob::glob(&baseline_pattern)
                 .expect("Failed to read glob pattern")
                 .filter_map(Result::ok)
-                .map(|path| path.to_string_lossy().into_owned())
-                .collect();
-            assert_eq!(raw_files.len(), 2);
+                .next()
+                .expect("Baseline profile not found");
 
-            let profile1 = RawProfile {
+            let altered_file = glob::glob(&altered_pattern)
+                .expect("Failed to read glob pattern")
+                .filter_map(Result::ok)
+                .next()
+                .expect("Altered profile not found");
+
+            let baseline_profile = RawProfile {
                 test_name: test_name.to_string(),
-                commit_hash: git::extract_commit_hash(&raw_files[0]),
-            };
-            let profile2 = RawProfile {
-                test_name: test_name.to_string(),
-                commit_hash: git::extract_commit_hash(&raw_files[1]),
+                commit_hash: git::extract_commit_hash(&baseline_file.to_string_lossy()),
+                commit_type: "baseline".to_string(),
             };
 
-            // xor returns true if exactly one commit is mainline
-            if git::is_mainline(&profile1.commit_hash) ^ git::is_mainline(&profile2.commit_hash) {
-                // Return the mainline as first commit
-                if git::is_mainline(&profile1.commit_hash) {
-                    (profile1, profile2)
-                } else {
-                    (profile2, profile1)
-                }
-            } else {
-                // Neither or both profiles are on the mainline, so return the older one first
-                if git::is_older_commit(&profile1.commit_hash, &profile2.commit_hash) {
-                    (profile1, profile2)
-                } else if git::is_older_commit(&profile2.commit_hash, &profile1.commit_hash) {
-                    (profile2, profile1)
-                } else {
-                    panic!("The commits are not in the same log, are identical, or there are not two commits available");
-                }
-            }
+            let altered_profile = RawProfile {
+                test_name: test_name.to_string(),
+                commit_hash: git::extract_commit_hash(&altered_file.to_string_lossy()),
+                commit_type: "altered".to_string(),
+            };
+
+            (baseline_profile, altered_profile)
         }
     }
 
     struct AnnotatedProfile {
         test_name: String,
         commit_hash: String,
+        commit_type: String,
     }
 
     impl AnnotatedProfile {
@@ -232,6 +207,7 @@ mod tests {
             let annotated = Self {
                 test_name: raw_profile.test_name.clone(),
                 commit_hash: raw_profile.commit_hash.clone(),
+                commit_type: raw_profile.commit_type.clone(),
             };
 
             // annotate raw profile
@@ -251,8 +227,8 @@ mod tests {
 
         fn path(&self) -> String {
             format!(
-                "target/regression_artifacts/{}/{}.annotated",
-                self.commit_hash, self.test_name
+                "target/regression_artifacts/{}/{}_{}.annotated",
+                self.commit_type, self.commit_hash, self.test_name
             )
         }
 
