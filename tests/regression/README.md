@@ -49,8 +49,8 @@ PERF_MODE=valgrind COMMIT_TYPE=baseline cargo test
 ```
 PERF_MODE=diff cargo test
 ```
-This will assert on the performance difference of the current version minus the previous. If the regression exceeds the const `MAX_DIFF`, the test fails. Performance output profiles are stored by their commit id in `/target/baseline` or target/altered:
-- `.raw_profile` for the unannotated cachegrind output result
+This will assert on the performance difference of the current version minus the previous. If the regression exceeds the const `MAX_DIFF`, the test fails. Performance output profiles are stored by their commit id in `/target/baseline` or `target/altered`:
+- `raw_profile` for the unannotated cachegrind output result
 - `annotated_profile` for the annotated cachegrind output (scalar)
 - `target/diff` contains the annotated differential profile between two commits
 

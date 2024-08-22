@@ -112,6 +112,7 @@ mod tests {
 
     impl RawProfile {
         fn new(test_name: &str) -> Self {
+            // For filename readability, the first 7 digits of the commit hash are the typical standard to ensure a unique git SHA
             let commit_hash = git::get_current_commit_hash()[..7].to_string();
             let commit_type = env::var("COMMIT_TYPE")
                 .expect("COMMIT_TYPE environment variable must be set to 'baseline' or 'altered'");
@@ -182,6 +183,7 @@ mod tests {
 
             let baseline_profile = RawProfile {
                 test_name: test_name.to_string(),
+                //file names stored an OsString could be invalid UTF-8 so to_string_lossy is used
                 commit_hash: git::extract_commit_hash(&baseline_file.to_string_lossy()),
                 commit_type: "baseline".to_string(),
             };
