@@ -52,7 +52,7 @@ s2n-tls writes CBMC proofs for a number of sensitive or commonly used functions 
 Further information:
 - [readme](cbmc/README.md)
 - [proofs](cbmc/proofs/)
-- [CBMC documentation](https://www.cprover.org/cbmc/)
+- [CBMC project](https://www.cprover.org/cbmc/)
 
 ### SAW
 SAW verifies the correctness of code. More specifically, SAW can verify that some LLVM bitcode (compiled from C) matches the behavior of a cryptol specification. s2n-tls includes SAW proofs for its HMAC and DRBG implementations, as well as the TLS handshake state machine.
@@ -61,7 +61,7 @@ Further information:
 - [readme](saw/README.md)
 - [proofs](saw/)
 - [cryptol documentation](http://www.cryptol.net/)
-- [saw repo](https://github.com/GaloisInc/saw-script) 
+- [SAW project](https://saw.galois.com/) 
 
 ### Sidetrail
 Sidetrail verifies the absence of timing side-channels, and is implemented using the smack toolchain. Our SideTrail proofs cover a number of the record processing functions.
