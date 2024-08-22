@@ -68,7 +68,7 @@ fn comparison(criterion: &mut Criterion) {
     });
     group.finish();
 
-    // compare memcmp vs s2n_constant_time_equals, small data && data is not equal
+    // compare memcmp vs s2n_constant_time_equals, small data && data is equal
     let mut group = criterion.benchmark_group("low-level-comparison - small data, equal");
     group.bench_function("memcmp", |bencher| bencher.iter(|| memcmp(&a, &a_copy)));
     group.bench_function("s2n_constant_time_equals_c", |bencher| {
