@@ -44,7 +44,7 @@ jobs:
         run: source ./codebuild/bin/s2n_setup_env.sh
 
       - name: Check
-        run: ./codebuild/bin/file_header_scanner.sh
+        run: ./codebuild/bin/header_mistake_scanner.sh
 
   simple-mistakes:
     runs-on: ubuntu-latest
