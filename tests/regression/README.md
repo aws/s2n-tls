@@ -39,18 +39,18 @@ This will recursively call all tests with valgrind enabled so the performance ou
 ## Running the Harnesses between versions (differential performance)
 Run the scalar performance for all harnesses on the current branch version of s2n-tls
 ```
-PERF_MODE=valgrind cargo test
+PERF_MODE=valgrind COMMIT_TYPE=altered cargo test
 ```
 `git checkout` or `git switch` to mainline/version being compared to. Make sure you have stashed or committed any changes.
 ```
-PERF_MODE=valgrind cargo test
+PERF_MODE=valgrind COMMIT_TYPE=baseline cargo test
 ```
 `git checkout` or `git switch` back to the original version. At this point you should have two annotated performance outputs for each test. If you have more, the diff test will not be able to recognize the versions being compared.
 ```
 PERF_MODE=diff cargo test
 ```
-This will assert on the performance difference of the current version minus the previous. If the regression exceeds the const `MAX_DIFF`, the test fails. Performance output profiles are stored by their commit id in `/target/commit_id`:
-- `raw_profile` for the unannotated cachegrind output result
+This will assert on the performance difference of the current version minus the previous. If the regression exceeds the const `MAX_DIFF`, the test fails. Performance output profiles are stored by their commit id in `/target/baseline` or target/altered:
+- `.raw_profile` for the unannotated cachegrind output result
 - `annotated_profile` for the annotated cachegrind output (scalar)
 - `target/diff` contains the annotated differential profile between two commits
 
@@ -63,9 +63,9 @@ cargo test
 This will run the tests without valgrind to test if the harnesses complete as expected
 
 ## Output Files
-- `target/$commit_id/test_name.raw`: Contains the raw cachegrind profile. On its own, the file is pretty much unreadable but is useful for the cg_annotate --diff functionality or to visualize the profile via tools like [KCachegrind](https://kcachegrind.github.io/html/Home.html).
-- `target/$commit_id/test_name.annotated`: The scalar annotated profile associated with that particular commit id. This file contains detailed information on the contribution of functions, files, and lines of code to the overall scalar performance count.
-- `target/diff/test_name.diff`: The annotated performance difference between two commits. This file contains the overall performance difference and also details the instruction counts, how many instructions a particular file/function account for, and the contribution of individual lines of code to the overall instruction count difference.
+- `target/regression_artifact/$commit_type/$commit_id_test_name.raw`: Contains the raw cachegrind profile. On its own, the file is pretty much unreadable but is useful for the cg_annotate --diff functionality or to visualize the profile via tools like [KCachegrind](https://kcachegrind.github.io/html/Home.html).
+- `target/regression_artifacts/$commit_type/$commit_id_test_name.annotated`: The scalar annotated profile associated with that particular commit id. This file contains detailed information on the contribution of functions, files, and lines of code to the overall scalar performance count.
+- `target/regression_artifacts/diff/test_name.diff`: The annotated performance difference between two commits. This file contains the overall performance difference and also details the instruction counts, how many instructions a particular file/function account for, and the contribution of individual lines of code to the overall instruction count difference.
 
 ## Sample Output for Valgrind test (differential)
 
