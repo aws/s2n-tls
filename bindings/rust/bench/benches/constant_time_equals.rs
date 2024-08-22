@@ -36,7 +36,7 @@ fn memcmp(a: &[u8], b: &[u8]) -> i32 {
 }
 
 extern "C" {
-    // s2n_constant_time_equals is no exposed publicly, so we manually write the
+    // s2n_constant_time_equals is not exposed publicly, so we manually write the
     // bindings for it.
     //
     // bool s2n_constant_time_equals(const uint8_t *a, const uint8_t *b, const uint32_t len)
