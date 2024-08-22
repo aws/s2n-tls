@@ -59,7 +59,7 @@ fn comparison(criterion: &mut Criterion) {
     // use a separate copy to avoid the timing difference caused by loads
     a_copy.copy_from_slice(&a);
 
-    // compare memcmp vs s2n_constant_time_equals, small data && data equal
+    // compare memcmp vs s2n_constant_time_equals, small data && data not equal
     let mut group = criterion.benchmark_group("low-level-comparison - small data, not equal");
     group.bench_function("memcmp", |bencher| bencher.iter(|| memcmp(&a, &b)));
 
