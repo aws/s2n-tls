@@ -86,6 +86,8 @@ fn comparison(criterion: &mut Criterion) {
     group.bench_function("memcmp", |bencher| {
         bencher.iter(|| {
             for e in pathological_data.iter() {
+                // use "black box" to prevent the compiler from optimizing out the 
+                // memcmp operation
                 std::hint::black_box(memcmp(e, &a));
             }
         })
