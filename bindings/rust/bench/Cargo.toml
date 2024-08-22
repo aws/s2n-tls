@@ -60,3 +60,7 @@ harness = false
 [[bench]]
 name = "resumption"
 harness = false
+
+[[bench]]
+name = "connection_creation"
+harness = false

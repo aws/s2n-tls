@@ -41,36 +41,35 @@ jobs:
           make
           sudo make install
 
-      # Generate the necessary bindings
-      - name: Generate
-        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
-
-      # Run performance tests using Valgrind for current branch
-      - name: Run scalar performance test (curr)
-        env:
-          PERF_MODE: valgrind
-        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
-
       # Switch to the main branch
       - name: Switch to mainline
         run: |
           git fetch origin main
           git switch main
 
-      # Regenerate bindings for main branch
-      - name: Generate
+      # Generate bindings for main branch
+      - name: Generate bindings (mainline)
         run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
 
       # Run performance tests using Valgrind for main branch
-      - name: Run scalar performance test (prev)
+      - name: Run scalar performance test (mainline)
         env:
           PERF_MODE: valgrind
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
-      # Checkout pull request branch again
-      # This is required for cg_annotate diff to locate the changes in the PR to properly annotate the output diff file
+      # Checkout pull request branch
       - name: Checkout pull request branch
         run: git checkout ${{ github.event.pull_request.head.sha }}
+
+      # Generate bindings for PR branch
+      - name: Generate bindings (PR branch)
+        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
+
+      # Run performance tests using Valgrind for PR branch
+      - name: Run scalar performance test (PR branch)
+        env:
+          PERF_MODE: valgrind
+        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
       # Run the differential performance test
       - name: Run diff test
@@ -80,7 +79,7 @@ jobs:
 
       # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
       - name: Upload artifacts
-        if: ${{ always() }}  
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: regression_artifacts
