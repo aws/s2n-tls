@@ -323,7 +323,6 @@ int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in)
 
 int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *data, const uint32_t size)
 {
-
     /* Exit when no bytes is written */
     if (size == 0) {
         return S2N_SUCCESS;
@@ -449,7 +448,7 @@ int s2n_stuffer_shift(struct s2n_stuffer *stuffer)
     if (stuffer->read_cursor != 0) {
         data += stuffer->read_cursor;
     }
-    
+
     uint32_t data_size = s2n_stuffer_data_available(stuffer);
     POSIX_GUARD(s2n_stuffer_write_bytes(&copy, data, data_size));
     *stuffer = copy;
