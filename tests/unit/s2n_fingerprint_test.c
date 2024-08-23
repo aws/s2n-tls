@@ -214,10 +214,10 @@ int main(int argc, char **argv)
     {
         /* Safety */
         {
-            uint8_t output_value[1] = { 0 };
-            EXPECT_ERROR_WITH_ERRNO(
-                    s2n_fingerprint_hash_digest(NULL, output_value, sizeof(output_value)),
-                    S2N_ERR_NULL);
+            struct s2n_fingerprint_hash hash = { 0 };
+            struct s2n_blob output = { 0 };
+            EXPECT_ERROR_WITH_ERRNO(s2n_fingerprint_hash_digest(NULL, &output), S2N_ERR_NULL);
+            EXPECT_ERROR_WITH_ERRNO(s2n_fingerprint_hash_digest(&hash, NULL), S2N_ERR_NULL);
         };
 
         /* Digest successfully calculated */
@@ -229,10 +229,13 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_fingerprint_hash_add_str(&hash, test_str, test_str_len));
             EXPECT_EQUAL(hash.hash->currently_in_hash, test_str_len);
 
-            uint8_t actual_digest[sizeof(test_str_digest)] = { 0 };
-            EXPECT_OK(s2n_fingerprint_hash_digest(&hash, actual_digest, sizeof(actual_digest)));
-            EXPECT_BYTEARRAY_EQUAL(actual_digest, test_str_digest, sizeof(test_str_digest));
-            EXPECT_EQUAL(hash.bytes_digested, test_str_len);
+            uint8_t digest_bytes[sizeof(test_str_digest)] = { 0 };
+            struct s2n_blob actual_digest = { 0 };
+            EXPECT_SUCCESS(s2n_blob_init(&actual_digest, digest_bytes, sizeof(digest_bytes)));
+
+            EXPECT_OK(s2n_fingerprint_hash_digest(&hash, &actual_digest));
+            EXPECT_BYTEARRAY_EQUAL(test_str_digest, actual_digest.data, actual_digest.size);
+            EXPECT_EQUAL(test_str_len, hash.bytes_digested);
         };
 
         /* Hash can be reused after digest */
@@ -243,10 +246,14 @@ int main(int argc, char **argv)
 
             const size_t count = 10;
             for (size_t i = 0; i < count; i++) {
-                uint8_t actual_digest[sizeof(test_str_digest)] = { 0 };
+                uint8_t digest_bytes[sizeof(test_str_digest)] = { 0 };
+                struct s2n_blob actual_digest = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&actual_digest, digest_bytes, sizeof(digest_bytes)));
+
                 EXPECT_OK(s2n_fingerprint_hash_add_str(&hash, test_str, test_str_len));
-                EXPECT_OK(s2n_fingerprint_hash_digest(&hash, actual_digest, sizeof(actual_digest)));
-                EXPECT_BYTEARRAY_EQUAL(actual_digest, test_str_digest, sizeof(test_str_digest));
+                EXPECT_OK(s2n_fingerprint_hash_digest(&hash, &actual_digest));
+
+                EXPECT_BYTEARRAY_EQUAL(test_str_digest, actual_digest.data, actual_digest.size);
             }
             EXPECT_EQUAL(hash.bytes_digested, test_str_len * count);
         };
@@ -271,10 +278,10 @@ int main(int argc, char **argv)
 
     /* Test s2n_assert_grease_value */
     {
-        EXPECT_TRUE(s2n_is_grease_value(0x0A0A));
-        EXPECT_TRUE(s2n_is_grease_value(0xFAFA));
-        EXPECT_FALSE(s2n_is_grease_value(0x0000));
-        EXPECT_FALSE(s2n_is_grease_value(0x0001));
+        EXPECT_TRUE(s2n_fingerprint_is_grease_value(0x0A0A));
+        EXPECT_TRUE(s2n_fingerprint_is_grease_value(0xFAFA));
+        EXPECT_FALSE(s2n_fingerprint_is_grease_value(0x0000));
+        EXPECT_FALSE(s2n_fingerprint_is_grease_value(0x0001));
     };
 
     /* Test s2n_fingerprint_new / s2n_fingerprint_free */

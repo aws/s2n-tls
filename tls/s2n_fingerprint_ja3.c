@@ -32,10 +32,9 @@ static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
     }
 
     uint8_t digest_bytes[MD5_DIGEST_LENGTH] = { 0 };
-    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest_bytes, sizeof(digest_bytes)));
-
     struct s2n_blob digest = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&digest, digest_bytes, sizeof(digest_bytes)));
+    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, &digest));
     RESULT_GUARD(s2n_stuffer_write_hex(out, &digest));
 
     return S2N_RESULT_OK;
@@ -44,7 +43,7 @@ static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
 static S2N_RESULT s2n_fingerprint_ja3_iana(struct s2n_fingerprint_hash *hash,
         bool *is_list, uint16_t iana)
 {
-    if (s2n_is_grease_value(iana)) {
+    if (s2n_fingerprint_is_grease_value(iana)) {
         return S2N_RESULT_OK;
     }
 
