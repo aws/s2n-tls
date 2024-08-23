@@ -202,9 +202,6 @@ int test_count;
 
 #define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) \
     do { \
-        /* Memcmp is annotated with a non-null attribute. The if statement prevents \
-         * calling memcmp with NULL arguments when the length is zero. \
-         */ \
         if (l != 0) { \
             EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 ); \
         } \
