@@ -30,17 +30,17 @@ impl Policy {
     }
 
     /// Construct a numbered security policy.
-    /// 
+    ///
     /// Numbered security policies are stable and will not change, in comparison
     /// to default security policies: [DEFAULT] and [DEFAULT_TLS13].
-    /// 
+    ///
     /// See the s2n-tls usage guide for details on available policies:
     /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
     /// ```
     /// use s2n_tls::{config, security};
-    /// 
+    ///
     /// let mut config = config::Builder::new();
-    /// 
+    ///
     /// // "20240501" is a numbered security policy. More information can be found
     /// // in the linked s2n-tls usage guide.
     /// let security_policy = match security::Policy::from_version("20240501") {
