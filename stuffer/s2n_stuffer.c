@@ -323,6 +323,10 @@ int s2n_stuffer_write(struct s2n_stuffer *stuffer, const struct s2n_blob *in)
 
 int s2n_stuffer_write_bytes(struct s2n_stuffer *stuffer, const uint8_t *data, const uint32_t size)
 {
+    if (size == 0) {
+        return S2N_SUCCESS;
+    }
+
     POSIX_ENSURE(S2N_MEM_IS_READABLE(data, size), S2N_ERR_SAFETY);
     POSIX_PRECONDITION(s2n_stuffer_validate(stuffer));
     POSIX_GUARD(s2n_stuffer_skip_write(stuffer, size));
@@ -437,7 +441,13 @@ int s2n_stuffer_shift(struct s2n_stuffer *stuffer)
     POSIX_ENSURE_REF(stuffer);
     struct s2n_stuffer copy = *stuffer;
     POSIX_GUARD(s2n_stuffer_rewrite(&copy));
-    uint8_t *data = stuffer->blob.data + stuffer->read_cursor;
+
+    uint8_t *data = stuffer->blob.data;
+    /* Adding 0 to a NULL value is undefined behavior */
+    if (stuffer->read_cursor != 0) {
+        data += stuffer->read_cursor;
+    }
+
     uint32_t data_size = s2n_stuffer_data_available(stuffer);
     POSIX_GUARD(s2n_stuffer_write_bytes(&copy, data, data_size));
     *stuffer = copy;
