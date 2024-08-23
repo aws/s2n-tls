@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 publish = false
 
+[features]
+default = []
+ja4 = [] # Older versions of tshark do not support JA4
+
 [dependencies]
 anyhow = "1.0.86"
 hex = "0.4.3"

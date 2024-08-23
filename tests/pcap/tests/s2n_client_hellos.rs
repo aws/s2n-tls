@@ -14,9 +14,9 @@ fn get_s2n_hello(pcap_hello: &PcapHello) -> Result<Box<S2NHello>> {
     Ok(r?)
 }
 
-fn test_all_client_hellos<F>(test_fn: F) -> Result<()>
+fn test_all_client_hellos<F>(mut test_fn: F) -> Result<()>
 where
-    F: FnOnce(PcapHello, Box<S2NHello>) -> Result<()> + Copy,
+    F: FnMut(PcapHello, Box<S2NHello>) -> Result<()>,
 {
     let pcaps = all_pcaps();
     for pcap in pcaps {
@@ -59,6 +59,32 @@ fn ja3_fingerprints() -> Result<()> {
 
         assert_eq!(pcap_hello.ja3_hash(), Some(s2n_ja3_hash));
         assert_eq!(pcap_hello.ja3_string(), Some(s2n_ja3_str));
+        Ok(())
+    })
+}
+
+#[cfg(feature = "ja4")]
+#[test]
+fn ja4_fingerprints() -> Result<()> {
+    use s2n_tls::fingerprint;
+
+    let mut builder = fingerprint::Builder::new(FingerprintType::JA4)?;
+
+    test_all_client_hellos(|pcap_hello, s2n_hello| {
+        let mut fingerprint = builder.build(&s2n_hello)?;
+
+        let s2n_ja4_hash = fingerprint
+            .hash()
+            .context("s2n failed to calculate ja4 hash")?
+            .to_owned();
+
+        let s2n_ja4_str = fingerprint
+            .raw()
+            .context("s2n failed to calculate ja4 string")?
+            .to_owned();
+
+        assert_eq!(pcap_hello.ja4_hash(), Some(s2n_ja4_hash));
+        assert_eq!(pcap_hello.ja4_string(), Some(s2n_ja4_str));
         Ok(())
     })
 }
