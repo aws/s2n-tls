@@ -442,8 +442,8 @@ int s2n_stuffer_shift(struct s2n_stuffer *stuffer)
     struct s2n_stuffer copy = *stuffer;
     POSIX_GUARD(s2n_stuffer_rewrite(&copy));
 
-    /* Adding 0 to a NULL value is undefined behavior */
     uint8_t *data = stuffer->blob.data;
+    /* Adding 0 to a NULL value is undefined behavior */
     if (stuffer->read_cursor != 0) {
         data += stuffer->read_cursor;
     }
