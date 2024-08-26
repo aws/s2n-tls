@@ -186,6 +186,7 @@ endif()
 if(S2N_UNSAFE_FUZZING_MODE)
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
     target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
+    # -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1
 endif()
 
 if(TSAN)
@@ -628,22 +629,22 @@ if (BUILD_TESTING)
         file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/global_overrides.c")
         add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
 
-        target_compile_options(global_overrides PRIVATE 
+        target_compile_options(global_overrides PRIVATE
+            # -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
             -Wno-unreachable-code -O0 -shared -fPIC
         )   
+
+        target_include_directories(global_overrides PRIVATE ./)
+
+        target_link_libraries(global_overrides PRIVATE 
+            fuzztest
+        )
 
         # Ensure the overriding library is stored in the expected directory without "lib" prefix
         set_target_properties(global_overrides PROPERTIES
             PREFIX ""
             LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD
         )
-
-        target_include_directories(global_overrides PRIVATE ./)
-        # target_include_directories(global_overrides PRIVATE utils)
-        # target_include_directories(global_overrides PRIVATE api)
-
-        # target_link_libraries(global_overrides PRIVATE ${UTILS_SRC})
-        target_link_libraries(global_overrides PRIVATE fuzztest)
 
         set(CMAKE_C_COMPILER clang)
 
@@ -653,11 +654,6 @@ if (BUILD_TESTING)
             add_executable(${TEST_NAME} ${src})
             target_include_directories(${TEST_NAME} PRIVATE ./)
             # target_link_libraries(${TEST_NAME} PRIVATE fuzztest)
-
-            # target_include_directories(${TEST_NAME} PRIVATE ./)
-            # target_include_directories(${TEST_NAME} PRIVATE tests)
-            # target_include_directories(${TEST_NAME} PRIVATE tests/testlib)
-            # target_include_directories(${TEST_NAME} PRIVATE api)
 
             # automatically link libFuzzer that comes with clang
             # target_compile_options(${TEST_NAME} PUBLIC 

@@ -143,7 +143,7 @@ if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     rm -f ./profiles/${TEST_NAME}/*.profraw
     LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 else
-    ./${TEST_NAME} ${LIBFUZZER_ARGS} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
 TEST_INFO=$(
