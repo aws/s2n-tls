@@ -84,56 +84,56 @@ batch:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: gcc
     - identifier: clang_awslc_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
     - identifier: clang_openssl_3_0_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
     - identifier: clang_openssl_1_1_1_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: clang
     - identifier: clang_openssl_1_0_2_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: clang
     - identifier: gcc_awslc_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: gcc
     - identifier: gcc_openssl_3_0_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: gcc
     - identifier: gcc_openssl_1_1_1_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: gcc
     - identifier: gcc_openssl_1_0_2_asan
-      buildspec: codebuild/spec/buildspec_asan.yml
+      buildspec: codebuild/spec/buildspec_new_asan.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:

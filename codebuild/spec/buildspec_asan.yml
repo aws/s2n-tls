@@ -13,10 +13,80 @@
 # limitations under the License.
 version: 0.2
 
-env:
-  variables:
-    # CODEBUILD_ is a reserved namespace.
-    CB_BIN_DIR: "./codebuild/bin"
+# This buildspec runs on an Ubuntu22 image. That configuration is a property of
+# the codebuild job itself.
+
+# Codebuild's matrix jobs have non-differentiated names so use batch-list
+# instead.
+
+# Parameter motivation
+
+# COMPILERS
+# We run asan on both gcc and clang because of different features sets for their
+# address sanitizers. Specifically there was a case where GCC was able to detect
+# a memcpy-param-overlap that Clang did not.
+
+# LIBCRYPTOS
+# awslc: happy path libcrypto for s2n-tls
+# openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 
+#            asan on it. See pr 4033 for a historical motivating example.
+# openssl 1.1.1: a widely deployed version of openssl.
+# openssl 1.0.2: the default libcrypto on AL2, and AL2 is still widely deployed.
+
+# CMAKE_BUILD_TYPE
+# RelWithDebInfo: This instructs CMake to do all optimizations (Rel -> Release)
+# along with debug info (DebInfo). Debug info is necessary to get line numbers 
+# in the stack traces that ASAN reports.
+batch:
+  build-list:
+    - identifier: clang_awslc
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: awslc
+          COMPILER: clang
+    - identifier: clang_openssl_3_0
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0
+          COMPILER: clang
+    - identifier: clang_openssl_1_1_1
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          COMPILER: clang
+    - identifier: clang_openssl_1_0_2
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2
+          COMPILER: clang
+    - identifier: gcc_awslc
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: awslc
+          COMPILER: gcc
+    - identifier: gcc_openssl_3_0
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0
+          COMPILER: gcc
+    - identifier: gcc_openssl_1_1_1
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          COMPILER: gcc
+    - identifier: gcc_openssl_1_0_2
+      env:
+        compute-type: BUILD_GENERAL1_LARGE
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2
+          COMPILER: gcc
 
 phases:
   pre_build:
@@ -30,7 +100,6 @@ phases:
   build:
     on-failure: ABORT
     commands:
-      - printenv
       - |
         cmake . -Bbuild \
           -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
