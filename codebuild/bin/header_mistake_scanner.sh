@@ -35,6 +35,16 @@ for file in $S2N_FILES; do
     fi
 done
 
+for file in $S2N_FILES; do
+    # The Apache 2.0 License should appear in every file
+    COUNT=`head -5 $file | grep -E "Apache License, Version 2.0|Apache-2.0" | wc -l`;
+    if [ "$COUNT" == "0" ];
+    then
+        FAILED=1;
+        echo "License Check Failed: $file";
+    fi
+done
+
 if [ $FAILED == 1 ];
 then
     printf "\\033[31;1mFAILED Copyright Check\\033[0m\\n"

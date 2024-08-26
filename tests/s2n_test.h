@@ -200,7 +200,13 @@ int test_count;
 /* for use with S2N_RESULT */
 #define EXPECT_OK( function_call )  EXPECT_TRUE( s2n_result_is_ok(function_call) )
 
-#define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
+#define EXPECT_BYTEARRAY_EQUAL( p1, p2, l ) \
+    do { \
+        if (l != 0) { \
+            EXPECT_EQUAL( memcmp( (p1), (p2), (l) ), 0 ); \
+        } \
+    } while (0)
+
 #define EXPECT_BYTEARRAY_NOT_EQUAL( p1, p2, l ) EXPECT_NOT_EQUAL( memcmp( (p1), (p2), (l) ), 0 )
 
 #define EXPECT_STRING_EQUAL( p1, p2 ) EXPECT_EQUAL( strcmp( (p1), (p2) ), 0 )
