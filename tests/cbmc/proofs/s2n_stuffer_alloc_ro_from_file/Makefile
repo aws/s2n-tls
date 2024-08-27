@@ -33,7 +33,6 @@ PROOF_SOURCES += $(PROOF_STUB)/s2n_calculate_stacktrace.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_file.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET += s2n_stuffer_alloc_ro_from_file.6:3
 

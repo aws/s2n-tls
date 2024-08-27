@@ -25,7 +25,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 #No loops to unwind
 UNWINDSET +=
