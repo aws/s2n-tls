@@ -180,7 +180,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_blob_init(&raw_bytes, bytes, sizeof(bytes)));
         EXPECT_OK(s2n_stuffer_write_hex(&encoded, &raw_bytes));
 
-        DEFER_CLEANUP(struct s2n_blob decoded, s2n_free);
+        DEFER_CLEANUP(struct s2n_blob decoded = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&decoded, sizeof(bytes)));
         EXPECT_OK(s2n_stuffer_read_hex(&encoded, &decoded));
         EXPECT_BYTEARRAY_EQUAL(decoded.data, bytes, sizeof(bytes));

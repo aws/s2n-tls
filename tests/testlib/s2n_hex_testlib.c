@@ -35,6 +35,7 @@ S2N_RESULT s2n_stuffer_alloc_from_hex(struct s2n_stuffer *bytes_out, const char 
     uint32_t bytes_size = strlen(hex_cstr) / 2;
     RESULT_GUARD_POSIX(s2n_stuffer_alloc(bytes_out, bytes_size));
     RESULT_GUARD(s2n_stuffer_read_hex(&hex, &bytes_out->blob));
+    RESULT_ENSURE(s2n_stuffer_data_available(&hex) == 0, S2N_ERR_BAD_HEX);
     RESULT_GUARD_POSIX(s2n_stuffer_skip_write(bytes_out, bytes_size));
     return S2N_RESULT_OK;
 }
@@ -56,5 +57,6 @@ S2N_RESULT s2n_blob_alloc_from_hex_with_whitespace(struct s2n_blob *bytes_out, c
 
     RESULT_GUARD_POSIX(s2n_alloc(bytes_out, hex_in_size / 2));
     RESULT_GUARD(s2n_stuffer_read_hex(&hex_in, bytes_out));
+    RESULT_ENSURE(s2n_stuffer_data_available(&hex_in) == 0, S2N_ERR_BAD_HEX);
     return S2N_RESULT_OK;
 }
