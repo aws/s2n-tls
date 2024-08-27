@@ -39,6 +39,7 @@ option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(S2N_USE_CRYPTO_SHARED_LIBS "For S2N to use shared libs in Findcrypto" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
+option(FUZZ "Build fuzz test" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -625,20 +626,28 @@ if (BUILD_TESTING)
             set(FUZZ_TESTS "${TESTS}")
         endif()
 
-        # Build LD_PRELOAD shared libraries (need to add other preloads as well)
+        # Build LD_PRELOAD shared libraries
+        # file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
         file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/global_overrides.c")
-        add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
 
-        target_compile_options(global_overrides PRIVATE
-            # -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
-            -Wno-unreachable-code -O0 -shared -fPIC
-        )   
+        # adding the source files will cause multiple definition error
+        add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS} ${S2N_HEADERS} ${S2N_SRC})
+        # not adding the source file will cause undefined symbol error
+        # add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
 
-        target_include_directories(global_overrides PRIVATE ./)
-
-        target_link_libraries(global_overrides PRIVATE 
-            fuzztest
+        target_include_directories(global_overrides PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/api
+            # ${LIBCRYPTO_ROOT}/include
         )
+
+        # Set the link options, ignoring duplicate definitions. Not recommended
+        # target_link_options(global_overrides PRIVATE -Wl,--allow-multiple-definition)
+        # -ldl doesn't seem to be used by fuzz test
+        # target_link_options(global_overrides PRIVATE -ldl)
+        target_compile_options(global_overrides PRIVATE
+            -Wno-unreachable-code -O0 -fPIC -Wno-deprecated-declarations
+        )   
 
         # Ensure the overriding library is stored in the expected directory without "lib" prefix
         set_target_properties(global_overrides PROPERTIES
@@ -691,6 +700,9 @@ if (BUILD_TESTING)
             add_custom_command(
                 OUTPUT ${TEST_NAME}_result
                 COMMAND ${CMAKE_COMMAND} -E env
+                    DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
+                    LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
+                    # what is Cmake equivalent of $(LIBCRYPTO_ROOT)?
                     bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh
                     ${TEST_NAME}
                     ${FUZZ_TIMEOUT_SEC}
