@@ -20,14 +20,15 @@ al2023_main(){
     echo "Insatlling AL2023 packages"
     mono
     common_packages
+    al2023_packages
     versions
 }
 
 al2_main() {
     echo "Insatlling AL2 packages"
-    al2_packages
     mono
     common_packages
+    al2_packages
     symlink_all_the_things
 
     case "$S2N_LIBCRYPTO" in
@@ -43,8 +44,15 @@ al2_main() {
 
 common_packages(){
     yum groupinstall -y "Development tools"
-    yum install -y clang cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
+    yum install -y clang git cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
     yum install -y python3-pip tcpdump unzip zlib-devel libtool ninja-build valgrind wget
+}
+
+al2023_packages(){
+    # Openssl 3.0 headers and go
+    yum install -y openssl-devel golang
+    # TODO: cmake isn't finding awslc
+    #./codebuild/bin/install_awslc.sh $(mktemp -d) /usr/local/awsc 0
 }
 
 al2_packages() {
@@ -87,11 +95,11 @@ versions(){
 
 if [[ ${DISTRO} != "amazon linux" ]]; then
     echo "Target Amazon Linux, but running on $DISTRO: Nothing to do."
-    exit 0
+    exit 0;
 else
     if [[ ${VERSION_ID} == '2' ]]; then
-        al2_main
+        al2_main;
     elif [[ ${VERSION_ID} == '2023' ]]; then
-        al2023_main
+        al2023_main;
     fi
 fi
