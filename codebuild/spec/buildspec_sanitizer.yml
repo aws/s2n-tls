@@ -8,22 +8,12 @@ version: 0.2
 
 # Parameter motivation
 
-# COMPILERS
-# We run asan on both gcc and clang because of different features sets for their
-# address sanitizers. Specifically there was a case where GCC was able to detect
-# a memcpy-param-overlap that Clang did not.
-
 # LIBCRYPTOS
 # awslc: happy path libcrypto for s2n-tls
 # openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 
 #            asan on it. See pr 4033 for a historical motivating example.
 # openssl 1.1.1: a widely deployed version of openssl.
 # openssl 1.0.2: the default libcrypto on AL2, and AL2 is still widely deployed.
-
-# CMAKE_BUILD_TYPE
-# RelWithDebInfo: This instructs CMake to do all optimizations (Rel -> Release)
-# along with debug info (DebInfo). Debug info is necessary to get line numbers 
-# in the stack traces that ASAN reports.
 
 batch:
   build-list:
