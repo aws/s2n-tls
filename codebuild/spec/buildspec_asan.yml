@@ -114,7 +114,7 @@ phases:
           -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
           -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          -DASAN=ON
+          -DUBSAN=ON
       - cmake --build ./build -- -j $(nproc)
       - CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
       - echo "UBSAN check done"
