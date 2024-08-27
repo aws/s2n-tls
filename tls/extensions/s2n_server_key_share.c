@@ -39,7 +39,7 @@ static int s2n_server_key_share_generate_pq_hybrid(struct s2n_connection *conn, 
     POSIX_ENSURE_REF(out);
     POSIX_ENSURE_REF(conn);
 
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
@@ -74,7 +74,7 @@ int s2n_server_key_share_send_check_pq_hybrid(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_group);
     POSIX_ENSURE_REF(conn->kex_params.server_kem_group_params.kem_params.kem);
@@ -165,7 +165,7 @@ static int s2n_server_key_share_recv_pq_hybrid(struct s2n_connection *conn, uint
 
     /* If PQ is disabled, the client should not have sent any PQ IDs
      * in the supported_groups list of the initial ClientHello */
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
 
     const struct s2n_kem_preferences *kem_pref = NULL;
     POSIX_GUARD(s2n_connection_get_kem_preferences(conn, &kem_pref));

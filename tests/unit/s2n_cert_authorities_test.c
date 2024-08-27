@@ -65,7 +65,7 @@ int main(int argc, char **argv)
             } else {
                 EXPECT_FAILURE_WITH_ERRNO(
                         s2n_config_set_cert_authorities_from_trust_store(config),
-                        S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+                        S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
                 EXPECT_EQUAL(config->cert_authorities.size, 0);
             }
         };
