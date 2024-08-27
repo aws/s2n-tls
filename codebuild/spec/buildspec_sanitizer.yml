@@ -8,6 +8,12 @@ version: 0.2
 
 # Parameter motivation
 
+# COMPILERS
+# We run asan and ubsan on both gcc and clang because of different features set
+# for their address sanitizers. For asan, there was a case where GCC was able to detect
+# a memcpy-param-overlap that Clang did not. GCC and clang's checks for ubsan are also
+# slightly different.
+
 # LIBCRYPTOS
 # awslc: happy path libcrypto for s2n-tls
 # openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 

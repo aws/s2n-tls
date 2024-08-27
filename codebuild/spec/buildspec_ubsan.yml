@@ -18,11 +18,7 @@ version: 0.2
 # CMAKE_BUILD_TYPE
 # RelWithDebInfo: This instructs CMake to do all optimizations (Rel -> Release)
 # along with debug info (DebInfo). Debug info is necessary to get line numbers 
-# in the stack traces that ASAN reports.
-
-# COMPILERS
-# We run ubsan on both gcc and clang because of different features sets for their
-# unknown behavior sanitizers.
+# in the stack traces that UBSAN reports.
 
 env:
   variables:

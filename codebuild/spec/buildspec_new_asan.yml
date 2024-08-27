@@ -20,11 +20,6 @@ version: 0.2
 # along with debug info (DebInfo). Debug info is necessary to get line numbers 
 # in the stack traces that ASAN reports.
 
-# COMPILERS
-# We run asan on both gcc and clang because of different features sets for their
-# address sanitizers. Specifically there was a case where GCC was able to detect
-# a memcpy-param-overlap that Clang did not.
-
 env:
   variables:
     # CODEBUILD_ is a reserved namespace.
