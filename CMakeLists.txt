@@ -187,7 +187,6 @@ endif()
 if(S2N_UNSAFE_FUZZING_MODE)
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
     target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
-    # -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1
 endif()
 
 if(TSAN)
@@ -677,8 +676,7 @@ if (BUILD_TESTING)
             target_compile_options(${TEST_NAME} PRIVATE 
                 -g -O0
                 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
-                -Wno-cast-qual  # Suppress the cast-qual warning
-                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated
+                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -Wno-unused-result
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
