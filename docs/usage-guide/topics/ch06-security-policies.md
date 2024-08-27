@@ -51,7 +51,8 @@ In contrast, numbered or dated versions are fixed and will never change. The num
 * "default": "20240701"
 * "default_fips": "20240702"
 * "default_tls13": "20240503"
-For previous defaults, see the "Default Policy History" section below.
+
+For previous defaults versions, see the "Default Policy History" section below.
 
 "rfc9151" is derived from [Commercial National Security Algorithm (CNSA) Suite Profile for TLS and DTLS 1.2 and 1.3](https://datatracker.ietf.org/doc/html/rfc9151). This policy restricts the algorithms allowed for signatures on certificates in the certificate chain to RSA or ECDSA with sha384, which may require you to update your certificates.
 Like the default policies, this policy may also change if the source RFC definition changes.
@@ -142,6 +143,6 @@ s2n-tls usually prefers AES over ChaCha20. However, some clients-- particularly 
 ### Default Policy History
 |  Version   | "default" | "default_fips" | "default_tls13" |
 |------------|-----------|----------------|-----------------|
-|  v1.4.xx   | 20240701  |   20247502     |    20240503     |
+|  v1.4.TODO   | 20240701  |   20247502     |    20240503     |
 |  v1.4.16   | 20240501  |   20240502     |    20240503     |
 |   Older    | 20170210  |   20240416     |    20240417     |
