@@ -107,7 +107,14 @@ phases:
           -DCMAKE_BUILD_TYPE=RelWithDebInfo \
           -DASAN=ON
       - cmake --build ./build -- -j $(nproc)
-  post_build:
-    on-failure: ABORT
-    commands:
       - CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
+      - echo "ASAN check done"
+      - |
+        cmake . -Bbuild \
+          -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
+          -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
+          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+          -DASAN=ON
+      - cmake --build ./build -- -j $(nproc)
+      - CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
+      - echo "UBSAN check done"
