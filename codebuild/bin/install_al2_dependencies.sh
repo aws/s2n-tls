@@ -16,12 +16,38 @@
 set -eu
 source ./codebuild/bin/s2n_setup_env.sh
 
-if [[ ${DISTRO} != "amazon linux" ]]; then
-    echo "Target AL2, but running on $DISTRO: Nothing to do."
-    exit 0
-fi
+al2023_main(){
+    echo "Insatlling AL2023 packages"
+    mono
+    common_packages
+    versions
+}
 
-base_packages() {
+al2_main() {
+    echo "Insatlling AL2 packages"
+    al2_packages
+    mono
+    common_packages
+    symlink_all_the_things
+
+    case "$S2N_LIBCRYPTO" in
+    "openssl-1.1.1")
+        yum erase -y openssl-devel || true
+        yum install -y openssl11-static openssl11-libs openssl11-devel
+        ;;
+    "default") echo "Using default system libcrypto";;
+    *) echo "Unknown libcrypto: ${S2N_LIBCRYPTO}"; exit 1;;
+    esac
+    versions
+}
+
+common_packages(){
+    yum groupinstall -y "Development tools"
+    yum install -y clang cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
+    yum install -y python3-pip tcpdump unzip zlib-devel libtool ninja-build valgrind wget
+}
+
+al2_packages() {
     # Latest AL2 image had dependency issues related to NodeJS.
     # We don't use NodeJS, so just remove it.
     yum erase -y nodejs || true
@@ -52,19 +78,20 @@ symlink_all_the_things() {
     update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700
 }
 
+versions(){
+    gcc --version
+    cmake --version
+    python3 --version
+    ninja --version
+}
 
-base_packages
-mono
-yum groupinstall -y "Development tools"
-yum install -y clang cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
-yum install -y python3-pip tcpdump unzip zlib-devel libtool ninja-build valgrind wget
-symlink_all_the_things
-
-case "$S2N_LIBCRYPTO" in
-  "openssl-1.1.1")
-    yum erase -y openssl-devel || true
-    yum install -y openssl11-static openssl11-libs openssl11-devel
-    ;;
-  "default") echo "Using default system libcrypto";;
-  *) echo "Unknown libcrypto: ${S2N_LIBCRYPTO}"; exit 1;;
-esac
+if [[ ${DISTRO} != "amazon linux" ]]; then
+    echo "Target Amazon Linux, but running on $DISTRO: Nothing to do."
+    exit 0
+else
+    if [[ ${VERSION_ID} == '2' ]]; then
+        al2_main
+    elif [[ ${VERSION_ID} == '2023' ]]; then
+        al2023_main
+    fi
+fi
