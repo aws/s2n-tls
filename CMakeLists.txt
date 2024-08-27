@@ -146,7 +146,7 @@ elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
-if(BUILD_TESTING AND BUILD_SHARED_LIBS)
+if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_UNSAFE_FUZZING_MODE)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
@@ -591,7 +591,7 @@ if (BUILD_TESTING)
         endforeach()
     endif()
 
-    if(FUZZ)
+    if(S2N_UNSAFE_FUZZING_MODE)
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
@@ -603,7 +603,6 @@ if (BUILD_TESTING)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
         # if linking libfuzzer locally:
-        # set(LIBFUZZER_LIB "${CMAKE_CURRENT_SOURCE_DIR}/test-deps/libfuzzer/lib/libFuzzer.a")
         set(LIBFUZZER_LIB "/home/ubuntu/libFuzzer/lib/lib/libFuzzer.a")
         # if linking libfuzzer in CI:
         # set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
@@ -628,12 +627,13 @@ if (BUILD_TESTING)
 
         # Build LD_PRELOAD shared libraries
         # file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
+        # build just the global one first
         file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/global_overrides.c")
 
         # adding the source files will cause multiple definition error
-        add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS} ${S2N_HEADERS} ${S2N_SRC})
+        # add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS} ${S2N_HEADERS} ${S2N_SRC})
         # not adding the source file will cause undefined symbol error
-        # add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
+        add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
 
         target_include_directories(global_overrides PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}
