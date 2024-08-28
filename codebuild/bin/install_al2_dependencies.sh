@@ -18,7 +18,6 @@ source ./codebuild/bin/s2n_setup_env.sh
 
 al2023_main(){
     echo "Insatlling AL2023 packages"
-    mono
     common_packages
     al2023_packages
     versions
@@ -26,7 +25,6 @@ al2023_main(){
 
 al2_main() {
     echo "Insatlling AL2 packages"
-    mono
     common_packages
     al2_packages
     symlink_all_the_things
@@ -43,9 +41,12 @@ al2_main() {
 }
 
 common_packages(){
+    # Borrowed from https://github.com/aws/aws-codebuild-docker-images/blob/master/al2/x86_64/standard/5.0/Dockerfile#L24
+    mono
     yum groupinstall -y "Development tools"
     yum install -y clang git cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
     yum install -y python3-pip tcpdump unzip zlib-devel libtool ninja-build valgrind wget
+    rm /etc/yum.repos.d/mono-centos7-stable.repo
 }
 
 al2023_packages(){
