@@ -185,6 +185,7 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
+    # set(LIBFUZZER_LIB "/home/ubuntu/libFuzzer/lib/lib/libFuzzer.a")
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
     target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
 endif()
@@ -597,7 +598,7 @@ if (BUILD_TESTING)
         file(GLOB TESTLIB_SRC "tests/testlib/*.c")
         file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
 
-        add_library(fuzztest STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+        add_library(fuzztest SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
@@ -608,7 +609,6 @@ if (BUILD_TESTING)
 
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
-            # choose shorter duration for testing
             set(FUZZ_TIMEOUT_SEC 30)
         endif()
 
@@ -625,34 +625,25 @@ if (BUILD_TESTING)
         endif()
 
         # Build LD_PRELOAD shared libraries
-        # file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
-        # build just the global one first
-        file(GLOB GLOBAL_OVERRIDES_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/global_overrides.c")
-
-        # adding the source files will cause multiple definition error
-        # add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS} ${S2N_HEADERS} ${S2N_SRC})
-        # not adding the source file will cause undefined symbol error
-        add_library(global_overrides SHARED ${GLOBAL_OVERRIDES_SRCS})
-
-        target_include_directories(global_overrides PRIVATE
+        include_directories(
             ${CMAKE_CURRENT_SOURCE_DIR}
             ${CMAKE_CURRENT_SOURCE_DIR}/api
-            # ${LIBCRYPTO_ROOT}/include
         )
+        set(LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD)
+        file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
+        foreach(SRC ${LIBRARY_SRCS})
+            get_filename_component(LIB_NAME ${SRC} NAME_WE)
+            add_library(${LIB_NAME} SHARED ${SRC})
 
-        # Set the link options, ignoring duplicate definitions. Not recommended
-        # target_link_options(global_overrides PRIVATE -Wl,--allow-multiple-definition)
-        # -ldl doesn't seem to be used by fuzz test
-        # target_link_options(global_overrides PRIVATE -ldl)
-        target_compile_options(global_overrides PRIVATE
-            -Wno-unreachable-code -O0 -fPIC -Wno-deprecated-declarations
-        )   
-
-        # Ensure the overriding library is stored in the expected directory without "lib" prefix
-        set_target_properties(global_overrides PROPERTIES
-            PREFIX ""
-            LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD
-        )
+            # Set the output directory and remove the default "lib" prefix
+            set_target_properties(${LIB_NAME} PROPERTIES
+                PREFIX ""
+                LIBRARY_OUTPUT_DIRECTORY ${LIBRARY_OUTPUT_DIRECTORY}
+            )
+            target_compile_options(${LIB_NAME} PRIVATE
+                -Wno-unreachable-code -O0 -fPIC -Wno-deprecated-declarations -fvisibility=default
+            )
+        endforeach()
 
         set(CMAKE_C_COMPILER clang)
 
@@ -672,7 +663,6 @@ if (BUILD_TESTING)
             #     -fsanitize=fuzzer
             # )
             
-            # Link with testss2n and manually link libFuzzer.a
             target_compile_options(${TEST_NAME} PRIVATE 
                 -g -O0
                 -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
@@ -700,7 +690,6 @@ if (BUILD_TESTING)
                 COMMAND ${CMAKE_COMMAND} -E env
                     DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
                     LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
-                    # what is Cmake equivalent of $(LIBCRYPTO_ROOT)?
                     bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh
                     ${TEST_NAME}
                     ${FUZZ_TIMEOUT_SEC}
@@ -712,7 +701,6 @@ if (BUILD_TESTING)
 
             add_custom_target(run_${TEST_NAME}
                 DEPENDS ${TEST_NAME}_result
-                COMMENT "Fuzz test ${TEST_NAME} completed"
             )
 
             list(APPEND FUZZ_TEST_TARGETS run_${TEST_NAME})
@@ -721,7 +709,6 @@ if (BUILD_TESTING)
         # This will run all fuzz tests
         add_custom_target(run_fuzz
             DEPENDS ${FUZZ_TEST_TARGETS}
-            COMMENT "Running all fuzz tests"
         )
     endif()
 endif()
