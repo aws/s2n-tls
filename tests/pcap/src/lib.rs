@@ -21,9 +21,36 @@ fn pcaps_from<P: AsRef<Path>>(path: P) -> impl Iterator<Item = String> {
 pub fn all_pcaps() -> impl Iterator<Item = String> {
     let local_pcaps = pcaps_from("data");
 
-    let downloaded_pcaps_path =
-        std::env::var("DOWNLOADED_PCAPS_PATH").expect("DOWNLOADED_PCAPS_PATH not set by build.rs");
+    let downloaded_pcaps_path = std::env!("DOWNLOADED_PCAPS_PATH");
     let downloaded_pcaps = pcaps_from(downloaded_pcaps_path);
 
     local_pcaps.chain(downloaded_pcaps)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use anyhow::*;
+    use std::collections::HashSet;
+
+    #[test]
+    fn pcaps_source() -> Result<()> {
+        let pcaps = all_pcaps();
+        println!("All pcaps: ");
+        let paths: HashSet<String> = pcaps
+            .map(|file_str| {
+                println!("{}", file_str);
+                let (path, _file) = file_str.rsplit_once("/").expect("No path");
+                path.to_owned()
+            })
+            .collect();
+        // If we're also using downloaded pcaps, we'd expected to be reading
+        // pcaps from at least two sources (the local data and the downloaded data).
+        if cfg!(feature = "download") {
+            assert!(paths.len() > 1);
+        } else {
+            assert!(paths.len() == 1);
+        }
+        Ok(())
+    }
 }
