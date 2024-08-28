@@ -185,7 +185,6 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
-    # set(LIBFUZZER_LIB "/home/ubuntu/libFuzzer/lib/lib/libFuzzer.a")
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
     target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
 endif()
@@ -602,14 +601,12 @@ if (BUILD_TESTING)
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
-        # if linking libfuzzer locally:
-        set(LIBFUZZER_LIB "/home/ubuntu/libFuzzer/lib/lib/libFuzzer.a")
-        # if linking libfuzzer in CI:
-        # set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
+        # linking libfuzzer in CI:
+        set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
 
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
-            set(FUZZ_TIMEOUT_SEC 30)
+            set(FUZZ_TIMEOUT_SEC 120)
         endif()
 
         if(NOT DEFINED CORPUS_UPLOAD_LOC)
@@ -652,16 +649,6 @@ if (BUILD_TESTING)
 
             add_executable(${TEST_NAME} ${src})
             target_include_directories(${TEST_NAME} PRIVATE ./)
-            # target_link_libraries(${TEST_NAME} PRIVATE fuzztest)
-
-            # automatically link libFuzzer that comes with clang
-            # target_compile_options(${TEST_NAME} PUBLIC 
-            #     -g -fsanitize=fuzzer
-            # )
-            # target_link_libraries(${TEST_NAME} PUBLIC 
-            #     fuzztest
-            #     -fsanitize=fuzzer
-            # )
             
             target_compile_options(${TEST_NAME} PRIVATE 
                 -g -O0
@@ -696,14 +683,9 @@ if (BUILD_TESTING)
                     ${CORPUS_UPLOAD_LOC}
                     ${ARTIFACT_UPLOAD_LOC}
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
-                COMMENT "Running fuzz test ${TEST_NAME}"
             )
 
-            add_custom_target(run_${TEST_NAME}
-                DEPENDS ${TEST_NAME}_result
-            )
-
-            list(APPEND FUZZ_TEST_TARGETS run_${TEST_NAME})
+            list(APPEND FUZZ_TEST_TARGETS ${TEST_NAME}_result)
         endforeach()
 
         # This will run all fuzz tests
