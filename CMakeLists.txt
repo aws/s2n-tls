@@ -173,7 +173,7 @@ if(S2N_BLOCK_NONPORTABLE_OPTIMIZATIONS)
 endif()
 
 target_compile_options(${PROJECT_NAME} PUBLIC -fPIC)
-target_compile_options(${PROJECT_NAME} PRIVATE -include utils/s2n_prelude.h)
+target_compile_options(${PROJECT_NAME} PRIVATE -include ${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h)
 
 # Match on Release, RelWithDebInfo and MinSizeRel
 # See: https://cmake.org/cmake/help/latest/variable/CMAKE_BUILD_TYPE.html#variable:CMAKE_BUILD_TYPE
@@ -451,7 +451,7 @@ if (BUILD_TESTING)
 
     add_library(testss2n STATIC ${TESTLIB_HEADERS} ${TESTLIB_SRC} ${EXAMPLES_SRC})
     target_include_directories(testss2n PUBLIC tests)
-    target_compile_options(testss2n PRIVATE -std=gnu99 -include utils/s2n_prelude.h)
+    target_compile_options(testss2n PRIVATE -std=gnu99 -include ${CMAKE_CURRENT_LIST_DIR}/utils/s2n_prelude.h)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
 
     if (S2N_INTERN_LIBCRYPTO)
@@ -514,7 +514,7 @@ if (BUILD_TESTING)
                 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts -Wuninitialized 
                 -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
                 -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated 
-                -fPIC -D_POSIX_C_SOURCE=200809L -std=gnu99)
+                -fPIC -std=gnu99)
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()

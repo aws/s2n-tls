@@ -23,6 +23,10 @@
 /**
  * If we're building in release mode make sure _FORTIFY_SOURCE is set
  * See: https://www.gnu.org/software/libc/manual/html_node/Source-Fortification.html
+ *      https://man7.org/linux/man-pages/man7/feature_test_macros.7.html
+ *
+ * NOTE: _FORTIFY_SOURCE can only be set when optimizations are enabled.
+ *       https://sourceware.org/git/?p=glibc.git;a=commit;f=include/features.h;h=05c2c9618f583ea4acd69b3fe5ae2a2922dd2ddc
  */
 #if !defined(_FORTIFY_SOURCE) && defined(S2N_BUILD_RELEASE)
     #define _FORTIFY_SOURCE 2
