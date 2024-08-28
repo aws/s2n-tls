@@ -4,10 +4,13 @@
 use anyhow::*;
 use bytes::Buf;
 use bytes::Bytes;
+use semver::Version;
+use semver::VersionReq;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::copy;
 use std::path::Path;
+use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
@@ -101,7 +104,42 @@ fn download(url: &str) -> Result<Bytes> {
     bail!("Unable to download: {}", url);
 }
 
+fn assert_tshark_version() -> Result<()> {
+    let output = Command::new("tshark").args(["--version"]).output();
+    let version = output.ok().and_then(|output| {
+        let message = std::str::from_utf8(&output.stdout).ok();
+        message.and_then(|msg| msg.split_whitespace().find_map(|s| Version::parse(s).ok()))
+    });
+
+    let ja3_req = VersionReq::parse(">= 3.7.0")?;
+    let ja4_req = VersionReq::parse(">= 4.2.0")?;
+    if let Some(version) = version {
+        if cfg!(feature = "ja3") {
+            assert!(
+                ja3_req.matches(&version),
+                "tshark {} required for ja3, {} found",
+                ja3_req,
+                version
+            );
+        }
+        if cfg!(feature = "ja4") {
+            assert!(
+                ja4_req.matches(&version),
+                "tshark {} required for ja4, {} found",
+                ja4_req,
+                version
+            );
+        }
+        println!("tshark version: {}", version);
+    } else {
+        println!("cargo:warning=Unable to determine tshark version");
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
+    assert_tshark_version()?;
+
     let out_dir = std::env::var("OUT_DIR")?;
     let download_path = Path::new(&out_dir).join("downloaded_pcaps");
 

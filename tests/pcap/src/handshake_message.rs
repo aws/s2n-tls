@@ -165,6 +165,13 @@ impl Builder {
         // We currently don't support QUIC
         let filter = filter + " && !quic";
 
+        // We currently don't support SSLv2.
+        // Newer versions of tshark automatically filter out SSLv2 by marking
+        // SSLv2 handshake messages as "tls.ssl2" rather than just "tls".
+        // To support SSLv2, we'd need to search for both "tls" and "tls.ssl2".
+        // Instead, let's just explicitly ignore SSLv2 for now.
+        let filter = filter + " && tls.record.version != 0x0002";
+
         // tshark associates a LOT of metadata with each packet. Filtering that
         // metadata (like by using `metadata_whitelist`) significantly improves
         // both performance and memory usage.
