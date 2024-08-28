@@ -72,7 +72,7 @@ static S2N_RESULT s2n_cert_authorities_set_from_trust_store(struct s2n_config *c
     RESULT_GUARD_POSIX(s2n_stuffer_extract_blob(&output, &config->cert_authorities));
     return S2N_RESULT_OK;
 #else
-    RESULT_BAIL(S2N_ERR_INTERNAL_LIBCRYPTO_ERROR);
+    RESULT_BAIL(S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO);
 #endif
 }
 

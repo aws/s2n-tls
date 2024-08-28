@@ -107,7 +107,7 @@ int s2n_server_hello_retry_recv(struct s2n_connection *conn)
     if (server_preferred_kem_group != NULL) {
         /* If PQ is disabled, the client should not have sent any PQ IDs
          * in the supported_groups list of the initial ClientHello */
-        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+        POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_INVALID_HELLO_RETRY);
         new_key_share_requested = (server_preferred_kem_group != client_preferred_kem_group);
     }
 
