@@ -45,15 +45,15 @@ cmake --install build
 </details>
 
 <details>
-<summary>AL2</summary>
+<summary>AL2 and AL2023</summary>
 
 ```bash
 # install build dependencies
-sudo yum groupinstall "Development Tools"
-sudo yum install cmake3
+sudo yum groupinstall -y "Development Tools"
+sudo yum install -y cmake3
 
 # install a libcrypto
-sudo yum install openssl-devel
+sudo yum install -y openssl-devel
 
 # build s2n-tls
 cmake3 . -Bbuild \
