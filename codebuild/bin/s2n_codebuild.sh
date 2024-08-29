@@ -118,7 +118,6 @@ run_unit_tests() {
 run_fuzz_tests() {
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DBUILD_SHARED_LIBS=on \
             -DS2N_UNSAFE_FUZZING_MODE=on
     cmake --build ./build -- -j $(nproc)
     cmake --build build --target run_fuzz 
