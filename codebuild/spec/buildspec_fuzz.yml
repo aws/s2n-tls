@@ -40,6 +40,7 @@ version: 0.2
 batch:
   build-list:
     - identifier: clang_awslc
+      debug-session: true
       env:
         compute-type: BUILD_GENERAL1_2XLARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
@@ -48,6 +49,7 @@ batch:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
     - identifier: clang_openssl_3_0
+      debug-session: true
       env:
         compute-type: BUILD_GENERAL1_2XLARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
@@ -56,6 +58,7 @@ batch:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
     - identifier: clang_openssl_1_1_1
+      debug-session: true
       env:
         compute-type: BUILD_GENERAL1_2XLARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
@@ -64,6 +67,7 @@ batch:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: clang
     - identifier: clang_openssl_1_0_2
+      debug-session: true
       env:
         compute-type: BUILD_GENERAL1_2XLARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
@@ -90,6 +94,7 @@ phases:
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
             -DS2N_UNSAFE_FUZZING_MODE=on
       - cmake --build ./build -- -j $(nproc)
+      - codebuild-breakpoint
   post_build:
     on-failure: ABORT
     commands:

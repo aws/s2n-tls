@@ -45,7 +45,7 @@ fi
 ASAN_OPTIONS+="symbolize=1"
 LSAN_OPTIONS+="log_threads=1"
 UBSAN_OPTIONS+="print_stacktrace=1"
-NUM_CPU_THREADS=16
+NUM_CPU_THREADS=$(nproc)
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
 TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
@@ -144,7 +144,7 @@ if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     rm -f ./profiles/${TEST_NAME}/*.profraw
     LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 else
-    ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    env LD_PRELOAD="$LD_PRELOAD_" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
 TEST_INFO=$(
