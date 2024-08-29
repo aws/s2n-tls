@@ -41,25 +41,29 @@ batch:
   build-list:
     - identifier: clang_awslc
       env:
-        compute-type: BUILD_GENERAL1_LARGE
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
     - identifier: clang_openssl_3_0
       env:
-        compute-type: BUILD_GENERAL1_LARGE
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
     - identifier: clang_openssl_1_1_1
       env:
-        compute-type: BUILD_GENERAL1_LARGE
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: clang
     - identifier: clang_openssl_1_0_2
       env:
-        compute-type: BUILD_GENERAL1_LARGE
+        compute-type: BUILD_GENERAL1_2XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: clang
@@ -72,6 +76,7 @@ phases:
           cd third-party-src;
           ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
         fi
+      - /usr/bin/$COMPILER --version
   build:
     on-failure: ABORT
     commands:
