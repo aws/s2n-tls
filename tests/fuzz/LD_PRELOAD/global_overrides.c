@@ -28,6 +28,7 @@
 #include "utils/s2n_random.h"
 
 S2N_RESULT s2n_drbg_generate(struct s2n_drbg *drbg, struct s2n_blob *blob) {
+
     /* If fuzzing, only generate "fake" random numbers in order to ensure that fuzz tests are deterministic and repeatable.
      * This function should generate non-zero values since this function may be called repeatedly at startup until a
      * non-zero value is generated.
@@ -56,7 +57,8 @@ int s2n_stuffer_send_to_fd(struct s2n_stuffer *stuffer, const int wfd, const uin
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob) {
+S2N_RESULT s2n_get_public_random_data(struct s2n_blob *blob){
+
     /* If fuzzing, only generate "fake" random numbers in order to ensure that fuzz tests are deterministic and repeatable.
      * This function should generate non-zero values since this function may be called repeatedly at startup until a
      * non-zero value is generated.
