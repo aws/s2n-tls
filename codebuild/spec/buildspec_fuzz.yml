@@ -93,4 +93,4 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
-      - cmake --build build --target run_fuzz 
+      - cmake --build build --target run_fuzz --verbose
