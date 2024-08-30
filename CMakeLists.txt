@@ -145,7 +145,7 @@ elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
-if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_UNSAFE_FUZZING_MODE)
+if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_FUZZ_TEST)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
@@ -183,7 +183,7 @@ if(NO_STACK_PROTECTOR)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wstack-protector -fstack-protector-all)
 endif()
 
-if(S2N_UNSAFE_FUZZING_MODE)
+if(S2N_FUZZ_TEST)
     target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
     target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
 endif()
@@ -589,7 +589,7 @@ if (BUILD_TESTING)
         endforeach()
     endif()
 
-    if(S2N_UNSAFE_FUZZING_MODE)
+    if(S2N_FUZZ_TEST)
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
@@ -599,12 +599,12 @@ if (BUILD_TESTING)
         add_library(fuzztest SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
-        # if linking libfuzzer locally:
-        # set(LIBFUZZER_LIB "/home/ubuntu/libFuzzer/lib/lib/libFuzzer.a")
-        # linking libfuzzer in CI:
-        set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
 
         # Set default values for fuzzing if not defined
+        if(NOT DEFINED LIBFUZZER_LIB)
+            set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
+        endif()
+        
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
             set(FUZZ_TIMEOUT_SEC 120)
         endif()

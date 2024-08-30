@@ -115,10 +115,11 @@ run_unit_tests() {
     cmake --build build/ --target test -- ARGS="-L unit --output-on-failure -j $(nproc)"
 }
 
+# This can be removed after CI migration from make to cmake is done
 run_fuzz_tests() {
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DS2N_UNSAFE_FUZZING_MODE=on
+            -DS2N_FUZZ_TEST=on
     cmake --build ./build -- -j $(nproc)
     cmake --build build --target run_fuzz 
 }

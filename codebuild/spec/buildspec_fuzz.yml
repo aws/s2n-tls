@@ -30,8 +30,6 @@ version: 0.2
 # awslc: happy path libcrypto for s2n-tls
 # openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 
 #            asan on it. See pr 4033 for a historical motivating example.
-# openssl 1.1.1: a widely deployed version of openssl.
-# openssl 1.0.2: the default libcrypto on AL2, and AL2 is still widely deployed.
 
 # CMAKE_BUILD_TYPE
 # RelWithDebInfo: This instructs CMake to do all optimizations (Rel -> Release)
@@ -57,24 +55,6 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
-    - identifier: clang_openssl_1_1_1
-      debug-session: true
-      env:
-        compute-type: BUILD_GENERAL1_2XLARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        privileged-mode: true
-        variables:
-          S2N_LIBCRYPTO: openssl-1.1.1
-          COMPILER: clang
-    - identifier: clang_openssl_1_0_2
-      debug-session: true
-      env:
-        compute-type: BUILD_GENERAL1_2XLARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        privileged-mode: true
-        variables:
-          S2N_LIBCRYPTO: openssl-1.0.2
-          COMPILER: clang
 
 phases:
   pre_build:
@@ -85,16 +65,13 @@ phases:
           ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
         fi
       - /usr/bin/$COMPILER --version
-      - ls /usr/local/libfuzzer/lib/libFuzzer.a && echo "Libfuzzer File exists" || echo "Libfuzzer File does not exist"
-      - which prlimit
-      - prlimit --memlock=unlimited:unlimited
   build:
     on-failure: ABORT
     commands:
       - |
         cmake . -Bbuild \
         -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-        -DS2N_UNSAFE_FUZZING_MODE=on
+        -DS2N_FUZZ_TEST=on
       - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
