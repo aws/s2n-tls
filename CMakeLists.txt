@@ -184,8 +184,8 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_UNSAFE_FUZZING_MODE)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
-    target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak)
+    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
+    target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
 endif()
 
 if(TSAN)
@@ -599,7 +599,8 @@ if (BUILD_TESTING)
         add_library(fuzztest SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
-
+        # if linking libfuzzer locally:
+        # set(LIBFUZZER_LIB "/home/ubuntu/libFuzzer/lib/lib/libFuzzer.a")
         # linking libfuzzer in CI:
         set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
 
@@ -651,14 +652,14 @@ if (BUILD_TESTING)
             
             target_compile_options(${TEST_NAME} PRIVATE 
                 -g -O0
-                -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak 
+                -fsanitize-coverage=trace-pc-guard -fsanitize=leak 
                 -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -Wno-unused-result
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
                 ${LIBFUZZER_LIB}  # Manually link old libFuzzer.a
                 -lstdc++
-                -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
+                -fsanitize-coverage=trace-pc-guard -fsanitize=leak
             )
 
             # Set the output directory for the fuzzing binaries

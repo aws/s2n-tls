@@ -92,9 +92,9 @@ phases:
     on-failure: ABORT
     commands:
       - |
-            cmake . -Bbuild \
-            -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DS2N_UNSAFE_FUZZING_MODE=on
+        cmake . -Bbuild \
+        -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+        -DS2N_UNSAFE_FUZZING_MODE=on
       - cmake --build ./build -- -j $(nproc)
       - codebuild-breakpoint
   post_build:
