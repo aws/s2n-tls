@@ -16,7 +16,6 @@
 # The timeout command sends a TERM and under normal circumstances returns
 # exit code 124. We'll undo this later. 
 set -e
-set -x
 
 usage() {
     echo "Usage: runFuzzTest.sh TEST_NAME FUZZ_TIMEOUT_SEC"

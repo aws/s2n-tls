@@ -96,8 +96,7 @@ phases:
         -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
         -DS2N_UNSAFE_FUZZING_MODE=on
       - cmake --build ./build -- -j $(nproc)
-      - codebuild-breakpoint
   post_build:
     on-failure: ABORT
     commands:
-      - cmake --build build --target run_fuzz --verbose
+      - cmake --build build --target run_fuzz
