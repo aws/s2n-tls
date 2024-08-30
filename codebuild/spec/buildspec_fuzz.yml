@@ -86,6 +86,8 @@ phases:
         fi
       - /usr/bin/$COMPILER --version
       - ls /usr/local/libfuzzer/lib/libFuzzer.a && echo "Libfuzzer File exists" || echo "Libfuzzer File does not exist"
+      - which prlimit
+      - prlimit --memlock=unlimited:unlimited
   build:
     on-failure: ABORT
     commands:
