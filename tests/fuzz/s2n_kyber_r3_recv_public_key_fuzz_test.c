@@ -31,7 +31,7 @@ static struct s2n_kem_params kyber1024_r3_draft5_params = { .kem = &s2n_kyber_10
 
 int s2n_fuzz_test(const uint8_t *buf, size_t len)
 {
-    if (s2n_libcrypto_supports_kyber()) {
+    if (s2n_libcrypto_supports_evp_kem()) {
         POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber512_r3_draft0_params));
         POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber512_r3_draft5_params));
         POSIX_GUARD(s2n_kem_recv_public_key_fuzz_test(buf, len, &kyber768_r3_draft5_params));

@@ -420,6 +420,17 @@ int main()
         default_curve = &s2n_ecc_curve_secp256r1;
     }
 
+    /* ML-KEM is only available on newer versions of AWS-LC. If it's
+     * unavailable, we must downgrade the assertions to Kyber or EC. */
+    const struct s2n_kem_group *kyber_if_no_mlkem = &s2n_secp256r1_mlkem_768;
+    const struct s2n_kem_group *null_if_no_mlkem = &s2n_secp256r1_mlkem_768;
+    const struct s2n_ecc_named_curve *ec_if_no_mlkem = NULL;
+    if (!s2n_libcrypto_supports_mlkem()) {
+        kyber_if_no_mlkem = &s2n_secp256r1_kyber_768_r3;
+        null_if_no_mlkem = NULL;
+        ec_if_no_mlkem = &s2n_ecc_curve_secp256r1;
+    }
+
     struct pq_handshake_test_vector {
         const struct s2n_security_policy *client_policy;
         const struct s2n_security_policy *server_policy;
@@ -641,6 +652,76 @@ int main()
                 .expected_curve = default_curve,
                 .hrr_expected = true,
                 .len_prefix_expected = true,
+        },
+        /* The PQ Mixed Policy supports both Kyber and ML-KEM based algorithms
+         * Assert that ML-KEM is preferred whenever it is available. Fallback to
+         * classical as a last preference. */
+        {
+                .client_policy = &security_policy_20240830_pq_mixed,
+                .server_policy = &security_policy_20240830_pq_mixed,
+                .expected_kem_group = kyber_if_no_mlkem,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240830,
+                .server_policy = &security_policy_20240830_pq_mixed,
+                .expected_kem_group = null_if_no_mlkem,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240730,
+                .server_policy = &security_policy_20240830_pq_mixed,
+                .expected_kem_group = &s2n_secp256r1_kyber_768_r3,
+                .expected_curve = NULL,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503,
+                .server_policy = &security_policy_20240830_pq_mixed,
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp256r1,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        /* The default PQ policy drops support for all pre-standard Kyber based
+         * algorithms. Assert that ML-KEM is negotiated when available,
+         * otherwise negotiate a classical algorithm. */
+        {
+                .client_policy = &security_policy_20240830,
+                .server_policy = &security_policy_20240830,
+                .expected_kem_group = null_if_no_mlkem,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240830_pq_mixed,
+                .server_policy = &security_policy_20240830,
+                .expected_kem_group = null_if_no_mlkem,
+                .expected_curve = ec_if_no_mlkem,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240730,
+                .server_policy = &security_policy_20240830,
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp256r1,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        },
+        {
+                .client_policy = &security_policy_20240503,
+                .server_policy = &security_policy_20240830,
+                .expected_kem_group = NULL,
+                .expected_curve = &s2n_ecc_curve_secp256r1,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
         },
     };
 

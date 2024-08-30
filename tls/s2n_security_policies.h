@@ -94,11 +94,14 @@ struct s2n_security_policy_selection {
 
 extern struct s2n_security_policy_selection security_policy_selection[];
 
-/* Defaults as of 05/24 */
+/* Defaults as of 08/24 */
 extern const struct s2n_security_policy security_policy_20240501;
 extern const struct s2n_security_policy security_policy_20240502;
 extern const struct s2n_security_policy security_policy_20240503;
+extern const struct s2n_security_policy security_policy_20240830;
 
+extern const struct s2n_security_policy security_policy_20240830_pq_mixed;
+extern const struct s2n_security_policy security_policy_20240730;
 extern const struct s2n_security_policy security_policy_20140601;
 extern const struct s2n_security_policy security_policy_20141001;
 extern const struct s2n_security_policy security_policy_20150202;
