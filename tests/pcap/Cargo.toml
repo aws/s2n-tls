@@ -6,13 +6,6 @@ publish = false
 
 [features]
 default = []
-# tshark >= 3.7.0 is required for JA3 support
-# JA3 support was added to earlier versions, but did not correctly ignore grease values.
-# See https://github.com/wireshark/wireshark/commit/03afef0a566ed649ead587fb4c02fc2d8539f3b7
-ja3 = []
-# tshark >= 4.2.0 is required for JA4 support
-# See https://gitlab.com/wireshark/wireshark/-/issues/19370
-ja4 = []
 download = [] # Download additional pcaps from a list of configured urls
 
 [build-dependencies]
