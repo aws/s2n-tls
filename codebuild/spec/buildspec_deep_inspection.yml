@@ -40,75 +40,58 @@ version: 0.2
 batch:
   build-list:
     - identifier: clang_awslc
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
     - identifier: clang_openssl_3_0
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
     - identifier: clang_openssl_1_1_1
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: clang
     - identifier: clang_openssl_1_0_2
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: clang
     - identifier: gcc_awslc
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: gcc
     - identifier: gcc_openssl_3_0
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: gcc
     - identifier: gcc_openssl_1_1_1
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: gcc
     - identifier: gcc_openssl_1_0_2
+      buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: gcc
-
-phases:
-  pre_build:
-    commands:
-      - |
-        if [ -d "third-party-src" ]; then
-          cd third-party-src;
-          ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
-        fi
-      - /usr/bin/$COMPILER --version
-  build:
-    on-failure: ABORT
-    commands:
-      - |
-        cmake . -Bbuild \
-          -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
-          -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
-          -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          -DASAN=ON \
-          -DUBSAN=ON
-      - cmake --build ./build -- -j $(nproc)
-  post_build:
-    on-failure: ABORT
-    commands:
-      - CTEST_OUTPUT_ON_FAILURE=1 CTEST_PARALLEL_LEVEL=$(nproc) make -C build test
