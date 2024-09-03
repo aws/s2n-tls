@@ -17,7 +17,10 @@ set -eu
 source ./codebuild/bin/s2n_setup_env.sh
 
 al2023_main(){
-    echo "Installing AL2023 packages"
+    case "$S2N_LIBCRYPTO" in
+    "openssl-3.0") echo "Installing AL2023 packages";;
+    *) echo "${S2N_LIBCRYPTO} is not installed on this platform."; exit 1;;
+    esac
     common_packages
     al2023_packages
     versions
@@ -52,7 +55,7 @@ common_packages(){
 al2023_packages(){
     # Openssl 3.0 headers and go
     yum install -y openssl-devel golang
-    # TODO: cmake isn't finding awslc
+    # TODO: cmake isn't finding awslc https://github.com/aws/s2n-tls/issues/4633
     #./codebuild/bin/install_awslc.sh $(mktemp -d) /usr/local/awsc 0
 }
 
