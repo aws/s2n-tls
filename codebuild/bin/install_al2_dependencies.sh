@@ -24,7 +24,7 @@ al2023_main(){
 }
 
 al2_main() {
-    echo "Insatlling AL2 packages"
+    echo "Installing AL2 packages"
     common_packages
     al2_packages
     symlink_all_the_things
