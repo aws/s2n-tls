@@ -39,56 +39,56 @@ version: 0.2
 # in the stack traces that ASAN reports.
 batch:
   build-list:
-    - identifier: clang_awslc
+    - identifier: clang_awslc_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
-    - identifier: clang_openssl_3_0
+    - identifier: clang_openssl_3_0_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: clang
-    - identifier: clang_openssl_1_1_1
+    - identifier: clang_openssl_1_1_1_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: clang
-    - identifier: clang_openssl_1_0_2
+    - identifier: clang_openssl_1_0_2_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: clang
-    - identifier: gcc_awslc
+    - identifier: gcc_awslc_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: gcc
-    - identifier: gcc_openssl_3_0
+    - identifier: gcc_openssl_3_0_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: gcc
-    - identifier: gcc_openssl_1_1_1
+    - identifier: gcc_openssl_1_1_1_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: gcc
-    - identifier: gcc_openssl_1_0_2
+    - identifier: gcc_openssl_1_0_2_sanitizers
       buildspec: codebuild/spec/buildspec_sanitizers.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
