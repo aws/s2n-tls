@@ -184,8 +184,8 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_FUZZ_TEST)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
-    target_link_libraries(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard)
 endif()
 
 if(TSAN)
@@ -652,14 +652,12 @@ if (BUILD_TESTING)
             
             target_compile_options(${TEST_NAME} PRIVATE 
                 -g -O0
-                -fsanitize-coverage=trace-pc-guard -fsanitize=leak 
                 -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -Wno-unused-result
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
                 ${LIBFUZZER_LIB}  # Manually link old libFuzzer.a
                 -lstdc++
-                -fsanitize-coverage=trace-pc-guard -fsanitize=leak
             )
 
             # Set the output directory for the fuzzing binaries
