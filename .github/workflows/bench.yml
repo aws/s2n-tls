@@ -1,10 +1,10 @@
 name: Benchmarking
 
 on:
-  pull_request:
-    branches: [main]
   push:
     branches: [main]
+  schedule:
+    - cron: "0 0 * * *"
 
 jobs:
   bench:
@@ -43,5 +43,5 @@ jobs:
         run: |
           python3 .github/bin/criterion_to_cloudwatch.py \
             --criterion_output_path bindings/rust/bench/criterion_output.log \
-            --namespace s2n-perf-test \
+            --namespace s2n-tls-bench \
             --platform ${{ runner.os }}-${{ runner.arch }}
