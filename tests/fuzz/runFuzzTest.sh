@@ -52,6 +52,7 @@ GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
 
 FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
+# Use LD_PRELOAD_ to prevent symbol lookup errors in commands like mkdir.
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
 then
     export LD_PRELOAD_="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"

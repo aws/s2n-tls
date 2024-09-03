@@ -184,8 +184,8 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_FUZZ_TEST)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard)
-    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
 endif()
 
 if(TSAN)
@@ -602,7 +602,7 @@ if (BUILD_TESTING)
 
         # Set default values for fuzzing if not defined
         if(NOT DEFINED LIBFUZZER_LIB)
-            set(LIBFUZZER_LIB "/usr/local/libfuzzer/lib/libFuzzer.a")
+            message(FATAL_ERROR "LIBFUZZER_LIB is not defined. Please set it to the path of your libFuzzer.a.")
         endif()
         
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
@@ -622,16 +622,15 @@ if (BUILD_TESTING)
         endif()
 
         # Build LD_PRELOAD shared libraries
-        include_directories(
-            ${CMAKE_CURRENT_SOURCE_DIR}
-            ${CMAKE_CURRENT_SOURCE_DIR}/api
-        )
         set(LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD)
         file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
         foreach(SRC ${LIBRARY_SRCS})
             get_filename_component(LIB_NAME ${SRC} NAME_WE)
             add_library(${LIB_NAME} SHARED ${SRC})
-
+            target_include_directories(${LIB_NAME} PRIVATE 
+                ${CMAKE_CURRENT_SOURCE_DIR}
+                ${CMAKE_CURRENT_SOURCE_DIR}/api
+            )
             # Set the output directory and remove the default "lib" prefix
             set_target_properties(${LIB_NAME} PROPERTIES
                 PREFIX ""
@@ -666,12 +665,12 @@ if (BUILD_TESTING)
                 RUNTIME_OUTPUT_DIRECTORY ${FUZZ_BIN_DIR}
             )
 
-            list(APPEND EXECUTABLE_TARGETS ${TEST_NAME})
+            list(APPEND FUZZ_TEST_EXECUTABLES ${TEST_NAME})
         endforeach()
 
-        foreach(TEST_NAME ${EXECUTABLE_TARGETS})
+        foreach(TEST_NAME ${FUZZ_TEST_EXECUTABLES})
             add_custom_command(
-                OUTPUT ${TEST_NAME}_result
+                OUTPUT ${TEST_NAME}_script
                 COMMAND ${CMAKE_COMMAND} -E env
                     DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
                     LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
@@ -683,12 +682,12 @@ if (BUILD_TESTING)
                 WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
             )
 
-            list(APPEND FUZZ_TEST_TARGETS ${TEST_NAME}_result)
+            list(APPEND FUZZ_TEST_SCRIPTS ${TEST_NAME}_script)
         endforeach()
 
         # This will run all fuzz tests
         add_custom_target(run_fuzz
-            DEPENDS ${FUZZ_TEST_TARGETS}
+            DEPENDS ${FUZZ_TEST_SCRIPTS}
         )
     endif()
 endif()
