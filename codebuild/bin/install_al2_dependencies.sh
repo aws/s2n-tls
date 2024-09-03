@@ -17,7 +17,7 @@ set -eu
 source ./codebuild/bin/s2n_setup_env.sh
 
 al2023_main(){
-    echo "Insatlling AL2023 packages"
+    echo "Installing AL2023 packages"
     common_packages
     al2023_packages
     versions
