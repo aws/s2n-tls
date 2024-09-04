@@ -637,7 +637,7 @@ if (BUILD_TESTING)
                 LIBRARY_OUTPUT_DIRECTORY ${LIBRARY_OUTPUT_DIRECTORY}
             )
             target_compile_options(${LIB_NAME} PRIVATE
-                -Wno-unreachable-code -O0 -fPIC -Wno-deprecated-declarations -fvisibility=default
+                -Wno-unreachable-code -fPIC -Wno-deprecated-declarations
             )
         endforeach()
 
@@ -650,8 +650,7 @@ if (BUILD_TESTING)
             target_include_directories(${TEST_NAME} PRIVATE ./)
             
             target_compile_options(${TEST_NAME} PRIVATE 
-                -g -O0
-                -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -Wno-unused-result
+                -g -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -Wno-unused-result
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
