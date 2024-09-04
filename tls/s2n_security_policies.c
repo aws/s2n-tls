@@ -1272,14 +1272,18 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     POSIX_ENSURE_REF(security_policy);
 
     bool matches_default = strcmp(version, "default") == 0;
-    bool should_bail = dbg_bail &&
+    bool should_bail =
+            /* allow for exception for tests which actually want to test the "default" policy */
+            dbg_bail &&
+            /* allow for s2n_config_new object creation */
+            dbg_config_init &&
             /* s2n_init() creates a "default" static config so only bail after initialization is complete; */
             s2n_is_initialized() &&
             /* attempting to use the "default" policy */
             matches_default;
 
     if (should_bail) {
-        printf("\nBail------- s2n_find_from_version");
+        printf("\nBail------- s2n_find_from_version: config_init: %d", dbg_config_init);
         POSIX_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
     }
 

@@ -32,6 +32,7 @@
 #include "utils/s2n_set.h"
 
 /* TODO remove */
+extern bool dbg_config_init;
 extern bool dbg_bail;
 
 #define S2N_MAX_TICKET_KEYS       48
