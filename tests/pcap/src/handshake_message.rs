@@ -162,6 +162,9 @@ impl Builder {
             Self::MESSAGE_TYPE.to_string()
         };
 
+        // We currently don't support QUIC
+        let filter = filter + " && !quic";
+
         // tshark associates a LOT of metadata with each packet. Filtering that
         // metadata (like by using `metadata_whitelist`) significantly improves
         // both performance and memory usage.

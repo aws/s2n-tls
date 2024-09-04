@@ -272,7 +272,7 @@ jobs:
         run: grep "rust-version = \"$(cat ${{env.ROOT_PATH}}/rust-toolchain)\"" ${{env.ROOT_PATH}}/s2n-tls-tokio/Cargo.toml
 
   pcaps:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -285,7 +285,9 @@ jobs:
           rustup override set stable
 
       - name: Install tshark
-        run: sudo apt-get install -y tshark
+        run: |
+          sudo apt-get install -y tshark
+          tshark --version
 
       - name: Generate bindings
         working-directory: ${{env.ROOT_PATH}}
@@ -299,4 +301,4 @@ jobs:
 
       - name: Run tests
         working-directory: ${{env.PCAP_TEST_PATH}}
-        run: cargo test
+        run: cargo test --all-features

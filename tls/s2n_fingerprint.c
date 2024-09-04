@@ -187,7 +187,7 @@ static S2N_RESULT s2n_assert_grease_value(uint16_t val)
  *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#details
  *# The program needs to ignore GREASE values anywhere it sees them
  */
-bool s2n_is_grease_value(uint16_t val)
+bool s2n_fingerprint_is_grease_value(uint16_t val)
 {
     return s2n_result_is_ok(s2n_assert_grease_value(val));
 }
@@ -247,16 +247,17 @@ S2N_RESULT s2n_fingerprint_hash_add_bytes(struct s2n_fingerprint_hash *hash,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_fingerprint_hash_digest(struct s2n_fingerprint_hash *hash, uint8_t *out, size_t out_size)
+S2N_RESULT s2n_fingerprint_hash_digest(struct s2n_fingerprint_hash *hash, struct s2n_blob *out)
 {
     RESULT_ENSURE_REF(hash);
     RESULT_ENSURE_REF(hash->hash);
+    RESULT_ENSURE_REF(out);
 
     uint64_t bytes = 0;
     RESULT_GUARD_POSIX(s2n_hash_get_currently_in_hash_total(hash->hash, &bytes));
     hash->bytes_digested += bytes;
 
-    RESULT_GUARD_POSIX(s2n_hash_digest(hash->hash, out, out_size));
+    RESULT_GUARD_POSIX(s2n_hash_digest(hash->hash, out->data, out->size));
     RESULT_GUARD_POSIX(s2n_hash_reset(hash->hash));
     return S2N_RESULT_OK;
 }

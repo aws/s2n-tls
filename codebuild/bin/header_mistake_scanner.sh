@@ -21,6 +21,8 @@ S2N_FILES+=$(find "$PWD"/codebuild/ -type f -name "*.sh")
 S2N_FILES+=" "
 S2N_FILES+=$(find "$PWD"/tests/ -type f -name "*.sh")
 S2N_FILES+=" "
+S2N_FILES+=$(find "$PWD"/tests/integrationv2 -type f -name "*.py")
+S2N_FILES+=" "
 S2N_FILES+=$(find "$PWD" -type f -name "*.rs" | grep -v target)
 
 FAILED=0
@@ -32,6 +34,16 @@ for file in $S2N_FILES; do
     then
         FAILED=1;
         echo "Copyright Check Failed: $file";
+    fi
+done
+
+for file in $S2N_FILES; do
+    # The Apache 2.0 License should appear in every file
+    COUNT=`head -5 $file | grep -E "Apache License, Version 2.0|Apache-2.0" | wc -l`;
+    if [ "$COUNT" == "0" ];
+    then
+        FAILED=1;
+        echo "License Check Failed: $file";
     fi
 done
 

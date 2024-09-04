@@ -104,7 +104,7 @@ static S2N_RESULT s2n_fingerprint_ja4_digest(struct s2n_fingerprint_hash *hash,
     uint8_t digest_bytes[SHA256_DIGEST_LENGTH] = { 0 };
     struct s2n_blob digest = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&digest, digest_bytes, sizeof(digest_bytes)));
-    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest.data, digest.size));
+    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, &digest));
 
     /* JA4 digests are truncated */
     RESULT_ENSURE_LTE(S2N_JA4_DIGEST_BYTE_LIMIT, digest.size);
@@ -162,7 +162,7 @@ static S2N_RESULT s2n_fingerprint_get_extension_version(struct s2n_client_hello 
          *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
          *# Remember to ignore GREASE values.
          */
-        if (s2n_is_grease_value(version)) {
+        if (s2n_fingerprint_is_grease_value(version)) {
             continue;
         }
         /**
@@ -217,16 +217,10 @@ static S2N_RESULT s2n_client_hello_get_first_alpn(struct s2n_client_hello *ch, s
     struct s2n_stuffer protocols = { 0 };
     RESULT_GUARD_POSIX(s2n_stuffer_init_written(&protocols, &extension->extension));
 
-    uint16_t list_size = 0, name_size = 0;
-    uint8_t name_type = 0;
+    uint16_t list_size = 0;
     RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&protocols, &list_size));
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint8(&protocols, &name_type));
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&protocols, &name_size));
 
-    uint8_t *name = s2n_stuffer_raw_read(&protocols, name_size);
-    RESULT_ENSURE_REF(name);
-    RESULT_GUARD_POSIX(s2n_blob_init(first, name, name_size));
-
+    RESULT_GUARD(s2n_protocol_preferences_read(&protocols, first));
     return S2N_RESULT_OK;
 }
 
@@ -350,7 +344,7 @@ static S2N_RESULT s2n_fingerprint_ja4_ciphers(struct s2n_fingerprint_hash *hash,
          *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
          *# Remember, ignore GREASE values. They don’t count.
          */
-        if (s2n_is_grease_value(iana)) {
+        if (s2n_fingerprint_is_grease_value(iana)) {
             continue;
         }
         RESULT_GUARD(s2n_stuffer_write_uint16_hex(iana_list, iana));
@@ -415,7 +409,7 @@ static S2N_RESULT s2n_fingerprint_ja4_extensions(struct s2n_fingerprint_hash *ha
          *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
          *# Ignore GREASE.
          */
-        if (s2n_is_grease_value(iana)) {
+        if (s2n_fingerprint_is_grease_value(iana)) {
             continue;
         }
 
@@ -476,7 +470,7 @@ static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash
     while (s2n_stuffer_data_available(&sig_algs)) {
         uint16_t iana = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&sig_algs, &iana));
-        if (s2n_is_grease_value(iana)) {
+        if (s2n_fingerprint_is_grease_value(iana)) {
             continue;
         }
         if (is_first) {

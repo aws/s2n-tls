@@ -1,3 +1,5 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 import pytest
 
 from constants import TRUST_STORE_BUNDLE, TRUST_STORE_TRUSTED_BUNDLE
