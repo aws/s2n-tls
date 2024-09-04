@@ -81,17 +81,3 @@ batch:
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: gcc
-    - identifier: gcc_openssl_1_1_1_sanitizers
-      buildspec: codebuild/spec/buildspec_sanitizers.yml
-      env:
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          S2N_LIBCRYPTO: openssl-1.1.1
-          COMPILER: gcc
-    - identifier: gcc_openssl_1_0_2_sanitizers
-      buildspec: codebuild/spec/buildspec_sanitizers.yml
-      env:
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          S2N_LIBCRYPTO: openssl-1.0.2
-          COMPILER: gcc
