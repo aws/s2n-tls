@@ -191,7 +191,6 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_ARRAY_INDEX_OOB, "Array index out of bounds") \
     ERR_ENTRY(S2N_ERR_FREE_STATIC_BLOB, "Cannot free a static blob") \
     ERR_ENTRY(S2N_ERR_RESIZE_STATIC_BLOB, "Cannot resize a static blob") \
-    ERR_ENTRY(S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API, "libcrypto does not support this API") \
     ERR_ENTRY(S2N_ERR_RECORD_LENGTH_TOO_LARGE, "Record length exceeds protocol version maximum") \
     ERR_ENTRY(S2N_ERR_SET_DUPLICATE_VALUE, "Set already contains the provided value") \
     ERR_ENTRY(S2N_ERR_ASYNC_CALLBACK_FAILED, "Callback associated with async private keys function has failed") \
@@ -313,6 +312,8 @@ static const char *no_such_error = "Internal s2n error";
     ERR_ENTRY(S2N_ERR_INVALID_SERIALIZED_CONNECTION, "Serialized connection is invalid"); \
     ERR_ENTRY(S2N_ERR_TOO_MANY_CAS, "Too many certificate authorities in trust store"); \
     ERR_ENTRY(S2N_ERR_BAD_HEX, "Could not parse malformed hex string"); \
+    ERR_ENTRY(S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK, "Config set to NULL before client hello callback. This should not be possible outside of tests."); \
+    ERR_ENTRY(S2N_ERR_API_UNSUPPORTED_BY_LIBCRYPTO, "The invoked s2n-tls API is not supported by the libcrypto") \
     /* clang-format on */
 
 #define ERR_STR_CASE(ERR, str) \

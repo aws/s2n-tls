@@ -15,6 +15,7 @@ The performance benchmarking framework utilizes CPU Instruction count across API
 1. **lib.rs**
    - **test_set_config**: Builds a new s2n-tls config with a security policy, host callback and certs
    - **test_rsa_handshake**: Performs an RSA handshake in s2n-tls.
+   - **test_session_resumption**: Does two handshakes, the first handshake provides a session ticket, and then that session ticket is used to resume in the second handshake.
 
 2. **Cargo.toml**
    - The configuration file for building and running the regression tests using Cargo.
@@ -24,7 +25,7 @@ The performance benchmarking framework utilizes CPU Instruction count across API
 
 Ensure you have the following installed:
 - Rust (with Cargo)
-- Valgrind (for cachegrind instrumentation)
+- Valgrind (for cachegrind instrumentation): Valgrind 3.23 or newer is required to run the tests, since cachegrind annotation is not included in earlier versions. If this version is not automatically downloaded by running `apt install valgrind`, it can be installed manually by following https://valgrind.org/downloads/
 
 ## Running the Harnesses with Valgrind (scalar performance)
 To run the harnesses with Valgrind and store the annotated results, run:
@@ -133,3 +134,7 @@ Configures and creates a new s2n-tls configuration with a specified security pol
 ### test_rsa_handshake
 
 Performs an RSA handshake in s2n-tls and validates the handshake process utilizing rsa_4096_sha512.
+
+### test_session_resumption
+
+Performs an RSA handshake with server authentication. Then, performs a resumption handshake using the session ticket obtained from the previous handshake.

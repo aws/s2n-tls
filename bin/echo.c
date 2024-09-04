@@ -51,6 +51,11 @@ const char *sig_hash_strs[] = {
     [S2N_TLS_HASH_MD5_SHA1] = "MD5_SHA1",
 };
 
+/* Careful: don't change this without updating the integration tests that check for it!
+ * Negative cases may stop working but not fail when this is updated.
+ */
+const char *pq_enabled_note = "PQ key exchange enabled";
+
 void print_s2n_error(const char *app_error)
 {
     fprintf(stderr, "[%d] %s: '%s' : '%s'\n", getpid(), app_error, s2n_strerror(s2n_errno, "EN"),
@@ -175,9 +180,21 @@ int print_connection_info(struct s2n_connection *conn)
         printf("Application protocol: %s\n", s2n_get_application_protocol(conn));
     }
 
-    printf("Curve: %s\n", s2n_connection_get_curve(conn));
-    printf("KEM: %s\n", s2n_connection_get_kem_name(conn));
-    printf("KEM Group: %s\n", s2n_connection_get_kem_group_name(conn));
+    const char *kem = s2n_connection_get_kem_name(conn);
+    if (strcmp(kem, "NONE") != 0) {
+        printf("Legacy TLS1.2 KEM: %s (%s, but the use of PQ key exchange with "
+               "TLS1.2 was experimental and is neither stable nor on a path to "
+               "standardization. The TLS1.3 version should be used instead: "
+               "https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html)\n",
+                kem, pq_enabled_note);
+    }
+
+    const char *kem_group = s2n_connection_get_kem_group_name(conn);
+    if (strcmp(kem_group, "NONE") != 0) {
+        printf("KEM Group: %s (%s)\n", kem_group, pq_enabled_note);
+    } else {
+        printf("Curve: %s\n", s2n_connection_get_curve(conn));
+    }
 
     uint32_t length = 0;
     const uint8_t *status = s2n_connection_get_ocsp_response(conn, &length);

@@ -1,0 +1,86 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: MIT-0
+name: Performance Regression Test
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths-ignore:
+      - tests/regression/**
+
+jobs:
+  regression-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Checkout the code from the pull request branch
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      # Install the stable Rust toolchain
+      - name: Install Rust toolchain
+        id: toolchain
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+
+      # Update the package list on the runner
+      - name: Update package list
+        run: sudo apt-get update
+
+      # Download and install Valgrind 3.23 from source
+      - name: Download Valgrind 3.23 Source
+        run: |
+          wget https://sourceware.org/pub/valgrind/valgrind-3.23.0.tar.bz2
+          tar -xjf valgrind-3.23.0.tar.bz2
+          cd valgrind-3.23.0
+          ./configure
+          make
+          sudo make install
+
+      # Switch to the main branch
+      - name: Switch to mainline
+        run: |
+          git fetch origin main
+          git switch main
+
+      # Generate bindings for main branch
+      - name: Generate bindings (mainline)
+        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
+
+      # Run performance tests using Valgrind for main branch
+      - name: Run scalar performance test (mainline)
+        env:
+          PERF_MODE: valgrind
+        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
+
+      # Checkout pull request branch
+      - name: Checkout pull request branch
+        run: git checkout ${{ github.event.pull_request.head.sha }}
+
+      # Generate bindings for PR branch
+      - name: Generate bindings (PR branch)
+        run: ${{env.ROOT_PATH}}bindings/rust/generate.sh --skip-tests
+
+      # Run performance tests using Valgrind for PR branch
+      - name: Run scalar performance test (PR branch)
+        env:
+          PERF_MODE: valgrind
+        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
+
+      # Run the differential performance test
+      - name: Run diff test
+        env:
+          PERF_MODE: diff
+        run: cargo test --release --manifest-path=tests/regression/Cargo.toml
+
+      # Upload the performance output artifacts. This runs even if run diff test fails so debug files can be accessed
+      - name: Upload artifacts
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: regression_artifacts
+          path: tests/regression/target/regression_artifacts

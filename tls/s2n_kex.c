@@ -121,7 +121,7 @@ static S2N_RESULT s2n_configure_kem(const struct s2n_cipher_suite *cipher_suite,
     RESULT_ENSURE_REF(cipher_suite);
     RESULT_ENSURE_REF(conn);
 
-    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    RESULT_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     const struct s2n_kem_preferences *kem_preferences = NULL;
     RESULT_GUARD_POSIX(s2n_connection_get_kem_preferences(conn, &kem_preferences));

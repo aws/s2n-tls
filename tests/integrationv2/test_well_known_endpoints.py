@@ -1,3 +1,5 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 import pytest
 
 from constants import TRUST_STORE_BUNDLE, TRUST_STORE_TRUSTED_BUNDLE
@@ -6,6 +8,7 @@ from common import ProviderOptions, Ciphers, pq_enabled
 from fixtures import managed_process  # lgtm [py/unused-import]
 from global_flags import get_flag, is_criterion_on, S2N_FIPS_MODE, S2N_USE_CRITERION
 from providers import Provider, S2N
+from test_pq_handshake import PQ_ENABLED_FLAG
 from utils import invalid_test_parameters, get_parameter_name, to_bytes
 
 
@@ -60,28 +63,28 @@ CIPHERS = [
 if pq_enabled():
     EXPECTED_RESULTS = {
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2019_06):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_07):
             {"cipher": "ECDHE-KYBER-RSA-AES256-GCM-SHA384", "kem": "kyber512r3"},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_02):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
     }
 else:
     EXPECTED_RESULTS = {
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2019_06):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2019_11):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_07):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.KMS_PQ_TLS_1_0_2020_02):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
         ("kms.us-east-1.amazonaws.com", Ciphers.PQ_SIKE_TEST_TLS_1_0_2020_02):
-            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": "NONE"},
+            {"cipher": "ECDHE-RSA-AES256-GCM-SHA384", "kem": None},
     }
 
 
@@ -122,4 +125,9 @@ def test_well_known_endpoints(managed_process, protocol, endpoint, provider, cip
 
         if expected_result is not None:
             assert to_bytes(expected_result['cipher']) in results.stdout
-            assert to_bytes(expected_result['kem']) in results.stdout
+            if expected_result['kem']:
+                assert to_bytes(expected_result['kem']) in results.stdout
+                assert to_bytes(PQ_ENABLED_FLAG) in results.stdout
+            else:
+                assert to_bytes('KEM:') not in results.stdout
+                assert to_bytes(PQ_ENABLED_FLAG) not in results.stdout

@@ -105,7 +105,8 @@ phases:
           -DCMAKE_C_COMPILER=/usr/bin/$COMPILER \
           -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo \
-          -DASAN=ON
+          -DASAN=ON \
+          -DUBSAN=ON
       - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
