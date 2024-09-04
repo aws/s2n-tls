@@ -583,7 +583,9 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
                 struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
                 EXPECT_NOT_NULL(conn);
+                dbg_bail = false;
                 EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, test_cases[i].security_policy));
+                dbg_bail = true;
 
                 EXPECT_SUCCESS(s2n_client_hello_send(conn));
                 EXPECT_SUCCESS(s2n_parse_client_hello(conn));
@@ -1565,7 +1567,9 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
+            dbg_bail = false;
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(client, security_policy));
+            dbg_bail = true;
 
             EXPECT_SUCCESS(s2n_handshake_write_header(&client->handshake.io, TLS_CLIENT_HELLO));
             EXPECT_SUCCESS(s2n_client_hello_send(client));

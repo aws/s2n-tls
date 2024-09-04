@@ -72,7 +72,9 @@ int main(int argc, char **argv)
     const struct s2n_security_policy *default_security_policy = NULL, *tls13_security_policy = NULL, *fips_security_policy = NULL;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
+    dbg_bail = false;
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
+    dbg_bail = true;
 
     char cert[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert, S2N_MAX_TEST_PEM_SIZE));
