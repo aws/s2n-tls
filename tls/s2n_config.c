@@ -51,6 +51,10 @@ static int monotonic_clock(void *data, uint64_t *nanoseconds)
     return 0;
 }
 
+/* Control when to bail on "default" policy usage.
+ * Used to add valid exceptions.
+ */
+bool dbg_bail = true;
 static int wall_clock(void *data, uint64_t *nanoseconds)
 {
     struct timespec current_time = { 0 };
@@ -100,7 +104,11 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
+    /* TODO remove */
+    /* avoid bailing when creating a new config `s2n_config_new()` */
+    dbg_bail = false;
     POSIX_GUARD(s2n_config_setup_default(config));
+    dbg_bail = true;
     if (s2n_use_default_tls13_config()) {
         POSIX_GUARD(s2n_config_setup_tls13(config));
     } else if (s2n_is_in_fips_mode()) {

@@ -18,6 +18,7 @@
 #include "api/s2n.h"
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
+#include "utils/s2n_init.h"
 #include "utils/s2n_safety.h"
 
 /* TLS1.2 default as of 05/24 */
@@ -1270,6 +1271,18 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
     POSIX_ENSURE_REF(version);
     POSIX_ENSURE_REF(security_policy);
 
+    bool matches_default = strcmp(version, "default") == 0;
+    bool should_bail = dbg_bail &&
+            /* s2n_init() creates a "default" static config so only bail after initialization is complete; */
+            s2n_is_initialized() &&
+            /* attempting to use the "default" policy */
+            matches_default;
+
+    if (should_bail) {
+        printf("\nBail------- s2n_find_from_version");
+        POSIX_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
+    }
+
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
         if (!strcasecmp(version, security_policy_selection[i].version)) {
             *security_policy = security_policy_selection[i].security_policy;
@@ -1313,7 +1326,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
-    /* If the certificates loaded in the config are incompatible with the security 
+    /* If the certificates loaded in the config are incompatible with the security
      * policy's certificate preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
 
