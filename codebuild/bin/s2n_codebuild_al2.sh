@@ -30,7 +30,7 @@ case "$TESTS" in
     cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
       -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True
     cmake --build ./build -j $(nproc)
-    cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
+    CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
     ;;
   *) echo "Unknown test"; exit 1;;
 esac

@@ -32,7 +32,6 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 UNWINDSET += __CPROVER_file_local_s2n_stuffer_hex_c_s2n_stuffer_hex_write_n_bytes.4:5
