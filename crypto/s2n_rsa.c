@@ -168,7 +168,7 @@ static int s2n_rsa_keys_match(const struct s2n_pkey *pub, const struct s2n_pkey 
     plain_out.size = sizeof(plain_outpad);
     POSIX_GUARD(s2n_rsa_decrypt(priv, &enc, &plain_out));
 
-    S2N_ERROR_IF(memcmp(plain_in.data, plain_out.data, plain_in.size), S2N_ERR_KEY_MISMATCH);
+    POSIX_ENSURE(s2n_constant_time_equals(plain_in.data, plain_out.data, plain_in.size), S2N_ERR_KEY_MISMATCH);
 
     return 0;
 }

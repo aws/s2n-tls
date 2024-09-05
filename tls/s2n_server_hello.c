@@ -51,7 +51,7 @@ static int s2n_random_value_is_hello_retry(struct s2n_connection *conn)
 {
     POSIX_ENSURE_REF(conn);
 
-    POSIX_ENSURE(memcmp(hello_retry_req_random, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN) == 0,
+    POSIX_ENSURE(s2n_constant_time_equals(hello_retry_req_random, conn->handshake_params.server_random, S2N_TLS_RANDOM_DATA_LEN),
             S2N_ERR_INVALID_HELLO_RETRY);
 
     return S2N_SUCCESS;
@@ -157,7 +157,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
     S2N_ERROR_IF(compression_method != S2N_TLS_COMPRESSION_METHOD_NULL, S2N_ERR_BAD_MESSAGE);
 
     bool session_ids_match = session_id_len != 0 && session_id_len == conn->session_id_len
-            && memcmp(session_id, conn->session_id, session_id_len) == 0;
+            && s2n_constant_time_equals(session_id, conn->session_id, session_id_len);
     if (!session_ids_match) {
         conn->ems_negotiated = false;
     }
@@ -234,7 +234,7 @@ static int s2n_server_hello_parse(struct s2n_connection *conn)
         if (session_ids_match) {
             /* check if the resumed session state is valid */
             POSIX_ENSURE(conn->resume_protocol_version == conn->actual_protocol_version, S2N_ERR_BAD_MESSAGE);
-            POSIX_ENSURE(memcmp(conn->secure->cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN) == 0,
+            POSIX_ENSURE(s2n_constant_time_equals(conn->secure->cipher_suite->iana_value, cipher_suite_wire, S2N_TLS_CIPHER_SUITE_LEN),
                     S2N_ERR_BAD_MESSAGE);
 
             /* Session is resumed */
