@@ -135,14 +135,12 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_alloc(&hex_in, expected_size));
                 EXPECT_SUCCESS(s2n_stuffer_write_text(&hex_in, test_cases[i].hex, expected_size));
 
-                DEFER_CLEANUP(struct s2n_stuffer num_out = { 0 }, s2n_stuffer_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&num_out, 0));
-                EXPECT_OK(s2n_stuffer_read_hex(&num_out, &hex_in.blob));
-
                 uint8_t actual_num = 0;
-                EXPECT_SUCCESS(s2n_stuffer_read_uint8(&num_out, &actual_num));
+                struct s2n_blob num_out = { 0 };
+                EXPECT_SUCCESS(s2n_blob_init(&num_out, &actual_num, 1));
+                EXPECT_OK(s2n_stuffer_read_hex(&hex_in, &num_out));
                 EXPECT_EQUAL(actual_num, test_cases[i].num);
-                EXPECT_FALSE(s2n_stuffer_data_available(&num_out));
+                EXPECT_FALSE(s2n_stuffer_data_available(&hex_in));
             };
         }
     };
@@ -237,8 +235,10 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_write_text(&hex_in, test_cases[i].hex, expected_size));
 
                 DEFER_CLEANUP(struct s2n_stuffer num_out = { 0 }, s2n_stuffer_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&num_out, 0));
-                EXPECT_OK(s2n_stuffer_read_hex(&num_out, &hex_in.blob));
+                EXPECT_SUCCESS(s2n_stuffer_alloc(&num_out, sizeof(uint16_t)));
+                EXPECT_OK(s2n_stuffer_read_hex(&hex_in, &num_out.blob));
+                EXPECT_SUCCESS(s2n_stuffer_skip_write(&num_out, num_out.blob.size));
+                EXPECT_FALSE(s2n_stuffer_data_available(&hex_in));
 
                 uint16_t actual_num = 0;
                 EXPECT_SUCCESS(s2n_stuffer_read_uint16(&num_out, &actual_num));
@@ -332,15 +332,11 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_alloc(&hex_in, hex_size));
                 EXPECT_SUCCESS(s2n_stuffer_write_text(&hex_in, test_cases[i].hex, hex_size));
 
-                DEFER_CLEANUP(struct s2n_stuffer num_out = { 0 }, s2n_stuffer_free);
-                EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&num_out, 0));
-                EXPECT_OK(s2n_stuffer_read_hex(&num_out, &hex_in.blob));
-
-                size_t actual_size = s2n_stuffer_data_available(&num_out);
-                EXPECT_EQUAL(actual_size, test_cases[i].bytes_size);
-
-                const uint8_t *actual_bytes = s2n_stuffer_raw_read(&num_out, actual_size);
-                EXPECT_BYTEARRAY_EQUAL(actual_bytes, test_cases[i].bytes, actual_size);
+                DEFER_CLEANUP(struct s2n_blob num_out = { 0 }, s2n_free);
+                EXPECT_SUCCESS(s2n_alloc(&num_out, test_cases[i].bytes_size));
+                EXPECT_OK(s2n_stuffer_read_hex(&hex_in, &num_out));
+                EXPECT_BYTEARRAY_EQUAL(num_out.data, test_cases[i].bytes, test_cases[i].bytes_size);
+                EXPECT_FALSE(s2n_stuffer_data_available(&hex_in));
             };
         }
     };
@@ -393,17 +389,13 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, strlen(test_hex)));
                     EXPECT_SUCCESS(s2n_stuffer_write_str(&hex, test_hex));
 
-                    DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
-                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+                    DEFER_CLEANUP(struct s2n_blob out = { 0 }, s2n_free);
+                    EXPECT_SUCCESS(s2n_alloc(&out, sizeof(uint8_t)));
                     if (i == 0) {
-                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
-                    } else if (strlen(test_hex) == 0) {
-                        /* Unlike s2n_stuffer_read_uint8_hex, read_hex accepts
-                         * empty input since it has no size expectations */
-                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
+                        EXPECT_OK(s2n_stuffer_read_hex(&hex, &out));
                     } else {
                         EXPECT_ERROR_WITH_ERRNO(
-                                s2n_stuffer_read_hex(&out, &hex.blob),
+                                s2n_stuffer_read_hex(&hex, &out),
                                 S2N_ERR_BAD_HEX);
                     }
                 };
@@ -456,18 +448,13 @@ int main(int argc, char **argv)
                     EXPECT_SUCCESS(s2n_stuffer_alloc(&hex, strlen(test_hex)));
                     EXPECT_SUCCESS(s2n_stuffer_write_str(&hex, test_hex));
 
-                    DEFER_CLEANUP(struct s2n_stuffer out = { 0 }, s2n_stuffer_free);
-                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&out, 0));
+                    DEFER_CLEANUP(struct s2n_blob out = { 0 }, s2n_free);
+                    EXPECT_SUCCESS(s2n_alloc(&out, sizeof(uint16_t)));
                     if (i == 0) {
-                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
-                    } else if (strlen(test_hex) < sizeof(uint16_t) * 2
-                            && strlen(test_hex) % 2 == 0) {
-                        /* Unlike s2n_stuffer_read_uint16_hex, read_hex accepts
-                         * input of any valid size */
-                        EXPECT_OK(s2n_stuffer_read_hex(&out, &hex.blob));
+                        EXPECT_OK(s2n_stuffer_read_hex(&hex, &out));
                     } else {
                         EXPECT_ERROR_WITH_ERRNO(
-                                s2n_stuffer_read_hex(&out, &hex.blob),
+                                s2n_stuffer_read_hex(&hex, &out),
                                 S2N_ERR_BAD_HEX);
                     }
                 };
@@ -568,14 +555,11 @@ int main(int argc, char **argv)
                     }
                     EXPECT_FALSE(s2n_stuffer_data_available(&hex));
                 } else if (reader_i == S2N_TEST_N) {
-                    DEFER_CLEANUP(struct s2n_stuffer output = { 0 }, s2n_stuffer_free);
-                    EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&output, 0));
-
-                    hex.blob.size = s2n_stuffer_data_available(&hex);
-                    EXPECT_OK(s2n_stuffer_read_hex(&output, &hex.blob));
-
-                    EXPECT_EQUAL(s2n_stuffer_data_available(&output), sizeof(values_u8));
-                    EXPECT_BYTEARRAY_EQUAL(values_u8, output.blob.data, sizeof(values_u8));
+                    DEFER_CLEANUP(struct s2n_blob output = { 0 }, s2n_free);
+                    EXPECT_SUCCESS(s2n_alloc(&output, sizeof(values_u8)));
+                    EXPECT_OK(s2n_stuffer_read_hex(&hex, &output));
+                    EXPECT_EQUAL(s2n_stuffer_data_available(&hex), 0);
+                    EXPECT_BYTEARRAY_EQUAL(values_u8, output.data, output.size);
                 } else {
                     FAIL_MSG("unknown hex method");
                 }
