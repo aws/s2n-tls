@@ -4,10 +4,12 @@
 use anyhow::*;
 use bytes::Buf;
 use bytes::Bytes;
+use semver::Version;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::copy;
 use std::path::Path;
+use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
@@ -101,7 +103,40 @@ fn download(url: &str) -> Result<Bytes> {
     bail!("Unable to download: {}", url);
 }
 
+fn assert_tshark_version() -> Result<()> {
+    let output = Command::new("tshark").args(["--version"]).output();
+    let version = output.ok().and_then(|output| {
+        let message = std::str::from_utf8(&output.stdout).ok();
+        message.and_then(|msg| msg.split_whitespace().find_map(|s| Version::parse(s).ok()))
+    });
+
+    // Version requirements:
+    // 1. tshark >= 3.7.0 is required for JA3 support
+    //    JA3 support was added to earlier versions, but did not correctly ignore grease values.
+    //    See https://gitlab.com/wireshark/wireshark/-/commit/03afef0a566ed649ead587fb4c02fc2d8539f3b7
+    // 2. tshark >= 4.1.0 is required for consistent handling of sslv2.
+    //    Otherwise, we have to branch on sslv2 message filters.
+    //    See https://gitlab.com/wireshark/wireshark/-/commit/aee0278e086469a4b5b3185947a95556fd3ae708
+    // 3. tshark >= 4.2.0 is required for JA4 support.
+    //    See https://gitlab.com/wireshark/wireshark/-/commit/fd19f0d06f96b9934e3cd5b9889b2f83d3567fce
+    let min_version = Version::new(4, 2, 0);
+    if let Some(version) = version {
+        assert!(
+            version >= min_version,
+            "tshark {} required. tshark {} found",
+            min_version,
+            version
+        );
+        println!("tshark version: {}", version);
+    } else {
+        println!("cargo:warning=Unable to determine tshark version");
+    }
+    Ok(())
+}
+
 fn main() -> Result<()> {
+    assert_tshark_version()?;
+
     let out_dir = std::env::var("OUT_DIR")?;
     let download_path = Path::new(&out_dir).join("downloaded_pcaps");
 
