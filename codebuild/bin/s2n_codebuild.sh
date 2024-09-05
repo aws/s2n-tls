@@ -118,10 +118,11 @@ run_unit_tests() {
 # This can be removed after CI migration from make to cmake is done
 run_fuzz_tests() {
     cmake . -Bbuild \
-            -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DS2N_FUZZ_TEST=on
+        -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+        -DS2N_FUZZ_TEST=on \
+        -DLIBFUZZER_LIB=/usr/local/libfuzzer/lib/libFuzzer.a
     cmake --build ./build -- -j $(nproc)
-    cmake --build build --target run_fuzz 
+    cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"
 }
 
 # Run Multiple tests on one flag.

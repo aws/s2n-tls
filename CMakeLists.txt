@@ -590,6 +590,7 @@ if (BUILD_TESTING)
     endif()
 
     if(S2N_FUZZ_TEST)
+        message(STATUS "Fuzz build enabled")
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
