@@ -650,7 +650,7 @@ if (BUILD_TESTING)
             target_include_directories(${TEST_NAME} PRIVATE ./)
             
             target_compile_options(${TEST_NAME} PRIVATE 
-                -g -Wno-unknown-pragmas
+                -g -Wno-unknown-pragmas -Wno-unused-result
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
