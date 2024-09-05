@@ -26,7 +26,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROJECT_SOURCES += $(SRCDIR)/error/s2n_errno.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
 REMOVE_FUNCTION_BODY += s2n_calculate_stacktrace

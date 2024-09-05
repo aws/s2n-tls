@@ -28,7 +28,6 @@ PROOF_SOURCES += $(PROOF_SOURCE)/make_common_datastructures.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer.c
 PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_text.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET += s2n_stuffer_skip_whitespace.0:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += s2n_stuffer_skip_whitespace.1:$(call addone,$(MAX_BLOB_SIZE))
