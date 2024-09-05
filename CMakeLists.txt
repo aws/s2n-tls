@@ -607,7 +607,7 @@ if (BUILD_TESTING)
         endif()
         
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
-            set(FUZZ_TIMEOUT_SEC 120)
+            set(FUZZ_TIMEOUT_SEC 60)
         endif()
 
         if(NOT DEFINED CORPUS_UPLOAD_LOC)
