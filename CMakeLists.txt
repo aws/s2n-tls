@@ -664,8 +664,6 @@ if (BUILD_TESTING)
                 RUNTIME_OUTPUT_DIRECTORY ${FUZZ_BIN_DIR}
             )
 
-            list(APPEND FUZZ_TEST_EXECUTABLES ${TEST_NAME})
-
             add_test(NAME ${TEST_NAME}
                     COMMAND ${CMAKE_COMMAND} -E env
                         DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
