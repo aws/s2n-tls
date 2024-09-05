@@ -198,8 +198,6 @@ static int s2n_connection_free_managed_io(struct s2n_connection *conn)
 
 static int s2n_connection_wipe_io(struct s2n_connection *conn)
 {
-    POSIX_ENSURE_REF(conn);
-
     if (s2n_connection_is_managed_corked(conn) && conn->recv) {
         POSIX_GUARD(s2n_socket_read_restore(conn));
     }
