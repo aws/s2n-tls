@@ -50,6 +50,10 @@ batch:
 phases:
   pre_build:
     commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
       - /usr/bin/$COMPILER --version
   build:
     on-failure: ABORT
@@ -63,4 +67,4 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
-      - cmake --build build --target run_fuzz
+      - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"

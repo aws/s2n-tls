@@ -637,7 +637,7 @@ if (BUILD_TESTING)
                 LIBRARY_OUTPUT_DIRECTORY ${LIBRARY_OUTPUT_DIRECTORY}
             )
             target_compile_options(${LIB_NAME} PRIVATE
-                -Wno-unreachable-code -fPIC -Wno-deprecated-declarations
+                -fPIC
             )
         endforeach()
 
@@ -650,7 +650,7 @@ if (BUILD_TESTING)
             target_include_directories(${TEST_NAME} PRIVATE ./)
             
             target_compile_options(${TEST_NAME} PRIVATE 
-                -g -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -Wno-unused-result
+                -g -Wno-unknown-pragmas
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
@@ -665,29 +665,15 @@ if (BUILD_TESTING)
             )
 
             list(APPEND FUZZ_TEST_EXECUTABLES ${TEST_NAME})
+
+            add_test(NAME ${TEST_NAME}
+                    COMMAND ${CMAKE_COMMAND} -E env
+                        DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
+                        LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
+                        bash ${SCRIPT_PATH} ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC} ${ARTIFACT_UPLOAD_LOC}
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz)
+            set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")
         endforeach()
-
-        foreach(TEST_NAME ${FUZZ_TEST_EXECUTABLES})
-            add_custom_command(
-                OUTPUT ${TEST_NAME}_script
-                COMMAND ${CMAKE_COMMAND} -E env
-                    DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
-                    LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
-                    bash ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh
-                    ${TEST_NAME}
-                    ${FUZZ_TIMEOUT_SEC}
-                    ${CORPUS_UPLOAD_LOC}
-                    ${ARTIFACT_UPLOAD_LOC}
-                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
-            )
-
-            list(APPEND FUZZ_TEST_SCRIPTS ${TEST_NAME}_script)
-        endforeach()
-
-        # This will run all fuzz tests
-        add_custom_target(run_fuzz
-            DEPENDS ${FUZZ_TEST_SCRIPTS}
-        )
     endif()
 endif()
 
