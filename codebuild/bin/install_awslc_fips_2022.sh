@@ -30,9 +30,9 @@ INSTALL_DIR=$2
 source codebuild/bin/jobs.sh
 
 # There are currently no AWSLC release tags for the 2022 FIPS branch. The
-# following is the latest commit in this branch as of 4/5/23:
+# following is the latest commit in this branch as of 8/19/24:
 # https://github.com/aws/aws-lc/commits/fips-2022-11-02
-AWSLC_VERSION=03ea7816359a3e1babdf9f2cd0e694977c36ebbc
+AWSLC_VERSION=ec94d74a19b5a0aa738b436a95bb06ff87fc7ba9
 
 mkdir -p "$BUILD_DIR" || true
 cd "$BUILD_DIR"

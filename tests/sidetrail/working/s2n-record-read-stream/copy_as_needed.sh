@@ -46,7 +46,6 @@ cp $S2N_BASE/tls/s2n_record_read_stream.c tls/
 patch -p1 < s2n_record_read_stream.patch
 
 mkdir -p utils
-cp $S2N_BASE/utils/s2n_result.c utils/
 cp $S2N_BASE/utils/s2n_safety.c utils/
 patch -p1 < ../patches/safety.patch
 
