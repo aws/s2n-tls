@@ -19,4 +19,4 @@ phases:
   build:
     commands:
       - printenv
-      - $CB_BIN_DIR/s2n_codebuild_al2.sh
+      - $CB_BIN_DIR/s2n_codebuild_al.sh
