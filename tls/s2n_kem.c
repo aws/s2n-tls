@@ -296,7 +296,7 @@ int s2n_cipher_suite_to_kem(const uint8_t iana_value[S2N_TLS_CIPHER_SUITE_LEN], 
 {
     for (size_t i = 0; i < s2n_array_len(kem_mapping); i++) {
         const struct s2n_iana_to_kem *candidate = &kem_mapping[i];
-        if (memcmp(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+        if (s2n_constant_time_equals(iana_value, candidate->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
             *compatible_params = candidate;
             return S2N_SUCCESS;
         }

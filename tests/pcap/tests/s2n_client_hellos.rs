@@ -6,6 +6,7 @@ use pcap::all_pcaps;
 use pcap::client_hello::ClientHello as PcapHello;
 use pcap::handshake_message::Builder;
 use s2n_tls::client_hello::{ClientHello as S2NHello, FingerprintType};
+use s2n_tls::fingerprint;
 
 fn get_s2n_hello(pcap_hello: &PcapHello) -> Result<Box<S2NHello>> {
     let bytes = pcap_hello.message().bytes();
@@ -63,11 +64,8 @@ fn ja3_fingerprints() -> Result<()> {
     })
 }
 
-#[cfg(feature = "ja4")]
 #[test]
 fn ja4_fingerprints() -> Result<()> {
-    use s2n_tls::fingerprint;
-
     let mut builder = fingerprint::Builder::new(FingerprintType::JA4)?;
 
     test_all_client_hellos(|pcap_hello, s2n_hello| {

@@ -1487,7 +1487,7 @@ int s2n_connection_is_valid_for_cipher_preferences(struct s2n_connection *conn, 
     struct s2n_cipher_suite *cipher = conn->secure->cipher_suite;
     POSIX_ENSURE_REF(cipher);
     for (int i = 0; i < security_policy->cipher_preferences->count; ++i) {
-        if (0 == memcmp(security_policy->cipher_preferences->suites[i]->iana_value, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
+        if (s2n_constant_time_equals(security_policy->cipher_preferences->suites[i]->iana_value, cipher->iana_value, S2N_TLS_CIPHER_SUITE_LEN)) {
             return 1;
         }
     }

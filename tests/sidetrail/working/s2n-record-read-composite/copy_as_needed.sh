@@ -47,7 +47,6 @@ patch -p5 < ../patches/cbc.patch
 patch -p1 < record_read.patch
 
 mkdir -p utils
-cp $S2N_BASE/utils/s2n_result.c utils/
 cp $S2N_BASE/utils/s2n_safety.c utils/
 patch -p1 < ../patches/safety.patch
 

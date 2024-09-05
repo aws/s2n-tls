@@ -41,7 +41,6 @@ PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 # We abstract this function because manual inspection demonstrates it is unreachable.
 REMOVE_FUNCTION_BODY += __CPROVER_file_local_s2n_mem_c_s2n_mem_cleanup_impl
