@@ -31,7 +31,7 @@ batch:
     - identifier: clang_awslc
       debug-session: true
       env:
-        compute-type: BUILD_GENERAL1_2XLARGE
+        compute-type: BUILD_GENERAL1_XLARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
@@ -40,7 +40,7 @@ batch:
     - identifier: clang_openssl_3_0
       debug-session: true
       env:
-        compute-type: BUILD_GENERAL1_2XLARGE
+        compute-type: BUILD_GENERAL1_XLARGE
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
@@ -67,4 +67,5 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
+      # -L: Restrict tests to names matching the pattern 'fuzz'
       - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"

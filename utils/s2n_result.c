@@ -82,6 +82,12 @@
 
 #include "api/s2n.h"
 
+/* returns true when the result is S2N_RESULT_OK */
+inline bool s2n_result_is_ok(s2n_result result)
+{
+    return result.__error_signal == S2N_SUCCESS;
+}
+
 /* returns true when the result is S2N_RESULT_ERROR */
 inline bool s2n_result_is_error(s2n_result result)
 {

@@ -36,18 +36,8 @@ typedef struct {
     #define S2N_RESULT_MUST_USE
 #endif
 
-#ifdef S2N_DIAGNOSTICS_PUSH_SUPPORTED
-    #pragma GCC diagnostic push
-    #pragma GCC diagnostic ignored "-Wunused-function"
-#endif
 /* returns true when the result is S2N_RESULT_OK */
-S2N_RESULT_MUST_USE static bool s2n_result_is_ok(s2n_result result)
-{
-    return result.__error_signal == S2N_SUCCESS;
-}
-#ifdef S2N_DIAGNOSTICS_POP_SUPPORTED
-    #pragma GCC diagnostic pop
-#endif
+S2N_RESULT_MUST_USE bool s2n_result_is_ok(s2n_result result);
 
 /* returns true when the result is S2N_RESULT_ERROR */
 S2N_RESULT_MUST_USE bool s2n_result_is_error(s2n_result result);
