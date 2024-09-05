@@ -16,12 +16,50 @@
 set -eu
 source ./codebuild/bin/s2n_setup_env.sh
 
-if [[ ${DISTRO} != "amazon linux" ]]; then
-    echo "Target AL2, but running on $DISTRO: Nothing to do."
-    exit 0
-fi
+al2023_main(){
+    case "$S2N_LIBCRYPTO" in
+    "openssl-3.0"|"default") echo "Installing AL2023 packages";;
+    *) echo "${S2N_LIBCRYPTO} is not installed on this platform."; exit 1;;
+    esac
+    common_packages
+    al2023_packages
+    versions
+}
 
-base_packages() {
+al2_main() {
+    echo "Installing AL2 packages"
+    common_packages
+    al2_packages
+    symlink_all_the_things
+
+    case "$S2N_LIBCRYPTO" in
+    "openssl-1.1.1")
+        yum erase -y openssl-devel || true
+        yum install -y openssl11-static openssl11-libs openssl11-devel
+        ;;
+    "default") echo "Using default system libcrypto";;
+    *) echo "Unknown libcrypto: ${S2N_LIBCRYPTO}"; exit 1;;
+    esac
+    versions
+}
+
+common_packages(){
+    # Borrowed from https://github.com/aws/aws-codebuild-docker-images/blob/master/al2/x86_64/standard/5.0/Dockerfile#L24
+    mono
+    yum groupinstall -y "Development tools"
+    yum install -y clang git cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
+    yum install -y python3-pip tcpdump unzip zlib-devel libtool ninja-build valgrind wget
+    rm /etc/yum.repos.d/mono-centos7-stable.repo
+}
+
+al2023_packages(){
+    # Openssl 3.0 headers and go
+    yum install -y openssl-devel golang
+    # TODO: cmake isn't finding awslc https://github.com/aws/s2n-tls/issues/4633
+    #./codebuild/bin/install_awslc.sh $(mktemp -d) /usr/local/awsc 0
+}
+
+al2_packages() {
     # Latest AL2 image had dependency issues related to NodeJS.
     # We don't use NodeJS, so just remove it.
     yum erase -y nodejs || true
@@ -52,19 +90,20 @@ symlink_all_the_things() {
     update-alternatives --install /usr/bin/g++-7 g++ /usr/bin/g++ 700
 }
 
+versions(){
+    gcc --version
+    cmake --version
+    python3 --version
+    ninja --version
+}
 
-base_packages
-mono
-yum groupinstall -y "Development tools"
-yum install -y clang cmake3 iproute net-tools nettle-devel nettle which sudo psmisc
-yum install -y python3-pip tcpdump unzip zlib-devel libtool ninja-build valgrind wget
-symlink_all_the_things
-
-case "$S2N_LIBCRYPTO" in
-  "openssl-1.1.1")
-    yum erase -y openssl-devel || true
-    yum install -y openssl11-static openssl11-libs openssl11-devel
-    ;;
-  "default") echo "Using default system libcrypto";;
-  *) echo "Unknown libcrypto: ${S2N_LIBCRYPTO}"; exit 1;;
-esac
+if [[ ${DISTRO} != "amazon linux" ]]; then
+    echo "Target Amazon Linux, but running on $DISTRO: Nothing to do."
+    exit 0;
+else
+    if [[ ${VERSION_ID} == '2' ]]; then
+        al2_main;
+    elif [[ ${VERSION_ID} == '2023' ]]; then
+        al2023_main;
+    fi
+fi
