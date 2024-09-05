@@ -13,9 +13,22 @@
 # permissions and limitations under the License.
 #
 
-set -e
+set -eu
 
 source codebuild/bin/s2n_setup_env.sh
+
+if [[ ${DISTRO} != "amazon linux" ]]; then
+    echo "Target Amazon Linux, but running on $DISTRO: Nothing to do."
+    exit 0;
+else
+    #AL2023 case
+    BUILD_FLAGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+    if [[ ${VERSION_ID} == '2' ]]; then
+        # Linker flags are a workaround for openssl on AL2
+        BUILD_FLAGS+=' -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
+          -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True'
+    fi
+fi
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 # Codebuild Containers aren't allowing prlimit changes (and aren't being caught with the usual cgroup check)
@@ -24,11 +37,10 @@ if [[ "$OS_NAME" == "linux" && -n "$CODEBUILD_BUILD_ARN" ]]; then
     sudo -E ${PRLIMIT_LOCATION} --pid "$$" --memlock=unlimited:unlimited;
 fi
 
-# Linker flags are a workaround for openssl
+# Linker flags are a workaround for openssl on AL2
 case "$TESTS" in
   "unit")
-    cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True
+    cmake . -Bbuild -GNinja $BUILD_FLAGS
     cmake --build ./build -j $(nproc)
     CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
     ;;
