@@ -30,11 +30,11 @@ static const uint8_t hex_to_value[] = {
     /* clang-format on */
 };
 
-S2N_RESULT s2n_hex_digit(uint8_t nibble, uint8_t *hex_digit)
+S2N_RESULT s2n_hex_digit(uint8_t half_byte, uint8_t *hex_digit)
 {
     RESULT_ENSURE_REF(hex_digit);
-    RESULT_ENSURE(nibble < s2n_array_len(value_to_hex), S2N_ERR_BAD_HEX);
-    *hex_digit = value_to_hex[nibble];
+    RESULT_ENSURE(half_byte < s2n_array_len(value_to_hex), S2N_ERR_BAD_HEX);
+    *hex_digit = value_to_hex[half_byte];
     return S2N_RESULT_OK;
 }
 
