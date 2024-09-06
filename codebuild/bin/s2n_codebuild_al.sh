@@ -27,23 +27,23 @@ else
     BUILD_FLAGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo"
     # AL2 case; Linker flags are a workaround for system openssl
     if [[ ${VERSION_ID} == '2' ]]; then
-	      BUILD_FLAGS=$(echo -e '-DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" \
-          -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True')
+       BUILD_FLAGS=$(echo -e '-DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" \
+         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True')
     fi
 fi
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 # Codebuild Containers aren't allowing prlimit changes (and aren't being caught with the usual cgroup check)
 if [[ "$OS_NAME" == "linux" && -z "$CODEBUILD_BUILD_ARN_" ]]; then
-    PRLIMIT_LOCATION=`which prlimit`
+    PRLIMIT_LOCATION=$(which prlimit)
     sudo -E ${PRLIMIT_LOCATION} --pid "$$" --memlock=unlimited:unlimited;
 fi
 
 case "$TESTS" in
   "unit")
     eval cmake . -Bbuild "${BUILD_FLAGS}"
-    cmake --build ./build -j $(nproc)
-    CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
+    cmake --build ./build -j "$(nproc)"
+    CTEST_PARALLEL_LEVEL="$(nproc)" cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
     ;;
   *) echo "Unknown test"; exit 1;;
 esac
