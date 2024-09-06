@@ -90,7 +90,7 @@ fn ja4_fingerprints() -> Result<()> {
         // Handle known issues:
         // tshark currently doesn't handle special alpn characters correctly
         // TODO: remove this when tshark updates
-        let exceptions = [("+", "b"), ("-", "2"), ("__", "5f")];
+        let exceptions = [("-+", "2b"), ("__", "5f")];
         for (a, b) in exceptions {
             tshark_hash = tshark_hash.replace(a, b);
             tshark_str = tshark_str.replace(a, b);
