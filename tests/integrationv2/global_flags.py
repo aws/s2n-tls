@@ -1,3 +1,5 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 # We support global configuration flags that are set via command line.
 # These flags enable Providers and Tests to determine how to behave
 # based on the environment.

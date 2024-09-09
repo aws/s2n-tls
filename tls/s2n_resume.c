@@ -165,7 +165,7 @@ static int s2n_tls12_deserialize_resumption_state(struct s2n_connection *conn, s
     S2N_ERROR_IF(protocol_version != conn->actual_protocol_version, S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     POSIX_GUARD(s2n_stuffer_read_bytes(from, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN));
-    S2N_ERROR_IF(memcmp(conn->secure->cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
+    POSIX_ENSURE(s2n_constant_time_equals(conn->secure->cipher_suite->iana_value, cipher_suite, S2N_TLS_CIPHER_SUITE_LEN), S2N_ERR_INVALID_SERIALIZED_SESSION_STATE);
 
     uint64_t now = 0;
     POSIX_GUARD_RESULT(s2n_config_wall_clock(conn->config, &now));
@@ -767,7 +767,7 @@ struct s2n_ticket_key *s2n_find_ticket_key(struct s2n_config *config, const uint
     for (uint32_t i = 0; i < ticket_keys_len; i++) {
         PTR_GUARD_RESULT(s2n_set_get(config->ticket_keys, i, (void **) &ticket_key));
 
-        if (memcmp(ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN) == 0) {
+        if (s2n_constant_time_equals(ticket_key->key_name, name, S2N_TICKET_KEY_NAME_LEN)) {
             /* Check to see if the key has expired */
             if (now >= ticket_key->intro_timestamp
                             + config->encrypt_decrypt_key_lifetime_in_nanos
