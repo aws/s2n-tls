@@ -32,8 +32,3 @@ openssl-sys = "0.9"
 foreign-types = "0.3"
 temp-env = "0.3"
 checkers = "0.6"
-# newer versions require rust 1.66, see https://github.com/aws/s2n-tls/issues/4241
-# this version pin is only needed to prevent verification failures when using
-# cargo package / cargo publish, as those commands do not respect the version pin
-# in downstream dev-dependencies (in s2n-tls-sys, in this case)
-jobserver = "=0.1.26"
