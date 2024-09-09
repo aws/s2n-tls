@@ -192,6 +192,29 @@ if(TSAN)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
 endif()
 
+set(CTEST_MEMORYCHECK_COMMAND_OPTIONS_REGULAR " \
+            --leak-check=full \
+            --leak-resolution=high \
+            --trace-children=yes \
+            --run-libc-freeres=no \
+            -q --error-exitcode=123 \
+            --error-limit=no \
+            --num-callers=40 \
+            --undef-value-errors=no")
+set(CTEST_MEMORYCHECK_COMMAND_OPTIONS_PENDANTIC " \
+            --leak-check=full \
+            --leak-resolution=high \
+            --trace-children=yes \
+            --run-libc-freeres=no \
+            -q --error-exitcode=123 \
+            --error-limit=no \
+            --num-callers=40 \
+            --undef-value-errors=no \
+            --errors-for-leak-kinds=all \
+            --suppressions=valgrind.suppressions")
+
+set(CTEST_MEMORYCHECK_TYPE "Valgrind")
+
 if(ASAN)
     target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -DS2N_ADDRESS_SANITIZER=1)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
