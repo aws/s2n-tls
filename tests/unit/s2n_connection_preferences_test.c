@@ -246,7 +246,6 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
 
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
