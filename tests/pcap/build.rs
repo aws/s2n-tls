@@ -28,10 +28,7 @@ fn get_download_urls() -> HashMap<String, String> {
         "latest.pcapng",
         "macos_tcp_flags.pcap",
         "tls-alpn-h2.pcap",
-        // TODO: non-ascii alpn handling currently differs between implementations,
-        // with no official consensus. Wireshark chose different handling than s2n-tls did.
-        // See https://github.com/FoxIO-LLC/ja4/pull/147
-        // "tls-non-ascii-alpn.pcapng",
+        "tls-non-ascii-alpn.pcapng",
         "tls12.pcap",
         "tls3.pcapng",
     ];
