@@ -36,7 +36,7 @@ stacktrace = []
 # unstable-foo = []
 
 [dependencies]
-
+# https://github.com/aws/s2n-tls/issues/4757
 aws-lc-rs = { version = "=1.8.1" }
 libc = "0.2"
 
