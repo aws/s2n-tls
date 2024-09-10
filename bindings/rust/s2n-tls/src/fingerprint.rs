@@ -394,6 +394,7 @@ mod tests {
 
     #[test]
     fn connection_fingerprint() -> Result<(), Box<dyn Error>> {
+        // TODO not protocol dependent
         let pair = simple_handshake()?;
         let client_hello = pair.server.client_hello()?;
 
@@ -662,6 +663,7 @@ mod tests {
     #[test]
     #[allow(deprecated)]
     fn legacy_connection_fingerprint() -> Result<(), Box<dyn Error>> {
+        // TODO not protocol dependent
         let pair = simple_handshake()?;
         let client_hello = pair.server.client_hello()?;
 
