@@ -225,15 +225,15 @@ if [[ -n $S2N_ENSURE_WITH_INVALID_ERROR_CODE ]]; then
 fi
 
 #############################################
-# Assert test don't specify the "default" security policy
+# Assert tests don't specify the "default" security policy.
 #
 # Since the "default" policies are subject to change, tests should instead specify
 # an immutable numbered policy to avoid unwanted testing behavior.
 #############################################
 S2N_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/bindings/*" -not -path "*/bin/*")
 declare -A KNOWN_DEFAULT_USAGE
-KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_config.c"]=2
-KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_security_policies.c"]=5
+KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_config.c"]=1
+KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_security_policies.c"]=1
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_security_policies_test.c"]=5
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_hello_test.c"]=2
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_connection_preferences_test.c"]=1

@@ -16,7 +16,6 @@ mod tests {
 
     #[test]
     fn handshake_default() {
-        // TODO not protocol dependent
         let config = build_config(&security::DEFAULT).unwrap();
         assert!(TestPair::handshake_with_config(&config).is_ok());
     }
@@ -642,7 +641,6 @@ mod tests {
 
     #[test]
     fn no_application_protocol() -> Result<(), Error> {
-        // TODO not protocol dependent
         let config = config_builder(&security::DEFAULT)?.build()?;
         let mut pair = TestPair::from_config(&config);
         pair.handshake()?;
@@ -652,7 +650,6 @@ mod tests {
 
     #[test]
     fn application_protocol() -> Result<(), Error> {
-        // TODO not protocol dependent
         let config = config_builder(&security::DEFAULT)?.build()?;
         let mut pair = TestPair::from_config(&config);
         pair.server
