@@ -145,7 +145,7 @@ elseif (UNSAFE_TREAT_WARNINGS_AS_ERRORS)
     target_compile_options(${PROJECT_NAME} PRIVATE -Werror )
 endif ()
 
-if(BUILD_TESTING AND BUILD_SHARED_LIBS)
+if(BUILD_TESTING AND BUILD_SHARED_LIBS OR S2N_FUZZ_TEST)
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=default)
 else()
     target_compile_options(${PROJECT_NAME} PRIVATE -fvisibility=hidden -DS2N_EXPORTS)
@@ -183,8 +183,9 @@ if(NO_STACK_PROTECTOR)
     target_compile_options(${PROJECT_NAME} PRIVATE -Wstack-protector -fstack-protector-all)
 endif()
 
-if(S2N_UNSAFE_FUZZING_MODE)
-    target_compile_options(${PROJECT_NAME} PRIVATE -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak -fuse-ld=gold -DS2N_ADDRESS_SANITIZER=1)
+if(S2N_FUZZ_TEST)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
 endif()
 
 if(TSAN)
@@ -585,6 +586,92 @@ if (BUILD_TESTING)
             endif()
             set_property(TEST ${test_target} PROPERTY LABELS "integrationv2")
             set_property(TEST ${test_target} PROPERTY TIMEOUT 7200)
+        endforeach()
+    endif()
+
+    if(S2N_FUZZ_TEST)
+        message(STATUS "Fuzz build enabled")
+        set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
+        file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
+
+        file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+        file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
+
+        add_library(fuzztest SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+        target_include_directories(fuzztest PUBLIC tests)
+        target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
+
+        # Set default values for fuzzing if not defined
+        if(NOT DEFINED LIBFUZZER_LIB)
+            message(FATAL_ERROR "LIBFUZZER_LIB is not defined. Please set it to the path of your libFuzzer.a.")
+        endif()
+        
+        if(NOT DEFINED FUZZ_TIMEOUT_SEC)
+            set(FUZZ_TIMEOUT_SEC 60)
+        endif()
+
+        if(NOT DEFINED CORPUS_UPLOAD_LOC)
+            set(CORPUS_UPLOAD_LOC "none")
+        endif()
+
+        if(NOT DEFINED ARTIFACT_UPLOAD_LOC)
+            set(ARTIFACT_UPLOAD_LOC "none")
+        endif()
+
+        if(NOT DEFINED FUZZ_TESTS)
+            set(FUZZ_TESTS "${TESTS}")
+        endif()
+
+        # Build LD_PRELOAD shared libraries
+        set(LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD)
+        file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
+        foreach(SRC ${LIBRARY_SRCS})
+            get_filename_component(LIB_NAME ${SRC} NAME_WE)
+            add_library(${LIB_NAME} SHARED ${SRC})
+            target_include_directories(${LIB_NAME} PRIVATE 
+                ${CMAKE_CURRENT_SOURCE_DIR}
+                ${CMAKE_CURRENT_SOURCE_DIR}/api
+            )
+            # Set the output directory and remove the default "lib" prefix
+            set_target_properties(${LIB_NAME} PROPERTIES
+                PREFIX ""
+                LIBRARY_OUTPUT_DIRECTORY ${LIBRARY_OUTPUT_DIRECTORY}
+            )
+            target_compile_options(${LIB_NAME} PRIVATE
+                -fPIC
+            )
+        endforeach()
+
+        set(CMAKE_C_COMPILER clang)
+
+        foreach(src ${FUZZ_TEST_SRCS})
+            get_filename_component(TEST_NAME ${src} NAME_WE)
+
+            add_executable(${TEST_NAME} ${src})
+            target_include_directories(${TEST_NAME} PRIVATE ./)
+            
+            target_compile_options(${TEST_NAME} PRIVATE 
+                -g -Wno-unknown-pragmas -Wno-unused-result
+            )
+            target_link_libraries(${TEST_NAME} PRIVATE 
+                fuzztest
+                ${LIBFUZZER_LIB}  # Manually link old libFuzzer.a
+                -lstdc++
+            )
+
+            # Set the output directory for the fuzzing binaries
+            set(FUZZ_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz")
+            set_target_properties(${TEST_NAME} PROPERTIES
+                RUNTIME_OUTPUT_DIRECTORY ${FUZZ_BIN_DIR}
+            )
+
+            add_test(NAME ${TEST_NAME}
+                    COMMAND ${CMAKE_COMMAND} -E env
+                        DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
+                        LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
+                        bash ${SCRIPT_PATH} ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC} ${ARTIFACT_UPLOAD_LOC}
+                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz)
+            set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")
         endforeach()
     endif()
 endif()
