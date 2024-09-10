@@ -225,6 +225,56 @@ if [[ -n $S2N_ENSURE_WITH_INVALID_ERROR_CODE ]]; then
 fi
 
 #############################################
+# Assert test don't specify the "default" security policy
+#
+# Since the "default" policies are subject to change, tests should instead specify
+# an immutable numbered policy to avoid unwanted testing behavior.
+#############################################
+S2N_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/bindings/*" -not -path "*/bin/*")
+declare -A KNOWN_DEFAULT_USAGE
+KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_config.c"]=2
+KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_security_policies.c"]=5
+KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_security_policies_test.c"]=5
+KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_hello_test.c"]=2
+KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_connection_preferences_test.c"]=1
+KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_config_test.c"]=1
+# "default" string not used for specifying security policy
+KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_build_test.c"]=1
+KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_key_share_extension_test.c"]=2
+
+for file in $S2N_DEFAULT_SECURITY_POLICY_USAGE; do
+  RESULT_NUM_LINES=`grep -n '"default"' $file | wc -l`
+
+  # set default KNOWN_DEFAULT_USAGE value
+  [ -z "${KNOWN_DEFAULT_USAGE["$file"]}" ] && KNOWN_DEFAULT_USAGE["$file"]="0"
+
+  # check if "default" usage is 0 or a known value
+  if [ "${RESULT_NUM_LINES}" != "${KNOWN_DEFAULT_USAGE["$file"]}" ]; then
+    echo "Expected: ${KNOWN_DEFAULT_USAGE["$file"]} Found: ${RESULT_NUM_LINES} usage of '"default"' in $file"
+    FAILED=1
+  fi
+done
+
+S2N_RUST_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "*.rs" -path "*/bindings/*" -not -path "*/target/*")
+declare -A KNOWN_RUST_DEFAULT_USAGE
+KNOWN_RUST_DEFAULT_USAGE["$PWD/bindings/rust/s2n-tls/src/testing/s2n_tls.rs"]=3
+KNOWN_RUST_DEFAULT_USAGE["$PWD/bindings/rust/s2n-tls/src/fingerprint.rs"]=1
+KNOWN_RUST_DEFAULT_USAGE["$PWD/bindings/rust/s2n-tls/src/security.rs"]=2
+
+for file in $S2N_RUST_DEFAULT_SECURITY_POLICY_USAGE; do
+  RESULT_NUM_LINES=`grep -n '\<DEFAULT\>' $file | wc -l`
+
+  # set default KNOWN_RUST_DEFAULT_USAGE value
+  [ -z "${KNOWN_RUST_DEFAULT_USAGE["$file"]}" ] && KNOWN_RUST_DEFAULT_USAGE["$file"]="0"
+
+  # check if DEFAULT usage is 0 or a known value
+  if [ "${RESULT_NUM_LINES}" != "${KNOWN_RUST_DEFAULT_USAGE["$file"]}" ]; then
+    echo "Expected: ${KNOWN_RUST_DEFAULT_USAGE["$file"]} Found: ${RESULT_NUM_LINES} usage of DEFAULT in $file"
+    FAILED=1
+  fi
+done
+
+#############################################
 # REPORT FINAL RESULTS
 #############################################
 if [ $FAILED == 1 ]; then
