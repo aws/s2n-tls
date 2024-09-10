@@ -1,0 +1,71 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+# This buildspec runs on an Ubuntu22 image. That configuration is a property of
+# the codebuild job itself.
+
+# Codebuild's matrix jobs have non-differentiated names so use batch-list
+# instead.
+
+# Parameter motivation
+
+# LIBCRYPTOS
+# awslc: happy path libcrypto for s2n-tls
+# openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 
+#            asan on it. See pr 4033 for a historical motivating example.
+
+batch:
+  build-list:
+    - identifier: clang_awslc
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: awslc
+          COMPILER: clang
+    - identifier: clang_openssl_3_0
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0
+          COMPILER: clang
+
+phases:
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - /usr/bin/$COMPILER --version
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        cmake . -Bbuild \
+        -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+        -DS2N_FUZZ_TEST=on \
+        -DLIBFUZZER_LIB=/usr/local/libfuzzer/lib/libFuzzer.a
+      - cmake --build ./build -- -j $(nproc)
+  post_build:
+    on-failure: ABORT
+    commands:
+      # -L: Restrict tests to names matching the pattern 'fuzz'
+      - cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"
