@@ -303,7 +303,11 @@ impl TestPair {
         }
     }
 
-    unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
+    pub(crate) unsafe extern "C" fn send_cb(
+        context: *mut c_void,
+        data: *const u8,
+        len: u32,
+    ) -> c_int {
         let context = &*(context as *const LocalDataBuffer);
         let data = core::slice::from_raw_parts(data, len as _);
         let bytes_written = context.borrow_mut().write(data).unwrap();
@@ -312,7 +316,11 @@ impl TestPair {
 
     // Note: this callback will be invoked multiple times in the event that
     // the byte-slices of the VecDeque are not contiguous (wrap around).
-    unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
+    pub(crate) unsafe extern "C" fn recv_cb(
+        context: *mut c_void,
+        data: *mut u8,
+        len: u32,
+    ) -> c_int {
         let context = &*(context as *const LocalDataBuffer);
         let data = core::slice::from_raw_parts_mut(data, len as _);
         match context.borrow_mut().read(data) {

@@ -29,6 +29,31 @@
  * s2n-tls clients support secure (compliant with RFC5746) renegotiation for compatibility reasons,
  * but s2n-tls does NOT recommend its use. While s2n-tls addresses all currently known security concerns,
  * renegotiation has appeared in many CVEs and was completely removed from TLS1.3.
+ *
+ * A basic renegotiation integration with s2n-tls would look like:
+ *  1. The application calls s2n_recv as part of normal IO.
+ *  2. s2n_recv receives a request for renegotiation (a HelloRequest message)
+ *     instead of application data.
+ *  3. s2n_recv calls the configured s2n_renegotiate_request_cb.
+ *  4. The application's implementation of the s2n_renegotiate_request_cb should:
+ *     1. Set the `response` parameter to S2N_RENEGOTIATE_ACCEPT
+ *     2. Set some application state to indicate that renegotiation is required.
+ *        s2n_connection_set_ctx can be used to associate application state with
+ *        a specific connection.
+ *     3. Return success.
+ *  5. s2n_recv returns as part of normal IO.
+ *  6. The application should check the application state set in 4.2 to determine
+ *     whether or not renegotiation is required.
+ *  7. The application should complete any in-progress IO. Failing to do this will
+ *     cause s2n_negotiate_wipe to fail.
+ *     1. For sending, the application must retry any blocked calls to s2n_send
+ *        until they return success.
+ *     2. For receiving, the application must call s2n_recv to handle any buffered
+ *        decrypted application data. s2n_peek indicates how much data is buffered.
+ *  8. The application should call s2n_renegotiate_wipe.
+ *  9. The application should reconfigure the connection, if necessary.
+ * 10. The application should call s2n_renegotiate until it indicates success,
+ *     while handling any application data encountered.
  */
 
 /**
@@ -92,7 +117,7 @@ S2N_API int s2n_config_set_renegotiate_request_cb(struct s2n_config *config, s2n
  *
  * The application MUST handle any incomplete IO before calling this method. The last call to `s2n_send` must
  * have succeeded, and `s2n_peek` must return zero. If there is any data in the send or receive buffers,
- * this method will fail.
+ * this method will fail. That means that this method cannot be called from inside s2n_renegotiate_request_cb.
  *
  * The application MUST repeat any connection-specific setup after calling this method. This method
  * cannot distinguish between internal connection state and configuration state set by the application,
@@ -129,6 +154,10 @@ S2N_API int s2n_renegotiate_wipe(struct s2n_connection *conn);
  * with an error of type S2N_ERR_T_BLOCKED, set the `blocked` field to `S2N_BLOCKED_ON_APPLICATION_DATA`,
  * copy the data to `app_data_buf`, and set `app_data_size` to the size of the data.
  * The application should handle the data in `app_data_buf` before calling s2n_renegotiate again.
+ *
+ * This method cannot be called from inside s2n_renegotiate_request_cb. The receive
+ * call that triggered s2n_renegotiate_request_cb must complete before either
+ * s2n_renegotiate_wipe or s2n_renegotiate can be called.
  *
  * @note s2n_renegotiate_wipe MUST be called before this method.
  * @note Calling this method on a server connection will fail. s2n-tls servers do not support renegotiation.

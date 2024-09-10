@@ -44,15 +44,19 @@ jobs:
       - name: Generate
         run: ${{env.ROOT_PATH}}/generate.sh
 
-      - name: Tests
-        working-directory: ${{env.ROOT_PATH}}
-        # Test all features except for FIPS, which is tested separately.
-        run: cargo test --features unstable-renegotiate,unstable-fingerprint,unstable-ktls,quic,pq
-
       # Ensure that all tests pass with the default feature set
       - name: Default Tests
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
+
+      - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
+        working-directory: ${{env.ROOT_PATH}}
+        # Test all features except for FIPS, which is tested separately.
+        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq
+
+      - name: "Feature Test: Renegotiate"
+        working-directory: ${{env.ROOT_PATH}}
+        run: cargo test --features unstable-renegotiate
 
       - name: Test external build
         # if this test is failing, make sure that api headers are appropriately
