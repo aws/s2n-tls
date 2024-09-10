@@ -100,7 +100,7 @@ CONTRACT_ENSURES(CONTRACT_RETURN_VALUE == __CPROVER_forall { unsigned k; (k >= 0
         arrays_equal = arrays_equal && (a[i] == b[i]);
     }
 
-    /* Substiture i = len into the loop invariant to get... */
+    /* Substitute i = len into the loop invariant to get... */
     CONTRACT_ASSERT(arrays_equal ==
                     __CPROVER_forall { uint32_t j; (j >= 0 && j < len) ==> (a[j] == b[j]) },
                     "Post-loop assertion");
