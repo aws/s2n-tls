@@ -60,7 +60,7 @@ phases:
     commands:
       - |
         cmake . -Bbuild \
-        -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+        -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
         -DS2N_FUZZ_TEST=on
       - cmake --build ./build -- -j $(nproc)
   post_build:
