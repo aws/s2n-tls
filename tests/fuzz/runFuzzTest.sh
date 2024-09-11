@@ -52,11 +52,12 @@ GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
 
 FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
+# Use LD_PRELOAD_ to prevent symbol lookup errors in commands like mkdir.
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
 then
-    export LD_PRELOAD="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"
+    export LD_PRELOAD_="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"
 else
-    export LD_PRELOAD="$GLOBAL_OVERRIDES"
+    export LD_PRELOAD_="$GLOBAL_OVERRIDES"
 fi
 
 FIPS_TEST_MSG=""
@@ -143,7 +144,7 @@ if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     rm -f ./profiles/${TEST_NAME}/*.profraw
     LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 else
-    ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    env LD_PRELOAD="$LD_PRELOAD_" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
 TEST_INFO=$(
