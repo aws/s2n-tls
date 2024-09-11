@@ -27,7 +27,7 @@ batch:
         privileged-mode: true
         variables:
           S2N_LIBCRYPTO: 
-            - aws-lc
+            - awslc
           FUZZ_TESTS:
             - "s2n_cert_req_recv_test"
             - "s2n_certificate_extensions_parse_test"
