@@ -230,15 +230,20 @@ fi
 # Since the "default" policies are subject to change, tests should instead specify
 # an immutable numbered policy to avoid unwanted testing behavior.
 #############################################
-S2N_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/bindings/*" -not -path "*/bin/*")
+S2N_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/tls/*" \
+    -not -path "*/bindings/*" -not -path "*/bin/*")
 declare -A KNOWN_DEFAULT_USAGE
-KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_config.c"]=1
-KNOWN_DEFAULT_USAGE["$PWD/tls/s2n_security_policies.c"]=1
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_security_policies_test.c"]=5
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_hello_test.c"]=2
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_connection_preferences_test.c"]=1
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_config_test.c"]=1
 # "default" string not used for specifying security policy
+#
+# The regex matching results in false positives but is intentionally "loose" to
+# try and catch non-obvious [1] usage of "default". This is acceptable since
+# there are only a few false positives at the moment.
+#
+# [1] https://github.com/aws/s2n-tls/blob/341a69ed6fc4fa8f51c09b9cc477223cec4d8e60/tests/unit/s2n_client_hello_test.c#L580
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_build_test.c"]=1
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_key_share_extension_test.c"]=2
 
@@ -250,8 +255,10 @@ for file in $S2N_DEFAULT_SECURITY_POLICY_USAGE; do
 
   # check if "default" usage is 0 or a known value
   if [ "${RESULT_NUM_LINES}" != "${KNOWN_DEFAULT_USAGE["$file"]}" ]; then
-    echo "Expected: ${KNOWN_DEFAULT_USAGE["$file"]} Found: ${RESULT_NUM_LINES} usage of '"default"' in $file"
     FAILED=1
+    KNOWN_USAGE=${KNOWN_DEFAULT_USAGE[$file]}
+    printf "\e[1;34mExpected: ${KNOWN_USAGE} Found: ${RESULT_NUM_LINES} usage of \"default\" in $file\n"
+    printf "\e[1;34mTests should specify a numbered security policy unless specifically testing the \"default\" policy.\n\n"
   fi
 done
 
@@ -269,8 +276,10 @@ for file in $S2N_RUST_DEFAULT_SECURITY_POLICY_USAGE; do
 
   # check if DEFAULT usage is 0 or a known value
   if [ "${RESULT_NUM_LINES}" != "${KNOWN_RUST_DEFAULT_USAGE["$file"]}" ]; then
-    echo "Expected: ${KNOWN_RUST_DEFAULT_USAGE["$file"]} Found: ${RESULT_NUM_LINES} usage of DEFAULT in $file"
     FAILED=1
+    KNOWN_USAGE=${KNOWN_RUST_DEFAULT_USAGE["$file"]}
+    printf "\e[1;34mExpected: ${KNOWN_USAGE} Found: ${RESULT_NUM_LINES} usage of DEFAULT in $file\n"
+    printf "\e[1;34mTests should use a numbered policy if testing protocol specific behavior.\n\n"
   fi
 done
 
