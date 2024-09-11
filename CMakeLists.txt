@@ -601,7 +601,7 @@ if (BUILD_TESTING)
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
-        # Fetch runtime environment variables for fuzzing
+        # Set default values for fuzzing if not defined
         if(DEFINED ENV{FUZZ_TIMEOUT_SEC})
             set(FUZZ_TIMEOUT_SEC $ENV{FUZZ_TIMEOUT_SEC})
         else()
