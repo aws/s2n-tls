@@ -13,8 +13,6 @@
 # limitations under the License.
 version: 0.2
 
-# FUZZ_COVERAGE needs to be turned off on CodeBuild config for this to work. Currently CMake is missing CFlags to generate coverage report.
-
 batch:
   build-matrix:
     static:
@@ -77,12 +75,12 @@ phases:
     commands:
       - |
         cmake . -Bbuild \
-        -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
+        -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
         -DS2N_FUZZ_TEST=on
       - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
     commands:
       # -L: Restrict tests to labels matching the pattern 'fuzz'
-      # -R: Restrict tests to names containing the value of ${FUZZ_TEST_NAME}
+      # -R: Run the single fuzz test defined in ${FUZZ_TESTS}
       - cmake --build build/ --target test -- ARGS="-L fuzz -R ${FUZZ_TESTS} --output-on-failure"
