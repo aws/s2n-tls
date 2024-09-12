@@ -13,30 +13,6 @@
 # limitations under the License.
 version: 0.2
 
-# This buildspec runs on an Ubuntu22 image. That configuration is a property of
-# the codebuild job itself.
-
-# Codebuild's matrix jobs have non-differentiated names so use batch-list
-# instead.
-
-# Parameter motivation
-
-# COMPILERS
-# We run asan on both gcc and clang because of different features sets for their
-# address sanitizers. Specifically there was a case where GCC was able to detect
-# a memcpy-param-overlap that Clang did not.
-
-# LIBCRYPTOS
-# awslc: happy path libcrypto for s2n-tls
-# openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 
-#            asan on it. See pr 4033 for a historical motivating example.
-# openssl 1.1.1: a widely deployed version of openssl.
-# openssl 1.0.2: the default libcrypto on AL2, and AL2 is still widely deployed.
-
-# CMAKE_BUILD_TYPE
-# RelWithDebInfo: This instructs CMake to do all optimizations (Rel -> Release)
-# along with debug info (DebInfo). Debug info is necessary to get line numbers 
-# in the stack traces that ASAN reports.
 batch:
   build-list:
     - identifier: clang_awslc
@@ -82,7 +58,6 @@ phases:
       - |
         if [ -d "third-party-src" ]; then
           cd third-party-src;
-          ln -s /usr/local $CODEBUILD_SRC_DIR/third-party-src/test-deps;
         fi
       - /usr/bin/$COMPILER --version
   build:
@@ -97,20 +72,7 @@ phases:
   post_build:
     on-failure: ABORT
     commands:
-      - |    
-        if [[ "$S2N_LIBCRYPTO" == "openssl-1.1.1" ]]; then
-            echo "running task pedantic_valgrind"
-            S2N_DEBUG=true\ 
-            CTEST_OUTPUT_ON_FAILURE=1 \
-            CTEST_MEMORYCHECK_COMMAND_OPTIONS="${CTEST_MEMORYCHECK_COMMAND_OPTIONS_PEDANTIC}" \
-            S2N_VALGRIND=1 \
-            CTEST_PARALLEL_LEVEL=$(nproc) ctest -T memcheck --test-dir build \
-            --timeout 3000 ARGS="-output-on-failure"
-        else
-            S2N_DEBUG=true \
-            CTEST_OUTPUT_ON_FAILURE=1 \
-            CTEST_MEMORYCHECK_COMMAND_OPTIONS="${CTEST_MEMORYCHECK_COMMAND_OPTIONS_REGULAR}" \
-            S2N_VALGRIND=1 \
-            CTEST_PARALLEL_LEVEL=$(nproc) ctest -T memcheck --test-dir build \
-            --timeout 3000 ARGS="-output-on-failure"
-        fi
+      - |
+        S2N_DEBUG=true S2N_VALGRIND=1 \
+          CTEST_PARALLEL_LEVEL=$(nproc) CTEST_OUTPUT_ON_FAILURE=1 ctest -T memcheck --test-dir build \
+          --timeout 3000 ARGS="-output-on-failure"

@@ -14,6 +14,37 @@ set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake fil
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
+set(CTEST_MEMORYCHECK_TYPE "Valgrind")
+
+set(MEMORYCHECK_COMMAND_OPTIONS_REGULAR " \
+    --leak-check=full \
+    --leak-resolution=high \
+    --trace-children=yes \
+    --run-libc-freeres=no \
+    -q --error-exitcode=123 \
+    --error-limit=no \
+    --num-callers=40 \
+    --undef-value-errors=no \
+    --suppressions=valgrind.suppressions")
+
+set(MEMORYCHECK_COMMAND_OPTIONS_PENDANTIC " \
+    --leak-check=full \
+    --leak-resolution=high \
+    --trace-children=yes \
+    --run-libc-freeres=no \
+    -q --error-exitcode=123 \
+    --error-limit=no \
+    --num-callers=40 \
+    --undef-value-errors=no \
+    --errors-for-leak-kinds=all \
+    --suppressions=valgrind.suppressions")
+
+if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
+    set(MEMORYCHECK_COMMAND_OPTIONS ${MEMORYCHECK_COMMAND_OPTIONS_PENDANTIC})
+else()
+    set(MEMORYCHECK_COMMAND_OPTIONS ${MEMORYCHECK_COMMAND_OPTIONS_REGULAR})
+endif()
+
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
@@ -191,29 +222,6 @@ if(TSAN)
     target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=thread -DS2N_THREAD_SANITIZER=1)
     target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=thread)
 endif()
-
-set(CTEST_MEMORYCHECK_COMMAND_OPTIONS_REGULAR " \
-            --leak-check=full \
-            --leak-resolution=high \
-            --trace-children=yes \
-            --run-libc-freeres=no \
-            -q --error-exitcode=123 \
-            --error-limit=no \
-            --num-callers=40 \
-            --undef-value-errors=no")
-set(CTEST_MEMORYCHECK_COMMAND_OPTIONS_PENDANTIC " \
-            --leak-check=full \
-            --leak-resolution=high \
-            --trace-children=yes \
-            --run-libc-freeres=no \
-            -q --error-exitcode=123 \
-            --error-limit=no \
-            --num-callers=40 \
-            --undef-value-errors=no \
-            --errors-for-leak-kinds=all \
-            --suppressions=valgrind.suppressions")
-
-set(CTEST_MEMORYCHECK_TYPE "Valgrind")
 
 if(ASAN)
     target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -DS2N_ADDRESS_SANITIZER=1)
