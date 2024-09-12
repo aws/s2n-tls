@@ -21,7 +21,7 @@ CODEBUILD_BUILD_ARN_="${CODEBUILD_BUILD_ARN:-}"
 
 if [[ ${DISTRO} != "amazon linux" ]]; then
     echo "Target Amazon Linux, but running on $DISTRO: Nothing to do."
-    exit 0;
+    exit 1;
 else
     # AL2023 case
     BUILD_FLAGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo"
