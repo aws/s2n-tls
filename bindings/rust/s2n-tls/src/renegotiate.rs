@@ -44,8 +44,6 @@
 //!
 //! If all renegotiation requests will be accepted and no connection-level
 //! configuration is required, then RenegotiateResponse can be used as the RenegotiateCallback.
-//! However, be careful: using any async callback requires connection-level configuration
-//! due to [Connection::set_waker()].
 //!
 //! For example:
 //! ```
@@ -128,7 +126,7 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     /// A callback that triggers after the connection is wiped for renegotiation.
     ///
     /// Because renegotiation requires wiping the connection, connection-level
-    /// configuration like the server name will need to be set again via this callback.
+    /// configuration will need to be set again via this callback.
     ///
     /// See s2n_renegotiate_wipe in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
     /// The Rust equivalent of the listed connection-specific methods that are NOT wiped are:
@@ -137,9 +135,13 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     ///    ([Connection::set_send_callback()], [Connection::set_send_context()])
     ///  - Methods to set the recv callback:
     ///    ([Connection::set_receive_callback()], [Connection::set_receive_context()])
-    ///
-    /// Wakers set via [Connection::set_waker()] count as connection-level configuration
-    /// and must be set again.
+    /// In addition, the Rust bindings do not wipe:
+    /// - The server name: ([Connection::set_server_name()]. The s2n-tls-tokio
+    ///   TlsConnector sets the server name automatically, so preserving it across
+    ///   wipes prevents all users of s2n-tls-tokio from needing a custom callback
+    ///   just to maintain consistent behavior.
+    /// - The waker: ([Connection::set_waker()]. Wiping the waker during a call
+    ///   to `poll_send` or `poll_recv` can break IO.
     ///
     /// If this callback returns `Err`, then renegotiation will fail with a fatal error.
     fn on_renegotiate_wipe(&mut self, _connection: &mut Connection) -> Result<(), Error> {
@@ -183,9 +185,22 @@ impl Connection {
     ///
     /// See s2n_renegotiate_wipe in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
     fn wipe_for_renegotiate(&mut self) -> Result<(), Error> {
+        // Save any state that needs to be preserved
         let renegotiate_state = *self.renegotiate_state();
+        let waker = self.waker().map(|waker| waker.clone());
+        let server_name = self.server_name().map(|name| name.to_owned());
+
         self.wipe_method(|conn| unsafe { s2n_renegotiate_wipe(conn.as_ptr()).into_result() })?;
+
+        // Restore the saved state
         *self.renegotiate_state_mut() = renegotiate_state;
+        self.set_waker(waker.as_ref())?;
+        if let Some(server_name) = server_name {
+            self.set_server_name(&server_name)?;
+        }
+
+        // We trigger the callback last so that the application can modify any
+        // preserved configuration (like the server name or waker) if necessary.
         if let Some(mut config) = self.config() {
             if let Some(callback) = config.context_mut().renegotiate.as_mut() {
                 callback.on_renegotiate_wipe(self)?;
@@ -422,17 +437,13 @@ mod tests {
     use foreign_types::ForeignTypeRef;
     use futures_test::task::new_count_waker;
     use openssl::ssl::{
-        ErrorCode, NameType, Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode,
-        SslVersion,
+        ErrorCode, Ssl, SslContext, SslFiletype, SslMethod, SslStream, SslVerifyMode, SslVersion,
     };
     use std::{
         error::Error,
         io::{Read, Write},
         pin::Pin,
-        task::{
-            Poll::{Pending, Ready},
-            Waker,
-        },
+        task::Poll::{Pending, Ready},
     };
 
     // Currently renegotiation is not available from the openssl-sys bindings
@@ -986,22 +997,6 @@ mod tests {
         Ok(())
     }
 
-    #[derive(Debug, Clone)]
-    struct WakerRenegotiateCallback(Waker);
-    impl RenegotiateCallback for WakerRenegotiateCallback {
-        fn on_renegotiate_request(&mut self, conn: &mut Connection) -> Option<RenegotiateResponse> {
-            RenegotiateResponse::Accept.on_renegotiate_request(conn)
-        }
-
-        fn on_renegotiate_wipe(
-            &mut self,
-            conn: &mut Connection,
-        ) -> Result<(), crate::error::Error> {
-            conn.set_waker(Some(&self.0))?;
-            Ok(())
-        }
-    }
-
     #[test]
     fn do_renegotiate_with_async_callback() -> Result<(), Box<dyn Error>> {
         // To test how renegotiate handles blocking on async callbacks,
@@ -1059,13 +1054,12 @@ mod tests {
             op: None,
         };
 
-        let (waker, wake_count) = new_count_waker();
-        let reneg_callback = WakerRenegotiateCallback(waker.clone());
-
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(reneg_callback)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
         builder.set_private_key_callback(async_callback)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
+
+        let (waker, wake_count) = new_count_waker();
         pair.client.set_waker(Some(&waker))?;
 
         pair.handshake().expect("Initial handshake");
@@ -1082,11 +1076,10 @@ mod tests {
     fn do_renegotiate_with_async_init() -> Result<(), Box<dyn Error>> {
         // To test that the initializer method triggers again on the second
         // handshake, we need to set an easily verified connection-level value.
-        // The server name is convenient.
         #[derive(Clone)]
         struct TestInitializer {
             count: usize,
-            server_name: String,
+            context: String,
         }
         impl ConnectionInitializer for TestInitializer {
             fn initialize_connection(
@@ -1104,35 +1097,33 @@ mod tests {
             ) -> Poll<Result<(), crate::error::Error>> {
                 ctx.waker().wake_by_ref();
                 let this = self.get_mut();
-                // Assert that the server name is not already set
-                assert!(conn.server_name().is_none());
+                // Assert that nothing is currently set
+                assert!(conn.application_context::<String>().is_none());
                 if this.count > 1 {
                     // Repeatedly block the handshake in order to verify
                     // that renegotiate can handle Pending callbacks.
                     this.count -= 1;
                     Pending
                 } else {
-                    conn.set_server_name(&this.server_name)?;
+                    conn.set_application_context(this.context.clone());
                     Ready(Ok(()))
                 }
             }
         }
 
         let count_per_handshake = 10;
-        let expected_server_name = "helloworld";
+        let expected_context = "helloworld".to_owned();
         let initializer = TestInitializer {
             count: count_per_handshake,
-            server_name: expected_server_name.to_owned(),
+            context: expected_context.clone(),
         };
 
-        let (waker, wake_count) = new_count_waker();
-        let reneg_callback = WakerRenegotiateCallback(waker.clone());
-
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(reneg_callback)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
         builder.set_connection_initializer(initializer)?;
-
         let mut pair = RenegotiateTestPair::from(builder)?;
+
+        let (waker, wake_count) = new_count_waker();
         pair.client.set_waker(Some(&waker))?;
 
         pair.handshake().expect("Initial handshake");
@@ -1142,11 +1133,8 @@ mod tests {
         pair.assert_renegotiate()?;
         assert_eq!(wake_count, count_per_handshake * 2);
 
-        // Both the client and server should have the correct server name
-        let server_name = pair.client.server_name();
-        assert_eq!(Some(expected_server_name), server_name);
-        let server_name = pair.server.ssl().servername(NameType::HOST_NAME);
-        assert_eq!(Some(expected_server_name), server_name);
+        let context: Option<&String> = pair.client.application_context();
+        assert_eq!(Some(&expected_context), context);
 
         Ok(())
     }
