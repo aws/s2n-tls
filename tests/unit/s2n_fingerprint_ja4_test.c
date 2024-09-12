@@ -731,32 +731,62 @@ int main(int argc, char **argv)
 
                 EXPECT_TRUE(output_size > S2N_JA4_A_ALPN_LAST);
                 EXPECT_EQUAL(output[S2N_JA4_A_ALPN_FIRST], 'q');
-                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], '0');
+                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], 'q');
             };
 
-            /* Test non-ascii alpn value */
+            /* Test non-ascii alpn values
+             *
+             * The spec does not currently define this case, but will be updated in the
+             * future according to https://github.com/FoxIO-LLC/ja4/issues/148
+             */
             {
+                struct {
+                    const uint8_t bytes[4];
+                    const size_t bytes_size;
+                    const char *str;
+                } test_cases[] = {
+                    { .bytes = { 0xAB }, .str = "ab", .bytes_size = 1 },
+                    { .bytes = { 0xAB, 0xCD }, .str = "ad", .bytes_size = 2 },
+                    { .bytes = { 0x30, 0xAB }, .str = "3b", .bytes_size = 2 },
+                    { .bytes = { 0x30, 0x31, 0xAB, 0xCD }, .str = "3d", .bytes_size = 4 },
+                    { .bytes = { 0x30, 0xAB, 0xCD, 0x31 }, .str = "01", .bytes_size = 4 },
+                };
+
                 S2N_INIT_CLIENT_HELLO(client_hello_bytes,
                         S2N_TEST_CLIENT_HELLO_VERSION,
                         S2N_TEST_CLIENT_HELLO_AFTER_VERSION,
                         S2N_TEST_CLIENT_HELLO_CIPHERS,
                         S2N_TEST_CLIENT_HELLO_AFTER_CIPHERS,
                         /* extensions size */
-                        0x00, 9,
+                        0x00, 11,
                         /* extension: alpn */
-                        0x00, TLS_EXTENSION_ALPN, 0x00, 5,
-                        0x00, 3,
-                        2, UINT8_MAX, 128);
+                        0x00, TLS_EXTENSION_ALPN, 0x00, 7,
+                        0x00, 5,
+                        0, 0, 0, 0, 0);
 
-                uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
-                uint32_t output_size = 0;
-                EXPECT_OK(s2n_test_ja4_hash_from_bytes(
-                        client_hello_bytes, sizeof(client_hello_bytes),
-                        sizeof(output), output, &output_size));
+                /* We allocated enough space in the above client hello for
+                 * a 1-byte length and a 4-byte alpn */
+                EXPECT_EQUAL(sizeof(test_cases[0].bytes), 4);
+                const size_t alpn_mem_size = sizeof(test_cases[0].bytes);
+                const size_t offset = sizeof(client_hello_bytes) - alpn_mem_size;
+                uint8_t *const bytes_ptr = client_hello_bytes + offset;
+                uint8_t *const length_ptr = bytes_ptr - 1;
 
-                EXPECT_TRUE(output_size > S2N_JA4_A_ALPN_LAST);
-                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_FIRST], '9');
-                EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], '9');
+                for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
+                    *length_ptr = test_cases[i].bytes_size;
+                    EXPECT_MEMCPY_SUCCESS(bytes_ptr,
+                            test_cases[i].bytes, sizeof(test_cases[i].bytes));
+
+                    uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
+                    uint32_t output_size = 0;
+                    EXPECT_OK(s2n_test_ja4_hash_from_bytes(
+                            client_hello_bytes, sizeof(client_hello_bytes),
+                            sizeof(output), output, &output_size));
+
+                    EXPECT_TRUE(output_size > S2N_JA4_A_ALPN_LAST);
+                    EXPECT_EQUAL(output[S2N_JA4_A_ALPN_FIRST], test_cases[i].str[0]);
+                    EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], test_cases[i].str[1]);
+                }
             };
 
             /* Test no ALPN

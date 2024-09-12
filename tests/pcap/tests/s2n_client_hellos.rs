@@ -71,18 +71,33 @@ fn ja4_fingerprints() -> Result<()> {
     test_all_client_hellos(|pcap_hello, s2n_hello| {
         let mut fingerprint = builder.build(&s2n_hello)?;
 
-        let s2n_ja4_hash = fingerprint
+        let s2n_hash = fingerprint
             .hash()
             .context("s2n failed to calculate ja4 hash")?
             .to_owned();
-
-        let s2n_ja4_str = fingerprint
+        let s2n_str = fingerprint
             .raw()
             .context("s2n failed to calculate ja4 string")?
             .to_owned();
 
-        assert_eq!(pcap_hello.ja4_hash(), Some(s2n_ja4_hash));
-        assert_eq!(pcap_hello.ja4_string(), Some(s2n_ja4_str));
+        let mut tshark_hash = pcap_hello
+            .ja4_hash()
+            .expect("pcap did not contain ja4 hash");
+        let mut tshark_str = pcap_hello
+            .ja4_string()
+            .expect("pcap did not contain ja4 string");
+
+        // Handle known issues:
+        // tshark currently doesn't handle special alpn characters correctly
+        // TODO: remove this when tshark updates
+        let exceptions = [("-+", "2b"), ("__", "5f")];
+        for (a, b) in exceptions {
+            tshark_hash = tshark_hash.replace(a, b);
+            tshark_str = tshark_str.replace(a, b);
+        }
+
+        assert_eq!(tshark_str, s2n_str);
+        assert_eq!(tshark_hash, s2n_hash);
         Ok(())
     })
 }
