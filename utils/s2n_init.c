@@ -87,7 +87,7 @@ int s2n_init(void)
         s2n_stack_traces_enabled_set(true);
     }
 
-#if defined(OPENSSL_IS_BORINGSSL) || defined(OPENSSL_IS_AWSLC)
+#if defined(OPENSSL_IS_AWSLC)
     CRYPTO_pre_sandbox_init();
 #endif
 
