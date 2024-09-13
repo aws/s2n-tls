@@ -83,4 +83,5 @@ phases:
     commands:
       # -L: Restrict tests to labels matching the pattern 'fuzz'
       # -R: Run the single fuzz test defined in ${FUZZ_TESTS}
-      - cmake --build build/ --target test -- ARGS="-L fuzz -R ${FUZZ_TESTS} --output-on-failure"
+      # --timeout: override ctest's default timeout of 1500
+      - cmake --build build/ --target test -- ARGS="-L fuzz -R ${FUZZ_TESTS} --output-on-failure --timeout 28800"
