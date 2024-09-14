@@ -55,8 +55,9 @@ int main(int argc, char **argv)
     s2n_fstat_success = true;
 
     /* The seccomp filter does NOT allow open */
-    fopen(S2N_DEFAULT_TEST_CERT_CHAIN, "r");
+    FILE* file = fopen(S2N_DEFAULT_TEST_CERT_CHAIN, "r");
     s2n_open_success = true;
+    EXPECT_NOT_NULL(file);
 
     FAIL_MSG("test unexpectedly succeeded");
 }
