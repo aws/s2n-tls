@@ -1,8 +1,8 @@
-target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#ja4-algorithm"
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#ja4-algorithm"
 
 # ### JA4 Algorithm:
 #
-# (QUIC=”q” or TCP=”t”)  
+# (QUIC=”q”, DTLS="d", or Normal TLS=”t”)
 # (2 character TLS version)  
 # (SNI=”d” or no SNI=”i”)  
 # (2 character count of ciphers)  
