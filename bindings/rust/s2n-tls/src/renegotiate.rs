@@ -7,8 +7,8 @@
 //! See [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
 //!
 //! Unlike the C API, the Rust bindings do not require the application to
-//! integrate s2n_renegotiate_wipe or s2n_renegotiate into their existing code.
-//! Instead, all that is required to enable renegotiation is setting the RenegotiateCallback.
+//! integrate `s2n_renegotiate_wipe` or `s2n_renegotiate` into their existing code.
+//! Instead, all that is required to enable renegotiation is setting the [`RenegotiateCallback`].
 //!
 //! For example:
 //! ```
@@ -33,7 +33,7 @@
 //!     }
 //!
 //!     fn on_renegotiate_wipe(&mut self, conn: &mut Connection) -> Result<(), Error> {
-//!         conn.set_server_name("not_allowed_to_renegotiate")?;
+//!         conn.set_application_protocol_preference(Some("http"))?;
 //!         Ok(())
 //!     }
 //! }
@@ -43,7 +43,7 @@
 //! ```
 //!
 //! If all renegotiation requests will be accepted and no connection-level
-//! configuration is required, then RenegotiateResponse can be used as the RenegotiateCallback.
+//! configuration is required, then [`RenegotiateResponse`] can be used as the RenegotiateCallback.
 //!
 //! For example:
 //! ```
@@ -54,6 +54,17 @@
 //! builder.set_renegotiate_callback(RenegotiateResponse::Accept);
 //! ```
 //!
+//! #### Safety
+//!
+//! If you are using s2n-tls via a higher level wrapper like s2n-tls-tokio
+//! or s2n-tls-hyper, that wrapper may set connection-level configuration.
+//! As such wrappers are unlikely to be aware of renegotiation, they will not
+//! reset their configuration after the connection is wiped for renegotiation.
+//! You may need to handle resetting the configuration yourself. If that is not
+//! possible, please open an issue.
+//!
+//! # How it works
+//!
 //! When an s2n-tls client receives a renegotiation request, `on_renegotiate_request`
 //! will be invoked. If `on_renegotiate_request` returns `RenegotiateResponse::Accept`,
 //! then s2n-tls will automatically schedule renegotiation. The application will
@@ -63,14 +74,35 @@
 //! all application IO requests, and negotiate a new handshake. Both `poll_recv`
 //! and `poll_send` will return Pending until renegotiation is complete.
 //!
+//! #### Safety
+//!
+//! During renegotiation, sending data can block indefinitely on unread
+//! application data received from the server. The client can't write any
+//! new application data after sending the new ClientHello, but the server can.
+//! Ensure that your application handles any available readable data. This should
+//! not be an issue for a standard request/response exchange, but if you are
+//! unsure of what data your peer expects or will send, consider using methods
+//! like [`tokio::net::TcpStream::ready()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.ready)
+//! or [`tokio::net::TcpStream::readable()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.readable)
+//! to monitor available data on the underlying stream.
+//!
+//! # Downsides
+//!
 //! Handling renegotiation this way allows it to be used with higher level abstractions
 //! that are unaware of renegotiation, like s2n-tls-tokio or s2n-tls-hyper.
 //! However, there are downsides. During renegotiation, `poll_recv` may write and
-//! `poll_send` may read. This may pose a problem if we eventually implement a
-//! proper "split" operation. It also makes waker contracts difficult to reason about,
-//! so any integration should probably include as much testing and instrumentation
-//! as possible. Please report any bugs encountered.
-//! ```
+//! `poll_send` may read. This violates expectations and makes waker contracts
+//! difficult to reason about, so any integration should probably include as much
+//! testing and instrumentation as possible. Please report any bugs encountered.
+//!
+//! Additionally, mixing reads and writes may impose technical limitations in the future.
+//! For example, if s2n-tls implements a lock-free "split" operation like
+//! [`tokio::net::TcpStream::into_split()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.into_split),
+//! it may not be unusable with renegotiation. s2n-tls-tokio currently supports
+//! [`tokio::io::split()`](https://docs.rs/tokio/latest/tokio/io/fn.split.html),
+//! but that uses a mutex to achieve thread-safety. So if your application requires
+//! renegotiation, then it may be unable to benefit from some future features and
+//! improvements, or could even theoretically be broken entirely by a future update.
 
 use s2n_tls_sys::*;
 
@@ -132,16 +164,22 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     /// The Rust equivalent of the listed connection-specific methods that are NOT wiped are:
     ///  - Methods to set the file descriptors: not currently supported by rust bindings
     ///  - Methods to set the send callback:
-    ///    ([Connection::set_send_callback()], [Connection::set_send_context()])
+    ///    [Connection::set_send_callback()], [Connection::set_send_context()]
     ///  - Methods to set the recv callback:
-    ///    ([Connection::set_receive_callback()], [Connection::set_receive_context()])
+    ///    [Connection::set_receive_callback()], [Connection::set_receive_context()]
+    ///
     /// In addition, the Rust bindings do not wipe:
-    /// - The server name: ([Connection::set_server_name()]. The s2n-tls-tokio
+    /// - The server name: [Connection::set_server_name()]. The s2n-tls-tokio
     ///   TlsConnector sets the server name automatically, so preserving it across
     ///   wipes prevents all users of s2n-tls-tokio from needing a custom callback
     ///   just to maintain consistent behavior.
-    /// - The waker: ([Connection::set_waker()]. Wiping the waker during a call
+    /// - The waker: [Connection::set_waker()]. Wiping the waker during a call
     ///   to `poll_send` or `poll_recv` can break IO.
+    ///
+    /// The set of configuration values that are not wiped may change in the future.
+    /// Therefore if you specifically need certain connection configuration values
+    /// wiped during renegotiation, then you should wipe them yourself using this
+    /// callback.
     ///
     /// If this callback returns `Err`, then renegotiation will fail with a fatal error.
     fn on_renegotiate_wipe(&mut self, _connection: &mut Connection) -> Result<(), Error> {
@@ -218,11 +256,14 @@ impl Connection {
     /// If the handshake succeeds, the renegotiation state stored on the connection
     /// will be updated so that this method is not polled again.
     ///
-    /// # Safety
-    /// We have to worry about interleaved `poll_recv` and `poll_send` calls
-    /// when managing state, but we do not have to worry about thread safety.
-    /// Both `poll_recv` and `poll_send` take mut references, and Connection does
-    /// not currently support a true "split" operation.
+    // # Safety
+    // Both poll_send and poll_recv_raw take mutable references, so only one can
+    // be called on a connection at a time. We therefore have to worry about the
+    // safety of interleaved calls, but NOT the safety of concurrent calls. So
+    // state like `is_renegotiating` may change unexpectedly between calls to
+    // poll_renegotiate_raw, but will not change while poll_renegotiate_raw is being executed.
+    // Warning: The underlying C s2n_recv and s2n_send calls ARE concurrent,
+    // so the Rust bindings MAY someday support concurrency.
     fn poll_renegotiate_raw(
         &mut self,
         buf_ptr: *mut libc::c_void,
@@ -280,6 +321,26 @@ impl Connection {
     /// Returns the number of bytes written, and may indicate a partial write.
     ///
     /// Automatically handles renegotiation.
+    ///
+    /// # Safety
+    /// During renegotiation, sending data can block indefinitely on unread
+    /// application data received from the server. The client can't write any
+    /// new application data after sending the new ClientHello, but the server can.
+    /// Ensure that your application handles any available readable data. This should
+    /// not be an issue for a standard request/response exchange, but if you are
+    /// unsure of what data your peer expects or will send, consider using methods
+    /// like [`tokio::net::TcpStream::ready()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.ready)
+    /// or [`tokio::net::TcpStream::readable()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.readable)
+    /// to monitor available data on the underlying stream.
+    //
+    // # Safety
+    // Both poll_send and poll_recv_raw take mutable references, so only one can
+    // be called on a connection at a time. We therefore have to worry about the
+    // safety of interleaved calls, but NOT the safety of concurrent calls. So
+    // state like `is_renegotiating` may change unexpectedly between calls to
+    // poll_send, but will not change while poll_send is being executed.
+    // Warning: The underlying C s2n_recv and s2n_send calls ARE concurrent,
+    // so the Rust bindings MAY someday support concurrency.
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
@@ -313,7 +374,7 @@ impl Connection {
         // return Pending. Otherwise, we aren't actually blocked on anything
         // specific and could break an underlying IO waker contract.
         //
-        // A call to s2n_send can not trigger the need to call poll_negotiate.
+        // A call to s2n_send can not trigger the need to call poll_renegotiate.
         // Even if it clears the last of the buffered data blocking renegotiation,
         // the result will always be `Ready(Ok(bytes_written))` rather than `Pending`.
         //
@@ -327,6 +388,14 @@ impl Connection {
         }
     }
 
+    // # Safety
+    // Both poll_send and poll_recv_raw take mutable references, so only one can
+    // be called on a connection at a time. We therefore have to worry about the
+    // safety of interleaved calls, but NOT the safety of concurrent calls. So
+    // state like `is_renegotiating` may change unexpectedly between calls to
+    // poll_recv_raw, but will not change while poll_recv_raw is being executed.
+    // Warning: The underlying C s2n_recv and s2n_send calls ARE concurrent,
+    // so the Rust bindings MAY someday support concurrency.
     pub(crate) fn poll_recv_raw(
         &mut self,
         buf_ptr: *mut libc::c_void,
@@ -335,7 +404,7 @@ impl Connection {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
 
         // Let s2n_recv handle draining any buffered IO.
-        // We could let poll_negotiate handle it, but this way matches poll_send.
+        // We could let poll_renegotiate handle it, but this way matches poll_send.
         fn is_recv_renegotiating(conn: &mut Connection) -> bool {
             conn.is_renegotiating() && conn.peek_len() == 0
         }
@@ -355,13 +424,13 @@ impl Connection {
             unsafe { s2n_recv(self.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
         };
 
-        // A call to s2n_recv can trigger the need to call poll_negotiate if it
+        // A call to s2n_recv can trigger the need to call poll_renegotiate if it
         // reads a HelloRequest but no ApplicationData. If we returned Pending in
         // that case without attempting to progress the handshake, we could break
         // an underlying IO waker contract; the operation wouldn't actually be blocked
         // on anything specific.
         //
-        // A call to poll_negotiate can trigger the need to call s2n_recv if it
+        // A call to poll_renegotiate can trigger the need to call s2n_recv if it
         // completes the handshake that is blocking receiving application data.
         // The server does write the final message in some TLS1.2 handshakes.
         // If we returned Pending in that case without attempting to read the

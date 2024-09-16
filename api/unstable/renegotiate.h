@@ -45,7 +45,7 @@
  *  6. The application should check the application state set in 4.2 to determine
  *     whether or not renegotiation is required.
  *  7. The application should complete any in-progress IO. Failing to do this will
- *     cause s2n_negotiate_wipe to fail.
+ *     cause s2n_renegotiate_wipe to fail.
  *     1. For sending, the application must retry any blocked calls to s2n_send
  *        until they return success.
  *     2. For receiving, the application must call s2n_recv to handle any buffered
