@@ -230,8 +230,8 @@ fi
 # Since the "default" policies are subject to change, tests should instead specify
 # an immutable numbered policy to avoid unwanted testing behavior.
 #############################################
-S2N_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -not -path "*/tls/*" \
-    -not -path "*/bindings/*" -not -path "*/bin/*")
+S2N_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -path "*/tests/*" \
+    -not -path "*/bindings/*")
 declare -A KNOWN_DEFAULT_USAGE
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_security_policies_test.c"]=5
 KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_hello_test.c"]=2
