@@ -939,7 +939,8 @@ impl Connection {
         }
     }
 
-    pub fn message_type(&self) -> Result<&str, Error> {
+    #[allow(dead_code)]
+    pub(crate) fn message_type(&self) -> Result<&str, Error> {
         let message = unsafe {
             s2n_connection_get_last_message_name(self.connection.as_ptr()).into_result()?
         };
