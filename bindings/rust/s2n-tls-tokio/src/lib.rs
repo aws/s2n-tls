@@ -171,8 +171,7 @@ where
         &mut self.stream
     }
 
-    async fn open(mut conn: C, stream: S) -> Result<Self, Error> {
-        conn.as_mut().set_blinding(Blinding::SelfService)?;
+    async fn open(conn: C, stream: S) -> Result<Self, Error> {
         let mut tls = TlsStream {
             conn,
             stream,
@@ -203,6 +202,7 @@ where
             self.as_mut().set_receive_context(context)?;
             self.as_mut().set_send_context(context)?;
             self.as_mut().set_waker(Some(ctx.waker()))?;
+            self.as_mut().set_blinding(Blinding::SelfService)?;
 
             let result = action(Pin::new(self));
 
