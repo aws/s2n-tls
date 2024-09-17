@@ -47,6 +47,10 @@ S2N_RESULT s2n_seccomp_init()
     /* Basic requirements: s2n-tls is known to need these system calls in order
      * to operate. Adding a new system call to this list means that any application
      * using s2n-tls with seccomp will potentially also need to update its filter rules.
+     *
+     * Do not add any variation of "open" to this list. One of the primary reasons
+     * that an application would choose to use seccomp is to prevent opening files,
+     * similar to chroot.
      */
     RESULT_GUARD_POSIX(seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(access), 0));
     RESULT_GUARD_POSIX(seccomp_rule_add(ctx, SCMP_ACT_ALLOW, SCMP_SYS(brk), 0));
