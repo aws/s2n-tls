@@ -30,7 +30,7 @@ set(VALGRIND_PENDANTIC "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
 # Add pendentic Valgrind check for Libcrypto is openssl-1.1.1.
 # Default Valgrind tests ignores "Still reachable" leak and we want to enable pedantic
 # valgrind check incrementally, so we will do pedantic check for Libcrypto=openssl-1.1.1 for now.
-# Tracking issue: #3758
+# Tracking issue: https://github.com/aws/s2n-tls/issues/3758
 if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
     set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_PENDANTIC})
 else()
