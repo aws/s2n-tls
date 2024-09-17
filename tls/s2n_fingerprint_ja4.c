@@ -13,6 +13,8 @@
  * permissions and limitations under the License.
  */
 
+#include <ctype.h>
+
 #include "crypto/s2n_hash.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_client_supported_versions.h"
@@ -48,8 +50,6 @@
 #define S2N_JA4_IANA_HEX_SIZE   (S2N_HEX_PER_BYTE * sizeof(uint16_t))
 #define S2N_JA4_IANA_ENTRY_SIZE (S2N_JA4_IANA_HEX_SIZE + 1)
 #define S2N_JA4_WORKSPACE_SIZE  ((S2N_JA4_LIST_LIMIT * (S2N_JA4_IANA_ENTRY_SIZE)))
-
-#define S2N_ASCII_MAX 127
 
 const char *s2n_ja4_version_strings[] = {
     /**
@@ -240,22 +240,20 @@ static S2N_RESULT s2n_fingerprint_ja4_alpn(struct s2n_stuffer *output,
      *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
      *# If there are no ALPN values or no ALPN extension then we print “00”
      *# as the value in the fingerprint.
-     *
-     * The spec doesn't define what to do with an 1-byte ALPNs. There also currently
-     * aren't any valid 1-byte ALPNs, and it seems unlikely one will be added in
-     * the future. But just in case, we match the behavior of the reference
-     * implementations and write a single '0' for any missing characters:
-     * - https://github.com/FoxIO-LLC/ja4/blob/main/rust/ja4/src/tls.rs#L455-L459
-     * - https://github.com/FoxIO-LLC/ja4/blob/main/python/ja4.py#L187-L194
      */
-    uint8_t first_char = (protocol.size > 0) ? protocol.data[0] : '0';
-    uint8_t last_char = (protocol.size > 1) ? protocol.data[protocol.size - 1] : '0';
+    uint8_t first_char = '0', last_char = '0';
+    if (protocol.size > 0) {
+        first_char = protocol.data[0];
+        last_char = protocol.data[protocol.size - 1];
+    }
 
-    /* The reference implementations also replaces non-ascii characters with '9',
-     * although the spec does not document this behavior either.
+    /* The spec does not currently define this case, but will be updated in the
+     * future according to https://github.com/FoxIO-LLC/ja4/issues/148
      */
-    first_char = (first_char > S2N_ASCII_MAX) ? '9' : first_char;
-    last_char = (last_char > S2N_ASCII_MAX) ? '9' : last_char;
+    if (!isalnum(first_char) || !isalnum(last_char)) {
+        RESULT_GUARD(s2n_hex_digit((first_char >> 4), &first_char));
+        RESULT_GUARD(s2n_hex_digit((last_char & 0x0F), &last_char));
+    }
 
     RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, first_char));
     RESULT_GUARD_POSIX(s2n_stuffer_write_char(output, last_char));
