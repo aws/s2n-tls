@@ -298,3 +298,6 @@ S2N_RESULT s2n_resumption_test_ticket_key_setup(struct s2n_config *config);
 #define S2N_CHECKED_BLOB_FROM_HEX(name, check, hex)        \
     DEFER_CLEANUP(struct s2n_blob name = { 0 }, s2n_free); \
     check(s2n_blob_alloc_from_hex_with_whitespace(&name, (const char *) hex));
+
+bool s2n_is_seccomp_supported();
+S2N_RESULT s2n_seccomp_init();
