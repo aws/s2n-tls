@@ -37,6 +37,8 @@ else()
     set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_DEFAULT})
 endif()
 
+set(CTEST_MEMORYCHECK_TYPE "Valgrind")
+
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
@@ -496,7 +498,6 @@ if (BUILD_TESTING)
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
-    set(CTEST_MEMORYCHECK_TYPE "Valgrind")
     if (TSAN OR ASAN)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
     endif()
