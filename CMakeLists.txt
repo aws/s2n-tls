@@ -14,9 +14,7 @@ set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake fil
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
-set(CTEST_MEMORYCHECK_TYPE "Valgrind")
-
-set(MEMORYCHECK_COMMAND_OPTIONS_REGULAR " \
+set(VALGRIND_DEFAULT " \
     --leak-check=full \
     --leak-resolution=high \
     --trace-children=yes \
@@ -27,22 +25,16 @@ set(MEMORYCHECK_COMMAND_OPTIONS_REGULAR " \
     --undef-value-errors=no \
     --suppressions=valgrind.suppressions")
 
-set(MEMORYCHECK_COMMAND_OPTIONS_PENDANTIC " \
-    --leak-check=full \
-    --leak-resolution=high \
-    --trace-children=yes \
-    --run-libc-freeres=no \
-    -q --error-exitcode=123 \
-    --error-limit=no \
-    --num-callers=40 \
-    --undef-value-errors=no \
-    --errors-for-leak-kinds=all \
-    --suppressions=valgrind.suppressions")
+set(VALGRIND_PENDANTIC "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
 
+# Add pendentic Valgrind check for Libcrypto is openssl-1.1.1.
+# Default Valgrind tests ignores "Still reachable" leak and we want to enable pedantic
+# valgrind check incrementally, so we will do pedantic check for Libcrypto=openssl-1.1.1 for now.
+# Tracking issue: #3758
 if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
-    set(MEMORYCHECK_COMMAND_OPTIONS ${MEMORYCHECK_COMMAND_OPTIONS_PENDANTIC})
+    set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_PENDANTIC})
 else()
-    set(MEMORYCHECK_COMMAND_OPTIONS ${MEMORYCHECK_COMMAND_OPTIONS_REGULAR})
+    set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_DEFAULT})
 endif()
 
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
@@ -497,6 +489,7 @@ if (BUILD_TESTING)
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
+    set(CTEST_MEMORYCHECK_TYPE "Valgrind")
     if (TSAN OR ASAN)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
     endif()

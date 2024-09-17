@@ -1,6 +1,6 @@
 # It looks like valgrind may generate false positives on pthreads: https://stackoverflow.com/a/13132968
 {
-   pthred_false_positive
+   pthread_false_positive
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
@@ -10,7 +10,10 @@
    fun:pthread_create@@GLIBC_2.2.5
    fun:main
 }
-# Append valgrind suppression for ubuntu22
+# Append valgrind suppression for ubuntu22 and ubuntu24
+# If this suppression is not include, Test number 82, 95,113, 121, and 158 will fail
+# This block is the same suppression as the pthread suppressions above, but for a diffeent libC.
+# Adding tracking issue #4777. Remove the previous pthread suppressions block after new Ctest memcheck is fully integrated.
 {
    pthread_false_positive_ubuntu22
    Memcheck:Leak
@@ -24,7 +27,10 @@
    ...
    fun:main
 }
-# Backtrace might generate false positives with its _dl_open function call: https://stackoverflow.com/questions/78525668/egl-memory-leak
+# This suppression is to suppress backtrace() memory defects for Ubuntu22 and 24.
+# backtrace are loaded dynamically when they were first used, and dynamic loading will call malloc.
+# Those allocated memory are not subsequently freed in Ubuntu22 and 24's libC.
+# https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
 {
    stacktrace_suppression
    Memcheck:Leak
