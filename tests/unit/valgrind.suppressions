@@ -1,6 +1,18 @@
 # It looks like valgrind may generate false positives on pthreads: https://stackoverflow.com/a/13132968
 {
-   pthread_false_positive
+   pthred_false_positive
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:calloc
+   fun:allocate_dtv
+   fun:_dl_allocate_tls
+   fun:allocate_stack
+   fun:pthread_create@@GLIBC_2.2.5
+   fun:main
+}
+# Append valgrind suppression for ubuntu22
+{
+   pthread_false_positive_ubuntu22
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
@@ -32,6 +44,7 @@
    fun:_dl_catch_error
    fun:dlerror_run
    fun:__libc_dlopen_mode
+   fun:__libc_unwind_link_get
    fun:__libc_unwind_link_get
    fun:backtrace
    ...

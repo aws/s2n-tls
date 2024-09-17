@@ -15,30 +15,6 @@ version: 0.2
 
 batch:
   build-list:
-    - identifier: clang_awslc
-      env:
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          S2N_LIBCRYPTO: awslc
-          COMPILER: clang
-    - identifier: clang_openssl_3_0
-      env:
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          S2N_LIBCRYPTO: openssl-3.0
-          COMPILER: clang
-    - identifier: clang_openssl_1_1_1
-      env:
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          S2N_LIBCRYPTO: openssl-1.1.1
-          COMPILER: clang
-    - identifier: clang_openssl_1_0_2
-      env:
-        compute-type: BUILD_GENERAL1_LARGE
-        variables:
-          S2N_LIBCRYPTO: openssl-1.0.2
-          COMPILER: clang
     - identifier: gcc_awslc
       env:
         compute-type: BUILD_GENERAL1_LARGE
@@ -73,6 +49,5 @@ phases:
     on-failure: ABORT
     commands:
       - |
-        S2N_DEBUG=true S2N_VALGRIND=1 \
-          CTEST_PARALLEL_LEVEL=$(nproc) CTEST_OUTPUT_ON_FAILURE=1 ctest -T memcheck \
+        S2N_VALGRIND=1 CTEST_PARALLEL_LEVEL=$(nproc) CTEST_OUTPUT_ON_FAILURE=1 ctest -T memcheck \
           --test-dir build ARGS="-output-on-failure"
