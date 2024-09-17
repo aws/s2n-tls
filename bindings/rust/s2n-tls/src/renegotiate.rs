@@ -4,20 +4,39 @@
 //! Methods to perform renegotiation.
 //!
 //! The use of renegotiation is strongly discouraged.
-//! See [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+//! See [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h)
+//! for the primary documentation of the feature.
 //!
-//! Unlike the C API, the Rust bindings do not require the application to
-//! integrate `s2n_renegotiate_wipe` or `s2n_renegotiate` into their existing code.
-//! Instead, all that is required to enable renegotiation is setting the [`RenegotiateCallback`].
+//! # Scheduled renegotiation
 //!
-//! For example:
+//! The Rust client can automatically renegotiate in response to a server renegotiation
+//! request, if an application does not require support for concurrent reads and writes.
+//! This feature is intended for applications that follow a standard request/response model.
+//!
+//! To use scheduled renegotiation, your must set a [`RenegotiateCallback`] that
+//! returns [`RenegotiateResponse::Schedule`].
+//!
+//! If all renegotiation requests will be accepted and no connection-level
+//! configuration is required, then [`RenegotiateResponse`] can be used as the
+//! RenegotiateCallback. For example:
+//! ```
+//! use s2n_tls::config::Builder;
+//! use s2n_tls::renegotiate::RenegotiateResponse;
+//!
+//! let mut builder = Builder::new();
+//! builder.set_renegotiate_callback(RenegotiateResponse::Schedule);
+//! ```
+//!
+//! If an application needs to conditionally accept renegotiation requests or
+//! uses connection-level configuration that will need to be reset after the
+//! connection is wiped for renegotiation, then the application will need to
+//! implement a custom `RenegotiateCallback`:
 //! ```
 //! use s2n_tls::config::Builder;
 //! use s2n_tls::connection::Connection;
 //! use s2n_tls::error::Error;
 //! use s2n_tls::renegotiate::{RenegotiateCallback, RenegotiateResponse};
 //!
-//! #[derive(Default)]
 //! struct Callback { };
 //!
 //! impl RenegotiateCallback for Callback {
@@ -26,7 +45,7 @@
 //!         conn: &mut Connection,
 //!     ) -> Option<RenegotiateResponse> {
 //!         let response = match conn.server_name() {
-//!             Some("allowed_to_renegotiate") => RenegotiateResponse::Accept,
+//!             Some("allowed_to_renegotiate") => RenegotiateResponse::Schedule,
 //!             _ => RenegotiateResponse::Reject,
 //!         };
 //!         Some(response)
@@ -39,70 +58,52 @@
 //! }
 //!
 //! let mut builder = Builder::new();
-//! builder.set_renegotiate_callback(Callback::default());
+//! builder.set_renegotiate_callback(Callback{});
 //! ```
+//! #### Warning:
 //!
-//! If all renegotiation requests will be accepted and no connection-level
-//! configuration is required, then [`RenegotiateResponse`] can be used as the RenegotiateCallback.
+//! If you are using s2n-tls via a higher level wrapper like s2n-tls-tokio or
+//! s2n-tls-hyper, that wrapper may automatically set connection-level configuration
+//! for you. As such wrappers are unlikely to be aware of renegotiation, they will
+//! not automatically reset their configuration after the connection is wiped for
+//! renegotiation. You may need to handle resetting the configuration yourself
+//! via `on_renegotiate_wipe`. If that is not possible, please open an issue.
+//!  
+//! ## How it works
 //!
-//! For example:
-//! ```
-//! use s2n_tls::config::Builder;
-//! use s2n_tls::renegotiate::RenegotiateResponse;
+//! When a call to `poll_recv` receives a renegotiation request, `on_renegotiate_request`
+//! will be invoked for the connection's  `RenegotiateCallback`. If `on_renegotiate_request`
+//! returns `RenegotiateResponse::Schedule`, then s2n-tls will automatically schedule
+//! renegotiation. Once renegotiation begins, calls to `poll_recv` will attempt
+//! to renegotiate by wiping the connection, which will trigger `on_renegotiate_wipe`
+//! from the connection's `RenegotiateCallback`. After wiping, `poll_recv` will
+//! perform a new handshake.
 //!
-//! let mut builder = Builder::new();
-//! builder.set_renegotiate_callback(RenegotiateResponse::Accept);
-//! ```
+//! #### Warning:
+//! While performing the new handshake, `poll_recv` will write, not just read.
+//! This may violate assumptions your application is making about IO operations.
 //!
-//! #### Safety
+//! ## Detailed limitations
 //!
-//! If you are using s2n-tls via a higher level wrapper like s2n-tls-tokio
-//! or s2n-tls-hyper, that wrapper may set connection-level configuration.
-//! As such wrappers are unlikely to be aware of renegotiation, they will not
-//! reset their configuration after the connection is wiped for renegotiation.
-//! You may need to handle resetting the configuration yourself. If that is not
-//! possible, please open an issue.
+//! Specifically, scheduled renegotiation will fail if `poll_send`:
+//! 1. is called after the renegotiation request is received from the server.
+//! 2. returned `Pending` and has not yet returned `Ready` before the renegotiation
+//!    request is received from the server.
 //!
-//! # How it works
+//! These limitations are a blocker for an application that supports concurrent
+//! reads and writes, or which must support an arbitrary ordering of reads and
+//! writes. Custom renegotiation will be required for those use cases.
 //!
-//! When an s2n-tls client receives a renegotiation request, `on_renegotiate_request`
-//! will be invoked. If `on_renegotiate_request` returns `RenegotiateResponse::Accept`,
-//! then s2n-tls will automatically schedule renegotiation. The application will
-//! be able to complete any in-progress writes and read any already decrypted
-//! data. However, the next time that a read or write would trigger reading or
-//! writing a new TLS record, s2n-tls will instead wipe the connection, block
-//! all application IO requests, and negotiate a new handshake. Both `poll_recv`
-//! and `poll_send` will return Pending until renegotiation is complete.
+//! # Custom renegotiation
 //!
-//! #### Safety
+//! The bindings also provide [`Connection::wipe_for_renegotiate()`] and [`Connection::poll_renegotiate()`]
+//! as direct mappings of the C `s2n_renegotiate_wipe` and `s2n_renegotiate` methods.
+//! If scheduled renegotiation is insufficient for your use case, you can manually
+//! integrate with renegotiation according to the instructions in
+//! [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+//! Your `on_renegotiate_request` method would return `RenegotiateResponse::Accept`
+//! rather than `RenegotiateResponse::Schedule`.
 //!
-//! During renegotiation, sending data can block indefinitely on unread
-//! application data received from the server. The client can't write any
-//! new application data after sending the new ClientHello, but the server can.
-//! Ensure that your application handles any available readable data. This should
-//! not be an issue for a standard request/response exchange, but if you are
-//! unsure of what data your peer expects or will send, consider using methods
-//! like [`tokio::net::TcpStream::ready()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.ready)
-//! or [`tokio::net::TcpStream::readable()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.readable)
-//! to monitor available data on the underlying stream.
-//!
-//! # Downsides
-//!
-//! Handling renegotiation this way allows it to be used with higher level abstractions
-//! that are unaware of renegotiation, like s2n-tls-tokio or s2n-tls-hyper.
-//! However, there are downsides. During renegotiation, `poll_recv` may write and
-//! `poll_send` may read. This violates expectations and makes waker contracts
-//! difficult to reason about, so any integration should probably include as much
-//! testing and instrumentation as possible. Please report any bugs encountered.
-//!
-//! Additionally, mixing reads and writes may impose technical limitations in the future.
-//! For example, if s2n-tls implements a lock-free "split" operation like
-//! [`tokio::net::TcpStream::into_split()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.into_split),
-//! it may not be unusable with renegotiation. s2n-tls-tokio currently supports
-//! [`tokio::io::split()`](https://docs.rs/tokio/latest/tokio/io/fn.split.html),
-//! but that uses a mutex to achieve thread-safety. So if your application requires
-//! renegotiation, then it may be unable to benefit from some future features and
-//! improvements, or could even theoretically be broken entirely by a future update.
 
 use s2n_tls_sys::*;
 
@@ -111,7 +112,7 @@ use crate::{
     config,
     connection::Connection,
     enums::CallbackResult,
-    error::{Error, Fallible, Pollable},
+    error::{Error, ErrorType, Fallible, Pollable},
 };
 use std::task::Poll::{self, Pending, Ready};
 
@@ -123,6 +124,9 @@ pub enum RenegotiateResponse {
     Ignore,
     Reject,
     Accept,
+    /// The same as `Accept`, but also automatically perform renegotiation
+    /// when `poll_recv` is called.
+    Schedule,
 }
 
 impl From<RenegotiateResponse> for s2n_renegotiate_response::Type {
@@ -131,6 +135,7 @@ impl From<RenegotiateResponse> for s2n_renegotiate_response::Type {
             RenegotiateResponse::Ignore => s2n_renegotiate_response::RENEGOTIATE_IGNORE,
             RenegotiateResponse::Reject => s2n_renegotiate_response::RENEGOTIATE_REJECT,
             RenegotiateResponse::Accept => s2n_renegotiate_response::RENEGOTIATE_ACCEPT,
+            RenegotiateResponse::Schedule => s2n_renegotiate_response::RENEGOTIATE_ACCEPT,
         }
     }
 }
@@ -140,7 +145,7 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     /// A callback that triggers when the client receives a renegotiation request
     /// (a HelloRequest message) from the server.
     ///
-    /// Returning `Some(RenegotiateResponse::Accept)` will trigger s2n-tls
+    /// Returning `Some(RenegotiateResponse::Schedule)` will trigger s2n-tls
     /// to automatically wipe the connection and renegotiate.
     ///
     /// Returning "None" will result in the C callback returning an error,
@@ -159,6 +164,39 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     ///
     /// Because renegotiation requires wiping the connection, connection-level
     /// configuration will need to be set again via this callback.
+    /// See [`Connection::wipe_for_renegotiate()`] for more information.
+    fn on_renegotiate_wipe(&mut self, _connection: &mut Connection) -> Result<(), Error> {
+        Ok(())
+    }
+}
+
+impl RenegotiateCallback for RenegotiateResponse {
+    fn on_renegotiate_request(&mut self, _conn: &mut Connection) -> Option<RenegotiateResponse> {
+        Some(*self)
+    }
+}
+
+#[derive(Debug, PartialEq, Copy, Clone, Default)]
+pub(crate) struct RenegotiateState {
+    needs_handshake: bool,
+    needs_wipe: bool,
+    send_pending: bool,
+}
+
+impl Connection {
+    fn schedule_renegotiate(&mut self) {
+        let mut state = self.renegotiate_state_mut();
+        if !state.needs_handshake {
+            state.needs_handshake = true;
+            state.needs_wipe = true;
+        }
+    }
+
+    fn is_renegotiating(&self) -> bool {
+        self.renegotiate_state().needs_handshake
+    }
+
+    /// Reset the connection so that it can be renegotiated.
     ///
     /// See s2n_renegotiate_wipe in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
     /// The Rust equivalent of the listed connection-specific methods that are NOT wiped are:
@@ -180,50 +218,21 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     /// Therefore if you specifically need certain connection configuration values
     /// wiped during renegotiation, then you should wipe them yourself using this
     /// callback.
-    ///
-    /// If this callback returns `Err`, then renegotiation will fail with a fatal error.
-    fn on_renegotiate_wipe(&mut self, _connection: &mut Connection) -> Result<(), Error> {
-        Ok(())
-    }
-}
-
-impl RenegotiateCallback for RenegotiateResponse {
-    fn on_renegotiate_request(&mut self, _conn: &mut Connection) -> Option<RenegotiateResponse> {
-        Some(*self)
-    }
-}
-
-#[derive(Debug, PartialEq, Copy, Clone, Default)]
-pub(crate) struct RenegotiateState {
-    need_wipe: bool,
-    need_handshake: bool,
-    send_blocked: bool,
-}
-
-impl RenegotiateState {
-    fn set_renegotiate(&mut self) {
-        // Requests for renegotiation should be ignored if a renegotiation is already in progress.
-        if !self.need_handshake {
-            self.need_wipe = true;
-            self.need_handshake = true;
+    pub fn wipe_for_renegotiate(&mut self) -> Result<(), Error> {
+        // Check for buffered data in order to surface more specific
+        // error messages to the application.
+        if self.renegotiate_state().send_pending {
+            return Err(Error::from(
+                ErrorType::UsageError,
+                "RenegotiateError",
+                "Unexpected buffered send data during renegotiate",
+            ));
         }
-    }
-}
 
-impl Connection {
-    fn accept_renegotiate_request(&mut self) {
-        self.renegotiate_state_mut().set_renegotiate();
-    }
-
-    fn is_renegotiating(&self) -> bool {
-        self.renegotiate_state().need_handshake
-    }
-
-    /// Reset the connection so that it can be renegotiated.
-    ///
-    /// See s2n_renegotiate_wipe in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
-    fn wipe_for_renegotiate(&mut self) -> Result<(), Error> {
-        // Save any state that needs to be preserved
+        // Save any state that needs to be preserved.
+        // The only real cost of saving state here is complexity. We can't save all
+        // connection configuration automatically because in the C library, connection
+        // configuration is indistinguishable from C connection state.
         let renegotiate_state = *self.renegotiate_state();
         let waker = self.waker().map(|waker| waker.clone());
         let server_name = self.server_name().map(|name| name.to_owned());
@@ -244,46 +253,19 @@ impl Connection {
                 callback.on_renegotiate_wipe(self)?;
             }
         }
+
+        self.renegotiate_state_mut().needs_wipe = false;
         Ok(())
     }
 
-    /// Make progress on the renegotiation handshake.
-    ///
-    /// This method matches the interface of `poll_recv`, and as such does not
-    /// actually indicate whether the handshake completes or not. It returns
-    /// `Ready` when application data is available, not when the handshake succeeds.
-    ///
-    /// If the handshake succeeds, the renegotiation state stored on the connection
-    /// will be updated so that this method is not polled again.
-    ///
-    // # Safety
-    // Both poll_send and poll_recv_raw take mutable references, so only one can
-    // be called on a connection at a time. We therefore have to worry about the
-    // safety of interleaved calls, but NOT the safety of concurrent calls. So
-    // state like `is_renegotiating` may change unexpectedly between calls to
-    // poll_renegotiate_raw, but will not change while poll_renegotiate_raw is being executed.
-    // Warning: The underlying C s2n_recv and s2n_send calls ARE concurrent,
-    // so the Rust bindings MAY someday support concurrency.
     fn poll_renegotiate_raw(
         &mut self,
         buf_ptr: *mut libc::c_void,
         buf_len: isize,
-    ) -> Poll<Result<usize, Error>> {
-        if self.renegotiate_state().need_wipe {
-            if self.renegotiate_state().send_blocked || self.peek_len() > 0 {
-                // It is safe to return Pending here because `poll_recv` and
-                // `poll_send` are already responsible for clearing the input
-                // and output buffers respectively. The first one to succeed
-                // will block, but the second will wipe and begin renegotiation.
-                return Pending;
-            }
-            self.wipe_for_renegotiate()?;
-            self.renegotiate_state_mut().need_wipe = false;
-        }
-
+    ) -> (Poll<Result<(), Error>>, usize) {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let mut read: isize = 0;
-        let result = self.poll_negotiate_method(|conn| {
+        let r = self.poll_negotiate_method(|conn| {
             unsafe {
                 s2n_renegotiate(
                     conn.as_ptr(),
@@ -295,23 +277,25 @@ impl Connection {
             }
             .into_poll()
         });
-
-        if result.is_ready() {
-            self.renegotiate_state_mut().need_handshake = false
+        if let Ready(Ok(())) = r {
+            self.renegotiate_state_mut().needs_handshake = false;
         }
-        if read > 0 {
-            return Ready(Ok(read.try_into().unwrap()));
-        }
-        match result {
-            Ready(Ok(_)) => Pending,
-            Ready(Err(err)) => Ready(Err(err)),
-            Pending => Pending,
-        }
+        (r, read.try_into().unwrap())
     }
 
-    fn poll_renegotiate(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
-        let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
-        let buf_ptr = buf.as_mut_ptr() as *mut libc::c_void;
+    /// Perform a new handshake on an already established connection.
+    ///
+    /// The first element of the returned pair represents progress on the new
+    /// handshake, like [Connection::poll_negotiate()].
+    ///
+    /// If any application data is received during the new handshake, the number
+    /// of bytes received is returned as the second element of the returned pair,
+    /// and the data is written to `buf`.
+    ///
+    /// See s2n_renegotiate in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    pub fn poll_renegotiate(&mut self, buf: &mut [u8]) -> (Poll<Result<(), Error>>, usize) {
+        let buf_len: isize = buf.len().try_into().unwrap_or(0);
+        let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
         self.poll_renegotiate_raw(buf_ptr, buf_len)
     }
 
@@ -319,128 +303,67 @@ impl Connection {
     /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
-    ///
-    /// Automatically handles renegotiation.
-    ///
-    /// # Safety
-    /// During renegotiation, sending data can block indefinitely on unread
-    /// application data received from the server. The client can't write any
-    /// new application data after sending the new ClientHello, but the server can.
-    /// Ensure that your application handles any available readable data. This should
-    /// not be an issue for a standard request/response exchange, but if you are
-    /// unsure of what data your peer expects or will send, consider using methods
-    /// like [`tokio::net::TcpStream::ready()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.ready)
-    /// or [`tokio::net::TcpStream::readable()`](https://docs.rs/tokio/latest/tokio/net/struct.TcpStream.html#method.readable)
-    /// to monitor available data on the underlying stream.
-    //
-    // # Safety
-    // Both poll_send and poll_recv_raw take mutable references, so only one can
-    // be called on a connection at a time. We therefore have to worry about the
-    // safety of interleaved calls, but NOT the safety of concurrent calls. So
-    // state like `is_renegotiating` may change unexpectedly between calls to
-    // poll_send, but will not change while poll_send is being executed.
-    // Warning: The underlying C s2n_recv and s2n_send calls ARE concurrent,
-    // so the Rust bindings MAY someday support concurrency.
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
+        if self.is_renegotiating() {
+            return Ready(Err(Error::from(
+                ErrorType::Blocked,
+                "RenegotiateError",
+                "Cannot send application data while renegotiating",
+            )));
+        }
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const libc::c_void;
-
-        // If send is blocked, then we can't override poll_send to call
-        // poll_renegotiate until the application finishes retrying the send.
-        fn is_send_renegotiating(conn: &mut Connection) -> bool {
-            conn.is_renegotiating() && !conn.renegotiate_state().send_blocked
-        }
-
-        let is_renegotiating = is_send_renegotiating(self);
-        let result = if is_renegotiating {
-            let mut empty = [0; 0];
-            self.poll_renegotiate(&mut empty)
-        } else {
-            let result =
-                unsafe { s2n_send(self.as_ptr(), buf_ptr, buf_len, &mut blocked) }.into_poll();
-            // s2n-tls can't automatically flush blocked sends.
-            // The application must call s2n_send again with the same data buffer
-            // in order to retry a send.
-            // Since we can't flush automatically, we need to track whether or
-            // not send has been flushed by the application.
-            self.renegotiate_state_mut().send_blocked = result.is_pending();
-            result
-        };
-
-        // A call to poll_renegotiate can trigger the need to call s2n_send.
-        // If the handshake blocking sending application data completes, then we
-        // need to attempt to send the application data at least once before we
-        // return Pending. Otherwise, we aren't actually blocked on anything
-        // specific and could break an underlying IO waker contract.
-        //
-        // A call to s2n_send can not trigger the need to call poll_renegotiate.
-        // Even if it clears the last of the buffered data blocking renegotiation,
-        // the result will always be `Ready(Ok(bytes_written))` rather than `Pending`.
-        //
-        // Despite only one case being possible, we follow the same pattern as
-        // we do for poll_recv for consistency and simplicity.
-        let is_next_renegotiating = is_send_renegotiating(self);
-        if result.is_pending() && is_renegotiating != is_next_renegotiating {
-            self.poll_send(buf)
-        } else {
-            result
-        }
+        let result = unsafe { s2n_send(self.as_ptr(), buf_ptr, buf_len, &mut blocked) }.into_poll();
+        self.renegotiate_state_mut().send_pending = result.is_pending();
+        result
     }
 
-    // # Safety
-    // Both poll_send and poll_recv_raw take mutable references, so only one can
-    // be called on a connection at a time. We therefore have to worry about the
-    // safety of interleaved calls, but NOT the safety of concurrent calls. So
-    // state like `is_renegotiating` may change unexpectedly between calls to
-    // poll_recv_raw, but will not change while poll_recv_raw is being executed.
-    // Warning: The underlying C s2n_recv and s2n_send calls ARE concurrent,
-    // so the Rust bindings MAY someday support concurrency.
     pub(crate) fn poll_recv_raw(
         &mut self,
         buf_ptr: *mut libc::c_void,
         buf_len: isize,
     ) -> Poll<Result<usize, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-
-        // Let s2n_recv handle draining any buffered IO.
-        // We could let poll_renegotiate handle it, but this way matches poll_send.
-        fn is_recv_renegotiating(conn: &mut Connection) -> bool {
-            conn.is_renegotiating() && conn.peek_len() == 0
-        }
-
-        // If we're just trying to drain the buffered IO,
-        // ensure that we don't read more records.
-        let buf_len = if self.is_renegotiating() && self.peek_len() > 0 {
-            std::cmp::min(buf_len, self.peek_len() as isize)
-        } else {
-            buf_len
-        };
-
-        let is_renegotiating = is_recv_renegotiating(self);
-        let result = if is_renegotiating {
-            self.poll_renegotiate_raw(buf_ptr, buf_len)
-        } else {
+        if self.is_renegotiating() && self.peek_len() > 0 {
+            let buf_len = std::cmp::min(self.peek_len() as isize, buf_len);
+            let mut blocked = s2n_blocked_status::NOT_BLOCKED;
             unsafe { s2n_recv(self.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
-        };
-
-        // A call to s2n_recv can trigger the need to call poll_renegotiate if it
-        // reads a HelloRequest but no ApplicationData. If we returned Pending in
-        // that case without attempting to progress the handshake, we could break
-        // an underlying IO waker contract; the operation wouldn't actually be blocked
-        // on anything specific.
-        //
-        // A call to poll_renegotiate can trigger the need to call s2n_recv if it
-        // completes the handshake that is blocking receiving application data.
-        // The server does write the final message in some TLS1.2 handshakes.
-        // If we returned Pending in that case without attempting to read the
-        // application data requested by the application, we would again be
-        // at risk of breaking underlying IO waker contracts.
-        let is_renegotiating_next = is_recv_renegotiating(self);
-        if result.is_pending() && is_renegotiating != is_renegotiating_next {
-            self.poll_recv_raw(buf_ptr, buf_len)
+        } else if self.is_renegotiating() {
+            if self.renegotiate_state().needs_wipe {
+                self.wipe_for_renegotiate()?;
+            }
+            match self.poll_renegotiate_raw(buf_ptr, buf_len) {
+                (Ready(Err(err)), _) => Ready(Err(err)),
+                // If renegotiate succeeds with no data read, we need to return
+                // some result:
+                // - We can't return Ready(Ok(0)), because that would indicate
+                //   end-of-stream.
+                // - We can't return Pending, because we are not actually blocked
+                //   on anything so there would be no guarantee of another poll.
+                // Instead, re-attempt to perform the original receive call
+                // and return that result.
+                (Ready(Ok(())), 0) => self.poll_recv_raw(buf_ptr, buf_len),
+                (Pending, 0) => Pending,
+                (_, bytes) => Ready(Ok(bytes)),
+            }
         } else {
-            result
+            let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+            let result =
+                unsafe { s2n_recv(self.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() };
+            // A call to s2n_recv that initiates renegotiation is blocked on
+            // renegotiation, not on application data.
+            // If we just return Pending, we may never start the handshake so
+            // may never receive any more data from the server.
+            // Instead, attempt to renegotiate at least once.
+            if self.is_renegotiating() && result.is_pending() {
+                // We call poll_recv_raw instead of poll_renegotiate because we
+                // could theoretically complete the entire handshake and read the
+                // application data originally requested.
+                // This also makes ensuring the wipe easier.
+                self.poll_recv_raw(buf_ptr, buf_len)
+            } else {
+                result
+            }
         }
     }
 }
@@ -464,10 +387,9 @@ impl config::Builder {
                     if let Some(result) = callback.on_renegotiate_request(conn) {
                         // If the callback indicates renegotiation, schedule it.
                         // This doesn't actually do any work related to renegotiation,
-                        // It just indicates to `poll_recv` and `poll_send`
-                        // that work needs to be done later.
-                        if result == RenegotiateResponse::Accept {
-                            conn.accept_renegotiate_request();
+                        // It just indicates that work needs to be done later.
+                        if result == RenegotiateResponse::Schedule {
+                            conn.schedule_renegotiate();
                         }
                         *response = result.into();
                         return CallbackResult::Success.into();
@@ -500,7 +422,7 @@ mod tests {
             ConnectionFuture, ConnectionFutureResult, PrivateKeyCallback, PrivateKeyOperation,
         },
         config::ConnectionInitializer,
-        error::ErrorSource,
+        error::{ErrorSource, ErrorType},
         testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair, TestPairIO},
     };
     use foreign_types::ForeignTypeRef;
@@ -514,6 +436,10 @@ mod tests {
         pin::Pin,
         task::Poll::{Pending, Ready},
     };
+
+    // The partial word is intentional to match variations:
+    // "renegotiate", "renegotiating", "renegotiation"
+    const RENEG_ERR_MARKER: &str = "renegotiat";
 
     // Currently renegotiation is not available from the openssl-sys bindings
     extern "C" {
@@ -694,11 +620,6 @@ mod tests {
 
             for _ in 0..20 {
                 let client_read_poll = self.client.poll_recv(&mut buffer);
-                println!(
-                    "s2n result: {:?}, state: {:?}",
-                    client_read_poll,
-                    self.client.message_type()?
-                );
                 match client_read_poll {
                     Pending => {
                         assert!(self.client.is_renegotiating(), "s2n-tls not renegotiating");
@@ -713,7 +634,7 @@ mod tests {
 
                 // Openssl needs to read the new ClientHello in order to know
                 // that s2n-tls is actually renegotiating.
-                // But after initial read, reads and writes can both progress the handshake.
+                // But after the initial read, writes can progress the handshake.
                 if !self.openssl_is_handshaking() {
                     let _ = self.server.read(&mut [0; 0]);
                 } else {
@@ -748,6 +669,25 @@ mod tests {
     fn ignore_callback() -> Result<(), Box<dyn Error>> {
         let mut builder = config::Builder::new();
         builder.set_renegotiate_callback(RenegotiateResponse::Ignore)?;
+        let mut pair = RenegotiateTestPair::from(builder)?;
+
+        pair.handshake().expect("Initial handshake");
+
+        // Expect receiving the hello request to be successful
+        pair.send_renegotiate_request()
+            .expect("Server sends request");
+        pair.send_and_receive().expect("Application data");
+        assert!(!pair.client.is_renegotiating(), "Unexpected renegotiation");
+
+        Ok(())
+    }
+
+    // In practice, "accept" behaves just like "ignore".
+    // The only current difference is application intention.
+    #[test]
+    fn accept_callback() -> Result<(), Box<dyn Error>> {
+        let mut builder = config::Builder::new();
+        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
         pair.handshake().expect("Initial handshake");
@@ -807,9 +747,9 @@ mod tests {
     }
 
     #[test]
-    fn do_renegotiate_basic() -> Result<(), Box<dyn Error>> {
+    fn scheduled_renegotiate_basic() -> Result<(), Box<dyn Error>> {
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
         pair.handshake().expect("Initial handshake");
@@ -825,9 +765,9 @@ mod tests {
     }
 
     #[test]
-    fn do_renegotiate_repeatedly() -> Result<(), Box<dyn Error>> {
+    fn scheduled_renegotiate_repeatedly() -> Result<(), Box<dyn Error>> {
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
         pair.handshake().expect("Initial handshake");
@@ -845,93 +785,139 @@ mod tests {
         Ok(())
     }
 
+    // Application data received immediately after the hello request message
+    // is handled by the initial s2n_recv call rather than s2n_renegotiate
     #[test]
-    fn do_renegotiate_with_app_data() -> Result<(), Box<dyn Error>> {
+    fn scheduled_renegotiate_with_immediate_app_data() -> Result<(), Box<dyn Error>> {
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
         pair.handshake().expect("Initial handshake");
 
-        // The server can send:
-        // - APP_DATA
-        // - HELLO_REQUEST
-        // - APP_DATA
-        // - SERVER_HELLO
-        // No more application data is allowed until the handshake completes.
-        let server_data_before_request = "server_data_before_request".as_bytes();
-        pair.server
-            .write(server_data_before_request)
-            .expect("server APP_DATA before HELLO_REQUEST");
+        // Server sends app data immediately after hello request
+        let server_data = "server_data".as_bytes();
         pair.send_renegotiate_request()
-            .expect("server HELLO_REQUEST");
-        let server_data_before_hello = "server_data_before_hello".as_bytes();
+            .expect("server hello request");
         pair.server
-            .write(server_data_before_hello)
-            .expect("server APP_DATA before CLIENT_HELLO");
-        let server_data = [server_data_before_request, server_data_before_hello];
+            .write(server_data)
+            .expect("server app data after hello request");
 
-        // The client can send:
-        // - APP_DATA
-        // - CLIENT_HELLO
-        // No more application data is allowed until the handshake completes.
-        let client_data_before_hello = "client_data_before_hello".as_bytes();
-        unwrap_poll(pair.client.poll_send(client_data_before_hello))
-            .expect("client APP_DATA before CLIENT_HELLO");
-
-        // Client reads all server data
-        for data in server_data {
-            let mut buffer = [0; 100];
-            let read = unwrap_poll(pair.client.poll_recv(&mut buffer))?;
-            assert_eq!(read, data.len());
-            assert_eq!(&buffer[0..read], data);
-        }
-
-        // Server reads all client data
+        // First poll reads both the hello request and the app data
         let mut buffer = [0; 100];
-        let read = pair.server.read(&mut buffer)?;
-        assert_eq!(read, client_data_before_hello.len());
-        assert_eq!(&buffer[0..read], client_data_before_hello);
-
-        // Assert that a renegotiation is in progress
+        let read = unwrap_poll(pair.client.poll_recv(&mut buffer))?;
+        assert_eq!(read, server_data.len());
+        assert_eq!(&buffer[0..read], server_data);
         assert!(pair.client.is_renegotiating());
-        // Complete the renegotiation
-        pair.assert_renegotiate()?;
-        Ok(())
-    }
-
-    #[test]
-    fn do_renegotiate_with_buffered_read() -> Result<(), Box<dyn Error>> {
-        let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
-        let mut pair = RenegotiateTestPair::from(builder)?;
-
-        pair.handshake().expect("Initial handshake");
-
-        let server_data = "full server data".as_bytes();
-        pair.send_renegotiate_request()
-            .expect("Server sends request");
-        pair.server.write(&server_data)?;
-
-        // Read the server data one byte at a time, slowly draining the buffered data.
-        for i in 0..server_data.len() {
-            // The renegotiation request is read with the first byte,
-            // but wiping is blocked until all the buffered data is drained.
-            assert_eq!(pair.client.is_renegotiating(), i > 0);
-            assert_eq!(pair.client.renegotiate_state().need_wipe, i > 0);
-
-            let mut buffer = [0; 1];
-            let read = unwrap_poll(pair.client.poll_recv(&mut buffer))?;
-            assert_eq!(read, 1);
-            assert_eq!(buffer[0], server_data[i]);
-            assert_eq!(pair.client.peek_len(), server_data.len() - i - 1);
-        }
 
         pair.assert_renegotiate().expect("Renegotiate");
         Ok(())
     }
 
+    // Application data received some time after the hello request is handled
+    // by s2n_renegotiate rather than s2n_recv.
     #[test]
-    fn do_renegotiate_with_buffered_write() -> Result<(), Box<dyn Error>> {
+    fn scheduled_renegotiate_with_delayed_app_data() -> Result<(), Box<dyn Error>> {
+        let mut builder = config::Builder::new();
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
+        let mut pair = RenegotiateTestPair::from(builder)?;
+        pair.handshake().expect("Initial handshake");
+
+        // Server sends hello request, but initially no app data
+        pair.send_renegotiate_request()
+            .expect("server hello request");
+
+        // Client can read the hello request
+        let mut buffer = [0; 100];
+        let poll = pair.client.poll_recv(&mut buffer);
+        assert!(poll.is_pending());
+        assert!(pair.client.is_renegotiating());
+
+        // Server sends app data
+        let server_data = "server_data".as_bytes();
+        pair.server
+            .write(server_data)
+            .expect("server app data after hello request");
+
+        // Client reads app data
+        let mut buffer = [0; 100];
+        let read = unwrap_poll(pair.client.poll_recv(&mut buffer))?;
+        assert_eq!(read, server_data.len());
+        assert_eq!(&buffer[0..read], server_data);
+        assert!(pair.client.is_renegotiating());
+
+        pair.assert_renegotiate().expect("Renegotiate");
+        Ok(())
+    }
+
+    // assert_renegotiate sends application data for the client to receive
+    // as soon as the handshake completes. Also test with no final application data.
+    #[test]
+    fn scheduled_renegotiate_without_final_app_data() -> Result<(), Box<dyn Error>> {
+        let mut builder = config::Builder::new();
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
+        let mut pair = RenegotiateTestPair::from(builder)?;
+        pair.handshake().expect("Initial handshake");
+
+        // Server sends hello request, but initially no app data
+        pair.send_renegotiate_request()
+            .expect("server hello request");
+
+        // Client and server renegotiate while never reading app data
+        assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
+        assert!(pair.client.is_renegotiating());
+        loop {
+            let _ = pair.server.read(&mut [0; 0]);
+            assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
+            if !pair.client.is_renegotiating() {
+                break;
+            }
+        }
+
+        // Send and receive application data after renegotiation
+        pair.send_and_receive()
+            .expect("Application data after renegotiate");
+
+        Ok(())
+    }
+
+    // Renegotiation should be able to clear buffered receive data before wiping
+    #[test]
+    fn scheduled_renegotiate_with_buffered_recv() -> Result<(), Box<dyn Error>> {
+        let mut builder = config::Builder::new();
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
+        let mut pair = RenegotiateTestPair::from(builder)?;
+        pair.handshake().expect("Initial handshake");
+
+        pair.send_renegotiate_request()
+            .expect("Server sends request");
+        let server_data = "server_data".as_bytes();
+        assert_eq!(
+            pair.server.write(&server_data).expect("server app data"),
+            server_data.len()
+        );
+
+        // Read only the first byte of the server data
+        let mut buffer = [0; 100];
+        let read = unwrap_poll(pair.client.poll_recv(&mut buffer[..1]))
+            .expect("Read first byte of server data");
+        assert_eq!(read, 1);
+        assert_eq!(buffer[0], server_data[0]);
+        assert!(pair.client.is_renegotiating());
+
+        // Read the rest of the server data
+        let read = unwrap_poll(pair.client.poll_recv(&mut buffer[1..]))
+            .expect("Drain buffered receive data");
+        assert_eq!(read, server_data.len() - 1);
+        assert_eq!(&buffer[..server_data.len()], server_data);
+        assert!(pair.client.is_renegotiating());
+
+        pair.assert_renegotiate().expect("Renegotiate");
+        Ok(())
+    }
+
+    // Renegotiation will fail if there is a pending call to poll_send
+    #[test]
+    fn scheduled_renegotiate_with_buffered_send() -> Result<(), Box<dyn Error>> {
         unsafe extern "C" fn blocking_send_cb(
             _: *mut libc::c_void,
             _: *const u8,
@@ -942,7 +928,7 @@ mod tests {
         }
 
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
         pair.handshake().expect("Initial handshake");
 
@@ -950,124 +936,46 @@ mod tests {
         let client_data = "client data".as_bytes();
         pair.client.set_send_callback(Some(blocking_send_cb))?;
         assert!(pair.client.poll_send(&client_data).is_pending());
-        assert!(pair.client.renegotiate_state_mut().send_blocked);
+        assert!(pair.client.renegotiate_state().send_pending);
 
-        // Renegotiation should also initially block on send.
+        // The client fails to start renegotiation due to pending send.
         pair.send_renegotiate_request()
             .expect("Server sends request");
-        assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
-        assert!(pair.client.poll_send(&client_data).is_pending());
+        let error = unwrap_poll(pair.client.poll_recv(&mut [0; 1])).unwrap_err();
+        assert_eq!(error.kind(), ErrorType::UsageError);
+        assert!(error.message().contains(RENEG_ERR_MARKER));
+        assert!(error.message().contains("buffered send data"));
         assert!(pair.client.is_renegotiating());
-        assert!(pair.client.renegotiate_state_mut().send_blocked);
 
-        // Unblock sending by restoring the original callback
-        pair.client.set_send_callback(Some(TestPair::send_cb))?;
-        unwrap_poll(pair.client.poll_send(&client_data)).expect("Send unblocked");
-        assert!(!pair.client.renegotiate_state_mut().send_blocked);
-
-        // Server can now receive the data.
-        let mut buffer = [0; 100];
-        let read = pair.server.read(&mut buffer).expect("Server read");
-        assert_eq!(read, client_data.len());
-        assert_eq!(&buffer[..read], client_data);
-
-        pair.assert_renegotiate().expect("Renegotiate");
         Ok(())
     }
 
+    // poll_send is not currently supported during renegotiation
     #[test]
-    fn do_renegotiate_via_send() -> Result<(), Box<dyn Error>> {
+    fn scheduled_renegotiate_with_poll_send() -> Result<(), Box<dyn Error>> {
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
         pair.handshake().expect("Initial handshake");
 
-        // Initially renegotiation can only be triggered by poll_recv.
-        // Setup the calls such that buffered data prevents renegotiation from
-        // making any progress on the initial poll_recv (the wipe is blocked).
-        let buffered_server_data = "buffered_server_data".as_bytes();
+        // Read the hello request and start renegotiation
         pair.send_renegotiate_request()
             .expect("server HELLO_REQUEST");
-        pair.server.write(&buffered_server_data)?;
-        let read = unwrap_poll(pair.client.poll_recv(&mut [0; 1]))?;
-        assert_eq!(read, 1);
+        assert!(pair.client.poll_recv(&mut [0; 1]).is_pending());
         assert!(pair.client.is_renegotiating());
-        // Buffered data blocks the wipe
-        assert!(pair.client.peek_len() > 0);
-        assert!(pair.client.renegotiate_state().need_wipe);
 
-        // The server can continue to write application data.
-        // This application data is not buffered before renegotiation,
-        // and will need to be read during renegotiation.
-        let server_data = "server_data".as_bytes();
-        pair.server
-            .write(server_data)
-            .expect("server writes app data");
-
-        // The server needs to call read in order to receive the ClientHello
-        // and start renegotiation. This should send the ServerHello.
-        pair.server
-            .read(&mut [0; 1])
-            .expect_err("server blocks on reading app data");
-
-        // Assert that poll_send can't drain the buffered data so can't make
-        // progress on renegotiation. poll_send has no mechanism for returning
-        // the buffered data to the application.
-        let client_data = "client_data".as_bytes();
-        assert!(pair.client.poll_send(&client_data).is_pending());
-        assert!(pair.client.peek_len() > 0);
-        assert!(pair.client.renegotiate_state().need_wipe);
-
-        // Drain the buffered data via poll_recv
-        let mut buffer = [0; 100];
-        let expected = pair.client.peek_len();
-        let read = unwrap_poll(pair.client.poll_recv(&mut buffer))?;
-        assert_eq!(read, expected);
-        assert_eq!(pair.client.peek_len(), 0);
-        assert!(pair.client.renegotiate_state().need_wipe);
-
-        // Progress the handshake via poll_send.
-        // However, renegotiation is blocked on the next application data
-        // because poll_send has no mechansim for returning application data.
-        assert!(pair.client.poll_send(&client_data).is_pending());
-        // Renegotiation at least progressed past the wipe
+        // Calls to poll_send now fail
+        let error = unwrap_poll(pair.client.poll_send(&mut [0; 1])).unwrap_err();
+        assert_eq!(error.kind(), ErrorType::Blocked);
+        assert!(error.message().contains(RENEG_ERR_MARKER));
+        assert!(error.message().contains("send application data"));
         assert!(pair.client.is_renegotiating());
-        assert!(!pair.client.renegotiate_state().need_wipe);
-
-        // Let poll_recv handle the application data
-        let mut buffer = [0; 100];
-        let read = unwrap_poll(pair.client.poll_recv(&mut buffer))?;
-        assert_eq!(read, server_data.len());
-        assert_eq!(&buffer[..read], server_data);
-
-        // Finish renegotiation with poll_send
-        loop {
-            // The s2n client should only send after completing the new handshake
-            match pair.client.poll_send(&client_data) {
-                Ready(Ok(sent)) => {
-                    assert_eq!(sent, client_data.len());
-                    assert!(!pair.client.is_renegotiating());
-                    break;
-                }
-                Ready(err) => panic!("Renegotiate failed: {:?}", err),
-                Pending => assert!(pair.client.is_renegotiating()),
-            }
-            let mut buffer = [0; 100];
-            // The openssl server should always block on reading
-            assert!(pair.server.read(&mut buffer).is_err());
-        }
-
-        // After renegotiation, the openssl server can read the sent data.
-        let mut buffer = [0; 100];
-        let read = pair.server.read(&mut buffer)?;
-        assert_eq!(read, client_data.len());
-        assert_eq!(&buffer[..read], client_data);
 
         Ok(())
     }
 
     #[test]
-    fn do_renegotiate_with_async_callback() -> Result<(), Box<dyn Error>> {
+    fn scheduled_renegotiate_with_async_callback() -> Result<(), Box<dyn Error>> {
         // To test how renegotiate handles blocking on async callbacks,
         // we need an async callback that triggers on the client.
         // Currently our only option is the async pkey callback.
@@ -1124,7 +1032,7 @@ mod tests {
         };
 
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         builder.set_private_key_callback(async_callback)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 
@@ -1142,7 +1050,7 @@ mod tests {
     }
 
     #[test]
-    fn do_renegotiate_with_async_init() -> Result<(), Box<dyn Error>> {
+    fn scheduled_renegotiate_with_async_init() -> Result<(), Box<dyn Error>> {
         // To test that the initializer method triggers again on the second
         // handshake, we need to set an easily verified connection-level value.
         #[derive(Clone)]
@@ -1188,7 +1096,7 @@ mod tests {
         };
 
         let mut builder = config::Builder::new();
-        builder.set_renegotiate_callback(RenegotiateResponse::Accept)?;
+        builder.set_renegotiate_callback(RenegotiateResponse::Schedule)?;
         builder.set_connection_initializer(initializer)?;
         let mut pair = RenegotiateTestPair::from(builder)?;
 

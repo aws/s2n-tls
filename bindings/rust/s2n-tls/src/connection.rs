@@ -638,6 +638,12 @@ impl Connection {
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
+    ///
+    /// This method ONLY flushes any data already encrypted and queued for writing
+    /// to the underlying stream. It does not automatically retry a previous call
+    /// to `poll_send`, which might require encrypting and sending more records.
+    /// The only way to reliably complete a call to `poll_send` is to call `poll_send`
+    /// again with the same inputs until it returns `Ready`.
     pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
         self.poll_send(&[0; 0]).map_ok(|_| self)
     }
@@ -936,20 +942,6 @@ impl Connection {
             //         static char array, and is never modified after its initial
             //         creation.
             const_str!(handshake)
-        }
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn message_type(&self) -> Result<&str, Error> {
-        let message = unsafe {
-            s2n_connection_get_last_message_name(self.connection.as_ptr()).into_result()?
-        };
-        unsafe {
-            // SAFETY: Constructed strings have a null byte appended to them.
-            // SAFETY: The data has a 'static lifetime, because it resides in a
-            //         static char array, and is never modified after its initial
-            //         creation.
-            const_str!(message)
         }
     }
 
