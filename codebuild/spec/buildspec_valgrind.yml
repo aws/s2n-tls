@@ -49,5 +49,6 @@ phases:
     on-failure: ABORT
     commands:
       - |
-        S2N_VALGRIND=1 CTEST_PARALLEL_LEVEL=$(nproc) CTEST_OUTPUT_ON_FAILURE=1 ctest -T memcheck \
+        S2N_VALGRIND=1 CTEST_PARALLEL_LEVEL=$(nproc) \
+          CTEST_OUTPUT_ON_FAILURE=1 ctest -T memcheck \
           --test-dir build ARGS="-output-on-failure"
