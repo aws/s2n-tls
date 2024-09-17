@@ -14,31 +14,6 @@ set(INSTALL_CMAKE_DIR lib/cmake CACHE PATH "Installation directory for cmake fil
 
 set(CMAKE_FIND_PACKAGE_PREFER_CONFIG TRUE)
 
-set(VALGRIND_DEFAULT " \
-    --leak-check=full \
-    --leak-resolution=high \
-    --trace-children=yes \
-    --run-libc-freeres=no \
-    -q --error-exitcode=123 \
-    --error-limit=no \
-    --num-callers=40 \
-    --undef-value-errors=no \
-    --suppressions=valgrind.suppressions")
-
-set(VALGRIND_PENDANTIC "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
-
-# Add pendentic Valgrind check for Libcrypto is openssl-1.1.1.
-# Default Valgrind tests ignores "Still reachable" leak and we want to enable pedantic
-# valgrind check incrementally, so we will do pedantic check for Libcrypto=openssl-1.1.1 for now.
-# Tracking issue: https://github.com/aws/s2n-tls/issues/3758
-if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
-    set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_PENDANTIC})
-else()
-    set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_DEFAULT})
-endif()
-
-set(CTEST_MEMORYCHECK_TYPE "Valgrind")
-
 # These Version numbers are for major updates only- we won't track minor/patch updates here.
 set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
@@ -65,9 +40,6 @@ option(S2N_USE_CRYPTO_SHARED_LIBS "For S2N to use shared libs in Findcrypto" OFF
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
-
-# Turn BUILD_TESTING=ON by default
-include(CTest)
 
 file(GLOB API_HEADERS "api/*.h")
 file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
@@ -466,6 +438,34 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${OS_LIBS} m)
 
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>)
 target_include_directories(${PROJECT_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/api> $<INSTALL_INTERFACE:include>)
+
+set(VALGRIND_DEFAULT " \
+    --leak-check=full \
+    --leak-resolution=high \
+    --trace-children=yes \
+    --run-libc-freeres=no \
+    -q --error-exitcode=123 \
+    --error-limit=no \
+    --num-callers=40 \
+    --undef-value-errors=no \
+    --suppressions=valgrind.suppressions")
+
+set(VALGRIND_PENDANTIC "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
+
+# Add pendentic Valgrind check for Libcrypto is openssl-1.1.1.
+# Default Valgrind tests ignores "Still reachable" leak and we want to enable pedantic
+# valgrind check incrementally, so we will do pedantic check for Libcrypto=openssl-1.1.1 for now.
+# Tracking issue: https://github.com/aws/s2n-tls/issues/3758
+if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
+    set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_PENDANTIC})
+else()
+    set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_DEFAULT})
+endif()
+
+set(CTEST_MEMORYCHECK_TYPE "Valgrind")
+
+# Turn BUILD_TESTING=ON by default
+include(CTest)
 
 if (BUILD_TESTING)
     enable_testing()
