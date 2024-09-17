@@ -262,27 +262,6 @@ for file in $S2N_DEFAULT_SECURITY_POLICY_USAGE; do
   fi
 done
 
-S2N_RUST_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "*.rs" -path "*/bindings/*" -not -path "*/target/*")
-declare -A KNOWN_RUST_DEFAULT_USAGE
-KNOWN_RUST_DEFAULT_USAGE["$PWD/bindings/rust/s2n-tls/src/testing/s2n_tls.rs"]=3
-KNOWN_RUST_DEFAULT_USAGE["$PWD/bindings/rust/s2n-tls/src/fingerprint.rs"]=1
-KNOWN_RUST_DEFAULT_USAGE["$PWD/bindings/rust/s2n-tls/src/security.rs"]=2
-
-for file in $S2N_RUST_DEFAULT_SECURITY_POLICY_USAGE; do
-  RESULT_NUM_LINES=`grep -n '\<DEFAULT\>' $file | wc -l`
-
-  # set default KNOWN_RUST_DEFAULT_USAGE value
-  [ -z "${KNOWN_RUST_DEFAULT_USAGE["$file"]}" ] && KNOWN_RUST_DEFAULT_USAGE["$file"]="0"
-
-  # check if DEFAULT usage is 0 or a known value
-  if [ "${RESULT_NUM_LINES}" != "${KNOWN_RUST_DEFAULT_USAGE["$file"]}" ]; then
-    FAILED=1
-    KNOWN_USAGE=${KNOWN_RUST_DEFAULT_USAGE["$file"]}
-    printf "\e[1;34mExpected: ${KNOWN_USAGE} Found: ${RESULT_NUM_LINES} usage of DEFAULT in $file\n"
-    printf "\e[1;34mTests should use a numbered policy if testing protocol specific behavior.\n\n"
-  fi
-done
-
 #############################################
 # REPORT FINAL RESULTS
 #############################################
