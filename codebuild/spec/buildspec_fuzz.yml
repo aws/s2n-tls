@@ -61,8 +61,7 @@ phases:
       - |
         cmake . -Bbuild \
         -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-        -DS2N_FUZZ_TEST=on \
-        -DLIBFUZZER_LIB=/usr/local/libfuzzer/lib/libFuzzer.a
+        -DS2N_FUZZ_TEST=on
       - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT
