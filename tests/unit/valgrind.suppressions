@@ -12,9 +12,6 @@
    fun:pthread_create@@GLIBC_2.2.5
    fun:main
 }
-# This block is a similar suppression to the pthread suppressions above, but for a different libc version.
-# Remove the previous pthread suppression block after the new CTest memcheck is fully integrated.
-# Tracking issue: https://github.com/aws/s2n-tls/issues/4777
 {
    pthread_false_positive_glibc_2_34
    Memcheck:Leak
@@ -28,6 +25,7 @@
    ...
    fun:main
 }
+
 # > backtrace() and backtrace_symbols_fd() don't call malloc()
 # > explicitly, but they are part of libgcc, which gets loaded
 # > dynamically when first used.  Dynamic loading usually triggers
@@ -58,6 +56,7 @@
    ...
    fun:main
 }
+
 # TODO: fix the pedantic leak errors from s2n_fork_generation_number_test
 {
    ignore_s2n_fork_generation_number_test

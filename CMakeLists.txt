@@ -470,7 +470,7 @@ if (BUILD_TESTING)
     file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
-    # These configuration variables need to be set before include(CTest) is called
+    # CTest configuration variables need to be set before include(CTest) is called
     set(VALGRIND_DEFAULT " \
     --leak-check=full \
     --leak-resolution=high \
@@ -523,6 +523,8 @@ if (BUILD_TESTING)
     endif()
     message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
 
+    include(CTest)
+
     file(GLOB UNITTESTS_SRC "tests/unit/*.c")
     foreach(test_case ${UNITTESTS_SRC})
         string(REGEX REPLACE ".+\\/(.+)\\.c" "\\1" test_case_name ${test_case})
@@ -568,8 +570,6 @@ if (BUILD_TESTING)
         target_compile_options(s2nc PRIVATE -flto)
         target_compile_options(s2nd PRIVATE -flto)
     endif()
-
-    include(CTest)
 
     if (S2N_INTEG_TESTS)
         find_package (Python3 COMPONENTS Interpreter Development)
