@@ -19,7 +19,7 @@ set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 
-option(BUILD_TESTING "Enable BUILD_TESTING by default" ON)
+option(BUILD_TESTING "Turn BUILD_TESTING=on by default" ON)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -700,7 +700,6 @@ if (BUILD_TESTING)
     endif()
 endif()
 
-# Turn BUILD_TESTING=ON by default
 include(CTest)
 
 #install the s2n files
