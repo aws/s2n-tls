@@ -564,12 +564,12 @@ if (BUILD_TESTING)
     target_link_libraries(policy ${PROJECT_NAME})
     target_compile_options(policy PRIVATE -std=gnu99)
 
-    include(CTest)
-
     if(S2N_LTO)
         target_compile_options(s2nc PRIVATE -flto)
         target_compile_options(s2nd PRIVATE -flto)
     endif()
+
+    include(CTest)
 
     if (S2N_INTEG_TESTS)
         find_package (Python3 COMPONENTS Interpreter Development)
