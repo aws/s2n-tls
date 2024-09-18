@@ -534,6 +534,7 @@ if (BUILD_TESTING)
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
+
         add_test(
             NAME ${test_case_name} 
             COMMAND $<TARGET_FILE:${test_case_name}> 
@@ -619,6 +620,15 @@ if (BUILD_TESTING)
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
+        file(GLOB TESTLIB_SRC "tests/testlib/*.c")
+        file(GLOB TESTLIB_HEADERS "tests/testlib/*.h" "tests/s2n_test.h")
+
+        # This must be a shared object so that symbols can be overridden by the
+        # fuzz test specific LD_PRELOAD libraries.
+        add_library(fuzztest SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+        target_include_directories(fuzztest PUBLIC tests)
+        target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
+
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
             set(FUZZ_TIMEOUT_SEC 60)
@@ -670,7 +680,7 @@ if (BUILD_TESTING)
                 -fsanitize=fuzzer -lstdc++
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
-                testss2n
+                fuzztest
             )
 
             # Set the output directory for the fuzzing binaries
