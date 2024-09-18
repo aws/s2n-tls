@@ -164,7 +164,8 @@ int s2n_stuffer_copy(struct s2n_stuffer *from, struct s2n_stuffer *to, uint32_t 
  * "FF" == 255 or [ 0xff ]
  * "0001" == 1 or [ 0x00, 0x01 ]
  */
-S2N_RESULT s2n_stuffer_read_hex(struct s2n_stuffer *bytes_out, const struct s2n_blob *hex_in);
+S2N_RESULT s2n_hex_digit(uint8_t half_byte, uint8_t *hex_digit);
+S2N_RESULT s2n_stuffer_read_hex(struct s2n_stuffer *hex_in, const struct s2n_blob *bytes_out);
 S2N_RESULT s2n_stuffer_write_hex(struct s2n_stuffer *hex_out, const struct s2n_blob *bytes_in);
 S2N_RESULT s2n_stuffer_read_uint8_hex(struct s2n_stuffer *stuffer, uint8_t *u);
 S2N_RESULT s2n_stuffer_write_uint8_hex(struct s2n_stuffer *stuffer, uint8_t u);

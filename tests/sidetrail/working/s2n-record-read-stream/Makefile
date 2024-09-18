@@ -17,7 +17,6 @@ extras += tls/s2n_cbc.c
 extras += tls/s2n_record_read_stream.c
 extras += utils/s2n_ensure.c
 extras += utils/s2n_mem.c
-extras += utils/s2n_result.c
 extras += utils/s2n_safety.c
 goals  += s2n_record_parse_wrapper@s2n_record_read_wrapper.c
 full_self_comp += true

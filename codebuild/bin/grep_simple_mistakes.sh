@@ -36,19 +36,12 @@ done
 #############################################
 S2N_FILES_ASSERT_NOT_USING_MEMCMP=$(find "$PWD" -type f -name "s2n*.[ch]" -not -path "*/tests/*" -not -path "*/bindings/*")
 declare -A KNOWN_MEMCMP_USAGE
-KNOWN_MEMCMP_USAGE["$PWD/crypto/s2n_rsa.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_early_data.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_kem.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=3
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_server_hello.c"]=3
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_security_policies.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_config.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_resume.c"]=2
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_connection.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
-KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
 KNOWN_MEMCMP_USAGE["$PWD/stuffer/s2n_stuffer_text.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_psk.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_protocol_preferences.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_cipher_suites.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/tls/s2n_config.c"]=1
+KNOWN_MEMCMP_USAGE["$PWD/utils/s2n_map.c"]=3
 
 for file in $S2N_FILES_ASSERT_NOT_USING_MEMCMP; do
   # NOTE: this matches on 'memcmp', which will also match comments. However, there

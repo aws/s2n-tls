@@ -30,6 +30,14 @@ static const uint8_t hex_to_value[] = {
     /* clang-format on */
 };
 
+S2N_RESULT s2n_hex_digit(uint8_t half_byte, uint8_t *hex_digit)
+{
+    RESULT_ENSURE_REF(hex_digit);
+    RESULT_ENSURE(half_byte < s2n_array_len(value_to_hex), S2N_ERR_BAD_HEX);
+    *hex_digit = value_to_hex[half_byte];
+    return S2N_RESULT_OK;
+}
+
 static S2N_RESULT s2n_stuffer_hex_digit_from_char(uint8_t c, uint8_t *i)
 {
     RESULT_ENSURE(c < s2n_array_len(hex_to_value), S2N_ERR_BAD_HEX);
@@ -41,30 +49,28 @@ static S2N_RESULT s2n_stuffer_hex_digit_from_char(uint8_t c, uint8_t *i)
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_stuffer_read_hex(struct s2n_stuffer *bytes_out, const struct s2n_blob *hex_in)
+S2N_RESULT s2n_stuffer_read_hex(struct s2n_stuffer *hex_in, const struct s2n_blob *bytes_out)
 {
-    RESULT_PRECONDITION(s2n_stuffer_validate(bytes_out));
-    RESULT_PRECONDITION(s2n_blob_validate(hex_in));
-
-    size_t hex_size = hex_in->size;
-    size_t bytes_size = hex_in->size / 2;
-    RESULT_ENSURE(hex_size % 2 == 0, S2N_ERR_BAD_HEX);
-    if (hex_size == 0) {
+    RESULT_PRECONDITION(s2n_stuffer_validate(hex_in));
+    RESULT_PRECONDITION(s2n_blob_validate(bytes_out));
+    if (bytes_out->size == 0) {
         return S2N_RESULT_OK;
     }
 
-    RESULT_GUARD_POSIX(s2n_stuffer_reserve_space(bytes_out, bytes_size));
-    uint8_t *out = bytes_out->blob.data + bytes_out->write_cursor;
-    uint8_t *in = hex_in->data;
+    size_t hex_size = bytes_out->size * 2;
+    RESULT_ENSURE(s2n_stuffer_data_available(hex_in) >= hex_size, S2N_ERR_BAD_HEX);
 
-    for (size_t i = 0; i < bytes_size; i++) {
+    uint8_t *out = bytes_out->data;
+    uint8_t *in = hex_in->blob.data + hex_in->read_cursor;
+
+    for (size_t i = 0; i < bytes_out->size; i++) {
         uint8_t hex_high = 0, hex_low = 0;
         RESULT_GUARD(s2n_stuffer_hex_digit_from_char(in[(i * 2)], &hex_high));
         RESULT_GUARD(s2n_stuffer_hex_digit_from_char(in[(i * 2) + 1], &hex_low));
         out[i] = (hex_high * 16) + hex_low;
     }
 
-    RESULT_GUARD_POSIX(s2n_stuffer_skip_write(bytes_out, bytes_size));
+    RESULT_GUARD_POSIX(s2n_stuffer_skip_read(hex_in, hex_size));
     return S2N_RESULT_OK;
 }
 

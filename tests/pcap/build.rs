@@ -4,6 +4,8 @@
 use anyhow::*;
 use bytes::Buf;
 use bytes::Bytes;
+use rtshark::RTSharkBuilder;
+use semver::Version;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::copy;
@@ -26,10 +28,7 @@ fn get_download_urls() -> HashMap<String, String> {
         "latest.pcapng",
         "macos_tcp_flags.pcap",
         "tls-alpn-h2.pcap",
-        // TODO: non-ascii alpn handling currently differs between implementations,
-        // with no official consensus. Wireshark chose different handling than s2n-tls did.
-        // See https://github.com/FoxIO-LLC/ja4/pull/147
-        // "tls-non-ascii-alpn.pcapng",
+        "tls-non-ascii-alpn.pcapng",
         "tls12.pcap",
         "tls3.pcapng",
     ];
@@ -101,7 +100,32 @@ fn download(url: &str) -> Result<Bytes> {
     bail!("Unable to download: {}", url);
 }
 
+fn assert_tshark_version() -> Result<()> {
+    let version_info = RTSharkBuilder::builder().version()?;
+    let version = version_info.version();
+    // Version requirements:
+    // 1. tshark >= 3.7.0 is required for JA3 support
+    //    JA3 support was added to earlier versions, but did not correctly ignore grease values.
+    //    See https://gitlab.com/wireshark/wireshark/-/commit/03afef0a566ed649ead587fb4c02fc2d8539f3b7
+    // 2. tshark >= 4.1.0 is required for consistent handling of sslv2.
+    //    Otherwise, we have to branch on sslv2 message filters.
+    //    See https://gitlab.com/wireshark/wireshark/-/commit/aee0278e086469a4b5b3185947a95556fd3ae708
+    // 3. tshark >= 4.2.0 is required for JA4 support.
+    //    See https://gitlab.com/wireshark/wireshark/-/commit/fd19f0d06f96b9934e3cd5b9889b2f83d3567fce
+    let min_version = Version::new(4, 2, 0);
+    assert!(
+        version >= &min_version,
+        "tshark {} required. tshark {} found.",
+        min_version,
+        version
+    );
+    println!("tshark version: {}", version);
+    Ok(())
+}
+
 fn main() -> Result<()> {
+    assert_tshark_version()?;
+
     let out_dir = std::env::var("OUT_DIR")?;
     let download_path = Path::new(&out_dir).join("downloaded_pcaps");
 

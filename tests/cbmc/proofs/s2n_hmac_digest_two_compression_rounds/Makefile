@@ -28,7 +28,6 @@ PROOF_SOURCES += $(PROOFDIR)/$(HARNESS_FILE)
 
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hash.c
 PROJECT_SOURCES += $(SRCDIR)/crypto/s2n_hmac.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 
 UNWINDSET +=
 

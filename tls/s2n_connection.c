@@ -118,6 +118,9 @@ struct s2n_connection *s2n_connection_new(s2n_mode mode)
 
 static int s2n_connection_zero(struct s2n_connection *conn, int mode, struct s2n_config *config)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(config);
+
     /* Zero the whole connection structure */
     POSIX_CHECKED_MEMSET(conn, 0, sizeof(struct s2n_connection));
 
@@ -144,6 +147,8 @@ S2N_RESULT s2n_connection_wipe_all_keyshares(struct s2n_connection *conn)
 
 static int s2n_connection_wipe_keys(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* Free any server key received (we may not have completed a
      * handshake, so this may not have been free'd yet) */
     POSIX_GUARD(s2n_pkey_free(&conn->handshake_params.server_public_key));
@@ -420,6 +425,8 @@ int s2n_connection_release_buffers(struct s2n_connection *conn)
 
 int s2n_connection_free_handshake(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* We are done with the handshake */
     POSIX_GUARD_RESULT(s2n_handshake_hashes_free(&conn->handshake.hashes));
     POSIX_GUARD_RESULT(s2n_prf_free(conn));
@@ -458,6 +465,8 @@ int s2n_connection_free_handshake(struct s2n_connection *conn)
  */
 int s2n_connection_wipe(struct s2n_connection *conn)
 {
+    POSIX_ENSURE_REF(conn);
+
     /* First make a copy of everything we'd like to save, which isn't very much. */
     int mode = conn->mode;
     struct s2n_config *config = conn->config;
@@ -790,6 +799,8 @@ int s2n_connection_get_client_auth_type(struct s2n_connection *conn,
 
 int s2n_connection_set_client_auth_type(struct s2n_connection *conn, s2n_cert_auth_type client_cert_auth_type)
 {
+    POSIX_ENSURE_REF(conn);
+
     conn->client_cert_auth_type_overridden = 1;
     conn->client_cert_auth_type = client_cert_auth_type;
     return 0;
@@ -922,9 +933,8 @@ int s2n_connection_get_cipher_iana_value(struct s2n_connection *conn, uint8_t *f
     POSIX_ENSURE_MUT(second);
 
     /* ensure we've negotiated a cipher suite */
-    POSIX_ENSURE(memcmp(conn->secure->cipher_suite->iana_value,
-                         s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value))
-                    != 0,
+    POSIX_ENSURE(!s2n_constant_time_equals(conn->secure->cipher_suite->iana_value,
+                         s2n_null_cipher_suite.iana_value, sizeof(s2n_null_cipher_suite.iana_value)),
             S2N_ERR_INVALID_STATE);
 
     const uint8_t *iana_value = conn->secure->cipher_suite->iana_value;
