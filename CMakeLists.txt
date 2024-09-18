@@ -135,9 +135,30 @@ set_target_properties(${PROJECT_NAME} PROPERTIES SOVERSION ${VERSION_MAJOR})
 
 set(CMAKE_C_FLAGS_DEBUGOPT "")
 
-target_compile_options(${PROJECT_NAME} PRIVATE -pedantic -std=gnu99 -Wall -Wimplicit -Wunused -Wcomment -Wchar-subscripts
-        -Wuninitialized -Wshadow -Wcast-align -Wwrite-strings -Wno-deprecated-declarations -Wno-unknown-pragmas -Wformat-security
-        -Wsign-compare -Wno-strict-prototypes -Wa,--noexecstack
+target_compile_options(${PROJECT_NAME} PRIVATE 
+    -pedantic
+    -std=gnu99
+    -Wall
+    -Wcast-align
+    -Wchar-subscripts
+    -Wcomment
+    -Wformat-security
+    -Wimplicit
+    -Wshadow
+    -Wsign-compare
+    -Wuninitialized
+    -Wunused
+    -Wwrite-strings
+    
+    # Assembler Options
+    -Wa,--noexecstack
+
+    # Suppressed Warnings
+    -Wno-deprecated-declarations
+    # GCC 4 fails to parse our macros with a "missing-braces" error
+    -Wno-missing-braces
+    -Wno-strict-prototypes
+    -Wno-unknown-pragmas
 )
 
 if (S2N_WERROR_ALL)
@@ -625,7 +646,7 @@ if (BUILD_TESTING)
 
         # This must be a shared object so that symbols can be overridden by the
         # fuzz test specific LD_PRELOAD libraries.
-        add_library(fuzztest SHARED ${TESTLIB_HEADERS} ${TESTLIB_SRC})
+        add_library(fuzztest SHARED ${TESTLIB_SRC})
         target_include_directories(fuzztest PUBLIC tests)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
