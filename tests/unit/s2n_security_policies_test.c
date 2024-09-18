@@ -507,7 +507,9 @@ int main(int argc, char **argv)
 
         for (size_t i = 0; i < s2n_array_len(tls12_only_security_policy_strings); i++) {
             security_policy = NULL;
+            dbg_bail = false;
             EXPECT_SUCCESS(s2n_find_security_policy_from_version(tls12_only_security_policy_strings[i], &security_policy));
+            dbg_bail = true;
             EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
         }
 
@@ -970,11 +972,15 @@ int main(int argc, char **argv)
         {
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default", rsa_chain_and_key));
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_tls13", rsa_chain_and_key));
+            dbg_bail = false;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_fips", rsa_chain_and_key));
+            dbg_bail = true;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "20230317", rsa_chain_and_key));
 
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_tls13", ecdsa_chain_and_key));
+            dbg_bail = false;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "default_fips", ecdsa_chain_and_key));
+            dbg_bail = true;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20230317, "20230317", ecdsa_chain_and_key));
 
             if (s2n_is_rsa_pss_certs_supported()) {
@@ -998,8 +1004,10 @@ int main(int argc, char **argv)
                     "default", rsa_chain_and_key));
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_tls13", rsa_chain_and_key));
+            dbg_bail = false;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_fips", rsa_chain_and_key));
+            dbg_bail = true;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "20230317", rsa_chain_and_key));
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
@@ -1007,8 +1015,10 @@ int main(int argc, char **argv)
 
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_tls13", ecdsa_chain_and_key));
+            dbg_bail = false;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "default_fips", ecdsa_chain_and_key));
+            dbg_bail = true;
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
                     "20230317", ecdsa_chain_and_key));
             EXPECT_OK(s2n_test_security_policies_compatible(&security_policy_20240331,
@@ -1084,9 +1094,11 @@ int main(int argc, char **argv)
                 { .cert = ecdsa_chain_and_key },
             };
 
+            dbg_bail = false;
             EXPECT_OK(s2n_test_default_backwards_compatible("default_fips",
                     versioned_policies, s2n_array_len(versioned_policies),
                     supported_certs, s2n_array_len(supported_certs)));
+            dbg_bail = true;
         };
     };
 
