@@ -19,7 +19,6 @@ set(VERSION_MAJOR 1)
 set(VERSION_MINOR 0)
 set(VERSION_PATCH 0)
 
-option(BUILD_TESTING "Turn BUILD_TESTING=on by default" ON)
 option(SEARCH_LIBCRYPTO "Set this if you want to let S2N search libcrypto for you,
 otherwise a crypto target needs to be defined." ON)
 option(UNSAFE_TREAT_WARNINGS_AS_ERRORS "Compiler warnings are treated as errors. Warnings may
@@ -34,6 +33,7 @@ option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
 only available on platforms that support execinfo." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
+option(BUILD_TESTING "Build tests for s2n-tls. By default only unit tests are built." ON)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" ON)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
@@ -470,6 +470,7 @@ if (BUILD_TESTING)
     file (GLOB TEST_LD_PRELOAD "tests/LD_PRELOAD/*.c")
     add_library(allocator_overrides SHARED ${TEST_LD_PRELOAD})
 
+    # These configuration variables need to be set before include(CTest) is called
     set(VALGRIND_DEFAULT " \
     --leak-check=full \
     --leak-resolution=high \
@@ -483,10 +484,9 @@ if (BUILD_TESTING)
 
     set(VALGRIND_PENDANTIC "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
 
-    # Add pendentic Valgrind check for Libcrypto is openssl-1.1.1.
-    # Default Valgrind tests ignores "Still reachable" leak and we want to enable pedantic
-    # valgrind check incrementally, so we will do pedantic check for Libcrypto=openssl-1.1.1 for now.
-    # Tracking issue: https://github.com/aws/s2n-tls/issues/3758
+    # "pedantic valgrind" will error on memory that is "Still Reachable". 
+    # We only run this on OpenSSL 1.1.1 because there are hundreds of false positives in other libcryptos.
+    # Tracking issue: https://github.com/aws/s2n-tls/issues/4777
     if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
         set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_PENDANTIC})
     else()
@@ -563,6 +563,8 @@ if (BUILD_TESTING)
     add_executable(policy "bin/policy.c")
     target_link_libraries(policy ${PROJECT_NAME})
     target_compile_options(policy PRIVATE -std=gnu99)
+
+    include(CTest)
 
     if(S2N_LTO)
         target_compile_options(s2nc PRIVATE -flto)
@@ -699,8 +701,6 @@ if (BUILD_TESTING)
         endforeach()
     endif()
 endif()
-
-include(CTest)
 
 #install the s2n files
 install(FILES ${API_HEADERS} DESTINATION "include/" COMPONENT Development)

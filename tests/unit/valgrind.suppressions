@@ -1,9 +1,8 @@
 # Valgrind may generate false positives on pthreads: https://stackoverflow.com/a/13132968
 # Without these suppressions, the following tests will fail:
 # s2n_examples_test, s2n_fork_generation_number_test, s2n_init_test, s2n_key_update_threads_test, and s2n_random_test.
-# These are the suppressions for pthread_create in GLIBC_2.2.5.
 {
-   pthread_false_positive
+   pthread_false_positive_glibc_2_2_5
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
@@ -14,11 +13,10 @@
    fun:main
 }
 # This block is a similar suppression to the pthread suppressions above, but for a different libc version.
-# These are the suppressions for pthread_create in GLIBC_2.34.
 # Remove the previous pthread suppression block after the new CTest memcheck is fully integrated.
 # Tracking issue: https://github.com/aws/s2n-tls/issues/4777
 {
-   pthread_false_positive_ubuntu22
+   pthread_false_positive_glibc_2_34
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
@@ -30,9 +28,11 @@
    ...
    fun:main
 }
-# This suppression is to address false positives from backtrace().
-# backtrace is loaded dynamically when first used, and dynamic loading invokes malloc.
-# https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html#:~:text=%E2%80%A2%20%20backtrace()%20and,is%20loaded%20beforehand.
+# > backtrace() and backtrace_symbols_fd() don't call malloc()
+# > explicitly, but they are part of libgcc, which gets loaded
+# > dynamically when first used.  Dynamic loading usually triggers
+# > a call to [malloc(3)](https://man7.org/linux/man-pages/man3/malloc.3.html).
+# https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html#NOTES
 {
    stacktrace_suppression
    Memcheck:Leak
