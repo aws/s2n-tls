@@ -13,12 +13,13 @@
  * permissions and limitations under the License.
  */
 
+#include "crypto/s2n_fips.h"
 #include "s2n_testlib.h"
 #include "utils/s2n_safety.h"
 
 extern const struct s2n_ecc_named_curve s2n_unsupported_curve;
 
-const struct s2n_ecc_named_curve *const ecc_pref_list_for_retry[] = {
+const struct s2n_ecc_named_curve* const ecc_pref_list_for_retry[] = {
     &s2n_unsupported_curve,
 #if EVP_APIS_SUPPORTED
     &s2n_ecc_curve_x25519,
@@ -40,3 +41,23 @@ const struct s2n_security_policy security_policy_test_tls13_retry = {
     .certificate_signature_preferences = &s2n_certificate_signature_preferences_20201110,
     .ecc_preferences = &ecc_preferences_for_retry,
 };
+
+/* https://github.com/aws/s2n-tls/issues/4765
+ *
+ * These represent the old 'pinned' versions of the "default", "default_fips",
+ * and "default_tls13" policies.
+ *
+ * Motivated when TLS 1.3 support was added to "default" and "default_fips";
+ * this is used to pin old tests to the equivalent numbered policy and avoid
+ * changes in testing behavior.
+ */
+const char* s2n_auto_gen_old_default_security_policy()
+{
+    if (s2n_use_default_tls13_config()) {
+        return "20240503";
+    } else if (s2n_is_in_fips_mode()) {
+        return "20240502";
+    } else {
+        return "20240501";
+    }
+}

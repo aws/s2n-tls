@@ -86,7 +86,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(config = s2n_config_new());
         EXPECT_NOT_NULL(default_config = s2n_fetch_default_config());
 
-        /* s2n_config_new() matches s2n_fetch_default_config() */
+        /* s2n_config_new matches s2n_fetch_default_config() */
         EXPECT_EQUAL(default_config->security_policy, config->security_policy);
         EXPECT_EQUAL(default_config->security_policy->signature_preferences, config->security_policy->signature_preferences);
         EXPECT_EQUAL(default_config->client_cert_auth_type, config->client_cert_auth_type);
@@ -150,7 +150,7 @@ int main(int argc, char **argv)
         }
     };
 
-    /* Test for s2n_config_new() and tls 1.3 behavior */
+    /* Test for s2n_config_new and tls 1.3 behavior */
     {
         if (!s2n_is_in_fips_mode()) {
             struct s2n_config *config = NULL;

@@ -29,6 +29,7 @@
 #include "tls/s2n_tls13.h"
 
 int test_count;
+const char *s2n_auto_gen_old_default_security_policy();
 
 bool s2n_use_color_in_output = true;
 
