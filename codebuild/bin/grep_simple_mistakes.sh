@@ -262,6 +262,33 @@ for file in $S2N_DEFAULT_SECURITY_POLICY_USAGE; do
   fi
 done
 
+# Assert tests don't specify the "default_fips" security policy
+#
+# Since the default policies are subject to change, tests should instead specify
+# an immutable numbered policy to avoid unwanted testing behavior.
+#############################################
+S2N_DEFAULT_FIPS_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -path "*/tests/*" \
+    -not -path "*/bindings/*")
+declare -A KNOWN_DEFAULT_FIPS_USAGE
+KNOWN_DEFAULT_FIPS_USAGE["$PWD/tests/unit/s2n_config_test.c"]=1
+KNOWN_DEFAULT_FIPS_USAGE["$PWD/tests/unit/s2n_connection_preferences_test.c"]=1
+KNOWN_DEFAULT_FIPS_USAGE["$PWD/tests/unit/s2n_security_policies_test.c"]=7
+
+for file in $S2N_DEFAULT_FIPS_SECURITY_POLICY_USAGE; do
+  RESULT_NUM_LINES=`grep -n '"default_fips"' $file | wc -l`
+
+  # set default_fips KNOWN_DEFAULT_FIPS_USAGE value
+  [ -z "${KNOWN_DEFAULT_FIPS_USAGE["$file"]}" ] && KNOWN_DEFAULT_FIPS_USAGE["$file"]="0"
+
+  # check if "default_fips" usage is 0 or a known value
+  if [ "${RESULT_NUM_LINES}" != "${KNOWN_DEFAULT_FIPS_USAGE["$file"]}" ]; then
+    FAILED=1
+    KNOWN_USAGE=${KNOWN_DEFAULT_FIPS_USAGE[$file]}
+    printf "\e[1;34mExpected: ${KNOWN_USAGE} Found: ${RESULT_NUM_LINES} usage of \"default_fips\" in $file\n"
+    printf "\e[1;34mTests should specify a numbered security policy unless specifically testing the \"default_fips\" policy.\n\n"
+  fi
+done
+
 #############################################
 # REPORT FINAL RESULTS
 #############################################
