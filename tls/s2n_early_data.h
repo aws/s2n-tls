@@ -42,7 +42,7 @@ struct s2n_early_data_config {
     struct s2n_blob context;
 };
 S2N_CLEANUP_RESULT s2n_early_data_config_free(struct s2n_early_data_config *config);
-S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, struct s2n_early_data_config *old_config);
+S2N_RESULT s2n_early_data_config_clone(struct s2n_psk *new_psk, const struct s2n_early_data_config *old_config);
 
 struct s2n_offered_early_data {
     struct s2n_connection *conn;
