@@ -172,6 +172,7 @@ int main(int argc, char **argv)
     const uint32_t test_large_message_size = 3001;
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_ticket_count_cb, NULL));
     EXPECT_SUCCESS(s2n_config_set_renegotiate_request_cb(config, s2n_hello_request_cb, NULL));

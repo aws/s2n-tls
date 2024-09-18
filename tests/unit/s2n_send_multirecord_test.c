@@ -97,12 +97,14 @@ int main(int argc, char **argv)
     /* Setup a large output buffer that can contain all of large_test_data */
     const size_t buffer_size = 20000;
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_send_buffer_size(config, buffer_size));
 
     /* Setup an output buffer that is slightly too small for large_test_data */
     const uint32_t smaller_buffer_size = 17300;
     DEFER_CLEANUP(struct s2n_config *smaller_buffer_config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(smaller_buffer_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(smaller_buffer_config);
     EXPECT_SUCCESS(s2n_config_set_send_buffer_size(smaller_buffer_config, smaller_buffer_size));
 
@@ -202,6 +204,7 @@ int main(int argc, char **argv)
      */
     {
         DEFER_CLEANUP(struct s2n_config *min_buffer_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(min_buffer_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(min_buffer_config);
         EXPECT_SUCCESS(s2n_config_set_send_buffer_size(min_buffer_config, S2N_MIN_SEND_BUFFER_SIZE));
 

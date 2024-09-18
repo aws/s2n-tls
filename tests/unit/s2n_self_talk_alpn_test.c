@@ -30,6 +30,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(server_config);
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(server_config, protocols,
             s2n_array_len(protocols)));
@@ -74,6 +75,7 @@ int main(int argc, char **argv)
 
     for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(client_config,
                 test_cases[i].client_protocols, test_cases[i].client_protocol_count));
@@ -114,6 +116,7 @@ int main(int argc, char **argv)
     /* Test a connection level application protocol */
     {
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(client_config, protocols,
                 s2n_array_len(protocols)));

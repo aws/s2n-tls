@@ -175,6 +175,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_client_hello_cb(config, s2n_server_name_test_callback, &test_server_name));
 
             struct s2n_connection *client_conn = NULL;
@@ -334,6 +335,7 @@ int main(int argc, char **argv)
         /* TLS1.3 */
         if (s2n_is_tls13_fully_supported()) {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
@@ -367,6 +369,7 @@ int main(int argc, char **argv)
         /* TLS1.2 */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
@@ -614,6 +617,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *returned_config = NULL;
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
@@ -637,6 +641,7 @@ int main(int argc, char **argv)
             rfc9151_applied_locally.certificate_preferences_apply_locally = true;
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
@@ -661,6 +666,7 @@ int main(int argc, char **argv)
                     s2n_test_cert_permutation_load_server_chain(&invalid_cert, "ec", "ecdsa", "p384", "sha256"));
 
             DEFER_CLEANUP(struct s2n_config *invalid_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(invalid_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(invalid_config, invalid_cert));
 
             /* directly set the security policy to avoid the validation in "set_cipher_preferences" */
@@ -690,6 +696,7 @@ int main(int argc, char **argv)
     /* Test connection reuse when memory freed */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
@@ -957,6 +964,7 @@ int main(int argc, char **argv)
     /* Test s2n_connection_get_client_auth_type */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);

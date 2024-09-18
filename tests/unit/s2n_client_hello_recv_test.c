@@ -51,12 +51,14 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(tls12_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_config, "test_all_tls12"));
 
     EXPECT_NOT_NULL(tls13_cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(tls13_private_key = malloc(S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(tls13_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(tls13_chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_config, "test_all"));
 
@@ -391,6 +393,7 @@ int main(int argc, char **argv)
 
         struct s2n_config *quic_config = NULL;
         EXPECT_NOT_NULL(quic_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(quic_config, tls13_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, "default_tls13"));

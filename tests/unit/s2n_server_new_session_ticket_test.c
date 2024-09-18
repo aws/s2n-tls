@@ -91,6 +91,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -163,6 +164,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -193,6 +195,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -235,6 +238,7 @@ int main(int argc, char **argv)
                     + sizeof(uint16_t);                             /* type of extension */
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -272,6 +276,7 @@ int main(int argc, char **argv)
         /* Can't write ticket larger than allowed size of a PSK identity */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
@@ -443,6 +448,7 @@ int main(int argc, char **argv)
         /* Does not read ticket message if config->use_tickets is not set */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
             EXPECT_NOT_NULL(config);
@@ -491,6 +497,7 @@ int main(int argc, char **argv)
         /* Tests session_ticket_cb correctly serializes session data from an arbitrary new session ticket message */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
             EXPECT_NOT_NULL(config);
@@ -595,6 +602,7 @@ int main(int argc, char **argv)
             /* clang-format on */
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(conn);
             EXPECT_NOT_NULL(config);
@@ -622,6 +630,7 @@ int main(int argc, char **argv)
         /* Self-talk test */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
             EXPECT_NOT_NULL(client_conn);
             EXPECT_NOT_NULL(config);
@@ -660,6 +669,7 @@ int main(int argc, char **argv)
             const uint32_t expected_max_early_data_size = 17;
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
@@ -698,6 +708,7 @@ int main(int argc, char **argv)
             const uint32_t expected_max_early_data_sizes[] = { 17, 0, UINT16_MAX, 0, 20, UINT32_MAX, 5, 0 };
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
@@ -740,6 +751,7 @@ int main(int argc, char **argv)
             const size_t nst_data_without_lifetime_size = sizeof(nst_data) - lifetime_size;
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, 1));
             EXPECT_SUCCESS(s2n_config_set_session_ticket_cb(config, s2n_test_session_ticket_cb, NULL));
@@ -805,6 +817,7 @@ int main(int argc, char **argv)
         /* s2n_server_nst_send writes a non-zero ticket when a valid encryption key exists */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -840,6 +853,7 @@ int main(int argc, char **argv)
          **/
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
@@ -890,6 +904,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -918,6 +933,7 @@ int main(int argc, char **argv)
         /* 0 tickets are requested */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -952,6 +968,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -986,6 +1003,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -1034,6 +1052,7 @@ int main(int argc, char **argv)
             const uint8_t new_tickets = 5;
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -1088,6 +1107,7 @@ int main(int argc, char **argv)
             uint64_t current_time = 0;
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
@@ -1138,6 +1158,7 @@ int main(int argc, char **argv)
             uint64_t current_time = 0;
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_initial_ticket_count(config, 1));
             EXPECT_SUCCESS(config->wall_clock(config->sys_clock_ctx, &current_time));
@@ -1171,6 +1192,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1212,6 +1234,7 @@ int main(int argc, char **argv)
         /* Test S2N_TLS13_MAX_FIXED_NEW_SESSION_TICKET_SIZE */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -1316,6 +1339,7 @@ int main(int argc, char **argv)
                 S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));

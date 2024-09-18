@@ -195,6 +195,7 @@ int main(int argc, char *argv[])
         received_lookup_data.crls[1] = root_crl;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &received_lookup_data));
 
@@ -239,6 +240,7 @@ int main(int argc, char *argv[])
         data.crls[1] = root_crl;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -279,6 +281,7 @@ int main(int argc, char *argv[])
         data.crls[1] = root_crl;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -323,6 +326,7 @@ int main(int argc, char *argv[])
         struct crl_lookup_data data = { 0 };
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -366,6 +370,7 @@ int main(int argc, char *argv[])
         data.crls[2] = NULL;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -413,6 +418,7 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_noop, NULL));
 
@@ -471,6 +477,7 @@ int main(int argc, char *argv[])
         EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_callback_fail, NULL));
 
@@ -510,6 +517,7 @@ int main(int argc, char *argv[])
         data.crls[1] = root_crl;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -549,6 +557,7 @@ int main(int argc, char *argv[])
         data.crls[1] = root_crl;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -589,6 +598,7 @@ int main(int argc, char *argv[])
         data.crls[1] = root_crl;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -635,6 +645,7 @@ int main(int argc, char *argv[])
         data.crls[1] = root_crl;
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_crl_lookup_cb(config, crl_lookup_test_callback, &data));
 
@@ -665,6 +676,7 @@ int main(int argc, char *argv[])
                 S2N_CRL_NONE_REVOKED_CERT_CHAIN, S2N_CRL_NONE_REVOKED_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
@@ -701,6 +713,7 @@ int main(int argc, char *argv[])
                 S2N_CRL_LEAF_REVOKED_CERT_CHAIN, S2N_CRL_LEAF_REVOKED_KEY));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
@@ -740,6 +753,7 @@ int main(int argc, char *argv[])
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
@@ -751,6 +765,7 @@ int main(int argc, char *argv[])
                 S2N_CRL_NONE_REVOKED_CERT_CHAIN, S2N_CRL_NONE_REVOKED_KEY));
 
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -791,6 +806,7 @@ int main(int argc, char *argv[])
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
@@ -802,6 +818,7 @@ int main(int argc, char *argv[])
                 S2N_CRL_LEAF_REVOKED_CERT_CHAIN, S2N_CRL_LEAF_REVOKED_KEY));
 
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));

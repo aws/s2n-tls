@@ -26,6 +26,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -46,6 +47,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(config, S2N_TLS_MAX_FRAG_LEN_512));
 
         struct s2n_connection *conn = NULL;
@@ -82,6 +84,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(config, S2N_TLS_MAX_FRAG_LEN_512));
 
         struct s2n_connection *conn = NULL;
@@ -106,6 +109,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(config, S2N_TLS_MAX_FRAG_LEN_512));
 
         struct s2n_connection *conn = NULL;
@@ -135,6 +139,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_send_max_fragment_length(config, S2N_TLS_MAX_FRAG_LEN_1024));
 
         struct s2n_connection *conn = NULL;

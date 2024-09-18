@@ -1746,6 +1746,7 @@ int main(int argc, char **argv)
     /* Test trust store in a configuration can handle invalid PEM without crashing */
     {
         struct s2n_config *cfg = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(cfg, s2n_auto_gen_old_default_security_policy()));
         s2n_config_add_pem_to_trust_store(cfg, "");
         s2n_config_free(cfg);
         /* Expect no crash. */
@@ -1890,6 +1891,7 @@ int main(int argc, char **argv)
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
@@ -1934,6 +1936,7 @@ int main(int argc, char **argv)
         s2n_x509_validator_init(&validator, &trust_store, 1);
 
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
 
         struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT);
@@ -1988,6 +1991,7 @@ int main(int argc, char **argv)
         /* Wipe new s2n_config, which is initialized with certs from the system default locations. */
         {
             struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(cfg, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
             s2n_config_free(cfg);
@@ -1996,6 +2000,7 @@ int main(int argc, char **argv)
         /* Wipe repeatedly without crash */
         {
             struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(cfg, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
@@ -2005,6 +2010,7 @@ int main(int argc, char **argv)
         /* Wipe after setting verification location */
         {
             struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(cfg, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(cfg, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
             EXPECT_TRUE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
 
@@ -2016,6 +2022,7 @@ int main(int argc, char **argv)
         /* Set verification location after wipe */
         {
             struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(cfg, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
 
@@ -2027,6 +2034,7 @@ int main(int argc, char **argv)
         /* Wipe after adding PEM */
         {
             struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(cfg, s2n_auto_gen_old_default_security_policy()));
             char *cert_chain = NULL;
             EXPECT_NOT_NULL(cert_chain = malloc(S2N_MAX_TEST_PEM_SIZE));
             EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
@@ -2042,6 +2050,7 @@ int main(int argc, char **argv)
         /* Add PEM after wipe */
         {
             struct s2n_config *cfg = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(cfg, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_wipe_trust_store(cfg));
             EXPECT_FALSE(s2n_x509_trust_store_has_certs(&cfg->trust_store));
 
@@ -2092,6 +2101,7 @@ int main(int argc, char **argv)
         /* Test s2n_config_set_verification_ca_location */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, non_root_cert_path, NULL));
 
             DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
@@ -2121,6 +2131,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_read_test_pem(non_root_cert_path, non_root_cert_pem, S2N_MAX_TEST_PEM_SIZE));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_pem_to_trust_store(config, non_root_cert_pem));
 
             DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
@@ -2153,6 +2164,7 @@ int main(int argc, char **argv)
             /* Override the system cert file with the non-root test cert. */
             EXPECT_SUCCESS(setenv("SSL_CERT_FILE", non_root_cert_path, 1));
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             DEFER_CLEANUP(struct s2n_x509_validator validator = { 0 }, s2n_x509_validator_wipe);
             EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &config->trust_store, 0));

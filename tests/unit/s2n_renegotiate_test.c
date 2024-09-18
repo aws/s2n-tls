@@ -77,6 +77,7 @@ int main(int argc, char *argv[])
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_DHPARAMS, dh_params, sizeof(dh_params)));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -272,6 +273,7 @@ int main(int argc, char *argv[])
         /* Handshake with different fragment length succeeds after wipe */
         {
             DEFER_CLEANUP(struct s2n_config *small_frag_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(small_frag_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(small_frag_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(small_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(small_frag_config, chain_and_key));
@@ -280,6 +282,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_config_send_max_fragment_length(small_frag_config, S2N_TLS_MAX_FRAG_LEN_512));
 
             DEFER_CLEANUP(struct s2n_config *larger_frag_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(larger_frag_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(larger_frag_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(larger_frag_config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(larger_frag_config, chain_and_key));
@@ -500,6 +503,7 @@ int main(int argc, char *argv[])
 
         /* This config can only be used for servers, because currently only servers can have multiple certs */
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_chain_and_key));
@@ -509,6 +513,7 @@ int main(int argc, char *argv[])
 
         /* Setting the max fragment length will require modifying the client config */
         DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));

@@ -38,6 +38,7 @@ int mock_client(struct s2n_test_io_pair *io_pair)
 
     conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(conn, client_config);
 
@@ -96,6 +97,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
                 s2n_connection_ptr_free);
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(),
@@ -178,6 +180,7 @@ int main(int argc, char **argv)
         /* Setup config */
         struct s2n_config *config_with_certs = NULL;
         EXPECT_NOT_NULL(config_with_certs = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_certs, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_certs, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_certs));
         struct s2n_cert_chain_and_key *chain_and_key = NULL;

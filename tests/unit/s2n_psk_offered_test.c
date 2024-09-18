@@ -447,6 +447,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -486,6 +487,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(server_conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));

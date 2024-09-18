@@ -123,6 +123,7 @@ int main(int argc, char **argv)
 
     struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     struct s2n_dh_params dh_params = { 0 };
@@ -181,6 +182,7 @@ int main(int argc, char **argv)
 
     /* Mismatched public/private key should fail */
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());
     EXPECT_FAILURE(s2n_cert_chain_and_key_load_pem(chain_and_key, cert_chain_pem, (char *) unmatched_private_key));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));

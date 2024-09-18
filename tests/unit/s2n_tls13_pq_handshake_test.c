@@ -123,7 +123,9 @@ int s2n_test_tls13_pq_handshake(const struct s2n_security_policy *client_sec_pol
 
     struct s2n_config *client_config = NULL, *server_config = NULL;
     POSIX_ENSURE_REF(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
     POSIX_ENSURE_REF(server_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
 
     char cert_chain[S2N_MAX_TEST_PEM_SIZE] = { 0 }, private_key[S2N_MAX_TEST_PEM_SIZE] = { 0 };
     struct s2n_cert_chain_and_key *chain_and_key = NULL;

@@ -102,12 +102,14 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
             s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     DEFER_CLEANUP(struct s2n_config *ecdsa_config = s2n_config_new(),
             s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(ecdsa_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(ecdsa_config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(ecdsa_config, ecdsa_chain_and_key));
 
@@ -206,10 +208,12 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *bad_cb_config = s2n_config_new(),
                 s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(bad_cb_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(bad_cb_config, s2n_test_ch_cb, NULL));
 
         DEFER_CLEANUP(struct s2n_config *untrusted_config = s2n_config_new(),
                 s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(untrusted_config, s2n_auto_gen_old_default_security_policy()));
 
         for (size_t i = 0; i < s2n_array_len(test_errors); i++) {
             DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),

@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 
         /* No application protocols set */
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
         EXPECT_FALSE(s2n_client_npn_extension.should_send(client_conn));
@@ -82,6 +83,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -111,6 +113,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -128,6 +131,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
         EXPECT_NOT_NULL(server_conn);
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
@@ -168,6 +172,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
@@ -188,6 +193,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
@@ -216,6 +222,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
@@ -240,6 +247,7 @@ int main(int argc, char **argv)
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_protocol_preferences(config, protocols, protocols_count));
             EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));

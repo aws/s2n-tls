@@ -153,6 +153,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     /* Initial handshake */
     conn = s2n_connection_new(S2N_CLIENT);
     config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     s2n_config_disable_x509_verification(config);
     s2n_connection_set_config(conn, config);
 
@@ -338,6 +339,7 @@ int main(int argc, char **argv)
         initialize_cache();
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
         EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain_pem, S2N_MAX_TEST_PEM_SIZE));

@@ -25,6 +25,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
         /**
@@ -154,6 +155,7 @@ int main(int argc, char **argv)
     /* Connection where the client supports EMS but the server does not support EMS */
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
 
         /* TLS1.2 cipher preferences */
@@ -206,6 +208,7 @@ int main(int argc, char **argv)
     /* Connection where the server supports EMS but the client does not support EMS */
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
@@ -251,6 +254,7 @@ int main(int argc, char **argv)
     /* Connection where both client and server support EMS */
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));

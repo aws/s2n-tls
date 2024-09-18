@@ -958,6 +958,7 @@ int main(int argc, char **argv)
     /* Test: s2n_config_set_psk_mode */
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_EQUAL(config->psk_mode, S2N_PSK_MODE_RESUMPTION);
 
@@ -1060,6 +1061,7 @@ int main(int argc, char **argv)
         EXPECT_ERROR_WITH_ERRNO(s2n_psk_validate_keying_material(NULL), S2N_ERR_NULL);
 
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_OK(s2n_config_mock_wall_clock(config, &current_time));
 

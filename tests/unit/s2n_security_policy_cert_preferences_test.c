@@ -256,6 +256,7 @@ int main(int argc, char **argv)
          */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
@@ -275,6 +276,7 @@ int main(int argc, char **argv)
         /* configure security policy then load an invalid cert */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "rfc9151"));
 
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert),
@@ -291,6 +293,7 @@ int main(int argc, char **argv)
         /* load a cert then configure an invalid security policy */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, invalid_cert));
             const struct s2n_security_policy *default_sp = config->security_policy;
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_cipher_preferences(config, "rfc9151"),
@@ -317,6 +320,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_test_cert_permutation_load_server_chain(&cert, "rsae", "pkcs", "1024", "sha1"));
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert));
         EXPECT_EQUAL(s2n_config_get_num_default_certs(config), 1);
     };

@@ -213,6 +213,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_x509_validator_init(&validator, &trust_store, 0));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
@@ -261,6 +262,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_x509_validator_init_no_x509_validation(&validator));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
@@ -297,6 +299,7 @@ int main(int argc, char *argv[])
         /* Self-talk: callback is invoked on the client after receiving the server's certificate */
         for (int i = 0; i < s2n_array_len(test_cases); i++) {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -334,6 +337,7 @@ int main(int argc, char *argv[])
         /* Self-talk: callback is invoked on the server after receiving the client's certificate */
         for (int i = 0; i < s2n_array_len(test_cases); i++) {
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -350,6 +354,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
@@ -405,6 +410,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_cert_chain_and_key_set_ocsp_data(ocsp_chain_and_key, ocsp_response, ocsp_response_len));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
@@ -414,6 +420,7 @@ int main(int argc, char *argv[])
             EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_OCSP_CA_CERT, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));

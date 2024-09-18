@@ -250,6 +250,7 @@ int main(int argc, char **argv)
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             /* We need a security policy that only supports RSA certificates for auth */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
@@ -261,6 +262,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20170210"));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
@@ -286,6 +288,7 @@ int main(int argc, char **argv)
                         S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
                 EXPECT_NOT_NULL(server_config = s2n_config_new());
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
                 /* Configures server with maximum version 1.2 with only RSA key exchange ciphersuites */
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_rsa_kex"));
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
@@ -296,6 +299,7 @@ int main(int argc, char **argv)
                 }
 
                 EXPECT_NOT_NULL(client_config = s2n_config_new());
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
                 EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
@@ -322,6 +326,7 @@ int main(int argc, char **argv)
                     S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all_ecdsa"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
@@ -332,6 +337,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all_ecdsa"));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
 
@@ -366,6 +372,7 @@ int main(int argc, char **argv)
                     S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             /* We need a security policy that only supports RSA certificates for auth */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20170210"));
 
@@ -385,6 +392,7 @@ int main(int argc, char **argv)
             server_config->security_policy = &security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             client_config->check_ocsp = 0;
             client_config->disable_x509_validation = 1;
             client_config->security_policy = &security_policy;
@@ -410,6 +418,7 @@ int main(int argc, char **argv)
                     S2N_RSA_PSS_2048_SHA256_LEAF_CERT, S2N_RSA_PSS_2048_SHA256_LEAF_KEY));
 
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20200207"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             /* Enable signature validation */
@@ -419,6 +428,7 @@ int main(int argc, char **argv)
             }
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20200207"));
             client_config->check_ocsp = 0;
             client_config->disable_x509_validation = 1;
@@ -457,6 +467,7 @@ int main(int argc, char **argv)
                 EXPECT_NOT_NULL(chain_and_key);
 
                 DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
                 EXPECT_NOT_NULL(config);
                 EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));

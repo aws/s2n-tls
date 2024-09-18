@@ -80,6 +80,7 @@ int main(int argc, char **argv)
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     struct s2n_config *config_with_cert = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_cert, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cert, cert_chain));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_cert));
 
@@ -208,6 +209,7 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_async_early_data_cb));
             EXPECT_NOT_NULL(config);
 
@@ -285,6 +287,7 @@ int main(int argc, char **argv)
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_async_early_data_cb));
             EXPECT_NOT_NULL(config);
 

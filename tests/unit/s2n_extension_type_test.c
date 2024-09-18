@@ -471,6 +471,7 @@ int main()
                     S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
             struct s2n_config *test_all_config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(test_all_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(test_all_config, cert_chain));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(test_all_config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(test_all_config, "test_all"));

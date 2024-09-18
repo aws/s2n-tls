@@ -78,11 +78,13 @@ int main(int argc, char **argv)
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_config *tls12_config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls12_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls12_config));
     EXPECT_SUCCESS(s2n_config_set_serialization_version(tls12_config, S2N_SERIALIZED_CONN_V1));
 
     DEFER_CLEANUP(struct s2n_config *tls13_config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(tls13_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(tls13_config));
     EXPECT_SUCCESS(s2n_config_set_serialization_version(tls13_config, S2N_SERIALIZED_CONN_V1));
@@ -154,6 +156,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -594,6 +597,7 @@ int main(int argc, char **argv)
     /* Self-talk: Test interaction between TLS1.2 session resumption and serialization */
     {
         DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(resumption_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(resumption_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(resumption_config));
         EXPECT_SUCCESS(s2n_config_set_serialization_version(resumption_config, S2N_SERIALIZED_CONN_V1));
@@ -641,6 +645,7 @@ int main(int argc, char **argv)
     /* Self-talk: Test interaction between TLS1.3 session resumption and serialization. */
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(resumption_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(resumption_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(resumption_config));
         EXPECT_SUCCESS(s2n_config_set_serialization_version(resumption_config, S2N_SERIALIZED_CONN_V1));
@@ -927,6 +932,7 @@ int main(int argc, char **argv)
      */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
         EXPECT_NOT_NULL(client_conn);

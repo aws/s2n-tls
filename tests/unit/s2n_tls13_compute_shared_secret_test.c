@@ -36,6 +36,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(cert_chain);
 
     struct s2n_config *config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));

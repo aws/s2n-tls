@@ -221,13 +221,16 @@ int main(int argc, char **argv)
     /* s2n_signature_algorithm_select */
     {
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert_chain));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert_chain));
 
         /* Clients can only configure one certificate */
         DEFER_CLEANUP(struct s2n_config *client_ecdsa_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_ecdsa_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_ecdsa_config, ecdsa_cert_chain));
         DEFER_CLEANUP(struct s2n_config *client_rsa_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_rsa_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_rsa_config, rsa_cert_chain));
 
         /* TLS1.2 defaults defined by the RFC */
@@ -1123,6 +1126,7 @@ int main(int argc, char **argv)
         };
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert_chain));
 
         struct s2n_security_policy test_security_policy = *s2n_fetch_default_config()->security_policy;
@@ -1301,6 +1305,7 @@ int main(int argc, char **argv)
         for (size_t cert_i = 0; cert_i < s2n_array_len(certs); cert_i++) {
             /* Setup config */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
@@ -1331,6 +1336,7 @@ int main(int argc, char **argv)
         for (size_t cert_i = 0; cert_i < s2n_array_len(certs); cert_i++) {
             /* Setup config */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
@@ -1365,6 +1371,7 @@ int main(int argc, char **argv)
         /* Self-Talk test: client does not accept unsupported defaults */
         for (size_t cert_i = 0; cert_i < s2n_array_len(certs); cert_i++) {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, certs[cert_i]));
@@ -1409,6 +1416,7 @@ int main(int argc, char **argv)
      */
     if (s2n_is_tls13_fully_supported()) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
 

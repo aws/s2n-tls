@@ -60,6 +60,7 @@ int main(int argc, char **argv)
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
             s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
@@ -542,6 +543,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *reneg_config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(reneg_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(reneg_config);
 
             size_t reneg_request_count = 0;
@@ -593,6 +595,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *multi_config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(multi_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(multi_config);
             EXPECT_SUCCESS(s2n_config_set_recv_multi_record(multi_config, true));
 

@@ -74,6 +74,7 @@ int main(int argc, char **argv)
         {
             /* s2n_config_new configures the default trust store */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             /* Fails with default system trust store */

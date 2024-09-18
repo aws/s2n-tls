@@ -181,6 +181,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
             S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
 
     struct s2n_config *config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     RESULT_ENSURE_REF(config);
     RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(config));
     RESULT_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_tls13"));

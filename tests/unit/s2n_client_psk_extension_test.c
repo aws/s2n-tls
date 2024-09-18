@@ -371,6 +371,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -486,6 +487,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
@@ -678,6 +680,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -713,6 +716,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -786,6 +790,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -897,6 +902,7 @@ int main(int argc, char **argv)
         /* Customer selection logic: customer rejects all identities */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config, s2n_test_error_select_psk_identity_callback, NULL));
 
@@ -918,6 +924,7 @@ int main(int argc, char **argv)
         /* Customer selection logic: customer selects valid identity */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             uint16_t expected_wire_choice = 0;
@@ -949,6 +956,7 @@ int main(int argc, char **argv)
         /* Customer selection logic: customer selects out of bounds index */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             uint16_t expected_wire_choice = 10;
@@ -979,6 +987,7 @@ int main(int argc, char **argv)
         /* Customer selection logic: customer selects index without a local match */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             uint16_t expected_wire_choice = 0;
@@ -1019,12 +1028,14 @@ int main(int argc, char **argv)
             EXPECT_OK(s2n_connection_set_psk_type(conn, S2N_PSK_TYPE_RESUMPTION));
 
             struct s2n_config *config_with_cb = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_cb, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config_with_cb);
             uint16_t expected_wire_choice = 0;
             EXPECT_SUCCESS(s2n_config_set_psk_selection_callback(config_with_cb, s2n_test_select_psk_identity_callback, &expected_wire_choice));
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config_with_cb));
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -1524,6 +1535,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                 s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));

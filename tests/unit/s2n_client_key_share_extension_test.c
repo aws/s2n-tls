@@ -153,6 +153,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             /* Explicitly set the ecc_preferences list to contain the curves p-256 and p-384 */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
@@ -203,6 +204,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer key_share_extension = { 0 };
 
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             /* Security policy "20190801" contains x25519 */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20190801"));
@@ -915,6 +917,7 @@ int main(int argc, char **argv)
             struct s2n_stuffer key_share_extension = { 0 };
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             /* Explicitly set the ecc_preferences list to only contain the curves p-256 and p-384 */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
 
@@ -958,6 +961,7 @@ int main(int argc, char **argv)
         {
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             /* Explicitly set the ecc_preferences list to only contain the curves p-256 and p-384 */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20140601"));
 
@@ -1068,6 +1072,7 @@ int main(int argc, char **argv)
                 struct s2n_stuffer key_share_extension = { 0 };
                 struct s2n_config *config = NULL;
                 EXPECT_NOT_NULL(config = s2n_config_new());
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
                 EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
                 EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(conn, S2N_TLS13));
                 EXPECT_OK(s2n_set_all_mutually_supported_groups(conn));

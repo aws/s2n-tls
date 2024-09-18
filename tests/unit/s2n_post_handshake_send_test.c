@@ -67,6 +67,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
 
     /* These tests require sending tickets.

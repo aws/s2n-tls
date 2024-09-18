@@ -51,6 +51,7 @@ int main(int argc, char **argv)
 
     struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
     const struct s2n_security_policy *security_policy_with_tls13_and_earlier = &security_policy_20190801;
     EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy_with_tls13_and_earlier));
@@ -406,6 +407,7 @@ int main(int argc, char **argv)
 
         DEFER_CLEANUP(struct s2n_config *config_with_cert = s2n_config_new(),
                 s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_cert, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_with_cert, chain_and_key));
 
         DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),

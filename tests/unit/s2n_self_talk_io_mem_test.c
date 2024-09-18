@@ -38,6 +38,7 @@ int main(int argc, char **argv)
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     struct s2n_config *config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
@@ -127,6 +128,7 @@ int main(int argc, char **argv)
         const uint16_t expected_mfl = 2048;
 
         struct s2n_config *config_for_mfl = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_for_mfl, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config_for_mfl);
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_for_mfl, "default_tls13"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_for_mfl));

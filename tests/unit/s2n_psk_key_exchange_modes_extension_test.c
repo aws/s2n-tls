@@ -226,6 +226,7 @@ int main(int argc, char **argv)
         /* When neither resumption nor PSKs are enabled, the extension should not be sent. */
         {
             DEFER_CLEANUP(struct s2n_config *no_resumption_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_resumption_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(no_resumption_config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_resumption_config, false));
 
@@ -238,6 +239,7 @@ int main(int argc, char **argv)
         /* When session resumption is enabled, the extension should be sent. */
         {
             DEFER_CLEANUP(struct s2n_config *resumption_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(resumption_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(resumption_config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(resumption_config, true));
 
@@ -250,6 +252,7 @@ int main(int argc, char **argv)
         /* When a client is using out-of-band PSKs, the extension should be sent. */
         {
             DEFER_CLEANUP(struct s2n_config *psk_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(psk_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(psk_config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(psk_config, false));
 

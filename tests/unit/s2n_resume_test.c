@@ -293,6 +293,7 @@ int main(int argc, char **argv)
             const uint16_t client_ticket_size = 10;
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
 
@@ -338,6 +339,7 @@ int main(int argc, char **argv)
         /* Session ID */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(config, true));
             EXPECT_SUCCESS(s2n_config_set_session_cache_onoff(config, true));
@@ -461,6 +463,7 @@ int main(int argc, char **argv)
         /* Test TLS1.3 client serialization */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
@@ -518,6 +521,7 @@ int main(int argc, char **argv)
         /* Test TLS1.3 server serialization: keying material expiration time */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
@@ -874,6 +878,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -917,6 +922,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -951,6 +957,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             uint64_t current_time = keying_material_expiration;
             EXPECT_OK(s2n_config_mock_wall_clock(config, &current_time));
@@ -983,6 +990,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1027,6 +1035,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1056,6 +1065,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1099,6 +1109,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1124,6 +1135,7 @@ int main(int argc, char **argv)
         /* Functional test: Both TLS1.3 client and server can deserialize what they serialize */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
@@ -1178,6 +1190,7 @@ int main(int argc, char **argv)
             const uint8_t test_app_protocol_len = strlen((const char *) test_app_protocol);
 
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
@@ -1223,6 +1236,7 @@ int main(int argc, char **argv)
         /* Functional test: Both TLS1.2 client and server can deserialize what they serialize */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
 
@@ -1305,6 +1319,7 @@ int main(int argc, char **argv)
         /* Check error is thrown when stuffer is out of memory for the ticket */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER),
@@ -1324,6 +1339,7 @@ int main(int argc, char **argv)
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1359,6 +1375,7 @@ int main(int argc, char **argv)
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1395,6 +1412,7 @@ int main(int argc, char **argv)
             struct s2n_config *config = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
             EXPECT_NOT_NULL(config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -1431,6 +1449,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
@@ -1461,6 +1480,7 @@ int main(int argc, char **argv)
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(conn);
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
@@ -1507,6 +1527,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn);
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
@@ -1531,6 +1552,7 @@ int main(int argc, char **argv)
 
             /* Setting up session resumption encryption key */
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_OK(s2n_resumption_test_ticket_key_setup(config));
 
@@ -1571,6 +1593,7 @@ int main(int argc, char **argv)
         uint8_t num_tickets = 1;
 
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
         EXPECT_EQUAL(conn->tickets_to_send, 0);
         EXPECT_FALSE(config->use_tickets);
@@ -1639,6 +1662,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         void *ctx = NULL;
 
         /* Safety check */
@@ -1764,6 +1788,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
 
         /* Turn session caching on */
@@ -1788,6 +1813,7 @@ int main(int argc, char **argv)
         uint8_t server_state[] = "encrypted state";
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_wall_clock(config, mock_time, NULL));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));

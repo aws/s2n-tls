@@ -97,6 +97,7 @@ int main(int argc, char **argv)
 
     struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
     EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key));
 

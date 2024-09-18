@@ -33,6 +33,7 @@ int main(int argc, char **argv)
     /* Test QUIC is not allowed if TLS1.3 not fully supported. */
     if (!s2n_is_tls13_fully_supported()) {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_enable_quic(config));
 
@@ -53,6 +54,7 @@ int main(int argc, char **argv)
     /* Test s2n_config_enable_quic */
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_FALSE(config->quic_enabled);
 
@@ -108,6 +110,7 @@ int main(int argc, char **argv)
         /* Check with config enabled too */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_FALSE(config->quic_enabled);
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
@@ -126,9 +129,11 @@ int main(int argc, char **argv)
      */
     {
         struct s2n_config *non_quic_config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(non_quic_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(non_quic_config);
 
         struct s2n_config *quic_config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(quic_config);
         EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
 
@@ -281,6 +286,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_enable_quic(config));
 
         struct s2n_connection *conn = NULL;

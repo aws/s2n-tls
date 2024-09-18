@@ -108,6 +108,7 @@ int run_tests(const struct s2n_tls13_cert_verify_test *test_case, s2n_mode verif
     EXPECT_SUCCESS(s2n_cert_chain_and_key_load_pem(cert_chain, cert_chain_pem, private_key_pem));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20200207"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_chain));
@@ -270,6 +271,7 @@ int main(int argc, char **argv)
                     server_parameters.key_file));
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all_tls13"));
             EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));

@@ -216,6 +216,7 @@ int main(int argc, char **argv)
 
     /* Setup server config */
     struct s2n_config *server_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(server_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "AWS-CRT-SDK-TLSv1.0"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
@@ -228,6 +229,7 @@ int main(int argc, char **argv)
 
     /* Setup TLS1.2 server config */
     struct s2n_config *tls12_server_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_server_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(tls12_server_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_server_config, "test_all_tls12"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls12_server_config));
@@ -240,6 +242,7 @@ int main(int argc, char **argv)
 
     /* Setup TLS1.3 client config */
     struct s2n_config *tls13_client_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(tls13_client_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls13_client_config, "AWS-CRT-SDK-TLSv1.0"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls13_client_config));
@@ -250,6 +253,7 @@ int main(int argc, char **argv)
 
     /* Setup TLS1.2 client config */
     struct s2n_config *tls12_client_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(tls12_client_config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(tls12_client_config, "ELBSecurityPolicy-2016-08"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(tls12_client_config));
@@ -829,6 +833,7 @@ int main(int argc, char **argv)
     {
         /* Setup config without session ticket key */
         struct s2n_config *no_key_config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_key_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(no_key_config);
         no_key_config->security_policy = server_config->security_policy;
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config));
@@ -836,6 +841,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_set_session_tickets_onoff(no_key_config, true));
 
         struct s2n_config *no_key_config_with_cache = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_key_config_with_cache, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(no_key_config_with_cache);
         no_key_config_with_cache->security_policy = server_config->security_policy;
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(no_key_config_with_cache));

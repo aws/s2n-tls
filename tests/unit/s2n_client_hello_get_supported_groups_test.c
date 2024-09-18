@@ -149,6 +149,7 @@ int main(int argc, char **argv)
     /* Error if a supported groups extension wasn't received. */
     for (int disable_ecc = 0; disable_ecc <= 1; disable_ecc++) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         if (disable_ecc) {
             /* The 20150202 security policy doesn't contain any ECDHE cipher suites, so the
@@ -336,11 +337,13 @@ int main(int argc, char **argv)
             const char *policy = policies[version_index];
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, policy));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(server_config));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, policy));

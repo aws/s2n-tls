@@ -74,19 +74,24 @@ int main(int argc, char **argv)
             S2N_ECDSA_P384_PKCS1_CERT_CHAIN, S2N_ECDSA_P384_PKCS1_KEY));
 
     struct s2n_config *no_certs_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(no_certs_config, s2n_auto_gen_old_default_security_policy()));
 
     struct s2n_config *rsa_cert_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(rsa_cert_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(rsa_cert_config, rsa_cert_chain));
 
     struct s2n_config *ecdsa_cert_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(ecdsa_cert_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(ecdsa_cert_config, ecdsa_cert_chain));
 
     struct s2n_config *all_certs_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(all_certs_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(all_certs_config, rsa_cert_chain));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(all_certs_config, ecdsa_cert_chain));
 
     struct s2n_cert_chain_and_key *rsa_pss_cert_chain = NULL;
     struct s2n_config *rsa_pss_cert_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(rsa_pss_cert_config, s2n_auto_gen_old_default_security_policy()));
 
 #if RSA_PSS_CERTS_SUPPORTED
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_pss_cert_chain,
@@ -190,6 +195,7 @@ int main(int argc, char **argv)
                     S2N_ECDSA_P256_PKCS1_CERT_CHAIN, S2N_ECDSA_P256_PKCS1_KEY));
 
             struct s2n_config *ecdsa_cert_config_for_other_curve = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(ecdsa_cert_config_for_other_curve, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(
                     ecdsa_cert_config_for_other_curve, ecdsa_cert_chain_for_other_curve));
 

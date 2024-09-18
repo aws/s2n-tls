@@ -34,10 +34,12 @@ static S2N_RESULT s2n_test_security_policies_compatible(const struct s2n_securit
 {
     DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
             s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
     RESULT_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(server_config, cert_chain));
 
     DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
             s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
     RESULT_GUARD_POSIX(s2n_config_set_unsafe_for_testing(client_config));
 
     DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
@@ -627,6 +629,7 @@ int main(int argc, char **argv)
     }
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20170210"));
         EXPECT_EQUAL(config->security_policy, &security_policy_20170210);
@@ -732,6 +735,7 @@ int main(int argc, char **argv)
     }
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
         struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT);
         s2n_connection_set_config(conn, config);

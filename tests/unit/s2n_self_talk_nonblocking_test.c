@@ -49,6 +49,7 @@ int mock_client(struct s2n_test_io_pair *io_pair, uint8_t *expected_data, uint32
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
     POSIX_GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -115,6 +116,7 @@ int mock_client_iov(struct s2n_test_io_pair *io_pair, struct iovec *iov, uint32_
 
     client_conn = s2n_connection_new(S2N_CLIENT);
     client_config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
     s2n_config_disable_x509_verification(client_config);
     s2n_connection_set_config(client_conn, client_config);
     POSIX_GUARD(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -254,6 +256,7 @@ int test_send(int use_tls13, int use_iov, int prefer_throughput)
     }
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = s2n_cert_chain_and_key_new(), s2n_cert_chain_and_key_ptr_free);
 

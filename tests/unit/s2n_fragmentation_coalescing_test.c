@@ -401,6 +401,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
     EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(config, 0));
     /* The server hello has TLS_RSA_WITH_AES_256_CBC_SHA256 hardcoded,

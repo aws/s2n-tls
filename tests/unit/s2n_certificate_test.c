@@ -147,6 +147,7 @@ int main(int argc, char **argv)
 
         /* Add cert chain to config */
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_FALSE(config->no_signing_key);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, cert_only_chain));
         EXPECT_TRUE(config->no_signing_key);
@@ -238,6 +239,7 @@ int main(int argc, char **argv)
                 S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
         struct s2n_config *config_skip_x509_verification = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_skip_x509_verification, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config_skip_x509_verification);
         /* Skip x509 verification */
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config_skip_x509_verification));
@@ -250,6 +252,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config_skip_x509_verification, s2n_chain_and_key));
 
         struct s2n_config *config_with_x509_verification = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_x509_verification, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config_with_x509_verification);
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_x509_verification, "test_all"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(config_with_x509_verification, S2N_CERT_AUTH_REQUIRED));
@@ -666,6 +669,7 @@ int main(int argc, char **argv)
     /* Test s2n_connection_get_client_cert_chain */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(config, S2N_CERT_AUTH_REQUIRED));
         EXPECT_SUCCESS(s2n_config_set_verify_host_callback(config, always_verify_host_fn, NULL));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, ecdsa_chain_and_key));
@@ -761,6 +765,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *unsafe_config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(unsafe_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(unsafe_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(unsafe_config, chain_and_key));
 
@@ -788,12 +793,14 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_set_verify_host_callback(client_config, always_verify_host_fn, NULL));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
             EXPECT_SUCCESS(s2n_config_set_verify_host_callback(server_config, always_verify_host_fn, NULL));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));

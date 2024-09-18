@@ -96,6 +96,7 @@ static int async_pkey_test_fn(struct s2n_connection *conn, struct s2n_async_pkey
 static struct s2n_config *s2n_test_config_new(struct s2n_cert_chain_and_key *chain_and_key)
 {
     struct s2n_config *config = s2n_config_new();
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     PTR_GUARD_POSIX(s2n_config_set_cipher_preferences(config, "default_tls13"));
     PTR_GUARD_POSIX(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     PTR_GUARD_POSIX(s2n_config_disable_x509_verification(config));

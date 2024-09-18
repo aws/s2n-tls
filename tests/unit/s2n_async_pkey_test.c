@@ -405,12 +405,14 @@ int main(int argc, char **argv)
         {
             struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
             EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_apply_in_callback));
             server_config->security_policy = &server_security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -446,12 +448,14 @@ int main(int argc, char **argv)
         {
             struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
             EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_store_callback));
             server_config->security_policy = &server_security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -487,12 +491,14 @@ int main(int argc, char **argv)
         {
             struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
             EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_store_callback));
             server_config->security_policy = &server_security_policy;
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -529,6 +535,7 @@ int main(int argc, char **argv)
         {
             struct s2n_config *server_config = NULL, *client_config = NULL;
             EXPECT_NOT_NULL(server_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
             EXPECT_SUCCESS(s2n_config_set_async_pkey_callback(server_config, async_pkey_store_callback));
@@ -537,6 +544,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_set_async_pkey_validation_mode(server_config, S2N_ASYNC_PKEY_VALIDATION_STRICT));
 
             EXPECT_NOT_NULL(client_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "test_all"));
@@ -571,6 +579,7 @@ int main(int argc, char **argv)
         /* Test: Apply invalid signature, when signature validation is enabled for all sync / async signatures */
         {
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_add_dhparams(server_config, dhparams_pem));
@@ -578,6 +587,7 @@ int main(int argc, char **argv)
             server_config->security_policy = &server_security_policy;
 
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(client_config));
             /* Security policy must support all cipher suites in test_cipher_suites above */
@@ -679,6 +689,7 @@ int main(int argc, char **argv)
     /* Test: Apply invalid signature to sync operation */
     {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));

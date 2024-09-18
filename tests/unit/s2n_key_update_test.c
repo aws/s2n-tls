@@ -113,6 +113,7 @@ int main(int argc, char **argv)
 
             struct s2n_config *quic_config = NULL;
             EXPECT_NOT_NULL(quic_config = s2n_config_new());
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(quic_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_enable_quic(quic_config));
 
             struct s2n_connection *conn = NULL;
@@ -630,6 +631,7 @@ int main(int argc, char **argv)
         /* Test: send buffer cannot be set smaller than a KeyUpdate record */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_send_buffer_size(config, key_update_record_size - 1),
                     S2N_ERR_INVALID_ARGUMENT);
         };
@@ -637,6 +639,7 @@ int main(int argc, char **argv)
         /* Test: send fails if send buffer is too small for a KeyUpdate record */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             s2n_blocked_status blocked = S2N_NOT_BLOCKED;
 
             DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_SERVER), s2n_connection_ptr_free);

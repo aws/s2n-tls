@@ -640,6 +640,7 @@ int main(int argc, char **argv)
         /* Triggers callback to let application reject early data */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
 
             struct s2n_connection *conn = s2n_connection_new(S2N_SERVER);
@@ -681,6 +682,7 @@ int main(int argc, char **argv)
         /* Application rejects early data asynchronously */
         {
             struct s2n_config *config = s2n_config_new();
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_early_data_cb(config, s2n_test_async_early_data_cb));
             EXPECT_NOT_NULL(config);
 
@@ -984,6 +986,7 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_server_max_early_data_size(NULL, 1), S2N_ERR_NULL);
 
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
 
         EXPECT_EQUAL(config->server_max_early_data_size, 0);
@@ -1028,6 +1031,7 @@ int main(int argc, char **argv)
         const uint32_t config_value = 5;
 
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_set_server_max_early_data_size(config, config_value));
 
@@ -1309,6 +1313,7 @@ int main(int argc, char **argv)
     /* Test s2n_config_set_early_data_cb */
     {
         struct s2n_config *config = s2n_config_new();
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
         /* Safety */
         EXPECT_FAILURE_WITH_ERRNO(s2n_config_set_early_data_cb(NULL, s2n_test_early_data_cb), S2N_ERR_NULL);

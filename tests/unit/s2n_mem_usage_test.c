@@ -183,12 +183,14 @@ int main(int argc, char **argv)
 
     struct s2n_config *client_config = NULL;
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_set_check_stapled_ocsp_response(client_config, 0));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
 
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
     struct s2n_config *server_config = NULL;
     EXPECT_NOT_NULL(server_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_PRIVATE_KEY, private_key, S2N_MAX_TEST_PEM_SIZE));
     EXPECT_NOT_NULL(chain_and_key = s2n_cert_chain_and_key_new());

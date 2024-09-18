@@ -57,6 +57,7 @@ int main(int argc, char **argv)
                 S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
 
@@ -282,6 +283,7 @@ int main(int argc, char **argv)
         const uint8_t cipher_count_rsa_fallback = sizeof(wire_ciphers_rsa_fallback) / S2N_TLS_CIPHER_SUITE_LEN;
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
         /* Security policy must allow all test cipher suites */
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
@@ -399,6 +401,7 @@ int main(int argc, char **argv)
 
         /* Set ECDSA CERT in s2n_config */
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
 
@@ -431,6 +434,7 @@ int main(int argc, char **argv)
          * s2n_config.
          */
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         EXPECT_SUCCESS(s2n_connection_set_config(conn, server_config));
@@ -547,6 +551,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_config_free(server_config));
 
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, rsa_cert));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ecdsa_cert));
         /* Override auto-chosen defaults with only RSA cert default. ECDSA still loaded, but not default. */
@@ -851,6 +856,7 @@ int main(int argc, char **argv)
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
                     s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "test_all"));
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, rsa_cert));
 
@@ -896,6 +902,7 @@ int main(int argc, char **argv)
 
         /* Initialise config and relevant certs */
         DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         struct s2n_cert_chain_and_key *rsa_cert = NULL;
         struct s2n_cert_chain_and_key *ecdsa_cert = NULL;
         EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&rsa_cert,
@@ -919,6 +926,7 @@ int main(int argc, char **argv)
                 connection->kex_params.server_ecc_evp_params.negotiated_curve = s2n_all_supported_curves_list[0];
                 EXPECT_SUCCESS(s2n_connection_set_all_protocol_versions(connection, S2N_TLS12));
                 DEFER_CLEANUP(struct s2n_config *rsa_only_config = s2n_config_new(), s2n_config_ptr_free);
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(rsa_only_config, s2n_auto_gen_old_default_security_policy()));
                 EXPECT_NOT_NULL(rsa_only_config);
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(rsa_only_config, rsa_cert));
                 /* Connection only supports rsa auth. */

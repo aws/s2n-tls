@@ -75,12 +75,14 @@ int main(int argc, char **argv)
             S2N_DEFAULT_ECDSA_TEST_CERT_CHAIN, S2N_DEFAULT_ECDSA_TEST_PRIVATE_KEY));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
 
     DEFER_CLEANUP(struct s2n_config *config_with_reneg_cb = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_reneg_cb, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config_with_reneg_cb);
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_reneg_cb, "default"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_reneg_cb));
@@ -166,6 +168,7 @@ int main(int argc, char **argv)
      */
     {
         DEFER_CLEANUP(struct s2n_config *config_with_warns = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_warns, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(config_with_warns);
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_warns, "default"));
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_warns));

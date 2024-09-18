@@ -48,6 +48,7 @@ int main(int argc, char **argv)
 
     /* Set up config */
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
@@ -59,6 +60,7 @@ int main(int argc, char **argv)
 
     /* Set up config that wipes ALPN extension */
     DEFER_CLEANUP(struct s2n_config *npn_config = s2n_config_new(), s2n_config_ptr_free);
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(npn_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_NOT_NULL(npn_config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(npn_config));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(npn_config, "default"));
@@ -133,6 +135,7 @@ int main(int argc, char **argv)
         const char *server_protocols[] = { "h2", "h3" };
         const uint8_t server_protocols_count = s2n_array_len(server_protocols);
         DEFER_CLEANUP(struct s2n_config *different_config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(different_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_NOT_NULL(different_config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(different_config));
         EXPECT_SUCCESS(s2n_config_set_cipher_preferences(different_config, "default"));

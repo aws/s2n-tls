@@ -164,12 +164,14 @@ int main(int argc, char **argv)
     /* Setup config */
     struct s2n_config *config = NULL;
     EXPECT_NOT_NULL(config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
 
     /* Setup config with certificates set */
     struct s2n_config *config_with_certs = NULL;
     EXPECT_NOT_NULL(config_with_certs = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_certs, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config_with_certs, "default_tls13"));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config_with_certs));
     struct s2n_cert_chain_and_key *chain_and_key = NULL;

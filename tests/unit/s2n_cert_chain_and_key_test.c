@@ -72,6 +72,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(setenv("S2N_DONT_MLOCK", "1", 0));
 
     EXPECT_NOT_NULL(client_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
     EXPECT_SUCCESS(s2n_config_disable_x509_verification(client_config));
     /* Create config with s2n_config_add_cert_chain_and_key_to_store API with multiple certs */
     {
@@ -81,6 +82,7 @@ int main(int argc, char **argv)
         /* Collection of certs with the same domain name that need to have ties resolved. */
         struct s2n_cert_chain_and_key *tied_certs[NUM_TIED_CERTS] = { NULL };
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_set_cert_tiebreak_callback(server_config, test_cert_tiebreak_cb));
 
         /* Need to add at least one cert with a different domain name to make cert lookup utilize hashmap */
@@ -123,6 +125,7 @@ int main(int argc, char **argv)
     /* Create config with deprecated s2n_config_add_cert_chain_and_key API */
     {
         EXPECT_NOT_NULL(server_config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key(server_config, cert_chain, private_key));
 
         EXPECT_NOT_NULL(server_conn = create_conn(S2N_SERVER, server_config));
@@ -149,6 +152,7 @@ int main(int argc, char **argv)
         /* Config first uses s2n_config_add_cert_chain_and_key: library owns chain */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_EQUAL(config->cert_ownership, S2N_NOT_OWNED);
 
@@ -170,6 +174,7 @@ int main(int argc, char **argv)
         /* Config first uses s2n_config_add_cert_chain_and_key_to_store: application owns chain */
         {
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(config);
             EXPECT_EQUAL(config->cert_ownership, S2N_NOT_OWNED);
 

@@ -103,6 +103,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
 
     EXPECT_NOT_NULL(server_config = s2n_config_new());
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
     /* Security policy must allow cipher suite hard coded into client hello */
     EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "test_all"));
     EXPECT_SUCCESS(s2n_read_test_pem(S2N_DEFAULT_TEST_CERT_CHAIN, cert_chain, S2N_MAX_TEST_PEM_SIZE));

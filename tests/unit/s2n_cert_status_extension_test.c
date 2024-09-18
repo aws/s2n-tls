@@ -40,6 +40,7 @@ int main(int argc, char **argv)
     {
         struct s2n_config *config = NULL;
         EXPECT_NOT_NULL(config = s2n_config_new());
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, s2n_auto_gen_old_default_security_policy()));
 
         struct s2n_connection *conn = NULL;
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
@@ -188,12 +189,14 @@ int main(int argc, char **argv)
         /* Client requests OCSP staple, and server sends OCSP response */
         {
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_OCSP_CA_CERT, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
             EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_OCSP));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
@@ -236,6 +239,7 @@ int main(int argc, char **argv)
         /* Server requests OCSP staple, and client sends OCSP response */
         {
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_OCSP_CA_CERT, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
@@ -245,6 +249,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, ocsp_chain_and_key));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
@@ -291,6 +296,7 @@ int main(int argc, char **argv)
         /* Client and server both request OCSP staples, and client and server both send responses */
         {
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_OCSP_CA_CERT, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
@@ -300,6 +306,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, ocsp_chain_and_key));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
@@ -345,12 +352,14 @@ int main(int argc, char **argv)
         /* Server sets an OCSP response but client does not request OCSP stapling */
         {
             DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_OCSP_CA_CERT, NULL));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default_tls13"));
             EXPECT_SUCCESS(s2n_config_set_status_request_type(client_config, S2N_STATUS_REQUEST_NONE));
 
             DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, s2n_auto_gen_old_default_security_policy()));
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, ocsp_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default_tls13"));
