@@ -18,7 +18,6 @@
 #include "api/s2n.h"
 #include "tls/s2n_certificate_keys.h"
 #include "tls/s2n_connection.h"
-#include "utils/s2n_init.h"
 #include "utils/s2n_safety.h"
 
 /* TLS1.2 default as of 05/24 */
@@ -1270,22 +1269,6 @@ int s2n_find_security_policy_from_version(const char *version, const struct s2n_
 {
     POSIX_ENSURE_REF(version);
     POSIX_ENSURE_REF(security_policy);
-
-    bool matches_default = strcmp(version, "default_fips") == 0;
-    bool should_bail =
-            /* allow for exception for tests which actually want to test the "default" policy */
-            dbg_bail &&
-            /* allow for s2n_config_new object creation */
-            dbg_config_init &&
-            /* s2n_init() creates a "default" static config so only bail after initialization is complete; */
-            s2n_is_initialized() &&
-            /* attempting to use the "default" policy */
-            matches_default;
-
-    if (should_bail) {
-        printf("\nBail------- s2n_find_from_version: config_init: %d", dbg_config_init);
-        POSIX_BAIL(S2N_ERR_INVALID_SECURITY_POLICY);
-    }
 
     for (int i = 0; security_policy_selection[i].version != NULL; i++) {
         if (!strcasecmp(version, security_policy_selection[i].version)) {
