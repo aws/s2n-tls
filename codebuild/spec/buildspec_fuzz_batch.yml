@@ -23,12 +23,11 @@ version: 0.2
 
 # LIBCRYPTOS
 # awslc: happy path libcrypto for s2n-tls
-# openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 
-#            asan on it. See pr 4033 for a historical motivating example.
+# openssl 3: libcrypto that is widely used
 
 batch:
   build-list:
-    - identifier: s2nFuzzerAWSLC
+    - identifier: clang_awslc
       buildspec: codebuild/spec/buildspec_fuzz.yml
       debug-session: true
       env:
@@ -38,7 +37,7 @@ batch:
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: clang
-    - identifier: s2nFuzzerOSSL_3_0
+    - identifier: clang_openssl_3_0
       buildspec: codebuild/spec/buildspec_fuzz.yml
       debug-session: true
       env:
