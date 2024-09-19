@@ -624,12 +624,6 @@ if (BUILD_TESTING)
             set(ARTIFACT_UPLOAD_LOC "none")
         endif()
 
-        # if(DEFINED ENV{FUZZ_TESTS})
-        #     set(FUZZ_TESTS $ENV{FUZZ_TESTS})
-        # else()
-        #     set(FUZZ_TESTS "${TESTS}")
-        # endif()
-
         # Build LD_PRELOAD shared libraries
         set(LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD)
         file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
