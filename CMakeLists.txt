@@ -472,15 +472,15 @@ if (BUILD_TESTING)
 
     # CTest configuration variables need to be set before include(CTest) is called
     set(VALGRIND_DEFAULT " \
-    --leak-check=full \
-    --leak-resolution=high \
-    --trace-children=yes \
-    --run-libc-freeres=no \
-    -q --error-exitcode=123 \
-    --error-limit=no \
-    --num-callers=40 \
-    --undef-value-errors=no \
-    --suppressions=valgrind.suppressions")
+        --leak-check=full \
+        --leak-resolution=high \
+        --trace-children=yes \
+        --run-libc-freeres=no \
+        -q --error-exitcode=123 \
+        --error-limit=no \
+        --num-callers=40 \
+        --undef-value-errors=no \
+        --suppressions=valgrind.suppressions")
 
     set(VALGRIND_PENDANTIC "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
 
