@@ -51,7 +51,7 @@
    fun:dlerror_run
    fun:__libc_dlopen_mode
    fun:__libc_unwind_link_get
-   fun:__libc_unwind_link_get
+   ...
    fun:backtrace
    ...
    fun:main
