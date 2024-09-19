@@ -30,7 +30,7 @@
 # > explicitly, but they are part of libgcc, which gets loaded
 # > dynamically when first used.  Dynamic loading usually triggers
 # > a call to [malloc(3)](https://man7.org/linux/man-pages/man3/malloc.3.html).
-# https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html#NOTES
+# https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
 {
    stacktrace_suppression
    Memcheck:Leak
