@@ -29,11 +29,29 @@ default system certificates to these configs, call `s2n_config_load_system_certs
 
 ## Server Authentication
 
-A server must have a certificate and private key pair to prove its identity. s2n-tls supports RSA, RSA-PSS, and ECDSA certificates, and allows one of each type to be added to a config.
+A server must have a certificate and private key pair to prove its identity. s2n-tls supports RSA, RSA-PSS, and ECDSA certificates, and allows one of each type to be added to a config for a given domain name.
 
 Create a new certificate and key pair by calling `s2n_cert_chain_and_key_new()`, then load the pem-encoded data with `s2n_cert_chain_and_key_load_pem_bytes()`.  Call `s2n_config_add_cert_chain_and_key_to_store()` to add the certificate and key pair to the config. When a certificate and key pair is no longer needed, it must be cleaned up with `s2n_cert_chain_and_key_free()`.
 
 A client can add restrictions on the certificate’s hostname by setting a custom `s2n_verify_host_fn` with `s2n_config_set_verify_host_callback()` or `s2n_connection_set_verify_host_callback()`. The default behavior is to require that the hostname match the server name set with `s2n_set_server_name()`.
+
+### SNI
+
+TLS servers will often serve multiple domains from a single IP address, with each domain potentially requiring its own certificate. When a TLS client receives a server's certificate, it will check to ensure that it was issued for the domain that it's connecting to. As such, the server needs to know which domain the client is connecting to in order to send the correct certificate. This information is communicated to the server via the Server Name Indication (SNI) extension.
+
+#### Client configuration
+
+`s2n_set_server_name()` is used on client connections to specify a domain name in the SNI extension.
+
+#### Server configuration
+
+Certificates loaded with `s2n_config_add_cert_chain_and_key_to_store()` are automatically associated with each domain indicated in the certificate's Subject Alternative Name (SAN) field. If a loaded certificate doesn't contain a SAN field, the Common Name (CN) field is used instead. While negotiating a TLS connection, s2n-tls servers will automatically send clients a loaded certificate that matches the value of the client's SNI extension.
+
+s2n-tls allows servers to load a maximum of 1 certificate chain per domain, per certificate type (RSA, RSA-PSS, and ECDSA). If a certificate is loaded that specifies a domain that has already been associated with an existing certificate, the existing certificate will remain associated with the overlapping domain. The `s2n_cert_tiebreak_callback` can be used to customize this behavior.
+
+When selecting a certificate to send to the client, s2n-tls servers will prefer an exact SNI match before falling back to a certificate with an associated wildcard domain (a domain starting with "*.", covering all subdomains).
+
+If no exact match or wildcard match exists, or if the client doesn't send an SNI extension, a default certificate is sent to the client. A default certificate is set when `s2n_config_add_cert_chain_and_key_to_store()` is called for the first time for a given certificate type (RSA, RSA-PSS, or ECDSA). `s2n_config_set_cert_chain_and_key_defaults()` can be used to override the default certificates.
 
 ## Client / Mutual Authentication
 
