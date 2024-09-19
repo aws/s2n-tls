@@ -69,7 +69,7 @@ const char *s2n_ja4_version_strings[] = {
      *# 0x0002 = SSL 2.0 = “s2”
      */
     [0x0300] = "s3",
-    [0x0200] = "s2",
+    [0x0002] = "s2",
 };
 
 /**

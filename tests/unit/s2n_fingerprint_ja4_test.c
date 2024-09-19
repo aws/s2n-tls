@@ -339,7 +339,7 @@ int main(int argc, char **argv)
                  *# 0x0002 = SSL 2.0 = “s2”
                  */
                 { .bytes = { 0x03, 0x00 }, .version = S2N_SSLv3, .str = "s3" },
-                { .bytes = { 0x02, 0x00 }, .version = S2N_SSLv2, .str = "s2" },
+                { .bytes = { 0x00, 0x02 }, .version = S2N_SSLv2, .str = "s2" },
                 /* Bad values */
                 { .bytes = { 0x01, 0x00 }, .version = 10, .str = "00" },
                 { .bytes = { 0x00, 0x00 }, .version = 0, .str = "00" },
