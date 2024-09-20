@@ -55,4 +55,9 @@ phases:
         CTEST_PARALLEL_LEVEL=$(nproc) \
         CTEST_OUTPUT_ON_FAILURE=1 \
         ctest -T memcheck \
-              --test-dir build
+              --test-dir build;
+              EXITCODE=$?
+      - cd codebuild/bin/
+      - ./display_memory_errors.sh
+      - cd ../../
+      - exit $EXITCODE
