@@ -242,10 +242,10 @@ int main(int argc, char **argv)
     {
         /* Test protocol
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#quic
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#quic-and-dtls
          *= type=test
-         *# If the protocol is QUIC then the first character of the fingerprint is “q”
-         *# if not, it’s “t”.
+         *# If the protocol is QUIC then the first character of the fingerprint
+         *# is “q”, if DTLS it is "d", else it is “t”.
          */
         {
             /* Test QUIC */
@@ -278,7 +278,7 @@ int main(int argc, char **argv)
 
         /* Test destination
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#sni
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#sni
          *= type=test
          *# If the SNI extension (0x0000) exists, then the destination of the connection
          *# is a domain, or “d” in the fingerprint.
@@ -321,7 +321,7 @@ int main(int argc, char **argv)
                 const char *str;
             } test_cases[] = {
                 /**
-                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
                  *= type=test
                  *# 0x0304 = TLS 1.3 = “13”
                  *# 0x0303 = TLS 1.2 = “12”
@@ -333,16 +333,15 @@ int main(int argc, char **argv)
                 { .bytes = { 0x03, 0x02 }, .version = S2N_TLS11, .str = "11" },
                 { .bytes = { 0x03, 0x01 }, .version = S2N_TLS10, .str = "10" },
                 /**
-                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
                  *= type=test
                  *# 0x0300 = SSL 3.0 = “s3”
-                 *# 0x0200 = SSL 2.0 = “s2”
-                 *# 0x0100 = SSL 1.0 = “s1”
+                 *# 0x0002 = SSL 2.0 = “s2”
                  */
                 { .bytes = { 0x03, 0x00 }, .version = S2N_SSLv3, .str = "s3" },
-                { .bytes = { 0x02, 0x00 }, .version = S2N_SSLv2, .str = "s2" },
-                { .bytes = { 0x01, 0x00 }, .version = 10, .str = "s1" },
+                { .bytes = { 0x00, 0x02 }, .version = S2N_SSLv2, .str = "s2" },
                 /* Bad values */
+                { .bytes = { 0x01, 0x00 }, .version = 10, .str = "00" },
                 { .bytes = { 0x00, 0x00 }, .version = 0, .str = "00" },
                 { .bytes = { 0x00, 0xFF }, .version = UINT8_MAX, .str = "00" },
                 { .bytes = { 0xFF, 0xFF }, .version = UINT8_MAX, .str = "00" },
@@ -351,7 +350,7 @@ int main(int argc, char **argv)
             for (size_t i = 0; i < s2n_array_len(test_cases); i++) {
                 /* Test record version not used.
                  *
-                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
                  *= type=test
                  *# Handshake version (located at the top of the packet) should be ignored.
                  */
@@ -379,7 +378,7 @@ int main(int argc, char **argv)
 
                 /* Test version from extension
                  *
-                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
                  *= type=test
                  *# If extension 0x002b exists (supported_versions), then the version
                  *# is the highest value in the extension.
@@ -409,7 +408,7 @@ int main(int argc, char **argv)
 
                 /* Test version from legacy field
                  *
-                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
                  *= type=test
                  *# If the extension doesn’t exist, then the TLS version is the value
                  *# of the Protocol Version.
@@ -437,7 +436,7 @@ int main(int argc, char **argv)
 
             /* Test with grease values
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
              *= type=test
              *# Remember to ignore GREASE values.
              */
@@ -480,7 +479,7 @@ int main(int argc, char **argv)
             const char *str;
         } count_test_cases[] = {
             /**
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
              *= type=test
              *# if there’s 6 cipher suites in the hello packet, then the
              *# value should be “06”.
@@ -490,7 +489,7 @@ int main(int argc, char **argv)
             { .size = 50, .str = "50" },
             { .size = 99, .str = "99" },
             /**
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
              *= type=test
              *# If there’s > 99, which there should never be, then output “99”.
              */
@@ -502,7 +501,7 @@ int main(int argc, char **argv)
         {
             /* Test basic cipher suite list
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
              *= type=test
              *# 2 character number of cipher suites, so if there’s 6 cipher suites
              *# in the hello packet, then the value should be “06”.
@@ -520,7 +519,7 @@ int main(int argc, char **argv)
 
             /* Test with grease values
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
              *= type=test
              *# Remember, ignore GREASE values. They don’t count.
              */
@@ -554,7 +553,7 @@ int main(int argc, char **argv)
 
         /* Test number of extensions
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
          *= type=test
          *# Same as counting ciphers.
          */
@@ -573,7 +572,7 @@ int main(int argc, char **argv)
 
             /* Test with grease values
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
              *= type=test
              *# Ignore GREASE.
              */
@@ -606,7 +605,7 @@ int main(int argc, char **argv)
 
             /* Ensure SNI and ALPN are included
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
              *= type=test
              *# Include SNI and ALPN.
              */
@@ -638,15 +637,15 @@ int main(int argc, char **argv)
         {
             /* Test basic ALPN
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
              *= type=test
-             *# The first and last characters of the ALPN (Application-Layer
-             *# Protocol Negotiation) first value.
+             *# The first and last alphanumeric characters of the ALPN
+             *# (Application-Layer Protocol Negotiation) first value.
              */
             {
                 /* 2 characters: h2
                  *
-                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
+                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
                  *= type=test
                  *# In the above example, the first ALPN value is h2 so the first
                  *# and last characters to use in the fingerprint are “h2”.
@@ -678,9 +677,9 @@ int main(int argc, char **argv)
 
                 /* More than 2 characters: "http/1.1"
                  *
-                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
+                 *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
                  *= type=test
-                 *# IF the first ALPN listed was http/1.1 then the first and last
+                 *# If the first ALPN listed was http/1.1 then the first and last
                  *# characters to use in the fingerprint would be “h1”.
                  */
                 {
@@ -709,7 +708,13 @@ int main(int argc, char **argv)
                 };
             };
 
-            /* Test 1-byte alpn value */
+            /* Test 1-byte alpn value
+             *
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+             *= type=test
+             *# If the first ALPN value is only a single character, then that character
+             *# is treated as both the first and last character.
+             */
             {
                 S2N_INIT_CLIENT_HELLO(client_hello_bytes,
                         S2N_TEST_CLIENT_HELLO_VERSION,
@@ -736,8 +741,12 @@ int main(int argc, char **argv)
 
             /* Test non-ascii alpn values
              *
-             * The spec does not currently define this case, but will be updated in the
-             * future according to https://github.com/FoxIO-LLC/ja4/issues/148
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+             *= type=test
+             *# If the first or last byte of the first ALPN is non-alphanumeric
+             *# (meaning not `0x30-0x39`, `0x41-0x5A`, or `0x61-0x7A`), then we
+             *# print the first and last characters of the hex representation of
+             *# the first ALPN instead.
              */
             {
                 struct {
@@ -745,10 +754,29 @@ int main(int argc, char **argv)
                     const size_t bytes_size;
                     const char *str;
                 } test_cases[] = {
+                    /**
+                     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+                     *= type=test
+                     *# For example:
+                     *# * `0xAB` would be printed as "ab"
+                     *# * `0xAB 0xCD` would be printed as "ad"
+                     *# * `0x30 0xAB` would be printed as "3b"
+                     *# * `0x30 0x31 0xAB 0xCD` would be printed as "3d"
+                     */
                     { .bytes = { 0xAB }, .str = "ab", .bytes_size = 1 },
                     { .bytes = { 0xAB, 0xCD }, .str = "ad", .bytes_size = 2 },
                     { .bytes = { 0x30, 0xAB }, .str = "3b", .bytes_size = 2 },
                     { .bytes = { 0x30, 0x31, 0xAB, 0xCD }, .str = "3d", .bytes_size = 4 },
+                    /**
+                     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+                     *= type=test
+                     *# * `0x30 0xAB 0xCD 0x31` would be printed as "01"
+                     *
+                     * Why is this value "01" instead of "31"?
+                     * Because 0x30 and 0x31 are both alphanumeric, so we use their
+                     * ascii values ('0' and '1') rather than their hex values.
+                     * It doesn't matter than 0xAB and 0xCD aren't alphanumeric.
+                     */
                     { .bytes = { 0x30, 0xAB, 0xCD, 0x31 }, .str = "01", .bytes_size = 4 },
                 };
 
@@ -791,10 +819,10 @@ int main(int argc, char **argv)
 
             /* Test no ALPN
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
              *= type=test
-             *# If there are no ALPN values or no ALPN extension then we print
-             *# “00” as the value in the fingerprint.
+             *# If there is no ALPN extension, no ALPN values, or the first ALPN
+             *# value is empty, then we print "00" as the value in the fingerprint.
              */
             {
                 /* Test no ALPN extension */
@@ -834,7 +862,7 @@ int main(int argc, char **argv)
                     EXPECT_EQUAL(output[S2N_JA4_A_ALPN_LAST], '0');
                 };
 
-                /* Test empty / invalid alpn value */
+                /* Test empty first alpn value */
                 {
                     S2N_INIT_CLIENT_HELLO(client_hello_bytes,
                             S2N_TEST_CLIENT_HELLO_VERSION,
@@ -872,7 +900,7 @@ int main(int argc, char **argv)
             0x00, 30,
             /* cipher suites
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
              *= type=test
              *# Example:
              *# ```
@@ -880,13 +908,13 @@ int main(int argc, char **argv)
              */
             0x13, 0x01, 0x13, 0x02, 0x13, 0x03, 0xc0, 0x2b, 0xc0, 0x2f,
             /*
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
              *= type=test
              *# c02c,c030,cca9,cca8,c013,
              */
             0xc0, 0x2c, 0xc0, 0x30, 0xcc, 0xa9, 0xcc, 0xa8, 0xc0, 0x13,
             /*
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
              *= type=test
              *# c014,009c,009d,002f,0035
              *# ```
@@ -899,7 +927,7 @@ int main(int argc, char **argv)
 
         /* Test raw list
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
          *= type=test
          *# The list is created using the 4 character hex values of the ciphers,
          *# lower case, comma delimited, ignoring GREASE.
@@ -907,7 +935,7 @@ int main(int argc, char **argv)
         {
             /* Expected result from docs
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
              *= type=test
              *# 002f,0035,009c,009d,1301,1302,1303,c013,c014,c02b,c02c,c02f,c030,cca8,cca9
              */
@@ -928,7 +956,7 @@ int main(int argc, char **argv)
 
         /* Test hashed list
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
          *= type=test
          *# A 12 character truncated sha256 hash of the list of ciphers sorted
          *# in hex order, first 12 characters.
@@ -936,7 +964,7 @@ int main(int argc, char **argv)
         {
             /* Expected result from docs
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
              *= type=test
              *# = 8daaf6152771
              */
@@ -954,9 +982,56 @@ int main(int argc, char **argv)
             EXPECT_BYTEARRAY_EQUAL(output_b, expected, strlen(expected));
         };
 
+        /* Test empty list
+         *
+         * s2n-tls treats an empty cipher suite list as a parsing error, since
+         * the RFC requires it to contain at least one cipher suite. The definition
+         * of the field is:
+         *        CipherSuite cipher_suites<2..2^16-2>;
+         * Meaning that the list must contain at least two bytes, which means
+         * at least one CipherSuite.
+         *
+         * However, s2n-tls could later decide to error on empty cipher suite lists
+         * when processing the ClientHello instead of when parsing it, so we
+         * should still test this case by manipulating the parsed ClientHello
+         * before fingerprinting it.
+         *
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
+         *= type=test
+         *# If there are no ciphers in the sorted cipher list, then the value of
+         *# JA4_b is set to `000000000000`
+         */
+        {
+            const char expected[] = "000000000000";
+
+            uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
+            uint32_t output_size = 0;
+
+            DEFER_CLEANUP(struct s2n_client_hello *client_hello = NULL, s2n_client_hello_free);
+            client_hello = s2n_client_hello_parse_message(client_hello_bytes, sizeof(client_hello_bytes));
+            EXPECT_NOT_NULL(client_hello);
+
+            /* Override the size of the parsed cipher_suites to imitate having
+             * read an empty list.
+             */
+            client_hello->cipher_suites.size = 0;
+
+            DEFER_CLEANUP(struct s2n_fingerprint *fingerprint = NULL, s2n_fingerprint_free);
+            fingerprint = s2n_fingerprint_new(S2N_FINGERPRINT_JA4);
+            EXPECT_NOT_NULL(fingerprint);
+            EXPECT_SUCCESS(s2n_fingerprint_set_client_hello(fingerprint, client_hello));
+            EXPECT_SUCCESS(s2n_fingerprint_get_hash(fingerprint,
+                    sizeof(output), output, &output_size));
+
+            EXPECT_TRUE(output_size > S2N_JA4_B_START);
+            uint8_t *output_b = &output[S2N_JA4_B_START];
+            EXPECT_TRUE(output_size >= S2N_JA4_B_START + strlen(expected));
+            EXPECT_BYTEARRAY_EQUAL(output_b, expected, strlen(expected));
+        };
+
         /* Test sorting
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
          *= type=test
          *# list of ciphers sorted in hex order
          */
@@ -1061,7 +1136,7 @@ int main(int argc, char **argv)
             0x00, (16 * 4) + (9 * 2),
             /* extensions
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
              *= type=test
              *# For example:
              *# ```
@@ -1078,7 +1153,7 @@ int main(int argc, char **argv)
             /* signature algorithms size */
             0x00, 8 * 2,
             /* signature algorithms
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
              *= type=test
              *# For example the signature algorithms:
              *# ```
@@ -1089,7 +1164,7 @@ int main(int argc, char **argv)
             0x08, 0x05, 0x05, 0x01, 0x08, 0x06, 0x06, 0x01,
             /* more extensions
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
              *= type=test
              *# 0005,0023,0012,002b,ff01,000b,000a,0015
              *# ```
@@ -1107,7 +1182,7 @@ int main(int argc, char **argv)
 
         /* Expected raw extensions string from docs
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
          *= type=test
          *# 0005,000a,000b,000d,0012,0015,0017,001b,0023,002b,002d,0033,4469,ff01
          */
@@ -1119,7 +1194,7 @@ int main(int argc, char **argv)
          * Instead of actually testing this, we just test that the known value
          * will test that SNI and ALPN are ignored.
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
          *= type=test
          *# Ignore the SNI extension (0000) and the ALPN extension (0010)
          *# as we’ve already captured them in the _a_ section of the fingerprint.
@@ -1130,7 +1205,7 @@ int main(int argc, char **argv)
 
             /* Known value from docs, in string form
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
              *= type=test
              *# For example:
              *# ```
@@ -1144,7 +1219,7 @@ int main(int argc, char **argv)
 
             /* Expected result from docs
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
              *= type=test
              *# 0005,000a,000b,000d,0012,0015,0017,001b,0023,002b,002d,0033,4469,ff01
              */
@@ -1154,7 +1229,7 @@ int main(int argc, char **argv)
 
         /* Test raw extension list
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
          *= type=test
          *# The extension list is created using the 4 character hex values of the extensions,
          *# lower case, comma delimited, sorted (not in the order they appear).
@@ -1176,7 +1251,7 @@ int main(int argc, char **argv)
 
         /* Test raw signature algorithms list
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
          *= type=test
          *# The signature algorithm hex values are then added to the end of the
          *# list in the order that they appear (not sorted) with an underscore
@@ -1185,7 +1260,7 @@ int main(int argc, char **argv)
         {
             /* Expected result from docs
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
              *= type=test
              *# Are added to the end of the previous string to create:
              *# ```
@@ -1210,7 +1285,7 @@ int main(int argc, char **argv)
 
         /* Test hashed lists
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
          *= type=test
          *# A 12 character truncated sha256 hash of the list of extensions,
          *# sorted by hex value, followed by the list of signature algorithms,
@@ -1219,7 +1294,7 @@ int main(int argc, char **argv)
         {
             /* Expected result from docs
              *
-             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+             *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
              *= type=test
              *# Hashed to:
              *# ```
@@ -1246,7 +1321,7 @@ int main(int argc, char **argv)
 
         /* Test with no signature schemes
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
          *= type=test
          *# If there are no signature algorithms in the hello packet,
          *# then the string ends without an underscore and is hashed.
@@ -1303,6 +1378,28 @@ int main(int argc, char **argv)
                 }
                 EXPECT_EQUAL(underscore_count, 2);
             };
+        };
+
+        /* Test empty extension list
+         *
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
+         *= type=test
+         *# If there are no extensions in the sorted extensions list, then the
+         *# value of JA4_c is set to `000000000000`
+         */
+        {
+            const char expected[] = "000000000000";
+
+            uint8_t output[S2N_TEST_OUTPUT_SIZE] = { 0 };
+            uint32_t output_size = 0;
+            EXPECT_OK(s2n_test_ja4_hash_from_bytes(
+                    minimal_client_hello_bytes, sizeof(minimal_client_hello_bytes),
+                    sizeof(output), output, &output_size));
+
+            EXPECT_TRUE(output_size > S2N_JA4_C_HASH_START);
+            uint8_t *output_c = &output[S2N_JA4_C_HASH_START];
+            EXPECT_TRUE(output_size >= S2N_JA4_C_HASH_START + strlen(expected));
+            EXPECT_BYTEARRAY_EQUAL(output_c, expected, strlen(expected));
         };
     };
 
