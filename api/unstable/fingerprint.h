@@ -106,7 +106,7 @@ S2N_API int s2n_fingerprint_get_hash_size(const struct s2n_fingerprint *fingerpr
  *
  * JA4: A string consisting of three parts, separated by underscores: the prefix,
  * and the hex-encoded truncated SHA256 hashes of the other two parts of the raw string.
- * - See https://github.com/FoxIO-LLC/ja4/blob/v0.18.2/technical_details/JA4.md
+ * - See https://github.com/FoxIO-LLC/ja4/blob/df3c067/technical_details/JA4.md
  * - Example: "t13i310900_e8f1e7e78f70_1f22a2ca17c4"
  *
  * @param fingerprint The s2n_fingerprint to be used for the hash
@@ -145,7 +145,7 @@ S2N_API int s2n_fingerprint_get_raw_size(const struct s2n_fingerprint *fingerpri
  *             156-61-60-53-47-255,11-10-35-22-23-13-43-45-51,29-23-30-25-24,0-1-2"
  *
  * JA4: A string consisting of three parts: a prefix, and two lists of hex values.
- * - See https://github.com/FoxIO-LLC/ja4/blob/v0.18.2/technical_details/JA4.md
+ * - See https://github.com/FoxIO-LLC/ja4/blob/df3c067/technical_details/JA4.md
  * - Example: "t13i310900_002f,0033,0035,0039,003c,003d,0067,006b,009c,009d,009e,
  *             009f,00ff,1301,1302,1303,c009,c00a,c013,c014,c023,c024,c027,c028,
  *             c02b,c02c,c02f,c030,cca8,cca9,ccaa_000a,000b,000d,0016,0017,0023,

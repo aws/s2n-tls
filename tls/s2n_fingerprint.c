@@ -184,7 +184,7 @@ static S2N_RESULT s2n_assert_grease_value(uint16_t val)
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#details
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#details
  *# The program needs to ignore GREASE values anywhere it sees them
  */
 bool s2n_fingerprint_is_grease_value(uint16_t val)
