@@ -549,9 +549,6 @@ if (BUILD_TESTING)
             -Wshadow  -Wcast-align -Wwrite-strings -Wformat-security
             -Wno-deprecated-declarations -Wno-unknown-pragmas -Wno-deprecated -std=gnu99
         )
-        target_compile_definitions(${test_case_name} PRIVATE 
-            _POSIX_C_SOURCE=200809L
-        )
         if (S2N_LTO)
             target_compile_options(${test_case_name} PRIVATE -flto)
         endif()
