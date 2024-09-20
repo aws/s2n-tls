@@ -240,7 +240,7 @@ mod tests {
     fn new_security_policy() -> Result<(), Error> {
         use crate::security::Policy;
 
-        let policy = Policy::from_version("20240501")?;
+        let policy = Policy::from_version("default")?;
         config_builder(&policy)?;
         Ok(())
     }
