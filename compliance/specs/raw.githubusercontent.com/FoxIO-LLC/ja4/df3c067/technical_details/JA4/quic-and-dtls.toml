@@ -1,0 +1,19 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#quic-and-dtls"
+
+# ### QUIC and DTLS:
+# “q”, "d" or “t”, denotes whether the hello packet is for QUIC, DTLS, or normal TLS.
+#
+# https://en.wikipedia.org/wiki/QUIC  
+# QUIC is the protocol which the new HTTP/3 standard utilizes, encapsulating TLS 1.3 into UDP packets. As QUIC was developed by Google, if an organization heavily utilizes Google products, QUIC could make up half of their network traffic, so this is important to capture.
+#
+# https://en.wikipedia.org/wiki/Datagram_Transport_Layer_Security
+# DTLS is a version of TLS that can operate over UDP or SCTP.
+# 
+# If the protocol is QUIC then the first character of the fingerprint is “q”, if DTLS it is "d", else it is “t”.
+# 
+
+[[spec]]
+level = "MUST"
+quote = '''
+If the protocol is QUIC then the first character of the fingerprint is “q”, if DTLS it is "d", else it is “t”.
+'''
