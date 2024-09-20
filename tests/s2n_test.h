@@ -30,6 +30,8 @@
 
 int test_count;
 
+bool s2n_use_color_in_output = true;
+
 /* Macro definitions for calls that occur within BEGIN_TEST() and END_TEST() to preserve the SKIPPED test behavior
  * by ignoring the test_count, keeping it as 0 to indicate that a test was skipped. */
 #define EXPECT_TRUE_WITHOUT_COUNT( condition )    do { if ( !(condition) ) { FAIL_MSG( #condition " is not true "); } } while(0)
@@ -40,7 +42,7 @@ int test_count;
 #define EXPECT_SUCCESS_WITHOUT_COUNT( function_call )  EXPECT_NOT_EQUAL_WITHOUT_COUNT( (function_call) ,  -1 )
 
 #define END_TEST_PRINT()                                                            \
-    if (isatty(fileno(stdout))) {                                                   \
+    if (s2n_use_color_in_output && isatty(fileno(stdout))) {                                                   \
         if (test_count) {                                                           \
             fprintf(stdout, "\033[32;1mPASSED\033[0m %10d tests\n", test_count );   \
         }                                                                           \
@@ -105,7 +107,7 @@ int test_count;
                           /* isatty and s2n_print_stacktrace will overwrite errno on failure */ \
                           int real_errno = errno; \
                           s2n_print_stacktrace(stderr); \
-                          if (isatty(fileno(stderr))) { \
+                          if (s2n_use_color_in_output && isatty(fileno(stderr))) { \
                             errno = real_errno; \
                             fprintf(stderr, "\033[31;1mFAILED test %d\033[0m\n%s (%s:%d)\nError Message: '%s'\n Debug String: '%s'\n System Error: %s (%d)\n", test_count, (msg), __FILE__, __LINE__, s2n_strerror(s2n_errno, "EN"), s2n_strerror_debug(s2n_errno, "EN"), strerror(errno), errno); \
                           } \
