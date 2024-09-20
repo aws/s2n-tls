@@ -1068,7 +1068,7 @@ int s2n_cipher_suites_init(void)
 /* Reset any selected record algorithms */
 S2N_RESULT s2n_cipher_suites_cleanup(void)
 {
-    const int num_cipher_suites = sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite *);
+    const int num_cipher_suites = s2n_array_len(s2n_all_cipher_suites);
     for (int i = 0; i < num_cipher_suites; i++) {
         struct s2n_cipher_suite *cur_suite = s2n_all_cipher_suites[i];
         cur_suite->available = 0;
