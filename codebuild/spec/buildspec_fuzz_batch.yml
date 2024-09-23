@@ -48,7 +48,7 @@ batch:
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
         privileged-mode: true
         variables:
-          S2N_LIBCRYPTO: awslc_fips
+          S2N_LIBCRYPTO: awslc-fips
           COMPILER: clang
     - identifier: clang_openssl_1_0_2
       buildspec: codebuild/spec/buildspec_fuzz.yml
