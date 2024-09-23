@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -e
+set -eu
 pushd "$(pwd)"
 
 usage() {
@@ -28,7 +28,13 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 IS_FIPS=$3
 
-source codebuild/bin/jobs.sh
+if [[ -f "$(which clang)" ]]; then
+  export CC=$(which clang)
+  export CXX=$(which clang++)
+else
+  echo "Could not find clang"
+  exit 1
+fi
 
 # These tags represents the latest versions that S2N is compatible
 # with. It prevents our build system from breaking when AWS-LC
@@ -48,7 +54,7 @@ git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_VERSION" --dept
 install_awslc() {
 	echo "Building with shared library=$1"
 	cmake ./aws-lc -Bbuild -GNinja -DBUILD_SHARED_LIBS=$1 -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS="${IS_FIPS}"
-	ninja -j "${JOBS}" -C build install
+	ninja -j "$(nproc)" -C build install
 	ninja -C build clean
 }
 
