@@ -177,8 +177,13 @@
 <p>s2n-tls uses pre-made security policies to help avoid common misconfiguration mistakes for TLS.</p>
 <p><code>s2n_config_set_cipher_preferences()</code> sets a security policy, which includes the cipher/kem/signature/ecc preferences and protocol version.</p>
 <h2 id="supported-tls-versions"><a class="header" href="#supported-tls-versions">Supported TLS Versions</a></h2>
-<p>Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.
-<strong>Note:</strong> s2n-tls does not support SSL2.0 for sending and receiving encrypted data, but does accept SSL2.0 hello messages.</p>
+<p>Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.</p>
+<h3 id="ssl-30-tls-10-and-tls-11"><a class="header" href="#ssl-30-tls-10-and-tls-11">SSL 3.0, TLS 1.0, and TLS 1.1</a></h3>
+<p>s2n-tls supports older versions, but their use is not recommended.</p>
+<p>Compatibility with older versions of TLS may also require support for older ciphersuites. Although it is possible to negotiate older versions of TLS with more modern options like SHA256, AES, ECDSA, and ECDHE, older clients and servers may only support older options like SHA1, 3DES, RSA certs, and either RSA or DHE key exchange. If a security policy allows older TLS versions but does not allow older ciphersuites, handshakes with older clients and servers may fail.</p>
+<h3 id="ssl-20"><a class="header" href="#ssl-20">SSL 2.0</a></h3>
+<p>s2n-tls will not negotiate SSL 2.0, but will accept SSLv2 ClientHellos advertising a higher protocol version like TLS1.2. See the <a href="https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2">"Compatibility with SSL 2.0"</a> section in the TLS 1.2 RFC.</p>
+<p>Compatibility with SSLv2 ClientHellos advertising TLS1.2 may require similar support for older ciphersuites as compatibility with older versions of TLS does. In particular, SSLv2 ClientHellos are likely to require support for SHA1 and either RSA or DHE key exchange. This is due to technical limitations of the SSLv2 ClientHello, which does not include TLS extensions.</p>
 <h3 id="chart-security-policy-version-to-protocol-version-and-ciphersuites"><a class="header" href="#chart-security-policy-version-to-protocol-version-and-ciphersuites">Chart: Security Policy Version To Protocol Version And Ciphersuites</a></h3>
 <p>The following chart maps the security policy version to protocol version and ciphersuites supported.</p>
 <div class="table-wrapper"><table><thead><tr><th>version</th><th>TLS1.0</th><th>TLS1.1</th><th>TLS1.2</th><th>TLS1.3</th><th>AES-CBC</th><th>AES-GCM</th><th>CHACHAPOLY</th><th>3DES</th><th>RC4</th><th>DHE</th><th>ECDHE</th><th>RSA kx</th></tr></thead><tbody>
