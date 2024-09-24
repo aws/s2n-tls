@@ -27,10 +27,7 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 
-if [[ -f "$(which clang)" ]]; then
-  export CC=$(which clang)
-  export CXX=$(which clang++)
-else
+if [[ ! -f "$(which clang)" ]]; then
   echo "Could not find clang"
   exit 1
 fi
@@ -48,7 +45,15 @@ git checkout "${AWSLC_VERSION}"
 
 build() {
     shared=$1
-    cmake . -Bbuild -GNinja -DBUILD_SHARED_LIBS="${shared}" -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS=1
+    cmake . \
+      -Bbuild \
+      -GNinja \
+      -DBUILD_SHARED_LIBS="${shared}" \
+      -DCMAKE_BUILD_TYPE=relwithdebinfo \
+      -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+      -DCMAKE_C_COMPILER=$(which clang) \
+      -DCMAKE_CXX_COMPILER=$(which clang++) \
+      -DFIPS=1
     ninja -j "$(nproc)" -C build install
     ninja -C build clean
 }
