@@ -47,8 +47,8 @@ UBSAN_OPTIONS+="print_stacktrace=1"
 NUM_CPU_THREADS=$(nproc)
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
-TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
-GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
+TEST_SPECIFIC_OVERRIDES="${PWD}/../../build/lib/${TEST_NAME}_overrides.so"
+GLOBAL_OVERRIDES="${PWD}/../../build/lib/global_overrides.so"
 
 FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
@@ -142,9 +142,13 @@ fi
 if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     mkdir -p "./profiles/${TEST_NAME}"
     rm -f ./profiles/${TEST_NAME}/*.profraw
-    LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" \
+    ${PWD}/../../build/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
+    > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 else
-    env LD_PRELOAD="$LD_PRELOAD_" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    env LD_PRELOAD="$LD_PRELOAD_" \
+    ${PWD}/../../build/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
+    > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
 TEST_INFO=$(
@@ -209,7 +213,8 @@ then
     else
         # TEMP_CORPUS_DIR may contain many new inputs that only covers a small set of new branches. 
         # Instead of copying all new inputs to the corpus directory,  only copy back minimum number of new inputs that reach new branches.
-        ./${TEST_NAME} -merge=1 "./corpus/${TEST_NAME}" "${TEMP_CORPUS_DIR}" > ${TEST_NAME}_results.txt 2>&1
+        ${PWD}/../../build/bin/${TEST_NAME} -merge=1 "./corpus/${TEST_NAME}" "${TEMP_CORPUS_DIR}" \
+        > ${TEST_NAME}_results.txt 2>&1
 
         # Print number of new files and branches found in new Inputs (if any)
         RESULTS=`grep -Eo "[0-9]+ new files .*$" ${TEST_NAME}_results.txt | tail -1`

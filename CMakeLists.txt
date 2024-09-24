@@ -625,7 +625,6 @@ if (BUILD_TESTING)
         endif()
 
         # Build LD_PRELOAD shared libraries
-        set(LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD)
         file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
         foreach(SRC ${LIBRARY_SRCS})
             get_filename_component(LIB_NAME ${SRC} NAME_WE)
@@ -637,7 +636,6 @@ if (BUILD_TESTING)
             # Set the output directory and remove the default "lib" prefix
             set_target_properties(${LIB_NAME} PROPERTIES
                 PREFIX ""
-                LIBRARY_OUTPUT_DIRECTORY ${LIBRARY_OUTPUT_DIRECTORY}
             )
             target_compile_options(${LIB_NAME} PRIVATE
                 -fPIC
@@ -658,12 +656,6 @@ if (BUILD_TESTING)
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
                 -fsanitize=fuzzer -lstdc++
-            )
-
-            # Set the output directory for the fuzzing binaries
-            set(FUZZ_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz")
-            set_target_properties(${TEST_NAME} PROPERTIES
-                RUNTIME_OUTPUT_DIRECTORY ${FUZZ_BIN_DIR}
             )
 
             add_test(NAME ${TEST_NAME}
