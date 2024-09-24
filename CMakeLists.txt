@@ -482,13 +482,11 @@ if (BUILD_TESTING)
         --undef-value-errors=no \
         --suppressions=valgrind.suppressions")
 
-    set(VALGRIND_PENDANTIC "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
-
     # "pedantic valgrind" will error on memory that is "Still Reachable". 
     # We only run this on OpenSSL 1.1.1 because there are hundreds of false positives in other libcryptos.
     # Tracking issue: https://github.com/aws/s2n-tls/issues/4777
     if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
-        set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_PENDANTIC})
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
     else()
         set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_DEFAULT})
     endif()

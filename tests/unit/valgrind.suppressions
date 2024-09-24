@@ -2,35 +2,24 @@
 # Without these suppressions, the following tests will fail:
 # s2n_examples_test, s2n_fork_generation_number_test, s2n_init_test, s2n_key_update_threads_test, and s2n_random_test.
 {
-   pthread_false_positive_glibc_2_2_5
+   pthread_false_positive
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
+   ...
    fun:allocate_dtv
    fun:_dl_allocate_tls
    fun:allocate_stack
-   fun:pthread_create@@GLIBC_2.2.5
-   fun:main
-}
-{
-   pthread_false_positive_glibc_2_34
-   Memcheck:Leak
-   match-leak-kinds: possible
-   fun:calloc
-   fun:calloc
-   fun:allocate_dtv
-   fun:_dl_allocate_tls
-   fun:allocate_stack
-   fun:pthread_create@@GLIBC_2.34
+   fun:pthread_create@@*
    ...
    fun:main
 }
 
-# > backtrace() and backtrace_symbols_fd() don't call malloc()
-# > explicitly, but they are part of libgcc, which gets loaded
-# > dynamically when first used.  Dynamic loading usually triggers
-# > a call to [malloc(3)](https://man7.org/linux/man-pages/man3/malloc.3.html).
 # https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
+#  backtrace() and backtrace_symbols_fd() don't call malloc()
+#  explicitly, but they are part of libgcc, which gets loaded
+#  dynamically when first used.  Dynamic loading usually triggers
+#  a call to [malloc(3)](https://man7.org/linux/man-pages/man3/malloc.3.html).
 {
    stacktrace_suppression
    Memcheck:Leak
