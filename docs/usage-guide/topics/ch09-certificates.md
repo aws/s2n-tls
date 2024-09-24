@@ -45,13 +45,11 @@ TLS servers will often serve multiple domains from a single IP address, with eac
 
 #### Server configuration
 
-Certificates loaded with `s2n_config_add_cert_chain_and_key_to_store()` are automatically associated with each domain indicated in the certificate's Subject Alternative Name (SAN) field. If a loaded certificate doesn't contain a SAN field, the Common Name (CN) field is used instead. While negotiating a TLS connection, s2n-tls servers will automatically send clients a loaded certificate that matches the value of the client's SNI extension.
+Each certificate loaded with `s2n_config_add_cert_chain_and_key_to_store()` is automatically associated with every domain name listed in its Subject Alternative Name (SAN) field. The domain names listed in the Common Name (CN) field are used instead if the certificate doesn't contain an SAN field. s2n-tls servers automatically send a certificate that matches the value of the client's SNI extension during the TLS handshake.
 
-s2n-tls allows servers to load a maximum of 1 certificate chain per domain, per certificate type (RSA, RSA-PSS, and ECDSA). If a certificate is loaded that specifies a domain that has already been associated with an existing certificate, the existing certificate will remain associated with the overlapping domain. The `s2n_cert_tiebreak_callback` can be used to customize this behavior.
+s2n-tls servers allow a maximum of 1 certificate to be loaded per domain, per certificate type (RSA, RSA-PSS, ECDSA). By default, a newly loaded certificate with an overlapping domain name will not replace the existing certificate associated with that domain. The `s2n_cert_tiebreak_callback` may be implemented to customize which certificate is selected when an overlapping domain is encountered.
 
-When selecting a certificate to send to the client, s2n-tls servers will prefer an exact SNI match before falling back to a certificate with an associated wildcard domain (a domain starting with "*.", covering all subdomains).
-
-If no exact match or wildcard match exists, or if the client doesn't send an SNI extension, a default certificate is sent to the client. A default certificate is set when `s2n_config_add_cert_chain_and_key_to_store()` is called for the first time for a given certificate type (RSA, RSA-PSS, or ECDSA). `s2n_config_set_cert_chain_and_key_defaults()` can be used to override the default certificates.
+When selecting a certificate to send to the client, s2n-tls servers prefer an exact SNI match before falling back to a certificate with an associated wildcard domain (a domain starting with "*.", covering all subdomains). A default certificate is selected if no SNI match exists, or if the client doesn't send an SNI extension. A default certificate is set when `s2n_config_add_cert_chain_and_key_to_store()` is called for the first time for a given certificate type (RSA, RSA-PSS, ECDSA). `s2n_config_set_cert_chain_and_key_defaults()` may be used to override the default certificates.
 
 ## Client / Mutual Authentication
 

@@ -850,7 +850,7 @@ S2N_API extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config 
  * @note The trust store will be initialized with the common locations for the host
  * operating system by default.
  *
- * @warning This API will use the PEM parsing implementation from the linked libcrypto. This
+ * @warning This API uses the PEM parsing implementation from the linked libcrypto. This
  * implementation will typically make a best-effort attempt to parse all of the certificates in the
  * provided file or directory. This permissive approach may silently ignore malformed certificates,
  * leading to possible connection failures if a certificate was expected to exist in the trust
@@ -873,13 +873,13 @@ S2N_API extern int s2n_config_set_verification_ca_location(struct s2n_config *co
  * system certificates. To completely override these certificates, call
  * `s2n_config_wipe_trust_store()` before calling this function.
  *
- * @note This API will use the s2n-tls PEM parsing implementation, which is more strict than
- * typical libcrypto implementations such as OpenSSL. If any unexpected data is encountered while
- * parsing `pem`, an error will be returned. This allows applications to be made aware of any
- * malformed certificates rather than attempting to negotiate with a partial trust store. However,
- * some PEMs may need to be loaded that are not under the control of the application, such as
- * system trust stores. In this case, `s2n_config_set_verification_ca_location()` may be used,
- * which performs more widely compatible and permissive parsing from the linked libcrypto.
+ * @note This API uses the s2n-tls PEM parsing implementation, which is more strict than typical
+ * libcrypto implementations such as OpenSSL. An error is returned if any unexpected data is
+ * encountered while parsing `pem`. This allows applications to be made aware of any malformed
+ * certificates rather than attempt to negotiate with a partial trust store. However, some PEMs may
+ * need to be loaded that are not under control of the application, such as system trust stores. In
+ * this case, `s2n_config_set_verification_ca_location()` may be used, which performs more widely
+ * compatible and permissive parsing from the linked libcrypto.
  *
  * @param config The configuration object being updated
  * @param pem The string value of the PEM certificate.
