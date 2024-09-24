@@ -187,7 +187,7 @@ batch:
           S2N_LIBCRYPTO: openssl-3.0
           TESTS: unit
       identifier: s2nUnitOpenssl3Gcc9
-    - buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
         image: aws/codebuild/amazonlinux2-aarch64-standard:2.0
@@ -196,7 +196,7 @@ batch:
         variables:
           TESTS: unit
       identifier: s2nUnitAl2Arm
-    - buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
         image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
@@ -205,7 +205,7 @@ batch:
           TESTS: unit
           S2N_LIBCRYPTO: default
       identifier: s2nUnitAL2
-    - buildspec: codebuild/spec/buildspec_amazonlinux2.yml
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
         image: aws/codebuild/amazonlinux2-x86_64-standard:3.0
@@ -214,6 +214,25 @@ batch:
           TESTS: unit
           S2N_LIBCRYPTO: openssl-1.1.1
       identifier: s2nUnitAl2Openssl111
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: aws/codebuild/amazonlinux2-x86_64-standard:5.0
+        privileged-mode: true
+        variables:
+          TESTS: unit
+          S2N_LIBCRYPTO: openssl-3.0
+      identifier: UnitAl2023x86Openssl30
+    - buildspec: codebuild/spec/buildspec_amazonlinux.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: aws/codebuild/amazonlinux2-aarch64-standard:3.0
+        privileged-mode: true
+        type: ARM_CONTAINER
+        variables:
+          TESTS: unit
+          S2N_LIBCRYPTO: openssl-3.0
+      identifier: UnitAl2023armOpenssl30
     - buildspec: codebuild/spec/buildspec_ubuntu.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE

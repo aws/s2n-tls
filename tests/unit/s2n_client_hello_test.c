@@ -759,7 +759,7 @@ int main(int argc, char **argv)
             struct s2n_connection *conn = NULL;
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
             EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "default"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(conn, "20240501"));
 
             const struct s2n_security_policy *security_policy = NULL;
             POSIX_GUARD(s2n_connection_get_security_policy(conn, &security_policy));
