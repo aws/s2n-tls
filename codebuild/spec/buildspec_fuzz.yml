@@ -13,40 +13,6 @@
 # limitations under the License.
 version: 0.2
 
-# This buildspec runs on an Ubuntu22 image. That configuration is a property of
-# the codebuild job itself.
-
-# Codebuild's matrix jobs have non-differentiated names so use batch-list
-# instead.
-
-# Parameter motivation
-
-# LIBCRYPTOS
-# awslc: happy path libcrypto for s2n-tls
-# openssl 3: s2n-tls takes different code paths for ossl3, so make sure we run 
-#            asan on it. See pr 4033 for a historical motivating example.
-
-batch:
-  build-list:
-    - identifier: clang_awslc
-      debug-session: true
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        privileged-mode: true
-        variables:
-          S2N_LIBCRYPTO: awslc
-          COMPILER: clang
-    - identifier: clang_openssl_3_0
-      debug-session: true
-      env:
-        compute-type: BUILD_GENERAL1_XLARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
-        privileged-mode: true
-        variables:
-          S2N_LIBCRYPTO: openssl-3.0
-          COMPILER: clang
-
 phases:
   pre_build:
     commands:
@@ -60,9 +26,8 @@ phases:
     commands:
       - |
         cmake . -Bbuild \
-        -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-        -DS2N_FUZZ_TEST=on \
-        -DLIBFUZZER_LIB=/usr/local/libfuzzer/lib/libFuzzer.a
+        -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
+        -DS2N_FUZZ_TEST=on
       - cmake --build ./build -- -j $(nproc)
   post_build:
     on-failure: ABORT

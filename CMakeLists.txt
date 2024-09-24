@@ -39,6 +39,7 @@ option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
 option(S2N_USE_CRYPTO_SHARED_LIBS "For S2N to use shared libs in Findcrypto" OFF)
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
+option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
 
 # Turn BUILD_TESTING=ON by default
 include(CTest)
@@ -184,8 +185,8 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_FUZZ_TEST)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
-    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize-coverage=trace-pc-guard -fsanitize=leak)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak)
 endif()
 
 if(TSAN)
@@ -452,6 +453,11 @@ if (BUILD_TESTING)
     target_include_directories(testss2n PUBLIC tests)
     target_compile_options(testss2n PRIVATE -std=gnu99)
     target_link_libraries(testss2n PUBLIC ${PROJECT_NAME})
+    if (SECCOMP)
+        message(STATUS "Linking tests with seccomp")
+        target_link_libraries(testss2n PRIVATE seccomp)
+        target_compile_definitions(testss2n PRIVATE SECCOMP)
+    endif()
 
     if (S2N_INTERN_LIBCRYPTO)
         # if libcrypto was interned, rewrite libcrypto symbols so use of internal functions will link correctly
@@ -602,10 +608,6 @@ if (BUILD_TESTING)
         target_link_libraries(fuzztest PUBLIC ${PROJECT_NAME})
 
         # Set default values for fuzzing if not defined
-        if(NOT DEFINED LIBFUZZER_LIB)
-            message(FATAL_ERROR "LIBFUZZER_LIB is not defined. Please set it to the path of your libFuzzer.a.")
-        endif()
-        
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
             set(FUZZ_TIMEOUT_SEC 60)
         endif()
@@ -655,8 +657,7 @@ if (BUILD_TESTING)
             )
             target_link_libraries(${TEST_NAME} PRIVATE 
                 fuzztest
-                ${LIBFUZZER_LIB}  # Manually link old libFuzzer.a
-                -lstdc++
+                -fsanitize=fuzzer -lstdc++
             )
 
             # Set the output directory for the fuzzing binaries
