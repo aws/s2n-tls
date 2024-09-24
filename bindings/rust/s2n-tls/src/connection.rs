@@ -468,16 +468,17 @@ impl Connection {
         F: FnOnce(&mut Self) -> Result<T, Error>,
     {
         let mode = self.mode();
-        unsafe {
-            // Wiping the connection will wipe the pointer to the context,
-            // so retrieve and drop that memory first.
-            let ctx = self.context_mut();
-            drop(Box::from_raw(ctx));
 
-            wipe(self)
-        }?;
+        // Safety:
+        // We re-init the context after the wipe
+        unsafe { self.drop_context()? };
 
+        let result = wipe(self);
+        // We must initialize the context again whether or not wipe succeeds.
+        // A connection without a context is invalid, and will fail to Drop.
         self.init_context(mode);
+        result?;
+
         Ok(())
     }
 
@@ -791,6 +792,21 @@ impl Connection {
                 .unwrap();
             &*(ctx.as_ptr() as *mut Context)
         }
+    }
+
+    /// Drop the context
+    ///
+    /// SAFETY:
+    /// A connection without a context is invalid. After calling this method
+    /// from anywhere other than Drop, you must reinitialize the context.
+    unsafe fn drop_context(&mut self) -> Result<(), Error> {
+        let ctx = self.context_mut();
+        drop(Box::from_raw(ctx));
+        // Setting a NULL context is important: if we don't also remove the context
+        // from the connection, than the invalid memory is still accessible and
+        // may even be double-freed.
+        s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut()).into_result()?;
+        Ok(())
     }
 
     /// Mark that the server_name extension was used to configure the connection.
@@ -1253,10 +1269,7 @@ impl Drop for Connection {
         // ignore failures since there's not much we can do about it
         unsafe {
             // clean up context
-            let prev_ctx = self.context_mut();
-            drop(Box::from_raw(prev_ctx));
-            let _ = s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut())
-                .into_result();
+            let _ = self.drop_context();
 
             // cleanup config
             let _ = self.drop_config();
