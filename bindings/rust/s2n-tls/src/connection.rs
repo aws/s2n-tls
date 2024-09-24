@@ -805,7 +805,7 @@ impl Connection {
             drop(Box::from_raw(ctx.as_ptr()));
         }
         // Setting a NULL context is important: if we don't also remove the context
-        // from the connection, than the invalid memory is still accessible and
+        // from the connection, then the invalid memory is still accessible and
         // may even be double-freed.
         s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut()).into_result()?;
         Ok(())
