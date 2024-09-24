@@ -475,7 +475,7 @@ impl Connection {
 
         let result = wipe(self);
         // We must initialize the context again whether or not wipe succeeds.
-        // A connection without a context is invalid, and will fail to Drop.
+        // A connection without a context is invalid and has undefined behavior.
         self.init_context(mode);
         result?;
 
@@ -800,8 +800,10 @@ impl Connection {
     /// A connection without a context is invalid. After calling this method
     /// from anywhere other than Drop, you must reinitialize the context.
     unsafe fn drop_context(&mut self) -> Result<(), Error> {
-        let ctx = self.context_mut();
-        drop(Box::from_raw(ctx));
+        let ctx = s2n_connection_get_ctx(self.connection.as_ptr()).into_result();
+        if let Ok(ctx) = ctx {
+            drop(Box::from_raw(ctx.as_ptr()));
+        }
         // Setting a NULL context is important: if we don't also remove the context
         // from the connection, than the invalid memory is still accessible and
         // may even be double-freed.
