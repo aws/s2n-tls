@@ -633,13 +633,6 @@ if (BUILD_TESTING)
                 ${CMAKE_CURRENT_SOURCE_DIR}
                 ${CMAKE_CURRENT_SOURCE_DIR}/api
             )
-            # Set the output directory and remove the default "lib" prefix
-            set_target_properties(${LIB_NAME} PROPERTIES
-                PREFIX ""
-            )
-            target_compile_options(${LIB_NAME} PRIVATE
-                -fPIC
-            )
         endforeach()
 
         set(CMAKE_C_COMPILER clang)
@@ -660,8 +653,6 @@ if (BUILD_TESTING)
 
             add_test(NAME ${TEST_NAME}
                     COMMAND ${CMAKE_COMMAND} -E env
-                        DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
-                        LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
                         bash ${SCRIPT_PATH} ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC} ${ARTIFACT_UPLOAD_LOC}
                     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz)
             set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")

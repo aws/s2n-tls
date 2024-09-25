@@ -47,8 +47,8 @@ UBSAN_OPTIONS+="print_stacktrace=1"
 NUM_CPU_THREADS=$(nproc)
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
-TEST_SPECIFIC_OVERRIDES="${PWD}/../../build/lib/${TEST_NAME}_overrides.so"
-GLOBAL_OVERRIDES="${PWD}/../../build/lib/global_overrides.so"
+TEST_SPECIFIC_OVERRIDES="${PWD}/../../build/lib/lib${TEST_NAME}_overrides.so"
+GLOBAL_OVERRIDES="${PWD}/../../build/lib/libglobal_overrides.so"
 
 FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
