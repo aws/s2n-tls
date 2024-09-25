@@ -574,6 +574,15 @@ S2N_RESULT s2n_config_validate_loaded_certificates(const struct s2n_config *conf
         return S2N_RESULT_OK;
     }
 
+    /* Duplicates a check in s2n_security_policy_validate_certificate_chain.
+     * If a large number of certificates are configured, even iterating
+     * over the chains to call s2n_security_policy_validate_certificate_chain
+     * could be prohibitively expensive.
+     */
+    if (!security_policy->certificate_preferences_apply_locally) {
+        return S2N_RESULT_OK;
+    }
+
     /* validate the default certs */
     for (int i = 0; i < S2N_CERT_TYPE_COUNT; i++) {
         struct s2n_cert_chain_and_key *cert = config->default_certs_by_type.certs[i];

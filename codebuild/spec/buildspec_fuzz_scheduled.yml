@@ -1,0 +1,88 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+batch:
+  build-matrix:
+    static:
+      env:
+        privileged-mode: true
+    dynamic:
+      env:
+        compute-type:
+          - BUILD_GENERAL1_LARGE
+        image:
+          - 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: 
+            - awslc
+          FUZZ_TESTS:
+            - "s2n_cert_req_recv_test"
+            - "s2n_certificate_extensions_parse_test"
+            - "s2n_client_ccs_recv_test"
+            - "s2n_client_cert_recv_test"
+            - "s2n_client_cert_verify_recv_test"
+            - "s2n_client_finished_recv_test"
+            - "s2n_client_fuzz_test"
+            - "s2n_client_hello_recv_fuzz_test"
+            - "s2n_client_key_recv_fuzz_test"
+            - "s2n_deserialize_resumption_state_test"
+            - "s2n_encrypted_extensions_recv_test"
+            - "s2n_extensions_client_key_share_recv_test"
+            - "s2n_extensions_client_supported_versions_recv_test"
+            - "s2n_extensions_server_key_share_recv_test"
+            - "s2n_extensions_server_supported_versions_recv_test"
+            - "s2n_hybrid_ecdhe_kyber_r3_fuzz_test"
+            - "s2n_kyber_r3_recv_ciphertext_fuzz_test"
+            - "s2n_kyber_r3_recv_public_key_fuzz_test"
+            - "s2n_memory_leak_negative_test"
+            - "s2n_openssl_diff_pem_parsing_test"
+            - "s2n_recv_client_supported_groups_test"
+            - "s2n_select_server_cert_test"
+            - "s2n_server_ccs_recv_test"
+            - "s2n_server_cert_recv_test"
+            - "s2n_server_extensions_recv_test"
+            - "s2n_server_finished_recv_test"
+            - "s2n_server_fuzz_test"
+            - "s2n_server_hello_recv_test"
+            - "s2n_stuffer_pem_fuzz_test"
+            - "s2n_tls13_cert_req_recv_test"
+            - "s2n_tls13_cert_verify_recv_test"
+            - "s2n_tls13_client_finished_recv_test"
+            - "s2n_tls13_server_finished_recv_test"
+
+phases:
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+  build:
+    on-failure: ABORT
+    commands:
+      - |
+        cmake . -Bbuild \
+        -DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
+        -DS2N_FUZZ_TEST=on \
+        -DFUZZ_TIMEOUT_SEC=27000
+      - cmake --build ./build -- -j $(nproc)
+  post_build:
+    on-failure: ABORT
+    commands:
+      # -L: Restrict tests to labels matching the pattern 'fuzz'
+      # -R: Run the single fuzz test defined in ${FUZZ_TESTS}
+      # --timeout: override ctest's default timeout of 1500
+      - cmake --build build/ --target test -- ARGS="-L fuzz -R ${FUZZ_TESTS} --output-on-failure --timeout 28800"
