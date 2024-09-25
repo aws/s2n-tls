@@ -20,6 +20,7 @@ all: libs2n.a libs2n.so libs2n.dylib
 
 include ../s2n.mk
 
+# i think we should keep this until coverage is enabled for cmake?
 ifeq ($(FUZZ_COVERAGE), true)
 	FUZZCOV_FLAGS = -fprofile-instr-generate -fcoverage-mapping
 endif

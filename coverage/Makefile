@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 #
-
+# i think we can keep this to make clean?
 include ../s2n.mk
 
 .PHONY : clean

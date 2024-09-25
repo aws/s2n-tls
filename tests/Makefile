@@ -43,11 +43,6 @@ libs:
 integrationv2:
 	${MAKE} -C integrationv2
 
-.PHONY : fuzz
-fuzz:
-	${MAKE} -C testlib
-	${MAKE} -C fuzz
-
 .PHONY : viz
 viz:
 	${MAKE} -C viz
@@ -59,7 +54,6 @@ clean: decruft
 	${MAKE} -C testlib decruft
 	${MAKE} -C LD_PRELOAD decruft
 	${MAKE} -C unit clean
-	${MAKE} -C fuzz clean
 	${MAKE} -C viz clean
 	${MAKE} -C saw decruft
 
