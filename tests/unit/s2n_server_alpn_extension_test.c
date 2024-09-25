@@ -120,6 +120,32 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(server_conn));
     };
 
+    /* Send and receive maximum-sized alpn */
+    {
+        const uint8_t max_size = UINT8_MAX;
+
+        DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(client);
+        EXPECT_NULL(s2n_get_application_protocol(client));
+
+        DEFER_CLEANUP(struct s2n_connection *server = s2n_connection_new(S2N_SERVER),
+                s2n_connection_ptr_free);
+        EXPECT_NOT_NULL(server);
+        memset(server->application_protocol, 'a', sizeof(server->application_protocol) - 1);
+
+        DEFER_CLEANUP(struct s2n_stuffer stuffer = { 0 }, s2n_stuffer_free);
+        EXPECT_SUCCESS(s2n_stuffer_growable_alloc(&stuffer, 0));
+        EXPECT_SUCCESS(s2n_server_alpn_extension.send(server, &stuffer));
+        EXPECT_SUCCESS(s2n_server_alpn_extension.recv(client, &stuffer));
+        EXPECT_EQUAL(s2n_stuffer_data_available(&stuffer), 0);
+
+        const char *client_alpn = s2n_get_application_protocol(client);
+        EXPECT_NOT_NULL(client_alpn);
+        EXPECT_EQUAL(strlen(client_alpn), max_size);
+        EXPECT_STRING_EQUAL(client_alpn, server->application_protocol);
+    };
+
     END_TEST();
     return 0;
 }
