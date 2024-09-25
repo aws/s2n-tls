@@ -612,16 +612,16 @@ if (BUILD_TESTING)
             set(FUZZ_TIMEOUT_SEC 60)
         endif()
 
-        if(NOT DEFINED CORPUS_UPLOAD_LOC)
+        if(DEFINED ENV{CORPUS_UPLOAD_LOC})
+            set(CORPUS_UPLOAD_LOC $ENV{CORPUS_UPLOAD_LOC})
+        else()
             set(CORPUS_UPLOAD_LOC "none")
         endif()
 
-        if(NOT DEFINED ARTIFACT_UPLOAD_LOC)
+        if(DEFINED ENV{ARTIFACT_UPLOAD_LOC})
+            set(ARTIFACT_UPLOAD_LOC $ENV{ARTIFACT_UPLOAD_LOC})
+        else()
             set(ARTIFACT_UPLOAD_LOC "none")
-        endif()
-
-        if(NOT DEFINED FUZZ_TESTS)
-            set(FUZZ_TESTS "${TESTS}")
         endif()
 
         # Build LD_PRELOAD shared libraries
