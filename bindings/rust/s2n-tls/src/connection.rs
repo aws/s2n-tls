@@ -802,7 +802,7 @@ impl Connection {
     unsafe fn drop_context(&mut self) -> Result<(), Error> {
         let ctx = s2n_connection_get_ctx(self.connection.as_ptr()).into_result();
         if let Ok(ctx) = ctx {
-            drop(Box::from_raw(ctx.as_ptr()));
+            drop(Box::from_raw(ctx.as_ptr() as *mut Context));
         }
         // Setting a NULL context is important: if we don't also remove the context
         // from the connection, then the invalid memory is still accessible and
