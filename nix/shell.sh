@@ -161,7 +161,7 @@ function test_nonstandard_compilation {(set -e
     ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
 )}
 
-function apache2_config(){(set -e
+function apache2_config(){
     export APACHE_NIX_STORE=$(dirname $(dirname $(which httpd)))
     export APACHE2_INSTALL_DIR=/usr/local/apache2
     export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
@@ -173,7 +173,7 @@ function apache2_config(){(set -e
     export APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock"
     export APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log"
     export APACHE_CERT_DIR="$SRC_ROOT/tests/pems"
-)}
+}
 
 function apache2_start(){(set -e
     if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
