@@ -47,7 +47,7 @@ jobs:
       - name: Tests
         working-directory: ${{env.ROOT_PATH}}
         # Test all features except for FIPS, which is tested separately.
-        run: cargo test --features unstable-fingerprint,unstable-ktls,quic,pq
+        run: cargo test --features unstable-renegotiate,unstable-fingerprint,unstable-ktls,quic,pq
 
       # Ensure that all tests pass with the default feature set
       - name: Default Tests
