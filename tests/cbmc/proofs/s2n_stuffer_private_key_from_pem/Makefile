@@ -52,5 +52,6 @@ UNWINDSET += strlen.0:5 # size of S2N_PEM_PKCS1_RSA_PRIVATE_KEY
 UNWINDSET += strncmp.0:5 # size of S2N_PEM_END_TOKEN
 UNWINDSET += __CPROVER_file_local_s2n_stuffer_pem_c_s2n_stuffer_pem_read_contents.11:$(call addone,$(MAX_BLOB_SIZE))
 UNWINDSET += s2n_stuffer_skip_to_char.0:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET += s2n_stuffer_skip_read_until.10:$(call addone,$(MAX_BLOB_SIZE))
 
 include ../Makefile.common
