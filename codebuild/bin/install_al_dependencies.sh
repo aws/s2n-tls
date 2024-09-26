@@ -94,7 +94,6 @@ versions(){
     gcc --version
     cmake --version
     python3 --version
-    ninja --version
 }
 
 if [[ ${DISTRO} != "amazon linux" ]]; then
