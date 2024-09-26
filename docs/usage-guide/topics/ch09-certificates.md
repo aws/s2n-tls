@@ -37,7 +37,7 @@ A client can add restrictions on the certificate’s hostname by setting a custo
 
 ### SNI
 
-TLS servers will often serve multiple domains from a single IP address, with each domain potentially requiring its own certificate. When a TLS client receives a server's certificate, it will check to ensure that it was issued for the domain that it's connecting to. As such, the server needs to know which domain the client is connecting to in order to send the correct certificate. This information is communicated to the server via the Server Name Indication (SNI) extension.
+TLS servers will often serve multiple domains from a single IP address, with each domain potentially requiring its own certificate. When a TLS client receives a server's certificate, it will check to ensure that it was issued for the domain that the client is connecting to. As such, the server needs to know which domain the client is connecting to in order to send the correct certificate. This information is communicated to the server via the Server Name Indication (SNI) extension.
 
 #### Client configuration
 
