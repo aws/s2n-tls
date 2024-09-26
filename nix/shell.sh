@@ -175,7 +175,7 @@ function apache2_config(){
     export APACHE_CERT_DIR="$SRC_ROOT/tests/pems"
 }
 
-function apache2_start(){(set -e
+function apache2_start(){
     if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
         apache2_config
         if [[ ! -f "$APACHE2_INSTALL_DIR/conf/apache2.conf" ]]; then
@@ -190,4 +190,4 @@ function apache2_start(){(set -e
     else
       echo "Apache is already running...and if \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
     fi
-)}
+}
