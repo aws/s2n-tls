@@ -4,12 +4,12 @@
 use anyhow::*;
 use bytes::Buf;
 use bytes::Bytes;
+use rtshark::RTSharkBuilder;
 use semver::Version;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::copy;
 use std::path::Path;
-use std::process::Command;
 use std::thread;
 use std::time::Duration;
 
@@ -28,10 +28,7 @@ fn get_download_urls() -> HashMap<String, String> {
         "latest.pcapng",
         "macos_tcp_flags.pcap",
         "tls-alpn-h2.pcap",
-        // TODO: non-ascii alpn handling currently differs between implementations,
-        // with no official consensus. Wireshark chose different handling than s2n-tls did.
-        // See https://github.com/FoxIO-LLC/ja4/pull/147
-        // "tls-non-ascii-alpn.pcapng",
+        "tls-non-ascii-alpn.pcapng",
         "tls12.pcap",
         "tls3.pcapng",
     ];
@@ -104,12 +101,8 @@ fn download(url: &str) -> Result<Bytes> {
 }
 
 fn assert_tshark_version() -> Result<()> {
-    let output = Command::new("tshark").args(["--version"]).output();
-    let version = output.ok().and_then(|output| {
-        let message = std::str::from_utf8(&output.stdout).ok();
-        message.and_then(|msg| msg.split_whitespace().find_map(|s| Version::parse(s).ok()))
-    });
-
+    let version_info = RTSharkBuilder::builder().version()?;
+    let version = version_info.version();
     // Version requirements:
     // 1. tshark >= 3.7.0 is required for JA3 support
     //    JA3 support was added to earlier versions, but did not correctly ignore grease values.
@@ -120,17 +113,13 @@ fn assert_tshark_version() -> Result<()> {
     // 3. tshark >= 4.2.0 is required for JA4 support.
     //    See https://gitlab.com/wireshark/wireshark/-/commit/fd19f0d06f96b9934e3cd5b9889b2f83d3567fce
     let min_version = Version::new(4, 2, 0);
-    if let Some(version) = version {
-        assert!(
-            version >= min_version,
-            "tshark {} required. tshark {} found",
-            min_version,
-            version
-        );
-        println!("tshark version: {}", version);
-    } else {
-        println!("cargo:warning=Unable to determine tshark version");
-    }
+    assert!(
+        version >= &min_version,
+        "tshark {} required. tshark {} found.",
+        min_version,
+        version
+    );
+    println!("tshark version: {}", version);
     Ok(())
 }
 
