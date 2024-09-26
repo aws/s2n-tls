@@ -13,25 +13,37 @@
 # permissions and limitations under the License.
 #
 
-set -e
+set -eu
 
 source codebuild/bin/s2n_setup_env.sh
+# Used to test if we're running in CodeBuild
+CODEBUILD_BUILD_ARN_="${CODEBUILD_BUILD_ARN:-}"
+
+if [[ ${DISTRO} != "amazon linux" ]]; then
+    echo "Target Amazon Linux, but running on $DISTRO: Nothing to do."
+    exit 1;
+else
+    # AL2023 case
+    BUILD_FLAGS="-DCMAKE_BUILD_TYPE=RelWithDebInfo"
+    # AL2 case; Linker flags are a workaround for system openssl
+    if [[ ${VERSION_ID} == '2' ]]; then
+       BUILD_FLAGS=$(echo -e '-DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" \
+         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True')
+    fi
+fi
 
 # Use prlimit to set the memlock limit to unlimited for linux. OSX is unlimited by default
 # Codebuild Containers aren't allowing prlimit changes (and aren't being caught with the usual cgroup check)
-if [[ "$OS_NAME" == "linux" && -n "$CODEBUILD_BUILD_ARN" ]]; then
-    PRLIMIT_LOCATION=`which prlimit`
+if [[ "$OS_NAME" == "linux" && -z "$CODEBUILD_BUILD_ARN_" ]]; then
+    PRLIMIT_LOCATION=$(which prlimit)
     sudo -E ${PRLIMIT_LOCATION} --pid "$$" --memlock=unlimited:unlimited;
 fi
 
-# Linker flags are a workaround for openssl
 case "$TESTS" in
   "unit")
-    cmake . -Bbuild -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-      -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True
-    cmake --build ./build -j $(nproc)
-    CTEST_PARALLEL_LEVEL=$(nproc) cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
+    eval cmake . -Bbuild "${BUILD_FLAGS}"
+    cmake --build ./build -j "$(nproc)"
+    CTEST_PARALLEL_LEVEL="$(nproc)" cmake --build ./build --target test -- ARGS="-L unit --output-on-failure"
     ;;
   *) echo "Unknown test"; exit 1;;
 esac
-

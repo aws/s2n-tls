@@ -15,8 +15,8 @@ phases:
         if [ -d "third-party-src" ]; then
           cd third-party-src;
         fi
-      - ./codebuild/bin/install_al2_dependencies.sh
+      - ./codebuild/bin/install_al_dependencies.sh
   build:
     commands:
       - printenv
-      - $CB_BIN_DIR/s2n_codebuild_al2.sh
+      - $CB_BIN_DIR/s2n_codebuild_al.sh
