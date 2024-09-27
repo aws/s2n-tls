@@ -148,6 +148,7 @@ mod tests {
             ConnectionFuture, ConnectionFutureResult, PrivateKeyCallback, PrivateKeyOperation,
         },
         config::ConnectionInitializer,
+        error::ErrorSource,
         testing::{CertKeyPair, InsecureAcceptAllCertificatesHandler, TestPair, TestPairIO},
     };
     use foreign_types::ForeignTypeRef;
@@ -613,6 +614,16 @@ mod tests {
         let server_name = pair.server.ssl().servername(NameType::HOST_NAME);
         assert_eq!(Some(expected_server_name), server_name);
 
+        Ok(())
+    }
+
+    #[test]
+    fn wipe_for_renegotiate_failure() -> Result<(), Box<dyn Error>> {
+        let mut connection = Connection::new_server();
+        // Servers can't renegotiate
+        let error = connection.wipe_for_renegotiate().unwrap_err();
+        assert_eq!(error.source(), ErrorSource::Library);
+        assert_eq!(error.name(), "S2N_ERR_NO_RENEGOTIATION");
         Ok(())
     }
 }
