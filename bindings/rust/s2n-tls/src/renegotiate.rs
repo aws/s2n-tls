@@ -216,8 +216,8 @@ impl Connection {
     ///
     /// The set of configuration values that are not wiped may change in the future.
     /// Therefore if you specifically need certain connection configuration values
-    /// wiped during renegotiation, then you should wipe them yourself using this
-    /// callback.
+    /// wiped during renegotiation, then you should wipe them yourself in
+    /// [RenegotiateCallback::on_renegotiate_wipe()].
     pub fn wipe_for_renegotiate(&mut self) -> Result<(), Error> {
         // Check for buffered data in order to surface more specific
         // error messages to the application.
