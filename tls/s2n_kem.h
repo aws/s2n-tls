@@ -82,6 +82,7 @@ struct s2n_kem_group {
     uint16_t iana_id;
     const struct s2n_ecc_named_curve *curve;
     const struct s2n_kem *kem;
+    bool send_kem_first;
 };
 
 struct s2n_kem_group_params {

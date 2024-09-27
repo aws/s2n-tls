@@ -117,8 +117,14 @@ int s2n_tls13_compute_pq_hybrid_shared_secret(struct s2n_connection *conn, struc
     POSIX_GUARD(s2n_alloc(shared_secret, hybrid_shared_secret_size));
     struct s2n_stuffer stuffer_combiner = { 0 };
     POSIX_GUARD(s2n_stuffer_init(&stuffer_combiner, shared_secret));
-    POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
-    POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
+
+    if (negotiated_kem_group->send_kem_first) {
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
+    } else {
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, &ecdhe_shared_secret));
+        POSIX_GUARD(s2n_stuffer_write(&stuffer_combiner, pq_shared_secret));
+    }
 
     return S2N_SUCCESS;
 }

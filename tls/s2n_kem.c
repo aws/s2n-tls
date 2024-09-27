@@ -100,18 +100,13 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
  *
  * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
  * https://datatracker.ietf.org/doc/draft-kwiatkowski-tls-ecdhe-mlkem/
- *
- * The structure of the hybrid share is:
- *    size of ECC key share (2 bytes)
- * || ECC key share (variable bytes)
- * || size of PQ key share (2 bytes)
- * || PQ key share (variable bytes)
  */
 const struct s2n_kem_group s2n_secp256r1_mlkem_768 = {
     .name = "SecP256r1MLKEM768",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_MLKEM_768,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_mlkem_768,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_x25519_mlkem_768 = {
@@ -119,6 +114,9 @@ const struct s2n_kem_group s2n_x25519_mlkem_768 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_MLKEM_768,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_mlkem_768,
+    /* ML-KEM KeyShare should always be sent first according to the RFC for X25519MLKEM768.
+     * https://datatracker.ietf.org/doc/html/draft-kwiatkowski-tls-ecdhe-mlkem-02#name-negotiated-groups */
+    .send_kem_first = 1,
 };
 
 /* Specific assignments of KEM group IDs and names for the Kyber algorithm have
@@ -135,6 +133,7 @@ const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_512_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
@@ -142,6 +141,7 @@ const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_768_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
@@ -149,6 +149,7 @@ const struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp384r1,
     .kem = &s2n_kyber_768_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
@@ -156,6 +157,7 @@ const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3,
     .curve = &s2n_ecc_curve_secp521r1,
     .kem = &s2n_kyber_1024_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
@@ -163,6 +165,7 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_512_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
@@ -170,6 +173,7 @@ const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_768_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {

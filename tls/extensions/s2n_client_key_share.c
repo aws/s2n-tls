@@ -122,8 +122,13 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
 
-    POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
-    POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+    if (kem_group_params->kem_group->send_kem_first) {
+        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+    } else {
+        POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
+        POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
+    }
 
     POSIX_GUARD(s2n_stuffer_write_vector_size(&total_share_size));
 
@@ -294,6 +299,25 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
     return S2N_SUCCESS;
 }
 
+static int s2n_client_key_share_recv_hybrid_partial_ecc(struct s2n_stuffer *key_share, struct s2n_kem_group_params *new_client_params)
+{
+    const struct s2n_kem_group *kem_group = new_client_params->kem_group;
+
+    if (new_client_params->kem_params.len_prefixed) {
+        uint16_t ec_share_size = 0;
+        POSIX_GUARD(s2n_stuffer_read_uint16(key_share, &ec_share_size));
+        POSIX_ENSURE(ec_share_size == kem_group->curve->share_size, S2N_ERR_SIZE_MISMATCH);
+    }
+
+    POSIX_GUARD(s2n_client_key_share_parse_ecc(key_share, kem_group->curve, &new_client_params->ecc_params));
+
+    /* If we were unable to parse the EC portion of the share, negotiated_curve
+     * will be NULL, and we should ignore the entire key share. */
+    POSIX_ENSURE_REF(new_client_params->ecc_params.negotiated_curve);
+
+    return S2N_SUCCESS;
+}
+
 static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, struct s2n_stuffer *key_share, uint16_t kem_group_iana_id)
 {
     POSIX_ENSURE_REF(conn);
@@ -360,33 +384,29 @@ static int s2n_client_key_share_recv_pq_hybrid(struct s2n_connection *conn, stru
 
     bool is_hybrid_share_length_prefixed = (actual_hybrid_share_size == prefixed_hybrid_share_size);
 
-    if (is_hybrid_share_length_prefixed) {
-        /* Ignore KEM groups with unexpected ECC share sizes */
-        uint16_t ec_share_size = 0;
-        POSIX_GUARD(s2n_stuffer_read_uint16(key_share, &ec_share_size));
-        if (ec_share_size != kem_group->curve->share_size) {
-            return S2N_SUCCESS;
-        }
-    }
-
     DEFER_CLEANUP(struct s2n_kem_group_params new_client_params = { 0 }, s2n_kem_group_free);
     new_client_params.kem_group = kem_group;
 
     /* Need to save whether the client included the length prefix so that we can match their behavior in our response. */
     new_client_params.kem_params.len_prefixed = is_hybrid_share_length_prefixed;
-
-    POSIX_GUARD(s2n_client_key_share_parse_ecc(key_share, kem_group->curve, &new_client_params.ecc_params));
-    /* If we were unable to parse the EC portion of the share, negotiated_curve
-     * will be NULL, and we should ignore the entire key share. */
-    if (!new_client_params.ecc_params.negotiated_curve) {
-        return S2N_SUCCESS;
-    }
+    new_client_params.kem_params.kem = kem_group->kem;
 
     /* Note: the PQ share size is validated in s2n_kem_recv_public_key() */
-    /* Ignore groups with PQ public keys we can't parse */
-    new_client_params.kem_params.kem = kem_group->kem;
-    if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
-        return S2N_SUCCESS;
+    /* Ignore PQ and ECC groups with public keys we can't parse */
+    if (kem_group->send_kem_first) {
+        if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
+            return S2N_SUCCESS;
+        }
+        if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+            return S2N_SUCCESS;
+        }
+    } else {
+        if (s2n_client_key_share_recv_hybrid_partial_ecc(key_share, &new_client_params) != S2N_SUCCESS) {
+            return S2N_SUCCESS;
+        }
+        if (s2n_kem_recv_public_key(key_share, &new_client_params.kem_params) != S2N_SUCCESS) {
+            return S2N_SUCCESS;
+        }
     }
 
     POSIX_GUARD(s2n_kem_group_free(client_params));

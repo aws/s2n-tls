@@ -261,6 +261,9 @@ def hkdf_expand_label(key: bytes, label: str, context: bytes, hash_alg: str):
 
 def compute_secrets(input_vector: dict):
     shared_secret = bytes.fromhex(input_vector["ec_shared_secret"] + input_vector["pq_shared_secret"])
+    if (input_vector["group_name"] == "X25519MLKEM768"):
+        shared_secret = bytes.fromhex(input_vector["pq_shared_secret"] + input_vector["ec_shared_secret"])
+
     hash_alg = input_vector["cipher_suite"].split("_")[-1].lower()
     zeros = bytearray([0] * hashlib.new(hash_alg).digest_size)
     transcript_hash = bytes.fromhex(input_vector["transcript_hash"])

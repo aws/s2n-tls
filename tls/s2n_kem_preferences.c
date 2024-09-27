@@ -43,14 +43,14 @@ const struct s2n_kem_group *pq_kem_groups_r3_2023_12[] = {
 
 /* Includes only IETF standard KEM Groups. */
 const struct s2n_kem_group *pq_kem_groups_ietf_2024_08[] = {
-    &s2n_secp256r1_mlkem_768,
     &s2n_x25519_mlkem_768,
+    &s2n_secp256r1_mlkem_768,
 };
 
 /* Includes both Kyber and ML-KEM KEMs. */
 const struct s2n_kem_group *pq_kem_groups_mixed_2024_08[] = {
-    &s2n_secp256r1_mlkem_768,
     &s2n_x25519_mlkem_768,
+    &s2n_secp256r1_mlkem_768,
     &s2n_secp256r1_kyber_768_r3,
     &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
