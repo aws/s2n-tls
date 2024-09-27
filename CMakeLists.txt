@@ -609,7 +609,7 @@ if (BUILD_TESTING)
 
         # Set default values for fuzzing if not defined
         if(NOT DEFINED FUZZ_TIMEOUT_SEC)
-            set(FUZZ_TIMEOUT_SEC 10)
+            set(FUZZ_TIMEOUT_SEC 60)
         endif()
 
         if(DEFINED ENV{CORPUS_UPLOAD_LOC})
