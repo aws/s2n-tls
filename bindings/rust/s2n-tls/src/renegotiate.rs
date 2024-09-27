@@ -176,7 +176,7 @@ impl RenegotiateCallback for RenegotiateResponse {
     }
 }
 
-#[derive(Debug, PartialEq, Copy, Clone, Default)]
+#[derive(Clone, Debug, Default, PartialEq)]
 pub(crate) struct RenegotiateState {
     needs_handshake: bool,
     needs_wipe: bool,
@@ -185,7 +185,7 @@ pub(crate) struct RenegotiateState {
 
 impl Connection {
     fn schedule_renegotiate(&mut self) {
-        let mut state = self.renegotiate_state_mut();
+        let state = self.renegotiate_state_mut();
         if !state.needs_handshake {
             state.needs_handshake = true;
             state.needs_wipe = true;
@@ -222,7 +222,7 @@ impl Connection {
         // Check for buffered data in order to surface more specific
         // error messages to the application.
         if self.renegotiate_state().send_pending {
-            return Err(Error::from(
+            return Err(Error::general(
                 ErrorType::UsageError,
                 "RenegotiateError",
                 "Unexpected buffered send data during renegotiate",
@@ -233,8 +233,8 @@ impl Connection {
         // The only real cost of saving state here is complexity. We can't save all
         // connection configuration automatically because in the C library, connection
         // configuration is indistinguishable from C connection state.
-        let renegotiate_state = *self.renegotiate_state();
-        let waker = self.waker().map(|waker| waker.clone());
+        let renegotiate_state = self.renegotiate_state().clone();
+        let waker = self.waker().cloned();
         let server_name = self.server_name().map(|name| name.to_owned());
 
         self.wipe_method(|conn| unsafe { s2n_renegotiate_wipe(conn.as_ptr()).into_result() })?;
@@ -305,7 +305,7 @@ impl Connection {
     /// Returns the number of bytes written, and may indicate a partial write.
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         if self.is_renegotiating() {
-            return Ready(Err(Error::from(
+            return Ready(Err(Error::general(
                 ErrorType::Blocked,
                 "RenegotiateError",
                 "Cannot send application data while renegotiating",
@@ -324,29 +324,7 @@ impl Connection {
         buf_ptr: *mut libc::c_void,
         buf_len: isize,
     ) -> Poll<Result<usize, Error>> {
-        if self.is_renegotiating() && self.peek_len() > 0 {
-            let buf_len = std::cmp::min(self.peek_len() as isize, buf_len);
-            let mut blocked = s2n_blocked_status::NOT_BLOCKED;
-            unsafe { s2n_recv(self.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
-        } else if self.is_renegotiating() {
-            if self.renegotiate_state().needs_wipe {
-                self.wipe_for_renegotiate()?;
-            }
-            match self.poll_renegotiate_raw(buf_ptr, buf_len) {
-                (Ready(Err(err)), _) => Ready(Err(err)),
-                // If renegotiate succeeds with no data read, we need to return
-                // some result:
-                // - We can't return Ready(Ok(0)), because that would indicate
-                //   end-of-stream.
-                // - We can't return Pending, because we are not actually blocked
-                //   on anything so there would be no guarantee of another poll.
-                // Instead, re-attempt to perform the original receive call
-                // and return that result.
-                (Ready(Ok(())), 0) => self.poll_recv_raw(buf_ptr, buf_len),
-                (Pending, 0) => Pending,
-                (_, bytes) => Ready(Ok(bytes)),
-            }
-        } else {
+        if !self.is_renegotiating() {
             let mut blocked = s2n_blocked_status::NOT_BLOCKED;
             let result =
                 unsafe { s2n_recv(self.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() };
@@ -355,7 +333,7 @@ impl Connection {
             // If we just return Pending, we may never start the handshake so
             // may never receive any more data from the server.
             // Instead, attempt to renegotiate at least once.
-            if self.is_renegotiating() && result.is_pending() {
+            return if self.is_renegotiating() && result.is_pending() {
                 // We call poll_recv_raw instead of poll_renegotiate because we
                 // could theoretically complete the entire handshake and read the
                 // application data originally requested.
@@ -363,7 +341,35 @@ impl Connection {
                 self.poll_recv_raw(buf_ptr, buf_len)
             } else {
                 result
-            }
+            };
+        }
+
+        // Check to see if we need to drain any application bytes before
+        // kicking off the renegotiation
+        if self.peek_len() > 0 {
+            let buf_len = std::cmp::min(self.peek_len() as isize, buf_len);
+            let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+            return unsafe { s2n_recv(self.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() };
+        }
+
+        // Wipe if starting renegotiation
+        if self.renegotiate_state().needs_wipe {
+            self.wipe_for_renegotiate()?;
+        }
+
+        match self.poll_renegotiate_raw(buf_ptr, buf_len) {
+            (Ready(Err(err)), _) => Ready(Err(err)),
+            // If renegotiate succeeds with no data read, we need to return
+            // some result:
+            // - We can't return Ready(Ok(0)), because that would indicate
+            //   end-of-stream.
+            // - We can't return Pending, because we are not actually blocked
+            //   on anything so there would be no guarantee of another poll.
+            // Instead, re-attempt to perform the original receive call
+            // and return that result.
+            (Ready(Ok(())), 0) => self.poll_recv_raw(buf_ptr, buf_len),
+            (Pending, 0) => Pending,
+            (_, bytes) => Ready(Ok(bytes)),
         }
     }
 }
@@ -586,7 +592,7 @@ mod tests {
             // SSL_renegotiate doesn't actually send the message.
             // Like s2n-tls, a call to send / write is required.
             self.server
-                .write(&[0; 0])
+                .write_all(&[0; 0])
                 .expect("Failed to write hello request");
 
             Ok(())
@@ -615,7 +621,7 @@ mod tests {
         // The client drives renegotiation via poll_recv in order to read
         // application data written by the server after the new handshake.
         fn assert_renegotiate(&mut self) -> Result<(), Box<dyn Error>> {
-            const APP_DATA: &[u8] = "Renegotiation complete".as_bytes();
+            const APP_DATA: &[u8] = b"Renegotiation complete";
             let mut buffer = [0; APP_DATA.len()];
 
             for _ in 0..20 {
@@ -795,11 +801,11 @@ mod tests {
         pair.handshake().expect("Initial handshake");
 
         // Server sends app data immediately after hello request
-        let server_data = "server_data".as_bytes();
+        let server_data = b"server_data";
         pair.send_renegotiate_request()
             .expect("server hello request");
         pair.server
-            .write(server_data)
+            .write_all(server_data)
             .expect("server app data after hello request");
 
         // First poll reads both the hello request and the app data
@@ -833,9 +839,9 @@ mod tests {
         assert!(pair.client.is_renegotiating());
 
         // Server sends app data
-        let server_data = "server_data".as_bytes();
+        let server_data = b"server_data";
         pair.server
-            .write(server_data)
+            .write_all(server_data)
             .expect("server app data after hello request");
 
         // Client reads app data
@@ -890,9 +896,9 @@ mod tests {
 
         pair.send_renegotiate_request()
             .expect("Server sends request");
-        let server_data = "server_data".as_bytes();
+        let server_data = b"server_data";
         assert_eq!(
-            pair.server.write(&server_data).expect("server app data"),
+            pair.server.write(server_data).expect("server app data"),
             server_data.len()
         );
 
@@ -924,7 +930,7 @@ mod tests {
             _: u32,
         ) -> libc::c_int {
             errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
-            return -1;
+            -1
         }
 
         let mut builder = config::Builder::new();
@@ -933,9 +939,9 @@ mod tests {
         pair.handshake().expect("Initial handshake");
 
         // The client needs to initially block on send.
-        let client_data = "client data".as_bytes();
+        let client_data = b"client data";
         pair.client.set_send_callback(Some(blocking_send_cb))?;
-        assert!(pair.client.poll_send(&client_data).is_pending());
+        assert!(pair.client.poll_send(client_data).is_pending());
         assert!(pair.client.renegotiate_state().send_pending);
 
         // The client fails to start renegotiation due to pending send.
@@ -965,7 +971,7 @@ mod tests {
         assert!(pair.client.is_renegotiating());
 
         // Calls to poll_send now fail
-        let error = unwrap_poll(pair.client.poll_send(&mut [0; 1])).unwrap_err();
+        let error = unwrap_poll(pair.client.poll_send(&[0; 1])).unwrap_err();
         assert_eq!(error.kind(), ErrorType::Blocked);
         assert!(error.message().contains(RENEG_ERR_MARKER));
         assert!(error.message().contains("send application data"));
