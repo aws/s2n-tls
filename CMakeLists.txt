@@ -500,23 +500,23 @@ if (BUILD_TESTING)
         --leak-check=full \
         --leak-resolution=high \
         --trace-children=yes \
-        --run-libc-freeres=no \
         -q --error-exitcode=123 \
         --error-limit=no \
         --num-callers=40 \
         --undef-value-errors=no \
+        --log-fd=2 \
         --suppressions=valgrind.suppressions")
 
     # "pedantic valgrind" will error on memory that is "Still Reachable". 
     # We only run this on OpenSSL 1.1.1 because there are hundreds of false positives in other libcryptos.
     # Tracking issue: https://github.com/aws/s2n-tls/issues/4777
     if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
-        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --errors-for-leak-kinds=all")
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=yes --errors-for-leak-kinds=all --show-leak-kinds=all")
     else()
-        set(MEMORYCHECK_COMMAND_OPTIONS ${VALGRIND_DEFAULT})
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=no")
     endif()
 
-    set(CTEST_MEMORYCHECK_TYPE "Valgrind")
+    set(MEMORYCHECK_TYPE "Valgrind")
 
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
     if (TSAN OR ASAN)

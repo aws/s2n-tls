@@ -32,7 +32,7 @@ batch:
     - identifier: gcc_openssl_1_1_1
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
         variables:
           S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: gcc
@@ -68,10 +68,5 @@ phases:
         S2N_VALGRIND=1 \
         CTEST_PARALLEL_LEVEL=$(nproc) \
         CTEST_OUTPUT_ON_FAILURE=1 \
-        ctest -T memcheck \
-              --test-dir build;
-              EXITCODE=$?
-      - cd codebuild/bin/
-      - ./display_memory_errors.sh
-      - cd ../../
-      - exit $EXITCODE
+        cmake --build build/ --target test \
+          -- ARGS="--test-action memcheck"
