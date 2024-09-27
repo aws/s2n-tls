@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.3-38072411</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.3-de3b6976</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -3760,8 +3760,8 @@ s2n-tls has never supported compression methods in any TLS version and therefore
         </tr>
       </table>
 </div><div class="memdoc">
-<p >The preferred method of associating a certificate chain and private key pair with an <code>s2n_config</code> object. This method may be called multiple times to support multiple key types(RSA, ECDSA) and multiple domains. On the server side, the certificate selected will be based on the incoming SNI value and the client's capabilities(supported ciphers).</p>
-<p >In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by the client, the certificate from the <code>first</code> call to <code>s2n_config_add_cert_chain_and_key_to_store</code> will be selected.</p>
+<p >The preferred method of associating a certificate chain and private key pair with an <code>s2n_config</code> object. This method may be called multiple times to support multiple key types (RSA, RSA-PSS, ECDSA) and multiple domains. On the server side, the certificate selected will be based on the incoming SNI value and the client's capabilities (supported ciphers).</p>
+<p >In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by the client, the certificate from the <code>first</code> call to <code><a class="el" href="s2n_8h.html#abfb875eff7e81b22378e4ae5b313169f">s2n_config_add_cert_chain_and_key_to_store()</a></code> will be selected. Use <code><a class="el" href="s2n_8h.html#a30d021a10ad7183c995d6d2a65926272">s2n_config_set_cert_chain_and_key_defaults()</a></code> to set different defaults.</p>
 <dl class="section warning"><dt>Warning</dt><dd>It is not recommended to free or modify the <code>cert_key_pair</code> as any subsequent changes will be reflected in the config.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
@@ -3838,6 +3838,7 @@ s2n-tls has never supported compression methods in any TLS version and therefore
 </div><div class="memdoc">
 <p >Adds a PEM to the trust store. This will allocate memory, and load <code>pem</code> into the trust store.</p>
 <p >When configs are created with <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code>, the trust store is initialized with default system certificates. To completely override these certificates, call <code><a class="el" href="s2n_8h.html#af7e2759066521827269d56d4da063f7b">s2n_config_wipe_trust_store()</a></code> before calling this function.</p>
+<dl class="section note"><dt>Note</dt><dd>This API uses the s2n-tls PEM parsing implementation, which is more strict than typical libcrypto implementations such as OpenSSL. An error is returned if any unexpected data is encountered while parsing <code>pem</code>. This allows applications to be made aware of any malformed certificates rather than attempt to negotiate with a partial trust store. However, some PEMs may need to be loaded that are not under control of the application, such as system trust stores. In this case, <code><a class="el" href="s2n_8h.html#a85545629ce095ed44de580592eecf50e">s2n_config_set_verification_ca_location()</a></code> may be used, which performs more widely compatible and permissive parsing from the linked libcrypto.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
@@ -5867,7 +5868,8 @@ Safety</h1>
 </div><div class="memdoc">
 <p >Adds to the trust store from a CA file or directory containing trusted certificates.</p>
 <p >When configs are created with <code><a class="el" href="s2n_8h.html#aae4a525b68ba7bd181a27de9ea2fcd1a">s2n_config_new()</a></code>, the trust store is initialized with default system certificates. To completely override these certificates, call <code><a class="el" href="s2n_8h.html#af7e2759066521827269d56d4da063f7b">s2n_config_wipe_trust_store()</a></code> before calling this function.</p>
-<dl class="section note"><dt>Note</dt><dd>The trust store will be initialized with the common locations for the host operating system by default. </dd></dl>
+<dl class="section note"><dt>Note</dt><dd>The trust store will be initialized with the common locations for the host operating system by default.</dd></dl>
+<dl class="section warning"><dt>Warning</dt><dd>This API uses the PEM parsing implementation from the linked libcrypto. This implementation will typically make a best-effort attempt to parse all of the certificates in the provided file or directory. This permissive approach may silently ignore malformed certificates, leading to possible connection failures if a certificate was expected to exist in the trust store but was skipped while parsing. As such, this API should only be used on PEMs that are known to be well-formed and parsable with the linked libcrypto, such as the system trust store. For all other PEMs, <code><a class="el" href="s2n_8h.html#a1de5c0b7a1029ee248947835d4e170bc">s2n_config_add_pem_to_trust_store()</a></code> should be used instead, which parses more strictly.</dd></dl>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">config</td><td>The configuration object being updated </td></tr>
