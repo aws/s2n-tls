@@ -638,12 +638,6 @@ impl Connection {
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
-    ///
-    /// This method ONLY flushes any data already encrypted and queued for writing
-    /// to the underlying stream. It does not automatically retry a previous call
-    /// to `poll_send`, which might require encrypting and sending more records.
-    /// The only way to reliably complete a call to `poll_send` is to call `poll_send`
-    /// again with the same inputs until it returns `Ready`.
     pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
         self.poll_send(&[0; 0]).map_ok(|_| self)
     }
