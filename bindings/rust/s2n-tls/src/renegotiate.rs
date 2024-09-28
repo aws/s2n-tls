@@ -591,9 +591,12 @@ mod tests {
 
             // SSL_renegotiate doesn't actually send the message.
             // Like s2n-tls, a call to send / write is required.
-            self.server
-                .write_all(&[0; 0])
-                .expect("Failed to write hello request");
+            assert_eq!(
+                self.server
+                    .write(&[0; 0])
+                    .expect("Failed to write hello request"),
+                0
+            );
 
             Ok(())
         }
