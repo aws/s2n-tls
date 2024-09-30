@@ -41,7 +41,7 @@ int main()
 #if defined(OPENSSL_IS_AWSLC) && defined(AWSLC_API_VERSION)
     /* If using non-FIPS AWS-LC >= v1.6 (API vers. 21), expect Kyber512 KEM from AWS-LC */
     if (!s2n_libcrypto_is_fips() && AWSLC_API_VERSION >= 21) {
-        EXPECT_TRUE(s2n_libcrypto_supports_kyber());
+        EXPECT_TRUE(s2n_libcrypto_supports_evp_kem());
     }
 #endif
 

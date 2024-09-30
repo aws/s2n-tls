@@ -15,7 +15,7 @@
 
 #include "tls/s2n_kem.h"
 
-#include "crypto/s2n_kyber_evp.h"
+#include "crypto/s2n_evp_kem.h"
 #include "crypto/s2n_pq.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
@@ -33,9 +33,9 @@ const struct s2n_kem s2n_kyber_512_r3 = {
     .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_kyber_evp_generate_keypair,
-    .encapsulate = &s2n_kyber_evp_encapsulate,
-    .decapsulate = &s2n_kyber_evp_decapsulate,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
 const struct s2n_kem s2n_kyber_768_r3 = {
@@ -46,9 +46,9 @@ const struct s2n_kem s2n_kyber_768_r3 = {
     .private_key_length = S2N_KYBER_768_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_768_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_768_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_kyber_evp_generate_keypair,
-    .encapsulate = &s2n_kyber_evp_encapsulate,
-    .decapsulate = &s2n_kyber_evp_decapsulate,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
 const struct s2n_kem s2n_kyber_1024_r3 = {
@@ -59,9 +59,9 @@ const struct s2n_kem s2n_kyber_1024_r3 = {
     .private_key_length = S2N_KYBER_1024_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_1024_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_1024_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_kyber_evp_generate_keypair,
-    .encapsulate = &s2n_kyber_evp_encapsulate,
-    .decapsulate = &s2n_kyber_evp_decapsulate,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
 const struct s2n_kem *tls12_kyber_kems[] = {
@@ -427,12 +427,8 @@ bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
     if (kem_group == NULL) {
         return false;
     }
-    bool available = s2n_pq_is_enabled();
-    /* Only Kyber768+ requires s2n_libcrypto_supports_kyber() */
-    /* TODO: remove the conditional guard when we remove the interned Kyber512 impl. */
-    if (kem_group->kem != &s2n_kyber_512_r3) {
-        available &= s2n_libcrypto_supports_kyber();
-    }
+    bool available = s2n_libcrypto_supports_evp_kem();
+
     /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
     if (kem_group->curve == NULL) {
         available = false;
