@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -e
+set -eu
 pushd "$(pwd)"
 
 usage() {
@@ -28,7 +28,10 @@ BUILD_DIR=$1
 INSTALL_DIR=$2
 IS_FIPS=$3
 
-source codebuild/bin/jobs.sh
+if [[ ! -f "$(which clang)" ]]; then
+  echo "Could not find clang"
+  exit 1
+fi
 
 # These tags represents the latest versions that S2N is compatible
 # with. It prevents our build system from breaking when AWS-LC
@@ -46,10 +49,18 @@ echo "Checking out tag=$AWSLC_VERSION"
 git clone https://github.com/awslabs/aws-lc.git --branch "$AWSLC_VERSION" --depth 1
 
 install_awslc() {
-	echo "Building with shared library=$1"
-	cmake ./aws-lc -Bbuild -GNinja -DBUILD_SHARED_LIBS=$1 -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS="${IS_FIPS}"
-	ninja -j "${JOBS}" -C build install
-	ninja -C build clean
+    echo "Building with shared library=$1"
+    cmake ./aws-lc \
+      -Bbuild \
+      -GNinja \
+      -DBUILD_SHARED_LIBS=$1 \
+      -DCMAKE_BUILD_TYPE=relwithdebinfo \
+      -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+      -DCMAKE_C_COMPILER=$(which clang) \
+      -DCMAKE_CXX_COMPILER=$(which clang++) \
+      -DFIPS="${IS_FIPS}"
+    ninja -j "$(nproc)" -C build install
+    ninja -C build clean
 }
 
 if [ "$IS_FIPS" != "1" ]; then
