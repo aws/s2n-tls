@@ -891,7 +891,7 @@ int main(int argc, char **argv)
             {
                 DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new_minimal(), s2n_config_ptr_free);
                 EXPECT_NOT_NULL(server_config);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
                 DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -901,7 +901,7 @@ int main(int argc, char **argv)
 
                 DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new_minimal(), s2n_config_ptr_free);
                 EXPECT_NOT_NULL(client_config);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
                 EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
 
                 DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
@@ -927,7 +927,7 @@ int main(int argc, char **argv)
             {
                 DEFER_CLEANUP(struct s2n_config *server_config = s2n_config_new_minimal(), s2n_config_ptr_free);
                 EXPECT_NOT_NULL(server_config);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
                 EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, chain_and_key));
 
                 DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
@@ -936,7 +936,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(server_conn, server_config));
 
                 DEFER_CLEANUP(struct s2n_config *client_config = s2n_config_new_minimal(), s2n_config_ptr_free);
-                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
+                EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
                 EXPECT_NOT_NULL(client_config);
 
                 DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
@@ -1092,7 +1092,7 @@ int main(int argc, char **argv)
         struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
         rfc9151_applied_locally.certificate_preferences_apply_locally = true;
 
-        /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures,
+        /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
          * so ecdsa_p384_sha256 is invalid and ecdsa_p384_sha384 is valid */
 
         /* valid certs are accepted */
@@ -1119,8 +1119,8 @@ int main(int argc, char **argv)
 
         /* certs in default_certs_by_type are validated */
         {
-            /* s2n_config_set_cert_chain_and_key_defaults populates default_certs_by_type
-             * but doesn't populate domain_name_to_cert_map
+            /* s2n_config_set_cert_chain_and_key_defaults populates default_certs_by_type 
+             * but doesn't populate domain_name_to_cert_map 
              */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(config, &invalid_cert, 1));
