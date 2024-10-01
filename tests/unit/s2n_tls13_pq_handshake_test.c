@@ -406,6 +406,27 @@ int main()
         .ecc_preferences = &s2n_ecc_preferences_20201021,
     };
 
+    const struct s2n_kem_group *mlkem768_test_groups[] = {
+        &s2n_x25519_mlkem_768,
+        &s2n_secp256r1_mlkem_768,
+    };
+
+    const struct s2n_kem_preferences mlkem768_test_prefs = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_group_count = s2n_array_len(mlkem768_test_groups),
+        .tls13_kem_groups = mlkem768_test_groups,
+        .tls13_pq_hybrid_draft_revision = 5
+    };
+
+    const struct s2n_security_policy mlkem768_test_policy = {
+        .minimum_protocol_version = S2N_TLS13,
+        .cipher_preferences = &cipher_preferences_20190801,
+        .kem_preferences = &mlkem768_test_prefs,
+        .signature_preferences = &s2n_signature_preferences_20200207,
+        .ecc_preferences = &s2n_ecc_preferences_20240603,
+    };
+
     const struct s2n_security_policy ecc_retry_policy = {
         .minimum_protocol_version = security_policy_pq_tls_1_0_2020_12.minimum_protocol_version,
         .cipher_preferences = security_policy_pq_tls_1_0_2020_12.cipher_preferences,
@@ -428,6 +449,13 @@ int main()
         bool hrr_expected;
         bool len_prefix_expected;
     };
+
+    /* ML-KEM is only available on newer versions of AWS-LC. If it's
+     * unavailable, we must downgrade the assertions to Kyber or EC. */
+    const struct s2n_kem_group *null_if_no_mlkem = &s2n_x25519_mlkem_768;
+    if (!s2n_libcrypto_supports_mlkem()) {
+        null_if_no_mlkem = NULL;
+    }
 
     /* Test vectors that expect to negotiate PQ assume that PQ is enabled in s2n.
      * If PQ is disabled, the expected negotiation outcome is overridden below
@@ -642,6 +670,15 @@ int main()
                 .hrr_expected = true,
                 .len_prefix_expected = true,
         },
+        /* Confirm that MLKEM768 is negotiable */
+        {
+                .client_policy = &mlkem768_test_policy,
+                .server_policy = &mlkem768_test_policy,
+                .expected_kem_group = null_if_no_mlkem,
+                .expected_curve = default_curve,
+                .hrr_expected = false,
+                .len_prefix_expected = false,
+        }
     };
 
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {

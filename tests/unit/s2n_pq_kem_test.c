@@ -24,6 +24,7 @@
 #include "utils/s2n_safety.h"
 
 static const struct s2n_kem *test_vectors[] = {
+    &s2n_mlkem_768,
     &s2n_kyber_512_r3,
     &s2n_kyber_768_r3,
     &s2n_kyber_1024_r3,
@@ -47,6 +48,8 @@ int main()
 
     for (size_t i = 0; i < s2n_array_len(test_vectors); i++) {
         const struct s2n_kem *kem = test_vectors[i];
+        bool expect_success = s2n_libcrypto_supports_evp_kem()
+                && ((kem != &s2n_mlkem_768) || s2n_libcrypto_supports_mlkem());
 
         DEFER_CLEANUP(struct s2n_blob public_key = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&public_key, kem->public_key_length));
@@ -63,7 +66,7 @@ int main()
         DEFER_CLEANUP(struct s2n_blob ciphertext = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&ciphertext, kem->ciphertext_length));
 
-        if (s2n_pq_is_enabled()) {
+        if (expect_success) {
             /* Test a successful round-trip: keygen->enc->dec */
             EXPECT_PQ_KEM_SUCCESS(kem->generate_keypair(kem, public_key.data, private_key.data));
             EXPECT_PQ_KEM_SUCCESS(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data));

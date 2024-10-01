@@ -41,6 +41,18 @@ const struct s2n_kem_group *pq_kem_groups_r3_2023_12[] = {
     &s2n_secp256r1_kyber_512_r3,
 };
 
+/* Includes both Kyber and ML-KEM KEMs. */
+const struct s2n_kem_group *pq_kem_groups_2024_10_all[] = {
+    &s2n_x25519_mlkem_768,
+    &s2n_secp256r1_mlkem_768,
+    &s2n_secp256r1_kyber_768_r3,
+    &s2n_x25519_kyber_768_r3,
+    &s2n_secp384r1_kyber_768_r3,
+    &s2n_secp521r1_kyber_1024_r3,
+    &s2n_secp256r1_kyber_512_r3,
+    &s2n_x25519_kyber_512_r3,
+};
+
 const struct s2n_kem_preferences kem_preferences_pq_tls_1_0_2021_05 = {
     .kem_count = s2n_array_len(pq_kems_r3_2021_05),
     .kems = pq_kems_r3_2021_05,
@@ -78,8 +90,8 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_12 = {
 const struct s2n_kem_preferences kem_preferences_all = {
     .kem_count = s2n_array_len(pq_kems_r3_2021_05),
     .kems = pq_kems_r3_2021_05,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2023_06),
-    .tls13_kem_groups = pq_kem_groups_r3_2023_06,
+    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_2024_10_all),
+    .tls13_kem_groups = pq_kem_groups_2024_10_all,
     .tls13_pq_hybrid_draft_revision = 5
 };
 

@@ -32,10 +32,16 @@ typedef uint16_t kem_ciphertext_key_size;
 #define OUT /* Indicates a function output */
 
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_KEM)
+    #if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
+        #define S2N_NID_MLKEM768 NID_MLKEM768
+    #else
+        #define S2N_NID_MLKEM768 NID_undef
+    #endif
     #define S2N_NID_KYBER512  NID_KYBER512_R3
     #define S2N_NID_KYBER768  NID_KYBER768_R3
     #define S2N_NID_KYBER1024 NID_KYBER1024_R3
 #else
+    #define S2N_NID_MLKEM768  NID_undef
     #define S2N_NID_KYBER512  NID_undef
     #define S2N_NID_KYBER768  NID_undef
     #define S2N_NID_KYBER1024 NID_undef
@@ -76,6 +82,10 @@ struct s2n_kem_group {
     uint16_t iana_id;
     const struct s2n_ecc_named_curve *curve;
     const struct s2n_kem *kem;
+
+    /* Whether the PQ KeyShare should be sent before the ECC KeyShare. Only enabled for X25519MLKEM768.
+     * See: https://datatracker.ietf.org/doc/html/draft-kwiatkowski-tls-ecdhe-mlkem-02#name-negotiated-groups */
+    bool send_kem_first;
 };
 
 struct s2n_kem_group_params {
@@ -84,20 +94,23 @@ struct s2n_kem_group_params {
     struct s2n_ecc_evp_params ecc_params;
 };
 
+extern const struct s2n_kem s2n_mlkem_768;
 extern const struct s2n_kem s2n_kyber_512_r3;
 extern const struct s2n_kem s2n_kyber_768_r3;
 extern const struct s2n_kem s2n_kyber_1024_r3;
 
-#define S2N_KEM_GROUPS_COUNT 6
+#define S2N_KEM_GROUPS_COUNT 8
 extern const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[S2N_KEM_GROUPS_COUNT];
 
 /* NIST curve KEM Groups */
+extern const struct s2n_kem_group s2n_secp256r1_mlkem_768;
 extern const struct s2n_kem_group s2n_secp256r1_kyber_512_r3;
 extern const struct s2n_kem_group s2n_secp256r1_kyber_768_r3;
 extern const struct s2n_kem_group s2n_secp384r1_kyber_768_r3;
 extern const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3;
 
 /* x25519 KEM Groups */
+extern const struct s2n_kem_group s2n_x25519_mlkem_768;
 extern const struct s2n_kem_group s2n_x25519_kyber_512_r3;
 extern const struct s2n_kem_group s2n_x25519_kyber_768_r3;
 
@@ -121,28 +134,11 @@ int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 
-/* The following are API signatures for PQ KEMs as defined by NIST. All functions return 0
- * on success, and !0 on failure. Avoid calling these functions directly within s2n. Instead,
- * use s2n_kem_{generate_keypair, encapsulate, decapsulate}, or
- * s2n_kem_{send_public_key, recv_public_key, send_ciphertext, recv_ciphertext}.
- *
- *   int *_keypair(OUT pk, OUT sk) - Generate public/private keypair
- *   pk - generated public key
- *   sk - generated secret key
- *
- *   int *_enc(OUT ct, OUT ss, IN pk) - Generate a shared secret and encapsulate it
- *   ct - key encapsulation message (ciphertext)
- *   ss - plaintext shared secret
- *   pk - public key to use for encapsulation
- *
- *   int *_dec(OUT ss, IN ct, IN sk) - Decapsulate a key encapsulation message and recover the shared secret
- *   ss - plaintext shared secret
- *   ct - key encapsulation message (ciphertext)
- *   sk - secret key to use for decapsulation */
-
-/* If s2n is compiled with support for PQ crypto, these functions will be defined in the respective KEM directories.
- * If s2n is compiled without support for PQ, stubs of these functions are defined in s2n_kem.c. */
-/* sikep503r1 */
+/* mlkem768 */
+#define S2N_MLKEM_768_PUBLIC_KEY_BYTES    1184
+#define S2N_MLKEM_768_SECRET_KEY_BYTES    2400
+#define S2N_MLKEM_768_CIPHERTEXT_BYTES    1088
+#define S2N_MLKEM_768_SHARED_SECRET_BYTES 32
 
 /* kyber512r3 */
 #define S2N_KYBER_512_R3_PUBLIC_KEY_BYTES    800
