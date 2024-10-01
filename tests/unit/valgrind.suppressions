@@ -15,8 +15,8 @@
    fun:main
 }
 
-# backtrace() leaks a static amount of memory when it is first called: https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
-# This leak is unscalable, so it can be safely suppressed.
+# backtrace() allocates memory when it is first called: https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
+# The possible memory loss is unscalable, so it can be safely suppressed.
 # Without this suppression, s2n_stacktrace_test will fail.
 {
    stacktrace_suppression
