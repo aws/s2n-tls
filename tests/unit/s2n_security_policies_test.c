@@ -207,8 +207,6 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(6, available_groups);
         } else if (s2n_libcrypto_supports_evp_kem() && !s2n_is_evp_apis_supported()) {
             EXPECT_EQUAL(4, available_groups);
-        } else if (!s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(0, available_groups);
         } else {
             EXPECT_EQUAL(0, available_groups);
         }

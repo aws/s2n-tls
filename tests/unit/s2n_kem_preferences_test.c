@@ -58,17 +58,15 @@ int main(int argc, char **argv)
 
         if (s2n_libcrypto_supports_evp_kem()) {
             EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_512_r3));
-            if (s2n_is_evp_apis_supported()) {
-                EXPECT_TRUE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
-            } else {
-                EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
-            }
             EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_768_r3));
             EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp384r1_kyber_768_r3));
             EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp521r1_kyber_1024_r3));
-            if (s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
+
+            if (s2n_is_evp_apis_supported()) {
+                EXPECT_TRUE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
                 EXPECT_TRUE(s2n_kem_group_is_available(&s2n_x25519_kyber_768_r3));
             } else {
+                EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
                 EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_768_r3));
             }
         } else {
