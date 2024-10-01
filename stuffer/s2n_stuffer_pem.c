@@ -20,8 +20,9 @@
 #include "stuffer/s2n_stuffer.h"
 #include "utils/s2n_safety.h"
 
-#define S2N_PEM_DELIMTER_CHAR         '-'
-#define S2N_PEM_DELIMITER_MIN_COUNT   1
+#define S2N_PEM_DELIMITER_CHAR        '-'
+#define S2N_PEM_DELIMITER_TOKEN       "--"
+#define S2N_PEM_DELIMITER_MIN_COUNT   2
 #define S2N_PEM_DELIMITER_MAX_COUNT   64
 #define S2N_PEM_BEGIN_TOKEN           "BEGIN "
 #define S2N_PEM_END_TOKEN             "END "
@@ -36,11 +37,15 @@
 static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, const char *encap_marker,
         const char *keyword)
 {
-    /* Skip any number of Chars until a "-" is reached */
-    POSIX_GUARD(s2n_stuffer_skip_to_char(pem, S2N_PEM_DELIMTER_CHAR));
+    /* Skip any number of Chars until a "--" is reached.
+     * We use "--" instead of "-" to account for dashes that appear in comments.
+     * We do not accept comments that contain "--".
+     */
+    POSIX_GUARD(s2n_stuffer_skip_read_until(pem, S2N_PEM_DELIMITER_TOKEN));
+    POSIX_GUARD(s2n_stuffer_rewind_read(pem, strlen(S2N_PEM_DELIMITER_TOKEN)));
 
-    /* Ensure between 1 and 64 '-' chars at start of line */
-    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT,
+    /* Ensure between 2 and 64 '-' chars at start of line. */
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMITER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT,
             S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Ensure next string in stuffer is "BEGIN " or "END " */
@@ -49,18 +54,18 @@ static int s2n_stuffer_pem_read_encapsulation_line(struct s2n_stuffer *pem, cons
     /* Ensure next string is stuffer is the keyword (Eg "CERTIFICATE", "PRIVATE KEY", etc) */
     POSIX_GUARD(s2n_stuffer_read_expected_str(pem, keyword));
 
-    /* Ensure between 1 and 64 '-' chars at end of line */
-    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMTER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT,
+    /* Ensure between 2 and 64 '-' chars at end of line */
+    POSIX_GUARD(s2n_stuffer_skip_expected_char(pem, S2N_PEM_DELIMITER_CHAR, S2N_PEM_DELIMITER_MIN_COUNT,
             S2N_PEM_DELIMITER_MAX_COUNT, NULL));
 
     /* Check for missing newline between dashes case: "-----END CERTIFICATE----------BEGIN CERTIFICATE-----" */
     if (strncmp(encap_marker, S2N_PEM_END_TOKEN, strlen(S2N_PEM_END_TOKEN)) == 0
             && s2n_stuffer_peek_check_for_str(pem, S2N_PEM_BEGIN_TOKEN) == S2N_SUCCESS) {
-        /* Rewind stuffer by 1 byte before BEGIN, so that next read will find the dash before the BEGIN */
-        POSIX_GUARD(s2n_stuffer_rewind_read(pem, 1));
+        /* Rewind stuffer by 2 bytes before BEGIN, so that next read will find the dashes before the BEGIN */
+        POSIX_GUARD(s2n_stuffer_rewind_read(pem, S2N_PEM_DELIMITER_MIN_COUNT));
     }
 
-    /* Skip newlines and other whitepsace that may be after the dashes */
+    /* Skip newlines and other whitespace that may be after the dashes */
     return s2n_stuffer_skip_whitespace(pem, NULL);
 }
 
