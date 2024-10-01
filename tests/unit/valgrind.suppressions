@@ -15,11 +15,9 @@
    fun:main
 }
 
-# https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
-#  backtrace() and backtrace_symbols_fd() don't call malloc()
-#  explicitly, but they are part of libgcc, which gets loaded
-#  dynamically when first used.  Dynamic loading usually triggers
-#  a call to [malloc(3)](https://man7.org/linux/man-pages/man3/malloc.3.html).
+# backtrace() leaks a static amount of memory when it is first called: https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
+# This leak is unscalable, so it can be safely suppressed.
+# Without this suppression, s2n_stacktrace_test will fail.
 {
    stacktrace_suppression
    Memcheck:Leak
