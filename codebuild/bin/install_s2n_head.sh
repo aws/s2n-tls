@@ -26,11 +26,6 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 
-clone(){
-    # Path differences for internal builds mean we always need to go back to GitHub for head.
-    git clone --branch main --single-branch "$CLONE_SRC" "$SRC_ROOT"/s2n_head
-}
-
 # CMake(nix) and Make are using different directory structures.
 set +u
 if [[ "$IN_NIX_SHELL" ]]; then
@@ -46,24 +41,27 @@ else
 fi
 set -u
 
-# Cleanup any stale s2n_head clones.
-if [[ -d "$SRC_ROOT/s2n_head" ]]; then
+s2nc_head="$DEST_DIR/s2nc_head"
+if [[ -f "$s2nc_head" ]]; then
     now=$(date +%s)
-    last_modified=$(stat -c %Y s2n_head)
+    last_modified=$(stat -c %Y "$s2nc_head")
     days_old=$(( (now - last_modified) / 86400))
-    if ((days_old > 1 )); then
-        echo "s2n_head is $days_old days old, removing and cloning again."
-        rm -rf s2n_head
-        clone
-    else
-        echo "s2n_head already exists and is $days_old days old."
+    if ((days_old <= 1)); then
+        echo "Reusing s2n_head: s2nc_head exists and is $days_old days old."
+        exit 0
     fi
-else
-    clone
 fi
-cmake "$SRC_ROOT"/s2n_head -B"$BUILD_DIR" "$EXTRA_BUILD_FLAGS" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-cmake --build "$BUILD_DIR" -- -j "$(nproc)"
-cp -f "$BUILD_DIR"/bin/s2nc "$DEST_DIR"/s2nc_head
-cp -f "$BUILD_DIR"/bin/s2nd "$DEST_DIR"/s2nd_head
+
+git clone --branch main --single-branch "$CLONE_SRC" "$BUILD_DIR"
+
+cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DBUILD_SHARED_LIBS=on \
+    -DBUILD_TESTING=on
+cmake --build "$BUILD_DIR"/build --target s2nc -- -j $(nproc) 
+cmake --build "$BUILD_DIR"/build --target s2nd -- -j $(nproc) 
+
+cp -f "$BUILD_DIR"/build/bin/s2nc "$s2nc_head"
+cp -f "$BUILD_DIR"/build/bin/s2nd "$DEST_DIR"/s2nd_head
 
 exit 0

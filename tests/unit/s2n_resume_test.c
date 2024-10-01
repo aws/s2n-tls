@@ -405,7 +405,7 @@ int main(int argc, char **argv)
         conn->secure->cipher_suite = &s2n_ecdhe_ecdsa_with_aes_128_gcm_sha256;
 
         uint8_t ems_state[] = { false, true };
-        for (size_t i = 0; i < sizeof(ems_state); i++) {
+        for (size_t i = 0; i < s2n_array_len(ems_state); i++) {
             /* Test the two different EMS states */
             conn->ems_negotiated = ems_state[i];
 

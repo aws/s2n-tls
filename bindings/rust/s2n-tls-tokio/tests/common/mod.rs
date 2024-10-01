@@ -5,7 +5,7 @@ use s2n_tls::{
     config,
     connection::Builder,
     error::Error,
-    security::{Policy, DEFAULT_TLS13},
+    security::{DEFAULT, DEFAULT_TLS13},
 };
 use s2n_tls_tokio::{TlsAcceptor, TlsConnector, TlsStream};
 use std::time::Duration;
@@ -67,16 +67,14 @@ pub fn server_config() -> Result<config::Builder, Error> {
 
 pub fn client_config_tls12() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
-    let policy = Policy::from_version("20240501").unwrap();
-    builder.set_security_policy(&policy)?;
+    builder.set_security_policy(&DEFAULT)?;
     builder.trust_pem(RSA_CERT_PEM)?;
     Ok(builder)
 }
 
 pub fn server_config_tls12() -> Result<config::Builder, Error> {
     let mut builder = config::Config::builder();
-    let policy = Policy::from_version("20240501").unwrap();
-    builder.set_security_policy(&policy)?;
+    builder.set_security_policy(&DEFAULT)?;
     builder.load_pem(RSA_CERT_PEM, RSA_KEY_PEM)?;
     Ok(builder)
 }

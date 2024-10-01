@@ -52,7 +52,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
     const uint8_t client_verify_data[] = "client verify data";
     const uint8_t server_verify_data[] = "server verify data";
