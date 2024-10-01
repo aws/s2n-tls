@@ -30,6 +30,7 @@ DEFINE_POINTER_CLEANUP_FUNC(EVP_PKEY_CTX *, EVP_PKEY_CTX_free);
 int s2n_evp_kem_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key,
         OUT uint8_t *secret_key)
 {
+    POSIX_ENSURE_REF(kem);
     POSIX_ENSURE(kem->kem_nid != NID_undef, S2N_ERR_UNIMPLEMENTED);
     DEFER_CLEANUP(EVP_PKEY_CTX *kem_pkey_ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_KEM, NULL), EVP_PKEY_CTX_free_pointer);
     POSIX_GUARD_PTR(kem_pkey_ctx);
@@ -53,6 +54,7 @@ int s2n_evp_kem_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *publ
 int s2n_evp_kem_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret,
         IN const uint8_t *public_key)
 {
+    POSIX_ENSURE_REF(kem);
     POSIX_ENSURE(kem->kem_nid != NID_undef, S2N_ERR_UNIMPLEMENTED);
     DEFER_CLEANUP(EVP_PKEY *kem_pkey = EVP_PKEY_kem_new_raw_public_key(kem->kem_nid, public_key, kem->public_key_length), EVP_PKEY_free_pointer);
     POSIX_GUARD_PTR(kem_pkey);
@@ -74,6 +76,7 @@ int s2n_evp_kem_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertex
 int s2n_evp_kem_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext,
         IN const uint8_t *private_key)
 {
+    POSIX_ENSURE_REF(kem);
     POSIX_ENSURE(kem->kem_nid != NID_undef, S2N_ERR_UNIMPLEMENTED);
     DEFER_CLEANUP(EVP_PKEY *kem_pkey = EVP_PKEY_kem_new_raw_secret_key(kem->kem_nid, private_key, kem->private_key_length), EVP_PKEY_free_pointer);
     POSIX_GUARD_PTR(kem_pkey);
