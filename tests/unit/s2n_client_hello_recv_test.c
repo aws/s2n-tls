@@ -521,19 +521,19 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server, tls12_config));
 
         struct s2n_stuffer server_in = { 0 };
-        uint8_t sslv2_client_hello[] = {
+        uint8_t sslv2_client_hello_bytes[] = {
             SSLv2_CLIENT_HELLO_HEADER,
             SSLv2_CLIENT_HELLO_PREFIX,
             SSLv2_CLIENT_HELLO_CIPHER_SUITES,
             SSLv2_CLIENT_HELLO_CHALLENGE,
         };
         EXPECT_SUCCESS(s2n_blob_init(&server_in.blob,
-                sslv2_client_hello, sizeof(sslv2_client_hello)));
+                sslv2_client_hello_bytes, sizeof(sslv2_client_hello_bytes)));
         EXPECT_SUCCESS(s2n_connection_set_recv_io_stuffer(&server_in, server));
 
         /* Read message one byte at a time */
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
-        for (size_t i = 0; i < sizeof(sslv2_client_hello); i++) {
+        for (size_t i = 0; i < sizeof(sslv2_client_hello_bytes); i++) {
             EXPECT_ERROR_WITH_ERRNO(
                     s2n_negotiate_until_message(server, &blocked, SERVER_HELLO),
                     S2N_ERR_IO_BLOCKED);

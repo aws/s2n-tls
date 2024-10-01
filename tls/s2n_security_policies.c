@@ -1313,7 +1313,7 @@ int s2n_connection_set_cipher_preferences(struct s2n_connection *conn, const cha
     /* If the security policy's minimum version is higher than what libcrypto supports, return an error. */
     POSIX_ENSURE((security_policy->minimum_protocol_version <= s2n_get_highest_fully_supported_tls_version()), S2N_ERR_PROTOCOL_VERSION_UNSUPPORTED);
 
-    /* If the certificates loaded in the config are incompatible with the security
+    /* If the certificates loaded in the config are incompatible with the security 
      * policy's certificate preferences, return an error. */
     POSIX_GUARD_RESULT(s2n_config_validate_loaded_certificates(conn->config, security_policy));
 

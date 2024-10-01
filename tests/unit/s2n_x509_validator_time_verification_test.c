@@ -102,7 +102,7 @@ int main(int argc, char *argv[])
 
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
             EXPECT_NOT_NULL(config);
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
             if (test_cases[i].disable_x509_time_validation) {
                 EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
@@ -144,7 +144,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, test_cases[i].cert_pem_path, NULL));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
             if (test_cases[i].disable_x509_time_validation) {
                 EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
@@ -185,7 +185,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(server_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, default_chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, test_cases[i].cert_pem_path, NULL));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
             if (test_cases[i].disable_x509_time_validation) {
@@ -208,7 +208,7 @@ int main(int argc, char *argv[])
             EXPECT_NOT_NULL(client_config);
             EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, chain_and_key));
             EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
+            EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
             EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_OPTIONAL));
 
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
@@ -250,7 +250,7 @@ int main(int argc, char *argv[])
 
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
         EXPECT_SUCCESS(s2n_config_disable_x509_time_verification(config));
 
         DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
