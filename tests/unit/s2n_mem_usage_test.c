@@ -155,7 +155,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    struct s2n_test_io_pair io_pair;
+    DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
     /* Skip the test when running under valgrind or address sanitizer, as those tools

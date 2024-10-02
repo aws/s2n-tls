@@ -54,7 +54,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
@@ -89,7 +89,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
@@ -143,7 +143,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config_for_mfl));
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
@@ -190,7 +190,7 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(server_conn->out.blob.size, 0);
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(client_conn, &io_pair));
         EXPECT_SUCCESS(s2n_connection_set_io_pair(server_conn, &io_pair));
