@@ -53,10 +53,10 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_stuffer expected_secret_in = { 0 }, s2n_stuffer_free);
     DEFER_CLEANUP(struct s2n_stuffer expected_expanded_in = { 0 }, s2n_stuffer_free);
 
-    char client_handshake_message[sizeof(client_handshake_message_hex_in) / 2] = { 0 };
-    char server_handshake_message[sizeof(server_handshake_message_hex_in) / 2] = { 0 };
-    char expected_secret[sizeof(expected_secret_hex_in) / 2] = { 0 };
-    char expected_expanded[sizeof(expected_expanded_hex_in) / 2] = { 0 };
+    uint8_t client_handshake_message_bytes[sizeof(client_handshake_message_hex_in) / 2] = { 0 };
+    uint8_t server_handshake_message_bytes[sizeof(server_handshake_message_hex_in) / 2] = { 0 };
+    uint8_t expected_secret_bytes[sizeof(expected_secret_hex_in) / 2] = { 0 };
+    uint8_t expected_expanded_bytes[sizeof(expected_expanded_hex_in) / 2] = { 0 };
 
     uint8_t digest_buf[SHA256_DIGEST_LENGTH];
     uint8_t secret_buf[SHA256_DIGEST_LENGTH];
@@ -74,28 +74,28 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_alloc_ro_from_string(&expected_expanded_in, expected_expanded_hex_in));
 
     /* Parse the hex */
-    for (size_t i = 0; i < sizeof(client_handshake_message); i++) {
+    for (size_t i = 0; i < sizeof(client_handshake_message_bytes); i++) {
         uint8_t c = 0;
         EXPECT_OK(s2n_stuffer_read_uint8_hex(&client_handshake_message_in, &c));
-        client_handshake_message[i] = c;
+        client_handshake_message_bytes[i] = c;
     }
 
-    for (size_t i = 0; i < sizeof(server_handshake_message); i++) {
+    for (size_t i = 0; i < sizeof(server_handshake_message_bytes); i++) {
         uint8_t c = 0;
         EXPECT_OK(s2n_stuffer_read_uint8_hex(&server_handshake_message_in, &c));
-        server_handshake_message[i] = c;
+        server_handshake_message_bytes[i] = c;
     }
 
-    for (size_t i = 0; i < sizeof(expected_secret); i++) {
+    for (size_t i = 0; i < sizeof(expected_secret_bytes); i++) {
         uint8_t c = 0;
         EXPECT_OK(s2n_stuffer_read_uint8_hex(&expected_secret_in, &c));
-        expected_secret[i] = c;
+        expected_secret_bytes[i] = c;
     }
 
-    for (size_t i = 0; i < sizeof(expected_expanded); i++) {
+    for (size_t i = 0; i < sizeof(expected_expanded_bytes); i++) {
         uint8_t c = 0;
         EXPECT_OK(s2n_stuffer_read_uint8_hex(&expected_expanded_in, &c));
-        expected_expanded[i] = c;
+        expected_expanded_bytes[i] = c;
     }
 
     EXPECT_SUCCESS(s2n_hash_new(&transcript_hash));
@@ -124,7 +124,7 @@ int main(int argc, char **argv)
 
     /* Validate the early secret */
     EXPECT_SUCCESS(s2n_hkdf_extract(&throwaway, S2N_HMAC_SHA256, &salt, &ikm, &secret));
-    EXPECT_EQUAL(memcmp(secret_buf, expected_secret, sizeof(secret_buf)), 0);
+    EXPECT_EQUAL(memcmp(secret_buf, expected_secret_bytes, sizeof(secret_buf)), 0);
 
     /* Validate the derived secret */
     S2N_BLOB_LABEL(label, "derived");
@@ -134,7 +134,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_hmac_new(&hmac));
     EXPECT_SUCCESS(s2n_hkdf_expand_label(&hmac, S2N_HMAC_SHA256, &secret, &label, &digest, &output));
 
-    EXPECT_EQUAL(memcmp(output_buf, expected_expanded, sizeof(output_buf)), 0);
+    EXPECT_EQUAL(memcmp(output_buf, expected_expanded_bytes, sizeof(output_buf)), 0);
 
     EXPECT_SUCCESS(s2n_hmac_free(&throwaway));
     EXPECT_SUCCESS(s2n_hmac_free(&hmac));

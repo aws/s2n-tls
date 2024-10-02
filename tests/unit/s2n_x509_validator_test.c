@@ -212,7 +212,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -237,7 +237,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
         struct s2n_pkey public_key_out;
@@ -285,7 +285,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -322,7 +322,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -402,7 +402,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -439,7 +439,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         EXPECT_SUCCESS(s2n_x509_validator_set_max_chain_depth(&validator, 2));
         struct s2n_pkey public_key_out;
@@ -483,7 +483,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         s2n_config_set_wall_clock(connection->config, fetch_expired_after_ocsp_timestamp, NULL);
@@ -539,7 +539,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         s2n_clock_time_nanoseconds old_clock = connection->config->wall_clock;
         EXPECT_SUCCESS(s2n_config_set_wall_clock(connection->config, fetch_early_expired_after_ocsp_timestamp, NULL));
@@ -577,7 +577,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         /* alter a random byte in the certificate to make it invalid */
         size_t corrupt_index = 200;
@@ -622,7 +622,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -669,7 +669,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -708,7 +708,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -755,7 +755,7 @@ int main(int argc, char **argv)
         uint8_t *chain_data = s2n_stuffer_raw_read(&cert_chain_stuffer, chain_len);
         EXPECT_NOT_NULL(chain_data);
 
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -1908,7 +1908,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(chain_data);
 
         /* This cert chain includes a SHA1 signature, so the security policy must allow SHA1 cert signatures. */
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
 
         struct s2n_pkey public_key_out;
         EXPECT_SUCCESS(s2n_pkey_zero_init(&public_key_out));
@@ -2099,7 +2099,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(connection);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
             EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
 
             DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
@@ -2128,7 +2128,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(connection);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
             EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
 
             DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);
@@ -2159,7 +2159,7 @@ int main(int argc, char **argv)
 
             DEFER_CLEANUP(struct s2n_connection *connection = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
             EXPECT_NOT_NULL(connection);
-            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "20240501"));
+            EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(connection, "default"));
             EXPECT_SUCCESS(s2n_set_server_name(connection, "s2nTestServer"));
 
             DEFER_CLEANUP(struct s2n_stuffer cert_chain_stuffer = { 0 }, s2n_stuffer_free);

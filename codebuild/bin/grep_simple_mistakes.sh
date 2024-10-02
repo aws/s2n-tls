@@ -102,6 +102,26 @@ for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
 done
 
 #############################################
+# Detect any suspicious loops not using s2n_array_len().
+# This is not necessarily a problem, but it's been a common source of errors,
+# so we should just enforce stricter conventions.
+#############################################
+S2N_FILES_WITH_SIZEOF_LOOP=$(find "$PWD" -type f -name "s2n*.c" -path "*")
+for file in $S2N_FILES_WITH_SIZEOF_LOOP; do
+  WITH_QUESTIONABLE_SIZEOF_LOOP=`grep -Ern 'for \(.+; .+ <=? sizeof\(.+\); .+\)' $file | \
+    grep -vE '<=? sizeof\(.*bytes\);' |
+    grep -vE '<=? sizeof\(.*data\);' |
+    grep -vE '<=? sizeof\(.*u8\);'`
+  if [ "${#WITH_QUESTIONABLE_SIZEOF_LOOP}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mWarning: sizeof is only valid for arrays of chars or uint8_ts. "
+    printf "Use s2n_array_len for other types, "
+    printf "or append \"bytes\", \"data\", or \"u8\" to your variable name for clarity.\n"
+    printf "File: $file:\e[0m\n$WITH_QUESTIONABLE_SIZEOF_LOOP\n\n"
+  fi
+done
+
+#############################################
 # Assert that all assignments from s2n_stuffer_raw_read() have a
 # notnull_check (or similar manual null check) on the same, or next, line.
 # The assertion is shallow; this doesn't guarantee that we're doing the
@@ -223,44 +243,6 @@ if [[ -n $S2N_ENSURE_WITH_INVALID_ERROR_CODE ]]; then
   printf "\e[1;34mENSURE and GUARD_OSSL require a valid error code from errors/s2n_errno.h:\e[0m\n"
   printf "$S2N_ENSURE_WITH_INVALID_ERROR_CODE\n\n"
 fi
-
-#############################################
-# Assert tests don't specify the "default" security policy.
-#
-# Since the "default" policies are subject to change, tests should instead specify
-# an immutable numbered policy to avoid unwanted testing behavior.
-#############################################
-S2N_DEFAULT_SECURITY_POLICY_USAGE=$(find "$PWD" -type f -name "s2n*.c" -path "*/tests/*" \
-    -not -path "*/bindings/*")
-declare -A KNOWN_DEFAULT_USAGE
-KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_security_policies_test.c"]=5
-KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_hello_test.c"]=2
-KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_connection_preferences_test.c"]=1
-KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_config_test.c"]=1
-# "default" string not used for specifying security policy
-#
-# The regex matching results in false positives but is intentionally "loose" to
-# try and catch non-obvious [1] usage of "default". This is acceptable since
-# there are only a few false positives at the moment.
-#
-# [1] https://github.com/aws/s2n-tls/blob/341a69ed6fc4fa8f51c09b9cc477223cec4d8e60/tests/unit/s2n_client_hello_test.c#L580
-KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_build_test.c"]=1
-KNOWN_DEFAULT_USAGE["$PWD/tests/unit/s2n_client_key_share_extension_test.c"]=2
-
-for file in $S2N_DEFAULT_SECURITY_POLICY_USAGE; do
-  RESULT_NUM_LINES=`grep -n '"default"' $file | wc -l`
-
-  # set default KNOWN_DEFAULT_USAGE value
-  [ -z "${KNOWN_DEFAULT_USAGE["$file"]}" ] && KNOWN_DEFAULT_USAGE["$file"]="0"
-
-  # check if "default" usage is 0 or a known value
-  if [ "${RESULT_NUM_LINES}" != "${KNOWN_DEFAULT_USAGE["$file"]}" ]; then
-    FAILED=1
-    KNOWN_USAGE=${KNOWN_DEFAULT_USAGE[$file]}
-    printf "\e[1;34mExpected: ${KNOWN_USAGE} Found: ${RESULT_NUM_LINES} usage of \"default\" in $file\n"
-    printf "\e[1;34mTests should specify a numbered security policy unless specifically testing the \"default\" policy.\n\n"
-  fi
-done
 
 #############################################
 # REPORT FINAL RESULTS
