@@ -35,7 +35,7 @@ if [ ! -d $WORK_DIR/s2n-install-shared ]; then
 fi
 
 # Compile the test file
-$CC -Wl,-rpath $LIBCRYPTO_ROOT -o s2n_dynamic_load_test codebuild/bin/s2n_dynamic_load_test.c -ldl -lpthread
+$CC -Wl,-rpath $LIBCRYPTO_ROOT -o s2n_dynamic_load_test -O0 -g3 -ggdb codebuild/bin/s2n_dynamic_load_test.c -ldl -lpthread
 
 LDD_OUTPUT=$(ldd s2n_dynamic_load_test)
 

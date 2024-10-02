@@ -25,29 +25,53 @@ static void *s2n_load_dynamic_lib(void *ctx)
 
     void *s2n_so = dlopen(s2n_so_path, RTLD_NOW);
     if (!s2n_so) {
+        printf("Error dynamically loading libs2n\n");
+        printf("%s\n", dlerror());
         exit(1);
     }
 
     int (*s2n_init_dl)(void) = NULL;
     *(void **) (&s2n_init_dl) = dlsym(s2n_so, "s2n_init");
     if (dlerror()) {
+        printf("Error dynamically loading s2n_init\n");
         exit(1);
     }
 
     int (*s2n_cleanup_dl)(void) = NULL;
     *(void **) (&s2n_cleanup_dl) = dlsym(s2n_so, "s2n_cleanup");
     if (dlerror()) {
+        printf("Error dynamically loading s2n_cleanup\n");
+        exit(1);
+    }
+
+    int (*s2n_errno_location_dl)(void) = NULL;
+    *(void **) (&s2n_errno_location_dl) = dlsym(s2n_so, "s2n_errno_location");
+    if (dlerror()) {
+        printf("Error dynamically loading s2n_errno_location\n");
+        exit(1);
+    }
+
+    const char *(*s2n_strerror_debug_dl)(int error, const char *lang) = NULL;
+    *(void **) (&s2n_strerror_debug_dl) = dlsym(s2n_so, "s2n_strerror_debug");
+    if (dlerror()) {
+        printf("Error dynamically loading s2n_strerror_debug\n");
         exit(1);
     }
 
     if ((*s2n_init_dl)()) {
+        int s2n_errno = (*s2n_errno_location_dl)();
+        fprintf(stderr, "Error calling s2n_init: '%s'\n", (*s2n_strerror_debug_dl)(s2n_errno, "EN"));
         exit(1);
     }
     if ((*s2n_cleanup_dl)()) {
+        int s2n_errno = (*s2n_errno_location_dl)();
+        fprintf(stderr, "Error calling s2n_cleanup: '%s'\n", (*s2n_strerror_debug_dl)(s2n_errno, "EN"));
         exit(1);
     }
 
     if (dlclose(s2n_so)) {
+        printf("Error closing libs2n\n");
+        printf("%s\n", dlerror());
         exit(1);
     }
 
@@ -70,9 +94,11 @@ int main(int argc, char *argv[])
     for (size_t i = 0; i <= PTHREAD_KEYS_MAX + 1; i++) {
         pthread_t thread_id = { 0 };
         if (pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
+            printf("Error creating thread at index: %li\n", i);
             exit(1);
         }
         if (pthread_join(thread_id, NULL)) {
+            printf("Error joining thread at index: %li\n", i);
             exit(1);
         }
     }
