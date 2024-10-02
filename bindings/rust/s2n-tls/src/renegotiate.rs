@@ -121,7 +121,7 @@ impl config::Builder {
                         return CallbackResult::Success.into();
                     }
                 }
-                return CallbackResult::Failure.into();
+                CallbackResult::Failure.into()
             })
         }
 
@@ -311,7 +311,7 @@ mod tests {
             // Like s2n-tls, a call to send / write is required.
             let to_send = [0; 1];
             self.server
-                .write(&to_send)
+                .write_all(&to_send)
                 .expect("Failed to write hello request");
 
             // s2n-tls needs to attempt to read data to receive the message
@@ -328,7 +328,7 @@ mod tests {
             self.server.write_all(&to_send)?;
             unwrap_poll(self.client.poll_recv(&mut recv_buffer))?;
             unwrap_poll(self.client.poll_send(&to_send))?;
-            self.server.read(&mut recv_buffer)?;
+            self.server.read_exact(&mut recv_buffer)?;
             Ok(())
         }
 
@@ -447,7 +447,7 @@ mod tests {
         let to_write = "hello world";
         let mut buf = [0; 100];
         pair.server
-            .write(to_write.as_bytes())
+            .write_all(to_write.as_bytes())
             .expect("Application data during renegotiate");
         let (result, n) = pair.client.poll_renegotiate(&mut buf);
         assert!(result.is_pending());
@@ -489,7 +489,7 @@ mod tests {
                 if this.count > 1 {
                     // Repeatedly block the handshake in order to verify
                     // that renegotiate can handle Pending callbacks.
-                    this.count = this.count - 1;
+                    this.count -= 1;
                     Pending
                 } else {
                     // Perform the pkey operation with the selected cert / key pair.
@@ -568,7 +568,7 @@ mod tests {
                 if this.count > 1 {
                     // Repeatedly block the handshake in order to verify
                     // that renegotiate can handle Pending callbacks.
-                    this.count = this.count - 1;
+                    this.count -= 1;
                     Pending
                 } else {
                     conn.set_server_name(&this.server_name)?;

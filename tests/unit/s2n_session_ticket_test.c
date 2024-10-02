@@ -1342,7 +1342,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
         EXPECT_SUCCESS(s2n_connection_set_blinding(server_conn, S2N_SELF_SERVICE_BLINDING));
         EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
-        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "20240501"));
+        EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server_conn, "default"));
 
         EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
         EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));

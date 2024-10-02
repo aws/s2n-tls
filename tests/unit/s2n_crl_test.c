@@ -668,7 +668,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
@@ -704,7 +704,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
 
         struct crl_lookup_data data = { 0 };
         data.crls[0] = intermediate_crl;
@@ -743,7 +743,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -754,7 +754,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
         struct crl_lookup_data data = { 0 };
@@ -794,7 +794,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(server_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(server_config, server_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(server_config, S2N_CRL_ROOT_CERT, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(server_config, S2N_CERT_AUTH_REQUIRED));
 
         DEFER_CLEANUP(struct s2n_cert_chain_and_key *client_chain_and_key = NULL, s2n_cert_chain_and_key_ptr_free);
@@ -805,7 +805,7 @@ int main(int argc, char *argv[])
         EXPECT_NOT_NULL(client_config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(client_config, client_chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_verification_ca_location(client_config, S2N_DEFAULT_TEST_CERT_CHAIN, NULL));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "20240501"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(client_config, "default"));
         EXPECT_SUCCESS(s2n_config_set_client_auth_type(client_config, S2N_CERT_AUTH_REQUIRED));
 
         struct crl_lookup_data data = { 0 };

@@ -171,7 +171,7 @@ int main(int argc, char **argv)
 
     /* Test common known good cipher suites for expected configuration */
     {
-        EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240501", &security_policy));
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &security_policy));
         EXPECT_TRUE(s2n_ecc_is_extension_required(security_policy));
         EXPECT_FALSE(s2n_pq_kem_is_extension_required(security_policy));
         EXPECT_NULL(security_policy->kem_preferences->kems);

@@ -68,8 +68,8 @@ int main(int argc, char **argv)
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
-        EXPECT_EQUAL(cert_types_len, sizeof(s2n_cert_type_preference_list));
-        for (size_t idx = 0; idx < sizeof(s2n_cert_type_preference_list); idx++) {
+        EXPECT_EQUAL(cert_types_len, s2n_array_len(s2n_cert_type_preference_list));
+        for (size_t idx = 0; idx < s2n_array_len(s2n_cert_type_preference_list); idx++) {
             EXPECT_EQUAL(their_cert_type_pref_list[idx], s2n_cert_type_preference_list[idx]);
         }
 
@@ -96,8 +96,8 @@ int main(int argc, char **argv)
 
         uint8_t *their_cert_type_pref_list = s2n_stuffer_raw_read(in, cert_types_len);
 
-        EXPECT_EQUAL(cert_types_len, sizeof(s2n_cert_type_preference_list_legacy_dss));
-        for (size_t idx = 0; idx < sizeof(s2n_cert_type_preference_list_legacy_dss); idx++) {
+        EXPECT_EQUAL(cert_types_len, s2n_array_len(s2n_cert_type_preference_list_legacy_dss));
+        for (size_t idx = 0; idx < s2n_array_len(s2n_cert_type_preference_list_legacy_dss); idx++) {
             EXPECT_EQUAL(their_cert_type_pref_list[idx], s2n_cert_type_preference_list_legacy_dss[idx]);
         }
 

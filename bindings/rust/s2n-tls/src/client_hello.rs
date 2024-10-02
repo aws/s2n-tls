@@ -138,6 +138,10 @@ impl fmt::Debug for ClientHello {
     }
 }
 
+// Leftover from when fingerprinting was implemented in this module
+#[cfg(feature = "unstable-fingerprint")]
+pub use crate::fingerprint::FingerprintType;
+
 #[cfg(test)]
 mod tests {
     use crate::client_hello::ClientHello;
@@ -177,7 +181,3 @@ mod tests {
         assert_eq!("incoming.telemetry.mozilla.org".as_bytes(), server_name);
     }
 }
-
-// Leftover from when fingerprinting was implemented in this module
-#[cfg(feature = "unstable-fingerprint")]
-pub use crate::fingerprint::FingerprintType;
