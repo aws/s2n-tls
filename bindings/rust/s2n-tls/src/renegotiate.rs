@@ -222,7 +222,7 @@ impl Connection {
         // Check for buffered data in order to surface more specific
         // error messages to the application.
         if self.renegotiate_state().send_pending {
-            return Err(Error::general(
+            return Err(Error::bindings(
                 ErrorType::UsageError,
                 "RenegotiateError",
                 "Unexpected buffered send data during renegotiate",
@@ -305,7 +305,7 @@ impl Connection {
     /// Returns the number of bytes written, and may indicate a partial write.
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         if self.is_renegotiating() {
-            return Ready(Err(Error::general(
+            return Ready(Err(Error::bindings(
                 ErrorType::Blocked,
                 "RenegotiateError",
                 "Cannot send application data while renegotiating",
