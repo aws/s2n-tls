@@ -33,6 +33,7 @@ option(S2N_LTO, "Enables link time optimizations when building s2n-tls." OFF)
 option(S2N_STACKTRACE "Enables stacktrace functionality in s2n-tls. Note that this functionality is
 only available on platforms that support execinfo." ON)
 option(COVERAGE "Enable profiling collection for code coverage calculation" OFF)
+option(BUILD_TESTING "Build tests for s2n-tls. By default only unit tests are built." ON)
 option(S2N_INTEG_TESTS "Enable the integrationv2 tests" OFF)
 option(S2N_FAST_INTEG_TESTS "Enable the integrationv2 with more parallelism, only has effect if S2N_INTEG_TESTS=ON" ON)
 option(S2N_INSTALL_S2NC_S2ND "Install the binaries s2nc and s2nd" OFF)
@@ -40,9 +41,6 @@ option(S2N_USE_CRYPTO_SHARED_LIBS "For S2N to use shared libs in Findcrypto" OFF
 option(TSAN "Enable ThreadSanitizer to test thread safety" OFF)
 option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
-
-# Turn BUILD_TESTING=ON by default
-include(CTest)
 
 file(GLOB API_HEADERS "api/*.h")
 file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
@@ -497,6 +495,29 @@ if (BUILD_TESTING)
     ########################## configure unit tests ############################
     ############################################################################
 
+    # CTest configuration variables need to be set before include(CTest) is called
+    set(VALGRIND_DEFAULT " \
+        --leak-check=full \
+        --leak-resolution=high \
+        --trace-children=yes \
+        -q --error-exitcode=123 \
+        --error-limit=no \
+        --num-callers=40 \
+        --undef-value-errors=no \
+        --log-fd=2 \
+        --suppressions=valgrind.suppressions")
+
+    # "pedantic valgrind" will error on memory that is "Still Reachable". 
+    # We only run this on OpenSSL 1.1.1 because there are hundreds of false positives in other libcryptos.
+    # Tracking issue: https://github.com/aws/s2n-tls/issues/4777
+    if ($ENV{S2N_LIBCRYPTO} MATCHES "openssl-1.1.1")
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=yes --errors-for-leak-kinds=all --show-leak-kinds=all")
+    else()
+        set(MEMORYCHECK_COMMAND_OPTIONS "${VALGRIND_DEFAULT} --run-libc-freeres=no")
+    endif()
+
+    set(MEMORYCHECK_TYPE "Valgrind")
+
     set(UNIT_TEST_ENVS S2N_DONT_MLOCK=1)
     if (TSAN OR ASAN)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} S2N_ADDRESS_SANITIZER=1)
@@ -524,6 +545,8 @@ if (BUILD_TESTING)
         set(UNIT_TEST_ENVS ${UNIT_TEST_ENVS} ASAN_OPTIONS=${ASAN_OPTIONS})
     endif()
     message(STATUS "Running tests with environment: ${UNIT_TEST_ENVS}")
+
+    include(CTest)
 
     ############################################################################
     ############################ build unit tests ##############################
