@@ -33,13 +33,13 @@ int s2n_evp_kem_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *publ
     POSIX_ENSURE_REF(kem);
     POSIX_ENSURE(kem->kem_nid != NID_undef, S2N_ERR_UNIMPLEMENTED);
     DEFER_CLEANUP(EVP_PKEY_CTX *kem_pkey_ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_KEM, NULL), EVP_PKEY_CTX_free_pointer);
-    POSIX_GUARD_PTR(kem_pkey_ctx);
+    POSIX_ENSURE_REF(kem_pkey_ctx);
     POSIX_GUARD_OSSL(EVP_PKEY_CTX_kem_set_params(kem_pkey_ctx, kem->kem_nid), S2N_ERR_PQ_CRYPTO);
     POSIX_GUARD_OSSL(EVP_PKEY_keygen_init(kem_pkey_ctx), S2N_ERR_PQ_CRYPTO);
 
     DEFER_CLEANUP(EVP_PKEY *kem_pkey = NULL, EVP_PKEY_free_pointer);
     POSIX_GUARD_OSSL(EVP_PKEY_keygen(kem_pkey_ctx, &kem_pkey), S2N_ERR_PQ_CRYPTO);
-    POSIX_GUARD_PTR(kem_pkey);
+    POSIX_ENSURE_REF(kem_pkey);
 
     size_t public_key_size = kem->public_key_length;
     POSIX_GUARD_OSSL(EVP_PKEY_get_raw_public_key(kem_pkey, public_key, &public_key_size), S2N_ERR_PQ_CRYPTO);
@@ -57,10 +57,10 @@ int s2n_evp_kem_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertex
     POSIX_ENSURE_REF(kem);
     POSIX_ENSURE(kem->kem_nid != NID_undef, S2N_ERR_UNIMPLEMENTED);
     DEFER_CLEANUP(EVP_PKEY *kem_pkey = EVP_PKEY_kem_new_raw_public_key(kem->kem_nid, public_key, kem->public_key_length), EVP_PKEY_free_pointer);
-    POSIX_GUARD_PTR(kem_pkey);
+    POSIX_ENSURE_REF(kem_pkey);
 
     DEFER_CLEANUP(EVP_PKEY_CTX *kem_pkey_ctx = EVP_PKEY_CTX_new(kem_pkey, NULL), EVP_PKEY_CTX_free_pointer);
-    POSIX_GUARD_PTR(kem_pkey_ctx);
+    POSIX_ENSURE_REF(kem_pkey_ctx);
 
     size_t ciphertext_size = kem->ciphertext_length;
     size_t shared_secret_size = kem->shared_secret_key_length;
@@ -79,10 +79,10 @@ int s2n_evp_kem_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_se
     POSIX_ENSURE_REF(kem);
     POSIX_ENSURE(kem->kem_nid != NID_undef, S2N_ERR_UNIMPLEMENTED);
     DEFER_CLEANUP(EVP_PKEY *kem_pkey = EVP_PKEY_kem_new_raw_secret_key(kem->kem_nid, private_key, kem->private_key_length), EVP_PKEY_free_pointer);
-    POSIX_GUARD_PTR(kem_pkey);
+    POSIX_ENSURE_REF(kem_pkey);
 
     DEFER_CLEANUP(EVP_PKEY_CTX *kem_pkey_ctx = EVP_PKEY_CTX_new(kem_pkey, NULL), EVP_PKEY_CTX_free_pointer);
-    POSIX_GUARD_PTR(kem_pkey_ctx);
+    POSIX_ENSURE_REF(kem_pkey_ctx);
 
     size_t shared_secret_size = kem->shared_secret_key_length;
     POSIX_GUARD_OSSL(EVP_PKEY_decapsulate(kem_pkey_ctx, shared_secret, &shared_secret_size,
