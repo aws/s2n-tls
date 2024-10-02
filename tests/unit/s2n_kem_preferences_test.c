@@ -56,29 +56,26 @@ int main(int argc, char **argv)
         EXPECT_TRUE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3));
         EXPECT_TRUE(s2n_kem_preferences_includes_tls13_kem_group(&test_prefs, TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3));
 
-        if (s2n_pq_is_enabled()) {
+        if (s2n_libcrypto_supports_evp_kem()) {
             EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_512_r3));
+            EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_768_r3));
+            EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp384r1_kyber_768_r3));
+            EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp521r1_kyber_1024_r3));
+
             if (s2n_is_evp_apis_supported()) {
                 EXPECT_TRUE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
-            } else {
-                EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
-            }
-            if (s2n_libcrypto_supports_kyber()) {
-                EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_768_r3));
-                EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp384r1_kyber_768_r3));
-                EXPECT_TRUE(s2n_kem_group_is_available(&s2n_secp521r1_kyber_1024_r3));
-            } else {
-                EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_768_r3));
-                EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp384r1_kyber_768_r3));
-                EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp521r1_kyber_1024_r3));
-            }
-            if (s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
                 EXPECT_TRUE(s2n_kem_group_is_available(&s2n_x25519_kyber_768_r3));
             } else {
+                EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
                 EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_768_r3));
             }
         } else {
             EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_512_r3));
+            EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_512_r3));
+            EXPECT_FALSE(s2n_kem_group_is_available(&s2n_x25519_kyber_768_r3));
+            EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp256r1_kyber_768_r3));
+            EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp384r1_kyber_768_r3));
+            EXPECT_FALSE(s2n_kem_group_is_available(&s2n_secp521r1_kyber_1024_r3));
         }
     };
 
