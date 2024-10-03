@@ -37,7 +37,6 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_network_order.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 UNWINDSET += s2n_stuffer_write_network_order.10:9

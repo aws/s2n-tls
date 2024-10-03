@@ -220,24 +220,25 @@ impl TestPair {
     }
 
     pub fn from_configs(client_config: &config::Config, server_config: &config::Config) -> Self {
+        // import in smallest namespace to avoid collision with config::Builder;
+        use crate::connection::Builder;
+
+        let client = client_config.build_connection(enums::Mode::Client).unwrap();
+        let server = server_config.build_connection(enums::Mode::Server).unwrap();
+
+        Self::from_connections(client, server)
+    }
+
+    pub fn from_connections(
+        mut client: connection::Connection,
+        mut server: connection::Connection,
+    ) -> Self {
         let client_tx_stream = Box::pin(Default::default());
         let server_tx_stream = Box::pin(Default::default());
 
-        let client = Self::register_connection(
-            enums::Mode::Client,
-            client_config,
-            &client_tx_stream,
-            &server_tx_stream,
-        )
-        .unwrap();
+        Self::register_connection(&mut client, &client_tx_stream, &server_tx_stream).unwrap();
 
-        let server = Self::register_connection(
-            enums::Mode::Server,
-            server_config,
-            &server_tx_stream,
-            &client_tx_stream,
-        )
-        .unwrap();
+        Self::register_connection(&mut server, &server_tx_stream, &client_tx_stream).unwrap();
 
         let io = TestPairIO {
             server_tx_stream,
@@ -254,14 +255,11 @@ impl TestPair {
     /// in unit tests. However, this will cause calls to `poll_shutdown` to return
     /// Poll::Pending until the blinding delay elapses.
     fn register_connection(
-        mode: enums::Mode,
-        config: &config::Config,
+        conn: &mut connection::Connection,
         send_ctx: &Pin<Box<LocalDataBuffer>>,
         recv_ctx: &Pin<Box<LocalDataBuffer>>,
-    ) -> Result<connection::Connection, error::Error> {
-        let mut conn = connection::Connection::new(mode);
-        conn.set_config(config.clone())?
-            .set_blinding(Blinding::SelfService)?
+    ) -> Result<(), error::Error> {
+        conn.set_blinding(Blinding::SelfService)?
             .set_send_callback(Some(Self::send_cb))?
             .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
@@ -282,7 +280,7 @@ impl TestPair {
                 recv_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
             )?;
         }
-        Ok(conn)
+        Ok(())
     }
 
     /// perform a TLS handshake between the connections
@@ -299,12 +297,17 @@ impl TestPair {
                 (_, Poll::Ready(Err(e))) => return Err(e),
                 // or an error on the client, then return the error
                 (Poll::Ready(Err(e)), _) => return Err(e),
-                _ => { /* not ready, poll again */ }
+                // not ready, poll again
+                _ => {}
             }
         }
     }
 
-    unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
+    pub(crate) unsafe extern "C" fn send_cb(
+        context: *mut c_void,
+        data: *const u8,
+        len: u32,
+    ) -> c_int {
         let context = &*(context as *const LocalDataBuffer);
         let data = core::slice::from_raw_parts(data, len as _);
         let bytes_written = context.borrow_mut().write(data).unwrap();
@@ -313,7 +316,11 @@ impl TestPair {
 
     // Note: this callback will be invoked multiple times in the event that
     // the byte-slices of the VecDeque are not contiguous (wrap around).
-    unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
+    pub(crate) unsafe extern "C" fn recv_cb(
+        context: *mut c_void,
+        data: *mut u8,
+        len: u32,
+    ) -> c_int {
         let context = &*(context as *const LocalDataBuffer);
         let data = core::slice::from_raw_parts_mut(data, len as _);
         match context.borrow_mut().read(data) {

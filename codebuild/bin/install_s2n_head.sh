@@ -26,39 +26,42 @@ if [ "$#" -ne "1" ]; then
     usage
 fi
 
-clone(){
-    git clone --branch main --single-branch . "$SRC_ROOT"/s2n_head
-}
-
 # CMake(nix) and Make are using different directory structures.
 set +u
 if [[ "$IN_NIX_SHELL" ]]; then
     export DEST_DIR="$SRC_ROOT"/build/bin
     export EXTRA_BUILD_FLAGS=""
+    # Work around issue cloning inside a nix devshell https://github.com/NixOS/nixpkgs/issues/299949 
+    export CLONE_SRC="."
 else
     export DEST_DIR="$SRC_ROOT"/bin
     export EXTRA_BUILD_FLAGS="-DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT"
+    # Work around different pathing issues for internal rel.
+    export CLONE_SRC="https://github.com/aws/s2n-tls"
 fi
 set -u
 
-# Cleanup any stale s2n_head clones.
-if [[ -d "$SRC_ROOT/s2n_head" ]]; then
+s2nc_head="$DEST_DIR/s2nc_head"
+if [[ -f "$s2nc_head" ]]; then
     now=$(date +%s)
-    last_modified=$(stat -c %Y s2n_head)
+    last_modified=$(stat -c %Y "$s2nc_head")
     days_old=$(( (now - last_modified) / 86400))
-    if ((days_old > 1 )); then
-        echo "s2n_head is $days_old days old, removing and cloning again."
-        rm -rf s2n_head
-        clone
-    else
-        echo "s2n_head already exists and is $days_old days old."
+    if ((days_old <= 1)); then
+        echo "Reusing s2n_head: s2nc_head exists and is $days_old days old."
+        exit 0
     fi
-else
-    clone
 fi
-cmake "$SRC_ROOT"/s2n_head -B"$BUILD_DIR" "$EXTRA_BUILD_FLAGS" -DCMAKE_BUILD_TYPE=RelWithDebInfo -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=on
-cmake --build "$BUILD_DIR" -- -j "$(nproc)"
-cp -f "$BUILD_DIR"/bin/s2nc "$DEST_DIR"/s2nc_head
-cp -f "$BUILD_DIR"/bin/s2nd "$DEST_DIR"/s2nd_head
+
+git clone --branch main --single-branch "$CLONE_SRC" "$BUILD_DIR"
+
+cmake "$BUILD_DIR" -B"$BUILD_DIR"/build "$EXTRA_BUILD_FLAGS" \
+    -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DBUILD_SHARED_LIBS=on \
+    -DBUILD_TESTING=on
+cmake --build "$BUILD_DIR"/build --target s2nc -- -j $(nproc) 
+cmake --build "$BUILD_DIR"/build --target s2nd -- -j $(nproc) 
+
+cp -f "$BUILD_DIR"/build/bin/s2nc "$s2nc_head"
+cp -f "$BUILD_DIR"/build/bin/s2nd "$DEST_DIR"/s2nd_head
 
 exit 0

@@ -22,13 +22,14 @@ usage() {
     exit 1
 }
 
-if [ "$#" -ne "3" ]; then
+if [ "$#" -ne "4" ]; then
     usage
 fi
 
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
 CORPUS_UPLOAD_LOC=$3
+ARTIFACT_UPLOAD_LOC=$4
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
@@ -51,11 +52,12 @@ GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
 
 FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
+# Use LD_PRELOAD_ to prevent symbol lookup errors in commands like mkdir.
 if [ -e $TEST_SPECIFIC_OVERRIDES ];
 then
-    export LD_PRELOAD="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"
+    export LD_PRELOAD_="$TEST_SPECIFIC_OVERRIDES $GLOBAL_OVERRIDES"
 else
-    export LD_PRELOAD="$GLOBAL_OVERRIDES"
+    export LD_PRELOAD_="$GLOBAL_OVERRIDES"
 fi
 
 FIPS_TEST_MSG=""
@@ -142,7 +144,7 @@ if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     rm -f ./profiles/${TEST_NAME}/*.profraw
     LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 else
-    ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    env LD_PRELOAD="$LD_PRELOAD_" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
 TEST_INFO=$(
@@ -243,5 +245,23 @@ then
 else
     cat ${TEST_NAME}_output.txt
     printf "\033[31;1mFAILED\033[0m %s, %6d features covered\n" "$TEST_INFO" $FEATURE_COVERAGE
+    
+    # Store corpus to S3 to be used for debugging if the test fails
+    unset LD_PRELOAD
+    unset LD_LIBRARY_PATH
+    if [ "$CORPUS_UPLOAD_LOC" != "none" ]; then
+        printf "Zipping corpus files...\n"
+        zip -r ./corpus/${TEST_NAME}.zip ./corpus/${TEST_NAME}/
+        
+        printf "Uploading zipped corpus file to S3 bucket...\n"
+        aws s3 cp ./corpus/${TEST_NAME}.zip $CORPUS_UPLOAD_LOC/${TEST_NAME}/corpus_$(date +%Y-%m-%d-%T).zip
+    fi
+
+    # Store generated output files in the S3 bucket.
+    if [ "$ARTIFACT_UPLOAD_LOC" != "none" ]; then
+        printf "Uploading output files to S3 bucket...\n"
+        aws s3 cp ./${TEST_NAME}_output.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/output_$(date +%Y-%m-%d-%T).txt
+        aws s3 cp ./${TEST_NAME}_results.txt ${ARTIFACT_UPLOAD_LOC}/${TEST_NAME}/results_$(date +%Y-%m-%d-%T).txt
+    fi
     exit -1
 fi

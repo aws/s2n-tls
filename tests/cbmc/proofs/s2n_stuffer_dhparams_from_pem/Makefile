@@ -39,7 +39,6 @@ PROJECT_SOURCES += $(SRCDIR)/stuffer/s2n_stuffer_network_order.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_blob.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_ensure.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_mem.c
-PROJECT_SOURCES += $(SRCDIR)/utils/s2n_result.c
 PROJECT_SOURCES += $(SRCDIR)/utils/s2n_safety.c
 
 # We abstract these functions because manual inspection demonstrates they are unreachable.
@@ -50,6 +49,6 @@ REMOVE_FUNCTION_BODY += s2n_add_overflow
 UNWINDSET += strlen.0:5 # size of S2N_PEM_PKCS1_RSA_PRIVATE_KEY
 UNWINDSET += strncmp.0:5 # size of S2N_PEM_END_TOKEN
 UNWINDSET += __CPROVER_file_local_s2n_stuffer_pem_c_s2n_stuffer_pem_read_contents.11:$(call addone,$(MAX_BLOB_SIZE))
-UNWINDSET += s2n_stuffer_skip_to_char.3:$(call addone,$(MAX_BLOB_SIZE))
+UNWINDSET +=  s2n_stuffer_skip_read_until.10:$(call addone,$(MAX_BLOB_SIZE))
 
 include ../Makefile.common

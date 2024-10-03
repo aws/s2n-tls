@@ -35,7 +35,7 @@ jobs:
       - name: Check
         run: ./codebuild/bin/run_cppcheck.sh "$CPPCHECK_INSTALL_DIR"
 
-  copyright:
+  headers:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -44,7 +44,7 @@ jobs:
         run: source ./codebuild/bin/s2n_setup_env.sh
 
       - name: Check
-        run: ./codebuild/bin/copyright_mistake_scanner.sh
+        run: ./codebuild/bin/header_mistake_scanner.sh
 
   simple-mistakes:
     runs-on: ubuntu-latest

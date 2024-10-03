@@ -56,17 +56,23 @@ sudo yum install cmake3
 sudo yum install openssl-devel
 
 # build s2n-tls
-cmake . -Bbuild \
+cmake3 . -Bbuild \
     -DCMAKE_BUILD_TYPE=Release \
     -DCMAKE_INSTALL_PREFIX=./s2n-tls-install \
     -DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz"
-cmake --build build -j $(nproc)
-CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
-cmake --install build
+cmake3 --build build -j $(nproc)
+cd build
+CTEST_PARALLEL_LEVEL=$(nproc) ctest3
+cd ..
+cmake3 --install build
 ```
 </details>
 
 Note that we currently do not support building on Windows. See https://github.com/aws/s2n-tls/issues/497 for more information.
+
+Using the commands above, the libraries and headers will be located in the `s2n-tls-install` directory.
+
+The s2nc and s2nd test utilities are not installed by default, but can be found in the `build/bin` directory. To also install s2nc and s2nd, add `-DS2N_INSTALL_S2NC_S2ND=1` to the cmake command.
 
 ## Consuming s2n-tls via CMake
 
@@ -104,6 +110,8 @@ cmake . -LH
 
 s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be linked to s2n-tls when building. The following libcrypto libraries are currently supported:
 - [AWS-LC](https://github.com/aws/aws-lc)
+  - Limited ["Sandboxing"](https://github.com/aws/aws-lc/blob/main/SANDBOXING.md) is only supported and tested with AWS-LC.
+  - [PQ key exchange](https://aws.github.io/s2n-tls/usage-guide/ch15-post-quantum.html) is only supported with AWS-LC.
 - [OpenSSL](https://www.openssl.org/) (versions 1.0.2 - 3.0)
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.

@@ -17,12 +17,14 @@ use core::ptr::NonNull;
 #[derive(Copy, Clone)]
 pub enum FingerprintType {
     JA3,
+    JA4,
 }
 
 impl From<FingerprintType> for s2n_tls_sys::s2n_fingerprint_type::Type {
     fn from(value: FingerprintType) -> Self {
         match value {
             FingerprintType::JA3 => s2n_tls_sys::s2n_fingerprint_type::FINGERPRINT_JA3,
+            FingerprintType::JA4 => s2n_tls_sys::s2n_fingerprint_type::FINGERPRINT_JA4,
         }
     }
 }
@@ -360,7 +362,7 @@ mod tests {
     };
     use std::{collections::HashSet, error::Error};
 
-    const CLIENT_HELLO_BYTES: &'static [u8] = &[
+    const CLIENT_HELLO_BYTES: &[u8] = &[
         0x01, 0x00, 0x00, 0xEC, 0x03, 0x03, 0x90, 0xe8, 0xcc, 0xee, 0xe5, 0x70, 0xa2, 0xa1, 0x2f,
         0x6b, 0x69, 0xd2, 0x66, 0x96, 0x0f, 0xcf, 0x20, 0xd5, 0x32, 0x6e, 0xc4, 0xb2, 0x8c, 0xc7,
         0xbd, 0x0a, 0x06, 0xc2, 0xa5, 0x14, 0xfc, 0x34, 0x20, 0xaf, 0x72, 0xbf, 0x39, 0x99, 0xfb,
@@ -396,7 +398,7 @@ mod tests {
         let client_hello = pair.server.client_hello()?;
 
         let mut builder = Fingerprint::builder(FingerprintType::JA3)?;
-        let mut fingerprint = builder.build(&client_hello)?;
+        let mut fingerprint = builder.build(client_hello)?;
 
         let hash_size = fingerprint.hash_size()?;
         let hash = fingerprint.hash()?;
@@ -496,7 +498,7 @@ mod tests {
             pair.handshake()?;
 
             let client_hello = pair.server.client_hello()?;
-            let mut fingerprint = builder.build(&client_hello)?;
+            let mut fingerprint = builder.build(client_hello)?;
 
             let hash = fingerprint.hash()?;
             hex::decode(hash)?;

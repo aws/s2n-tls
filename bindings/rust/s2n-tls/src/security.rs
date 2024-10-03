@@ -29,8 +29,29 @@ impl Policy {
         }
     }
 
+    /// Construct a numbered security policy.
+    ///
+    /// Numbered security policies are stable and will not change, in comparison
+    /// to default security policies: [DEFAULT] and [DEFAULT_TLS13].
+    ///
     /// See the s2n-tls usage guide for details on available policies:
     /// <https://aws.github.io/s2n-tls/usage-guide/ch06-security-policies.html>
+    /// ```
+    /// use s2n_tls::{config, security};
+    ///
+    /// let mut config = config::Builder::new();
+    ///
+    /// // "20240501" is a numbered security policy. More information can be found
+    /// // in the linked s2n-tls usage guide.
+    /// let security_policy = match security::Policy::from_version("20240501") {
+    ///     Ok(policy) => policy,
+    ///     Err(e) => {
+    ///         eprintln!("unable to construct the policy: {}", e);
+    ///         return;
+    ///     }
+    /// };
+    /// config.set_security_policy(&security_policy);
+    /// ```
     pub fn from_version(version: &str) -> Result<Policy, Error> {
         let cstr = CString::new(version).map_err(|_| Error::INVALID_INPUT)?;
         let context = Context::Owned(cstr);
@@ -87,9 +108,14 @@ pub const DEFAULT_TLS13: Policy = policy!("default_tls13");
 #[cfg(feature = "pq")]
 pub const TESTING_PQ: Policy = policy!("PQ-TLS-1-0-2021-05-26");
 
+#[cfg(feature = "pq")]
+pub const DEFAULT_PQ: Policy = policy!("default_pq");
+
 pub const ALL_POLICIES: &[Policy] = &[
     DEFAULT,
     DEFAULT_TLS13,
     #[cfg(feature = "pq")]
     TESTING_PQ,
+    #[cfg(feature = "pq")]
+    DEFAULT_PQ,
 ];

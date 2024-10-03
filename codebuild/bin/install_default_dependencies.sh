@@ -150,11 +150,3 @@ if [[ ! -x `which cmake` ]]; then
         ;;
     esac
 fi
-
-if [[ "$TESTS" == "benchmark" || "$TESTS" == "ALL" ]]; then
-    if [[ ! -x "$GB_INSTALL_DIR/lib/libbenchmark.a" ]]; then
-        mkdir -p "$GB_INSTALL_DIR"||true
-        codebuild/bin/install_googlebenchmark.sh "$(mktemp -d)" "$GB_INSTALL_DIR" "$OS_NAME" > /dev/null ;
-    fi
-fi
-

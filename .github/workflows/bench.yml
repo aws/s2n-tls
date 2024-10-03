@@ -1,0 +1,48 @@
+name: Benchmarking
+
+on:
+  push:
+    branches: [main]
+  schedule:
+    # run the job daily at midnight
+    - cron: "0 0 * * *"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Python
+        uses: actions/setup-python@v1
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          rustup toolchain install stable
+          rustup override set stable
+          cargo install cargo-criterion
+          pip3 install "boto3[crt]"
+
+      - name: Generate
+        working-directory: bindings/rust
+        run: ./generate.sh --skip-tests
+
+      - name: Benchmark
+        working-directory: bindings/rust/bench
+        run: cargo criterion --message-format json > criterion_output.log
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-west-2
+
+      - name: Emit CloudWatch metrics
+        run: |
+          python3 .github/bin/criterion_to_cloudwatch.py \
+            --criterion_output_path bindings/rust/bench/criterion_output.log \
+            --namespace s2n-tls-bench \
+            --platform ${{ runner.os }}-${{ runner.arch }}

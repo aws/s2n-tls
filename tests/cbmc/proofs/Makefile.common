@@ -4,7 +4,7 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: MIT-0
 
-CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.8.8
+CBMC_STARTER_KIT_VERSION = CBMC starter kit 2.11
 
 ################################################################
 # The CBMC Starter Kit depends on the files Makefile.common and
@@ -211,10 +211,13 @@ CHECKFLAGS += $(USE_EXTERNAL_SAT_SOLVER)
 
 ifeq ($(strip $(ENABLE_POOLS)),)
   POOL =
+  INIT_POOLS =
 else ifeq ($(strip $(EXPENSIVE)),)
   POOL =
+  INIT_POOLS =
 else
   POOL = --pool expensive
+  INIT_POOLS = --pools expensive:1
 endif
 
 # Similar to the pool feature above. If Litani is new enough, enable
@@ -229,29 +232,31 @@ endif
 #
 # Each variable below controls a specific property checking flag
 # within CBMC. If desired, a property flag can be disabled within
-# a particular proof by nulling the corresponding variable. For
-# instance, the following line:
+# a particular proof by nulling the corresponding variable when CBMC's default
+# is not to perform such checks, or setting to --no-<CHECK>-check when CBMC's
+# default is to perform such checks. For instance, the following lines:
 #
-#     CHECK_FLAG_POINTER_CHECK =
+#     CBMC_FLAG_POINTER_CHECK = --no-pointer-check
+#     CBMC_FLAG_UNSIGNED_OVERFLOW_CHECK =
 #
-# would disable the --pointer-check CBMC flag within:
+# would disable pointer checks and unsigned overflow checks with CBMC flag
+# within:
 #   * an entire project when added to Makefile-project-defines
 #   * a specific proof when added to the harness Makefile
 
-CBMC_FLAG_MALLOC_MAY_FAIL ?= --malloc-may-fail
-CBMC_FLAG_MALLOC_FAIL_NULL ?= --malloc-fail-null
-CBMC_FLAG_BOUNDS_CHECK ?= --bounds-check
+CBMC_FLAG_MALLOC_MAY_FAIL ?= # set to --no-malloc-may-fail to disable
+CBMC_FLAG_BOUNDS_CHECK ?= # set to --no-bounds-check to disable
 CBMC_FLAG_CONVERSION_CHECK ?= --conversion-check
-CBMC_FLAG_DIV_BY_ZERO_CHECK ?= --div-by-zero-check
+CBMC_FLAG_DIV_BY_ZERO_CHECK ?= # set to --no-div-by-zero-check to disable
 CBMC_FLAG_FLOAT_OVERFLOW_CHECK ?= --float-overflow-check
 CBMC_FLAG_NAN_CHECK ?= --nan-check
-CBMC_FLAG_POINTER_CHECK ?= --pointer-check
+CBMC_FLAG_POINTER_CHECK ?= #set to --no-pointer-check to disable
 CBMC_FLAG_POINTER_OVERFLOW_CHECK ?= --pointer-overflow-check
-CBMC_FLAG_POINTER_PRIMITIVE_CHECK ?= --pointer-primitive-check
-CBMC_FLAG_SIGNED_OVERFLOW_CHECK ?= --signed-overflow-check
-CBMC_FLAG_UNDEFINED_SHIFT_CHECK ?= --undefined-shift-check
+CBMC_FLAG_POINTER_PRIMITIVE_CHECK ?= # set to --no-pointer-primitive-check to disable
+CBMC_FLAG_SIGNED_OVERFLOW_CHECK ?= # set to --no-signed-overflow-check to disable
+CBMC_FLAG_UNDEFINED_SHIFT_CHECK ?= # set to --no-undefined-shift-check to disable
 CBMC_FLAG_UNSIGNED_OVERFLOW_CHECK ?= --unsigned-overflow-check
-CBMC_FLAG_UNWINDING_ASSERTIONS ?= --unwinding-assertions
+CBMC_FLAG_UNWINDING_ASSERTIONS ?= # set to --no-unwinding-assertions to disable
 CBMC_DEFAULT_UNWIND ?= --unwind 1
 CBMC_FLAG_FLUSH ?= --flush
 
@@ -262,7 +267,7 @@ CBMCFLAGS += $(CBMC_FLAG_FLUSH)
 # CBMC 6.0.0 enables all standard checks by default, which can make coverage analysis
 # very slow. See https://github.com/diffblue/cbmc/issues/8389
 # For now, we disable these checks when generating coverage info.
-COVERFLAGS ?= --no-standard-checks
+COVERFLAGS ?= --no-standard-checks --malloc-may-fail --malloc-fail-null
 
 # CBMC flags used for property checking
 
@@ -410,7 +415,7 @@ endif
 
 # Optional configuration library flags
 OPT_CONFIG_LIBRARY ?=
-CBMC_OPT_CONFIG_LIBRARY := $(CBMC_FLAG_MALLOC_MAY_FAIL) $(CBMC_FLAG_MALLOC_FAIL_NULL) $(CBMC_STRING_ABSTRACTION)
+CBMC_OPT_CONFIG_LIBRARY := $(CBMC_FLAG_MALLOC_MAY_FAIL) $(CBMC_STRING_ABSTRACTION)
 
 # Proof writers could add function contracts in their source code.
 # These contracts are ignored by default, but may be enabled in two distinct
@@ -454,6 +459,24 @@ ifdef APPLY_LOOP_CONTRACTS
   ifneq ($(strip $(APPLY_LOOP_CONTRACTS)),)
     CBMC_APPLY_LOOP_CONTRACTS := --apply-loop-contracts
   endif
+endif
+
+# The default unwind should only be used in DFCC mode without loop contracts.
+# When loop contracts are applied, we only unwind specified loops.
+# If any loops remain after loop contracts have been applied, CBMC might try
+# to unwind the program indefinitely, because we do not pass default unwind
+# (i.e., --unwind 1) to CBMC when in DFCC mode.
+# We must not use a default unwind command in DFCC mode, because contract instrumentation
+# introduces loops encoding write set inclusion checks that must be dynamically unwound during
+# symex.
+ifneq ($(strip $(USE_DYNAMIC_FRAMES)),)
+ifneq ($(strip $(APPLY_LOOP_CONTRACTS)),)
+  UNWIND_0500_FLAGS=$(CBMC_UNWINDSET) $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_FLAG_UNWINDING_ASSERTIONS)
+  UNWIND_0500_DESC="$(PROOF_UID): unwinding specified subset of loops"
+else
+  UNWIND_0500_FLAGS=$(CBMC_UNWINDSET) $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_DEFAULT_UNWIND) $(CBMC_FLAG_UNWINDING_ASSERTIONS)
+  UNWIND_0500_DESC="$(PROOF_UID): unwinding all loops"
+endif
 endif
 
 # Silence makefile output (eg, long litani commands) unless VERBOSE is set.
@@ -609,7 +632,7 @@ $(REWRITTEN_SOURCES):
 # Build targets that make the relevant .goto files
 
 # Compile project sources
-$(PROJECT_GOTO)1.goto: $(PROJECT_SOURCES) $(REWRITTEN_SOURCES)
+$(PROJECT_GOTO)0100.goto: $(PROJECT_SOURCES) $(REWRITTEN_SOURCES)
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_CC) $(CBMC_VERBOSITY) $(COMPILE_FLAGS) $(EXPORT_FILE_LOCAL_SYMBOLS) $(INCLUDES) $(DEFINES) $^ -o $@' \
@@ -621,7 +644,7 @@ $(PROJECT_GOTO)1.goto: $(PROJECT_SOURCES) $(REWRITTEN_SOURCES)
 	  --description "$(PROOF_UID): building project binary"
 
 # Compile proof sources
-$(PROOF_GOTO)1.goto: $(PROOF_SOURCES)
+$(PROOF_GOTO)0100.goto: $(PROOF_SOURCES)
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_CC) $(CBMC_VERBOSITY) $(COMPILE_FLAGS) $(EXPORT_FILE_LOCAL_SYMBOLS) $(INCLUDES) $(DEFINES) $^ -o $@' \
@@ -633,7 +656,7 @@ $(PROOF_GOTO)1.goto: $(PROOF_SOURCES)
 	  --description "$(PROOF_UID): building proof binary"
 
 # Remove function bodies from project sources
-$(PROJECT_GOTO)2.goto: $(PROJECT_GOTO)1.goto
+$(PROJECT_GOTO)0200.goto: $(PROJECT_GOTO)0100.goto
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_REMOVE_FUNCTION_BODY) $^ $@' \
@@ -645,7 +668,7 @@ $(PROJECT_GOTO)2.goto: $(PROJECT_GOTO)1.goto
 	  --description "$(PROOF_UID): removing function bodies from project sources"
 
 # Link project and proof sources into the proof harness
-$(HARNESS_GOTO)1.goto: $(PROOF_GOTO)1.goto $(PROJECT_GOTO)2.goto
+$(HARNESS_GOTO)0100.goto: $(PROOF_GOTO)0100.goto $(PROJECT_GOTO)0200.goto
 	$(LITANI) add-job \
 	  --command '$(GOTO_CC) $(CBMC_VERBOSITY) --function $(HARNESS_ENTRY) $^ $(LINK_FLAGS) -o $@' \
 	  --inputs $^ \
@@ -656,7 +679,7 @@ $(HARNESS_GOTO)1.goto: $(PROOF_GOTO)1.goto $(PROJECT_GOTO)2.goto
 	  --description "$(PROOF_UID): linking project to proof"
 
 # Restrict function pointers
-$(HARNESS_GOTO)2.goto: $(HARNESS_GOTO)1.goto
+$(HARNESS_GOTO)0200.goto: $(HARNESS_GOTO)0100.goto
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_RESTRICT_FUNCTION_POINTER) --remove-function-pointers $^ $@' \
@@ -668,7 +691,7 @@ $(HARNESS_GOTO)2.goto: $(HARNESS_GOTO)1.goto
 	  --description "$(PROOF_UID): restricting function pointers in project sources"
 
 # Fill static variable with unconstrained values
-$(HARNESS_GOTO)3.goto: $(HARNESS_GOTO)2.goto
+$(HARNESS_GOTO)0300.goto: $(HARNESS_GOTO)0200.goto
 ifneq ($(strip $(CODE_CONTRACTS)),)
 	$(LITANI) add-job \
 	  --command 'cp $^ $@' \
@@ -691,7 +714,7 @@ else
 endif
 
 # Link CPROVER library if DFCC mode is on
-$(HARNESS_GOTO)4.goto: $(HARNESS_GOTO)3.goto
+$(HARNESS_GOTO)0400.goto: $(HARNESS_GOTO)0300.goto
 ifneq ($(strip $(USE_DYNAMIC_FRAMES)),)
 	$(LITANI) add-job \
 	  --command \
@@ -714,17 +737,17 @@ else
 endif
 
 # Early unwind all loops on DFCC mode; otherwise, only unwind loops in proof and project code
-$(HARNESS_GOTO)5.goto: $(HARNESS_GOTO)4.goto
+$(HARNESS_GOTO)0500.goto: $(HARNESS_GOTO)0400.goto
 ifneq ($(strip $(USE_DYNAMIC_FRAMES)),)
 	$(LITANI) add-job \
 	  --command \
-	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(CBMC_UNWINDSET) $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_DEFAULT_UNWIND) $(CBMC_FLAG_UNWINDING_ASSERTIONS) $^ $@' \
+	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) $(UNWIND_0500_FLAGS) $^ $@' \
 	  --inputs $^ \
 	  --outputs $@ \
 	  --stdout-file $(LOGDIR)/unwind_loops-log.txt \
 	  --pipeline-name "$(PROOF_UID)" \
 	  --ci-stage build \
-	  --description "$(PROOF_UID): unwinding all loops"
+	  --description $(UNWIND_0500_DESC)
 else ifneq ($(strip $(CODE_CONTRACTS)),)
 	$(LITANI) add-job \
 	  --command \
@@ -740,14 +763,14 @@ else
 	  --command 'cp $^ $@' \
 	  --inputs $^ \
 	  --outputs $@ \
-	  --stdout-file $(LOGDIR)/linking-library-models-log.txt \
+	  --stdout-file $(LOGDIR)/unwind_loops-log.txt \
 	  --pipeline-name "$(PROOF_UID)" \
 	  --ci-stage build \
 	  --description "$(PROOF_UID): not unwinding loops"
 endif
 
 # Replace function contracts, check function contracts, instrument for loop contracts
-$(HARNESS_GOTO)6.goto: $(HARNESS_GOTO)5.goto
+$(HARNESS_GOTO)0600.goto: $(HARNESS_GOTO)0500.goto
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_INSTRUMENT) $(CBMC_USE_DYNAMIC_FRAMES) $(NONDET_STATIC) $(CBMC_VERBOSITY) $(CBMC_CHECK_FUNCTION_CONTRACTS) $(CBMC_USE_FUNCTION_CONTRACTS) $(CBMC_APPLY_LOOP_CONTRACTS) $^ $@' \
@@ -759,7 +782,7 @@ $(HARNESS_GOTO)6.goto: $(HARNESS_GOTO)5.goto
 	  --description "$(PROOF_UID): checking function contracts"
 
 # Omit initialization of unused global variables (reduces problem size)
-$(HARNESS_GOTO)7.goto: $(HARNESS_GOTO)6.goto
+$(HARNESS_GOTO)0700.goto: $(HARNESS_GOTO)0600.goto
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) --slice-global-inits $^ $@' \
@@ -771,7 +794,7 @@ $(HARNESS_GOTO)7.goto: $(HARNESS_GOTO)6.goto
 	  --description "$(PROOF_UID): slicing global initializations"
 
 # Omit unused functions (sharpens coverage calculations)
-$(HARNESS_GOTO)8.goto: $(HARNESS_GOTO)7.goto
+$(HARNESS_GOTO)0800.goto: $(HARNESS_GOTO)0700.goto
 	$(LITANI) add-job \
 	  --command \
 	    '$(GOTO_INSTRUMENT) $(CBMC_VERBOSITY) --drop-unused-functions $^ $@' \
@@ -783,7 +806,7 @@ $(HARNESS_GOTO)8.goto: $(HARNESS_GOTO)7.goto
 	  --description "$(PROOF_UID): dropping unused functions"
 
 # Final name for proof harness
-$(HARNESS_GOTO).goto: $(HARNESS_GOTO)8.goto
+$(HARNESS_GOTO).goto: $(HARNESS_GOTO)0800.goto
 	$(LITANI) add-job \
 	  --command 'cp $< $@' \
 	  --inputs $^ \
@@ -799,7 +822,7 @@ ifdef CBMCFLAGS
   ifeq ($(strip $(CODE_CONTRACTS)),)
     CBMCFLAGS += $(CBMC_UNWINDSET) $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_DEFAULT_UNWIND) $(CBMC_OPT_CONFIG_LIBRARY)
   else ifeq ($(strip $(USE_DYNAMIC_FRAMES)),)
-    CBMCFLAGS += $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_DEFAULT_UNWIND) $(CBMC_OPT_CONFIG_LIBRARY)
+    CBMCFLAGS += $(CBMC_CPROVER_LIBRARY_UNWINDSET) $(CBMC_OPT_CONFIG_LIBRARY)
   endif
 endif
 
@@ -808,6 +831,23 @@ $(LOGDIR)/result.xml: $(HARNESS_GOTO).goto
 	  $(POOL) \
 	  --command \
 	    '$(CBMC) $(CBMC_VERBOSITY) $(CBMCFLAGS) $(CBMC_FLAG_UNWINDING_ASSERTIONS) $(CHECKFLAGS) --trace --xml-ui $<' \
+	  --inputs $^ \
+	  --outputs $@ \
+	  --ci-stage test \
+	  --stdout-file $@ \
+	  $(MEMORY_PROFILING) \
+	  --ignore-returns 10 \
+	  --timeout $(CBMC_TIMEOUT) \
+	  --pipeline-name "$(PROOF_UID)" \
+	  --tags "stats-group:safety checks" \
+	  --stderr-file $(LOGDIR)/result-err-log.txt \
+	  --description "$(PROOF_UID): checking safety properties"
+
+$(LOGDIR)/result.txt: $(HARNESS_GOTO).goto
+	$(LITANI) add-job \
+	  $(POOL) \
+	  --command \
+	    '$(CBMC) $(CBMC_VERBOSITY) $(CBMCFLAGS) $(CBMC_FLAG_UNWINDING_ASSERTIONS) $(CHECKFLAGS) --trace $<' \
 	  --inputs $^ \
 	  --outputs $@ \
 	  --ci-stage test \
@@ -885,7 +925,7 @@ litani-path:
 _goto: $(HARNESS_GOTO).goto
 goto:
 	@ echo Running 'litani init'
-	$(LITANI) init --project $(PROJECT_NAME)
+	$(LITANI) init $(INIT_POOLS) --project $(PROJECT_NAME)
 	@ echo Running 'litani add-job'
 	$(MAKE) -B _goto
 	@ echo Running 'litani build'
@@ -894,7 +934,7 @@ goto:
 _result: $(LOGDIR)/result.txt
 result:
 	@ echo Running 'litani init'
-	$(LITANI) init --project $(PROJECT_NAME)
+	$(LITANI) init $(INIT_POOLS) --project $(PROJECT_NAME)
 	@ echo Running 'litani add-job'
 	$(MAKE) -B _result
 	@ echo Running 'litani build'
@@ -903,7 +943,7 @@ result:
 _property: $(LOGDIR)/property.xml
 property:
 	@ echo Running 'litani init'
-	$(LITANI) init --project $(PROJECT_NAME)
+	$(LITANI) init $(INIT_POOLS) --project $(PROJECT_NAME)
 	@ echo Running 'litani add-job'
 	$(MAKE) -B _property
 	@ echo Running 'litani build'
@@ -912,7 +952,7 @@ property:
 _coverage: $(LOGDIR)/coverage.xml
 coverage:
 	@ echo Running 'litani init'
-	$(LITANI) init --project $(PROJECT_NAME)
+	$(LITANI) init $(INIT_POOLS) --project $(PROJECT_NAME)
 	@ echo Running 'litani add-job'
 	$(MAKE) -B _coverage
 	@ echo Running 'litani build'
@@ -921,7 +961,7 @@ coverage:
 _report: $(PROOFDIR)/report
 report:
 	@ echo Running 'litani init'
-	$(LITANI) init --project $(PROJECT_NAME)
+	$(LITANI) init $(INIT_POOLS) --project $(PROJECT_NAME)
 	@ echo Running 'litani add-job'
 	$(MAKE) -B _report
 	@ echo Running 'litani build'

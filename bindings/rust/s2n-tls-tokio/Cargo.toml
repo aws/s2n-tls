@@ -1,7 +1,7 @@
 [package]
 name = "s2n-tls-tokio"
 description = "An implementation of TLS streams for Tokio built on top of s2n-tls"
-version = "0.2.10"
+version = "0.3.3"
 authors = ["AWS s2n"]
 edition = "2021"
 rust-version = "1.63.0"
@@ -15,17 +15,11 @@ default = []
 errno = { version = "0.3" }
 libc = { version = "0.2" }
 pin-project-lite = { version = "0.2" }
-s2n-tls = { version = "=0.2.10", path = "../s2n-tls" }
+s2n-tls = { version = "=0.3.3", path = "../s2n-tls" }
 tokio = { version = "1", features = ["net", "time"] }
 
 [dev-dependencies]
 clap = { version = "3", features = ["derive"] }
 rand = { version = "0.8" }
 tokio = { version = "1", features = [ "io-std", "io-util", "macros", "net", "rt-multi-thread", "test-util", "time"] }
-# newer versions require rust 1.66, see https://github.com/aws/s2n-tls/issues/4241
-# this version pin is only needed to prevent verification failures when using
-# cargo package / cargo publish, as those commands do not respect the version pin
-# in downstream dev-dependencies (in s2n-tls-sys, in this case)
-jobserver = "=0.1.26"
-# newer versions require rust 1.70
 tokio-macros = "=2.3.0"

@@ -32,10 +32,9 @@ static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
     }
 
     uint8_t digest_bytes[MD5_DIGEST_LENGTH] = { 0 };
-    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, digest_bytes, sizeof(digest_bytes)));
-
     struct s2n_blob digest = { 0 };
     RESULT_GUARD_POSIX(s2n_blob_init(&digest, digest_bytes, sizeof(digest_bytes)));
+    RESULT_GUARD(s2n_fingerprint_hash_digest(hash, &digest));
     RESULT_GUARD(s2n_stuffer_write_hex(out, &digest));
 
     return S2N_RESULT_OK;
@@ -44,7 +43,7 @@ static S2N_RESULT s2n_fingerprint_ja3_digest(struct s2n_fingerprint_hash *hash,
 static S2N_RESULT s2n_fingerprint_ja3_iana(struct s2n_fingerprint_hash *hash,
         bool *is_list, uint16_t iana)
 {
-    if (s2n_is_grease_value(iana)) {
+    if (s2n_fingerprint_is_grease_value(iana)) {
         return S2N_RESULT_OK;
     }
 
@@ -72,12 +71,8 @@ static S2N_RESULT s2n_fingerprint_ja3_iana(struct s2n_fingerprint_hash *hash,
 static S2N_RESULT s2n_fingerprint_ja3_version(struct s2n_fingerprint_hash *hash,
         struct s2n_client_hello *ch)
 {
-    struct s2n_stuffer message = { 0 };
-    RESULT_ENSURE_REF(ch);
-    RESULT_GUARD_POSIX(s2n_stuffer_init_written(&message, &ch->raw_message));
-
     uint16_t version = 0;
-    RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&message, &version));
+    RESULT_GUARD(s2n_fingerprint_get_legacy_version(ch, &version));
 
     bool is_list = false;
     RESULT_GUARD(s2n_fingerprint_ja3_iana(hash, &is_list, version));
@@ -115,10 +110,8 @@ static S2N_RESULT s2n_fingerprint_ja3_extensions(struct s2n_fingerprint_hash *ha
 
     bool found = false;
     while (s2n_stuffer_data_available(&extensions)) {
-        uint16_t iana = 0, size = 0;
-        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&extensions, &iana));
-        RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&extensions, &size));
-        RESULT_GUARD_POSIX(s2n_stuffer_skip_read(&extensions, size));
+        uint16_t iana = 0;
+        RESULT_GUARD(s2n_fingerprint_parse_extension(&extensions, &iana));
         RESULT_GUARD(s2n_fingerprint_ja3_iana(hash, &found, iana));
     }
     return S2N_RESULT_OK;
@@ -195,11 +188,18 @@ static S2N_RESULT s2n_fingerprint_ja3_write(struct s2n_fingerprint_hash *hash,
     return S2N_RESULT_OK;
 }
 
-S2N_RESULT s2n_fingerprint_ja3(struct s2n_client_hello *client_hello,
+S2N_RESULT s2n_fingerprint_ja3(struct s2n_fingerprint *fingerprint,
         struct s2n_fingerprint_hash *hash, struct s2n_stuffer *output)
 {
-    RESULT_GUARD(s2n_fingerprint_ja3_write(hash, client_hello));
+    RESULT_ENSURE_REF(fingerprint);
+    RESULT_GUARD(s2n_fingerprint_ja3_write(hash, fingerprint->client_hello));
     RESULT_GUARD(s2n_fingerprint_ja3_digest(hash, output));
+
+    if (s2n_fingerprint_hash_do_digest(hash)) {
+        fingerprint->raw_size = hash->bytes_digested;
+    } else {
+        fingerprint->raw_size = s2n_stuffer_data_available(output);
+    }
     return S2N_RESULT_OK;
 }
 

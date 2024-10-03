@@ -106,7 +106,7 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     POSIX_ENSURE_REF(kem_group_params);
 
     /* This function should never be called when PQ is disabled */
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
     POSIX_ENSURE_REF(kem_group);

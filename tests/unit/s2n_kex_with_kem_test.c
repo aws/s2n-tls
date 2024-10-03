@@ -128,14 +128,14 @@ static int assert_pq_disabled_checks(struct s2n_cipher_suite *cipher_suite, cons
     /* If PQ is disabled:
      * s2n_check_kem() (s2n_hybrid_ecdhe_kem.connection_supported) should indicate that the connection is not supported
      * s2n_configure_kem() (s2n_hybrid_ecdhe_kem.configure_connection) should return S2N_RESULT_ERROR
-     *     set s2n_errno to S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API */
+     *     set s2n_errno to S2N_ERR_UNIMPLEMENTED */
     bool connection_supported = true;
     POSIX_GUARD_RESULT(s2n_hybrid_ecdhe_kem.connection_supported(cipher_suite, server_conn, &connection_supported));
     POSIX_ENSURE_EQ(connection_supported, false);
 
     POSIX_ENSURE_EQ(s2n_result_is_error(s2n_hybrid_ecdhe_kem.configure_connection(cipher_suite, server_conn)), true);
 
-    POSIX_ENSURE_EQ(s2n_errno, S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE_EQ(s2n_errno, S2N_ERR_UNIMPLEMENTED);
 
     POSIX_GUARD(s2n_connection_free(server_conn));
     s2n_errno = 0;

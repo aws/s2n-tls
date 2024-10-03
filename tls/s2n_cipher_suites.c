@@ -1068,7 +1068,7 @@ int s2n_cipher_suites_init(void)
 /* Reset any selected record algorithms */
 S2N_RESULT s2n_cipher_suites_cleanup(void)
 {
-    const int num_cipher_suites = sizeof(s2n_all_cipher_suites) / sizeof(struct s2n_cipher_suite *);
+    const int num_cipher_suites = s2n_array_len(s2n_all_cipher_suites);
     for (int i = 0; i < num_cipher_suites; i++) {
         struct s2n_cipher_suite *cur_suite = s2n_all_cipher_suites[i];
         cur_suite->available = 0;
@@ -1151,7 +1151,7 @@ int s2n_set_cipher_as_client(struct s2n_connection *conn, uint8_t wire[S2N_TLS_C
     struct s2n_cipher_suite *cipher_suite = NULL;
     for (size_t i = 0; i < security_policy->cipher_preferences->count; i++) {
         const uint8_t *ours = security_policy->cipher_preferences->suites[i]->iana_value;
-        if (memcmp(wire, ours, S2N_TLS_CIPHER_SUITE_LEN) == 0) {
+        if (s2n_constant_time_equals(wire, ours, S2N_TLS_CIPHER_SUITE_LEN)) {
             cipher_suite = security_policy->cipher_preferences->suites[i];
             break;
         }
@@ -1198,7 +1198,7 @@ static int s2n_wire_ciphers_contain(const uint8_t *match, const uint8_t *wire, u
     for (size_t i = 0; i < count; i++) {
         const uint8_t *theirs = wire + (i * cipher_suite_len) + (cipher_suite_len - S2N_TLS_CIPHER_SUITE_LEN);
 
-        if (!memcmp(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
+        if (s2n_constant_time_equals(match, theirs, S2N_TLS_CIPHER_SUITE_LEN)) {
             return 1;
         }
     }

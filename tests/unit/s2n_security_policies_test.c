@@ -203,14 +203,10 @@ int main(int argc, char **argv)
         EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
         uint32_t available_groups = 0;
         EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &available_groups));
-        if (s2n_pq_is_enabled() && s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+        if (s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
             EXPECT_EQUAL(6, available_groups);
-        } else if (s2n_pq_is_enabled() && s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
+        } else if (s2n_libcrypto_supports_evp_kem() && !s2n_is_evp_apis_supported()) {
             EXPECT_EQUAL(4, available_groups);
-        } else if (s2n_pq_is_enabled() && !s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(2, available_groups);
-        } else if (s2n_pq_is_enabled()) {
-            EXPECT_EQUAL(1, available_groups);
         } else {
             EXPECT_EQUAL(0, available_groups);
         }
@@ -419,14 +415,10 @@ int main(int argc, char **argv)
         /* All supported kem groups should be in the preference list, but not all of them may be available. */
         EXPECT_EQUAL(6, security_policy->kem_preferences->tls13_kem_group_count);
         EXPECT_OK(s2n_kem_preferences_groups_available(security_policy->kem_preferences, &available_groups));
-        if (s2n_pq_is_enabled() && s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
+        if (s2n_libcrypto_supports_evp_kem() && s2n_is_evp_apis_supported()) {
             EXPECT_EQUAL(6, available_groups);
-        } else if (s2n_pq_is_enabled() && s2n_libcrypto_supports_kyber() && !s2n_is_evp_apis_supported()) {
+        } else if (s2n_libcrypto_supports_evp_kem() && !s2n_is_evp_apis_supported()) {
             EXPECT_EQUAL(4, available_groups);
-        } else if (s2n_pq_is_enabled() && !s2n_libcrypto_supports_kyber() && s2n_is_evp_apis_supported()) {
-            EXPECT_EQUAL(2, available_groups);
-        } else if (s2n_pq_is_enabled()) {
-            EXPECT_EQUAL(1, available_groups);
         } else {
             EXPECT_EQUAL(0, available_groups);
         }
@@ -1088,6 +1080,28 @@ int main(int argc, char **argv)
                     versioned_policies, s2n_array_len(versioned_policies),
                     supported_certs, s2n_array_len(supported_certs)));
         };
+    };
+
+    /* Test that default_pq always matches default_tls13 */
+    {
+        const struct s2n_security_policy *default_pq = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_pq", &default_pq));
+        EXPECT_NOT_EQUAL(default_pq->kem_preferences, &kem_preferences_null);
+
+        const struct s2n_security_policy *default_tls13 = NULL;
+        EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &default_tls13));
+        EXPECT_EQUAL(default_tls13->kem_preferences, &kem_preferences_null);
+
+        /* If we ignore kem preferences, the two policies match */
+        EXPECT_EQUAL(default_pq->minimum_protocol_version, default_tls13->minimum_protocol_version);
+        EXPECT_EQUAL(default_pq->cipher_preferences, default_tls13->cipher_preferences);
+        EXPECT_EQUAL(default_pq->signature_preferences, default_tls13->signature_preferences);
+        EXPECT_EQUAL(default_pq->certificate_signature_preferences,
+                default_tls13->certificate_signature_preferences);
+        EXPECT_EQUAL(default_pq->ecc_preferences, default_tls13->ecc_preferences);
+        EXPECT_EQUAL(default_pq->certificate_key_preferences, default_tls13->certificate_key_preferences);
+        EXPECT_EQUAL(default_pq->certificate_preferences_apply_locally,
+                default_tls13->certificate_preferences_apply_locally);
     };
 
     END_TEST();

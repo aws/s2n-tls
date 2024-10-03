@@ -1,7 +1,7 @@
 [package]
 name = "s2n-tls-sys"
 description = "A C99 implementation of the TLS/SSL protocols"
-version = "0.2.10"
+version = "0.3.3"
 authors = ["AWS s2n"]
 edition = "2021"
 rust-version = "1.63.0"
@@ -36,14 +36,13 @@ stacktrace = []
 # unstable-foo = []
 
 [dependencies]
-aws-lc-rs = { version = "1.6.2" }
+aws-lc-rs = { version = "1" }
 libc = "0.2"
 
 [build-dependencies]
-cc = { version = "1.0", features = ["parallel"] }
+cc = { version = "1.0.100", features = ["parallel"] }
 
 [dev-dependencies]
-jobserver = "=0.1.26" # newer versions require rust 1.66, see https://github.com/aws/s2n-tls/issues/4241
 home = "=0.5.5" # newer versions require rust 1.70, see https://github.com/aws/s2n-tls/issues/4395
 regex = "=1.9.6" # newer versions require rust 1.65, see https://github.com/aws/s2n-tls/issues/4242
 zeroize = "=1.7.0" # newer versions require rust 1.72, see https://github.com/aws/s2n-tls/issues/4518

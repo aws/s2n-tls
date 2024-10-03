@@ -33,6 +33,7 @@
 #include "api/unstable/npn.h"
 #include "api/unstable/renegotiate.h"
 #include "common.h"
+#include "crypto/s2n_libcrypto.h"
 #include "error/s2n_errno.h"
 #include "tls/s2n_connection.h"
 
@@ -591,6 +592,7 @@ int main(int argc, char *const *argv)
     }
 
     GUARD_EXIT(s2n_init(), "Error running s2n_init()");
+    printf("libcrypto: %s\n", s2n_libcrypto_get_version_name());
 
     if ((r = getaddrinfo(host, port, &hints, &ai_list)) != 0) {
         fprintf(stderr, "error: %s\n", gai_strerror(r));

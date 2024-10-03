@@ -24,42 +24,29 @@ void s2n_stuffer_read_hex_harness()
 {
     nondet_s2n_mem_init();
 
-    struct s2n_stuffer *output = cbmc_allocate_s2n_stuffer();
-    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(output)));
+    struct s2n_stuffer *input = cbmc_allocate_s2n_stuffer();
+    __CPROVER_assume(s2n_result_is_ok(s2n_stuffer_validate(input)));
 
-    struct s2n_blob *hex_in = cbmc_allocate_s2n_blob();
-    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(hex_in)));
-    __CPROVER_assume(s2n_blob_is_bounded(hex_in, MAX_BLOB_SIZE));
+    struct s2n_blob *output = cbmc_allocate_s2n_blob();
+    __CPROVER_assume(s2n_result_is_ok(s2n_blob_validate(output)));
+    __CPROVER_assume(s2n_blob_is_bounded(output, MAX_BLOB_SIZE - 1));
 
-    struct s2n_stuffer old_output = *output;
-    struct store_byte_from_buffer output_saved_byte = { 0 };
-    save_byte_from_blob(&output->blob, &output_saved_byte);
-    __CPROVER_assume(output_saved_byte.idx < output->write_cursor);
+    struct s2n_stuffer old_input = *input;
+    struct s2n_blob old_output = *output;
+    struct store_byte_from_buffer input_saved_byte = { 0 };
+    save_byte_from_blob(&input->blob, &input_saved_byte);
 
-    struct s2n_blob old_hex_in = *hex_in;
-    struct store_byte_from_buffer old_hex_in_byte = { 0 };
-    save_byte_from_blob(hex_in, &old_hex_in_byte);
+    s2n_result result = s2n_stuffer_read_hex(input, output);
 
-    s2n_result result = s2n_stuffer_read_hex(output, hex_in);
-
-    struct s2n_stuffer expected_bytes_out = old_output;
-    struct s2n_blob expected_hex_in = old_hex_in;
-
-    /* On success, the byte equivalent of the hex was written to the stuffer */
+    /* On success, enough hex to fill the blob was read from the stuffer */
+    struct s2n_stuffer expected_input = old_input;
     if (s2n_result_is_ok(result)) {
-        expected_bytes_out.write_cursor += old_hex_in.size / 2;
-        expected_bytes_out.high_water_mark = MAX(expected_bytes_out.write_cursor,
-                old_output.high_water_mark);
+        expected_input.read_cursor += old_output.size * 2;
     }
+    assert(s2n_result_is_ok(s2n_stuffer_validate(input)));
+    assert_stuffer_equivalence(input, &expected_input, &input_saved_byte);
 
-    /* Memory may be allocated on either success or failure,
-     * because we allocated the memory before we start writing. */
-    if (output->blob.size > old_output.blob.size) {
-        expected_bytes_out.blob = output->blob;
-    }
-
-    assert(s2n_result_is_ok(s2n_stuffer_validate(output)));
-    assert_stuffer_equivalence(output, &expected_bytes_out, &output_saved_byte);
-    assert(s2n_result_is_ok(s2n_blob_validate(hex_in)));
-    assert_blob_equivalence(hex_in, &expected_hex_in, &old_hex_in_byte);
+    /* Only the data in the blob changes, so check equivalent without a saved byte */
+    assert(s2n_result_is_ok(s2n_blob_validate(output)));
+    assert_blob_equivalence(output, &old_output, NULL);
 }

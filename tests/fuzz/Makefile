@@ -32,6 +32,10 @@ ifndef CORPUS_UPLOAD_LOC
 	export CORPUS_UPLOAD_LOC="none"
 endif
 
+ifndef ARTIFACT_UPLOAD_LOC
+	export ARTIFACT_UPLOAD_LOC="none"
+endif
+
 ifndef FUZZ_TESTS
     export FUZZ_TESTS=${TESTS}
 endif
@@ -72,7 +76,7 @@ run_tests:: $(FUZZ_TESTS) ld-preload
 	export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}; \
 	export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}; \
 	export LIBCRYPTO_ROOT=${LIBCRYPTO_ROOT}; \
-	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC}; done; \
+	./runFuzzTest.sh $${test_name} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC} ${ARTIFACT_UPLOAD_LOC}; done; \
 	}
 	./calcTotalCov.sh
 

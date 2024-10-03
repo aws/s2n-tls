@@ -23,6 +23,16 @@ impl ClientHello {
         self.0.packet.metadata(Self::JA3_STR).map(str::to_owned)
     }
 
+    const JA4_HASH: &'static str = "tls.handshake.ja4";
+    pub fn ja4_hash(&self) -> Option<String> {
+        self.0.packet.metadata(Self::JA4_HASH).map(str::to_owned)
+    }
+
+    const JA4_STR: &'static str = "tls.handshake.ja4_r";
+    pub fn ja4_string(&self) -> Option<String> {
+        self.0.packet.metadata(Self::JA4_STR).map(str::to_owned)
+    }
+
     pub fn message(&self) -> &HandshakeMessage {
         &self.0
     }

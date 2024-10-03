@@ -1,3 +1,5 @@
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+# SPDX-License-Identifier: Apache-2.0
 from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_USE_CRITERION
 
 

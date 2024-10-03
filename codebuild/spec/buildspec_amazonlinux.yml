@@ -1,0 +1,22 @@
+version: 0.2
+
+env:
+  variables:
+    # CODEBUILD_ is a reserved namespace.
+    CB_BIN_DIR: "./codebuild/bin"
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.x
+  pre_build:
+    commands:
+      - |
+        if [ -d "third-party-src" ]; then
+          cd third-party-src;
+        fi
+      - ./codebuild/bin/install_al_dependencies.sh
+  build:
+    commands:
+      - printenv
+      - $CB_BIN_DIR/s2n_codebuild_al.sh

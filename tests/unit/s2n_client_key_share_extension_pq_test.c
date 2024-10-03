@@ -656,7 +656,7 @@ int main()
 
                     /* Do NOT mark the highest priority available KEM group as mutually supported */
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
-                    for (int i = 0; i < sizeof(server_conn->kex_params.mutually_supported_kem_groups); i++) {
+                    for (int i = 0; i < s2n_array_len(server_conn->kex_params.mutually_supported_kem_groups); i++) {
                         if (server_conn->kex_params.mutually_supported_kem_groups[i]
                                 && s2n_kem_group_is_available(server_conn->kex_params.mutually_supported_kem_groups[i])) {
                             server_conn->kex_params.mutually_supported_kem_groups[i] = NULL;
@@ -717,7 +717,7 @@ int main()
 
                     /* Do NOT mark the highest priority available KEM group as mutually supported */
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
-                    for (int i = 0; i < sizeof(server_conn->kex_params.mutually_supported_kem_groups); i++) {
+                    for (int i = 0; i < s2n_array_len(server_conn->kex_params.mutually_supported_kem_groups); i++) {
                         if (server_conn->kex_params.mutually_supported_kem_groups[i]
                                 && s2n_kem_group_is_available(server_conn->kex_params.mutually_supported_kem_groups[i])) {
                             server_conn->kex_params.mutually_supported_kem_groups[i] = NULL;
@@ -941,7 +941,7 @@ static int s2n_generate_pq_hybrid_key_share_for_test(struct s2n_stuffer *out, st
     POSIX_ENSURE_REF(kem_group_params);
 
     /* This function should never be called when PQ is disabled */
-    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+    POSIX_ENSURE(s2n_pq_is_enabled(), S2N_ERR_UNIMPLEMENTED);
 
     const struct s2n_kem_group *kem_group = kem_group_params->kem_group;
     POSIX_ENSURE_REF(kem_group);

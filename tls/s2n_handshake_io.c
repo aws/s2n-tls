@@ -1496,26 +1496,25 @@ static int s2n_handshake_read_io(struct s2n_connection *conn)
             return S2N_SUCCESS;
         }
 
-        s2n_cert_auth_type client_cert_auth_type;
-        POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+        if (conn->mode == S2N_CLIENT) {
+            s2n_cert_auth_type client_cert_auth_type = { 0 };
+            POSIX_GUARD(s2n_connection_get_client_auth_type(conn, &client_cert_auth_type));
+            /* If client auth is optional, we initially assume it will not be requested.
+             * If we received a request, switch to a client auth handshake.
+             */
+            if (client_cert_auth_type != S2N_CERT_AUTH_REQUIRED && message_type == TLS_CERT_REQ) {
+                POSIX_ENSURE(client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL, S2N_ERR_UNEXPECTED_CERT_REQUEST);
+                POSIX_ENSURE(IS_FULL_HANDSHAKE(conn), S2N_ERR_HANDSHAKE_STATE);
+                POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, CLIENT_AUTH));
+            }
 
-        /* If client auth is optional, we initially assume it will not be requested.
-         * If we received a request, switch to a client auth handshake.
-         */
-        if (conn->mode == S2N_CLIENT
-                && client_cert_auth_type != S2N_CERT_AUTH_REQUIRED
-                && message_type == TLS_CERT_REQ) {
-            POSIX_ENSURE(client_cert_auth_type == S2N_CERT_AUTH_OPTIONAL, S2N_ERR_UNEXPECTED_CERT_REQUEST);
-            POSIX_ENSURE(IS_FULL_HANDSHAKE(conn), S2N_ERR_HANDSHAKE_STATE);
-            POSIX_GUARD_RESULT(s2n_handshake_type_set_flag(conn, CLIENT_AUTH));
-        }
-
-        /* According to rfc6066 section 8, server may choose not to send "CertificateStatus" message even if it has
-         * sent "status_request" extension in the ServerHello message. */
-        if (conn->mode == S2N_CLIENT
-                && EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_CERT_STATUS
-                && message_type != TLS_SERVER_CERT_STATUS) {
-            POSIX_GUARD_RESULT(s2n_handshake_type_unset_tls12_flag(conn, OCSP_STATUS));
+            /* According to rfc6066 section 8, the server may choose not to send a "CertificateStatus"
+             * message even if it has sent a "status_request" extension in the ServerHello message.
+             */
+            if (EXPECTED_MESSAGE_TYPE(conn) == TLS_SERVER_CERT_STATUS
+                    && message_type != TLS_SERVER_CERT_STATUS) {
+                POSIX_GUARD_RESULT(s2n_handshake_type_unset_tls12_flag(conn, OCSP_STATUS));
+            }
         }
 
         /*

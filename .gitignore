@@ -21,7 +21,6 @@ tests/unit/*_test
 tests/fuzz/*_test
 tests/fuzz/*.txt
 tests/fuzz/fuzz-*.log
-tests/benchmark/*_benchmark
 bin/s2nc
 bin/s2nd
 bin/policy
@@ -42,3 +41,4 @@ result-*
 *.class
 # Exclude rust build directories
 *target/
+Cargo.lock

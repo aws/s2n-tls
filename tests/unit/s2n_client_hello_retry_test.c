@@ -191,7 +191,7 @@ int main(int argc, char **argv)
                 conn->kex_params.server_kem_group_params.kem_group = kem_pref->tls13_kem_groups[0];
                 EXPECT_NULL(conn->kex_params.server_ecc_evp_params.negotiated_curve);
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_hello_retry_recv(conn), S2N_ERR_INVALID_HELLO_RETRY);
 
                 EXPECT_SUCCESS(s2n_connection_free(conn));
             } else {

@@ -24,6 +24,10 @@ use tokio::{
     time::{sleep, Duration, Sleep},
 };
 
+// TODO use the version from s2n_quic_core
+mod task;
+use task::waker::debug_assert_contract as debug_assert_waker_contract;
+
 macro_rules! ready {
     ($x:expr) => {
         match $x {
@@ -105,37 +109,39 @@ where
     type Output = Result<(), Error>;
 
     fn poll(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Self::Output> {
-        // Retrieve a result, either from the stored error
-        // or by polling Connection::poll_negotiate().
-        // Connection::poll_negotiate() only completes once,
-        // regardless of how often this method is polled.
-        let result = match self.error.take() {
-            Some(err) => Err(err),
-            None => {
-                let handshake_poll = self.tls.with_io(ctx, |context| {
-                    let conn = context.get_mut().as_mut();
-                    conn.poll_negotiate().map(|r| r.map(|_| ()))
-                });
-                ready!(handshake_poll)
-            }
-        };
-        // If the result isn't a fatal error, return it immediately.
-        // Otherwise, poll Connection::poll_shutdown().
-        //
-        // Shutdown is only best-effort.
-        // When Connection::poll_shutdown() completes, even with an error,
-        // we return the original Connection::poll_negotiate() error.
-        match result {
-            Ok(r) => Ok(r).into(),
-            Err(e) if e.is_retryable() => Err(e).into(),
-            Err(e) => match Pin::new(&mut self.tls).poll_shutdown(ctx) {
-                Pending => {
-                    self.error = Some(e);
-                    Pending
+        debug_assert_waker_contract(ctx, |ctx| {
+            // Retrieve a result, either from the stored error
+            // or by polling Connection::poll_negotiate().
+            // Connection::poll_negotiate() only completes once,
+            // regardless of how often this method is polled.
+            let result = match self.error.take() {
+                Some(err) => Err(err),
+                None => {
+                    let handshake_poll = self.tls.with_io(ctx, |context| {
+                        let conn = context.get_mut().as_mut();
+                        conn.poll_negotiate().map(|r| r.map(|_| ()))
+                    });
+                    ready!(handshake_poll)
                 }
-                Ready(_) => Err(e).into(),
-            },
-        }
+            };
+            // If the result isn't a fatal error, return it immediately.
+            // Otherwise, poll Connection::poll_shutdown().
+            //
+            // Shutdown is only best-effort.
+            // When Connection::poll_shutdown() completes, even with an error,
+            // we return the original Connection::poll_negotiate() error.
+            match result {
+                Ok(r) => Ok(r).into(),
+                Err(e) if e.is_retryable() => Err(e).into(),
+                Err(e) => match Pin::new(&mut self.tls).poll_shutdown(ctx) {
+                    Pending => {
+                        self.error = Some(e);
+                        Pending
+                    }
+                    Ready(_) => Err(e).into(),
+                },
+            }
+        })
     }
 }
 
@@ -165,8 +171,7 @@ where
         &mut self.stream
     }
 
-    async fn open(mut conn: C, stream: S) -> Result<Self, Error> {
-        conn.as_mut().set_blinding(Blinding::SelfService)?;
+    async fn open(conn: C, stream: S) -> Result<Self, Error> {
         let mut tls = TlsStream {
             conn,
             stream,
@@ -197,6 +202,7 @@ where
             self.as_mut().set_receive_context(context)?;
             self.as_mut().set_send_context(context)?;
             self.as_mut().set_waker(Some(ctx.waker()))?;
+            self.as_mut().set_blinding(Blinding::SelfService)?;
 
             let result = action(Pin::new(self));
 
@@ -219,7 +225,11 @@ where
         let mut async_context = Context::from_waker(tls.conn.as_ref().waker().unwrap());
         let stream = Pin::new(&mut tls.stream);
 
-        match action(stream, &mut async_context) {
+        let res = debug_assert_waker_contract(&mut async_context, |async_context| {
+            action(stream, async_context)
+        });
+
+        match res {
             Poll::Ready(Ok(len)) => len as c_int,
             Poll::Pending => {
                 set_errno(Errno(libc::EWOULDBLOCK));
@@ -258,24 +268,26 @@ where
     /// `poll_blinding` or `poll_shutdown` (which calls `poll_blinding`
     /// internally) returns ready.
     pub fn poll_blinding(self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<Result<(), Error>> {
-        let tls = self.get_mut();
+        debug_assert_waker_contract(ctx, |ctx| {
+            let tls = self.get_mut();
 
-        if tls.blinding.is_none() {
-            let delay = tls.as_ref().remaining_blinding_delay()?;
-            if !delay.is_zero() {
-                // Sleep operates at the milisecond resolution, so add an extra
-                // millisecond to account for any stray nanoseconds.
-                let safety = Duration::from_millis(1);
-                tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
+            if tls.blinding.is_none() {
+                let delay = tls.as_ref().remaining_blinding_delay()?;
+                if !delay.is_zero() {
+                    // Sleep operates at the milisecond resolution, so add an extra
+                    // millisecond to account for any stray nanoseconds.
+                    let safety = Duration::from_millis(1);
+                    tls.blinding = Some(Box::pin(sleep(delay.saturating_add(safety))));
+                }
+            };
+
+            if let Some(timer) = tls.blinding.as_mut() {
+                ready!(timer.as_mut().poll(ctx));
+                tls.blinding = None;
             }
-        };
 
-        if let Some(timer) = tls.blinding.as_mut() {
-            ready!(timer.as_mut().poll(ctx));
-            tls.blinding = None;
-        }
-
-        Poll::Ready(Ok(()))
+            Poll::Ready(Ok(()))
+        })
     }
 
     pub async fn apply_blinding(&mut self) -> Result<(), Error> {
@@ -362,39 +374,41 @@ where
     }
 
     fn poll_shutdown(mut self: Pin<&mut Self>, ctx: &mut Context<'_>) -> Poll<io::Result<()>> {
-        ready!(self.as_mut().poll_blinding(ctx))?;
+        debug_assert_waker_contract(ctx, |ctx| {
+            ready!(self.as_mut().poll_blinding(ctx))?;
 
-        // s2n_shutdown_send must not be called again if it errors
-        if self.shutdown_error.is_none() {
-            let result = ready!(self.as_mut().with_io(ctx, |mut context| {
-                context
-                    .conn
-                    .as_mut()
-                    .poll_shutdown_send()
-                    .map(|r| r.map(|_| ()))
-            }));
-            if let Err(error) = result {
-                self.shutdown_error = Some(error);
-                // s2n_shutdown_send only writes, so will never trigger blinding again.
-                // So we do not need to poll_blinding again after this error.
+            // s2n_shutdown_send must not be called again if it errors
+            if self.shutdown_error.is_none() {
+                let result = ready!(self.as_mut().with_io(ctx, |mut context| {
+                    context
+                        .conn
+                        .as_mut()
+                        .poll_shutdown_send()
+                        .map(|r| r.map(|_| ()))
+                }));
+                if let Err(error) = result {
+                    self.shutdown_error = Some(error);
+                    // s2n_shutdown_send only writes, so will never trigger blinding again.
+                    // So we do not need to poll_blinding again after this error.
+                }
+            };
+
+            let tcp_result = ready!(Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx));
+
+            if let Some(err) = self.shutdown_error.take() {
+                // poll methods shouldn't be called again after returning Ready, but
+                // nothing actually prevents it so poll_shutdown should handle it.
+                // s2n_shutdown can be polled indefinitely after succeeding, but not after failing.
+                // s2n_tls::error::Error isn't cloneable, so we can't just return the same error
+                // if poll_shutdown is called again. Instead, save a different error.
+                let next_error = Error::application("Shutdown called again after error".into());
+                self.shutdown_error = Some(next_error);
+
+                Ready(Err(io::Error::from(err)))
+            } else {
+                Ready(tcp_result)
             }
-        };
-
-        let tcp_result = ready!(Pin::new(&mut self.as_mut().stream).poll_shutdown(ctx));
-
-        if let Some(err) = self.shutdown_error.take() {
-            // poll methods shouldn't be called again after returning Ready, but
-            // nothing actually prevents it so poll_shutdown should handle it.
-            // s2n_shutdown can be polled indefinitely after succeeding, but not after failing.
-            // s2n_tls::error::Error isn't cloneable, so we can't just return the same error
-            // if poll_shutdown is called again. Instead, save a different error.
-            let next_error = Error::application("Shutdown called again after error".into());
-            self.shutdown_error = Some(next_error);
-
-            Ready(Err(io::Error::from(err)))
-        } else {
-            Ready(tcp_result)
-        }
+        })
     }
 }
 

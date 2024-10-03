@@ -3,6 +3,8 @@
 
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
+#[cfg(feature = "unstable-renegotiate")]
+use crate::renegotiate::RenegotiateState;
 use crate::{
     callbacks::*,
     cert_chain::CertificateChain,
@@ -449,6 +451,18 @@ impl Connection {
         Ok(self)
     }
 
+    /// Configure the connection to reduce potentially expensive calls to recv.
+    ///
+    /// Refer to the corresponding C API
+    /// [s2n_connection_set_recv_buffering](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html)
+    /// for more information.
+    pub fn set_receive_buffering(&mut self, enabled: bool) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_recv_buffering(self.connection.as_ptr(), enabled).into_result()
+        }?;
+        Ok(self)
+    }
+
     /// wipes and free the in and out buffers associated with a connection.
     ///
     /// This function may be called when a connection is in keep-alive or idle state to
@@ -468,16 +482,17 @@ impl Connection {
         F: FnOnce(&mut Self) -> Result<T, Error>,
     {
         let mode = self.mode();
-        unsafe {
-            // Wiping the connection will wipe the pointer to the context,
-            // so retrieve and drop that memory first.
-            let ctx = self.context_mut();
-            drop(Box::from_raw(ctx));
 
-            wipe(self)
-        }?;
+        // Safety:
+        // We re-init the context after the wipe
+        unsafe { self.drop_context()? };
 
+        let result = wipe(self);
+        // We must initialize the context again whether or not wipe succeeds.
+        // A connection without a context is invalid and has undefined behavior.
         self.init_context(mode);
+        result?;
+
         Ok(())
     }
 
@@ -521,20 +536,41 @@ impl Connection {
         })
     }
 
-    pub(crate) fn poll_negotiate_method<F, T>(&mut self, negotiate: F) -> Poll<Result<(), Error>>
+    pub(crate) fn poll_negotiate_method<F, T>(
+        &mut self,
+        mut negotiate: F,
+    ) -> Poll<Result<(), Error>>
     where
-        F: FnOnce(&mut Connection) -> Poll<Result<T, Error>>,
+        F: FnMut(&mut Connection) -> Poll<Result<T, Error>>,
     {
         self.trigger_initializer();
 
-        // Check whether renegotiate is blocked by any async callbacks
-        match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
-            Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
-            Poll::Pending => return Poll::Pending,
-            Poll::Ready(Ok(_)) => {}
-        };
+        loop {
+            // Check whether renegotiate is blocked by any async callbacks
+            match self.poll_async_task().unwrap_or(Poll::Ready(Ok(()))) {
+                Poll::Ready(Err(err)) => return Poll::Ready(Err(err)),
+                Poll::Pending => return Poll::Pending,
+                Poll::Ready(Ok(_)) => {}
+            };
 
-        negotiate(self).map_ok(|_| ())
+            match negotiate(self) {
+                Poll::Ready(res) => return Poll::Ready(res.map(|_| ())),
+                Poll::Pending => {
+                    // If `negotiate` returned `Pending` it could be blocked on a connection future
+                    // (i.e. not socket IO) so before we return, we need to make sure we poll
+                    // the associated future at least once. Otherwise, we will violate the waker contract.
+                    //
+                    // See https://github.com/aws/s2n-quic/pull/2248
+                    if self.context_mut().async_callback.is_some() {
+                        // continuing in the loop will poll the task
+                        continue;
+                    }
+
+                    // we don't have anything else to poll so return `Pending`
+                    return Poll::Pending;
+                }
+            }
+        }
     }
 
     /// Performs the TLS handshake to completion
@@ -558,11 +594,22 @@ impl Connection {
     /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
+    #[cfg(not(feature = "unstable-renegotiate"))]
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
         unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    #[cfg(not(feature = "unstable-renegotiate"))]
+    pub(crate) fn poll_recv_raw(
+        &mut self,
+        buf_ptr: *mut ::libc::c_void,
+        buf_len: isize,
+    ) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
     /// Reads and decrypts data from a connection where
@@ -571,10 +618,9 @@ impl Connection {
     /// Returns the number of bytes read, and may indicate a partial read.
     /// 0 bytes returned indicates EOF due to connection closure.
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        self.poll_recv_raw(buf_ptr, buf_len)
     }
 
     /// Reads and decrypts data from a connection where
@@ -592,7 +638,6 @@ impl Connection {
         &mut self,
         buf: &mut [MaybeUninit<u8>],
     ) -> Poll<Result<usize, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
 
@@ -601,7 +646,7 @@ impl Connection {
         // 2. if s2n_recv returns `+n`, it guarantees that the first
         // `n` bytes of `buf` have been initialized, which allows this
         // function to return `Ok(n)`
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        self.poll_recv_raw(buf_ptr, buf_len)
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
@@ -770,6 +815,23 @@ impl Connection {
                 .unwrap();
             &*(ctx.as_ptr() as *mut Context)
         }
+    }
+
+    /// Drop the context
+    ///
+    /// SAFETY:
+    /// A connection without a context is invalid. After calling this method
+    /// from anywhere other than Drop, you must reinitialize the context.
+    unsafe fn drop_context(&mut self) -> Result<(), Error> {
+        let ctx = s2n_connection_get_ctx(self.connection.as_ptr()).into_result();
+        if let Ok(ctx) = ctx {
+            drop(Box::from_raw(ctx.as_ptr() as *mut Context));
+        }
+        // Setting a NULL context is important: if we don't also remove the context
+        // from the connection, then the invalid memory is still accessible and
+        // may even be double-freed.
+        s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut()).into_result()?;
+        Ok(())
     }
 
     /// Mark that the server_name extension was used to configure the connection.
@@ -1129,6 +1191,16 @@ impl Connection {
             Some(app_context) => app_context.downcast_mut::<T>(),
         }
     }
+
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) fn renegotiate_state_mut(&mut self) -> &mut RenegotiateState {
+        &mut self.context_mut().renegotiate_state
+    }
+
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) fn renegotiate_state(&self) -> &RenegotiateState {
+        &self.context().renegotiate_state
+    }
 }
 
 struct Context {
@@ -1138,6 +1210,8 @@ struct Context {
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     connection_initialized: bool,
     app_context: Option<Box<dyn Any + Send + Sync>>,
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) renegotiate_state: RenegotiateState,
 }
 
 impl Context {
@@ -1149,6 +1223,8 @@ impl Context {
             verify_host_callback: None,
             connection_initialized: false,
             app_context: None,
+            #[cfg(feature = "unstable-renegotiate")]
+            renegotiate_state: RenegotiateState::default(),
         }
     }
 }
@@ -1232,10 +1308,7 @@ impl Drop for Connection {
         // ignore failures since there's not much we can do about it
         unsafe {
             // clean up context
-            let prev_ctx = self.context_mut();
-            drop(Box::from_raw(prev_ctx));
-            let _ = s2n_connection_set_ctx(self.connection.as_ptr(), core::ptr::null_mut())
-                .into_result();
+            let _ = self.drop_context();
 
             // cleanup config
             let _ = self.drop_config();

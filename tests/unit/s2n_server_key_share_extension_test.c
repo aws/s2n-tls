@@ -555,10 +555,18 @@ int main(int argc, char **argv)
 
             /* If PQ is disabled, the client will not have sent PQ IDs/keyshares in the ClientHello;
              * if the server responded with a PQ keyshare, we should error. */
-            if (!s2n_pq_is_enabled()) {
-                struct s2n_connection *client_conn = NULL;
-                EXPECT_NOT_NULL(client_conn = s2n_connection_new(S2N_CLIENT));
+            {
+                DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                        s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(client_conn);
                 client_conn->security_policy_override = &test_security_policy;
+
+                /* The connection is set up to be receiving a HelloRetryRequest in order to exit
+                 * s2n_server_key_share_extension.recv earlier for testing the success case.
+                 */
+                client_conn->handshake.state_machine = S2N_STATE_MACHINE_TLS13;
+                EXPECT_SUCCESS(s2n_set_connection_hello_retry_flags(client_conn));
+                EXPECT_TRUE(s2n_is_hello_retry_message(client_conn));
 
                 uint8_t iana_buffer[2];
                 struct s2n_blob iana_blob = { 0 };
@@ -567,9 +575,12 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_stuffer_init(&iana_stuffer, &iana_blob));
                 EXPECT_SUCCESS(s2n_stuffer_write_uint16(&iana_stuffer, test_security_policy.kem_preferences->tls13_kem_groups[0]->iana_id));
 
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_extension.recv(client_conn, &iana_stuffer), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
-
-                EXPECT_SUCCESS(s2n_connection_free(client_conn));
+                int ret = s2n_server_key_share_extension.recv(client_conn, &iana_stuffer);
+                if (s2n_pq_is_enabled()) {
+                    EXPECT_SUCCESS(ret);
+                } else {
+                    EXPECT_FAILURE_WITH_ERRNO(ret, S2N_ERR_ECDHE_UNSUPPORTED_CURVE);
+                }
             }
 
             /* Test s2n_server_key_share_extension.recv with KAT pq key shares */
@@ -782,7 +793,7 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_SERVER));
 
             if (!s2n_pq_is_enabled()) {
-                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+                EXPECT_FAILURE_WITH_ERRNO(s2n_server_key_share_send_check_pq_hybrid(conn), S2N_ERR_UNIMPLEMENTED);
             }
 
             if (s2n_pq_is_enabled()) {

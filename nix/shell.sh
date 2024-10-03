@@ -26,12 +26,12 @@ libcrypto_alias bssl "${AWSLC_INSTALL_DIR}/bin/bssl"
 libcrypto_alias libressl "${LIBRESSL_INSTALL_DIR}/bin/openssl"
 #No need to alias gnutls because it is included in common_packages (see flake.nix).
 
-function clean {
+function clean {(set -e
     banner "Cleanup ./build"
     rm -rf ./build ./s2n_head
-}
+)}
 
-function configure {
+function configure {(set -e
     banner "Configuring with cmake"
     cmake -S . -B./build \
           -DBUILD_TESTING=ON \
@@ -41,9 +41,9 @@ function configure {
           -DBUILD_SHARED_LIBS=ON \
           $S2N_CMAKE_OPTIONS \
           -DCMAKE_BUILD_TYPE=RelWithDebInfo
-}
+)}
 
-function build {
+function build {(set -e
     banner "Running Build"
     javac tests/integrationv2/bin/SSLSocketClient.java
     cmake --build ./build -j $(nproc)
@@ -51,29 +51,30 @@ function build {
     if [[ -z "${S2N_KTLS_TESTING_EXPECTED}" ]]; then
         $SRC_ROOT/codebuild/bin/install_s2n_head.sh $(mktemp -d)
     fi
-}
+)}
 
-function unit {
+function unit {(set -e
     if [[ -z "$1" ]]; then
-        (cd $SRC_ROOT/build; ctest -L unit -j $(nproc) --verbose)
+        cmake --build build -j $(nproc)
+        ctest --test-dir build -L unit -j $(nproc) --verbose
     else
-        (cd $SRC_ROOT/build; ctest -L unit -R $1 -j $(nproc) --verbose)
+        tests=$(ctest --test-dir build -N -L unit | grep -E "Test +#" | grep -Eo "[^ ]+_test$" | grep "$1")
+        echo "Tests:"
+        echo "$tests"
+        for test in $tests
+        do
+            cmake --build build -j $(nproc) --target $test
+        done
+        ctest --test-dir build -L unit -R "$1" -j $(nproc) --verbose
     fi
-}
+)}
 
-function integ {
-    if [ "$1" == "help" ]; then
-        echo "The following tests are not supported:"
-        echo "- renegotiate_apache"
-        echo "   This test requires apache to be running. See codebuild/bin/s2n_apache.sh"
-        echo "    for more info."
-        return
-    fi
+function integ {(set -e
+    apache2_start
     if [[ -z "$1" ]]; then
-        banner "Running all integ tests except renegotiate_apache."
-        (cd $SRC_ROOT/build; ctest -L integrationv2 -E "(integrationv2_cross_compatibility|integrationv2_renegotiate_apache)" --verbose)
+        banner "Running all integ tests."
+        (cd $SRC_ROOT/build; ctest -L integrationv2 --verbose)
     else
-        banner "Warning: renegotiate_apache is not supported in nix for various reasons integ help for more info."
         for test in $@; do
             ctest --test-dir ./build -L integrationv2 --no-tests=error --output-on-failure -R "$test" --verbose
             if [ "$?" -ne 0 ]; then
@@ -82,9 +83,9 @@ function integ {
             fi
         done
     fi
-}
+)}
 
-function check-clang-format {
+function check-clang-format {(set -e
     banner "Dry run of clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
@@ -106,8 +107,9 @@ function check-clang-format {
     src_files+=" ";
     src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     echo $src_files | xargs -n 1 -P $(nproc) clang-format --dry-run -style=file)
-}
-function do-clang-format {
+)}
+
+function do-clang-format {(set -e
     banner "In place clang-format"
     (cd $SRC_ROOT;
     include_regex=".*\.(c|h)$";
@@ -129,9 +131,9 @@ function do-clang-format {
     src_files+=" ";
     src_files+=`find ./tests/testlib -name .git -prune -o -regextype posix-egrep -regex "$include_regex" -print`;
     echo $src_files | xargs -n 1 -P $(nproc) clang-format -style=file -i)
-}
+)}
 
-function test_toolchain_counts {
+function test_toolchain_counts {(set -e
     # This is a starting point for a unit test of the devShell.
     # The chosen S2N_LIBCRYPTO should be 2, and the others should be zero.
     banner "Checking the CMAKE_INCLUDE_PATH for libcrypto counts"
@@ -152,10 +154,40 @@ function test_toolchain_counts {
     echo -e "Nix sslyze:\t $(which sslyze|grep -c '/nix/store')"
     echo -e "python nassl:\t $(pip freeze|grep -c 'nassl')"
     echo -e "valgrind:\t $(valgrind --version|grep -c 'valgrind-3.19.0')"
-}
+)}
 
-function test_nonstandard_compilation {
+function test_nonstandard_compilation {(set -e
     # Any script that needs to compile s2n in a non-standard way can run here
     ./codebuild/bin/test_dynamic_load.sh $(mktemp -d)
+)}
+
+function apache2_config(){
+    export APACHE_NIX_STORE=$(dirname $(dirname $(which httpd)))
+    export APACHE2_INSTALL_DIR=/usr/local/apache2
+    export APACHE_SERVER_ROOT="$APACHE2_INSTALL_DIR"
+    export APACHE_RUN_USER=nobody
+    # Unprivileged groupname differs
+    export APACHE_RUN_GROUP=$(awk 'BEGIN{FS=":"} /65534/{print $1}' /etc/group)
+    export APACHE_PID_FILE="${APACHE2_INSTALL_DIR}/run/apache2.pid"
+    export APACHE_RUN_DIR="${APACHE2_INSTALL_DIR}/run"
+    export APACHE_LOCK_DIR="${APACHE2_INSTALL_DIR}/lock"
+    export APACHE_LOG_DIR="${APACHE2_INSTALL_DIR}/log"
+    export APACHE_CERT_DIR="$SRC_ROOT/tests/pems"
 }
 
+function apache2_start(){
+    if [[ "$(pgrep -c httpd)" -eq "0" ]]; then
+        apache2_config
+        if [[ ! -f "$APACHE2_INSTALL_DIR/conf/apache2.conf" ]]; then
+            mkdir -p $APACHE2_INSTALL_DIR/{run,log,lock}
+            # NixOs specific base apache config
+            cp -R ./tests/integrationv2/apache2/nix/* $APACHE2_INSTALL_DIR
+            # Integrationv2::renegotiate site
+            cp -R ./codebuild/bin/apache2/{www,sites-enabled} $APACHE2_INSTALL_DIR
+        fi
+        httpd -k start -f "${APACHE2_INSTALL_DIR}/conf/apache2.conf"
+        trap 'pkill httpd' ERR EXIT
+    else
+      echo "Apache is already running...and if \"$APACHE2_INSTALL_DIR\" is stale, it might be in an unknown state."
+    fi
+}

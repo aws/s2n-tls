@@ -51,6 +51,8 @@ if (flags < 0) return S2N_FAILURE;
 if (fcntl(fd, F_SETFL, flags | O_NONBLOCK) < 0) return S2N_FAILURE;
 ```
 
+Note: If an application requires non-blocking IO, it likely also requires self-service blinding. See [Blinding](./ch03-error-handling.md#Blinding).
+
 ## Errors and Alerts
 
 If the peer sends an alert, the next call to a read IO method will report **S2N_FAILURE** and

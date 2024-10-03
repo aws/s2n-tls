@@ -41,7 +41,7 @@ int main()
 #if defined(OPENSSL_IS_AWSLC) && defined(AWSLC_API_VERSION)
     /* If using non-FIPS AWS-LC >= v1.6 (API vers. 21), expect Kyber512 KEM from AWS-LC */
     if (!s2n_libcrypto_is_fips() && AWSLC_API_VERSION >= 21) {
-        EXPECT_TRUE(s2n_libcrypto_supports_kyber());
+        EXPECT_TRUE(s2n_libcrypto_supports_evp_kem());
     }
 #endif
 
@@ -78,9 +78,9 @@ int main()
             EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data));
             EXPECT_BYTEARRAY_NOT_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
         } else {
-            EXPECT_FAILURE_WITH_ERRNO(kem->generate_keypair(kem, public_key.data, private_key.data), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
-            EXPECT_FAILURE_WITH_ERRNO(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
-            EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data), S2N_ERR_NO_SUPPORTED_LIBCRYPTO_API);
+            EXPECT_FAILURE_WITH_ERRNO(kem->generate_keypair(kem, public_key.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
+            EXPECT_FAILURE_WITH_ERRNO(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data), S2N_ERR_UNIMPLEMENTED);
+            EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
         }
     }
 

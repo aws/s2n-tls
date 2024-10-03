@@ -243,11 +243,17 @@ int main(int argc, char **argv)
         EXPECT_FAILURE(s2n_connection_get_signature_preferences(conn, &signature_preferences));
         EXPECT_FAILURE(s2n_connection_get_ecc_preferences(conn, &ecc_preferences));
 
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(),
+                s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+
         EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        EXPECT_SUCCESS(s2n_connection_set_config(conn, config));
         EXPECT_NOT_NULL(conn->config->security_policy);
         EXPECT_NULL(conn->security_policy_override);
 
-        conn->config->security_policy = NULL;
+        /* Invalidate the security policy and expect failure. */
+        config->security_policy = NULL;
 
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_cipher_preferences(conn, &cipher_preferences), S2N_ERR_INVALID_CIPHER_PREFERENCES);
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_security_policy(conn, &security_policy), S2N_ERR_INVALID_SECURITY_POLICY);
@@ -256,10 +262,6 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_ecc_preferences(conn, &ecc_preferences), S2N_ERR_INVALID_ECC_PREFERENCES);
 
         EXPECT_SUCCESS(s2n_connection_free(conn));
-
-        /* The static configs were mutated. Reset them to allow following unit tests to use them. */
-        s2n_wipe_static_configs();
-        EXPECT_SUCCESS(s2n_config_defaults_init());
     };
 
     /* s2n_connection_get_curve */

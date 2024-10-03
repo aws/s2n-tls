@@ -1,0 +1,67 @@
+name: seccomp
+on:
+  pull_request:
+    branches: [main]
+  merge_group:
+    types: [checks_requested]
+    branches: [main]
+
+jobs:
+  ubuntu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: install dependencies
+        run: |
+          sudo apt update
+          sudo apt install cmake
+          # For default libcrypto
+          sudo apt install libssl-dev
+          # For seccomp
+          sudo apt install libseccomp-dev
+          # For aws-lc
+          sudo apt install clang golang
+          
+      - name: checkout s2n-tls
+        uses: actions/checkout@v4
+        
+      - name: checkout aws-lc
+        uses: actions/checkout@v4
+        with:
+          repository: aws/aws-lc
+          path: awslc
+
+      - name: build awslc
+        # See https://github.com/aws/aws-lc/blob/main/BUILDING.md#building
+        working-directory: awslc
+        run: |
+          cmake -B build
+          make -C build
+          cmake --install build --prefix install
+
+      - name: seccomp with default libcrypto
+        # TODO: There are still issues with openssl running with seccomp.
+        # Disable for now.
+        if: false
+        run: |
+          cmake -Bbuild \
+            -DSECCOMP=1 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_INSTALL_PREFIX=install
+          cmake --build build -j $(nproc)
+          CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+          cmake --install build
+          ./build/bin/s2nc localhost 8000 | grep "libcrypto" | grep -v "AWS-LC"
+          rm -rf build
+
+      - name: seccomp with aws-lc
+        run: |
+          cmake -Bbuild \
+            -DSECCOMP=1 \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_PREFIX_PATH=awslc/install \
+            -DCMAKE_INSTALL_PREFIX=install
+          cmake --build build -j $(nproc)
+          CTEST_PARALLEL_LEVEL=$(nproc) ctest --test-dir build
+          cmake --install build
+          ./build/bin/s2nc localhost 8000 | grep "libcrypto" | grep "AWS-LC"
+          rm -rf build

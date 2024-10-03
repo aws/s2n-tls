@@ -1,15 +1,21 @@
 # Regression Testing for s2n-tls
 
-This folder contains regression tests and benchmarking tools for the `s2n-tls` library. The tests focus on various aspects of TLS connections.
+This folder contains regression tests and benchmarking tools for the `s2n-tls` library. The tests focus on various aspects of TLS connections. 
+
 
 ## Testing Philosophy
 
-Currently, s2n-tls implements a wall clock benchmarking tool which measures end-to-end handshake performance to compare s2n-tls with rustls and OpenSSL. In the past, s2n-tls has tried benchmarking to detect regressions through criterion in Rust, but the subprocess and spin-up time contributed to performance measurement which made the results inaccurate and difficult to use in CI. The project has a slightly different focus, learning from these existing tools. Performance assertion in s2n-tls focuses on a benchmarking tool that can detail performance by API path and do so with enough repeatability and accuracy to detect regressions between two versions of s2n-tls so that performance analysis can occur at PR time. This means that the scope of each harness is limited and mutually exclusive of other harnesses since we are intersted in measuring the performance of the important paths a TLS connection typically follows. 
+Currently, s2n-tls implements a wall clock benchmarking tool which measures end-to-end handshake performance to compare s2n-tls with rustls and OpenSSL. In the past, s2n-tls has tried benchmarking to detect regressions through criterion in Rust, but the subprocess and spin-up time contributed to performance measurement which made the results inaccurate and difficult to use in CI. The project has a slightly different focus, learning from these existing tools. Performance assertion in s2n-tls focuses on a benchmarking tool that can detail performance by API path and do so with enough repeatability and accuracy to detect regressions between two versions of s2n-tls so that performance analysis can occur at PR time. This means that the scope of each harness is limited and mutually exclusive of other harnesses since we are interested in measuring the performance of the important paths a TLS connection typically follows. 
+
+### Why CPU instructions
+The performance benchmarking framework utilizes CPU Instruction count across API paths to make the regression assertion. This technique reduces noise, ensuring that small performance differences are caught through this measure. While a difference in performance count may not result in a direct runtime difference, it is useful when comparing a PR to mainline and to dig into the specific sources of performance impact within the code. 
+
 ## Contents
 
 1. **lib.rs**
    - **test_set_config**: Builds a new s2n-tls config with a security policy, host callback and certs
    - **test_rsa_handshake**: Performs an RSA handshake in s2n-tls.
+   - **test_session_resumption**: Does two handshakes, the first handshake provides a session ticket, and then that session ticket is used to resume in the second handshake.
 
 2. **Cargo.toml**
    - The configuration file for building and running the regression tests using Cargo.
@@ -19,77 +25,101 @@ Currently, s2n-tls implements a wall clock benchmarking tool which measures end-
 
 Ensure you have the following installed:
 - Rust (with Cargo)
-- Valgrind (for cachegrind instrumentation)
+- Valgrind (for cachegrind instrumentation): Valgrind 3.23 or newer is required to run the tests, since cachegrind annotation is not included in earlier versions. If this version is not automatically downloaded by running `apt install valgrind`, it can be installed manually by following https://valgrind.org/downloads/
 
 ## Running the Harnesses with Valgrind (scalar performance)
 To run the harnesses with Valgrind and store the annotated results, run:
 
 ```
-ENABLE_VALGRIND = true cargo test
+PERF_MODE=valgrind cargo test
 ```
 
-This will recursively call all tests with valgrind enabled so the performance output is generated and stored
+This will recursively call all tests with valgrind enabled so the performance output is generated and stored in target/perf_outputs. If you are looking for the scalar performance output of a PR, this will provide insight into which portions of the code account for what share of the CPU instruction count.
+
+## Running the Harnesses between versions (differential performance)
+Run the scalar performance for all harnesses on the current branch version of s2n-tls
+```
+PERF_MODE=valgrind cargo test
+```
+`git checkout` or `git switch` to mainline/version being compared to. Make sure you have stashed or committed any changes.
+```
+PERF_MODE=valgrind cargo test
+```
+`git checkout` or `git switch` back to the original version. At this point you should have two annotated performance outputs for each test. If you have more, the diff test will not be able to recognize the versions being compared.
+```
+PERF_MODE=diff cargo test
+```
+This will assert on the performance difference of the current version minus the previous. If the regression exceeds the const `MAX_DIFF`, the test fails. Performance output profiles are stored by their commit id in `/target/commit_id`:
+- `raw_profile` for the unannotated cachegrind output result
+- `annotated_profile` for the annotated cachegrind output (scalar)
+- `target/diff` contains the annotated differential profile between two commits
+
 ## Running the tests w/o Valgrind
 
 ```
 cargo test
 ```
 
-This will run the tests without valgrind to test if the process completes as expected
-## Sample Output for Valgrind test
+This will run the tests without valgrind to test if the harnesses complete as expected
 
-Running the test will run all harnesses and fail if any number of harnesses exceed the performance threshold. For example, a regression test faliure could look like:
+## Output Files
+- `target/$commit_id/test_name.raw`: Contains the raw cachegrind profile. On its own, the file is pretty much unreadable but is useful for the cg_annotate --diff functionality or to visualize the profile via tools like [KCachegrind](https://kcachegrind.github.io/html/Home.html).
+- `target/$commit_id/test_name.annotated`: The scalar annotated profile associated with that particular commit id. This file contains detailed information on the contribution of functions, files, and lines of code to the overall scalar performance count.
+- `target/diff/test_name.diff`: The annotated performance difference between two commits. This file contains the overall performance difference and also details the instruction counts, how many instructions a particular file/function account for, and the contribution of individual lines of code to the overall instruction count difference.
+
+## Sample Output for Valgrind test (differential)
+
+Running the differential test will run all harnesses and fail if any number of harnesses exceed the performance threshold. For example, a regression test failure could look like:
 ```
----- tests::test_set_security_policy_and_build stdout ----
-Running command: valgrind --tool=cachegrind --cachegrind-out-file=cachegrind_test_set_security_policy_and_build.out /home/ubuntu/proj/s2n/tests/regression/target/debug/deps/regression-7c7d86aeafe3b426 test_set_security_policy_and_build
-Running command: cg_annotate cachegrind_test_set_security_policy_and_build.out > perf_outputs/test_set_security_policy_and_build.annotated.txt
-thread 'tests::test_set_security_policy_and_build' panicked at src/lib.rs:174:9:
-Instruction count difference in test_set_security_policy_and_build exceeds the threshold, regression of 13975865 instructions
-note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+running 2 tests
+test tests::test_set_config ... FAILED
+test tests::test_rsa_handshake ... ok
 
----- tests::test_rsa_handshake stdout ----
-Running command: valgrind --tool=cachegrind --cachegrind-out-file=cachegrind_test_rsa_handshake.out /home/ubuntu/proj/s2n/tests/regression/target/debug/deps/regression-7c7d86aeafe3b426 test_rsa_handshake
-Running command: cg_annotate cachegrind_test_rsa_handshake.out > perf_outputs/test_rsa_handshake.annotated.txt
-thread 'tests::test_rsa_handshake' panicked at src/lib.rs:174:9:
-Instruction count difference in test_rsa_handshake exceeds the threshold, regression of 51176459 instructions
+failures:
+
+---- tests::test_set_config stdout ----
+Instruction difference for test_set_config: 245746
+thread 'tests::test_set_config' panicked at src/lib.rs:189:9:
+Instruction count difference in test_set_config exceeds the threshold, regression of 245746 instructions
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
 
 
 failures:
-    tests::test_rsa_handshake
-    tests::test_set_security_policy_and_build
+    tests::test_set_config
+
+test result: FAILED. 1 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.20s
 ```
 
-It also produces annotated cachegrind files stored in the `perf_ouput` directory which detail the instruction counts, how many instructions a particular file/function account for, and the contribution of individual lines of code to the overall instruction count. For example, these are the first few lines of the output generated for 'test_rsa_handshake.annotated.txt':
+### target/diff/test_set_config.diff
 
 ```
 --------------------------------------------------------------------------------
 -- Summary
 --------------------------------------------------------------------------------
-Ir_________________ 
+Ir______________ 
 
-79,270,744 (100.0%)  PROGRAM TOTALS
+245,746 (100.0%)  PROGRAM TOTALS
 
 --------------------------------------------------------------------------------
 -- File:function summary
 --------------------------------------------------------------------------------
-  Ir_______________________  file:function
+  Ir______________________  file:function
 
-< 71,798,872 (90.6%, 90.6%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/x86_64-mont5.S:
-  54,908,926 (69.3%)           aws_lc_0_19_0_bn_sqr8x_internal
-  15,699,024 (19.8%)           mul4x_internal
-   1,114,840  (1.4%)           __bn_post4x_internal
-
-<  1,551,316  (2.0%, 92.5%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/p256-x86_64-asm.S:
-     676,336  (0.9%)           __ecp_nistz256_mul_montq
-     475,750  (0.6%)           __ecp_nistz256_sqr_montq
-      95,732  (0.1%)           aws_lc_0_19_0_ecp_nistz256_point_double
-
-<    833,553  (1.1%, 93.6%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/sha256-x86_64.S:
-     830,671  (1.0%)           sha256_block_data_order_avx
-
-<    557,697  (0.7%, 94.3%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/generated-src/linux-x86_64/crypto/fipsmodule/x86_64-mont.S:
-     493,032  (0.6%)           bn_mul4x_mont
-
+<  243,774  (99.2%, 99.2%)  /home/ubuntu/.cargo/registry/src/index.crates.io-6f17d22bba15001f/aws-lc-sys-0.19.0/aws-lc/crypto/fipsmodule/../internal.h:
+    62,034  (25.2%)           constant_time_select_w
+    47,264  (19.2%)           value_barrier_w
+    47,264  (19.2%)           constant_time_select_int
+    25,279  (10.3%)           constant_time_lt_w
+    20,692   (8.4%)           constant_time_msb_w
+    20,566   (8.4%)           constant_time_is_zero_w
+    16,346   (6.7%)           constant_time_eq_w
+     2,720   (1.1%)           CRYPTO_addc_u64
+       608   (0.2%)           OPENSSL_memcpy
+      -504  (-0.2%)           CRYPTO_subc_u64
+       480   (0.2%)           CRYPTO_bswap4
+       424   (0.2%)           OPENSSL_memset
+       315   (0.1%)           CRYPTO_load_u32_be
+       270   (0.1%)           CRYPTO_store_u32_be
 ```
 
 ### Understanding the Annotated Output
@@ -104,3 +134,7 @@ Configures and creates a new s2n-tls configuration with a specified security pol
 ### test_rsa_handshake
 
 Performs an RSA handshake in s2n-tls and validates the handshake process utilizing rsa_4096_sha512.
+
+### test_session_resumption
+
+Performs an RSA handshake with server authentication. Then, performs a resumption handshake using the session ticket obtained from the previous handshake.

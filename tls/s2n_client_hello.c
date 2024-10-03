@@ -471,34 +471,6 @@ int s2n_parse_client_hello(struct s2n_connection *conn)
     conn->session_id_len = conn->client_hello.session_id.size;
     POSIX_CHECKED_MEMCPY(conn->session_id, conn->client_hello.session_id.data, conn->session_id_len);
 
-    /* Set default key exchange curve.
-     * This is going to be our fallback if the client has no preference.
-     *
-     * P-256 is our preferred fallback option because the TLS1.3 RFC requires
-     * all implementations to support it:
-     *
-     *     https://tools.ietf.org/rfc/rfc8446#section-9.1
-     *     A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256)
-     *     and SHOULD support key exchange with X25519 [RFC7748]
-     *
-     *= https://www.rfc-editor.org/rfc/rfc4492#section-4
-     *# A client that proposes ECC cipher suites may choose not to include these extensions.
-     *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.
-     *
-     */
-    const struct s2n_ecc_preferences *ecc_pref = NULL;
-    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
-    POSIX_ENSURE_REF(ecc_pref);
-    POSIX_ENSURE_GT(ecc_pref->count, 0);
-    if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
-        conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
-    } else {
-        /* If P-256 isn't allowed by the current security policy, instead choose
-         * the first / most preferred curve.
-         */
-        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
-    }
-
     POSIX_GUARD_RESULT(s2n_client_hello_verify_for_retry(conn,
             &previous_hello_retry, &conn->client_hello, previous_client_random));
     return S2N_SUCCESS;
@@ -565,6 +537,34 @@ int s2n_process_client_hello(struct s2n_connection *conn)
         conn->actual_protocol_version = MIN(conn->server_protocol_version, S2N_TLS12);
     }
 
+    /* Set default key exchange curve.
+     * This is going to be our fallback if the client has no preference.
+     *
+     * P-256 is our preferred fallback option because the TLS1.3 RFC requires
+     * all implementations to support it:
+     *
+     *     https://tools.ietf.org/rfc/rfc8446#section-9.1
+     *     A TLS-compliant application MUST support key exchange with secp256r1 (NIST P-256)
+     *     and SHOULD support key exchange with X25519 [RFC7748]
+     *
+     *= https://www.rfc-editor.org/rfc/rfc4492#section-4
+     *# A client that proposes ECC cipher suites may choose not to include these extensions.
+     *# In this case, the server is free to choose any one of the elliptic curves or point formats listed in Section 5.
+     *
+     */
+    const struct s2n_ecc_preferences *ecc_pref = NULL;
+    POSIX_GUARD(s2n_connection_get_ecc_preferences(conn, &ecc_pref));
+    POSIX_ENSURE_REF(ecc_pref);
+    POSIX_ENSURE_GT(ecc_pref->count, 0);
+    if (s2n_ecc_preferences_includes_curve(ecc_pref, TLS_EC_CURVE_SECP_256_R1)) {
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = &s2n_ecc_curve_secp256r1;
+    } else {
+        /* If P-256 isn't allowed by the current security policy, instead choose
+         * the first / most preferred curve.
+         */
+        conn->kex_params.server_ecc_evp_params.negotiated_curve = ecc_pref->ecc_curves[0];
+    }
+
     POSIX_GUARD(s2n_extension_list_process(S2N_EXTENSION_LIST_CLIENT_HELLO, conn, &conn->client_hello.extensions));
 
     /* After parsing extensions, select a curve and corresponding keyshare to use */
@@ -594,7 +594,8 @@ int s2n_process_client_hello(struct s2n_connection *conn)
     POSIX_CHECKED_MEMCPY(previous_cipher_suite_iana, conn->secure->cipher_suite->iana_value, S2N_TLS_CIPHER_SUITE_LEN);
 
     /* Now choose the ciphers we have certs for. */
-    POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / 2));
+    POSIX_GUARD(s2n_set_cipher_as_tls_server(conn, client_hello->cipher_suites.data,
+            client_hello->cipher_suites.size / 2));
 
     /* Check if this is the second client hello in a hello retry handshake */
     if (s2n_is_hello_retry_handshake(conn) && conn->handshake.message_number > 0) {
@@ -670,6 +671,12 @@ int s2n_client_hello_recv(struct s2n_connection *conn)
     if (!conn->client_hello.callback_invoked && !IS_HELLO_RETRY_HANDSHAKE(conn)) {
         /* Mark the client hello callback as invoked to avoid calling it again. */
         conn->client_hello.callback_invoked = true;
+
+        /* Do NOT move this null check. A test exists to assert that a server connection can get
+         * as far as the client hello callback without using its config. To do this we need a
+         * specific error for a null config just before the client hello callback. The test's
+         * assertions are weakened if this check is moved. */
+        POSIX_ENSURE(conn->config, S2N_ERR_CONFIG_NULL_BEFORE_CH_CALLBACK);
 
         /* Call client_hello_cb if exists, letting application to modify s2n_connection or swap s2n_config */
         if (conn->config->client_hello_cb) {
@@ -854,7 +861,8 @@ int s2n_sslv2_client_hello_recv(struct s2n_connection *conn)
     /* Find potential certificate matches before we choose the cipher. */
     POSIX_GUARD(s2n_conn_find_name_matching_certs(conn));
 
-    POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data, client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
+    POSIX_GUARD(s2n_set_cipher_as_sslv2_server(conn, client_hello->cipher_suites.data,
+            client_hello->cipher_suites.size / S2N_SSLv2_CIPHER_SUITE_LEN));
     POSIX_GUARD_RESULT(s2n_signature_algorithm_select(conn));
     POSIX_GUARD(s2n_select_certs_for_server_auth(conn, &conn->handshake_params.our_chain_and_key));
 

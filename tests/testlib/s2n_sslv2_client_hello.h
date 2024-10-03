@@ -15,7 +15,7 @@
 
 #pragma once
 
-/* The following macros can be concatanated to generate a SSLv2 ClientHello
+/* The following macros can be concatenated to generate a SSLv2 ClientHello
  * message and record 
  */
 
