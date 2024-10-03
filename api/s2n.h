@@ -241,22 +241,6 @@ S2N_API extern int s2n_init(void);
  */
 S2N_API extern int s2n_cleanup(void);
 
-/**
- * Cleans up any internal thread-local resources used by s2n-tls. This function is called by `s2n_cleanup`, but depending on your
- * thread management model, it may be called directly instead. See [Initialization](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch02-initializing.md) for details.
- *
- * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
- */
-S2N_API extern int s2n_cleanup_thread(void);
-
-/**
- * Cleans up any global resources used by s2n-tls. This function is called by `s2n_cleanup`, but depending on your
- * thread management model, it may be called directly instead. See [Initialization](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch02-initializing.md) for details.
- *
- * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
- */
-S2N_API extern int s2n_cleanup_final(void);
-
 typedef enum {
     S2N_FIPS_MODE_DISABLED = 0,
     S2N_FIPS_MODE_ENABLED,

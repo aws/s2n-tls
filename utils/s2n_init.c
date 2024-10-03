@@ -17,6 +17,7 @@
 
 #include <pthread.h>
 
+#include "api/unstable/cleanup.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_locking.h"
