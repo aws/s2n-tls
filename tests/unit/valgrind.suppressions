@@ -1,13 +1,48 @@
-# It looks like valgrind may generate false positives on pthreads: https://stackoverflow.com/a/13132968
+# Valgrind may generate false positives on pthreads: https://stackoverflow.com/a/13132968
+# Without these suppressions, the following tests will fail:
+# s2n_examples_test, s2n_fork_generation_number_test, s2n_init_test, s2n_key_update_threads_test, and s2n_random_test.
 {
-   pthred_false_positive
+   pthread_false_positive
    Memcheck:Leak
    match-leak-kinds: possible
    fun:calloc
+   ...
    fun:allocate_dtv
    fun:_dl_allocate_tls
    fun:allocate_stack
-   fun:pthread_create@@GLIBC_2.2.5
+   fun:pthread_create@@*
+   ...
+   fun:main
+}
+
+# This memory leak is believed to be caused by backtrace() loading libgcc dynamically.
+# See https://man7.org/linux/man-pages/man3/backtrace_symbols_fd.3.html
+# We were unable to find any relevant bug reports. However, testing showed that the memory
+# leak didn't scale with the number of calls to backtrace(), both supporting this theory and
+# limiting the potential impact of the leak.
+{
+   stacktrace_suppression
+   Memcheck:Leak
+   match-leak-kinds: possible
+   fun:malloc
+   fun:malloc
+   fun:_dlfo_mappings_segment_allocate
+   fun:_dl_find_object_update_1
+   fun:_dl_find_object_update
+   fun:dl_open_worker_begin
+   fun:_dl_catch_exception
+   fun:dl_open_worker
+   fun:_dl_catch_exception
+   fun:_dl_open
+   fun:do_dlopen
+   fun:_dl_catch_exception
+   fun:_dl_catch_error
+   fun:dlerror_run
+   fun:__libc_dlopen_mode
+   fun:__libc_unwind_link_get
+   ...
+   fun:backtrace
+   ...
    fun:main
 }
 

@@ -31,7 +31,7 @@ typedef uint16_t kem_ciphertext_key_size;
 #define IN  /* Indicates a necessary function input */
 #define OUT /* Indicates a function output */
 
-#if defined(S2N_LIBCRYPTO_SUPPORTS_KYBER)
+#if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_KEM)
     #define S2N_NID_KYBER512  NID_KYBER512_R3
     #define S2N_NID_KYBER768  NID_KYBER768_R3
     #define S2N_NID_KYBER1024 NID_KYBER1024_R3
@@ -149,9 +149,6 @@ bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 #define S2N_KYBER_512_R3_SECRET_KEY_BYTES    1632
 #define S2N_KYBER_512_R3_CIPHERTEXT_BYTES    768
 #define S2N_KYBER_512_R3_SHARED_SECRET_BYTES 32
-int s2n_kyber_512_r3_crypto_kem_keypair(IN const struct s2n_kem *kem, OUT uint8_t *pk, OUT uint8_t *sk);
-int s2n_kyber_512_r3_crypto_kem_enc(IN const struct s2n_kem *kem, OUT uint8_t *ct, OUT uint8_t *ss, IN const uint8_t *pk);
-int s2n_kyber_512_r3_crypto_kem_dec(IN const struct s2n_kem *kem, OUT uint8_t *ss, IN const uint8_t *ct, IN const uint8_t *sk);
 
 /* kyber768r3 */
 #define S2N_KYBER_768_R3_PUBLIC_KEY_BYTES    1184
