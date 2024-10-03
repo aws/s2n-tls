@@ -164,6 +164,8 @@ For every thread that s2n functions are called in, a small amount of thread-loca
 An important thing to note is that a call to `s2n_cleanup()` usually does not fully clean up s2n. It only cleans up the thread-local memory. This is because we have an atexit handler that does fully clean up s2n at process-exit.
 The behavior is different if the atexit handler is disabled by calling `s2n_disable_atexit()`. Then s2n is actually fully cleaned up if `s2n_cleanup()` is called on the thread that called `s2n_init()`. `s2n_cleanup()` attempts to track the thread that had originally called `s2n_init()` and only performs the full cleanup when that "main" thread exits. If this behavior does not work for your use case (for example, if the "main" thread does not outlive child threads using s2n), you can instead call `s2n_cleanup_thread()` on each thread exit and call `s2n_cleanup_final()` once from any thread when you are sure all threads have finished using s2n.
 
+> Note: `s2n_cleanup_thread()` and `s2n_cleanup_final()` are currently considered unstable, meaning the APIs are subject to change in a future release. To access these APIs, include `api/unstable/cleanup.h`.
+
 ### Control flow and the state machine
 
 Branches can be a source of cognitive load, as they ask the reader to follow a path of thinking, while also remembering that there is another path to be explored. When branches are nested, they can often lead to impossible to grasp combinatorial explosions. s2n-tls tries to systematically reduce the number of branches used in the code in several ways.
