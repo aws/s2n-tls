@@ -451,6 +451,18 @@ impl Connection {
         Ok(self)
     }
 
+    /// Configure the connection to reduce potentially expensive calls to recv.
+    ///
+    /// Refer to the corresponding C API
+    /// [s2n_connection_set_recv_buffering](https://aws.github.io/s2n-tls/doxygen/s2n_8h.html)
+    /// for more information.
+    pub fn set_receive_buffering(&mut self, enabled: bool) -> Result<&mut Self, Error> {
+        unsafe {
+            s2n_connection_set_recv_buffering(self.connection.as_ptr(), enabled).into_result()
+        }?;
+        Ok(self)
+    }
+
     /// wipes and free the in and out buffers associated with a connection.
     ///
     /// This function may be called when a connection is in keep-alive or idle state to
