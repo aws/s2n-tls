@@ -3,6 +3,8 @@
 
 #![allow(clippy::missing_safety_doc)] // TODO add safety docs
 
+#[cfg(feature = "unstable-renegotiate")]
+use crate::renegotiate::RenegotiateState;
 use crate::{
     callbacks::*,
     cert_chain::CertificateChain,
@@ -580,11 +582,22 @@ impl Connection {
     /// [negotiate](`Self::poll_negotiate`) has succeeded.
     ///
     /// Returns the number of bytes written, and may indicate a partial write.
+    #[cfg(not(feature = "unstable-renegotiate"))]
     pub fn poll_send(&mut self, buf: &[u8]) -> Poll<Result<usize, Error>> {
         let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *const ::libc::c_void;
         unsafe { s2n_send(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+    }
+
+    #[cfg(not(feature = "unstable-renegotiate"))]
+    pub(crate) fn poll_recv_raw(
+        &mut self,
+        buf_ptr: *mut ::libc::c_void,
+        buf_len: isize,
+    ) -> Poll<Result<usize, Error>> {
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
     }
 
     /// Reads and decrypts data from a connection where
@@ -593,10 +606,9 @@ impl Connection {
     /// Returns the number of bytes read, and may indicate a partial read.
     /// 0 bytes returned indicates EOF due to connection closure.
     pub fn poll_recv(&mut self, buf: &mut [u8]) -> Poll<Result<usize, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        self.poll_recv_raw(buf_ptr, buf_len)
     }
 
     /// Reads and decrypts data from a connection where
@@ -614,7 +626,6 @@ impl Connection {
         &mut self,
         buf: &mut [MaybeUninit<u8>],
     ) -> Poll<Result<usize, Error>> {
-        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
         let buf_len: isize = buf.len().try_into().map_err(|_| Error::INVALID_INPUT)?;
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
 
@@ -623,7 +634,7 @@ impl Connection {
         // 2. if s2n_recv returns `+n`, it guarantees that the first
         // `n` bytes of `buf` have been initialized, which allows this
         // function to return `Ok(n)`
-        unsafe { s2n_recv(self.connection.as_ptr(), buf_ptr, buf_len, &mut blocked).into_poll() }
+        self.poll_recv_raw(buf_ptr, buf_len)
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
@@ -1168,6 +1179,16 @@ impl Connection {
             Some(app_context) => app_context.downcast_mut::<T>(),
         }
     }
+
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) fn renegotiate_state_mut(&mut self) -> &mut RenegotiateState {
+        &mut self.context_mut().renegotiate_state
+    }
+
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) fn renegotiate_state(&self) -> &RenegotiateState {
+        &self.context().renegotiate_state
+    }
 }
 
 struct Context {
@@ -1177,6 +1198,8 @@ struct Context {
     verify_host_callback: Option<Box<dyn VerifyHostNameCallback>>,
     connection_initialized: bool,
     app_context: Option<Box<dyn Any + Send + Sync>>,
+    #[cfg(feature = "unstable-renegotiate")]
+    pub(crate) renegotiate_state: RenegotiateState,
 }
 
 impl Context {
@@ -1188,6 +1211,8 @@ impl Context {
             verify_host_callback: None,
             connection_initialized: false,
             app_context: None,
+            #[cfg(feature = "unstable-renegotiate")]
+            renegotiate_state: RenegotiateState::default(),
         }
     }
 }
