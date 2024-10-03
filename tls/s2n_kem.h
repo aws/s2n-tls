@@ -32,19 +32,19 @@ typedef uint16_t kem_ciphertext_key_size;
 #define OUT /* Indicates a function output */
 
 #if defined(S2N_LIBCRYPTO_SUPPORTS_EVP_KEM)
-    #if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
-        #define S2N_NID_MLKEM768 NID_MLKEM768
-    #else
-        #define S2N_NID_MLKEM768 NID_undef
-    #endif
     #define S2N_NID_KYBER512  NID_KYBER512_R3
     #define S2N_NID_KYBER768  NID_KYBER768_R3
     #define S2N_NID_KYBER1024 NID_KYBER1024_R3
 #else
-    #define S2N_NID_MLKEM768  NID_undef
     #define S2N_NID_KYBER512  NID_undef
     #define S2N_NID_KYBER768  NID_undef
     #define S2N_NID_KYBER1024 NID_undef
+#endif
+
+#if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
+    #define S2N_NID_MLKEM768 NID_MLKEM768
+#else
+    #define S2N_NID_MLKEM768 NID_undef
 #endif
 
 struct s2n_kem {
@@ -132,6 +132,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
+bool s2m_kem_is_available(const struct s2n_kem *kem);
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 
 /* mlkem768 */

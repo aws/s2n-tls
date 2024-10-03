@@ -301,7 +301,9 @@ static int s2n_client_key_share_recv_ecc(struct s2n_connection *conn, struct s2n
 
 static int s2n_client_key_share_recv_hybrid_partial_ecc(struct s2n_stuffer *key_share, struct s2n_kem_group_params *new_client_params)
 {
+    POSIX_ENSURE_REF(new_client_params);
     const struct s2n_kem_group *kem_group = new_client_params->kem_group;
+    POSIX_ENSURE_REF(kem_group);
 
     if (new_client_params->kem_params.len_prefixed) {
         uint16_t ec_share_size = 0;

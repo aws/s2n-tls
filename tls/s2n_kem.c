@@ -172,12 +172,12 @@ const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
 const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
     &s2n_x25519_mlkem_768,
     &s2n_secp256r1_mlkem_768,
-    &s2n_secp256r1_kyber_512_r3,
-    &s2n_x25519_kyber_512_r3,
     &s2n_secp256r1_kyber_768_r3,
+    &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
     &s2n_secp521r1_kyber_1024_r3,
-    &s2n_x25519_kyber_768_r3,
+    &s2n_secp256r1_kyber_512_r3,
+    &s2n_x25519_kyber_512_r3,
 };
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
@@ -461,24 +461,34 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     return S2N_SUCCESS;
 }
 
-bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
+bool s2m_kem_is_available(const struct s2n_kem *kem)
 {
-    /* Check for values that might be undefined when compiling for older libcrypto's */
-    if (kem_group == NULL || kem_group->curve == NULL || kem_group->kem == NULL
-            || kem_group->kem->kem_nid == NID_undef) {
+    if (kem == NULL || kem->kem_nid == NID_undef) {
         return false;
     }
 
     bool available = s2n_libcrypto_supports_evp_kem();
 
+    /* Only newer versions of libcrypto have ML-KEM support. */
+    if (kem == &s2n_mlkem_768) {
+        available &= s2n_libcrypto_supports_mlkem();
+    }
+
+    return available;
+}
+
+bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
+{
+    /* Check for values that might be undefined when compiling for older libcrypto's */
+    if (kem_group == NULL || kem_group->curve == NULL || kem_group->kem == NULL) {
+        return false;
+    }
+
+    bool available = s2m_kem_is_available(kem_group->kem);
+
     /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
     if (kem_group->curve == &s2n_ecc_curve_x25519) {
         available &= s2n_is_evp_apis_supported();
-    }
-
-    /* Only newer versions of libcrypto have ML-KEM support. */
-    if (kem_group->kem == &s2n_mlkem_768) {
-        available &= s2n_libcrypto_supports_mlkem();
     }
 
     return available;

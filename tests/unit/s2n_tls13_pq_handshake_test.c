@@ -675,7 +675,7 @@ int main()
                 .client_policy = &mlkem768_test_policy,
                 .server_policy = &mlkem768_test_policy,
                 .expected_kem_group = null_if_no_mlkem,
-                .expected_curve = default_curve,
+                .expected_curve = NULL,
                 .hrr_expected = false,
                 .len_prefix_expected = false,
         }
