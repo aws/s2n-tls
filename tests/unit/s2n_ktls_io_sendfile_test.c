@@ -133,7 +133,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(conn);
         conn->ktls_send_enabled = true;
 
-        struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close;
+        struct s2n_test_io_pair io_pair = { 0 };
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         int write_fd = io_pair.server;
         int read_fd = io_pair.client;

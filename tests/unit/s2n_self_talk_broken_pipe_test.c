@@ -82,6 +82,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     sleep(1);
 
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
 
     exit(0);
 }

@@ -59,6 +59,7 @@ int mock_client(struct s2n_test_io_pair *io_pair)
     s2n_connection_free(conn);
     s2n_config_free(client_config);
     s2n_cleanup();
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
 
     exit(0);
 }
@@ -196,6 +197,7 @@ int main(int argc, char **argv)
     free(private_key_pem);
 
     s2n_cleanup();
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
     END_TEST();
 
