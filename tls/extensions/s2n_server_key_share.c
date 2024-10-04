@@ -36,6 +36,9 @@ const s2n_extension_type s2n_server_key_share_extension = {
 
 static int s2n_server_key_share_send_hybrid_partial_ecc(struct s2n_connection *conn, struct s2n_stuffer *out)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(out);
+
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
 
@@ -173,9 +176,14 @@ static int s2n_server_key_share_send(struct s2n_connection *conn, struct s2n_stu
 
 static int s2n_server_key_share_recv_hybrid_partial_ecc(struct s2n_connection *conn, struct s2n_stuffer *extension)
 {
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(extension);
+
     struct s2n_kem_params *client_kem_params = &conn->kex_params.client_kem_group_params.kem_params;
     struct s2n_kem_group_params *server_kem_group_params = &conn->kex_params.server_kem_group_params;
-    uint16_t expected_ecc_share_size = server_kem_group_params->kem_group->curve->share_size;
+    const struct s2n_kem_group *server_kem_group = server_kem_group_params->kem_group;
+    POSIX_ENSURE_REF(server_kem_group);
+    uint16_t expected_ecc_share_size = server_kem_group->curve->share_size;
 
     /* Parse ECC key share */
     if (client_kem_params->len_prefixed) {
