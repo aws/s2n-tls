@@ -15,7 +15,11 @@
 
 #include <pthread.h>
 
+#include "api/unstable/cleanup.h"
 #include "s2n_test.h"
+
+bool s2n_is_initialized(void);
+int s2n_enable_atexit(void);
 
 static void *s2n_init_fail_cb(void *_unused_arg)
 {
@@ -33,7 +37,13 @@ static void *s2n_init_success_cb(void *_unused_arg)
     return NULL;
 }
 
-int s2n_enable_atexit(void);
+static void *s2n_cleanup_thread_cb(void *_unused_arg)
+{
+    (void) _unused_arg;
+
+    EXPECT_SUCCESS(s2n_cleanup_thread());
+    return NULL;
+}
 
 int main(int argc, char **argv)
 {
@@ -76,6 +86,23 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(pthread_create(&init_thread, NULL, s2n_init_fail_cb, NULL), 0);
     EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
     EXPECT_SUCCESS(s2n_cleanup());
+
+    /* Calling s2n_init/s2n_cleanup in a different thread than s2n_cleanup_thread is called cleans up properly */
+    {
+        EXPECT_SUCCESS(s2n_init());
+        EXPECT_TRUE(s2n_is_initialized());
+        pthread_t s2n_cleanup_th = { 0 };
+        EXPECT_EQUAL(pthread_create(&s2n_cleanup_th, NULL, s2n_cleanup_thread_cb, NULL), 0);
+        EXPECT_EQUAL(pthread_join(s2n_cleanup_th, NULL), 0);
+        EXPECT_TRUE(s2n_is_initialized());
+        /* Calling s2n_cleanup_thread in the main thread leaves s2n initialized. */
+        EXPECT_SUCCESS(s2n_cleanup_thread());
+        EXPECT_TRUE(s2n_is_initialized());
+        EXPECT_SUCCESS(s2n_cleanup());
+        EXPECT_FALSE(s2n_is_initialized());
+        /* Second call to s2n_cleanup will fail, since the full cleanup is not idempotent. */
+        EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup(), S2N_ERR_NOT_INITIALIZED);
+    }
 
     /* The following test requires atexit to be enabled. */
     EXPECT_SUCCESS(s2n_enable_atexit());
