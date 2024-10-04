@@ -15,8 +15,15 @@
 
 #pragma once
 
-#include <stdbool.h>
+#include <s2n.h>
 
-int s2n_init(void);
-int s2n_cleanup(void);
-bool s2n_is_initialized(void);
+/**
+ * Cleans up any internal thread-local resources used by s2n-tls. This function
+ * is called by `s2n_cleanup`, but depending on your thread management model, 
+ * it may be called directly instead. 
+ * 
+ * See [Initialization](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch02-initializing.md) for details.
+ *
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_cleanup_thread(void);
