@@ -192,7 +192,10 @@ sizes may change.</p>
 includes an example client (<code>s2nc</code>) and server (<code>s2nd</code>).</p>
 <p><strong>Note:</strong> <code>s2nc</code> and <code>s2nd</code> are intended for testing purposes only, and should not be used in production.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="initialization-and-teardown"><a class="header" href="#initialization-and-teardown">Initialization and Teardown</a></h1>
-<p>The s2n-tls library must be initialized with <code>s2n_init()</code> before calling most library functions. <code>s2n_init()</code> MUST NOT be called more than once, even when an application uses multiple threads or processes. s2n attempts to clean up its thread-local memory at thread-exit and all other memory at process-exit. However, this may not work if you are using a thread library other than pthreads. In that case you should call <code>s2n_cleanup()</code> from every thread or process created after <code>s2n_init()</code>.</p>
+<p>The s2n-tls library must be initialized with <code>s2n_init()</code> before calling most library functions. <code>s2n_init()</code> MUST NOT be called more than once, even when an application uses multiple threads or processes. s2n attempts to clean up its thread-local memory at thread-exit and all other memory at process-exit. However, this may not work if you are using a thread library other than pthreads or other threads using s2n outlive the thread that called <code>s2n_init()</code>. In that case you should call <code>s2n_cleanup_thread()</code> from every thread or process created after <code>s2n_init()</code>.</p>
+<blockquote>
+<p>Note: <code>s2n_cleanup_thread()</code> is currently considered unstable, meaning the API is subject to change in a future release. To access this API, include <code>api/unstable/cleanup.h</code>.</p>
+</blockquote>
 <p>Initialization can be modified by calling <code>s2n_crypto_disable_init()</code> or <code>s2n_disable_atexit()</code> before <code>s2n_init()</code>.</p>
 <p>An application can override s2n-tls’s internal memory management by calling <code>s2n_mem_set_callbacks</code> before calling s2n_init.</p>
 <p>If you are trying to use FIPS mode, you must enable FIPS in your libcrypto library (probably by calling <code>FIPS_mode_set(1)</code>) before calling <code>s2n_init()</code>.</p>
