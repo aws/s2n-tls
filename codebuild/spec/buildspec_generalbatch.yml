@@ -187,6 +187,28 @@ batch:
           S2N_LIBCRYPTO: openssl-3.0
           TESTS: unit
       identifier: s2nUnitOpenssl3Gcc9
+    - buildspec: codebuild/spec/buildspec_ubuntu_cmake.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          GCC_VERSION: '13'
+          S2N_LIBCRYPTO: 'openssl-3.0'
+          TESTS: unit
+      identifier: s2nUnitOpenss3Gcc13
+    - buildspec: codebuild/spec/buildspec_ubuntu_cmake.yml
+      env:
+        compute-type: BUILD_GENERAL1_SMALL
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
+        privileged-mode: true
+        variables:
+          BUILD_S2N: 'true'
+          GCC_VERSION: '13'
+          S2N_LIBCRYPTO: 'awslc'
+          TESTS: unit
+      identifier: s2nUnitAwslcGcc13
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
