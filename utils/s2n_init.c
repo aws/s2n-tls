@@ -13,8 +13,6 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_init.h"
-
 #include <pthread.h>
 
 #include "api/unstable/cleanup.h"
@@ -28,6 +26,7 @@
 #include "tls/s2n_cipher_suites.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13_secrets.h"
+#include "utils/s2n_init.h"
 #include "utils/s2n_mem.h"
 #include "utils/s2n_random.h"
 #include "utils/s2n_safety.h"
