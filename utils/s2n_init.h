@@ -19,6 +19,4 @@
 
 int s2n_init(void);
 int s2n_cleanup(void);
-int s2n_cleanup_thread(void);
-int s2n_cleanup_final(void);
 bool s2n_is_initialized(void);

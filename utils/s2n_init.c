@@ -118,6 +118,23 @@ static bool s2n_cleanup_atexit_impl(void)
     return cleaned_up;
 }
 
+int s2n_cleanup_thread(void)
+{
+    /* s2n_cleanup_thread is supposed to be called from each thread before exiting,
+     * so ensure that whatever clean ups we have here are thread safe */
+    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
+    return S2N_SUCCESS;
+}
+
+int s2n_cleanup_final(void)
+{
+    /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
+    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
+
+    return S2N_SUCCESS;
+}
+
 int s2n_cleanup(void)
 {
     POSIX_GUARD(s2n_cleanup_thread());
@@ -127,23 +144,6 @@ int s2n_cleanup(void)
     if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
         POSIX_GUARD(s2n_cleanup_final());
     }
-
-    return 0;
-}
-
-int s2n_cleanup_thread(void)
-{
-    /* s2n_cleanup_thread is supposed to be called from each thread before exiting,
-     * so ensure that whatever clean ups we have here are thread safe */
-    POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
-    return 0;
-}
-
-int s2n_cleanup_final(void)
-{
-    /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
-    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-    POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
 
     return 0;
 }

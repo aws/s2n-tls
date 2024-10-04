@@ -37,22 +37,11 @@ static void *s2n_init_success_cb(void *_unused_arg)
     return NULL;
 }
 
-static void *s2n_init_and_cleanup_thread_cb(void *_unused_arg)
+static void *s2n_cleanup_thread_cb(void *_unused_arg)
 {
     (void) _unused_arg;
 
-    EXPECT_SUCCESS(s2n_init());
     EXPECT_SUCCESS(s2n_cleanup_thread());
-    return NULL;
-}
-
-static void *s2n_cleanup_final_cb(void *_unused_arg)
-{
-    (void) _unused_arg;
-
-    EXPECT_TRUE(s2n_is_initialized());
-    EXPECT_SUCCESS(s2n_cleanup_thread());
-    EXPECT_SUCCESS(s2n_cleanup_final());
     return NULL;
 }
 
@@ -98,15 +87,20 @@ int main(int argc, char **argv)
     EXPECT_EQUAL(pthread_join(init_thread, NULL), 0);
     EXPECT_SUCCESS(s2n_cleanup());
 
-    /* Calling s2n_init in a different thread than s2n_cleanup_final is called cleans up properly */
-    pthread_t s2n_init_and_cleanup_thread = { 0 };
-    pthread_t cleanup_final_thread = { 0 };
-    EXPECT_EQUAL(pthread_create(&s2n_init_and_cleanup_thread, NULL, s2n_init_and_cleanup_thread_cb, NULL), 0);
-    EXPECT_EQUAL(pthread_join(s2n_init_and_cleanup_thread, NULL), 0);
-    EXPECT_EQUAL(pthread_create(&cleanup_final_thread, NULL, s2n_cleanup_final_cb, NULL), 0);
-    EXPECT_EQUAL(pthread_join(cleanup_final_thread, NULL), 0);
-    /* Second call to s2n_cleanup_final will fail, since the full cleanup is not idempotent. */
-    EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup_final(), S2N_ERR_NOT_INITIALIZED);
+    /* Calling s2n_init/s2n_cleanup in a different thread than s2n_cleanup_thread is called cleans up properly */
+    EXPECT_SUCCESS(s2n_init());
+    EXPECT_TRUE(s2n_is_initialized());
+    pthread_t s2n_cleanup_th = { 0 };
+    EXPECT_EQUAL(pthread_create(&s2n_cleanup_th, NULL, s2n_cleanup_thread_cb, NULL), 0);
+    EXPECT_EQUAL(pthread_join(s2n_cleanup_th, NULL), 0);
+    EXPECT_TRUE(s2n_is_initialized());
+    /* Calling s2n_cleanup_thread in the main thread leaves s2n initialized. */
+    EXPECT_SUCCESS(s2n_cleanup_thread());
+    EXPECT_TRUE(s2n_is_initialized());
+    EXPECT_SUCCESS(s2n_cleanup());
+    EXPECT_FALSE(s2n_is_initialized());
+    /* Second call to s2n_cleanup will fail, since the full cleanup is not idempotent. */
+    EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup(), S2N_ERR_NOT_INITIALIZED);
 
     /* The following test requires atexit to be enabled. */
     EXPECT_SUCCESS(s2n_enable_atexit());
