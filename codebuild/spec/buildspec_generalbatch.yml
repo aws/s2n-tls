@@ -197,7 +197,7 @@ batch:
           GCC_VERSION: '13'
           S2N_LIBCRYPTO: 'openssl-1.1.1'
           TESTS: unit
-      identifier: s2nUnitOpenss3Gcc13
+      identifier: s2nUnitOpenssl111Gcc13
     - buildspec: codebuild/spec/buildspec_ubuntu_cmake.yml
       env:
         compute-type: BUILD_GENERAL1_SMALL
