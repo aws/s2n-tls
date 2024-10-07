@@ -25,7 +25,7 @@ Servers should set the three caching callback functions: `s2n_config_set_cache_s
 
 Clients should call `s2n_connection_get_session()` to retrieve some serialized state about the session. Then `s2n_connection_set_session()` should be called with that saved state when attempting to resume a new connection.
 
-Applications must perform a graceful TSL shutdown in order to be able to resume a session with session caching. If the connection results in abrupt termination (i.e, no `close_notify` alert is received by server), the session cache will be deleted and the session will not be available for resumption. Additionally, any errors during the connection will also result in the session cache being deleted. For more information on how to close connections, see [Closing the Connection](./ch07-io.md#closing-the-connection)
+Applications must perform a graceful TLS shutdown to be able to resume a session with session caching. Any errors during the connection will result in that specific session being removed from the cache, making it unavailable for resumption. This includes an abrupt connection termination where no `close_notify` alert is received by the server. For more information on how to properly close connections, see [Closing the Connection](./ch07-io.md#closing-the-connection)
 
 ## Session Resumption in TLS1.2 and TLS1.3
 
