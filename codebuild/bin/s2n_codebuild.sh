@@ -88,7 +88,6 @@ run_integration_v2_tests() {
     "$CB_BIN_DIR/install_s2n_head.sh" "$(mktemp -d)"
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on \
             -DS2N_INTEG_TESTS=on \
             -DPython3_EXECUTABLE=$(which python3)
@@ -108,7 +107,6 @@ run_integration_v2_tests() {
 run_unit_tests() {
     cmake . -Bbuild \
             -DCMAKE_PREFIX_PATH=$LIBCRYPTO_ROOT \
-            -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True \
             -DBUILD_SHARED_LIBS=on
     cmake --build ./build -- -j $(nproc)
     test_linked_libcrypto ./build/bin/s2nc

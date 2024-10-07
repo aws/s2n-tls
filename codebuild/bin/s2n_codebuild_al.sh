@@ -28,7 +28,7 @@ else
     # AL2 case; Linker flags are a workaround for system openssl
     if [[ ${VERSION_ID} == '2' ]]; then
        BUILD_FLAGS=$(echo -e '-DCMAKE_EXE_LINKER_FLAGS="-lcrypto -lz" \
-         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON -DS2N_BLOCK_NONPORTABLE_OPTIMIZATIONS=True')
+         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON')
     fi
 fi
 
