@@ -194,7 +194,7 @@ batch:
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
-          GCC_VERSION: '13'
+          COMPILER: 'gcc-13'
           S2N_LIBCRYPTO: 'openssl-1.1.1'
           TESTS: unit
       identifier: s2nUnitOpenssl111Gcc13
@@ -205,7 +205,7 @@ batch:
         privileged-mode: true
         variables:
           BUILD_S2N: 'true'
-          GCC_VERSION: '13'
+          COMPILER: 'gcc-13'
           S2N_LIBCRYPTO: 'awslc'
           TESTS: unit
       identifier: s2nUnitAwslcGcc13
