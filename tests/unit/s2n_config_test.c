@@ -18,6 +18,7 @@
 #include <stdlib.h>
 
 #include "api/s2n.h"
+#include "api/s2n/unstable/npn.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_pq.h"
 #include "s2n_test.h"
@@ -28,7 +29,6 @@
 #include "tls/s2n_record.h"
 #include "tls/s2n_security_policies.h"
 #include "tls/s2n_tls13.h"
-#include "unstable/npn.h"
 #include "utils/s2n_map.h"
 
 #define S2N_TEST_MAX_SUPPORTED_GROUPS_COUNT 30
