@@ -3,7 +3,6 @@ By default, every test in this directory will be run as a fuzz test for several 
 1. Compile with S2N_FUZZ_TEST option enabled
 ```
 cmake . -Bbuild \
--DCMAKE_PREFIX_PATH=/usr/local/$S2N_LIBCRYPTO \
 -DS2N_FUZZ_TEST=on
 ```
 2. Compile the project
@@ -78,6 +77,3 @@ Each Fuzz test will have up to two `LD_PRELOAD` function override files used:
 
 1. A test specific `${TEST_NAME}_overrides.c` file that contains overrides specific to that test.
 2. `global_overrides.c` file that contains overrides that will be used in every fuzz test.
-
-# American Fuzzy Lop (AFL)
-AFL is deprecated and was removed in [#4808](https://github.com/aws/s2n-tls/pull/4808)
