@@ -32,7 +32,7 @@
 #endif
 
 #include "api/s2n.h"
-#include "api/unstable/npn.h"
+#include "api/s2n/unstable/npn.h"
 #include "common.h"
 #include "crypto/s2n_libcrypto.h"
 #include "utils/s2n_safety.h"

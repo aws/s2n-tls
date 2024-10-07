@@ -64,7 +64,7 @@ jobs:
         # __attribute__((visibility("default"))) label must be on a declaration
         # in the same unit of compilation as the definition. Generally this just
         # means that if the linker can't resolve foo_method in tls/foo.c, you
-        # forgot to include api/unstable/foo.h in tls/foo.c
+        # forgot to include api/s2n/unstable/foo.h in tls/foo.c
         if: ${{ matrix.os == 'ubuntu-latest' }}
         run: |
           cmake . -Bbuild -DBUILD_SHARED_LIBS=on -DBUILD_TESTING=off

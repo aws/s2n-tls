@@ -43,7 +43,7 @@ option(ASAN "Enable AddressSanitizer to test memory safety" OFF)
 option(SECCOMP "Link with seccomp and run seccomp tests" OFF)
 
 file(GLOB API_HEADERS "api/*.h")
-file(GLOB API_UNSTABLE_HEADERS "api/unstable/*.h")
+file(GLOB API_UNSTABLE_HEADERS "api/s2n/unstable/*.h")
 
 file(GLOB CRYPTO_HEADERS "crypto/*.h")
 file(GLOB CRYPTO_SRC "crypto/*.c")

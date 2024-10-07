@@ -14,7 +14,7 @@
  */
 
 #include "api/s2n.h"
-#include "api/unstable/renegotiate.h"
+#include "api/s2n/unstable/renegotiate.h"
 #include "s2n_test.h"
 #include "testlib/s2n_ktls_test_utils.h"
 #include "testlib/s2n_testlib.h"

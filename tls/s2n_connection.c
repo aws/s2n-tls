@@ -26,7 +26,7 @@
 
 #include "api/s2n.h"
 /* Required for s2n_connection_get_key_update_counts */
-#include "api/unstable/ktls.h"
+#include "api/s2n/unstable/ktls.h"
 #include "crypto/s2n_certificate.h"
 #include "crypto/s2n_cipher.h"
 #include "crypto/s2n_crypto.h"

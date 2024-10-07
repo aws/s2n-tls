@@ -56,7 +56,7 @@ fn main() {
     );
 
     // get all of the files in the unstable folder
-    let unstable_api = out_dir.join("lib/api/unstable");
+    let unstable_api = out_dir.join("lib/api/s2n/unstable");
     let unstable_headers: Vec<(String, fs::DirEntry)> = fs::read_dir(unstable_api)
         .expect("unable to iterate through files in unstable api folder")
         .into_iter()

@@ -4,7 +4,7 @@
 //! Methods to perform renegotiation.
 //!
 //! The use of renegotiation is strongly discouraged.
-//! See [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h)
+//! See [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/s2n/unstable/renegotiate.h)
 //! for the primary documentation of the feature.
 //!
 //! # Scheduled renegotiation
@@ -100,7 +100,7 @@
 //! as direct mappings of the C `s2n_renegotiate_wipe` and `s2n_renegotiate` methods.
 //! If scheduled renegotiation is insufficient for your use case, you can manually
 //! integrate with renegotiation according to the instructions in
-//! [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+//! [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/s2n/unstable/renegotiate.h).
 //! Your `on_renegotiate_request` method would return `RenegotiateResponse::Accept`
 //! rather than `RenegotiateResponse::Schedule`.
 //!
@@ -118,7 +118,7 @@ use std::task::Poll::{self, Pending, Ready};
 
 /// How to handle a renegotiation request.
 ///
-/// See s2n_renegotiate_response in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+/// See s2n_renegotiate_response in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/s2n/unstable/renegotiate.h).
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum RenegotiateResponse {
     Ignore,
@@ -151,7 +151,7 @@ pub trait RenegotiateCallback: 'static + Send + Sync {
     /// Returning "None" will result in the C callback returning an error,
     /// canceling the connection.
     ///
-    /// See s2n_renegotiate_request_cb in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// See s2n_renegotiate_request_cb in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/s2n/unstable/renegotiate.h).
     //
     // This method returns Option instead of Result because the callback has no mechanism
     // for surfacing errors to the application, so Result would be somewhat deceptive.
@@ -198,7 +198,7 @@ impl Connection {
 
     /// Reset the connection so that it can be renegotiated.
     ///
-    /// See s2n_renegotiate_wipe in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// See s2n_renegotiate_wipe in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/s2n/unstable/renegotiate.h).
     /// The Rust equivalent of the listed connection-specific methods that are NOT wiped are:
     ///  - Methods to set the file descriptors: not currently supported by rust bindings
     ///  - Methods to set the send callback:
@@ -292,7 +292,7 @@ impl Connection {
     /// of bytes received is returned as the second element of the returned pair,
     /// and the data is written to `buf`.
     ///
-    /// See s2n_renegotiate in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// See s2n_renegotiate in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/s2n/unstable/renegotiate.h).
     pub fn poll_renegotiate(&mut self, buf: &mut [u8]) -> (Poll<Result<(), Error>>, usize) {
         let buf_len: isize = buf.len().try_into().unwrap_or(0);
         let buf_ptr = buf.as_ptr() as *mut ::libc::c_void;
@@ -377,7 +377,7 @@ impl Connection {
 impl config::Builder {
     /// Sets a method to be called when the client receives a request to renegotiate.
     ///
-    /// See s2n_config_set_renegotiate_request_cb in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/unstable/renegotiate.h).
+    /// See s2n_config_set_renegotiate_request_cb in [the C API documentation](https://github.com/aws/s2n-tls/blob/main/api/s2n/unstable/renegotiate.h).
     pub fn set_renegotiate_callback<T: 'static + RenegotiateCallback>(
         &mut self,
         handler: T,

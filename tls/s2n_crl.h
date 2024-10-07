@@ -18,7 +18,7 @@
 #include <openssl/x509v3.h>
 
 #include "api/s2n.h"
-#include "api/unstable/crl.h"
+#include "api/s2n/unstable/crl.h"
 #include "utils/s2n_result.h"
 
 struct s2n_x509_validator;

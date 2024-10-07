@@ -30,8 +30,8 @@
 #endif
 
 #include "api/s2n.h"
-#include "api/unstable/npn.h"
-#include "api/unstable/renegotiate.h"
+#include "api/s2n/unstable/npn.h"
+#include "api/s2n/unstable/renegotiate.h"
 #include "common.h"
 #include "crypto/s2n_libcrypto.h"
 #include "error/s2n_errno.h"

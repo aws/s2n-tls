@@ -25,8 +25,8 @@
 #include <unistd.h>
 
 #include "api/s2n.h"
-#include "api/unstable/fingerprint.h"
-#include "api/unstable/renegotiate.h"
+#include "api/s2n/unstable/fingerprint.h"
+#include "api/s2n/unstable/renegotiate.h"
 #include "common.h"
 #include "crypto/s2n_pkey.h"
 

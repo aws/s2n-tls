@@ -17,7 +17,7 @@
 
 #include <sys/socket.h>
 
-#include "api/unstable/ktls.h"
+#include "api/s2n/unstable/ktls.h"
 #include "tls/s2n_connection.h"
 /* Define headers needed to enable and use kTLS.
  *

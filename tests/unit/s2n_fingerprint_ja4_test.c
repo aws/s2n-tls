@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "api/unstable/fingerprint.h"
+#include "api/s2n/unstable/fingerprint.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_tls.h"

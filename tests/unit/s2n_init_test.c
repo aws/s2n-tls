@@ -15,7 +15,7 @@
 
 #include <pthread.h>
 
-#include "api/unstable/cleanup.h"
+#include "api/s2n/unstable/cleanup.h"
 #include "s2n_test.h"
 
 bool s2n_is_initialized(void);

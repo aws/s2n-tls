@@ -16,7 +16,7 @@
 #include <sys/param.h>
 #include <sys/socket.h>
 
-#include "api/unstable/renegotiate.h"
+#include "api/s2n/unstable/renegotiate.h"
 #include "error/s2n_errno.h"
 #include "s2n_test.h"
 #include "testlib/s2n_mem_testlib.h"

@@ -16,7 +16,7 @@
 #pragma once
 
 #include "api/s2n.h"
-#include "api/unstable/fingerprint.h"
+#include "api/s2n/unstable/fingerprint.h"
 #include "crypto/s2n_hash.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_client_hello.h"

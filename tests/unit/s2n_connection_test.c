@@ -15,7 +15,7 @@
 
 #include "tls/s2n_connection.h"
 
-#include "api/unstable/ktls.h"
+#include "api/s2n/unstable/ktls.h"
 #include "crypto/s2n_hash.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
