@@ -97,7 +97,14 @@ S2N_CLEANUP_RESULT s2n_connection_apply_error_blinding(struct s2n_connection** c
     }                                           \
     struct __useless_struct_to_allow_trailing_semicolon__
 
-#define s2n_array_len(array) ((array != NULL) ? (sizeof(array) / sizeof(array[0])) : 0)
+/* This method works for ARRAYS, not for POINTERS.
+ * Calling sizeof on an array declared in the current function correctly returns
+ * the total size of the array. But once the array is passed to another function,
+ * it behaves like a pointer. Calling sizeof on a pointer only returns the size
+ * of the pointer address itself (so usually 8).
+ * Newer compilers (gcc >= 8.1, clang >= 8.0) will warn if the argument is a pointer.
+ */
+#define s2n_array_len(array) (sizeof(array) / sizeof(array[0]))
 
 int s2n_mul_overflow(uint32_t a, uint32_t b, uint32_t* out);
 
