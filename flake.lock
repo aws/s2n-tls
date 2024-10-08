@@ -7,16 +7,16 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1724112161,
-        "narHash": "sha256-nvnsCjeP6u5azEIg5dvW3v95mMa8sAwqUKSUwFdplaE=",
+        "lastModified": 1728071784,
+        "narHash": "sha256-Nuxw5kmd9ISY9v/0OpGtJEdRTCwNKW4LMRwN7XAiwBk=",
         "owner": "dougch",
         "repo": "aws-lc",
-        "rev": "645150320c75c672ac286816eb971bb44f97cc23",
+        "rev": "dca587a40ed9942be40a7d9e1a196be41173d3cf",
         "type": "github"
       },
       "original": {
         "owner": "dougch",
-        "ref": "nixv1.33.0",
+        "ref": "nixv1.36.0",
         "repo": "aws-lc",
         "type": "github"
       }
