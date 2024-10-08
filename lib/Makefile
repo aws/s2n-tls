@@ -20,10 +20,6 @@ all: libs2n.a libs2n.so libs2n.dylib
 
 include ../s2n.mk
 
-ifeq ($(FUZZ_COVERAGE), true)
-	FUZZCOV_FLAGS = -fprofile-instr-generate -fcoverage-mapping
-endif
-
 libs2n.a: ${OBJS}
 	$(AR) cru libs2n.a ${OBJS}
 	$(RANLIB) libs2n.a

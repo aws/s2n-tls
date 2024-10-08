@@ -23,12 +23,6 @@ if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" || "$LATEST_CLANG" == "true" ]]; t
     codebuild/bin/install_clang.sh "$(mktemp -d)" "$LATEST_CLANG_INSTALL_DIR" "$OS_NAME" > /dev/null ;
 fi
 
-# Download and Install LibFuzzer with latest clang
-if [[ "$TESTS" == "fuzz" || "$TESTS" == "ALL" ]]; then
-    mkdir -p "$LIBFUZZER_INSTALL_DIR" || true
-    PATH=$LATEST_CLANG_INSTALL_DIR/bin:$PATH codebuild/bin/install_libFuzzer.sh "$(mktemp -d)" "$LIBFUZZER_INSTALL_DIR" "$OS_NAME" ;
-fi
-
 # Download and Install Openssl 1.1.1
 if [[ ("$S2N_LIBCRYPTO" == "openssl-1.1.1") || ( "$TESTS" == "integrationv2" || "$TESTS" == "ALL" ) ]]; then
     if [[ ! -x "$OPENSSL_1_1_1_INSTALL_DIR/bin/openssl" ]]; then
