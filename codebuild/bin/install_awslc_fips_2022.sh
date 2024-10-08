@@ -12,7 +12,7 @@
 # express or implied. See the License for the specific language governing
 # permissions and limitations under the License.
 
-set -e
+set -eu
 pushd "$(pwd)"
 
 usage() {
@@ -27,7 +27,10 @@ fi
 BUILD_DIR=$1
 INSTALL_DIR=$2
 
-source codebuild/bin/jobs.sh
+if [[ ! -f "$(which clang)" ]]; then
+  echo "Could not find clang"
+  exit 1
+fi
 
 # There are currently no AWSLC release tags for the 2022 FIPS branch. The
 # following is the latest commit in this branch as of 8/19/24:
@@ -42,8 +45,16 @@ git checkout "${AWSLC_VERSION}"
 
 build() {
     shared=$1
-    cmake . -Bbuild -GNinja -DBUILD_SHARED_LIBS="${shared}" -DCMAKE_BUILD_TYPE=relwithdebinfo -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" -DFIPS=1
-    ninja -j "${JOBS}" -C build install
+    cmake . \
+      -Bbuild \
+      -GNinja \
+      -DBUILD_SHARED_LIBS="${shared}" \
+      -DCMAKE_BUILD_TYPE=relwithdebinfo \
+      -DCMAKE_INSTALL_PREFIX="${INSTALL_DIR}" \
+      -DCMAKE_C_COMPILER=$(which clang) \
+      -DCMAKE_CXX_COMPILER=$(which clang++) \
+      -DFIPS=1
+    ninja -j "$(nproc)" -C build install
     ninja -C build clean
 }
 

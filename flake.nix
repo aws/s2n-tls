@@ -3,7 +3,7 @@
 
   inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-22.11";
   # TODO: https://github.com/aws/aws-lc/pull/830
-  inputs.awslc.url = "github:dougch/aws-lc?ref=nixv1.33.0";
+  inputs.awslc.url = "github:dougch/aws-lc?ref=nixv1.36.0";
 
   outputs = { self, nix, nixpkgs, awslc, flake-utils }:
     flake-utils.lib.eachDefaultSystem (system:

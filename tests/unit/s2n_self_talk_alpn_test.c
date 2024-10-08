@@ -33,7 +33,7 @@ int main(int argc, char **argv)
     EXPECT_NOT_NULL(server_config);
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(server_config, protocols,
             s2n_array_len(protocols)));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "20240501"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(server_config, "default"));
 
     DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
             s2n_cert_chain_and_key_ptr_free);
