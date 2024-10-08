@@ -187,28 +187,29 @@ batch:
           S2N_LIBCRYPTO: openssl-3.0
           TESTS: unit
       identifier: s2nUnitOpenssl3Gcc9
+    ### Ubuntu24 ###
+    # Openssl-1.1.1 + gcc-13: Prefer more widely used Openssl on the default
+    #   Ubuntu24 compiler.
+    # Aws-lc + clang-18: aws-lc is being built with clang; keep parity while building
+    #   s2n-tls on a newer compiler.
     - buildspec: codebuild/spec/buildspec_ubuntu_cmake.yml
       env:
-        compute-type: BUILD_GENERAL1_SMALL
+        compute-type: BUILD_GENERAL1_MEDIUM
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         privileged-mode: true
         variables:
-          BUILD_S2N: 'true'
           COMPILER: 'gcc-13'
           S2N_LIBCRYPTO: 'openssl-1.1.1'
-          TESTS: unit
       identifier: s2nUnitOpenssl111Gcc13
     - buildspec: codebuild/spec/buildspec_ubuntu_cmake.yml
       env:
-        compute-type: BUILD_GENERAL1_SMALL
+        compute-type: BUILD_GENERAL1_MEDIUM
         image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         privileged-mode: true
         variables:
-          BUILD_S2N: 'true'
-          COMPILER: 'gcc-13'
+          COMPILER: 'clang-18'
           S2N_LIBCRYPTO: 'awslc'
-          TESTS: unit
-      identifier: s2nUnitAwslcGcc13
+      identifier: s2nUnitAwslcClang18
     - buildspec: codebuild/spec/buildspec_amazonlinux.yml
       env:
         compute-type: BUILD_GENERAL1_LARGE
