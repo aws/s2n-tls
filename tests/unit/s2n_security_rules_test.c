@@ -63,6 +63,19 @@ static S2N_RESULT s2n_test_curve_rule(const struct s2n_ecc_named_curve *curve, b
     return S2N_RESULT_OK;
 }
 
+const struct s2n_kem_group *VALID_HYBRID_GROUP = &s2n_secp256r1_mlkem_768;
+const struct s2n_kem_group *EXAMPLE_INVALID_HYBRID_GROUP = &s2n_x25519_kyber_512_r3;
+static S2N_RESULT s2n_test_hybrid_group_rule(const struct s2n_kem_group *hybrid_group, bool *valid)
+{
+    RESULT_ENSURE_REF(valid);
+    if (hybrid_group == VALID_HYBRID_GROUP) {
+        *valid = true;
+    } else {
+        *valid = false;
+    }
+    return S2N_RESULT_OK;
+}
+
 const uint8_t VALID_VERSION = S2N_TLS12;
 const uint8_t EXAMPLE_INVALID_VERSION = S2N_TLS11;
 static S2N_RESULT s2n_test_version(uint8_t version, bool *valid)
@@ -86,6 +99,7 @@ int main(int argc, char **argv)
         .validate_sig_scheme = s2n_test_sig_scheme_rule,
         .validate_cert_sig_scheme = s2n_test_sig_scheme_rule,
         .validate_curve = s2n_test_curve_rule,
+        .validate_hybrid_group = s2n_test_hybrid_group_rule,
         .validate_version = s2n_test_version,
     };
 
@@ -121,20 +135,35 @@ int main(int argc, char **argv)
         .count = 1,
     };
 
+    const struct s2n_kem_preferences valid_kem_preferences = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_groups = &VALID_HYBRID_GROUP,
+        .tls13_kem_group_count = 1,
+    };
+
+    const struct s2n_kem_preferences invalid_kem_preferences = {
+        .kem_count = 0,
+        .kems = NULL,
+        .tls13_kem_groups = &EXAMPLE_INVALID_HYBRID_GROUP,
+        .tls13_kem_group_count = 1,
+    };
+
     const struct s2n_security_policy valid_policy = {
         .cipher_preferences = &valid_cipher_prefs,
         .signature_preferences = &valid_sig_prefs,
         .certificate_signature_preferences = &valid_sig_prefs,
         .ecc_preferences = &valid_ecc_prefs,
-        .kem_preferences = &kem_preferences_null,
+        .kem_preferences = &valid_kem_preferences,
         .minimum_protocol_version = VALID_VERSION,
     };
+
     const struct s2n_security_policy invalid_policy = {
         .cipher_preferences = &invalid_cipher_prefs,
         .signature_preferences = &invalid_sig_prefs,
         .certificate_signature_preferences = &invalid_sig_prefs,
         .ecc_preferences = &invalid_ecc_prefs,
-        .kem_preferences = &kem_preferences_null,
+        .kem_preferences = &invalid_kem_preferences,
         .minimum_protocol_version = EXAMPLE_INVALID_VERSION,
     };
 
@@ -195,6 +224,17 @@ int main(int argc, char **argv)
             {
                 struct s2n_security_policy test_policy = valid_policy;
                 test_policy.ecc_preferences = &invalid_ecc_prefs;
+
+                struct s2n_security_rule_result result = { 0 };
+                EXPECT_OK(s2n_security_rule_validate_policy(
+                        &test_rule, &test_policy, &result));
+                EXPECT_TRUE(result.found_error);
+            };
+
+            /* Test: only hybrid group invalid */
+            {
+                struct s2n_security_policy test_policy = valid_policy;
+                test_policy.kem_preferences = &invalid_kem_preferences;
 
                 struct s2n_security_rule_result result = { 0 };
                 EXPECT_OK(s2n_security_rule_validate_policy(
