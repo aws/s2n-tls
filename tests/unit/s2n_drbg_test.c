@@ -451,6 +451,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&nist_aes256_reference_entropy));
 
     EXPECT_SUCCESS(s2n_config_free(config));
+    /* Clean up with previously set functions */
+    POSIX_GUARD_RESULT(s2n_rand_cleanup());
 
     END_TEST();
 }
