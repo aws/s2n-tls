@@ -33,3 +33,15 @@ bool s2n_pq_is_enabled()
 {
     return s2n_libcrypto_supports_evp_kem();
 }
+
+bool s2n_libcrypto_supports_mlkem()
+{
+    /* S2N_LIBCRYPTO_SUPPORTS_MLKEM will be auto-detected and #defined if
+     * ./tests/features/S2N_LIBCRYPTO_SUPPORTS_MLKEM.c successfully compiles
+     */
+#if defined(S2N_LIBCRYPTO_SUPPORTS_MLKEM)
+    return true;
+#else
+    return false;
+#endif
+}
