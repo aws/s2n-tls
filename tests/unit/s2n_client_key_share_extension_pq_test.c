@@ -656,7 +656,7 @@ int main()
 
                     /* Do NOT mark the highest priority available KEM group as mutually supported */
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
-                    for (int i = 0; i < sizeof(server_conn->kex_params.mutually_supported_kem_groups); i++) {
+                    for (int i = 0; i < s2n_array_len(server_conn->kex_params.mutually_supported_kem_groups); i++) {
                         if (server_conn->kex_params.mutually_supported_kem_groups[i]
                                 && s2n_kem_group_is_available(server_conn->kex_params.mutually_supported_kem_groups[i])) {
                             server_conn->kex_params.mutually_supported_kem_groups[i] = NULL;
@@ -717,7 +717,7 @@ int main()
 
                     /* Do NOT mark the highest priority available KEM group as mutually supported */
                     EXPECT_OK(s2n_set_all_mutually_supported_groups(server_conn));
-                    for (int i = 0; i < sizeof(server_conn->kex_params.mutually_supported_kem_groups); i++) {
+                    for (int i = 0; i < s2n_array_len(server_conn->kex_params.mutually_supported_kem_groups); i++) {
                         if (server_conn->kex_params.mutually_supported_kem_groups[i]
                                 && s2n_kem_group_is_available(server_conn->kex_params.mutually_supported_kem_groups[i])) {
                             server_conn->kex_params.mutually_supported_kem_groups[i] = NULL;

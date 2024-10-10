@@ -1,7 +1,27 @@
 # Fuzz Tests
-By default, every test in this directory will be run as a fuzz test for several minutes each during builds. To run all fuzz tests simply run `make fuzz` from the top `s2n` directory to compile s2n with the proper flags and run the fuzz tests. To run a specific subset of fuzz tests, simply set the FUZZ_TESTS variable as follows:
+By default, every test in this directory will be run as a fuzz test for several minutes each during builds. To run all fuzz tests, run the following commands from the top `s2n-tls` directory:
+1. Compile with S2N_FUZZ_TEST option enabled
+```
+cmake . -Bbuild \
+-DS2N_FUZZ_TEST=on
+```
+2. Compile the project
+```
+cmake --build ./build -- -j $(nproc)
+```
+3. Run fuzz tests
+```
+cmake --build build/ --target test -- ARGS="-L fuzz --output-on-failure"
+```
 
-> FUZZ_TESTS="test1 test2 test3"
+To run a specific fuzz test, pass in the name of the test using the following command:
+```
+cmake --build build/ --target test -- ARGS="-L fuzz -R <TEST_NAME> --output-on-failure"
+```
+For example,
+```
+cmake --build build/ --target test -- ARGS="-L fuzz -R s2n_client_fuzz_test --output-on-failure"
+```
 
 #### Each Fuzz Test should conform to the following rules:
 1. End in either `*_test.c` or `*_negative_test.c`.
@@ -25,6 +45,8 @@ As the tests run, more detailed coverage reports are placed in the following dir
 
 Each test outputs an HTML file which displays line by line coverage statistics and a .txt report which gives per-function coverage statistics in human-readable ASCII. After all fuzz tests have ran, a matching pair of coverage reports is generated for the total coverage of S2N by the entire set of tests performed.
 
+Currently, this option isn't enabled for cmake build. See [#4748](https://github.com/aws/s2n-tls/issues/4748).
+
 ## Fuzz Test Directory Structure
 For a test with name `$TEST_NAME`, its files should be laid out with the following structure:
 
@@ -40,6 +62,10 @@ For a test with name `$TEST_NAME`, its files should be laid out with the followi
 # Corpus
 A Corpus is a directory of "interesting" inputs that result in a good branch/code coverage. These inputs will be permuted in random ways and checked to see if this permutation results in greater branch coverage or in a failure (Segfault, Memory Leak, Buffer Overflow, Non-zero return code, etc). If the permutation results in greater branch coverage, then it will be added to the Corpus directory. If a Memory leak or a Crash is detected, that file will **not** be added to the corpus for that test, and will instead be written to the current directory (`s2n/tests/fuzz/crash-*` or `s2n/tests/fuzz/leak-*`). These files will be automatically deleted for any Negative Fuzz tests that are expected to crash or leak memory so as to not clutter the directory.
 
+To continuously improve corpus inputs, we have a scheduled job that runs every day for approximately 8 hours. These tests begin with corpus files stored in an S3 bucket. At the end of each run, the existing corpus files are replaced with updated ones, potentially increasing branch coverage over time. This process allows for gradual and automated enhancement of the corpus.
+
+To enable this, two environment variables must be defined: `CORPUS_UPLOAD_LOC` and `ARTIFACT_UPLOAD_LOC`. `CORPUS_UPLOAD_LOC` specifies where corpus files are stored, while `ARTIFACT_UPLOAD_LOC`defines where output logs from fuzzing are saved, which can be used for debugging if a new bug is detected during fuzzing.
+
 # LD_PRELOAD
 The `LD_PRELOAD` directory contains function overrides for each Fuzz test that will be used **instead** of the original functions defined elsewhere. These function overrides will only be used during fuzz tests, and will not effect the rest of the s2n codebase when not fuzzing. Using `LD_PRELOAD` instead of C Preprocessor `#ifdef`'s is preferable in the following ways:
 
@@ -51,10 +77,3 @@ Each Fuzz test will have up to two `LD_PRELOAD` function override files used:
 
 1. A test specific `${TEST_NAME}_overrides.c` file that contains overrides specific to that test.
 2. `global_overrides.c` file that contains overrides that will be used in every fuzz test.
-
-# American Fuzzy Lop (AFL)
-
-To use AFL set the environment variable `AFL_FUZZ` to true, in addition to `FUZZ_TIMEOUT_SEC`.
-The runFuzzTest.sh script will terminate afl when it reaches `FUZZ_TIMEOUT_SEC`.  AFL  reports will be created under `tests/fuzz/results/TEST_NAME/fuzzer_stats`.
-
-Note that afl runs as a single process. [Parallelization](https://github.com/google/AFL/blob/master/docs/parallel_fuzzing.txt) has not been scripted yet for this project.

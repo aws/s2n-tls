@@ -41,19 +41,17 @@ The first time this is run, it might take a while to build everything.
 
 ### Unit tests
 
-From inside the devShell after configuring and build finish, run `unit <test name>`, or with no test name for all of the tests.
+From inside the devShell after `configure` finishes, run `unit <test name>`, or with no test name for all of the tests.
 For example, to run the stuffer_test use: `unit stuffer_test`, or `unit stuffer` to run all of tests with stuffer in the name.
 
-The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environment --command bash -c "source ./nix/shell.sh; configure;build;unit" `.
-
-What is this doing?
-
+The CI does this in one shot with: `nix develop --max-jobs auto --ignore-environment --command bash -c "source ./nix/shell.sh; configure;unit" `. What this command is doing:
 1. max-jobs tells nix to use all the cores available to build
 2. ignore-environment strips out environment variables to get a clean environment
 3. source the shell functions needed to configure, build and run tests
+
 ### Integration tests
 
-From inside a devShell after running configure and build, use `integ <test name>` to run the integ tests matching the regex `<test name>`, or with no arguments to run all the integ tests.  Note that some of the tests are still broken under nix, so some failures are expected.
+From inside a devShell after running `configure` and `build`, use `integ <test name>` to run the integ tests matching the regex `<test name>`, or with no arguments to run all the integ tests.  Note that some of the tests are still broken under nix, so some failures are expected.
 For example: `integ happy_path`.
 
 The CI does this in one shot with `nix develop --max-jobs auto --ignore-environnment --command bash -c "source ./nix/shell.sh; configure;build;integ" `

@@ -13,10 +13,19 @@
 * permissions and limitations under the License.
 */
 
-#pragma once
+#include <openssl/evp.h>
+#include <openssl/nid.h>
 
-#include "tls/s2n_kem.h"
-
-int s2n_kyber_evp_generate_keypair(IN const struct s2n_kem *kem, OUT uint8_t *public_key, OUT uint8_t *private_key);
-int s2n_kyber_evp_encapsulate(IN const struct s2n_kem *kem, OUT uint8_t *ciphertext, OUT uint8_t *shared_secret, IN const uint8_t *public_key);
-int s2n_kyber_evp_decapsulate(IN const struct s2n_kem *kem, OUT uint8_t *shared_secret, IN const uint8_t *ciphertext, IN const uint8_t *private_key);
+int main()
+{
+    EVP_PKEY_CTX *ctx = EVP_PKEY_CTX_new_id(EVP_PKEY_KEM, NULL);
+    if (ctx == NULL) {
+        return 1;
+    }
+    if (!EVP_PKEY_CTX_kem_set_params(ctx, NID_MLKEM768)) {
+        EVP_PKEY_CTX_free(ctx);
+        return 1;
+    }
+    EVP_PKEY_CTX_free(ctx);
+    return 0;
+}

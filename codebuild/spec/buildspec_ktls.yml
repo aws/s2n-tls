@@ -20,5 +20,5 @@ phases:
             export S2N_CMAKE_OPTIONS=${S2N_CMAKE_OPTIONS}; \
             export S2N_KTLS_TESTING_EXPECTED=1; \
             nix develop .#openssl111 --command bash -c \
-                'source ./nix/shell.sh && clean && configure && build && unit' \
+                'source ./nix/shell.sh && clean && configure && unit' \
         "
