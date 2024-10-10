@@ -77,7 +77,7 @@ int main(int argc, char **argv)
         CERTIFICATE_2,
         CERTIFICATE_3,
     };
-    struct s2n_blob expected_certs[sizeof(expected_cert_strs) / sizeof(char *)] = { 0 };
+    struct s2n_blob expected_certs[s2n_array_len(expected_cert_strs)] = { 0 };
     EXPECT_EQUAL(s2n_array_len(expected_certs), s2n_array_len(expected_cert_strs));
 
     for (size_t i = 0; i < s2n_array_len(expected_certs); i++) {
