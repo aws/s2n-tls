@@ -94,11 +94,11 @@ int main(int argc, char *argv[])
     for (size_t i = 0; i <= PTHREAD_KEYS_MAX + 1; i++) {
         pthread_t thread_id = { 0 };
         if (pthread_create(&thread_id, NULL, &s2n_load_dynamic_lib, argv[1])) {
-            printf("Error creating thread at index: %li\n", i);
+            printf("Error creating thread at loop index: %li\n", i);
             exit(1);
         }
         if (pthread_join(thread_id, NULL)) {
-            printf("Error joining thread at index: %li\n", i);
+            printf("Error joining thread at loop index: %li\n", i);
             exit(1);
         }
     }
