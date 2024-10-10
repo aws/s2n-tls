@@ -15,6 +15,8 @@
 
 #include "tls/s2n_kem_preferences.h"
 
+#include "tls/s2n_kem.h"
+
 const struct s2n_kem *pq_kems_r3_2021_05[] = {
     /* Round 3 Algorithms */
     &s2n_kyber_512_r3,
@@ -78,8 +80,8 @@ const struct s2n_kem_preferences kem_preferences_pq_tls_1_3_2023_12 = {
 const struct s2n_kem_preferences kem_preferences_all = {
     .kem_count = s2n_array_len(pq_kems_r3_2021_05),
     .kems = pq_kems_r3_2021_05,
-    .tls13_kem_group_count = s2n_array_len(pq_kem_groups_r3_2023_06),
-    .tls13_kem_groups = pq_kem_groups_r3_2023_06,
+    .tls13_kem_group_count = S2N_KEM_GROUPS_COUNT,
+    .tls13_kem_groups = ALL_SUPPORTED_KEM_GROUPS,
     .tls13_pq_hybrid_draft_revision = 5
 };
 
