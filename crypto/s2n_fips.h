@@ -16,6 +16,7 @@
 #include <stdbool.h>
 
 #include "api/s2n.h"
+#include "tls/s2n_kem.h"
 #include "utils/s2n_result.h"
 
 #pragma once
@@ -30,4 +31,5 @@ struct s2n_signature_scheme;
 S2N_RESULT s2n_fips_validate_signature_scheme(const struct s2n_signature_scheme *sig_alg, bool *valid);
 struct s2n_ecc_named_curve;
 S2N_RESULT s2n_fips_validate_curve(const struct s2n_ecc_named_curve *curve, bool *valid);
+S2N_RESULT s2n_fips_validate_hybrid_group(const struct s2n_kem_group *hybrid_group, bool *valid);
 S2N_RESULT s2n_fips_validate_version(uint8_t version, bool *valid);
