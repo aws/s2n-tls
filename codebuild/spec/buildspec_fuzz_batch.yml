@@ -22,8 +22,10 @@ version: 0.2
 # Parameter motivation
 
 # LIBCRYPTOS
-# awslc: happy path libcrypto for s2n-tls
-# openssl 3: libcrypto that is widely used
+# awslc:         happy path libcrypto for s2n-tls
+# openssl 1.0.2: old version of libcrypto that is still supported by s2n-tls
+# openssl 1.1.1: old version of libcrypto that is still supported by s2n-tls
+# openssl 3:     libcrypto that is widely used
 
 batch:
   build-list:
@@ -36,6 +38,26 @@ batch:
         privileged-mode: true
         variables:
           S2N_LIBCRYPTO: awslc
+          COMPILER: clang
+    - identifier: clang_openssl_1_0_2
+      buildspec: codebuild/spec/buildspec_fuzz.yml
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2
+          COMPILER: clang
+    - identifier: clang_openssl_1_1_1
+      buildspec: codebuild/spec/buildspec_fuzz.yml
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
           COMPILER: clang
     - identifier: clang_openssl_3_0
       buildspec: codebuild/spec/buildspec_fuzz.yml
