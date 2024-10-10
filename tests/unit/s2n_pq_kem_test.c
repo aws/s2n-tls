@@ -64,7 +64,7 @@ int main()
         DEFER_CLEANUP(struct s2n_blob ciphertext = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&ciphertext, kem->ciphertext_length));
 
-        if (!s2m_kem_is_available(kem)) {
+        if (!s2n_kem_is_available(kem)) {
             EXPECT_FAILURE_WITH_ERRNO(kem->generate_keypair(kem, public_key.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
             EXPECT_FAILURE_WITH_ERRNO(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data), S2N_ERR_UNIMPLEMENTED);
             EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data), S2N_ERR_UNIMPLEMENTED);

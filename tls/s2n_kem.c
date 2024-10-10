@@ -461,7 +461,7 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     return S2N_SUCCESS;
 }
 
-bool s2m_kem_is_available(const struct s2n_kem *kem)
+bool s2n_kem_is_available(const struct s2n_kem *kem)
 {
     if (kem == NULL || kem->kem_nid == NID_undef) {
         return false;
@@ -484,7 +484,7 @@ bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
         return false;
     }
 
-    bool available = s2m_kem_is_available(kem_group->kem);
+    bool available = s2n_kem_is_available(kem_group->kem);
 
     /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
     if (kem_group->curve == &s2n_ecc_curve_x25519) {

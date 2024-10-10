@@ -13,9 +13,11 @@
 * permissions and limitations under the License.
 */
 
-#include "crypto/s2n_libcrypto.h"
 #include "s2n_test.h"
 #include "testlib/s2n_testlib.h"
+
+bool s2n_libcrypto_supports_flag_no_check_time();
+uint64_t s2n_libcrypto_awslc_api_version(void);
 
 static uint8_t s2n_verify_host_accept_everything(const char *host_name, size_t host_name_len, void *data)
 {

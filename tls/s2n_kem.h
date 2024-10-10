@@ -132,7 +132,7 @@ int s2n_kem_send_public_key(struct s2n_stuffer *out, struct s2n_kem_params *kem_
 int s2n_kem_recv_public_key(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
 int s2n_kem_send_ciphertext(struct s2n_stuffer *out, struct s2n_kem_params *kem_params);
 int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_params);
-bool s2m_kem_is_available(const struct s2n_kem *kem);
+bool s2n_kem_is_available(const struct s2n_kem *kem);
 bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group);
 
 /* mlkem768 */

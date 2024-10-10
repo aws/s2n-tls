@@ -122,7 +122,7 @@ static int s2n_generate_pq_hybrid_key_share(struct s2n_stuffer *out, struct s2n_
     struct s2n_kem_params *kem_params = &kem_group_params->kem_params;
     kem_params->kem = kem_group->kem;
 
-    if (kem_group_params->kem_group->send_kem_first) {
+    if (kem_group->send_kem_first) {
         POSIX_GUARD(s2n_kem_send_public_key(out, kem_params));
         POSIX_GUARD_RESULT(s2n_ecdhe_send_public_key(ecc_params, out, kem_params->len_prefixed));
     } else {
@@ -304,6 +304,7 @@ static int s2n_client_key_share_recv_hybrid_partial_ecc(struct s2n_stuffer *key_
     POSIX_ENSURE_REF(new_client_params);
     const struct s2n_kem_group *kem_group = new_client_params->kem_group;
     POSIX_ENSURE_REF(kem_group);
+    POSIX_ENSURE_REF(kem_group->curve);
 
     if (new_client_params->kem_params.len_prefixed) {
         uint16_t ec_share_size = 0;
