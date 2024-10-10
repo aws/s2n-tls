@@ -18,14 +18,14 @@ batch:
     - identifier: gcc_awslc
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         variables:
           S2N_LIBCRYPTO: awslc
           COMPILER: gcc
     - identifier: gcc_openssl_3_0
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         variables:
           S2N_LIBCRYPTO: openssl-3.0
           COMPILER: gcc
@@ -39,7 +39,7 @@ batch:
     - identifier: gcc_openssl_1_0_2
       env:
         compute-type: BUILD_GENERAL1_LARGE
-        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu24
         variables:
           S2N_LIBCRYPTO: openssl-1.0.2
           COMPILER: gcc
