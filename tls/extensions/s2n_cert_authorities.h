@@ -28,7 +28,7 @@
  * To keep the limit predictable and avoid surprise errors during negotiation,
  * set a reasonable fixed limit.
  */
-#define S2N_CERT_AUTHORITIES_MAX_SIZE (10000)
+#define S2N_CERT_AUTHORITIES_MAX_SIZE (20000)
 
 extern const s2n_extension_type s2n_cert_authorities_extension;
 
