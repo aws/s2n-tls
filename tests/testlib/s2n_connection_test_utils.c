@@ -180,8 +180,12 @@ int s2n_connections_set_io_pair(struct s2n_connection *client, struct s2n_connec
 
 int s2n_io_pair_close(struct s2n_test_io_pair *io_pair)
 {
-    POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
-    POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_SERVER));
+    if (fcntl(io_pair->client, F_GETFD) != -1 || errno != EBADF) {
+        POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
+    }
+    if (fcntl(io_pair->server, F_GETFD) != -1 || errno != EBADF) {
+        POSIX_GUARD(s2n_io_pair_close_one_end(io_pair, S2N_SERVER));
+    }
     return 0;
 }
 
