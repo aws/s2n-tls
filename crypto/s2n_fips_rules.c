@@ -114,6 +114,50 @@ S2N_RESULT s2n_fips_validate_curve(const struct s2n_ecc_named_curve *curve, bool
     return S2N_RESULT_OK;
 }
 
+/* https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf */
+const struct s2n_kem *fips_kems[] = {
+    &s2n_mlkem_768
+};
+
+S2N_RESULT s2n_fips_validate_kem(const struct s2n_kem *kem, bool *valid)
+{
+    RESULT_ENSURE_REF(kem);
+    RESULT_ENSURE_REF(valid);
+    *valid = false;
+
+    for (size_t i = 0; i < s2n_array_len(fips_kems); i++) {
+        if (fips_kems[i] == kem) {
+            *valid = true;
+            return S2N_RESULT_OK;
+        }
+    }
+    return S2N_RESULT_OK;
+}
+
+S2N_RESULT s2n_fips_validate_hybrid_group(const struct s2n_kem_group *hybrid_group, bool *valid)
+{
+    RESULT_ENSURE_REF(hybrid_group);
+    RESULT_ENSURE_REF(valid);
+    *valid = false;
+
+    /* The first share in a Hybrid Group must be FIPS-approved, see page 33 of NIST 800-56Cr2.
+     *
+     * "Recommendation is expanded to permit the use of “hybrid” shared secrets of the form Z' = Z || T,
+     * which is a concatenation consisting of a “standard” shared secret Z that was generated during the
+     * execution of a key-establishment scheme as currently specified in [SP 800-56A] or [SP 800-56B],
+     * followed by an auxiliary shared secret T that has been generated using some other method."
+     *
+     * https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-56Cr2.pdf
+     */
+    if (hybrid_group->send_kem_first) {
+        RESULT_GUARD(s2n_fips_validate_kem(hybrid_group->kem, valid));
+    } else {
+        RESULT_GUARD(s2n_fips_validate_curve(hybrid_group->curve, valid));
+    }
+
+    return S2N_RESULT_OK;
+}
+
 S2N_RESULT s2n_fips_validate_version(uint8_t version, bool *valid)
 {
     RESULT_ENSURE_REF(valid);
