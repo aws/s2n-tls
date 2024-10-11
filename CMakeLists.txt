@@ -204,8 +204,8 @@ if(NO_STACK_PROTECTOR)
 endif()
 
 if(S2N_FUZZ_TEST)
-    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak)
-    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak)
+    target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak,address,undefined)
+    target_link_libraries(${PROJECT_NAME} PUBLIC -fsanitize=fuzzer-no-link,leak,address,undefined)
 endif()
 
 if(TSAN)
