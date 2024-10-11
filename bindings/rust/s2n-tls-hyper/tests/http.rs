@@ -6,6 +6,7 @@ use bytes::Bytes;
 use http::{Method, Request, Uri};
 use http_body_util::{BodyExt, Empty, Full};
 use hyper_util::{client::legacy::Client, rt::TokioExecutor};
+use log::info;
 use s2n_tls::{
     callbacks::{ClientHelloCallback, ConnectionFuture},
     connection::Connection,
@@ -43,6 +44,9 @@ async fn test_get_request() -> Result<(), Box<dyn Error + Send + Sync>> {
 
 #[tokio::test]
 async fn test_http_methods() -> Result<(), Box<dyn Error + Send + Sync>> {
+    tracing_subscriber::fmt::init();
+    info!("test!");
+
     let methods = [Method::GET, Method::POST, Method::PUT, Method::DELETE];
     for method in methods {
         #[derive(Clone)]
