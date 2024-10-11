@@ -104,7 +104,7 @@ static int s2n_mem_malloc_mlock_impl(void **ptr, uint32_t requested, uint32_t *a
 ** We disable MAD_DONTDUMP when fuzz-testing or using the address sanitizer because
 ** both need to be able to dump pages to function. It's how they map heap output.
 */
-#if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TEST)
+#if defined(MADV_DONTDUMP) && !defined(S2N_ADDRESS_SANITIZER) && !defined(S2N_FUZZ_TESTING)
     if (madvise(*ptr, *allocated, MADV_DONTDUMP) != 0) {
         POSIX_GUARD(s2n_mem_free_no_mlock_impl(*ptr, *allocated));
         POSIX_BAIL(S2N_ERR_MADVISE);
