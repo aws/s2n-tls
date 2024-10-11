@@ -11,6 +11,9 @@ use s2n_tls::{
     connection::Connection,
 };
 use s2n_tls_hyper::connector::HttpsConnector;
+use std::future::Future;
+use std::task::Poll;
+use std::time::Duration;
 use std::{error::Error, pin::Pin, str::FromStr};
 
 pub mod common;
@@ -42,7 +45,41 @@ async fn test_get_request() -> Result<(), Box<dyn Error + Send + Sync>> {
 async fn test_http_methods() -> Result<(), Box<dyn Error + Send + Sync>> {
     let methods = [Method::GET, Method::POST, Method::PUT, Method::DELETE];
     for method in methods {
-        let config = common::config()?.build()?;
+        #[derive(Clone)]
+        pub struct DelayClientHelloHandler {
+            amount: Duration,
+        }
+
+        impl ClientHelloCallback for DelayClientHelloHandler {
+            fn on_client_hello(
+                &self,
+                _connection: &mut Connection,
+            ) -> Result<Option<Pin<Box<dyn ConnectionFuture>>>, s2n_tls::error::Error> {
+                Ok(Some(Box::pin(DelayClientHelloFuture {
+                    timer: Box::pin(tokio::time::sleep(self.amount)),
+                })))
+            }
+        }
+
+        pub struct DelayClientHelloFuture {
+            timer: Pin<Box<tokio::time::Sleep>>,
+        }
+
+        impl ConnectionFuture for DelayClientHelloFuture {
+            fn poll(
+                mut self: Pin<&mut Self>,
+                _connection: &mut Connection,
+                ctx: &mut core::task::Context,
+            ) -> Poll<Result<(), s2n_tls::error::Error>> {
+                self.timer.as_mut().poll(ctx).map(Ok)
+            }
+        }
+
+        let mut config = common::config()?;
+        config.set_client_hello_callback(DelayClientHelloHandler {
+            amount: Duration::from_secs(1),
+        })?;
+        let config = config.build()?;
         common::echo::make_echo_request(config.clone(), |port| async move {
             let connector = HttpsConnector::new(config.clone());
             let client: Client<_, Full<Bytes>> =
