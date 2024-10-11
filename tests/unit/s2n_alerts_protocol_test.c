@@ -551,7 +551,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client, config));
 
-            struct s2n_test_io_pair io_pair = { 0 };
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
 
@@ -573,8 +573,6 @@ int main(int argc, char **argv)
                         S2N_ERR_CLOSED);
                 EXPECT_FALSE(s2n_connection_check_io_status(receiver, S2N_IO_READABLE));
             }
-            /* Close the other end of pipe */
-            EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, 1 - mode));
         };
 
         /* Test: With partial read */
@@ -596,7 +594,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_blinding(client, S2N_SELF_SERVICE_BLINDING));
             EXPECT_SUCCESS(s2n_connection_set_config(client, &partial_write_config_copy));
 
-            struct s2n_test_io_pair io_pair = { 0 };
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
 
@@ -631,8 +629,6 @@ int main(int argc, char **argv)
                 EXPECT_FAILURE_WITH_ERRNO(s2n_recv(receiver, data, sizeof(data), &blocked),
                         S2N_ERR_CLOSED);
             }
-            /* Close the other end of pipe */
-            EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, 1 - mode));
         };
     };
 

@@ -17,7 +17,7 @@
     /* FreeBSD requires POSIX compatibility off for its syscalls (enables __BSD_VISIBLE)
      * Without the below line, <sys/user.h> cannot be imported (it requires __BSD_VISIBLE) */
     #undef _POSIX_C_SOURCE
-    /* clang-format off */
+/* clang-format off */
     #include <sys/types.h>
     #include <sys/sysctl.h>
     /* clang-format on */
@@ -25,7 +25,7 @@
 #elif defined(__OpenBSD__)
     #undef _POSIX_C_SOURCE
     #include <kvm.h>
-    /* clang-format off */
+/* clang-format off */
     #include <sys/types.h>
     #include <sys/sysctl.h>
     /* clang-format on */
@@ -155,7 +155,7 @@ int main(int argc, char **argv)
     BEGIN_TEST();
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-    DEFER_CLEANUP(struct s2n_test_io_pair io_pair, s2n_io_pair_close);
+    DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
     EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
 
     /* Skip the test when running under valgrind or address sanitizer, as those tools
@@ -244,7 +244,6 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_free(servers[i]));
     }
 
-    EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
     EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
     EXPECT_SUCCESS(s2n_config_free(server_config));
     EXPECT_SUCCESS(s2n_config_free(client_config));

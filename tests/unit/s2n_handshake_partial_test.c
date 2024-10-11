@@ -20,7 +20,7 @@
 #include "tls/s2n_tls.h"
 
 static S2N_RESULT s2n_get_test_client_and_server(struct s2n_connection **client_conn, struct s2n_connection **server_conn,
-        struct s2n_config *config, struct s2n_test_io_pair *io_pair)
+        struct s2n_test_io_pair *io_pair, struct s2n_config *config)
 {
     *client_conn = s2n_connection_new(S2N_CLIENT);
     RESULT_ENSURE_REF(*client_conn);
@@ -75,7 +75,7 @@ int main()
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, config, &io_pair));
+            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, &io_pair, config));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     SERVER_KEY));
@@ -90,7 +90,7 @@ int main()
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, config, &io_pair));
+            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, &io_pair, config));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     SERVER_CERT_VERIFY));
@@ -105,7 +105,7 @@ int main()
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, config, &io_pair));
+            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, &io_pair, config));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     CLIENT_HELLO));
@@ -145,7 +145,7 @@ int main()
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, config, &io_pair));
+            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, &io_pair, config));
 
             EXPECT_OK(s2n_negotiate_test_server_and_client_until_message(server_conn, client_conn,
                     CLIENT_FINISHED));
@@ -165,7 +165,7 @@ int main()
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, config, &io_pair));
+            EXPECT_OK(s2n_get_test_client_and_server(&client_conn, &server_conn, &io_pair, config));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
