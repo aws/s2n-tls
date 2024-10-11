@@ -13,6 +13,7 @@ use s2n_tls::{
 };
 use s2n_tls_hyper::connector::HttpsConnector;
 use std::future::Future;
+use std::net::{IpAddr, Ipv4Addr};
 use std::task::Poll;
 use std::time::Duration;
 use std::{error::Error, pin::Pin, str::FromStr};
@@ -29,7 +30,10 @@ const LARGE_TEST_DATA: &[u8] = &[5; (1 << 15)];
 async fn test_get_request() -> Result<(), Box<dyn Error + Send + Sync>> {
     let config = common::config()?.build()?;
     common::echo::make_echo_request(config.clone(), |port| async move {
-        let connector = HttpsConnector::new(config.clone());
+        let mut connector = hyper_util::client::legacy::connect::HttpConnector::new();
+        connector.set_local_address(Some(IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0))));
+        connector.enforce_http(false);
+        let connector = HttpsConnector::new_with_http(connector, config.clone());
         let client: Client<_, Empty<Bytes>> =
             Client::builder(TokioExecutor::new()).build(connector);
         let uri = Uri::from_str(format!("https://localhost:{}", port).as_str())?;
