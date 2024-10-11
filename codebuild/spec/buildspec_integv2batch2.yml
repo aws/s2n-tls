@@ -1,0 +1,36 @@
+batch:
+  build-matrix:
+    static:
+      env:
+        privileged-mode: true
+    dynamic:
+      buildspec:
+        - codebuild/spec/buildspec_ubuntu_integrationv2.yml
+      env:
+        compute-type:
+          - BUILD_GENERAL1_LARGE
+        image:
+          - 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu18codebuild
+        variables:
+          S2N_BUILD_PRESET:
+            - awslc_gcc4-8
+            - awslc_gcc9
+            - awslc-fips_gcc4-8
+            - awslc-fips_gcc9
+            - awslc-fips-2022_gcc6
+            - libressl_gcc6
+            - libressl_gcc9
+            - boringssl
+            - openssl-1.0.2
+            - openssl-1.0.2-fips
+            - openssl-1.1.1_gcc4-8
+            - openssl-1.1.1_gcc6
+            - openssl-1.1.1_gcc6_softcrypto
+            - openssl-1.1.1_gcc9
+          INTEGV2_TEST: 
+            - "test_happy_path"
+            - "test_cross_compatibility test_client_authentication"
+            - "test_early_data test_sslyze test_well_known_endpoints test_hello_retry_requests test_sni_match test_pq_handshake test_fragmentation test_key_update"
+            - "test_session_resumption test_ocsp test_renegotiate test_renegotiate_apache"
+            - "test_dynamic_record_sizes test_npn test_signature_algorithms"
+            - "test_version_negotiation test_external_psk test_buffered_send"
