@@ -13,14 +13,22 @@
  * permissions and limitations under the License.
  */
 
-#pragma once
+#include "api/s2n.h"
+#include "crypto/s2n_libcrypto.h"
+#include "crypto/s2n_openssl.h"
+#include "crypto/s2n_pq.h"
+#include "s2n_test.h"
+#include "testlib/s2n_testlib.h"
 
-#include <stdbool.h>
+int main()
+{
+    BEGIN_TEST();
+    /* MLKEM Support was added to AWSLC when AWSLC_API_VERSION == 29 */
+    if (s2n_libcrypto_is_awslc() && s2n_libcrypto_awslc_api_version() >= 30) {
+        EXPECT_TRUE(s2n_libcrypto_supports_mlkem());
+    } else if (s2n_libcrypto_is_awslc() && s2n_libcrypto_awslc_api_version() < 29) {
+        EXPECT_FALSE(s2n_libcrypto_supports_mlkem());
+    }
 
-#include "crypto/s2n_fips.h"
-#include "utils/s2n_result.h"
-#include "utils/s2n_safety.h"
-
-bool s2n_pq_is_enabled(void);
-bool s2n_libcrypto_supports_evp_kem(void);
-bool s2n_libcrypto_supports_mlkem(void);
+    END_TEST();
+}

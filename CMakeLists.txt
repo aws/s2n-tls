@@ -659,6 +659,7 @@ if (BUILD_TESTING)
     if(S2N_FUZZ_TEST)
         message(STATUS "Fuzz build enabled")
         set(SCRIPT_PATH "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/runFuzzTest.sh")
+        set(BUILD_DIR_PATH "${CMAKE_CURRENT_SOURCE_DIR}/build")
         file(GLOB FUZZ_TEST_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/*.c")
 
         file(GLOB TESTLIB_SRC "tests/testlib/*.c")
@@ -688,7 +689,6 @@ if (BUILD_TESTING)
         endif()
 
         # Build LD_PRELOAD shared libraries
-        set(LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD)
         file(GLOB LIBRARY_SRCS "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz/LD_PRELOAD/*.c")
         foreach(SRC ${LIBRARY_SRCS})
             get_filename_component(LIB_NAME ${SRC} NAME_WE)
@@ -696,14 +696,6 @@ if (BUILD_TESTING)
             target_include_directories(${LIB_NAME} PRIVATE 
                 ${CMAKE_CURRENT_SOURCE_DIR}
                 ${CMAKE_CURRENT_SOURCE_DIR}/api
-            )
-            # Set the output directory and remove the default "lib" prefix
-            set_target_properties(${LIB_NAME} PROPERTIES
-                PREFIX ""
-                LIBRARY_OUTPUT_DIRECTORY ${LIBRARY_OUTPUT_DIRECTORY}
-            )
-            target_compile_options(${LIB_NAME} PRIVATE
-                -fPIC
             )
         endforeach()
 
@@ -724,18 +716,16 @@ if (BUILD_TESTING)
                 fuzztest
             )
 
-            # Set the output directory for the fuzzing binaries
-            set(FUZZ_BIN_DIR "${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz")
-            set_target_properties(${TEST_NAME} PROPERTIES
-                RUNTIME_OUTPUT_DIRECTORY ${FUZZ_BIN_DIR}
-            )
-
             add_test(NAME ${TEST_NAME}
-                    COMMAND ${CMAKE_COMMAND} -E env
-                        DYLD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{DYLD_LIBRARY_PATH}
-                        LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:${CMAKE_CURRENT_BINARY_DIR}/tests/testlib:${CMAKE_CURRENT_SOURCE_DIR}/libcrypto-root/lib:$ENV{LD_LIBRARY_PATH}
-                        bash ${SCRIPT_PATH} ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${CORPUS_UPLOAD_LOC} ${ARTIFACT_UPLOAD_LOC}
-                    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz)
+                COMMAND ${CMAKE_COMMAND} -E env
+                    bash ${SCRIPT_PATH} 
+                    ${TEST_NAME} 
+                    ${FUZZ_TIMEOUT_SEC} 
+                    ${BUILD_DIR_PATH} 
+                    ${CORPUS_UPLOAD_LOC} 
+                    ${ARTIFACT_UPLOAD_LOC}
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/tests/fuzz
+            )
             set_property(TEST ${TEST_NAME} PROPERTY LABELS "fuzz")
         endforeach()
     endif()
