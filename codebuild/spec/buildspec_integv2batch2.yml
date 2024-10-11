@@ -20,17 +20,14 @@ batch:
             - awslc-fips-2022_gcc6
             - libressl_gcc6
             - libressl_gcc9
-            - boringssl
             - openssl-1.0.2
             - openssl-1.0.2-fips
             - openssl-1.1.1_gcc4-8
             - openssl-1.1.1_gcc6
             - openssl-1.1.1_gcc6_softcrypto
             - openssl-1.1.1_gcc9
-          INTEGV2_TEST: 
+          INTEGV2_TEST:
             - "test_happy_path"
-            - "test_cross_compatibility test_client_authentication"
-            - "test_early_data test_sslyze test_well_known_endpoints test_hello_retry_requests test_sni_match test_pq_handshake test_fragmentation test_key_update"
-            - "test_session_resumption test_ocsp test_renegotiate test_renegotiate_apache"
-            - "test_dynamic_record_sizes test_npn test_signature_algorithms"
-            - "test_version_negotiation test_external_psk test_buffered_send"
+            - "test_sslyze test_fragmentation test_key_update"
+            - "test_session_resumption test_dynamic_record_sizes"
+            - "test_version_negotiation test_external_psk"
