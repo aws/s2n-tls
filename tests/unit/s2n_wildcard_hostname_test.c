@@ -41,7 +41,6 @@ struct wildcardify_test_case wildcardify_test_cases[] = {
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const int num_wildcardify_tests = s2n_array_len(wildcardify_test_cases);
     for (size_t i = 0; i < num_wildcardify_tests; i++) {
@@ -66,6 +65,167 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(memcmp(output, expected_output, wildcard_len));
         } else {
             EXPECT_EQUAL(expected_output, NULL);
+        }
+    }
+
+    /* s2n_connection_get_certificate_match */
+    {
+        /* Safety checks */
+        {
+            s2n_cert_sni_match match_status = 0;
+            struct s2n_connection *conn = NULL;
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(NULL, &match_status),
+                    S2N_ERR_NULL);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(conn, NULL),
+                    S2N_ERR_NULL);
+
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(client_conn, &match_status),
+                    S2N_ERR_CLIENT_MODE);
+        }
+
+        /* Client did not send SNI extension */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(server_conn, client_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_NULL(s2n_get_server_name(server_conn));
+
+            s2n_cert_sni_match match_status = 0;
+            EXPECT_SUCCESS(s2n_connection_get_certificate_match(server_conn, &match_status));
+            EXPECT_EQUAL(match_status, S2N_SNI_NONE);
+        }
+
+        /* Server had a certificate that matched the client's SNI extension */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(server_conn, client_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_NOT_NULL(s2n_get_server_name(server_conn));
+
+            s2n_cert_sni_match match_status = 0;
+            EXPECT_SUCCESS(s2n_connection_get_certificate_match(server_conn, &match_status));
+            EXPECT_EQUAL(match_status, S2N_SNI_EXACT_MATCH);
+        }
+
+        /* Server had a certificate with a domain name containing a wildcard character
+         * that was able to be matched to the client's SNI extension */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_RSA_2048_SHA256_WILDCARD_CERT, S2N_RSA_2048_SHA256_WILDCARD_KEY));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_config(client_conn, config));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(server_conn, client_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "alligator.localhost"));
+            EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server_conn, client_conn));
+            EXPECT_NOT_NULL(s2n_get_server_name(server_conn));
+
+            s2n_cert_sni_match match_status = 0;
+            EXPECT_SUCCESS(s2n_connection_get_certificate_match(server_conn, &match_status));
+            EXPECT_EQUAL(match_status, S2N_SNI_WILDCARD_MATCH);
+        }
+
+        /* Server did not have a certificate that could be matched to the client's
+         * SNI extension. */
+        {
+            DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(client_conn);
+
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            DEFER_CLEANUP(struct s2n_cert_chain_and_key *chain_and_key = NULL,
+                    s2n_cert_chain_and_key_ptr_free);
+            EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key,
+                    S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
+            EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
+
+            EXPECT_SUCCESS(s2n_connection_set_config(server_conn, config));
+            EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
+
+            DEFER_CLEANUP(struct s2n_test_io_stuffer_pair io_pair = { 0 }, s2n_io_stuffer_pair_free);
+            EXPECT_OK(s2n_io_stuffer_pair_init(&io_pair));
+            EXPECT_OK(s2n_connections_set_io_stuffer_pair(server_conn, client_conn, &io_pair));
+
+            EXPECT_SUCCESS(s2n_set_server_name(client_conn, "This cert name is unlikely to exist."));
+            EXPECT_FAILURE_WITH_ERRNO(s2n_negotiate_test_server_and_client(server_conn, client_conn),
+                    S2N_ERR_CERT_UNTRUSTED);
+            EXPECT_NOT_NULL(s2n_get_server_name(server_conn));
+
+            s2n_cert_sni_match match_status = 0;
+            EXPECT_SUCCESS(s2n_connection_get_certificate_match(server_conn, &match_status));
+            EXPECT_EQUAL(match_status, S2N_SNI_NO_MATCH);
         }
     }
 

@@ -675,6 +675,26 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
     return 0;
 }
 
+int s2n_connection_get_certificate_match(struct s2n_connection *conn, s2n_cert_sni_match *match_status)
+{
+    POSIX_ENSURE_REF(conn);
+    POSIX_ENSURE_REF(match_status);
+
+    POSIX_ENSURE(conn->mode == S2N_SERVER, S2N_ERR_CLIENT_MODE);
+
+    if (!s2n_server_received_server_name(conn)) {
+        *match_status = S2N_SNI_NONE;
+    } else if (conn->handshake_params.exact_sni_match_exists) {
+        *match_status = S2N_SNI_EXACT_MATCH;
+    } else if (conn->handshake_params.wc_sni_match_exists) {
+        *match_status = S2N_SNI_WILDCARD_MATCH;
+    } else {
+        *match_status = S2N_SNI_NO_MATCH;
+    }
+
+    return S2N_SUCCESS;
+}
+
 int s2n_connection_get_security_policy(struct s2n_connection *conn, const struct s2n_security_policy **security_policy)
 {
     POSIX_ENSURE_REF(conn);
