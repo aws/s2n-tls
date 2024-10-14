@@ -79,6 +79,7 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(conn, NULL),
                     S2N_ERR_NULL);
 
+            /* This API does not work on a client connection */
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(client_conn);
@@ -86,7 +87,7 @@ int main(int argc, char **argv)
                     S2N_ERR_CLIENT_MODE);
         }
 
-        /* Client did not send SNI extension */
+        /* Client does not send an SNI extension */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -120,7 +121,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(match_status, S2N_SNI_NONE);
         }
 
-        /* Server had a certificate that matched the client's SNI extension */
+        /* Server has a certificate that matched the client's SNI extension */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -155,8 +156,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(match_status, S2N_SNI_EXACT_MATCH);
         }
 
-        /* Server had a certificate with a domain name containing a wildcard character
-         * that was able to be matched to the client's SNI extension */
+        /* Server has a certificate with a domain name containing a wildcard character
+         * which can be matched to the client's SNI extension */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -191,8 +192,8 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(match_status, S2N_SNI_WILDCARD_MATCH);
         }
 
-        /* Server did not have a certificate that could be matched to the client's
-         * SNI extension. */
+        /* Server does not have a certificate that can be matched to the client's
+         * SNI extension. This most likely occurs in a failed handshake. */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
