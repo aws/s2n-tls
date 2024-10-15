@@ -187,10 +187,12 @@ int s2n_io_pair_close(struct s2n_test_io_pair *io_pair)
 
 int s2n_io_pair_close_one_end(struct s2n_test_io_pair *io_pair, int mode_to_close)
 {
-    if (mode_to_close == S2N_CLIENT) {
+    if (mode_to_close == S2N_CLIENT && io_pair->client != S2N_CLOSED_FD) {
         POSIX_GUARD(close(io_pair->client));
-    } else if (mode_to_close == S2N_SERVER) {
+        io_pair->client = S2N_CLOSED_FD;
+    } else if (mode_to_close == S2N_SERVER && io_pair->server != S2N_CLOSED_FD) {
         POSIX_GUARD(close(io_pair->server));
+        io_pair->server = S2N_CLOSED_FD;
     }
     return 0;
 }
