@@ -74,7 +74,7 @@ int s2n_psk_set_secret(struct s2n_psk *psk, const uint8_t *secret, uint16_t secr
     return S2N_SUCCESS;
 }
 
-S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, struct s2n_psk *original_psk)
+S2N_RESULT s2n_psk_clone(struct s2n_psk *new_psk, const struct s2n_psk *original_psk)
 {
     if (original_psk == NULL) {
         return S2N_RESULT_OK;
@@ -131,7 +131,7 @@ S2N_RESULT s2n_psk_parameters_init(struct s2n_psk_parameters *params)
     return S2N_RESULT_OK;
 }
 
-static S2N_RESULT s2n_psk_offered_psk_size(struct s2n_psk *psk, uint32_t *size)
+static S2N_RESULT s2n_psk_offered_psk_size(const struct s2n_psk *psk, uint32_t *size)
 {
     *size = sizeof(uint16_t)   /* identity size */
             + sizeof(uint32_t) /* obfuscated ticket age */
@@ -196,7 +196,7 @@ S2N_CLEANUP_RESULT s2n_psk_parameters_wipe_secrets(struct s2n_psk_parameters *pa
     return S2N_RESULT_OK;
 }
 
-bool s2n_offered_psk_list_has_next(struct s2n_offered_psk_list *psk_list)
+bool s2n_offered_psk_list_has_next(const struct s2n_offered_psk_list *psk_list)
 {
     return psk_list != NULL && s2n_stuffer_data_available(&psk_list->wire_data) > 0;
 }
@@ -360,7 +360,7 @@ int s2n_offered_psk_free(struct s2n_offered_psk **psk)
     return s2n_free_object((uint8_t **) psk, sizeof(struct s2n_offered_psk));
 }
 
-int s2n_offered_psk_get_identity(struct s2n_offered_psk *psk, uint8_t **identity, uint16_t *size)
+int s2n_offered_psk_get_identity(const struct s2n_offered_psk *psk, uint8_t **identity, uint16_t *size)
 {
     POSIX_ENSURE_REF(psk);
     POSIX_ENSURE_REF(identity);
@@ -583,7 +583,7 @@ S2N_RESULT s2n_connection_set_psk_type(struct s2n_connection *conn, s2n_psk_type
     return S2N_RESULT_OK;
 }
 
-int s2n_connection_append_psk(struct s2n_connection *conn, struct s2n_psk *input_psk)
+int s2n_connection_append_psk(struct s2n_connection *conn, const struct s2n_psk *input_psk)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(input_psk);
@@ -648,7 +648,7 @@ int s2n_connection_set_psk_mode(struct s2n_connection *conn, s2n_psk_mode mode)
     return S2N_SUCCESS;
 }
 
-int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *conn, uint16_t *identity_length)
+int s2n_connection_get_negotiated_psk_identity_length(const struct s2n_connection *conn, uint16_t *identity_length)
 {
     POSIX_ENSURE_REF(conn);
     POSIX_ENSURE_REF(identity_length);
@@ -664,7 +664,7 @@ int s2n_connection_get_negotiated_psk_identity_length(struct s2n_connection *con
     return S2N_SUCCESS;
 }
 
-int s2n_connection_get_negotiated_psk_identity(struct s2n_connection *conn, uint8_t *identity,
+int s2n_connection_get_negotiated_psk_identity(const struct s2n_connection *conn, uint8_t *identity,
         uint16_t max_identity_length)
 {
     POSIX_ENSURE_REF(conn);
