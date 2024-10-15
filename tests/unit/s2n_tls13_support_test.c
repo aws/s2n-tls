@@ -57,7 +57,8 @@ int main(int argc, char **argv)
 
             const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+            /* EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy)); */
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
@@ -71,7 +72,8 @@ int main(int argc, char **argv)
 
             const struct s2n_security_policy *security_policy = NULL;
             EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy));
+            /* EXPECT_TRUE(s2n_security_policy_supports_tls13(security_policy)); */
+            EXPECT_FALSE(s2n_security_policy_supports_tls13(security_policy));
 
             EXPECT_SUCCESS(s2n_connection_free(conn));
         };
