@@ -16,6 +16,7 @@
 #pragma once
 
 #include "stuffer/s2n_stuffer.h"
+#include "tls/s2n_kem.h"
 #include "utils/s2n_result.h"
 
 typedef enum {
@@ -43,6 +44,7 @@ struct s2n_security_rule {
     S2N_RESULT (*validate_sig_scheme)(const struct s2n_signature_scheme *sig_scheme, bool *valid);
     S2N_RESULT (*validate_cert_sig_scheme)(const struct s2n_signature_scheme *sig_scheme, bool *valid);
     S2N_RESULT (*validate_curve)(const struct s2n_ecc_named_curve *curve, bool *valid);
+    S2N_RESULT (*validate_hybrid_group)(const struct s2n_kem_group *hybrid_group, bool *valid);
     S2N_RESULT (*validate_version)(uint8_t version, bool *valid);
 };
 
