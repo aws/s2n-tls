@@ -881,7 +881,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_07 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
-/* Same as security_policy_pq_tls_1_2_2024_10_08, but with 3DES and Kyber (for TLS 1.2) removed, and added ML-KEM support */
+/* Same as security_policy_pq_tls_1_2_2023_10_08, but with 3DES and Kyber (for TLS 1.2) removed, and added ML-KEM support */
 const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08 = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20241008,
@@ -890,7 +890,7 @@ const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08 = {
     .ecc_preferences = &s2n_ecc_preferences_20200310,
 };
 
-/* Same as security_policy_pq_tls_1_2_2023_04_10, but with 3DES and Kyber (for TLS 1.2) removed, and added ML-KEM support */
+/* Same as security_policy_pq_tls_1_2_2023_10_10, but with 3DES and Kyber (for TLS 1.2) removed, and added ML-KEM support */
 const struct s2n_security_policy security_policy_pq_tls_1_2_2024_10_08_gcm = {
     .minimum_protocol_version = S2N_TLS12,
     .cipher_preferences = &cipher_preferences_20241008_gcm,
