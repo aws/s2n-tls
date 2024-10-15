@@ -68,6 +68,7 @@ int s2n_fuzz_test(const uint8_t *buf, size_t len)
 
     struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT);
     POSIX_ENSURE_REF(client_conn);
+    POSIX_GUARD(s2n_connection_set_cipher_preferences(client_conn, "20240503"));
 
     /* Pull a byte off the libfuzzer input and use it to set parameters */
     uint8_t randval = 0;
