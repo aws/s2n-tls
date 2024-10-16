@@ -1,3 +1,5 @@
+use std::time::Duration;
+
 use crate::{
     openssl::OpenSslConfig,
     openssl_extension::SslContextExtension,
@@ -10,7 +12,7 @@ use crate::{
 /// 
 /// Record padding is new in TLS 1.3
 /// 
-/// We configure an openssl client to add pading records using 
+/// We configure an openssl client to pad records to a specific size using
 /// `SSL_CTX_set_block_padding`. This function will pad records to a multiple
 /// of the supplied `pad_to` size.
 /// https://docs.openssl.org/1.1.1/man3/SSL_CTX_set_record_padding_callback/
@@ -36,7 +38,7 @@ fn record_padding() {
             assert!(pair.round_trip_assert(send).is_ok());
         }
     }
-
+    
     fn s2n_client_case(pad_to: usize) {
         let (s2n_config, mut ossl_config) = ConfigPair::<S2NConfig, OpenSslConfig>::default().split();
     
