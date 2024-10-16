@@ -3214,7 +3214,7 @@ typedef enum {
  * @param conn A pointer to the connection
  * @param cert_match An enum indicating whether or not the server found a certificate
  * that matched the client's SNI extension.
- * 
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
  */
 S2N_API extern int s2n_connection_get_certificate_match(struct s2n_connection *conn, s2n_cert_sni_match *match_status);
 

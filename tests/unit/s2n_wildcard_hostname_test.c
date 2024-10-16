@@ -86,12 +86,12 @@ int main(int argc, char **argv)
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(client_conn, &match_status),
                     S2N_ERR_CLIENT_MODE);
 
-            /* This API will not work before a certificate is selected */
+            /* This API will not work if a certificate isn't selected yet. */
             DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
                     s2n_connection_ptr_free);
             EXPECT_NOT_NULL(server_conn);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(server_conn, &match_status),
-                    S2N_ERR_HANDSHAKE_NOT_COMPLETE);
+                    S2N_ERR_NO_CERT_FOUND);
         }
 
         /* Client does not send an SNI extension */
