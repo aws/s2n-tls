@@ -75,9 +75,9 @@ int main(int argc, char **argv)
             s2n_cert_sni_match match_status = 0;
             struct s2n_connection *conn = NULL;
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(NULL, &match_status),
-                    S2N_ERR_NULL);
+                    S2N_ERR_INVALID_ARGUMENT);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(conn, NULL),
-                    S2N_ERR_NULL);
+                    S2N_ERR_INVALID_ARGUMENT);
 
             /* This API does not work on a client connection */
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
@@ -85,6 +85,13 @@ int main(int argc, char **argv)
             EXPECT_NOT_NULL(client_conn);
             EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(client_conn, &match_status),
                     S2N_ERR_CLIENT_MODE);
+
+            /* This API will not work before a certificate is selected */
+            DEFER_CLEANUP(struct s2n_connection *server_conn = s2n_connection_new(S2N_SERVER),
+                    s2n_connection_ptr_free);
+            EXPECT_NOT_NULL(server_conn);
+            EXPECT_FAILURE_WITH_ERRNO(s2n_connection_get_certificate_match(server_conn, &match_status),
+                    S2N_ERR_HANDSHAKE_NOT_COMPLETE);
         }
 
         /* Client does not send an SNI extension */
@@ -121,7 +128,7 @@ int main(int argc, char **argv)
             EXPECT_EQUAL(match_status, S2N_SNI_NONE);
         }
 
-        /* Server has a certificate that matched the client's SNI extension */
+        /* Server has a certificate that matches the client's SNI extension */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);
@@ -193,7 +200,10 @@ int main(int argc, char **argv)
         }
 
         /* Server does not have a certificate that can be matched to the client's
-         * SNI extension. This most likely occurs in a failed handshake. */
+         * SNI extension.
+         *
+         * This most likely occurs in a failed handshake. Test ensures
+         * that this information can still be retrieved if the handshake fails. */
         {
             DEFER_CLEANUP(struct s2n_connection *client_conn = s2n_connection_new(S2N_CLIENT),
                     s2n_connection_ptr_free);

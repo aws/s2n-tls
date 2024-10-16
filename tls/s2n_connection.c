@@ -677,10 +677,12 @@ int s2n_connection_get_cipher_preferences(struct s2n_connection *conn, const str
 
 int s2n_connection_get_certificate_match(struct s2n_connection *conn, s2n_cert_sni_match *match_status)
 {
-    POSIX_ENSURE_REF(conn);
-    POSIX_ENSURE_REF(match_status);
-
+    POSIX_ENSURE(conn, S2N_ERR_INVALID_ARGUMENT);
+    POSIX_ENSURE(match_status, S2N_ERR_INVALID_ARGUMENT);
     POSIX_ENSURE(conn->mode == S2N_SERVER, S2N_ERR_CLIENT_MODE);
+
+    /* Server must have gotten past certificate selection */
+    POSIX_ENSURE(conn->handshake_params.our_chain_and_key, S2N_ERR_HANDSHAKE_NOT_COMPLETE);
 
     if (!s2n_server_received_server_name(conn)) {
         *match_status = S2N_SNI_NONE;
