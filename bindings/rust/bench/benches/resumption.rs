@@ -11,7 +11,7 @@ use criterion::{
 
 fn bench_handshake_pair<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
 where
-    T: TlsConnection + 'static,
+    T: TlsConnection,
     T::Config: TlsBenchConfig,
 {
     // generate all harnesses (TlsConnPair structs) beforehand so that benchmarks
@@ -38,7 +38,7 @@ where
 
 fn bench_handshake_server_1rtt<T>(bench_group: &mut BenchmarkGroup<WallTime>, sig_type: SigType)
 where
-    T: TlsConnection + 'static,
+    T: TlsConnection,
     T::Config: TlsBenchConfig,
 {
     for handshake in [HandshakeType::Resumption, HandshakeType::ServerAuth] {

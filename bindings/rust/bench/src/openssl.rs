@@ -38,7 +38,7 @@ impl Drop for OpenSslConnection {
 }
 
 pub struct OpenSslConfig {
-    pub config: SslContext,
+    config: SslContext,
     session_ticket_storage: SessionTicketStorage,
 }
 
