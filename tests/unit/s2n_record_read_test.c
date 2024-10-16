@@ -164,12 +164,19 @@ int main(int argc, char *argv[])
         };
     };
 
+    const char *security_policy_test_cases[] = {
+        /* TLS 1.3 */
+        "20240701",
+        /* TLS 1.2 */
+        "20240501",
+    };
     /* Ensure that the input buffer is wiped after failing to read a record */
-    {
+    for (size_t i = 0; i < s2n_array_len(security_policy_test_cases); i++) {
         DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(config);
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_disable_x509_verification(config));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, security_policy_test_cases[i]));
 
         DEFER_CLEANUP(struct s2n_connection *client = s2n_connection_new(S2N_CLIENT),
                 s2n_connection_ptr_free);
@@ -180,7 +187,6 @@ int main(int argc, char *argv[])
 
         EXPECT_SUCCESS(s2n_connection_set_config(client, config));
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
-
         EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_test_io_stuffer_pair stuffer_pair = { 0 },
@@ -198,6 +204,9 @@ int main(int argc, char *argv[])
 
         /* Invalidate an encrypted byte to cause decryption to fail. */
         struct s2n_stuffer invalidation_stuffer = stuffer_pair.server_in;
+        /* Offset and corrupt the 6th byte, which is used by both TLS 1.2 and TLS 1.3
+         * during decryption */
+        EXPECT_SUCCESS(s2n_stuffer_skip_read(&invalidation_stuffer, 5));
         uint8_t *first_byte = s2n_stuffer_raw_read(&invalidation_stuffer, 1);
         EXPECT_NOT_NULL(first_byte);
         *first_byte += 1;

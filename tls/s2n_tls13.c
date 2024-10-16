@@ -20,11 +20,34 @@
 #include "crypto/s2n_rsa_signing.h"
 #include "tls/s2n_tls.h"
 
-bool s2n_use_default_tls13_config_flag = false;
+s2n_testing_security_policy_override s2n_testing_override = S2N_SECURITY_POLICY_NO_OVERRIDE;
+
+S2N_RESULT s2n_get_testing_security_policy_override(s2n_testing_security_policy_override *override)
+{
+    if (!s2n_in_unit_test()) {
+        *override = S2N_SECURITY_POLICY_NO_OVERRIDE;
+    } else {
+        *override = s2n_testing_override;
+    }
+    return S2N_RESULT_OK;
+}
 
 bool s2n_use_default_tls13_config()
 {
-    return s2n_use_default_tls13_config_flag;
+    if (!s2n_in_unit_test()) {
+        return false;
+    }
+    bool uses_tls12 = false;
+    switch (s2n_testing_override) {
+        case S2N_SECURITY_POLICY_OVERRIDE_TLS12:
+            break;
+        case S2N_SECURITY_POLICY_OVERRIDE_TLS13:
+            uses_tls12 = true;
+            break;
+        case S2N_SECURITY_POLICY_NO_OVERRIDE:
+            break;
+    }
+    return uses_tls12;
 }
 
 bool s2n_is_tls13_fully_supported()
@@ -44,9 +67,14 @@ int s2n_get_highest_fully_supported_tls_version()
  * Please consider using the default behavior and configuring
  * TLS1.2/TLS1.3 via explicit security policy instead.
  */
+/* TODO: This function is not used.. can we delete it? Seems like it was added to the public */
+/* API when the S2N_API macro was added. */
 int s2n_enable_tls13()
 {
-    return s2n_enable_tls13_in_test();
+    s2n_highest_protocol_version = S2N_TLS13;
+    s2n_testing_override = S2N_SECURITY_POLICY_OVERRIDE_TLS13;
+
+    return S2N_SUCCESS;
 }
 
 /* Allow TLS1.3 to be negotiated, and use the default TLS1.3 security policy.
@@ -57,9 +85,8 @@ int s2n_enable_tls13()
  */
 int s2n_enable_tls13_in_test()
 {
-    s2n_highest_protocol_version = S2N_TLS13;
-    s2n_use_default_tls13_config_flag = true;
-    return S2N_SUCCESS;
+    POSIX_ENSURE(s2n_in_test(), S2N_ERR_NOT_IN_TEST);
+    return s2n_enable_tls13();
 }
 
 /* Do NOT allow TLS1.3 to be negotiated, regardless of security policy.
@@ -72,7 +99,8 @@ int s2n_disable_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS12;
-    s2n_use_default_tls13_config_flag = false;
+    s2n_testing_override = S2N_SECURITY_POLICY_OVERRIDE_TLS12;
+
     return S2N_SUCCESS;
 }
 
@@ -85,7 +113,8 @@ int s2n_reset_tls13_in_test()
 {
     POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
     s2n_highest_protocol_version = S2N_TLS13;
-    s2n_use_default_tls13_config_flag = false;
+    s2n_testing_override = S2N_SECURITY_POLICY_NO_OVERRIDE;
+
     return S2N_SUCCESS;
 }
 

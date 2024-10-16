@@ -1,0 +1,17 @@
+diff --git a/default.old b/default.new
+index 5e6a085f9..90fc3254a 100644
+--- a/default.old
++++ b/default.new
+@@ -1,9 +1,11 @@
+-name: 20240501
++name: default
+ min version: TLS1.2
+ rules:
+ - Perfect Forward Secrecy: yes
+ - FIPS 140-3 (2019): no
+ cipher suites:
++- TLS_AES_256_GCM_SHA384
++- TLS_AES_128_GCM_SHA256
+ - TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256
+ - TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384
+ - TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256

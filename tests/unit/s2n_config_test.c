@@ -65,12 +65,13 @@ static int s2n_test_async_pkey_fn(struct s2n_connection *conn, struct s2n_async_
 int main(int argc, char **argv)
 {
     BEGIN_TEST();
-    EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     const s2n_mode modes[] = { S2N_CLIENT, S2N_SERVER };
 
-    const struct s2n_security_policy *default_security_policy = NULL, *tls13_security_policy = NULL, *fips_security_policy = NULL;
-    EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_tls13", &tls13_security_policy));
+    const struct s2n_security_policy *default_security_policy = NULL, *tls12_security_policy = NULL,
+                                     *tls13_security_policy = NULL, *fips_security_policy = NULL;
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240702", &tls13_security_policy));
+    EXPECT_SUCCESS(s2n_find_security_policy_from_version("20240502", &tls12_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default_fips", &fips_security_policy));
     EXPECT_SUCCESS(s2n_find_security_policy_from_version("default", &default_security_policy));
 
@@ -81,9 +82,11 @@ int main(int argc, char **argv)
 
     /* Test: s2n_config_new and tls13_default_config match */
     {
-        struct s2n_config *config = NULL, *default_config = NULL;
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-        EXPECT_NOT_NULL(config = s2n_config_new());
+        DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+        EXPECT_NOT_NULL(config);
+        struct s2n_config *default_config = NULL;
         EXPECT_NOT_NULL(default_config = s2n_fetch_default_config());
 
         /* s2n_config_new() matches s2n_fetch_default_config() */
@@ -97,57 +100,75 @@ int main(int argc, char **argv)
         /* TLS1.3 default does not match non-TLS1.3 default */
         EXPECT_SUCCESS(s2n_enable_tls13_in_test());
         EXPECT_NOT_EQUAL(default_config, s2n_fetch_default_config());
-        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-        EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_disable_tls13_in_test());
     };
 
     /* Connections created with default configs */
     {
-        /* For TLS1.2 */
-        if (!s2n_is_in_fips_mode()) {
-            struct s2n_connection *conn = NULL;
-            const struct s2n_security_policy *security_policy = NULL;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
-
-            EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
-
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_EQUAL(security_policy, default_security_policy);
-
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-        }
-
-        /* For TLS1.3 */
+        /* With testing override */
         {
-            EXPECT_SUCCESS(s2n_enable_tls13_in_test());
-            struct s2n_connection *conn = NULL;
-            const struct s2n_security_policy *security_policy = NULL;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+            /* With TLS1.2 testng override */
+            {
+                EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
-            EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
 
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_EQUAL(security_policy, tls13_security_policy);
+                EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_EQUAL(security_policy, tls12_security_policy);
+            };
+
+            /* With TLS1.3 testng override */
+            {
+                EXPECT_SUCCESS(s2n_enable_tls13_in_test());
+
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
+
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                if (s2n_is_in_fips_mode()) {
+                    EXPECT_EQUAL(security_policy, fips_security_policy);
+                } else {
+                    EXPECT_EQUAL(security_policy, tls13_security_policy);
+                }
+            };
         };
 
-        /* For fips */
-        if (s2n_is_in_fips_mode()) {
-            struct s2n_connection *conn = NULL;
-            const struct s2n_security_policy *security_policy = NULL;
-            EXPECT_NOT_NULL(conn = s2n_connection_new(S2N_CLIENT));
+        /* Without testing override */
+        {
+            EXPECT_SUCCESS(s2n_reset_tls13_in_test());
 
-            EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
+            /* With fips support */
+            if (s2n_is_in_fips_mode()) {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
 
-            EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
-            EXPECT_EQUAL(security_policy, fips_security_policy);
+                EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
 
-            EXPECT_SUCCESS(s2n_connection_free(conn));
-            EXPECT_SUCCESS(s2n_disable_tls13_in_test());
-        }
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_EQUAL(security_policy, fips_security_policy);
+            }
+
+            /* Without fips support */
+            if (!s2n_is_in_fips_mode()) {
+                DEFER_CLEANUP(struct s2n_connection *conn = s2n_connection_new(S2N_CLIENT), s2n_connection_ptr_free);
+                EXPECT_NOT_NULL(conn);
+
+                EXPECT_EQUAL(conn->config, s2n_fetch_default_config());
+
+                const struct s2n_security_policy *security_policy = NULL;
+                EXPECT_SUCCESS(s2n_connection_get_security_policy(conn, &security_policy));
+                EXPECT_EQUAL(security_policy, default_security_policy);
+            }
+        };
     };
 
     /* Test for s2n_config_new() and tls 1.3 behavior */
@@ -160,7 +181,11 @@ int main(int argc, char **argv)
 
             EXPECT_SUCCESS(s2n_enable_tls13_in_test());
             EXPECT_NOT_NULL(config = s2n_config_new());
-            EXPECT_EQUAL(config->security_policy, tls13_security_policy);
+            if (s2n_is_in_fips_mode()) {
+                EXPECT_EQUAL(config->security_policy, fips_security_policy);
+            } else {
+                EXPECT_EQUAL(config->security_policy, tls13_security_policy);
+            }
             EXPECT_SUCCESS(s2n_config_free(config));
             EXPECT_SUCCESS(s2n_disable_tls13_in_test());
         }
@@ -1092,7 +1117,7 @@ int main(int argc, char **argv)
         struct s2n_security_policy rfc9151_applied_locally = security_policy_rfc9151;
         rfc9151_applied_locally.certificate_preferences_apply_locally = true;
 
-        /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures, 
+        /* rfc9151 doesn't allow SHA256 signatures, but does allow SHA384 signatures,
          * so ecdsa_p384_sha256 is invalid and ecdsa_p384_sha384 is valid */
 
         /* valid certs are accepted */
@@ -1119,8 +1144,8 @@ int main(int argc, char **argv)
 
         /* certs in default_certs_by_type are validated */
         {
-            /* s2n_config_set_cert_chain_and_key_defaults populates default_certs_by_type 
-             * but doesn't populate domain_name_to_cert_map 
+            /* s2n_config_set_cert_chain_and_key_defaults populates default_certs_by_type
+             * but doesn't populate domain_name_to_cert_map
              */
             DEFER_CLEANUP(struct s2n_config *config = s2n_config_new_minimal(), s2n_config_ptr_free);
             EXPECT_SUCCESS(s2n_config_set_cert_chain_and_key_defaults(config, &invalid_cert, 1));

@@ -17,9 +17,9 @@
 #include "testlib/s2n_testlib.h"
 #include "tls/s2n_client_hello.c"
 
-/* The server will always prefer to negotiate an application protocol with 
+/* The server will always prefer to negotiate an application protocol with
  * the ALPN extension. This callback wipes the ALPN extension from the client
- * hello and forces the server to negotiate a protocol using the NPN extension 
+ * hello and forces the server to negotiate a protocol using the NPN extension
  * instead. */
 static int s2n_wipe_alpn_ext(struct s2n_connection *conn, void *ctx)
 {
@@ -50,7 +50,7 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(config, "20240501"));
     struct s2n_cert_chain_and_key *chain_and_key = NULL;
     EXPECT_SUCCESS(s2n_test_cert_chain_and_key_new(&chain_and_key, S2N_DEFAULT_TEST_CERT_CHAIN, S2N_DEFAULT_TEST_PRIVATE_KEY));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -61,7 +61,7 @@ int main(int argc, char **argv)
     DEFER_CLEANUP(struct s2n_config *npn_config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_NOT_NULL(npn_config);
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(npn_config));
-    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(npn_config, "default"));
+    EXPECT_SUCCESS(s2n_config_set_cipher_preferences(npn_config, "20240501"));
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(npn_config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_protocol_preferences(npn_config, protocols, protocols_count));
     EXPECT_SUCCESS(s2n_config_set_client_hello_cb(npn_config, s2n_wipe_alpn_ext, NULL));
@@ -135,7 +135,7 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_config *different_config = s2n_config_new(), s2n_config_ptr_free);
         EXPECT_NOT_NULL(different_config);
         EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(different_config));
-        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(different_config, "default"));
+        EXPECT_SUCCESS(s2n_config_set_cipher_preferences(different_config, "20240501"));
         EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(different_config, chain_and_key));
         EXPECT_SUCCESS(s2n_config_set_protocol_preferences(different_config, server_protocols, server_protocols_count));
         EXPECT_SUCCESS(s2n_config_set_client_hello_cb(different_config, s2n_wipe_alpn_ext, NULL));
