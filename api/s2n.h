@@ -3208,8 +3208,7 @@ typedef enum {
  * A function that provides insight into whether or not the server was able to send a certificate that
  * partially or completely matched the client's SNI extension.
  * 
- * @note This function will not return useful results until the server has selected a certificate
- * to send to the client. It can be used as a metric in a failed connection as long as the failure
+ * @note This function can be used as a metric in a failed connection as long as the failure
  * occurs after certificate selection.
  *
  * @param conn A pointer to the connection
