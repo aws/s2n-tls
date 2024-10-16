@@ -22,7 +22,7 @@ fn bench_handshake_for_library<T>(
     kx_group: KXGroup,
     sig_type: SigType,
 ) where
-    T: TlsConnection,
+    T: TlsConnection + 'static,
     T::Config: TlsBenchConfig,
 {
     // make configs before benching to reuse

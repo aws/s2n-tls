@@ -5,12 +5,7 @@ mod io;
 pub use io::{LocalDataBuffer, ViewIO};
 
 use io::TestPairIO;
-use std::{
-    error::Error,
-    fmt::Debug,
-    fs::read_to_string,
-    rc::Rc,
-};
+use std::{error::Error, fmt::Debug, fs::read_to_string, rc::Rc};
 use strum::EnumIter;
 
 #[derive(Clone, Copy, EnumIter)]
@@ -184,8 +179,57 @@ pub trait TlsConnection: Sized {
     fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
 }
 
+pub trait TlsConnIo {
+    /// Run one handshake step: receive msgs from other connection, process, and send new msgs
+    fn handshake(&mut self) -> Result<(), Box<dyn Error>>;
+
+    fn handshake_completed(&self) -> bool;
+
+    /// Send application data to ConnectedBuffer
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>>;
+
+    /// Read application data from ConnectedBuffer
+    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>>;
+}
+
+impl TlsConnIo for Box<dyn TlsConnIo + 'static> {
+    fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
+        self.handshake()
+    }
+
+    fn handshake_completed(&self) -> bool {
+        self.handshake_completed()
+    }
+
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        self.send(data)
+    }
+
+    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        self.recv(data)
+    }
+}
+
+impl<T: TlsConnection> TlsConnIo for T {
+    fn handshake(&mut self) -> Result<(), Box<dyn Error>> {
+        self.handshake()
+    }
+
+    fn handshake_completed(&self) -> bool {
+        self.handshake_completed()
+    }
+
+    fn send(&mut self, data: &[u8]) -> Result<(), Box<dyn Error>> {
+        self.send(data)
+    }
+
+    fn recv(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
+        self.recv(data)
+    }
+}
+
 /// A TlsConnPair owns the client and server tls connections along with the IO buffers.
-pub struct TlsConnPair<C: TlsConnection, S: TlsConnection> {
+pub struct TlsConnPair<C, S> {
     pub client: C,
     pub server: S,
     pub io: TestPairIO,
@@ -270,6 +314,42 @@ where
         (self.client, self.server)
     }
 
+    pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
+        assert!(self.handshake_completed());
+        assert!(
+            self.client.get_negotiated_cipher_suite() == self.server.get_negotiated_cipher_suite()
+        );
+        self.client.get_negotiated_cipher_suite()
+    }
+
+    pub fn negotiated_tls13(&self) -> bool {
+        self.client.negotiated_tls13() && self.server.negotiated_tls13()
+    }
+}
+
+impl<C, S> TlsConnPair<C, S>
+where
+    C: TlsConnIo + 'static,
+    S: TlsConnIo + 'static,
+{
+    pub fn type_erase(self) -> TlsConnPair<Box<dyn TlsConnIo + 'static>, Box<dyn TlsConnIo + 'static>> {
+        let TlsConnPair { client, server, io } = self;
+        let boxed_client = Box::new(client);
+        let boxed_server = Box::new(server);
+        TlsConnPair { client: boxed_client, server: boxed_server, io: io }
+    }
+}
+
+impl<C, S> TlsConnPair<C, S>
+where
+    C: TlsConnIo,
+    S: TlsConnIo,
+{
+
+    // pub fn type_erase(self) -> TlsConnPair<Box<dyn TlsConnection>, Box<dyn TlsConnection>> {
+
+    // }
+
     /// Run handshake on connections
     /// Two round trips are needed for the server to receive the Finished message
     /// from the client and be ready to send data
@@ -287,17 +367,6 @@ where
         self.client.handshake_completed() && self.server.handshake_completed()
     }
 
-    pub fn get_negotiated_cipher_suite(&self) -> CipherSuite {
-        assert!(self.handshake_completed());
-        assert!(
-            self.client.get_negotiated_cipher_suite() == self.server.get_negotiated_cipher_suite()
-        );
-        self.client.get_negotiated_cipher_suite()
-    }
-
-    pub fn negotiated_tls13(&self) -> bool {
-        self.client.negotiated_tls13() && self.server.negotiated_tls13()
-    }
 
     /// Send data from client to server, and then from server to client
     pub fn round_trip_transfer(&mut self, data: &mut [u8]) -> Result<(), Box<dyn Error>> {
@@ -312,6 +381,7 @@ where
         Ok(())
     }
 }
+
 
 #[cfg(test)]
 mod tests {
