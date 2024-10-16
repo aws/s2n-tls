@@ -154,7 +154,6 @@ impl crate::harness::TlsBenchConfig for S2NConfig {
 }
 
 pub struct S2NConnection {
-    // Pin<Box<T>> is to ensure long-term *mut to IO buffers remains valid
     connection: Connection,
     handshake_completed: bool,
 }
