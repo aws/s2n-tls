@@ -6,12 +6,9 @@ pub use io::{LocalDataBuffer, ViewIO};
 
 use io::TestPairIO;
 use std::{
-    cell::RefCell,
-    collections::VecDeque,
     error::Error,
     fmt::Debug,
     fs::read_to_string,
-    io::{ErrorKind, Read, Write},
     rc::Rc,
 };
 use strum::EnumIter;
