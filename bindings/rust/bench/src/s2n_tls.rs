@@ -3,8 +3,8 @@
 
 use crate::{
     harness::{
-        read_to_bytes, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup, Mode,
-        TlsConnection,
+        read_to_bytes, CipherSuite, CryptoConfig, HandshakeType, KXGroup, LocalDataBuffer, Mode,
+        TlsConnection, ViewIO,
     },
     PemType::*,
 };
@@ -20,8 +20,9 @@ use std::{
     error::Error,
     ffi::c_void,
     io::{ErrorKind, Read, Write},
+    ops::Deref,
     os::raw::c_int,
-    pin::Pin,
+    rc::Rc,
     sync::{Arc, Mutex},
     task::Poll,
     time::SystemTime,
@@ -154,7 +155,6 @@ impl crate::harness::TlsBenchConfig for S2NConfig {
 
 pub struct S2NConnection {
     // Pin<Box<T>> is to ensure long-term *mut to IO buffers remains valid
-    connected_buffer: Pin<Box<ConnectedBuffer>>,
     connection: Connection,
     handshake_completed: bool,
 }
@@ -165,27 +165,34 @@ impl S2NConnection {
     /// s2n-tls IO is usually used with file descriptors to a TCP socket, but we
     /// reduce overhead and outside noise with a local buffer for benchmarking
     unsafe extern "C" fn send_cb(context: *mut c_void, data: *const u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut ConnectedBuffer);
+        let context = &*(context as *const LocalDataBuffer);
         let data = core::slice::from_raw_parts(data, len as _);
-        context.write(data).unwrap() as _
+        let bytes_written = context.borrow_mut().write(data).unwrap();
+        bytes_written as c_int
     }
 
-    /// Unsafe callback for custom IO C API
+    // Note: this callback will be invoked multiple times in the event that
+    // the byte-slices of the VecDeque are not contiguous (wrap around).
     unsafe extern "C" fn recv_cb(context: *mut c_void, data: *mut u8, len: u32) -> c_int {
-        let context = &mut *(context as *mut ConnectedBuffer);
+        let context = &*(context as *const LocalDataBuffer);
         let data = core::slice::from_raw_parts_mut(data, len as _);
-        context.flush().unwrap();
-        match context.read(data) {
-            Err(err) => {
-                // s2n-tls requires the callback to set errno if blocking happens
-                if let ErrorKind::WouldBlock = err.kind() {
+        match context.borrow_mut().read(data) {
+            Ok(len) => {
+                if len == 0 {
+                    // returning a length of 0 indicates a channel close (e.g. a
+                    // TCP Close) which would not be correct. To just communicate
+                    // "no more data", we instead set the errno to WouldBlock and
+                    // return -1.
                     errno::set_errno(errno::Errno(libc::EWOULDBLOCK));
                     -1
                 } else {
-                    panic!("{err:?}");
+                    len as c_int
                 }
             }
-            Ok(len) => len as _,
+            Err(err) => {
+                // VecDeque IO Operations should never fail
+                panic!("{err:?}");
+            }
         }
     }
 
@@ -201,16 +208,13 @@ impl TlsConnection for S2NConnection {
         "s2n-tls".to_string()
     }
 
-    fn new_from_config(
-        config: &Self::Config,
-        connected_buffer: ConnectedBuffer,
-    ) -> Result<Self, Box<dyn Error>> {
+    fn new_from_config(config: &Self::Config, io: ViewIO) -> Result<Self, Box<dyn Error>> {
         let mode = match config.mode {
             Mode::Client => s2n_tls::enums::Mode::Client,
             Mode::Server => s2n_tls::enums::Mode::Server,
         };
 
-        let mut connected_buffer = Box::pin(connected_buffer);
+        let io = Box::pin(io);
 
         let mut connection = Connection::new(mode);
         connection
@@ -220,9 +224,11 @@ impl TlsConnection for S2NConnection {
             .set_receive_callback(Some(Self::recv_cb))?;
         unsafe {
             connection
-                .set_send_context(&mut *connected_buffer as *mut ConnectedBuffer as *mut c_void)?
+                .set_send_context(
+                    &io.send_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
+                )?
                 .set_receive_context(
-                    &mut *connected_buffer as *mut ConnectedBuffer as *mut c_void,
+                    &io.recv_ctx as &LocalDataBuffer as *const LocalDataBuffer as *mut c_void,
                 )?;
         }
 
@@ -231,7 +237,6 @@ impl TlsConnection for S2NConnection {
         }
 
         Ok(Self {
-            connected_buffer,
             connection,
             handshake_completed: false,
         })
@@ -292,17 +297,5 @@ impl TlsConnection for S2NConnection {
             }
         }
         Ok(())
-    }
-
-    fn shrink_connection_buffers(&mut self) {
-        self.connection.release_buffers().unwrap();
-    }
-
-    fn shrink_connected_buffer(&mut self) {
-        self.connected_buffer.shrink();
-    }
-
-    fn connected_buffer(&self) -> &ConnectedBuffer {
-        &self.connected_buffer
     }
 }

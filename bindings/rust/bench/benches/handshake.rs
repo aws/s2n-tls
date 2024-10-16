@@ -6,8 +6,8 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup,
-    Mode, S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -35,16 +35,9 @@ fn bench_handshake_for_library<T>(
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
             || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
-                if let (Ok(client_config), Ok(server_config)) =
-                    (client_config.as_ref(), server_config.as_ref())
-                {
-                    let connected_buffer = ConnectedBuffer::default();
-                    let client =
-                        T::new_from_config(client_config, connected_buffer.clone_inverse())?;
-                    let server = T::new_from_config(server_config, connected_buffer)?;
-                    Ok(TlsConnPair::wrap(client, server))
-                } else {
-                    Err("invalid configs".into())
+                match (client_config.as_ref(), server_config.as_ref()) {
+                    (Ok(c_conf), Ok(s_conf)) => Ok(TlsConnPair::from_configs(c_conf, s_conf)),
+                    _ => Err("invalid configs".into()),
                 }
             },
             |conn_pair| {

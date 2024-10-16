@@ -6,8 +6,8 @@ use bench::OpenSslConnection;
 #[cfg(feature = "rustls")]
 use bench::RustlsConnection;
 use bench::{
-    harness::TlsBenchConfig, CipherSuite, ConnectedBuffer, CryptoConfig, HandshakeType, KXGroup,
-    Mode, S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
+    harness::TlsBenchConfig, CipherSuite, CryptoConfig, HandshakeType, KXGroup, Mode,
+    S2NConnection, SigType, TlsConnPair, TlsConnection, PROFILER_FREQUENCY,
 };
 use criterion::{
     criterion_group, criterion_main, measurement::WallTime, BatchSize, BenchmarkGroup, Criterion,
@@ -26,24 +26,21 @@ fn bench_throughput_for_library<T>(
     T::Config: TlsBenchConfig,
 {
     let crypto_config = CryptoConfig::new(cipher_suite, KXGroup::default(), SigType::default());
-    let client_config = T::Config::make_config(Mode::Client, crypto_config, HandshakeType::default());
-    let server_config = T::Config::make_config(Mode::Server, crypto_config, HandshakeType::default());
+    let client_config =
+        T::Config::make_config(Mode::Client, crypto_config, HandshakeType::default());
+    let server_config =
+        T::Config::make_config(Mode::Server, crypto_config, HandshakeType::default());
 
     bench_group.bench_function(T::name(), |b| {
         b.iter_batched_ref(
             || -> Result<TlsConnPair<T, T>, Box<dyn Error>> {
-                if let (Ok(client_config), Ok(server_config)) =
-                    (client_config.as_ref(), server_config.as_ref())
-                {
-                    let connected_buffer = ConnectedBuffer::default();
-                    let client =
-                        T::new_from_config(client_config, connected_buffer.clone_inverse())?;
-                    let server = T::new_from_config(server_config, connected_buffer)?;
-                    let mut conn_pair = TlsConnPair::wrap(client, server);
-                    conn_pair.handshake()?;
-                    Ok(conn_pair)
-                } else {
-                    Err("invalid configs".into())
+                match (client_config.as_ref(), server_config.as_ref()) {
+                    (Ok(c_conf), Ok(s_conf)) => {
+                        let mut pair = TlsConnPair::<T, T>::from_configs(c_conf, s_conf);
+                        pair.handshake()?;
+                        Ok(pair)
+                    }
+                    _ => Err("invalid configs".into()),
                 }
             },
             |conn_pair| {
