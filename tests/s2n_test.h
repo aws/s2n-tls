@@ -15,18 +15,18 @@
 
 #pragma once
 #include <errno.h>
+#include <openssl/crypto.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-#include <openssl/crypto.h>
-
 #include "error/s2n_errno.h"
-#include "utils/s2n_safety.h"
-#include "utils/s2n_result.h"
 #include "tls/s2n_alerts.h"
 #include "tls/s2n_tls13.h"
+#include "utils/s2n_init.h"
+#include "utils/s2n_result.h"
+#include "utils/s2n_safety.h"
 
 int test_count;
 
