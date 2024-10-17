@@ -33,7 +33,7 @@ int main(int argc, char **argv)
         EXPECT_NOT_NULL(server_conn = s2n_connection_new(S2N_SERVER));
 
         /* Create nonblocking pipes */
-        struct s2n_test_io_pair io_pair;
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         POSIX_GUARD(s2n_io_pair_init_non_blocking(&io_pair));
         POSIX_GUARD(s2n_connection_set_io_pair(server_conn, &io_pair));
 

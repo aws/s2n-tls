@@ -232,6 +232,7 @@ static S2N_RESULT s2n_run_self_talk_test(s2n_test_scenario scenario_fn)
         EXPECT_SUCCESS(s2n_connection_free(server));
         EXPECT_SUCCESS(s2n_cert_chain_and_key_free(chain_and_key));
         EXPECT_SUCCESS(s2n_config_free(config));
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
 
         exit(EXIT_SUCCESS);
     }

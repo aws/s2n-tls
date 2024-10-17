@@ -28,7 +28,8 @@
     EXPECT_EQUAL((blocked), (expected_blocked));                         \
     EXPECT_EQUAL(s2n_conn_get_current_message_type(conn), (expected_msg))
 
-static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn)
+static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_conn, struct s2n_connection **server_conn,
+        struct s2n_test_io_pair *io_pair)
 {
     *client_conn = s2n_connection_new(S2N_CLIENT);
     EXPECT_NOT_NULL(*client_conn);
@@ -39,9 +40,8 @@ static S2N_RESULT s2n_test_client_and_server_new(struct s2n_connection **client_
     EXPECT_SUCCESS(s2n_connection_set_blinding(*server_conn, S2N_SELF_SERVICE_BLINDING));
     EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(*server_conn, "default_tls13"));
 
-    struct s2n_test_io_pair io_pair = { 0 };
-    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
-    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, &io_pair));
+    EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(io_pair));
+    EXPECT_SUCCESS(s2n_connections_set_io_pair(*client_conn, *server_conn, io_pair));
 
     return S2N_RESULT_OK;
 }
@@ -247,7 +247,8 @@ int main(int argc, char **argv)
         /* Propagate errors from s2n_recv */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
 
@@ -276,7 +277,8 @@ int main(int argc, char **argv)
         /* Send zero-length early data */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -308,7 +310,8 @@ int main(int argc, char **argv)
         /* Send early data once */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -342,7 +345,8 @@ int main(int argc, char **argv)
         /* Receive early data too large for buffer */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -393,7 +397,8 @@ int main(int argc, char **argv)
         /* Send multiple early data messages */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -432,7 +437,8 @@ int main(int argc, char **argv)
         /* Receive and combine multiple early data records */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -474,7 +480,8 @@ int main(int argc, char **argv)
         /* Early data not requested */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk_with_wrong_early_data));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk));
@@ -509,7 +516,8 @@ int main(int argc, char **argv)
         /* Early data rejected */
         {
             struct s2n_connection *client_conn = NULL, *server_conn = NULL;
-            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn));
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
+            EXPECT_OK(s2n_test_client_and_server_new(&client_conn, &server_conn, &io_pair));
 
             EXPECT_SUCCESS(s2n_connection_append_psk(client_conn, test_psk));
             EXPECT_SUCCESS(s2n_connection_append_psk(server_conn, test_psk_with_wrong_early_data));

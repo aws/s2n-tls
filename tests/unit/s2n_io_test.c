@@ -102,6 +102,8 @@ int main(int argc, char **argv)
                         s2n_test_real_interrupt(io_pair.client, n_times, &counter));
                 EXPECT_EQUAL(result, S2N_TEST_SUCCESS);
                 EXPECT_EQUAL(counter, n_times);
+                /* Child process exit doesn't close io_pair properly, so manually close it*/
+                EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
                 exit(0);
             }
 
