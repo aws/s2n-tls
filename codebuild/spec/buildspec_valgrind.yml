@@ -70,3 +70,6 @@ phases:
         CTEST_OUTPUT_ON_FAILURE=1 \
         cmake --build build/ --target test \
           -- ARGS="--test-action memcheck"
+      - cd codebuild/bin
+      - echo Test for leaking file descriptors
+      - python3 s2n_open_fds_test.py
