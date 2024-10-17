@@ -66,7 +66,7 @@
 
 /* This is the total maximum memory allowed */
 #define MAX_MEM_ALLOWED(num_connections) \
-    (2 * (num_connections) * MAX_MEM_PER_CONNECTION)
+    (2 * (num_connections) *MAX_MEM_PER_CONNECTION)
 
 /* This is the correct value of MEM_PER_CONNECTION based on test results.
  * Basically, this calculation should reverse MAX_MEM_ALLOWED */
