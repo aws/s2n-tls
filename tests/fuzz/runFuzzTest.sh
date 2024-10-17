@@ -22,19 +22,20 @@ usage() {
     exit 1
 }
 
-if [ "$#" -ne "4" ]; then
+if [ "$#" -ne "5" ]; then
     usage
 fi
 
 TEST_NAME=$1
 FUZZ_TIMEOUT_SEC=$2
-CORPUS_UPLOAD_LOC=$3
-ARTIFACT_UPLOAD_LOC=$4
+BUILD_DIR_PATH=$3
+CORPUS_UPLOAD_LOC=$4
+ARTIFACT_UPLOAD_LOC=$5
 MIN_TEST_PER_SEC="1000"
 MIN_FEATURES_COVERED="100"
 
-# Failures for negative tests on AFL can be ignored.
-if [[ $TEST_NAME == *_negative_test && "$AFL_FUZZ" != "true" ]];
+# Failures for negative tests can be ignored.
+if [[ $TEST_NAME == *_negative_test ]];
 then
     EXPECTED_TEST_FAILURE=1
 else
@@ -47,8 +48,8 @@ UBSAN_OPTIONS+="print_stacktrace=1"
 NUM_CPU_THREADS=$(nproc)
 LIBFUZZER_ARGS+="-timeout=5 -max_len=4096 -print_final_stats=1 -jobs=${NUM_CPU_THREADS} -workers=${NUM_CPU_THREADS} -max_total_time=${FUZZ_TIMEOUT_SEC}"
 
-TEST_SPECIFIC_OVERRIDES="${PWD}/LD_PRELOAD/${TEST_NAME}_overrides.so"
-GLOBAL_OVERRIDES="${PWD}/LD_PRELOAD/global_overrides.so"
+TEST_SPECIFIC_OVERRIDES="${BUILD_DIR_PATH}/lib/lib${TEST_NAME}_overrides.so"
+GLOBAL_OVERRIDES="${BUILD_DIR_PATH}/lib/libglobal_overrides.so"
 
 FUZZCOV_SOURCES="${S2N_ROOT}/api ${S2N_ROOT}/bin ${S2N_ROOT}/crypto ${S2N_ROOT}/error ${S2N_ROOT}/stuffer ${S2N_ROOT}/tls ${S2N_ROOT}/utils"
 
@@ -100,51 +101,17 @@ else
     cp -r ./corpus/${TEST_NAME}/. "${TEMP_CORPUS_DIR}"
 fi
 
-# Run AFL instead of libfuzzer if AFL_FUZZ is set. Not compatible with fuzz coverage.
-if [[ ${AFL_FUZZ} == "true" && ${FUZZ_COVERAGE} != "true" ]]; then
-    unset LD_PRELOAD
-    # See https://aflplus.plus/docs/env_variables/
-    export AFL_NO_UI=true
-    export AFL_HARDEN=true
-    printf "Running AFL %-s %-40s for %5d sec... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC}
-    mkdir -p results/${TEST_NAME}
-    set +e
-    timeout ${FUZZ_TIMEOUT_SEC} ${LIBFUZZER_INSTALL_DIR}/afl-fuzz -i corpus/${TEST_NAME} -o results/${TEST_NAME} -m none ./${TEST_NAME}  2>&1> ./results/${TEST_NAME}/console_output.log
-    returncode=$?
-    # See the timeout man page for specifics
-    if [[ ${returncode} -ne 124 ]]; then
-        printf "\033[33;1mWARNING!\033[0m AFL exited with an unexpected return value: %8d" ${returncode}
-    fi
-    set -e
-    CRASH_COUNT=$(sed -n -e 's/^unique_crashes *: //p' ./results/${TEST_NAME}/fuzzer_stats)
-    TEST_COUNT=$(sed -n -e 's/^execs_done *: //p' ./results/${TEST_NAME}/fuzzer_stats)
-    FLOAT_TESTS_PER_SEC=$(sed -n -e 's/^execs_per_sec *: //p' ./results/${TEST_NAME}/fuzzer_stats)
-    TESTS_PER_SEC=$(echo "($FLOAT_TESTS_PER_SEC+.5)/1"|bc)
-
-    if [[ ${TESTS_PER_SEC} -lt 10 ]]; then
-        printf "\033[33;1mWARNING!\033[0m %10d tests, only %6d tests per second; test is too slow.\n" ${TEST_COUNT} ${TESTS_PER_SEC}
-    fi
-    if [[ ${CRASH_COUNT} -gt 0 ]]; then
-        ACTUAL_TEST_FAILURE=1
-    fi
-    if [[ ${ACTUAL_TEST_FAILURE} == ${EXPECTED_TEST_FAILURE} ]]; then
-        printf "\033[32;1mPASSED\033[0m %8d tests, %.1f test/sec\n" ${TEST_COUNT} ${TESTS_PER_SEC}
-        exit 0
-    else
-        printf "\033[31;1mFAILED\033[0m %10d tests, %6d unique crashes\n" ${TEST_COUNT} ${CRASH_COUNT}
-        exit -1
-    fi
-else
-    printf "Running %-s %-40s for %5d sec with %2d threads... " "${FIPS_TEST_MSG}" ${TEST_NAME} ${FUZZ_TIMEOUT_SEC} ${NUM_CPU_THREADS}
-fi
-
 # Setup and clean profile structure if FUZZ_COVERAGE is enabled, otherwise run as normal
 if [[ "$FUZZ_COVERAGE" == "true" ]]; then
     mkdir -p "./profiles/${TEST_NAME}"
     rm -f ./profiles/${TEST_NAME}/*.profraw
-    LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    LLVM_PROFILE_FILE="./profiles/${TEST_NAME}/${TEST_NAME}.%p.profraw" \
+    ${BUILD_DIR_PATH}/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
+    > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 else
-    env LD_PRELOAD="$LD_PRELOAD_" ./${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
+    env LD_PRELOAD="$LD_PRELOAD_" \
+    ${BUILD_DIR_PATH}/bin/${TEST_NAME} ${LIBFUZZER_ARGS} ${TEMP_CORPUS_DIR} \
+    > ${TEST_NAME}_output.txt 2>&1 || ACTUAL_TEST_FAILURE=1
 fi
 
 TEST_INFO=$(
@@ -209,7 +176,8 @@ then
     else
         # TEMP_CORPUS_DIR may contain many new inputs that only covers a small set of new branches. 
         # Instead of copying all new inputs to the corpus directory,  only copy back minimum number of new inputs that reach new branches.
-        ./${TEST_NAME} -merge=1 "./corpus/${TEST_NAME}" "${TEMP_CORPUS_DIR}" > ${TEST_NAME}_results.txt 2>&1
+        ${BUILD_DIR_PATH}/bin/${TEST_NAME} -merge=1 "./corpus/${TEST_NAME}" "${TEMP_CORPUS_DIR}" \
+        > ${TEST_NAME}_results.txt 2>&1
 
         # Print number of new files and branches found in new Inputs (if any)
         RESULTS=`grep -Eo "[0-9]+ new files .*$" ${TEST_NAME}_results.txt | tail -1`

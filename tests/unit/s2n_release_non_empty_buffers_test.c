@@ -58,6 +58,7 @@ int mock_client(struct s2n_test_io_pair *io_pair)
     s2n_shutdown(conn, &blocked);
     s2n_connection_free(conn);
     s2n_config_free(client_config);
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(io_pair, S2N_CLIENT));
     s2n_cleanup();
 
     exit(0);
@@ -82,7 +83,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Create a pipe */
-    struct s2n_test_io_pair io_pair;
+    DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
     EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
@@ -195,6 +196,7 @@ int main(int argc, char **argv)
     free(cert_chain_pem);
     free(private_key_pem);
 
+    EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_SERVER));
     s2n_cleanup();
 
     END_TEST();
