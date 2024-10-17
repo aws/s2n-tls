@@ -120,6 +120,7 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 
 #define S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT "../pems/rsa_2048_sha256_no_dns_sans_cert.pem"
 #define S2N_RSA_2048_SHA256_WILDCARD_CERT    "../pems/rsa_2048_sha256_wildcard_cert.pem"
+#define S2N_RSA_2048_SHA256_WILDCARD_KEY     "../pems/rsa_2048_sha256_wildcard_key.pem"
 
 #define S2N_RSA_2048_SHA256_URI_SANS_CERT "../pems/rsa_2048_sha256_uri_sans_cert.pem"
 
