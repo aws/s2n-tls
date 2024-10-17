@@ -136,11 +136,10 @@ int main(int argc, char **argv)
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
         int write_fd = io_pair.server;
-        int read_fd = io_pair.client;
         EXPECT_SUCCESS(s2n_connection_set_write_fd(conn, write_fd));
 
         /* Close one side of the stream to make the fds invalid */
-        close(read_fd);
+        EXPECT_SUCCESS(s2n_io_pair_close_one_end(&io_pair, S2N_CLIENT));
 
         s2n_blocked_status blocked = S2N_NOT_BLOCKED;
         size_t bytes_written = 0;

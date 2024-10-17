@@ -20,6 +20,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
+#define S2N_CLOSED_FD -1
+
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
 
