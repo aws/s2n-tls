@@ -7,7 +7,7 @@ ERROR_EXIT_CODE = 123
 analysis_file_location = "../../build/Testing/Temporary"
 analysis_file_pattern = re.compile(r"^LastDynamicAnalysis*")
 # This regular expression captures valgrind 3.13 and valgrind 3.18+ log
-fd_pattern = re.compile(r"^==\d+== FILE DESCRIPTORS: \d+ open(?: \(3 std\))? at exit.$")
+fd_pattern = re.compile(r"FILE DESCRIPTORS: \d+ open(?: \(3 std\))? at exit.$")
 res_start_pattern = re.compile(r"^Running /codebuild/output/src\d+/src/.*")
 res_end_pattern = re.compile(r"^<end of output>$")
 
@@ -30,10 +30,28 @@ def read_analysis_file(file):
     to_print = False
     file_name = ""
     for line in file:
-        if res_start_pattern.match(line):
+        start_match = res_start_pattern.search(line)
+        if start_match:
             to_store = True
-            file_name = line
-            continue
+            file_name = start_match.group()
+        """
+        The FILE DESCRIPTORS string sometimes come on the same line
+        as the Running s2n_test.c. Hence, we need multiple check to handle
+        that conner case.
+        """
+        open_fd_match = fd_pattern.search(line)
+        if open_fd_match:
+            # Take the number of open file descriptors and check against the acceptable amount
+            if int(re.findall(r"\d+", line)[1]) > ACCEPTABLE_OPEN_FDS:
+                exit_code = ERROR_EXIT_CODE
+                to_print = True
+
+        if to_store:
+            if open_fd_match:
+                res.append(open_fd_match.group() + '\n')
+            else:
+                res.append(line)
+
         if res_end_pattern.match(line):
             if to_print:
                 print_res(file_name, res)
@@ -41,14 +59,6 @@ def read_analysis_file(file):
             res.clear()
             file_name = ""
             to_print = False
-        if to_store:
-            res.append(line)
-            open_fd_match = fd_pattern.match(line)
-            if open_fd_match:
-                # Take the number of open file descriptors and check against the acceptable amount
-                if int(re.findall(r"\d+", line)[1]) > ACCEPTABLE_OPEN_FDS:
-                    exit_code = ERROR_EXIT_CODE
-                    to_print = True
     file.close()
     return exit_code
 
