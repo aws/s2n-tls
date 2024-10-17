@@ -84,16 +84,17 @@ bool s2n_use_color_in_output = true;
  * should happen in main() and start with a BEGIN_TEST() and end with an
  * END_TEST().
  */
-#define BEGIN_TEST()                                                \
-    do {                                                            \
-        BEGIN_TEST_NO_INIT();                                       \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());                   \
-    } while(0)
-
-#define END_TEST()                                         \
+#define BEGIN_TEST()                                       \
     do {                                                   \
-        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup_final()); \
-        END_TEST_NO_INIT();                                \
+        BEGIN_TEST_NO_INIT();                              \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_enable_atexit()); \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_init());          \
+    } while (0)
+
+#define END_TEST()                                   \
+    do {                                             \
+        EXPECT_SUCCESS_WITHOUT_COUNT(s2n_cleanup()); \
+        END_TEST_NO_INIT();                          \
     } while (0)
 
 #define FAIL()      FAIL_MSG("")
