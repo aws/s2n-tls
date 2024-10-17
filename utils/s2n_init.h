@@ -21,3 +21,4 @@ int s2n_init(void);
 int s2n_cleanup(void);
 bool s2n_is_initialized(void);
 int s2n_cleanup_final(void);
+int s2n_enable_atexit(void);
