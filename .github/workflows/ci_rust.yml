@@ -48,6 +48,9 @@ jobs:
       - name: Default Tests
         working-directory: ${{env.ROOT_PATH}}
         run: cargo test
+        env:
+          RUST_LOG: trace,hyper=trace
+          RUST_BACKTRACE: 1
 
       - name: "Feature Tests: Fingerprint, kTLS, QUIC, and PQ"
         working-directory: ${{env.ROOT_PATH}}
