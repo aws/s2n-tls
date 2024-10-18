@@ -279,7 +279,7 @@ static int s2n_test_case_pthread_atfork_cb(struct fgn_test_case *test_case)
 
     EXPECT_EQUAL(s2n_unit_tests_common(test_case), S2N_SUCCESS);
 
-    EXPECT_SUCCESS(s2n_cleanup());
+    EXPECT_SUCCESS(s2n_cleanup_final());
 
     return S2N_SUCCESS;
 }

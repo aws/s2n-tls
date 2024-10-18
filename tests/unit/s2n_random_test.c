@@ -671,7 +671,7 @@ static int s2n_random_test_case_default_cb(struct random_test_case *test_case)
 
     EXPECT_EQUAL(s2n_common_tests(test_case), S2N_SUCCESS);
 
-    EXPECT_SUCCESS(s2n_cleanup());
+    EXPECT_SUCCESS(s2n_cleanup_final());
 
     return EXIT_SUCCESS;
 }

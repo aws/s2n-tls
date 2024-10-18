@@ -41,6 +41,7 @@ int main(int argc, char **argv)
      *
      * An application using s2n-tls with seccomp would need to do the same.
      */
+    EXPECT_SUCCESS(s2n_enable_atexit());
     EXPECT_SUCCESS(s2n_init());
 
     /* No unexpected syscalls allowed beyond this point */
