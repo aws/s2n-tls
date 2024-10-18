@@ -698,7 +698,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls12_client_conn, "test_all_tls12"));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls12_server_conn, "test_all_tls12"));
 
-            struct s2n_test_io_pair io_pair = { 0 };
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(tls12_client_conn, tls12_server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(tls12_server_conn, tls12_client_conn));
@@ -719,7 +719,7 @@ int main(int argc, char **argv)
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls13_client_conn, "default_tls13"));
             EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(tls13_server_conn, "default_tls13"));
 
-            struct s2n_test_io_pair io_pair = { 0 };
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(tls13_client_conn, tls13_server_conn, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(tls13_server_conn, tls13_client_conn));

@@ -83,7 +83,7 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_disable_tls13_in_test());
 
     /* Create a pipe */
-    struct s2n_test_io_pair io_pair;
+    DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
     EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
     /* Create a child process */
