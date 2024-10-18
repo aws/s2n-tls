@@ -131,6 +131,8 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&test_entropy));
     free(dhparams_pem);
+    /* Clean up with previously set functions */
+    POSIX_GUARD_RESULT(s2n_rand_cleanup());
 
     END_TEST();
 }
