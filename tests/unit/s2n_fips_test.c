@@ -49,5 +49,6 @@ int main()
         }
     }
 
-    END_TEST();
+    EXPECT_SUCCESS(s2n_cleanup_final());
+    END_TEST_NO_INIT();
 }
