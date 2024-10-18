@@ -9,7 +9,7 @@ ERROR_EXIT_CODE = 123
 analysis_file_location = "../../build/Testing/Temporary"
 analysis_file_pattern = re.compile(r"^LastDynamicAnalysis*")
 # This regular expression captures valgrind 3.13 and valgrind 3.18+ log
-fd_pattern = re.compile(r"FILE DESCRIPTORS: \d+ open(?: \(3 std\))? at exit.$")
+fd_pattern = re.compile(r"FILE DESCRIPTORS: \d+ open(?: \(\d+ std\))? at exit.$")
 error_message_start_pattern = re.compile(r"^Running /codebuild/output/src\d+/src/.*")
 error_message_end_pattern = re.compile(r"^<end of output>$")
 
