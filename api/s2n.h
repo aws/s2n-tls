@@ -241,6 +241,16 @@ S2N_API extern int s2n_init(void);
  */
 S2N_API extern int s2n_cleanup(void);
 
+/*
+ * Performs a complete deinitialization and cleanup of the s2n-tls library.
+ *
+ * The difference between this API and s2n_cleanup is that s2n_cleanup may not fully clean up
+ * the library if it is called on a thread that did not initialize s2n-tls.
+ *
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
+ */
+S2N_API extern int s2n_cleanup_final(void);
+
 typedef enum {
     S2N_FIPS_MODE_DISABLED = 0,
     S2N_FIPS_MODE_ENABLED,
