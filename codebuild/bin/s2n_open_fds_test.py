@@ -41,7 +41,7 @@ def read_analysis_file(file):
         """
         The FILE DESCRIPTORS string sometimes come on the same line
         as the Running s2n_test.c. Hence, we need multiple check to handle
-        that conner case.
+        that corner case.
         """
         open_fd_match = fd_pattern.search(line)
         if open_fd_match:
