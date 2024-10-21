@@ -142,7 +142,7 @@ int main()
             /* Set server master secret to known value to ensure overridden later */
             memset(server->secrets.version.tls12.master_secret, 1, S2N_TLS_SECRET_LEN);
 
-            struct s2n_test_io_pair io_pair = { 0 };
+            DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
             EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
             EXPECT_SUCCESS(s2n_connections_set_io_pair(client, server, &io_pair));
             EXPECT_SUCCESS(s2n_negotiate_test_server_and_client(server, client));

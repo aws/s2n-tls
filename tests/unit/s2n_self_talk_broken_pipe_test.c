@@ -82,6 +82,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     sleep(1);
 
     s2n_io_pair_shutdown_one_end(io_pair, S2N_CLIENT, SHUT_WR);
+    s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
 
     exit(0);
 }
@@ -102,7 +103,7 @@ int main(int argc, char **argv)
         struct s2n_cert_chain_and_key *chain_and_keys[SUPPORTED_CERTIFICATE_FORMATS];
 
         /* Create a pipe */
-        struct s2n_test_io_pair io_pair;
+        DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
         EXPECT_SUCCESS(s2n_io_pair_init(&io_pair));
 
         /* Create a child process */

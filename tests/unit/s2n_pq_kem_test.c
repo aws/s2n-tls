@@ -24,6 +24,7 @@
 #include "utils/s2n_safety.h"
 
 static const struct s2n_kem *test_vectors[] = {
+    &s2n_mlkem_768,
     &s2n_kyber_512_r3,
     &s2n_kyber_768_r3,
     &s2n_kyber_1024_r3,
@@ -63,25 +64,26 @@ int main()
         DEFER_CLEANUP(struct s2n_blob ciphertext = { 0 }, s2n_free);
         EXPECT_SUCCESS(s2n_alloc(&ciphertext, kem->ciphertext_length));
 
-        if (s2n_pq_is_enabled()) {
-            /* Test a successful round-trip: keygen->enc->dec */
-            EXPECT_PQ_KEM_SUCCESS(kem->generate_keypair(kem, public_key.data, private_key.data));
-            EXPECT_PQ_KEM_SUCCESS(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data));
-            EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data));
-            EXPECT_BYTEARRAY_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
-
-            /* By design, if an invalid private key + ciphertext pair is provided to decapsulate(),
-             * the function should still succeed (return S2N_SUCCESS); however, the shared secret
-             * that was "decapsulated" will be a garbage random value. */
-            ciphertext.data[0] ^= 1; /* Flip a bit to invalidate the ciphertext */
-
-            EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data));
-            EXPECT_BYTEARRAY_NOT_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
-        } else {
+        if (!s2n_kem_is_available(kem)) {
             EXPECT_FAILURE_WITH_ERRNO(kem->generate_keypair(kem, public_key.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
             EXPECT_FAILURE_WITH_ERRNO(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data), S2N_ERR_UNIMPLEMENTED);
             EXPECT_FAILURE_WITH_ERRNO(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data), S2N_ERR_UNIMPLEMENTED);
+            continue;
         }
+
+        /* Test a successful round-trip: keygen->enc->dec */
+        EXPECT_PQ_KEM_SUCCESS(kem->generate_keypair(kem, public_key.data, private_key.data));
+        EXPECT_PQ_KEM_SUCCESS(kem->encapsulate(kem, ciphertext.data, client_shared_secret.data, public_key.data));
+        EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data));
+        EXPECT_BYTEARRAY_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
+
+        /* By design, if an invalid private key + ciphertext pair is provided to decapsulate(),
+         * the function should still succeed (return S2N_SUCCESS); however, the shared secret
+         * that was "decapsulated" will be a garbage random value. */
+        ciphertext.data[0] ^= 1; /* Flip a bit to invalidate the ciphertext */
+
+        EXPECT_PQ_KEM_SUCCESS(kem->decapsulate(kem, server_shared_secret.data, ciphertext.data, private_key.data));
+        EXPECT_BYTEARRAY_NOT_EQUAL(server_shared_secret.data, client_shared_secret.data, kem->shared_secret_key_length);
     }
 
     END_TEST();
