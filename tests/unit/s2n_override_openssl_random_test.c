@@ -131,7 +131,10 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&test_entropy));
     free(dhparams_pem);
-    /* Clean up with previously set functions */
+    /**
+     * Can't rely on s2n_cleanup to clean s2n_init 
+     * becuase the default clean up callbacks are overwritten
+     * by s2n_rand_set_callbacks. */
     POSIX_GUARD_RESULT(s2n_rand_cleanup());
 
     END_TEST();

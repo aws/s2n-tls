@@ -190,7 +190,7 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
     /* Verify in threads */
     EXPECT_EQUAL(s2n_unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
-    /* Clean up urandom of the child process */
+    /* Clone can't invoke atexit. Call rand cleanup to close /dev/urandom */
     POSIX_GUARD_RESULT(s2n_rand_cleanup());
 
     /* This translates to the exit code for this child process */
