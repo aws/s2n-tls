@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.5-ae74eb53</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.5-b293f3d1</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -292,6 +292,12 @@ Enumerations</h2></td></tr>
 , <b>S2N_PSK_MODE_EXTERNAL</b>
  }</td></tr>
 <tr class="separator:a3c5d0a0d8a1092a60dd0f50cdf969524"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a388f87d7049392968cf4fba3bdefa197"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a388f87d7049392968cf4fba3bdefa197">s2n_cert_sni_match</a> { <b>S2N_SNI_NONE</b> = 1
+, <b>S2N_SNI_EXACT_MATCH</b>
+, <b>S2N_SNI_WILDCARD_MATCH</b>
+, <b>S2N_SNI_NO_MATCH</b>
+ }</td></tr>
+<tr class="separator:a388f87d7049392968cf4fba3bdefa197"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:a3b0e141e39d6fd9782af697513933995"><td class="memItemLeft" align="right" valign="top">enum &#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a3b0e141e39d6fd9782af697513933995">s2n_async_pkey_validation_mode</a> { <b>S2N_ASYNC_PKEY_VALIDATION_FAST</b>
 , <b>S2N_ASYNC_PKEY_VALIDATION_STRICT</b>
  }</td></tr>
@@ -723,6 +729,8 @@ Functions</h2></td></tr>
 <tr class="separator:a249408b5a39897276524176bb951dba5"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:aed6c509e7ec18b2a9ddb47e3e595b565"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> const char *&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#aed6c509e7ec18b2a9ddb47e3e595b565">s2n_connection_get_cipher</a> (struct s2n_connection *conn)</td></tr>
 <tr class="separator:aed6c509e7ec18b2a9ddb47e3e595b565"><td class="memSeparator" colspan="2">&#160;</td></tr>
+<tr class="memitem:a762ffd38a013dba0c9266dd90b91183b"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#a762ffd38a013dba0c9266dd90b91183b">s2n_connection_get_certificate_match</a> (struct s2n_connection *conn, <a class="el" href="s2n_8h.html#a388f87d7049392968cf4fba3bdefa197">s2n_cert_sni_match</a> *match_status)</td></tr>
+<tr class="separator:a762ffd38a013dba0c9266dd90b91183b"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ad34a96dd1e2cae7dd2da4812576a65fc"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ad34a96dd1e2cae7dd2da4812576a65fc">s2n_connection_get_master_secret</a> (const struct s2n_connection *conn, uint8_t *secret_bytes, size_t max_size)</td></tr>
 <tr class="separator:ad34a96dd1e2cae7dd2da4812576a65fc"><td class="memSeparator" colspan="2">&#160;</td></tr>
 <tr class="memitem:ae8c865863e6dcfa38d4de30cd11f7c40"><td class="memItemLeft" align="right" valign="top"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int&#160;</td><td class="memItemRight" valign="bottom"><a class="el" href="s2n_8h.html#ae8c865863e6dcfa38d4de30cd11f7c40">s2n_connection_tls_exporter</a> (struct s2n_connection *conn, const uint8_t *label, uint32_t label_length, const uint8_t *context, uint32_t context_length, uint8_t *output, uint32_t output_length)</td></tr>
@@ -1569,6 +1577,22 @@ Safety</h1>
 <li>Optional (default): Sends the client certificate if the server requests client authentication. No certificate is sent if the application hasn't provided a certificate.</li>
 <li>Required: Send the client certificate. Abort the handshake if the server doesn't request client authentication or if the application hasn't provided a certificate. </li>
 </ul>
+
+</div>
+</div>
+<a id="a388f87d7049392968cf4fba3bdefa197" name="a388f87d7049392968cf4fba3bdefa197"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a388f87d7049392968cf4fba3bdefa197">&#9670;&#160;</a></span>s2n_cert_sni_match</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname">enum <a class="el" href="s2n_8h.html#a388f87d7049392968cf4fba3bdefa197">s2n_cert_sni_match</a></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >A metric to determine whether or not the server found a certificate that matched the client's SNI extension.</p>
+<p >S2N_SNI_NONE: Client did not send the SNI extension. S2N_SNI_EXACT_MATCH: Server had a certificate that matched the client's SNI extension. S2N_SNI_WILDCARD_MATCH: Server had a certificate with a domain name containing a wildcard character that could be matched to the client's SNI extension. S2N_SNI_NO_MATCH: Server did not have a certificate that could be matched to the client's SNI extension. </p>
 
 </div>
 </div>
@@ -6324,6 +6348,44 @@ Only a minimal amount of information about the original TLS connection is serial
   </dd>
 </dl>
 <dl class="section return"><dt>Returns</dt><dd>The TLS alert code that caused a connection to be shut down </dd></dl>
+
+</div>
+</div>
+<a id="a762ffd38a013dba0c9266dd90b91183b" name="a762ffd38a013dba0c9266dd90b91183b"></a>
+<h2 class="memtitle"><span class="permalink"><a href="#a762ffd38a013dba0c9266dd90b91183b">&#9670;&#160;</a></span>s2n_connection_get_certificate_match()</h2>
+
+<div class="memitem">
+<div class="memproto">
+      <table class="memname">
+        <tr>
+          <td class="memname"><a class="el" href="s2n_8h.html#af1c2b8586154a9094d6978137ef001ac">S2N_API</a> int s2n_connection_get_certificate_match </td>
+          <td>(</td>
+          <td class="paramtype">struct s2n_connection *&#160;</td>
+          <td class="paramname"><em>conn</em>, </td>
+        </tr>
+        <tr>
+          <td class="paramkey"></td>
+          <td></td>
+          <td class="paramtype"><a class="el" href="s2n_8h.html#a388f87d7049392968cf4fba3bdefa197">s2n_cert_sni_match</a> *&#160;</td>
+          <td class="paramname"><em>match_status</em>&#160;</td>
+        </tr>
+        <tr>
+          <td></td>
+          <td>)</td>
+          <td></td><td></td>
+        </tr>
+      </table>
+</div><div class="memdoc">
+<p >A function that provides insight into whether or not the server was able to send a certificate that partially or completely matched the client's SNI extension.</p>
+<dl class="section note"><dt>Note</dt><dd>This function can be used as a metric in a failed connection as long as the failure occurs after certificate selection.</dd></dl>
+<dl class="params"><dt>Parameters</dt><dd>
+  <table class="params">
+    <tr><td class="paramname">conn</td><td>A pointer to the connection </td></tr>
+    <tr><td class="paramname">cert_match</td><td>An enum indicating whether or not the server found a certificate that matched the client's SNI extension. </td></tr>
+  </table>
+  </dd>
+</dl>
+<dl class="section return"><dt>Returns</dt><dd>S2N_SUCCESS on success. S2N_FAILURE on failure. </dd></dl>
 
 </div>
 </div>
