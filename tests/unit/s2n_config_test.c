@@ -910,7 +910,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
                 EXPECT_SUCCESS(s2n_set_server_name(client_conn, "localhost"));
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -945,7 +945,7 @@ int main(int argc, char **argv)
                 EXPECT_SUCCESS(s2n_connection_set_config(client_conn, client_config));
                 EXPECT_SUCCESS(s2n_connection_set_blinding(client_conn, S2N_SELF_SERVICE_BLINDING));
 
-                struct s2n_test_io_pair io_pair = { 0 };
+                DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
                 EXPECT_SUCCESS(s2n_io_pair_init_non_blocking(&io_pair));
                 EXPECT_SUCCESS(s2n_connections_set_io_pair(client_conn, server_conn, &io_pair));
 
@@ -1146,6 +1146,43 @@ int main(int argc, char **argv)
             /* certs in domain_map are validated */
             EXPECT_ERROR_WITH_ERRNO(s2n_config_validate_loaded_certificates(config, &rfc9151_applied_locally),
                     S2N_ERR_SECURITY_POLICY_INCOMPATIBLE_CERT);
+        };
+
+        /* when cert preferences don't apply locally, certs in domain map are not iterated over
+         *
+         * Some customers load large numbers of certificates, so even iterating
+         * over every certificate without performing any validation is expensive.
+         */
+        {
+            struct s2n_security_policy non_local_rfc9151 = security_policy_rfc9151;
+
+            /* Assert that the security policy WOULD apply,
+             * if certificate_preferences_apply_locally was true.
+             */
+            EXPECT_NOT_NULL(non_local_rfc9151.certificate_key_preferences);
+            EXPECT_NOT_NULL(non_local_rfc9151.certificate_signature_preferences);
+            EXPECT_TRUE(non_local_rfc9151.certificate_key_preferences->count > 0);
+            EXPECT_TRUE(non_local_rfc9151.certificate_signature_preferences->count > 0);
+
+            DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
+            EXPECT_NOT_NULL(config);
+            EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, valid_cert));
+
+            /* Invalidate the domain map so that attempting to use it will trigger
+             * an error. We want to ensure that we DON'T use it.
+             * Iterating over a map requires that map to be immutable / complete.
+             */
+            EXPECT_OK(s2n_map_unlock(config->domain_name_to_cert_map));
+
+            /* Control case: if local validation needed, attempt to use invalid domain map */
+            non_local_rfc9151.certificate_preferences_apply_locally = true;
+            EXPECT_ERROR_WITH_ERRNO(
+                    s2n_config_validate_loaded_certificates(config, &non_local_rfc9151),
+                    S2N_ERR_MAP_MUTABLE);
+
+            /* Test case: if no local validation needed, do not use invalid domain map */
+            non_local_rfc9151.certificate_preferences_apply_locally = false;
+            EXPECT_OK(s2n_config_validate_loaded_certificates(config, &non_local_rfc9151));
         };
     };
 

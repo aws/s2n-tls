@@ -20,6 +20,8 @@
 #include "stuffer/s2n_stuffer.h"
 #include "tls/s2n_connection.h"
 
+#define S2N_CLOSED_FD -1
+
 extern const struct s2n_ecc_preferences ecc_preferences_for_retry;
 extern const struct s2n_security_policy security_policy_test_tls13_retry;
 
@@ -118,6 +120,7 @@ S2N_RESULT s2n_connection_set_test_master_secret(struct s2n_connection *conn, co
 
 #define S2N_RSA_2048_SHA256_NO_DNS_SANS_CERT "../pems/rsa_2048_sha256_no_dns_sans_cert.pem"
 #define S2N_RSA_2048_SHA256_WILDCARD_CERT    "../pems/rsa_2048_sha256_wildcard_cert.pem"
+#define S2N_RSA_2048_SHA256_WILDCARD_KEY     "../pems/rsa_2048_sha256_wildcard_key.pem"
 
 #define S2N_RSA_2048_SHA256_URI_SANS_CERT "../pems/rsa_2048_sha256_uri_sans_cert.pem"
 

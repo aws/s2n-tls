@@ -93,11 +93,30 @@ done
 #############################################
 S2N_FILES_ARRAY_SIZING_RETURN=$(find "$PWD" -type f -name "s2n*.c" -path "*")
 for file in $S2N_FILES_ARRAY_SIZING_RETURN; do
-  RESULT_ARR_DIV=`grep -Ern 'sizeof\((.*)\) \/ sizeof\(\1\[0\]\)' $file`
-
+  RESULT_ARR_DIV=`grep -Ern 'sizeof\(.*?\) / sizeof\(' $file`
   if [ "${#RESULT_ARR_DIV}" != "0" ]; then
     FAILED=1
-    printf "\e[1;34mUsage of 'sizeof(array) / sizeof(array[0])' check failed. Use s2n_array_len(array) instead in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+    printf "\e[1;34mUsage of 'sizeof(array) / sizeof(T)' check failed. Use s2n_array_len instead in $file:\e[0m\n$RESULT_ARR_DIV\n\n"
+  fi
+done
+
+#############################################
+# Detect any suspicious loops not using s2n_array_len().
+# This is not necessarily a problem, but it's been a common source of errors,
+# so we should just enforce stricter conventions.
+#############################################
+S2N_FILES_WITH_SIZEOF_LOOP=$(find "$PWD" -type f -name "s2n*.c" -path "*")
+for file in $S2N_FILES_WITH_SIZEOF_LOOP; do
+  WITH_QUESTIONABLE_SIZEOF_LOOP=`grep -Ern 'for \(.+; .+ <=? sizeof\(.+\); .+\)' $file | \
+    grep -vE '<=? sizeof\(.*bytes\);' |
+    grep -vE '<=? sizeof\(.*data\);' |
+    grep -vE '<=? sizeof\(.*u8\);'`
+  if [ "${#WITH_QUESTIONABLE_SIZEOF_LOOP}" != "0" ]; then
+    FAILED=1
+    printf "\e[1;34mWarning: sizeof is only valid for arrays of chars or uint8_ts. "
+    printf "Use s2n_array_len for other types, "
+    printf "or append \"bytes\", \"data\", or \"u8\" to your variable name for clarity.\n"
+    printf "File: $file:\e[0m\n$WITH_QUESTIONABLE_SIZEOF_LOOP\n\n"
   fi
 done
 

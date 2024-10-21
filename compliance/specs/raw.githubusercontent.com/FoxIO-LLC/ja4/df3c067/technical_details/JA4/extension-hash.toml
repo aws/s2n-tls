@@ -1,0 +1,81 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash"
+
+# ### Extension hash:
+#
+# A 12 character truncated sha256 hash of the list of extensions, sorted by hex value, followed by the list of signature algorithms, in the order that they appear (not sorted).
+# 
+# The extension list is created using the 4 character hex values of the extensions, lower case, comma delimited, sorted (not in the order they appear). Ignore the SNI extension (0000) and the ALPN extension (0010) as we’ve already captured them in the _a_ section of the fingerprint. These values are omitted so that the same application would have the same _c_ section of the fingerprint regardless of if it were going to a domain, IP, or changing ALPNs.
+# 
+# For example:
+# ```
+# 001b,0000,0033,0010,4469,0017,002d,000d,0005,0023,0012,002b,ff01,000b,000a,0015
+# ```
+# Is sorted to:
+# ```
+# 0005,000a,000b,000d,0012,0015,0017,001b,0023,002b,002d,0033,4469,ff01
+# ```
+# (notice 0000 and 0010 is removed)
+# 
+# The signature algorithm hex values are then added to the end of the list in the order that they appear (not sorted) with an underscore delimiting the two lists.  
+# For example the signature algorithms:  
+# ```
+# 0403,0804,0401,0503,0805,0501,0806,0601
+# ```
+# Are added to the end of the previous string to create:
+# ```
+# 0005,000a,000b,000d,0012,0015,0017,001b,0023,002b,002d,0033,4469,ff01_0403,0804,0401,0503,0805,0501,0806,0601
+# ```
+# Hashed to:
+# ```
+# e5627efa2ab19723084c1033a96c694a45826ab5a460d2d3fd5ffcfe97161c95
+# ```
+# Truncated to first 12 characters:
+# ```
+# e5627efa2ab1
+# ```
+# 
+# If there are no signature algorithms in the hello packet, then the string ends without an underscore and is hashed.   
+# For example:
+# ```
+# 0005,000a,000b,000d,0012,0015,0017,001b,0023,002b,002d,0033,4469,ff01 = 6d807ffa2a79
+# ```
+# 
+# If there are no extensions in the sorted extensions list, then the value of JA4_c is set to `000000000000`
+# We do this rather than running a sha256 hash of nothing as this makes it clear to the user when a field has no values.
+#
+
+[[spec]]
+level = "MUST"
+quote = '''
+A 12 character truncated sha256 hash of the list of extensions, sorted by hex value, followed by the list of signature algorithms, in the order that they appear (not sorted).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The extension list is created using the 4 character hex values of the extensions, lower case, comma delimited, sorted (not in the order they appear).
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+Ignore the SNI extension (0000) and the ALPN extension (0010) as we’ve already captured them in the _a_ section of the fingerprint.
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+The signature algorithm hex values are then added to the end of the list in the order that they appear (not sorted) with an underscore delimiting the two lists.  
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If there are no signature algorithms in the hello packet, then the string ends without an underscore and is hashed.   
+'''
+
+[[spec]]
+level = "MUST"
+quote = '''
+If there are no extensions in the sorted extensions list, then the value of JA4_c is set to `000000000000`
+'''

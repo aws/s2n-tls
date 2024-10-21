@@ -137,14 +137,16 @@ struct hybrid_test_vector {
 #define KYBER512R3_SECRET  "0A6925676F24B22C286F4C81A4224CEC506C9B257D480E02E3B49F44CAA3237F"
 #define KYBER768R3_SECRET  "914CB67FE5C38E73BF74181C0AC50428DEDF7750A98058F7D536708774535B29"
 #define KYBER1024R3_SECRET "B10F7394926AD3B49C5D62D5AEB531D5757538BCC0DA9E550D438F1B61BD7419"
+#define MLKEM768_SECRET    "B408D5D115713F0A93047DBBEA832E4340787686D59A9A2D106BD662BA0AA035"
 
-/* Hybrid shared secrets are the concatenation: ECDHE || PQ */
 #define X25519_KYBER512R3_HYBRID_SECRET     (X25519_SHARED_SECRET KYBER512R3_SECRET)
 #define X25519_KYBER768R3_HYBRID_SECRET     (X25519_SHARED_SECRET KYBER768R3_SECRET)
 #define SECP256R1_KYBER512R3_HYBRID_SECRET  (SECP256R1_SHARED_SECRET KYBER512R3_SECRET)
 #define SECP256R1_KYBER768R3_HYBRID_SECRET  (SECP256R1_SHARED_SECRET KYBER768R3_SECRET)
 #define SECP384R1_KYBER768R3_HYBRID_SECRET  (SECP384R1_SHARED_SECRET KYBER768R3_SECRET)
 #define SECP521R1_KYBER1024R3_HYBRID_SECRET (SECP521R1_SHARED_SECRET KYBER1024R3_SECRET)
+#define X25519_MLKEM768_HYBRID_SECRET       (MLKEM768_SECRET X25519_SHARED_SECRET)
+#define SECP256R1_MLKEM768_HYBRID_SECRET    (SECP256R1_SHARED_SECRET MLKEM768_SECRET)
 
 /* The expected traffic secrets were calculated from an independent Python implementation located in the KAT directory,
  * using the ECDHE & PQ secrets defined above. */
@@ -177,6 +179,16 @@ struct hybrid_test_vector {
 #define AES_128_SECP521R1_KYBER1024R3_SERVER_TRAFFIC_SECRET "ee825af01207fb7935f862018f0cd083f88ab5019c8c5e7797afcab77f9fbb0e"
 #define AES_256_SECP521R1_KYBER1024R3_CLIENT_TRAFFIC_SECRET "660838cb79c4852258346112f481b75463b39aec83b961cd999741d720b18c95df0c3eabc1ec6b1505703ce1925bf396"
 #define AES_256_SECP521R1_KYBER1024R3_SERVER_TRAFFIC_SECRET "19cb80a0d66c0e616891370273b92cf700d1cf32146be6402eb3de62eab6d1ce2d259b404ff29249e8c2af6df416d503"
+
+#define AES_128_SECP256R1_MLKEM768_CLIENT_TRAFFIC_SECRET "e3b086562f8dc237a9dc8710f345821c871417bd57a64a1966860f1f06bcd5dc"
+#define AES_128_SECP256R1_MLKEM768_SERVER_TRAFFIC_SECRET "eb3f47d5cc09234957543e1160dde10cc86b817f31c43d5e8af8cdd6167b0336"
+#define AES_256_SECP256R1_MLKEM768_CLIENT_TRAFFIC_SECRET "9e65803eeb8324eb5faea82be52c266e0bf8ac398f091db73a48e68ee2ff0a91915b3f1f4e9907e33543a9ebb1f7a748"
+#define AES_256_SECP256R1_MLKEM768_SERVER_TRAFFIC_SECRET "cb8fc8707f294e3ab9b98f0d873b1e1c5d740ecd254c67fcca44b5444742bf958102be17beb5c89ae08b8b31191d9137"
+
+#define AES_128_X25519_MLKEM768_CLIENT_TRAFFIC_SECRET "8bf7f5f36cdece4ca1439e14e9b585cd5c2c11753ce53733da771c89ba7d8162"
+#define AES_128_X25519_MLKEM768_SERVER_TRAFFIC_SECRET "c9221c9f9fad66ac7ae568e46695229eaf95196819c2bb997469f010075b953e"
+#define AES_256_X25519_MLKEM768_CLIENT_TRAFFIC_SECRET "44eb9e15ef082936fe7a2c169be644ff16b47fb2a91f7223069cbd8d9b063a034f0936234e60a733a30db6d7226d984d"
+#define AES_256_X25519_MLKEM768_SERVER_TRAFFIC_SECRET "852b46f0e3cdc222badc0b85f4cfb4f332c2d8ea8c9695d6024e129b5056d2c534191ee76bff50148f19a88f81897112"
 
 /* A fake transcript string to hash when deriving handshake secrets */
 #define FAKE_TRANSCRIPT "client_hello || server_hello"
@@ -385,6 +397,70 @@ int main(int argc, char **argv)
         .expected_server_traffic_secret = &aes_256_x25519_kyber768r3_server_secret,
     };
 
+    S2N_BLOB_FROM_HEX(mlkem768_secret, MLKEM768_SECRET);
+    S2N_BLOB_FROM_HEX(secp256r1_mlkem768_hybrid_secret, SECP256R1_MLKEM768_HYBRID_SECRET);
+    S2N_BLOB_FROM_HEX(x25519_mlkem768_hybrid_secret, X25519_MLKEM768_HYBRID_SECRET);
+
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_mlkem768_client_secret, AES_128_SECP256R1_MLKEM768_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_secp256r1_mlkem768_server_secret, AES_128_SECP256R1_MLKEM768_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_128_sha_256_secp256r1_mlkem768_vector = {
+        .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
+        .transcript = FAKE_TRANSCRIPT,
+        .kem_group = &s2n_secp256r1_mlkem_768,
+        .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
+        .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
+        .pq_secret = &mlkem768_secret,
+        .expected_hybrid_secret = &secp256r1_mlkem768_hybrid_secret,
+        .expected_client_traffic_secret = &aes_128_secp256r1_mlkem768_client_secret,
+        .expected_server_traffic_secret = &aes_128_secp256r1_mlkem768_server_secret,
+    };
+
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_mlkem768_client_secret, AES_256_SECP256R1_MLKEM768_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_secp256r1_mlkem768_server_secret, AES_256_SECP256R1_MLKEM768_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_256_sha_384_secp256r1_mlkem768_vector = {
+        .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
+        .transcript = FAKE_TRANSCRIPT,
+        .kem_group = &s2n_secp256r1_mlkem_768,
+        .client_ecc_key = CLIENT_SECP256R1_PRIV_KEY,
+        .server_ecc_key = SERVER_SECP256R1_PRIV_KEY,
+        .pq_secret = &mlkem768_secret,
+        .expected_hybrid_secret = &secp256r1_mlkem768_hybrid_secret,
+        .expected_client_traffic_secret = &aes_256_secp256r1_mlkem768_client_secret,
+        .expected_server_traffic_secret = &aes_256_secp256r1_mlkem768_server_secret,
+    };
+
+    S2N_BLOB_FROM_HEX(aes_128_x25519_mlkem768_client_secret, AES_128_X25519_MLKEM768_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_128_x25519_mlkem768_server_secret, AES_128_X25519_MLKEM768_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_128_sha_256_x25519_mlkem768_vector = {
+        .cipher_suite = &s2n_tls13_aes_128_gcm_sha256,
+        .transcript = FAKE_TRANSCRIPT,
+        .kem_group = &s2n_x25519_mlkem_768,
+        .client_ecc_key = CLIENT_X25519_PRIV_KEY,
+        .server_ecc_key = SERVER_X25519_PRIV_KEY,
+        .pq_secret = &mlkem768_secret,
+        .expected_hybrid_secret = &x25519_mlkem768_hybrid_secret,
+        .expected_client_traffic_secret = &aes_128_x25519_mlkem768_client_secret,
+        .expected_server_traffic_secret = &aes_128_x25519_mlkem768_server_secret,
+    };
+
+    S2N_BLOB_FROM_HEX(aes_256_x25519_mlkem768_client_secret, AES_256_X25519_MLKEM768_CLIENT_TRAFFIC_SECRET);
+    S2N_BLOB_FROM_HEX(aes_256_x25519_mlkem768_server_secret, AES_256_X25519_MLKEM768_SERVER_TRAFFIC_SECRET);
+
+    const struct hybrid_test_vector aes_256_sha_384_x25519_mlkem768_vector = {
+        .cipher_suite = &s2n_tls13_aes_256_gcm_sha384,
+        .transcript = FAKE_TRANSCRIPT,
+        .kem_group = &s2n_x25519_mlkem_768,
+        .client_ecc_key = CLIENT_X25519_PRIV_KEY,
+        .server_ecc_key = SERVER_X25519_PRIV_KEY,
+        .pq_secret = &mlkem768_secret,
+        .expected_hybrid_secret = &x25519_mlkem768_hybrid_secret,
+        .expected_client_traffic_secret = &aes_256_x25519_mlkem768_client_secret,
+        .expected_server_traffic_secret = &aes_256_x25519_mlkem768_server_secret,
+    };
+
     const struct hybrid_test_vector *all_test_vectors[] = {
         &aes_128_sha_256_secp256r1_kyber512r3_vector,
         &aes_256_sha_384_secp256r1_kyber512r3_vector,
@@ -398,6 +474,10 @@ int main(int argc, char **argv)
         &aes_256_sha_384_secp521r1_kyber1024r3_vector,
         &aes_128_sha_256_x25519_kyber768r3_vector,
         &aes_256_sha_384_x25519_kyber768r3_vector,
+        &aes_128_sha_256_secp256r1_mlkem768_vector,
+        &aes_256_sha_384_secp256r1_mlkem768_vector,
+        &aes_128_sha_256_x25519_mlkem768_vector,
+        &aes_256_sha_384_x25519_mlkem768_vector,
     };
 
     EXPECT_EQUAL(s2n_array_len(all_test_vectors), (2 * S2N_KEM_GROUPS_COUNT));
