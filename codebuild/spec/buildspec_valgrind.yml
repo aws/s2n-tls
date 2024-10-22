@@ -71,7 +71,4 @@ phases:
         cmake --build build/ --target test \
           -- ARGS="--test-action memcheck"
       - cd codebuild/bin
-      - echo "+---------------------------------------------------------+"
-      - printf "| %-55s |\n" "Test for leaking file descriptors"
-      - echo "+---------------------------------------------------------+"
-      - python3 s2n_open_fds_test.py
+      - python3 s2n_open_fds_test.py $CODEBUILD_SRC_DIR/build/Testing/Temporary

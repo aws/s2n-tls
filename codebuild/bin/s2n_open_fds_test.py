@@ -6,7 +6,6 @@ import sys
 ACCEPTABLE_OPEN_FDS = 4
 ERROR_EXIT_CODE = 123
 
-analysis_file_location = "../../build/Testing/Temporary"
 analysis_file_pattern = re.compile(r"^LastDynamicAnalysis.*")
 # This regular expression captures valgrind 3.13 and valgrind 3.18+ log
 fd_pattern = re.compile(r"FILE DESCRIPTORS: \d+ open(?: \(\d+ std\))? at exit.$")
@@ -15,9 +14,9 @@ error_message_end_pattern = re.compile(r"^<end of output>$")
 
 
 def open_analysis_file(path):
-    for file_name in os.listdir(path):
-        if analysis_file_pattern.match(file_name):
-            file = open(os.path.join(path, file_name), 'r')
+    for fl in os.listdir(path):
+        if analysis_file_pattern.match(fl):
+            file = open(os.path.join(path, fl), 'r')
     return file
 
 
@@ -71,11 +70,16 @@ def read_analysis_file(file):
     file.close()
     return exit_code
 
+def print_banner():
+    print("############################################################################")
+    print("################# Teset for Leaking File Descriptors #######################")
+    print("############################################################################")
 
 def main():
-    file = open_analysis_file(analysis_file_location)
+    file = open_analysis_file(sys.argv[1])
     return read_analysis_file(file)
 
 
 if __name__ == '__main__':
+    print_banner()
     sys.exit(main())
