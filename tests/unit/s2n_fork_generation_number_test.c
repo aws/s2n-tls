@@ -30,7 +30,6 @@
 
 #include "s2n_test.h"
 #include "utils/s2n_fork_detection.h"
-#include "utils/s2n_random.h"
 
 #define NUMBER_OF_FGN_TEST_CASES   4
 #define MAX_NUMBER_OF_TEST_THREADS 2
@@ -190,11 +189,8 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
     /* Verify in threads */
     EXPECT_EQUAL(s2n_unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
-    /* Call rand cleanup to close /dev/urandom */
-    POSIX_GUARD_RESULT(s2n_rand_cleanup());
-
     /* This translates to the exit code for this child process */
-    return EXIT_SUCCESS;
+    exit(EXIT_SUCCESS);
 }
 
 #define PROCESS_CHILD_STACK_SIZE (1024 * 1024) /* Suggested by clone() man page... */
