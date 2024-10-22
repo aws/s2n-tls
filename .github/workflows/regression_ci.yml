@@ -55,6 +55,7 @@ jobs:
       - name: Run scalar performance test (mainline)
         env:
           PERF_MODE: valgrind
+          COMMIT_TYPE: baseline
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
       # Checkout pull request branch
@@ -69,6 +70,7 @@ jobs:
       - name: Run scalar performance test (PR branch)
         env:
           PERF_MODE: valgrind
+          COMMIT_TYPE: altered
         run: cargo test --release --manifest-path=tests/regression/Cargo.toml
 
       # Run the differential performance test
