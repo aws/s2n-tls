@@ -295,6 +295,10 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
         /* Read the next personalization string */
         POSIX_GUARD(s2n_stuffer_read(&personalization, &personalization_string));
 
+        /* s2n_rand_set_callbacks overrode the default callbacks without cleaning up the default callbacks.
+        * Call defaults rand cleanup function to cleanup old callbacks before setting new ones. */
+        POSIX_GUARD_RESULT(s2n_rand_cleanup());
+
         /* Over-ride the entropy sources */
         POSIX_GUARD(s2n_rand_set_callbacks(nist_fake_entropy_init_cleanup, nist_fake_entropy_init_cleanup, generator, generator));
 
@@ -333,11 +337,7 @@ int check_drgb_version(s2n_drbg_mode mode, int (*generator)(void *, uint32_t), i
         }
 
         POSIX_GUARD_RESULT(s2n_drbg_wipe(&nist_drbg));
-        /**
-         * Can't rely on s2n_cleanup to clean s2n_init 
-         * becuase the default clean up callbacks are overwritten
-         * by s2n_rand_set_callbacks. */
-        POSIX_GUARD_RESULT(s2n_rand_cleanup());
+
     }
     return 0;
 }

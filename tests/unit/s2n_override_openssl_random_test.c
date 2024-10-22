@@ -100,6 +100,9 @@ int main(int argc, char **argv)
     /* Set s2n_random to use a new fixed DRBG to test that other known answer tests with s2n_random and OpenSSL are deterministic */
     EXPECT_OK(s2n_stuffer_alloc_from_hex(&test_entropy, reference_entropy_hex));
     struct s2n_drbg drbg;
+    /* s2n_rand_set_callbacks overrode the default callbacks without cleaning up the default callbacks.
+    * Call defaults rand cleanup function to cleanup old callbacks before setting new ones. */
+    POSIX_GUARD_RESULT(s2n_rand_cleanup());
     EXPECT_SUCCESS(s2n_rand_set_callbacks(s2n_entropy_init_cleanup, s2n_entropy_init_cleanup, s2n_entropy_generator, s2n_entropy_generator));
 
     s2n_stack_blob(personalization_string, 32, 32);
@@ -131,11 +134,6 @@ int main(int argc, char **argv)
     EXPECT_SUCCESS(s2n_stuffer_free(&dhparams_in));
     EXPECT_SUCCESS(s2n_stuffer_free(&test_entropy));
     free(dhparams_pem);
-    /**
-     * Can't rely on s2n_cleanup to clean s2n_init 
-     * becuase the default clean up callbacks are overwritten
-     * by s2n_rand_set_callbacks. */
-    POSIX_GUARD_RESULT(s2n_rand_cleanup());
 
     END_TEST();
 }
