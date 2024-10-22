@@ -61,11 +61,8 @@ static S2N_RESULT s2n_setup_connections(struct s2n_connection *server,
 /* Unlike our other self-talk tests, this test cannot use AF_UNIX / AF_LOCAL.
  * For a real self-talk test we need real kernel support for kTLS, and only
  * AF_INET sockets support kTLS.
- * 
- * Pass in file as an argument, so that we can close it once the child process
- * exits.
  */
-static S2N_RESULT s2n_new_inet_socket_pair(struct s2n_test_io_pair *io_pair, int file)
+static S2N_RESULT s2n_new_inet_socket_pair(struct s2n_test_io_pair *io_pair)
 {
     RESULT_ENSURE_REF(io_pair);
 
@@ -92,13 +89,12 @@ static S2N_RESULT s2n_new_inet_socket_pair(struct s2n_test_io_pair *io_pair, int
         RESULT_ENSURE_EQ(connect(io_pair->client, (struct sockaddr *) &saddr, addrlen), 0);
         EXPECT_SUCCESS(s2n_io_pair_close(io_pair));
         ZERO_TO_DISABLE_DEFER_CLEANUP(io_pair);
-        close(listener);
-        close(file);
+        RESULT_ENSURE_EQ(close(listener), 0);
         exit(0);
     }
     io_pair->server = accept(listener, NULL, NULL);
     RESULT_ENSURE_GT(io_pair->server, 0);
-    close(listener);
+    RESULT_ENSURE_EQ(close(listener), 0);
     return S2N_RESULT_OK;
 }
 
@@ -146,6 +142,7 @@ int main(int argc, char **argv)
     EXPECT_TRUE(file > 0);
     int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
     EXPECT_EQUAL(file_read, sizeof(file_test_data));
+    EXPECT_SUCCESS(close(file));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -172,7 +169,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        if (s2n_result_is_error(s2n_new_inet_socket_pair(&io_pair, file))) {
+        if (s2n_result_is_error(s2n_new_inet_socket_pair(&io_pair))) {
             /* We should be able to setup AF_INET sockets everywhere, but if
              * we can't, don't block the build unless the build explicitly expects
              * to be able to test ktls.
@@ -217,7 +214,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_config(server, config));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair, file));
+        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
         EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
         struct s2n_connection *conns[] = {
@@ -278,6 +275,7 @@ int main(int argc, char **argv)
         };
 
         /* Test: s2n_sendfile */
+        file = open(argv[0], O_RDONLY);
         for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
             const size_t offset = test_offsets[offset_i];
             const size_t expected_written = sizeof(test_data) - offset;
@@ -295,6 +293,7 @@ int main(int argc, char **argv)
 
             EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
         }
+        EXPECT_SUCCESS(close(file));
 
         /* Test: s2n_shutdown */
         {
@@ -328,7 +327,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_blinding(server, S2N_SELF_SERVICE_BLINDING));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair, file));
+        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
         EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
         struct s2n_connection *conns[] = {
@@ -422,7 +421,7 @@ int main(int argc, char **argv)
         EXPECT_SUCCESS(s2n_connection_set_cipher_preferences(server, "default_tls13"));
 
         DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair, file));
+        EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
         EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
         EXPECT_EQUAL(client->actual_protocol_version, S2N_TLS13);
         EXPECT_EQUAL(server->actual_protocol_version, S2N_TLS13);
@@ -527,7 +526,7 @@ int main(int argc, char **argv)
         /* Test: Receive an alert while calling s2n_recv */
         {
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair, file));
+            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
             EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
 
@@ -551,7 +550,7 @@ int main(int argc, char **argv)
         /* Test: Receive an alert while calling s2n_shutdown */
         {
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair, file));
+            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
             EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
 
@@ -581,7 +580,7 @@ int main(int argc, char **argv)
         /* Test: Receive "end of data" while calling s2n_recv */
         {
             DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair, file));
+            EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
             EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
             EXPECT_SUCCESS(s2n_connection_ktls_enable_recv(reader));
 
@@ -666,7 +665,7 @@ int main(int argc, char **argv)
                 server->security_policy_override = &policy;
 
                 DEFER_CLEANUP(struct s2n_test_io_pair io_pair = { 0 }, s2n_io_pair_close);
-                EXPECT_OK(s2n_new_inet_socket_pair(&io_pair, file));
+                EXPECT_OK(s2n_new_inet_socket_pair(&io_pair));
                 EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
 
                 struct s2n_connection *conns[] = {
@@ -705,7 +704,6 @@ int main(int argc, char **argv)
             }
         }
     }
-    close(file);
 
     END_TEST();
 }
