@@ -244,9 +244,11 @@ S2N_API extern int s2n_cleanup(void);
 /*
  * Performs a complete deinitialization and cleanup of the s2n-tls library.
  *
- * The difference between this API and s2n_cleanup is that s2n_cleanup will not fully clean up the library
- * if the atexit handler is enabled or it is called on a thread that did not call s2n_init. s2n_cleanup_final
- * will always fully deinitialize the library.
+ * s2n_cleanup_final will always perform a complete cleanup. In contrast,
+ * s2n_cleanup will only perform a complete cleanup if the atexit handler
+ * is disabled and s2n_cleanup is called by the thread that called s2n_init.
+ * Therefore s2n_cleanup_final should be used instead of s2n_cleanup in cases
+ * where the user needs full control over when the complete cleanup executes.
  *
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure
  */
