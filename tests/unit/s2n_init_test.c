@@ -104,6 +104,14 @@ int main(int argc, char **argv)
         EXPECT_FAILURE_WITH_ERRNO(s2n_cleanup(), S2N_ERR_NOT_INITIALIZED);
     }
 
+    /* Calling s2n_cleanup_final will de-initialize the library */
+    {
+        EXPECT_SUCCESS(s2n_init());
+        EXPECT_TRUE(s2n_is_initialized());
+        EXPECT_SUCCESS(s2n_cleanup_final());
+        EXPECT_FALSE(s2n_is_initialized());
+    }
+
     /* The following test requires atexit to be enabled. */
     EXPECT_SUCCESS(s2n_enable_atexit());
 
