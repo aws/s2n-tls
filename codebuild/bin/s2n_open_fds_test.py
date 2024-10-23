@@ -5,18 +5,15 @@
 # It identifies any leaking file descriptors and triggers an error when detected.
 # This enhances the capabilities of existing Valgrind checks.
 import os
-import re
 import sys
 
-# Exit code matches the valgrind memory loss error code
-ERROR_EXIT_CODE = 123
-
-analysis_file_pattern = re.compile(r"LastDynamicAnalysis.*")
+# Exit with error code 1 if leaking fds are detected.
+ERROR_EXIT_CODE = 1
 
 
 def open_analysis_file(path):
     for fl in os.listdir(path):
-        if analysis_file_pattern.match(fl):
+        if "LastDynamicAnalysis" in fl:
             file = open(os.path.join(path, fl), 'r')
     return file
 
@@ -30,12 +27,11 @@ def read_analysis_file(file):
             to_print = False
             continue
         # Check if the line contains FILE DESCRITOPRS:
-        parts = lines[i].split("FILE DESCRIPTORS: ")
-        if len(parts) > 1:
+        if "FILE DESCRIPTORS: " in lines[i]:
             # If a process doesn't leak file descriptors
             # Then the next line will always be the file descriptor
             # for LastDynamicAnalysis log file.
-            if not analysis_file_pattern.search(lines[i + 1]):
+            if not "LastDynamicAnalysis" in lines[i + 1]:
                 # Print a new line to separate the old output from the new output
                 print("")
                 to_print = True
