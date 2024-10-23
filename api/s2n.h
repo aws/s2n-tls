@@ -3199,6 +3199,38 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
  */
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
 
+/** 
+ * A metric to determine whether or not the server found a certificate that matched
+ * the client's SNI extension.
+ *
+ * S2N_SNI_NONE: Client did not send the SNI extension.
+ * S2N_SNI_EXACT_MATCH: Server had a certificate that matched the client's SNI extension.
+ * S2N_SNI_WILDCARD_MATCH: Server had a certificate with a domain name containing a wildcard character
+ * that could be matched to the client's SNI extension.
+ * S2N_SNI_NO_MATCH: Server did not have a certificate that could be matched to the client's
+ * SNI extension.
+ */
+typedef enum {
+    S2N_SNI_NONE = 1,
+    S2N_SNI_EXACT_MATCH,
+    S2N_SNI_WILDCARD_MATCH,
+    S2N_SNI_NO_MATCH,
+} s2n_cert_sni_match;
+
+/**
+ * A function that provides insight into whether or not the server was able to send a certificate that
+ * partially or completely matched the client's SNI extension.
+ * 
+ * @note This function can be used as a metric in a failed connection as long as the failure
+ * occurs after certificate selection.
+ *
+ * @param conn A pointer to the connection
+ * @param cert_match An enum indicating whether or not the server found a certificate
+ * that matched the client's SNI extension.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_connection_get_certificate_match(struct s2n_connection *conn, s2n_cert_sni_match *match_status);
+
 /**
  * Provides access to the TLS master secret.
  *
