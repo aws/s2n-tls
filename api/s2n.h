@@ -262,13 +262,11 @@ typedef enum {
 /**
  * Determines whether s2n-tls is operating in FIPS mode.
  *
- * s2n-tls enters FIPS mode on initialization when the linked libcrypto has FIPS mode enabled.
- * s2n-tls only supports FIPS mode when built with AWS-LC-FIPS or AWS-LC-FIPS-2022. AWS-LC-FIPS
- * and AWS-LC-FIPS-2022 have FIPS mode enabled by default.
+ * s2n-tls enters FIPS mode on initialization when linked with a FIPS validated version of AWS-LC.
  *
- * s2n-tls MUST be linked to a FIPS libcrypto and MUST be in FIPS mode in order to comply with FIPS
- * requirements. Applications desiring FIPS compliance should use this API to ensure that s2n-tls
- * has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
+ * s2n-tls MUST be linked to a FIPS validated libcrypto and MUST be in FIPS mode in order to comply
+ * with FIPS requirements. Applications desiring FIPS compliance should use this API to ensure that
+ * s2n-tls has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.
  *
  * @param fips_mode Set to the FIPS mode of s2n-tls.
  * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
