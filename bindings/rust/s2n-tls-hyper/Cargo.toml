@@ -23,4 +23,5 @@ http = { version= "1" }
 [dev-dependencies]
 tokio = { version = "1", features = ["macros", "test-util"] }
 http-body-util = "0.1"
+hyper-util = { version = "0.1", features = ["server"] }
 bytes = "1"
