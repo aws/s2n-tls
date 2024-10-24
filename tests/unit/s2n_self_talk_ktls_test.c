@@ -87,11 +87,14 @@ static S2N_RESULT s2n_new_inet_socket_pair(struct s2n_test_io_pair *io_pair)
     RESULT_ENSURE_GTE(pid, 0);
     if (pid == 0) {
         RESULT_ENSURE_EQ(connect(io_pair->client, (struct sockaddr *) &saddr, addrlen), 0);
+        EXPECT_SUCCESS(s2n_io_pair_close(io_pair));
         ZERO_TO_DISABLE_DEFER_CLEANUP(io_pair);
+        RESULT_ENSURE_EQ(close(listener), 0);
         exit(0);
     }
     io_pair->server = accept(listener, NULL, NULL);
     RESULT_ENSURE_GT(io_pair->server, 0);
+    RESULT_ENSURE_EQ(close(listener), 0);
     return S2N_RESULT_OK;
 }
 
@@ -139,6 +142,7 @@ int main(int argc, char **argv)
     EXPECT_TRUE(file > 0);
     int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
     EXPECT_EQUAL(file_read, sizeof(file_test_data));
+    EXPECT_SUCCESS(close(file));
 
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
@@ -171,6 +175,7 @@ int main(int argc, char **argv)
              * to be able to test ktls.
              */
             EXPECT_FALSE(ktls_expected);
+            EXPECT_SUCCESS(s2n_io_pair_close(&io_pair));
             END_TEST();
         }
         EXPECT_OK(s2n_setup_connections(server, client, &io_pair));
@@ -270,6 +275,7 @@ int main(int argc, char **argv)
         };
 
         /* Test: s2n_sendfile */
+        file = open(argv[0], O_RDONLY);
         for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
             const size_t offset = test_offsets[offset_i];
             const size_t expected_written = sizeof(test_data) - offset;
@@ -287,6 +293,7 @@ int main(int argc, char **argv)
 
             EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
         }
+        EXPECT_SUCCESS(close(file));
 
         /* Test: s2n_shutdown */
         {
