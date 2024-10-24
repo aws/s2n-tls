@@ -37,7 +37,7 @@ static void s2n_cleanup_atexit(void);
 
 static pthread_t main_thread = 0;
 static bool initialized = false;
-static bool atexit_cleanup = true;
+static bool atexit_cleanup = false;
 int s2n_disable_atexit(void)
 {
     POSIX_ENSURE(!initialized, S2N_ERR_INITIALIZED);
@@ -139,13 +139,7 @@ int s2n_cleanup(void)
 {
     POSIX_GUARD(s2n_cleanup_thread());
 
-    /* If this is the main thread and atexit cleanup is disabled,
-     * perform final cleanup now */
-    if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
-        POSIX_GUARD(s2n_cleanup_final());
-    }
-
-    return 0;
+    return S2N_SUCCESS;
 }
 
 static void s2n_cleanup_atexit(void)
