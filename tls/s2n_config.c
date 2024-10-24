@@ -65,7 +65,12 @@ static int wall_clock(void *data, uint64_t *nanoseconds)
 
 static struct s2n_config s2n_default_config = { 0 };
 static struct s2n_config s2n_default_fips_config = { 0 };
-static struct s2n_config s2n_default_tls13_config = { 0 };
+/* Dedicated configs for testing different protocols since tests can override the
+ * default security policy behavior.
+ */
+static struct s2n_config s2n_testing_default_tls12_config = { 0 };
+static struct s2n_config s2n_testing_default_tls12_fips_config = { 0 };
+static struct s2n_config s2n_testing_default_tls13_config = { 0 };
 
 static int s2n_config_setup_default(struct s2n_config *config)
 {
@@ -73,9 +78,27 @@ static int s2n_config_setup_default(struct s2n_config *config)
     return S2N_SUCCESS;
 }
 
+static int s2n_config_setup_tls12(struct s2n_config *config)
+{
+    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    /* A TLS1.2 policy */
+    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "20240501"));
+    return S2N_SUCCESS;
+}
+
+static int s2n_config_setup_tls12_fips(struct s2n_config *config)
+{
+    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    /* A FIPS compliant TLS1.2 policy */
+    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "20240502"));
+    return S2N_SUCCESS;
+}
+
 static int s2n_config_setup_tls13(struct s2n_config *config)
 {
-    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "default_tls13"));
+    POSIX_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+    /* A TLS1.3 policy */
+    POSIX_GUARD(s2n_config_set_cipher_preferences(config, "20240503"));
     return S2N_SUCCESS;
 }
 
@@ -83,6 +106,46 @@ static int s2n_config_setup_fips(struct s2n_config *config)
 {
     POSIX_GUARD(s2n_config_set_cipher_preferences(config, "default_fips"));
     return S2N_SUCCESS;
+}
+
+/* Determine the default security policy when creating a new config.
+ *
+ * s2n_config is instantiated with 'default' or 'default_fips'. To support older
+ * tests, a TLS1.2/FIPS_TLS1.2/TLS1.3 compliant security policy can also
+ * be used by default.
+ */
+static S2N_RESULT s2n_config_get_default_security_policy_selection(s2n_default_security_policy_selection *selection)
+{
+    RESULT_ENSURE_REF(selection);
+
+    s2n_testing_security_policy_override override = S2N_TESTING_POLICY_NO_OVERRIDE;
+    RESULT_GUARD(s2n_get_testing_security_policy_override(&override));
+
+    switch (override) {
+        case S2N_TESTING_POLICY_OVERRIDE_TLS12:
+            RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
+            if (s2n_is_in_fips_mode()) {
+                *selection = S2N_SELECT_TEST_OVERRIDE_POLICY_TLS12_FIPS;
+            } else {
+                *selection = S2N_SELECT_TEST_OVERRIDE_POLICY_TLS12;
+            }
+            break;
+        case S2N_TESTING_POLICY_OVERRIDE_TLS13:
+            RESULT_ENSURE(s2n_in_unit_test(), S2N_ERR_NOT_IN_UNIT_TEST);
+
+            *selection = S2N_SELECT_TEST_OVERRIDE_POLICY_TLS13;
+            break;
+        case S2N_TESTING_POLICY_NO_OVERRIDE:
+            if (s2n_is_in_fips_mode()) {
+                *selection = S2N_SELECT_DEFAULT_FIPS_POLICY;
+            } else {
+                *selection = S2N_SELECT_DEFAULT_POLICY;
+            }
+            break;
+    };
+
+    return S2N_RESULT_OK;
 }
 
 static int s2n_config_init(struct s2n_config *config)
@@ -100,11 +163,24 @@ static int s2n_config_init(struct s2n_config *config)
 
     config->client_hello_cb_mode = S2N_CLIENT_HELLO_CB_BLOCKING;
 
-    POSIX_GUARD(s2n_config_setup_default(config));
-    if (s2n_use_default_tls13_config()) {
-        POSIX_GUARD(s2n_config_setup_tls13(config));
-    } else if (s2n_is_in_fips_mode()) {
-        POSIX_GUARD(s2n_config_setup_fips(config));
+    s2n_default_security_policy_selection selection = S2N_SELECT_DEFAULT_POLICY;
+    POSIX_GUARD_RESULT(s2n_config_get_default_security_policy_selection(&selection));
+    switch (selection) {
+        case S2N_SELECT_DEFAULT_POLICY:
+            POSIX_GUARD(s2n_config_setup_default(config));
+            break;
+        case S2N_SELECT_DEFAULT_FIPS_POLICY:
+            POSIX_GUARD(s2n_config_setup_fips(config));
+            break;
+        case S2N_SELECT_TEST_OVERRIDE_POLICY_TLS12:
+            POSIX_GUARD(s2n_config_setup_tls12(config));
+            break;
+        case S2N_SELECT_TEST_OVERRIDE_POLICY_TLS12_FIPS:
+            POSIX_GUARD(s2n_config_setup_tls12_fips(config));
+            break;
+        case S2N_SELECT_TEST_OVERRIDE_POLICY_TLS13:
+            POSIX_GUARD(s2n_config_setup_tls13(config));
+            break;
     }
 
     POSIX_GUARD_PTR(config->domain_name_to_cert_map = s2n_map_new_with_initial_capacity(1));
@@ -207,12 +283,21 @@ int s2n_config_build_domain_name_to_cert_map(struct s2n_config *config, struct s
 
 struct s2n_config *s2n_fetch_default_config(void)
 {
-    if (s2n_use_default_tls13_config()) {
-        return &s2n_default_tls13_config;
+    s2n_default_security_policy_selection selection = S2N_SELECT_DEFAULT_POLICY;
+    PTR_GUARD_RESULT(s2n_config_get_default_security_policy_selection(&selection));
+    switch (selection) {
+        case S2N_SELECT_DEFAULT_POLICY:
+            return &s2n_default_config;
+        case S2N_SELECT_DEFAULT_FIPS_POLICY:
+            return &s2n_default_fips_config;
+        case S2N_SELECT_TEST_OVERRIDE_POLICY_TLS12:
+            return &s2n_testing_default_tls12_config;
+        case S2N_SELECT_TEST_OVERRIDE_POLICY_TLS12_FIPS:
+            return &s2n_testing_default_tls12_fips_config;
+        case S2N_SELECT_TEST_OVERRIDE_POLICY_TLS13:
+            return &s2n_testing_default_tls13_config;
     }
-    if (s2n_is_in_fips_mode()) {
-        return &s2n_default_fips_config;
-    }
+
     return &s2n_default_config;
 }
 
@@ -239,24 +324,35 @@ int s2n_config_defaults_init(void)
         POSIX_GUARD(s2n_config_load_system_certs(&s2n_default_config));
     }
 
-    /* TLS 1.3 default config is only used in tests so avoid initialization costs in applications */
-    POSIX_GUARD(s2n_config_init(&s2n_default_tls13_config));
-    POSIX_GUARD(s2n_config_setup_tls13(&s2n_default_tls13_config));
+    /* Initialize static test configs only when running tests.
+     *
+     * `s2n_config_load_system_certs` can be an expensive operation which can
+     * affect initialization cost for applications.
+     */
+    if (s2n_in_unit_test()) {
+        POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls12_config));
+        POSIX_GUARD(s2n_config_setup_tls12(&s2n_testing_default_tls12_config));
+        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_default_tls12_config));
+
+        POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls12_fips_config));
+        POSIX_GUARD(s2n_config_setup_tls12_fips(&s2n_testing_default_tls12_fips_config));
+        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_default_tls12_fips_config));
+
+        POSIX_GUARD(s2n_config_init(&s2n_testing_default_tls13_config));
+        POSIX_GUARD(s2n_config_setup_tls13(&s2n_testing_default_tls13_config));
+        POSIX_GUARD(s2n_config_load_system_certs(&s2n_testing_default_tls13_config));
+    }
 
     return S2N_SUCCESS;
-}
-
-S2N_RESULT s2n_config_testing_defaults_init_tls13_certs(void)
-{
-    RESULT_GUARD_POSIX(s2n_config_load_system_certs(&s2n_default_tls13_config));
-    return S2N_RESULT_OK;
 }
 
 void s2n_wipe_static_configs(void)
 {
     s2n_config_cleanup(&s2n_default_fips_config);
     s2n_config_cleanup(&s2n_default_config);
-    s2n_config_cleanup(&s2n_default_tls13_config);
+    s2n_config_cleanup(&s2n_testing_default_tls12_config);
+    s2n_config_cleanup(&s2n_testing_default_tls12_fips_config);
+    s2n_config_cleanup(&s2n_testing_default_tls13_config);
 }
 
 int s2n_config_load_system_certs(struct s2n_config *config)
