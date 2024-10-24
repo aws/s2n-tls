@@ -15,13 +15,13 @@
 
 #pragma once
 
+#include <s2n.h>
+
 #if ((__GNUC__ >= 4) || defined(__clang__)) && defined(S2N_EXPORTS)
     #define S2N_PRIVATE_API __attribute__((visibility("default")))
 #else
     #define S2N_PRIVATE_API
 #endif /* __GNUC__ >= 4 || defined(__clang__) */
-
-#include <stdint.h>
 
 /*
  * Internal APIs.
@@ -29,9 +29,6 @@
  * These APIs change the behavior of S2N in potentially dangerous ways and should only be
  * used for testing purposes. All Internal APIs are subject to change without notice.
  */
-
-struct s2n_config;
-struct s2n_connection;
 
 /*
  * Gets the config set on the connection.
@@ -53,3 +50,12 @@ S2N_PRIVATE_API int s2n_connection_get_config(struct s2n_connection *conn, struc
  */
 S2N_PRIVATE_API int s2n_config_add_cert_chain(struct s2n_config *config,
         uint8_t *cert_chain_pem, uint32_t cert_chain_pem_size);
+
+/*
+ * Attempts to flush any data buffered for sending.
+ *
+ * This method is not sufficient to complete a previous partial send. It can only
+ * attempt to flush data that has been encrypted and buffered, not data that
+ * is still waiting for encryption.
+ */
+S2N_PRIVATE_API int s2n_flush(struct s2n_connection *conn, s2n_blocked_status *blocked);

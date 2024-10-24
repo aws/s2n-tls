@@ -650,8 +650,18 @@ impl Connection {
     }
 
     /// Attempts to flush any data previously buffered by a call to [send](`Self::poll_send`).
+    ///
+    /// poll_flush can only flush data that s2n-tls has already encrypted and
+    /// buffered for sending. poll_send may need to be called again to fully send
+    /// all data. See the [Usage Guide](https://github.com/aws/s2n-tls/blob/main/docs/usage-guide/topics/ch07-io.md)
+    /// for more details.
     pub fn poll_flush(&mut self) -> Poll<Result<&mut Self, Error>> {
-        self.poll_send(&[0; 0]).map_ok(|_| self)
+        let mut blocked = s2n_blocked_status::NOT_BLOCKED;
+        unsafe {
+            s2n_flush(self.connection.as_ptr(), &mut blocked)
+                .into_poll()
+                .map_ok(|_| self)
+        }
     }
 
     /// Gets the number of bytes that are currently available in the buffer to be read.
