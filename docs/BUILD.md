@@ -117,7 +117,7 @@ s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be l
   - ChaChaPoly is not supported before Openssl-1.1.1.
   - RSA-PSS is not supported before Openssl-1.1.1.
   - RC4 is not supported with Openssl-3.0 or later.
-  - FIPS mode is not supported with Openssl.
+  - FIPS mode is not supported with Openssl-3.0 or later.
 - [BoringSSL](https://boringssl.googlesource.com/boringssl)
   - OCSP features are not supported with BoringSSL.
   - FIPS mode is not supported with BoringSSL.
