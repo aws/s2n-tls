@@ -102,8 +102,8 @@ int main(int argc, char **argv)
     /* Set s2n_random to use a new fixed DRBG to test that other known answer tests with s2n_random and OpenSSL are deterministic */
     EXPECT_OK(s2n_stuffer_alloc_from_hex(&test_entropy, reference_entropy_hex));
     struct s2n_drbg drbg;
-    /* s2n_rand_set_callbacks overrode the default callbacks without cleaning up the default callbacks.
-     * Find existing dev_urandom fd and close it, so that it wouldn't leak file descriptor. */
+    /* s2n_rand_set_callbacks override the default callbacks without cleaning up the default callbacks.
+     * Find existing dev_urandom fd and close it, so that it wouldn't leak the file descriptor. */
     struct s2n_rand_device *dev_urandom = NULL;
     EXPECT_OK(s2n_rand_get_urandom_for_test(&dev_urandom));
     EXPECT_NOT_NULL(dev_urandom);
