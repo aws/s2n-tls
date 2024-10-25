@@ -12,8 +12,12 @@
  * express or implied. See the License for the specific language governing
  * permissions and limitations under the License.
  */
+
+#include "utils/s2n_init.h"
+
 #include <pthread.h>
 
+#include "api/unstable/cleanup.h"
 #include "crypto/s2n_fips.h"
 #include "crypto/s2n_libcrypto.h"
 #include "crypto/s2n_locking.h"
@@ -87,6 +91,10 @@ int s2n_init(void)
         s2n_stack_traces_enabled_set(true);
     }
 
+#if defined(OPENSSL_IS_AWSLC)
+    CRYPTO_pre_sandbox_init();
+#endif
+
     initialized = true;
 
     return S2N_SUCCESS;
@@ -110,18 +118,31 @@ static bool s2n_cleanup_atexit_impl(void)
     return cleaned_up;
 }
 
-int s2n_cleanup(void)
+int s2n_cleanup_thread(void)
 {
-    /* s2n_cleanup is supposed to be called from each thread before exiting,
+    /* s2n_cleanup_thread is supposed to be called from each thread before exiting,
      * so ensure that whatever clean ups we have here are thread safe */
     POSIX_GUARD_RESULT(s2n_rand_cleanup_thread());
+    return S2N_SUCCESS;
+}
+
+int s2n_cleanup_final(void)
+{
+    /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
+    POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
+    POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
+
+    return S2N_SUCCESS;
+}
+
+int s2n_cleanup(void)
+{
+    POSIX_GUARD(s2n_cleanup_thread());
 
     /* If this is the main thread and atexit cleanup is disabled,
      * perform final cleanup now */
     if (pthread_equal(pthread_self(), main_thread) && !atexit_cleanup) {
-        /* some cleanups are not idempotent (rand_cleanup, mem_cleanup) so protect */
-        POSIX_ENSURE(initialized, S2N_ERR_NOT_INITIALIZED);
-        POSIX_ENSURE(s2n_cleanup_atexit_impl(), S2N_ERR_ATEXIT);
+        POSIX_GUARD(s2n_cleanup_final());
     }
 
     return 0;

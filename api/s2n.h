@@ -801,13 +801,13 @@ S2N_API extern int s2n_config_add_cert_chain_and_key(struct s2n_config *config, 
 
 /**
  * The preferred method of associating a certificate chain and private key pair with an `s2n_config` object.
- * This method may be called multiple times to support multiple key types(RSA, ECDSA) and multiple domains.
- * On the server side, the certificate selected will be based on the incoming SNI value and the
- * client's capabilities(supported ciphers).
+ * This method may be called multiple times to support multiple key types (RSA, RSA-PSS, ECDSA) and multiple
+ * domains. On the server side, the certificate selected will be based on the incoming SNI value and the
+ * client's capabilities (supported ciphers).
  *
  * In the case of no certificate matching the client's SNI extension or if no SNI extension was sent by
- * the client, the certificate from the `first` call to `s2n_config_add_cert_chain_and_key_to_store`
- * will be selected.
+ * the client, the certificate from the `first` call to `s2n_config_add_cert_chain_and_key_to_store()`
+ * will be selected. Use `s2n_config_set_cert_chain_and_key_defaults()` to set different defaults.
  * 
  * @warning It is not recommended to free or modify the `cert_key_pair` as any subsequent changes will be
  * reflected in the config. 
@@ -849,6 +849,16 @@ S2N_API extern int s2n_config_set_cert_chain_and_key_defaults(struct s2n_config 
  *
  * @note The trust store will be initialized with the common locations for the host
  * operating system by default.
+ *
+ * @warning This API uses the PEM parsing implementation from the linked libcrypto. This
+ * implementation will typically make a best-effort attempt to parse all of the certificates in the
+ * provided file or directory. This permissive approach may silently ignore malformed certificates,
+ * leading to possible connection failures if a certificate was expected to exist in the trust
+ * store but was skipped while parsing. As such, this API should only be used on PEMs that are
+ * known to be well-formed and parsable with the linked libcrypto, such as the system trust store.
+ * For all other PEMs, `s2n_config_add_pem_to_trust_store()` should be used instead, which parses
+ * more strictly.
+ *
  * @param config The configuration object being updated
  * @param ca_pem_filename A string for the file path of the CA PEM file.
  * @param ca_dir A string for the directory of the CA PEM files.
@@ -862,6 +872,14 @@ S2N_API extern int s2n_config_set_verification_ca_location(struct s2n_config *co
  * When configs are created with `s2n_config_new()`, the trust store is initialized with default
  * system certificates. To completely override these certificates, call
  * `s2n_config_wipe_trust_store()` before calling this function.
+ *
+ * @note This API uses the s2n-tls PEM parsing implementation, which is more strict than typical
+ * libcrypto implementations such as OpenSSL. An error is returned if any unexpected data is
+ * encountered while parsing `pem`. This allows applications to be made aware of any malformed
+ * certificates rather than attempt to negotiate with a partial trust store. However, some PEMs may
+ * need to be loaded that are not under control of the application, such as system trust stores. In
+ * this case, `s2n_config_set_verification_ca_location()` may be used, which performs more widely
+ * compatible and permissive parsing from the linked libcrypto.
  *
  * @param config The configuration object being updated
  * @param pem The string value of the PEM certificate.
@@ -3167,6 +3185,38 @@ S2N_API extern int s2n_connection_client_cert_used(struct s2n_connection *conn);
  * @returns A string indicating the cipher suite negotiated by s2n in OpenSSL format.
  */
 S2N_API extern const char *s2n_connection_get_cipher(struct s2n_connection *conn);
+
+/** 
+ * A metric to determine whether or not the server found a certificate that matched
+ * the client's SNI extension.
+ *
+ * S2N_SNI_NONE: Client did not send the SNI extension.
+ * S2N_SNI_EXACT_MATCH: Server had a certificate that matched the client's SNI extension.
+ * S2N_SNI_WILDCARD_MATCH: Server had a certificate with a domain name containing a wildcard character
+ * that could be matched to the client's SNI extension.
+ * S2N_SNI_NO_MATCH: Server did not have a certificate that could be matched to the client's
+ * SNI extension.
+ */
+typedef enum {
+    S2N_SNI_NONE = 1,
+    S2N_SNI_EXACT_MATCH,
+    S2N_SNI_WILDCARD_MATCH,
+    S2N_SNI_NO_MATCH,
+} s2n_cert_sni_match;
+
+/**
+ * A function that provides insight into whether or not the server was able to send a certificate that
+ * partially or completely matched the client's SNI extension.
+ * 
+ * @note This function can be used as a metric in a failed connection as long as the failure
+ * occurs after certificate selection.
+ *
+ * @param conn A pointer to the connection
+ * @param cert_match An enum indicating whether or not the server found a certificate
+ * that matched the client's SNI extension.
+ * @returns S2N_SUCCESS on success. S2N_FAILURE on failure.
+ */
+S2N_API extern int s2n_connection_get_certificate_match(struct s2n_connection *conn, s2n_cert_sni_match *match_status);
 
 /**
  * Provides access to the TLS master secret.

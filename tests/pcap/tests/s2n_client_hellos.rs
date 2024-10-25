@@ -87,10 +87,15 @@ fn ja4_fingerprints() -> Result<()> {
             .ja4_string()
             .expect("pcap did not contain ja4 string");
 
-        // Handle known issues:
-        // tshark currently doesn't handle special alpn characters correctly
-        // TODO: remove this when tshark updates
-        let exceptions = [("-+", "2b"), ("__", "5f")];
+        // Handle known tshark issues.
+        // TODO: remove these when tshark updates
+        let exceptions = [
+            // tshark currently doesn't handle special alpn characters correctly
+            ("-+", "2b"),
+            ("__", "5f"),
+            // tshark currently doesn't handle empty hashes correctly
+            ("e3b0c44298fc", "000000000000"),
+        ];
         for (a, b) in exceptions {
             tshark_hash = tshark_hash.replace(a, b);
             tshark_str = tshark_str.replace(a, b);

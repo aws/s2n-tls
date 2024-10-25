@@ -7,7 +7,16 @@ s2n-tls uses pre-made security policies to help avoid common misconfiguration mi
 ## Supported TLS Versions
 
 Currently TLS 1.2 is our default version, but we recommend TLS 1.3 where possible. To use TLS 1.3 you need a security policy that supports TLS 1.3.
-**Note:** s2n-tls does not support SSL2.0 for sending and receiving encrypted data, but does accept SSL2.0 hello messages.
+
+### SSL 3.0, TLS 1.0, and TLS 1.1
+s2n-tls supports older versions, but their use is not recommended.
+
+Compatibility with older versions of TLS may also require support for older ciphersuites. Although it is possible to negotiate older versions of TLS with more modern options like SHA256, AES, ECDSA, and ECDHE, older clients and servers may only support older options like SHA1, 3DES, RSA certs, and either RSA or DHE key exchange. If a security policy allows older TLS versions but does not allow older ciphersuites, handshakes with older clients and servers may fail.
+
+### SSL 2.0
+s2n-tls will not negotiate SSL 2.0, but will accept SSLv2 ClientHellos advertising a higher protocol version like TLS1.2. See the ["Compatibility with SSL 2.0"](https://datatracker.ietf.org/doc/html/rfc5246#appendix-E.2) section in the TLS 1.2 RFC.
+
+Compatibility with SSLv2 ClientHellos advertising TLS1.2 may require similar support for older ciphersuites as compatibility with older versions of TLS does. In particular, SSLv2 ClientHellos are likely to require support for SHA1 and either RSA or DHE key exchange. This is due to technical limitations of the SSLv2 ClientHello, which does not include TLS extensions.
 
 ### Chart: Security Policy Version To Protocol Version And Ciphersuites
 

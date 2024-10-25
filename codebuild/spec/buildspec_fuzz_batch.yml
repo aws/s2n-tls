@@ -1,0 +1,71 @@
+---
+# Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You may not use
+# this file except in compliance with the License. A copy of the License is
+# located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+# implied. See the License for the specific language governing permissions and
+# limitations under the License.
+version: 0.2
+
+# This buildspec runs on an Ubuntu22 image. That configuration is a property of
+# the codebuild job itself.
+
+# Codebuild's matrix jobs have non-differentiated names so use batch-list
+# instead.
+
+# Parameter motivation
+
+# LIBCRYPTOS
+# awslc:         happy path libcrypto for s2n-tls
+# openssl 1.0.2: old version of libcrypto that is still supported by s2n-tls
+# openssl 1.1.1: old version of libcrypto that is still supported by s2n-tls
+# openssl 3:     libcrypto that is widely used
+
+batch:
+  build-list:
+    - identifier: clang_awslc
+      buildspec: codebuild/spec/buildspec_fuzz.yml
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: awslc
+          COMPILER: clang
+    - identifier: clang_openssl_1_0_2
+      buildspec: codebuild/spec/buildspec_fuzz.yml
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: openssl-1.0.2
+          COMPILER: clang
+    - identifier: clang_openssl_1_1_1
+      buildspec: codebuild/spec/buildspec_fuzz.yml
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: openssl-1.1.1
+          COMPILER: clang
+    - identifier: clang_openssl_3_0
+      buildspec: codebuild/spec/buildspec_fuzz.yml
+      debug-session: true
+      env:
+        compute-type: BUILD_GENERAL1_XLARGE
+        image: 024603541914.dkr.ecr.us-west-2.amazonaws.com/docker:ubuntu22codebuild
+        privileged-mode: true
+        variables:
+          S2N_LIBCRYPTO: openssl-3.0
+          COMPILER: clang

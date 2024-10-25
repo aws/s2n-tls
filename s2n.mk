@@ -57,23 +57,6 @@ COVERAGE_CFLAGS = -fprofile-arcs -ftest-coverage
 COVERAGE_LDFLAGS = --coverage
 LDFLAGS = -z relro -z now -z noexecstack
 
-FUZZ_CFLAGS = -fsanitize-coverage=trace-pc-guard -fsanitize=address,undefined,leak
-
-# Define FUZZ_COVERAGE - to be used for generating coverage reports on fuzz tests
-#                !!! NOT COMPATIBLE WITH S2N_COVERAGE !!!
-ifeq ($(FUZZ_COVERAGE), true)
-	FUZZ_CFLAGS += -fprofile-instr-generate -fcoverage-mapping
-else
-	ifeq ($(S2N_COVERAGE), true)
-		DEFAULT_CFLAGS += ${COVERAGE_CFLAGS}
-		LIBS += ${COVERAGE_LDFLAGS}
-	endif
-endif
-
-ifdef FUZZ_TIMEOUT_SEC
-	DEFAULT_CFLAGS += -DS2N_FUZZ_TESTING=1
-endif
-
 # Add a flag to disable stack protector for alternative libcs without
 # libssp.
 ifneq ($(NO_STACK_PROTECTOR), 1)
@@ -133,27 +116,6 @@ ifdef S2N_TEST_DEBUG
 endif
 
 LLVM_GCOV_MARKER_FILE=${COVERAGE_DIR}/use-llvm-gcov.tmp
-
-ifeq ($(S2N_UNSAFE_FUZZING_MODE),1)
-    # Override compiler to clang if fuzzing, since gcc does not support as many sanitizer flags as clang
-    CC=clang
-
-    # Create a marker file so that later invocations of make can pick the right COV_TOOL by default
-    $(shell touch "${LLVM_GCOV_MARKER_FILE}")
-
-    # Turn on debugging and fuzzing flags when S2N_UNSAFE_FUZZING_MODE is enabled to give detailed stack traces in case
-    # an error occurs while fuzzing.
-    CFLAGS += ${DEFAULT_CFLAGS} ${DEBUG_CFLAGS} ${FUZZ_CFLAGS}
-
-    # Filter out the visibility settings if we are fuzzing
-    CFLAGS := $(filter-out -fvisibility=hidden,$(CFLAGS))
-    CFLAGS := $(filter-out -DS2N_EXPORTS,$(CFLAGS))
-    DEFAULT_CFLAGS := $(filter-out -fvisibility=hidden,$(DEFAULT_CFLAGS))
-    DEFAULT_CFLAGS := $(filter-out -DS2N_EXPORTS,$(DEFAULT_CFLAGS))
-    CPPFLAGS := $(filter-out -fvisibility=hidden,$(CPPFLAGS))
-    CPPFLAGS := $(filter-out -DS2N_EXPORTS,$(CPPFLAGS))
-
-endif
 
 # Disable strict-prototypes check in clang
 ifneq '' '$(findstring clang,$(CC))'

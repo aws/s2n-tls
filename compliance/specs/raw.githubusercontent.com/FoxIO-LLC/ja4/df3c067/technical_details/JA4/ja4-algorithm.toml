@@ -1,0 +1,19 @@
+target = "https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#ja4-algorithm"
+
+# ### JA4 Algorithm:
+#
+# (QUIC=”q”, DTLS="d", or Normal TLS=”t”)
+# (2 character TLS version)  
+# (SNI=”d” or no SNI=”i”)  
+# (2 character count of ciphers)  
+# (2 character count of extensions)  
+# (first and last characters of first ALPN extension value)  
+# _  
+# (sha256 hash of the list of cipher hex codes sorted in hex order, truncated to 12 characters)  
+# _  
+# (sha256 hash of (the list of extension hex codes sorted in hex order)_(the list of signature algorithms), truncated to 12 characters)  
+#   
+# The end result is a fingerprint that looks like:  
+# t13d1516h2_8daaf6152771_b186095e22b6  
+#   
+

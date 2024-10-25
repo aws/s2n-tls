@@ -29,10 +29,10 @@
 #define S2N_JA4_PART_DIV '_'
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
  *# 2 character number of cipher suites
  *
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
  *# Same as counting ciphers.
  */
 #define S2N_JA4_COUNT_SIZE 2
@@ -53,7 +53,7 @@
 
 const char *s2n_ja4_version_strings[] = {
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
      *# 0x0304 = TLS 1.3 = “13”
      *# 0x0303 = TLS 1.2 = “12”
      *# 0x0302 = TLS 1.1 = “11”
@@ -64,18 +64,16 @@ const char *s2n_ja4_version_strings[] = {
     [0x0302] = "11",
     [0x0301] = "10",
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
      *# 0x0300 = SSL 3.0 = “s3”
-     *# 0x0200 = SSL 2.0 = “s2”
-     *# 0x0100 = SSL 1.0 = “s1”
+     *# 0x0002 = SSL 2.0 = “s2”
      */
     [0x0300] = "s3",
-    [0x0200] = "s2",
-    [0x0100] = "s1",
+    [0x0002] = "s2",
 };
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
  *# Unknown = “00”
  */
 #define S2N_JA4_UNKNOWN_STR "00"
@@ -97,7 +95,26 @@ static int s2n_fingerprint_ja4_iana_compare(const void *a, const void *b)
 static S2N_RESULT s2n_fingerprint_ja4_digest(struct s2n_fingerprint_hash *hash,
         struct s2n_stuffer *out)
 {
+    RESULT_ENSURE_REF(hash);
     if (!s2n_fingerprint_hash_do_digest(hash)) {
+        return S2N_RESULT_OK;
+    }
+
+    /* Instead of hashing empty inputs, JA4 sets the output to a string of all zeroes.
+     * (Actually hashing an empty input doesn't produce a digest of all zeroes)
+     *
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
+     *# If there are no ciphers in the sorted cipher list, then the value of
+     *# JA4_b is set to `000000000000`
+     *
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
+     *# If there are no extensions in the sorted extensions list, then the value of
+     *# JA4_c is set to `000000000000`
+     */
+    uint64_t bytes = 0;
+    RESULT_GUARD_POSIX(s2n_hash_get_currently_in_hash_total(hash->hash, &bytes));
+    if (bytes == 0) {
+        RESULT_GUARD_POSIX(s2n_stuffer_write_str(out, "000000000000"));
         return S2N_RESULT_OK;
     }
 
@@ -114,11 +131,11 @@ static S2N_RESULT s2n_fingerprint_ja4_digest(struct s2n_fingerprint_hash *hash,
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
  *# 2 character number of cipher suites, so if there’s 6 cipher suites
  *# in the hello packet, then the value should be “06”.
  *
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
  *# Same as counting ciphers.
  */
 static S2N_RESULT s2n_fingerprint_ja4_count(struct s2n_blob *output, uint16_t count)
@@ -126,10 +143,10 @@ static S2N_RESULT s2n_fingerprint_ja4_count(struct s2n_blob *output, uint16_t co
     RESULT_ENSURE_REF(output);
 
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
      *# If there’s > 99, which there should never be, then output “99”.
      *
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
      *# Same as counting ciphers.
      */
     count = MIN(count, 99);
@@ -159,14 +176,14 @@ static S2N_RESULT s2n_fingerprint_get_extension_version(struct s2n_client_hello 
         uint16_t version = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&supported_versions, &version));
         /**
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
          *# Remember to ignore GREASE values.
          */
         if (s2n_fingerprint_is_grease_value(version)) {
             continue;
         }
         /**
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
          *# If extension 0x002b exists (supported_versions), then the version is
          *# the highest value in the extension.
          */
@@ -181,7 +198,7 @@ static S2N_RESULT s2n_fingerprint_ja4_version(struct s2n_stuffer *output,
     uint16_t client_version = 0;
     if (s2n_result_is_error(s2n_fingerprint_get_extension_version(ch, &client_version))) {
         /**
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
          *# If the extension doesn’t exist, then the TLS version is the value of
          *# the Protocol Version.
          */
@@ -189,7 +206,7 @@ static S2N_RESULT s2n_fingerprint_ja4_version(struct s2n_stuffer *output,
     }
 
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#tls-version
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#tls-and-dtls-version
      *# Handshake version (located at the top of the packet) should be ignored.
      */
 
@@ -225,8 +242,9 @@ static S2N_RESULT s2n_client_hello_get_first_alpn(struct s2n_client_hello *ch, s
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
- *# The first and last characters of the ALPN (Application-Layer Protocol Negotiation) first value.
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+ *# The first and last alphanumeric characters of the ALPN (Application-Layer
+ *# Protocol Negotiation) first value.
  */
 static S2N_RESULT s2n_fingerprint_ja4_alpn(struct s2n_stuffer *output,
         struct s2n_client_hello *ch)
@@ -237,9 +255,13 @@ static S2N_RESULT s2n_fingerprint_ja4_alpn(struct s2n_stuffer *output,
     }
 
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#alpn-extension-value
-     *# If there are no ALPN values or no ALPN extension then we print “00”
-     *# as the value in the fingerprint.
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+     *# If there is no ALPN extension, no ALPN values, or the first ALPN value
+     *# is empty, then we print "00" as the value in the fingerprint.
+     *
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+     *# If the first ALPN value is only a single character, then that character
+     *# is treated as both the first and last character.
      */
     uint8_t first_char = '0', last_char = '0';
     if (protocol.size > 0) {
@@ -247,8 +269,11 @@ static S2N_RESULT s2n_fingerprint_ja4_alpn(struct s2n_stuffer *output,
         last_char = protocol.data[protocol.size - 1];
     }
 
-    /* The spec does not currently define this case, but will be updated in the
-     * future according to https://github.com/FoxIO-LLC/ja4/issues/148
+    /**
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#alpn-extension-value
+     *# If the first or last byte of the first ALPN is non-alphanumeric (meaning
+     *# not `0x30-0x39`, `0x41-0x5A`, or `0x61-0x7A`), then we print the first and
+     *# last characters of the hex representation of the first ALPN instead.
      */
     if (!isalnum(first_char) || !isalnum(last_char)) {
         RESULT_GUARD(s2n_hex_digit((first_char >> 4), &first_char));
@@ -276,9 +301,11 @@ static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
     RESULT_ENSURE_REF(fingerprint);
 
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#quic
-     *# If the protocol is QUIC then the first character of the fingerprint is “q”
-     *# if not, it’s “t”.
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#quic-and-dtls
+     *# If the protocol is QUIC then the first character of the fingerprint is “q”,
+     *# if DTLS it is "d", else it is “t”.
+     *
+     * s2n-tls only supports TLS and QUIC. DTLS is not supported.
      */
     bool is_quic = false;
     RESULT_GUARD_POSIX(s2n_client_hello_has_extension(fingerprint->client_hello,
@@ -289,7 +316,7 @@ static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
     RESULT_GUARD(s2n_fingerprint_ja4_version(output, fingerprint->client_hello));
 
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#sni
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#sni
      *# If the SNI extension (0x0000) exists, then the destination of the connection
      *# is a domain, or “d” in the fingerprint.
      *# If the SNI does not exist, then the destination is an IP address, or “i”.
@@ -320,7 +347,7 @@ static S2N_RESULT s2n_fingerprint_ja4_a(struct s2n_fingerprint *fingerprint,
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
  *# The list is created using the 4 character hex values of the ciphers,
  *# lower case, comma delimited, ignoring GREASE.
  */
@@ -339,7 +366,7 @@ static S2N_RESULT s2n_fingerprint_ja4_ciphers(struct s2n_fingerprint_hash *hash,
         uint16_t iana = 0;
         RESULT_GUARD_POSIX(s2n_stuffer_read_uint16(&cipher_suites, &iana));
         /**
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-ciphers
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-ciphers
          *# Remember, ignore GREASE values. They don’t count.
          */
         if (s2n_fingerprint_is_grease_value(iana)) {
@@ -364,7 +391,7 @@ static S2N_RESULT s2n_fingerprint_ja4_ciphers(struct s2n_fingerprint_hash *hash,
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#cipher-hash
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#cipher-hash
  *# A 12 character truncated sha256 hash of the list of ciphers sorted in hex order,
  *# first 12 characters.
  */
@@ -384,7 +411,7 @@ static S2N_RESULT s2n_fingerprint_ja4_b(struct s2n_fingerprint *fingerprint,
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
  *# The extension list is created using the 4 character hex values of the extensions,
  *# lower case, comma delimited, sorted (not in the order they appear).
  */
@@ -404,7 +431,7 @@ static S2N_RESULT s2n_fingerprint_ja4_extensions(struct s2n_fingerprint_hash *ha
         RESULT_GUARD(s2n_fingerprint_parse_extension(&extensions, &iana));
 
         /**
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
          *# Ignore GREASE.
          */
         if (s2n_fingerprint_is_grease_value(iana)) {
@@ -413,11 +440,11 @@ static S2N_RESULT s2n_fingerprint_ja4_extensions(struct s2n_fingerprint_hash *ha
 
         /* SNI and ALPN are included in the extension count, but not in the extension list.
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
          *# Ignore the SNI extension (0000) and the ALPN extension (0010)
          *# as we’ve already captured them in the _a_ section of the fingerprint.
          *
-         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#number-of-extensions
+         *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#number-of-extensions
          *# Include SNI and ALPN.
          */
         (*extensions_count)++;
@@ -486,7 +513,7 @@ static S2N_RESULT s2n_fingerprint_ja4_sig_algs(struct s2n_fingerprint_hash *hash
 }
 
 /**
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
  *# A 12 character truncated sha256 hash of the list of extensions, sorted by
  *# hex value, followed by the list of signature algorithms, in the order that
  *# they appear (not sorted).
@@ -502,12 +529,12 @@ static S2N_RESULT s2n_fingerprint_ja4_c(struct s2n_fingerprint *fingerprint,
             &fingerprint->workspace, &extensions_count_value));
 
     /**
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
      *# The signature algorithm hex values are then added to the end of the list
      *# in the order that they appear (not sorted) with an underscore delimiting
      *# the two lists.
      *
-     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#extension-hash
+     *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#extension-hash
      *# If there are no signature algorithms in the hello packet,
      *# then the string ends without an underscore and is hashed.
      *
@@ -523,8 +550,8 @@ static S2N_RESULT s2n_fingerprint_ja4_c(struct s2n_fingerprint *fingerprint,
 
 /* JA4 fingerprints are basically of the form a_b_c:
  *
- *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/v0.18.2/technical_details/JA4.md#ja4-algorithm
- *# (QUIC=”q” or TCP=”t”)
+ *= https://raw.githubusercontent.com/FoxIO-LLC/ja4/df3c067/technical_details/JA4.md#ja4-algorithm
+ *# (QUIC=”q”, DTLS="d", or Normal TLS=”t”)
  *# (2 character TLS version)
  *# (SNI=”d” or no SNI=”i”)
  *# (2 character count of ciphers)

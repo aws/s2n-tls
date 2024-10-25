@@ -15,7 +15,7 @@
 
 #include "tls/s2n_kem.h"
 
-#include "crypto/s2n_kyber_evp.h"
+#include "crypto/s2n_evp_kem.h"
 #include "crypto/s2n_pq.h"
 #include "stuffer/s2n_stuffer.h"
 #include "tls/extensions/s2n_key_share.h"
@@ -23,7 +23,18 @@
 #include "utils/s2n_mem.h"
 #include "utils/s2n_safety.h"
 
-/* The KEM IDs and names come from https://tools.ietf.org/html/draft-campagna-tls-bike-sike-hybrid */
+const struct s2n_kem s2n_mlkem_768 = {
+    .name = "mlkem768",
+    .kem_nid = S2N_NID_MLKEM768,
+    .kem_extension_id = 0, /* This is not used in TLS 1.2's KEM extension */
+    .public_key_length = S2N_MLKEM_768_PUBLIC_KEY_BYTES,
+    .private_key_length = S2N_MLKEM_768_SECRET_KEY_BYTES,
+    .shared_secret_key_length = S2N_MLKEM_768_SHARED_SECRET_BYTES,
+    .ciphertext_length = S2N_MLKEM_768_CIPHERTEXT_BYTES,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
+};
 
 const struct s2n_kem s2n_kyber_512_r3 = {
     .name = "kyber512r3",
@@ -33,9 +44,9 @@ const struct s2n_kem s2n_kyber_512_r3 = {
     .private_key_length = S2N_KYBER_512_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_512_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_512_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_kyber_evp_generate_keypair,
-    .encapsulate = &s2n_kyber_evp_encapsulate,
-    .decapsulate = &s2n_kyber_evp_decapsulate,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
 const struct s2n_kem s2n_kyber_768_r3 = {
@@ -46,9 +57,9 @@ const struct s2n_kem s2n_kyber_768_r3 = {
     .private_key_length = S2N_KYBER_768_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_768_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_768_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_kyber_evp_generate_keypair,
-    .encapsulate = &s2n_kyber_evp_encapsulate,
-    .decapsulate = &s2n_kyber_evp_decapsulate,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
 const struct s2n_kem s2n_kyber_1024_r3 = {
@@ -59,9 +70,9 @@ const struct s2n_kem s2n_kyber_1024_r3 = {
     .private_key_length = S2N_KYBER_1024_R3_SECRET_KEY_BYTES,
     .shared_secret_key_length = S2N_KYBER_1024_R3_SHARED_SECRET_BYTES,
     .ciphertext_length = S2N_KYBER_1024_R3_CIPHERTEXT_BYTES,
-    .generate_keypair = &s2n_kyber_evp_generate_keypair,
-    .encapsulate = &s2n_kyber_evp_encapsulate,
-    .decapsulate = &s2n_kyber_evp_decapsulate,
+    .generate_keypair = &s2n_evp_kem_generate_keypair,
+    .encapsulate = &s2n_evp_kem_encapsulate,
+    .decapsulate = &s2n_evp_kem_decapsulate,
 };
 
 const struct s2n_kem *tls12_kyber_kems[] = {
@@ -84,17 +95,38 @@ const struct s2n_iana_to_kem kem_mapping[1] = {
  * https://github.com/open-quantum-safe/oqs-provider/blob/main/oqs-template/oqs-kem-info.md
  * and
  * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml
+ */
+
+/*
+ * ML-KEM based hybrid KEMs as specified by IETF and registered in IANA.
  *
- * The structure of the hybrid share is:
- *    size of ECC key share (2 bytes)
- * || ECC key share (variable bytes)
- * || size of PQ key share (2 bytes)
- * || PQ key share (variable bytes) */
+ * https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
+ * https://datatracker.ietf.org/doc/draft-kwiatkowski-tls-ecdhe-mlkem/
+ */
+const struct s2n_kem_group s2n_secp256r1_mlkem_768 = {
+    .name = "SecP256r1MLKEM768",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_MLKEM_768,
+    .curve = &s2n_ecc_curve_secp256r1,
+    .kem = &s2n_mlkem_768,
+    .send_kem_first = 0,
+};
+
+const struct s2n_kem_group s2n_x25519_mlkem_768 = {
+    .name = "X25519MLKEM768",
+    .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_MLKEM_768,
+    .curve = &s2n_ecc_curve_x25519,
+    .kem = &s2n_mlkem_768,
+    /* ML-KEM KeyShare should always be sent first for X25519MLKEM768.
+     * https://datatracker.ietf.org/doc/html/draft-kwiatkowski-tls-ecdhe-mlkem-02#name-negotiated-groups */
+    .send_kem_first = 1,
+};
+
 const struct s2n_kem_group s2n_secp256r1_kyber_512_r3 = {
     .name = "secp256r1_kyber-512-r3",
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_512_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_512_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
@@ -102,6 +134,7 @@ const struct s2n_kem_group s2n_secp256r1_kyber_768_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP256R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp256r1,
     .kem = &s2n_kyber_768_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
@@ -109,6 +142,7 @@ const struct s2n_kem_group s2n_secp384r1_kyber_768_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP384R1_KYBER_768_R3,
     .curve = &s2n_ecc_curve_secp384r1,
     .kem = &s2n_kyber_768_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
@@ -116,6 +150,7 @@ const struct s2n_kem_group s2n_secp521r1_kyber_1024_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_SECP521R1_KYBER_1024_R3,
     .curve = &s2n_ecc_curve_secp521r1,
     .kem = &s2n_kyber_1024_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
@@ -123,6 +158,7 @@ const struct s2n_kem_group s2n_x25519_kyber_512_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_512_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_512_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
@@ -130,15 +166,18 @@ const struct s2n_kem_group s2n_x25519_kyber_768_r3 = {
     .iana_id = TLS_PQ_KEM_GROUP_ID_X25519_KYBER_768_R3,
     .curve = &s2n_ecc_curve_x25519,
     .kem = &s2n_kyber_768_r3,
+    .send_kem_first = 0,
 };
 
 const struct s2n_kem_group *ALL_SUPPORTED_KEM_GROUPS[] = {
-    &s2n_secp256r1_kyber_512_r3,
-    &s2n_x25519_kyber_512_r3,
+    &s2n_x25519_mlkem_768,
+    &s2n_secp256r1_mlkem_768,
     &s2n_secp256r1_kyber_768_r3,
+    &s2n_x25519_kyber_768_r3,
     &s2n_secp384r1_kyber_768_r3,
     &s2n_secp521r1_kyber_1024_r3,
-    &s2n_x25519_kyber_768_r3,
+    &s2n_secp256r1_kyber_512_r3,
+    &s2n_x25519_kyber_512_r3,
 };
 
 /* Helper safety macro to call the NIST PQ KEM functions. The NIST
@@ -422,22 +461,35 @@ int s2n_kem_recv_ciphertext(struct s2n_stuffer *in, struct s2n_kem_params *kem_p
     return S2N_SUCCESS;
 }
 
-bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
+bool s2n_kem_is_available(const struct s2n_kem *kem)
 {
-    if (kem_group == NULL) {
+    if (kem == NULL || kem->kem_nid == NID_undef) {
         return false;
     }
-    bool available = s2n_pq_is_enabled();
-    /* Only Kyber768+ requires s2n_libcrypto_supports_kyber() */
-    /* TODO: remove the conditional guard when we remove the interned Kyber512 impl. */
-    if (kem_group->kem != &s2n_kyber_512_r3) {
-        available &= s2n_libcrypto_supports_kyber();
+
+    bool available = s2n_libcrypto_supports_evp_kem();
+
+    /* Only newer versions of libcrypto have ML-KEM support. */
+    if (kem == &s2n_mlkem_768) {
+        available &= s2n_libcrypto_supports_mlkem();
     }
+
+    return available;
+}
+
+bool s2n_kem_group_is_available(const struct s2n_kem_group *kem_group)
+{
+    /* Check for values that might be undefined when compiling for older libcrypto's */
+    if (kem_group == NULL || kem_group->curve == NULL || kem_group->kem == NULL) {
+        return false;
+    }
+
+    bool available = s2n_kem_is_available(kem_group->kem);
+
     /* x25519 based tls13_kem_groups require EVP_APIS_SUPPORTED */
-    if (kem_group->curve == NULL) {
-        available = false;
-    } else if (kem_group->curve == &s2n_ecc_curve_x25519) {
+    if (kem_group->curve == &s2n_ecc_curve_x25519) {
         available &= s2n_is_evp_apis_supported();
     }
+
     return available;
 }
