@@ -247,11 +247,11 @@ mod tests {
 
     #[test]
     fn trust_location() -> Result<(), Error> {
-        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
+        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs"));
         let mut cert = pem_dir.to_path_buf();
-        cert.push("rsa_4096_sha512_client_cert.pem");
+        cert.push("cert.pem");
         let mut key = pem_dir.to_path_buf();
-        key.push("rsa_4096_sha512_client_key.pem");
+        key.push("key.pem");
 
         let mut builder = crate::config::Builder::new();
         builder.set_security_policy(&security::DEFAULT_TLS13)?;
@@ -269,11 +269,11 @@ mod tests {
     /// on OCSP explicitly still works when `trust_location()` is called.
     #[test]
     fn trust_location_does_not_change_ocsp_status() -> Result<(), Error> {
-        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../../../tests/pems"));
+        let pem_dir = Path::new(concat!(env!("CARGO_MANIFEST_DIR"), "/../certs"));
         let mut cert = pem_dir.to_path_buf();
-        cert.push("rsa_4096_sha512_client_cert.pem");
+        cert.push("cert.pem");
         let mut key = pem_dir.to_path_buf();
-        key.push("rsa_4096_sha512_client_key.pem");
+        key.push("key.pem");
 
         const OCSP_IANA_EXTENSION_ID: u16 = 5;
 
