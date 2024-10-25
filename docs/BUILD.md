@@ -122,7 +122,6 @@ s2n-tls has a dependency on a libcrypto library. A supported libcrypto must be l
   - OCSP features are not supported with BoringSSL.
   - FIPS mode is not supported with BoringSSL.
 - [LibreSSL](https://www.libressl.org/)
-  - FIPS mode is not supported with LibreSSL.
 
 By default, s2n-tls will attempt to find a system libcrypto to link with when building. However, this search can be overridden to any of the above libcryptos by specifying the install directory with the `CMAKE_PREFIX_PATH` flag.
 
