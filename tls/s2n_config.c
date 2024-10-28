@@ -14,8 +14,8 @@
  */
 
 #ifndef _S2N_PRELUDE_INCLUDED
-/* make sure s2n_prelude.h is includes as part of the compiler flags, if not then fail the build */
-#error "Expected s2n_prelude.h to be included as part of the compiler flags"
+    /* make sure s2n_prelude.h is includes as part of the compiler flags, if not then fail the build */
+    #error "Expected s2n_prelude.h to be included as part of the compiler flags"
 #endif
 
 #include <strings.h>
