@@ -23,7 +23,7 @@
  <tr id="projectrow">
   <td id="projectlogo"><img alt="Logo" src="s2n-logo-github.svg"/></td>
   <td id="projectalign">
-   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.6-9819ac0e</span>
+   <div id="projectname">AWS s2n-tls<span id="projectnumber">&#160;v1.5.6-b8c463b3</span>
    </div>
    <div id="projectbrief">s2n-tls is a C99 implementation of the TLS/SSL protocols that is designed to be simple, small, fast, and with security as a priority.</div>
   </td>
@@ -9237,8 +9237,8 @@ Reusing the same connection handle(s) is more performant than repeatedly calling
       </table>
 </div><div class="memdoc">
 <p >Determines whether s2n-tls is operating in FIPS mode.</p>
-<p >s2n-tls enters FIPS mode on initialization when the linked libcrypto has FIPS mode enabled. Some libcryptos, such as AWS-LC-FIPS, have FIPS mode enabled by default. With other libcryptos, such as OpenSSL, FIPS mode must be enabled before initialization by calling <code>FIPS_mode_set()</code>.</p>
-<p >s2n-tls MUST be linked to a FIPS libcrypto and MUST be in FIPS mode in order to comply with FIPS requirements. Applications desiring FIPS compliance should use this API to ensure that s2n-tls has been properly linked with a FIPS libcrypto and has successfully entered FIPS mode.</p>
+<p >s2n-tls enters FIPS mode on initialization when built with a version of AWS-LC that supports FIPS (<a href="https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md">https://github.com/aws/aws-lc/blob/main/crypto/fipsmodule/FIPS.md</a>). FIPS mode controls some internal configuration related to FIPS support, like which random number generator is used.</p>
+<p >FIPS mode does not enforce the use of FIPS-approved cryptography. Applications attempting to use only FIPS-approved cryptography should also ensure that s2n-tls is configured to use a security policy that only supports FIPS-approved cryptography.</p>
 <dl class="params"><dt>Parameters</dt><dd>
   <table class="params">
     <tr><td class="paramname">fips_mode</td><td>Set to the FIPS mode of s2n-tls. </td></tr>
