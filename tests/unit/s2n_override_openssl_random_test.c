@@ -47,8 +47,6 @@ const char expected_dhe_key_hex[] = "0100cb5fa155609f350a0f07e340ef7dc854e38d97c
                                     "ddbaa47646a497793e0a8e129e00e4fcd4b11b68897afb0987a48f51e3a3079e3d0573d340597c2c7b8ec839ea608a341c8d3ae8fb8a30c2d80e7083f64adf790"
                                     "18a19c";
 
-S2N_RESULT s2n_rand_get_urandom_for_test(struct s2n_rand_device **device);
-
 struct s2n_stuffer test_entropy = { 0 };
 int s2n_entropy_generator(void *data, uint32_t size)
 {
@@ -102,14 +100,10 @@ int main(int argc, char **argv)
     /* Set s2n_random to use a new fixed DRBG to test that other known answer tests with s2n_random and OpenSSL are deterministic */
     EXPECT_OK(s2n_stuffer_alloc_from_hex(&test_entropy, reference_entropy_hex));
     struct s2n_drbg drbg;
-    /* s2n_rand_set_callbacks override the default callbacks without cleaning up the default callbacks.
-     * Find existing dev_urandom fd and close it, so that it wouldn't leak the file descriptor. */
-    struct s2n_rand_device *dev_urandom = NULL;
-    EXPECT_OK(s2n_rand_get_urandom_for_test(&dev_urandom));
-    EXPECT_NOT_NULL(dev_urandom);
-    EXPECT_EQUAL(close(dev_urandom->fd), 0);
-    dev_urandom->fd = S2N_CLOSED_FD;
+
+    POSIX_GUARD_RESULT(s2n_rand_cleanup());
     EXPECT_SUCCESS(s2n_rand_set_callbacks(s2n_entropy_init_cleanup, s2n_entropy_init_cleanup, s2n_entropy_generator, s2n_entropy_generator));
+    POSIX_GUARD_RESULT(s2n_rand_init());
 
     s2n_stack_blob(personalization_string, 32, 32);
     EXPECT_OK(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
