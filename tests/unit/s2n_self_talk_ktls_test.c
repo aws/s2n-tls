@@ -88,7 +88,6 @@ static S2N_RESULT s2n_new_inet_socket_pair(struct s2n_test_io_pair *io_pair)
     if (pid == 0) {
         RESULT_ENSURE_EQ(connect(io_pair->client, (struct sockaddr *) &saddr, addrlen), 0);
         EXPECT_SUCCESS(s2n_io_pair_close(io_pair));
-        ZERO_TO_DISABLE_DEFER_CLEANUP(io_pair);
         RESULT_ENSURE_EQ(close(listener), 0);
         exit(0);
     }
