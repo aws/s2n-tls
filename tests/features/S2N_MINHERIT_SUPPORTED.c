@@ -13,7 +13,7 @@
  * permissions and limitations under the License.
  */
 
-#include "utils/s2n_fork_detection_internal.h"
+#include "utils/s2n_fork_detection_features.h"
 
 int main() {
     minherit(NULL, 0, 0);

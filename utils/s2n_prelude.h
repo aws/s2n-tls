@@ -15,6 +15,9 @@
 
 #pragma once
 
+/* Let modules know that the prelude was included */
+#define _S2N_PRELUDE_INCLUDED
+
 /* Define the POSIX API we are targeting */
 #ifndef _POSIX_C_SOURCE
     #define _POSIX_C_SOURCE 200809L

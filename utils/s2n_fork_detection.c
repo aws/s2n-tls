@@ -15,7 +15,7 @@
 
 /* force the internal header to be included first, since it modifies _GNU_SOURCE/_POSIX_C_SOURCE */
 /* clang-format off */
-#include "utils/s2n_fork_detection_internal.h"
+#include "utils/s2n_fork_detection_features.h"
 /* clang-format on */
 
 #include "utils/s2n_fork_detection.h"
