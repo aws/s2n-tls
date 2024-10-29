@@ -136,13 +136,6 @@ int main(int argc, char **argv)
         sizeof(test_data),
     };
 
-    uint8_t file_test_data[100] = { 0 };
-    int file = open(argv[0], O_RDONLY);
-    EXPECT_TRUE(file > 0);
-    int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
-    EXPECT_EQUAL(file_read, sizeof(file_test_data));
-    EXPECT_SUCCESS(close(file));
-
     DEFER_CLEANUP(struct s2n_config *config = s2n_config_new(), s2n_config_ptr_free);
     EXPECT_SUCCESS(s2n_config_add_cert_chain_and_key_to_store(config, chain_and_key));
     EXPECT_SUCCESS(s2n_config_set_unsafe_for_testing(config));
@@ -274,7 +267,12 @@ int main(int argc, char **argv)
         };
 
         /* Test: s2n_sendfile */
-        file = open(argv[0], O_RDONLY);
+        uint8_t file_test_data[100] = { 0 };
+        int file = open(argv[0], O_RDONLY);
+        EXPECT_TRUE(file > 0);
+        int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
+        EXPECT_EQUAL(file_read, sizeof(file_test_data));
+
         for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
             const size_t offset = test_offsets[offset_i];
             const size_t expected_written = sizeof(test_data) - offset;
