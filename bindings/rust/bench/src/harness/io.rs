@@ -1,3 +1,6 @@
+// Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+// SPDX-License-Identifier: Apache-2.0
+
 use std::{cell::RefCell, collections::VecDeque, io::ErrorKind, pin::Pin, rc::Rc};
 
 pub type LocalDataBuffer = RefCell<VecDeque<u8>>;
