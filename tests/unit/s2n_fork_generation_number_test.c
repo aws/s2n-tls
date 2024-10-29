@@ -189,7 +189,6 @@ static int s2n_unit_test_clone_child_process(void *parent_process_fgn)
     /* Verify in threads */
     EXPECT_EQUAL(s2n_unit_test_thread(return_fork_generation_number), S2N_SUCCESS);
 
-    /* This translates to the exit code for this child process */
     exit(EXIT_SUCCESS);
 }
 
