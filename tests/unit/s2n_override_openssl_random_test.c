@@ -100,7 +100,10 @@ int main(int argc, char **argv)
     /* Set s2n_random to use a new fixed DRBG to test that other known answer tests with s2n_random and OpenSSL are deterministic */
     EXPECT_OK(s2n_stuffer_alloc_from_hex(&test_entropy, reference_entropy_hex));
     struct s2n_drbg drbg;
+
+    POSIX_GUARD_RESULT(s2n_rand_cleanup());
     EXPECT_SUCCESS(s2n_rand_set_callbacks(s2n_entropy_init_cleanup, s2n_entropy_init_cleanup, s2n_entropy_generator, s2n_entropy_generator));
+    POSIX_GUARD_RESULT(s2n_rand_init());
 
     s2n_stack_blob(personalization_string, 32, 32);
     EXPECT_OK(s2n_drbg_instantiate(&drbg, &personalization_string, S2N_AES_256_CTR_NO_DF_PR));
