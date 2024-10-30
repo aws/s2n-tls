@@ -30,13 +30,8 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
             break;
         }
 
-        /* Renegotiation is an unstable feature currently used for delayed client auth. Instead of 
-         * triggering renegotiation, throw an error.
+        /* If a sequence number would exceed the maximum value, then we need to start a new session.
          * This condition is very unlikely. It requires 2^64 - 1 records to be sent.
-         *
-         *= https://www.rfc-editor.org/rfc/rfc5246#section-6.1
-         *# If a TLS implementation would need to wrap a sequence number, it must
-         *# renegotiate instead.
          */
         S2N_ERROR_IF(i == 0, S2N_ERR_RECORD_LIMIT);
 
