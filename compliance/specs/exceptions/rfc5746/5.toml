@@ -6,6 +6,5 @@ Servers SHOULD NOT allow
 clients to renegotiate without using this extension.
 '''
 reason = '''
-s2n-tls servers do not support renegotiation
-and do not allow clients to renegotiate.
+s2n-tls servers do not support renegotiation.
 '''

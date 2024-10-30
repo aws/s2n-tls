@@ -7,8 +7,7 @@ servers nevertheless do permit it, they MUST follow the requirements
 in this section.
 '''
 reason = '''
-s2n-tls servers do not support renegotiation
-and do not allow clients to renegotiate.
+s2n-tls servers do not support renegotiation.
 '''
 
 [[exception]]
@@ -18,8 +17,7 @@ does not contain the TLS_EMPTY_RENEGOTIATION_INFO_SCSV SCSV.  If
 the SCSV is present, the server MUST abort the handshake.
 '''
 reason = '''
-s2n-tls servers do not support renegotiation
-and do not allow clients to renegotiate.
+s2n-tls servers do not support renegotiation.
 '''
 
 [[exception]]
@@ -28,6 +26,5 @@ o  The server MUST verify that the "renegotiation_info" extension is
 not present; if it is, the server MUST abort the handshake.
 '''
 reason = '''
-s2n-tls servers do not support renegotiation
-and do not allow clients to renegotiate.
+s2n-tls servers do not support renegotiation.
 '''

@@ -29,10 +29,12 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
         if (sequence_number->data[i]) {
             break;
         }
-
-        /* RFC 5246 6.1: If a TLS implementation would need to wrap a sequence number, it must
-         * renegotiate instead. We don't support renegotiation. Caller needs to create a new session.
-         * This condition is very unlikely. It requires 2^64 - 1 records to be sent.
+        
+        /* This condition is very unlikely. It requires 2^64 - 1 records to be sent.
+         *
+         *= https://www.rfc-editor.org/rfc/rfc5246#section-6.1
+         *# If a TLS implementation would need to wrap a sequence number, it must
+         *# renegotiate instead.
          */
         S2N_ERROR_IF(i == 0, S2N_ERR_RECORD_LIMIT);
 
