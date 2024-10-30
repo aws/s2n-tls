@@ -29,7 +29,7 @@ int s2n_increment_sequence_number(struct s2n_blob *sequence_number)
         if (sequence_number->data[i]) {
             break;
         }
-        
+
         /* This condition is very unlikely. It requires 2^64 - 1 records to be sent.
          *
          *= https://www.rfc-editor.org/rfc/rfc5246#section-6.1
