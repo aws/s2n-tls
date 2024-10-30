@@ -290,6 +290,7 @@ int main(int argc, char **argv)
 
             EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
         }
+
         EXPECT_SUCCESS(close(file));
 
         /* Test: s2n_shutdown */
