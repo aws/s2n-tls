@@ -86,7 +86,7 @@ void mock_client(struct s2n_test_io_pair *io_pair)
     s2n_connection_free(conn);
     s2n_config_free(config);
 
-    /* Give the server a chance to a void a sigpipe */
+    /* Give the server a chance to avoid a sigpipe */
     sleep(1);
 
     s2n_io_pair_close_one_end(io_pair, S2N_CLIENT);
