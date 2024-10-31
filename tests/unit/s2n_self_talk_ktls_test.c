@@ -259,31 +259,33 @@ int main(int argc, char **argv)
         };
 
         /* Test: s2n_sendfile */
-        uint8_t file_test_data[100] = { 0 };
-        int file = open(argv[0], O_RDONLY);
-        EXPECT_TRUE(file > 0);
-        int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
-        EXPECT_EQUAL(file_read, sizeof(file_test_data));
+        {
+            uint8_t file_test_data[100] = { 0 };
+            int file = open(argv[0], O_RDONLY);
+            EXPECT_TRUE(file > 0);
+            int file_read = pread(file, file_test_data, sizeof(file_test_data), 0);
+            EXPECT_EQUAL(file_read, sizeof(file_test_data));
 
-        for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
-            const size_t offset = test_offsets[offset_i];
-            const size_t expected_written = sizeof(test_data) - offset;
+            for (size_t offset_i = 0; offset_i < s2n_array_len(test_offsets); offset_i++) {
+                const size_t offset = test_offsets[offset_i];
+                const size_t expected_written = sizeof(test_data) - offset;
 
-            size_t written = 0;
-            EXPECT_SUCCESS(s2n_sendfile(writer, file, offset, expected_written,
-                    &written, &blocked));
-            EXPECT_EQUAL(written, expected_written);
-            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                size_t written = 0;
+                EXPECT_SUCCESS(s2n_sendfile(writer, file, offset, expected_written,
+                        &written, &blocked));
+                EXPECT_EQUAL(written, expected_written);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
-            uint8_t buffer[sizeof(file_test_data)] = { 0 };
-            int read = s2n_recv(reader, buffer, expected_written, &blocked);
-            EXPECT_EQUAL(read, expected_written);
-            EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
+                uint8_t buffer[sizeof(file_test_data)] = { 0 };
+                int read = s2n_recv(reader, buffer, expected_written, &blocked);
+                EXPECT_EQUAL(read, expected_written);
+                EXPECT_EQUAL(blocked, S2N_NOT_BLOCKED);
 
-            EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
+                EXPECT_BYTEARRAY_EQUAL(file_test_data + offset, buffer, read);
+            }
+
+            EXPECT_SUCCESS(close(file));
         }
-
-        EXPECT_SUCCESS(close(file));
 
         /* Test: s2n_shutdown */
         {
