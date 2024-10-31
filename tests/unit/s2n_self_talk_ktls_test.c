@@ -82,15 +82,7 @@ static S2N_RESULT s2n_new_inet_socket_pair(struct s2n_test_io_pair *io_pair)
     io_pair->client = socket(AF_INET, SOCK_STREAM, 0);
     RESULT_ENSURE_GT(io_pair->client, 0);
 
-    fflush(stdout);
-    pid_t pid = fork();
-    RESULT_ENSURE_GTE(pid, 0);
-    if (pid == 0) {
-        RESULT_ENSURE_EQ(connect(io_pair->client, (struct sockaddr *) &saddr, addrlen), 0);
-        EXPECT_SUCCESS(s2n_io_pair_close(io_pair));
-        RESULT_ENSURE_EQ(close(listener), 0);
-        exit(0);
-    }
+    RESULT_ENSURE_EQ(connect(io_pair->client, (struct sockaddr *) &saddr, addrlen), 0);
     io_pair->server = accept(listener, NULL, NULL);
     RESULT_ENSURE_GT(io_pair->server, 0);
     RESULT_ENSURE_EQ(close(listener), 0);
