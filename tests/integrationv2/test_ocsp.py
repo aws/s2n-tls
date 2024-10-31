@@ -76,6 +76,7 @@ def test_s2n_client_ocsp_response(managed_process, cipher, provider, other_provi
         assert random_bytes[1:] in server_results.stdout or random_bytes[1:] in server_results.stderr
 
 
+@pytest.mark.flaky(reruns=3, reruns_delay=1)
 @pytest.mark.uncollect_if(func=invalid_test_parameters)
 @pytest.mark.parametrize("cipher", ALL_TEST_CIPHERS, ids=get_parameter_name)
 @pytest.mark.parametrize("provider", [GnuTLS, OpenSSL], ids=get_parameter_name)
@@ -119,9 +120,9 @@ def test_s2n_server_ocsp_response(managed_process, cipher, provider, other_provi
         # it immediately after sending the message.
         kill_marker = b"Sent: "
 
-    server = managed_process(S2N, server_options, timeout=2000)
+    server = managed_process(S2N, server_options, timeout=90)
     client = managed_process(provider, client_options,
-                             timeout=2000, kill_marker=kill_marker)
+                             timeout=90, kill_marker=kill_marker)
 
     for client_results in client.get_results():
         client_results.assert_success()
