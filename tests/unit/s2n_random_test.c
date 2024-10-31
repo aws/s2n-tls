@@ -840,9 +840,13 @@ static int s2n_random_invalid_urandom_fd_cb(struct random_test_case *test_case)
 
         EXPECT_TRUE(dev_urandom->fd > STDERR_FILENO);
         if (test == 0) {
-            /* Close the file descriptor. */
+            /* Test 0 tests for closed dev_urandom fd */
             EXPECT_EQUAL(close(dev_urandom->fd), 0);
         } else {
+            /* Test 1 tests for invalid value for dev_urandom.
+             * Needs to close the previously set dev_urandom fd
+             * before making it invalid. */
+            EXPECT_EQUAL(close(dev_urandom->fd), 0);
             /* Make the file descriptor invalid by pointing it to STDERR. */
             dev_urandom->fd = STDERR_FILENO;
         }
