@@ -1,6 +1,6 @@
 # Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
 # SPDX-License-Identifier: Apache-2.0
-from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE, S2N_USE_CRITERION
+from global_flags import set_flag, S2N_PROVIDER_VERSION, S2N_FIPS_MODE
 
 
 def pytest_addoption(parser):
@@ -8,8 +8,6 @@ def pytest_addoption(parser):
                      default=None, type=str, help="Set the version of the TLS provider")
     parser.addoption("--fips-mode", action="store", dest="fips-mode",
                      default=False, type=int, help="S2N is running in FIPS mode")
-    parser.addoption("--provider-criterion", action="store", dest="provider-criterion",
-                     default="off", type=str, choices=['off', 'baseline', 'delta'], help="Use Criterion provider in one of 3 modes: [off,baseline,delta]")
 
 
 def pytest_configure(config):
@@ -26,8 +24,6 @@ def pytest_configure(config):
         set_flag(S2N_FIPS_MODE, True)
 
     set_flag(S2N_PROVIDER_VERSION, config.getoption('provider-version', None))
-    set_flag(S2N_USE_CRITERION, config.getoption('provider-criterion', "off"))
-
 
 def pytest_collection_modifyitems(config, items):
     """
